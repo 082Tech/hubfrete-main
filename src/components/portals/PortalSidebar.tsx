@@ -14,6 +14,7 @@ import {
   Bell,
   ChevronDown,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -80,7 +81,7 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
-  const { empresa, companyInfo, filiais, filialAtiva, setFilialAtiva, cargo } = useUserContext();
+  const { empresa, companyInfo, filiais, filialAtiva, setFilialAtiva, cargo, switchingFilial } = useUserContext();
   
   const allMenuItems = menusByType[userType];
   // Filter menu items based on user cargo (ADMIN sees all, OPERADOR sees non-admin items)
@@ -142,10 +143,17 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
                 variant="outline" 
                 size="sm" 
                 className="w-full justify-between h-9 px-3 text-xs bg-sidebar border-sidebar-border hover:bg-sidebar-accent"
+                disabled={switchingFilial}
               >
                 <span className="flex items-center gap-2 text-sidebar-foreground">
-                  <MapPin className="w-3.5 h-3.5 text-sidebar-primary" />
-                  <span className="font-medium truncate">{filialAtiva?.nome || 'Selecionar filial'}</span>
+                  {switchingFilial ? (
+                    <Loader2 className="w-3.5 h-3.5 text-sidebar-primary animate-spin" />
+                  ) : (
+                    <MapPin className="w-3.5 h-3.5 text-sidebar-primary" />
+                  )}
+                  <span className="font-medium truncate">
+                    {switchingFilial ? 'Carregando...' : (filialAtiva?.nome || 'Selecionar filial')}
+                  </span>
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground/60 shrink-0" />
               </Button>

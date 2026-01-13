@@ -32,6 +32,7 @@ export interface UserContextData {
   filiais: Filial[];
   filialAtiva: Filial | null;
   loading: boolean;
+  switchingFilial: boolean;
   setFilialAtiva: (filial: Filial) => void;
   refresh: () => Promise<void>;
 }
@@ -47,11 +48,16 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   const [filiais, setFiliais] = useState<Filial[]>([]);
   const [filialAtiva, setFilialAtivaState] = useState<Filial | null>(null);
   const [loading, setLoading] = useState(true);
+  const [switchingFilial, setSwitchingFilial] = useState(false);
 
   const setFilialAtiva = useCallback((filial: Filial) => {
+    // Show loading briefly when switching
+    setSwitchingFilial(true);
     setFilialAtivaState(filial);
     // Persist to localStorage for page refreshes
     localStorage.setItem('hubfrete_filial_ativa', JSON.stringify(filial));
+    // Small delay to allow queries to refetch
+    setTimeout(() => setSwitchingFilial(false), 500);
   }, []);
 
   const loadUserContext = useCallback(async () => {
@@ -205,6 +211,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         filiais,
         filialAtiva,
         loading: authLoading || loading,
+        switchingFilial,
         setFilialAtiva,
         refresh: loadUserContext,
       }}
