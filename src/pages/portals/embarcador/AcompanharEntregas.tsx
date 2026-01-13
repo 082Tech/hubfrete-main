@@ -32,10 +32,13 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+
+// Lazy load the map component to improve initial load
+const EntregasMap = lazy(() => import('@/components/maps/EntregasMap').then(m => ({ default: m.EntregasMap })));
 
 interface EntregaComRelacoes {
   id: string;
@@ -329,49 +332,36 @@ export default function AcompanharEntregas() {
             </CardContent>
           </Card>
         ) : viewMode === 'map' ? (
-          /* Map View */
-          <Card className="border-border">
-            <CardContent className="p-0">
-              <div className="relative w-full h-[500px] bg-muted/30 rounded-lg overflow-hidden">
-                {/* Map Placeholder */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-                  <div className="p-4 bg-primary/10 rounded-full mb-4">
-                    <MapPinned className="w-12 h-12 text-primary" />
+          /* Map View with OpenStreetMap */
+          <div className="relative">
+            <Suspense fallback={
+              <Card className="border-border">
+                <CardContent className="p-0">
+                  <div className="w-full h-[500px] flex items-center justify-center bg-muted/30 rounded-lg">
+                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                   </div>
-                  <h3 className="font-bold text-lg text-foreground mb-2">Visualização em Mapa</h3>
-                  <p className="text-muted-foreground max-w-md mb-4">
-                    O mapa interativo com rastreamento em tempo real será implementado em breve.
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {filteredEntregas.slice(0, 5).map((entrega) => {
-                      const status = entrega.status || 'aguardando_coleta';
-                      const config = statusConfig[status] || statusConfig['aguardando_coleta'];
-                      return (
-                        <Badge key={entrega.id} variant="outline" className={config.color}>
-                          {entrega.cargas.codigo}
-                        </Badge>
-                      );
-                    })}
-                    {filteredEntregas.length > 5 && (
-                      <Badge variant="secondary">+{filteredEntregas.length - 5} mais</Badge>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Decorative map-like background */}
-                <div className="absolute inset-0 opacity-10">
-                  <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/>
-                      </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill="url(#grid)" />
-                  </svg>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            }>
+              <EntregasMap 
+                entregas={filteredEntregas.map(entrega => {
+                  const destino = entrega.cargas.enderecos_carga?.find(e => e.tipo === 'destino');
+                  return {
+                    id: entrega.id,
+                    latitude: entrega.latitude_atual,
+                    longitude: entrega.longitude_atual,
+                    status: entrega.status,
+                    codigo: entrega.cargas.codigo,
+                    descricao: entrega.cargas.descricao,
+                    motorista: entrega.motoristas?.nome_completo || null,
+                    telefone: entrega.motoristas?.telefone || null,
+                    placa: entrega.veiculos?.placa || null,
+                    destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
+                  };
+                })}
+              />
+            </Suspense>
+          </div>
         ) : (
           <div className="grid gap-4">
             {filteredEntregas.map((entrega) => {
