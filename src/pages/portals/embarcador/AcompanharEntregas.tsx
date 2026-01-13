@@ -36,6 +36,7 @@ import { useState, lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserContext } from '@/hooks/useUserContext';
 
 // Lazy load the map component to improve initial load
 const EntregasMap = lazy(() => import('@/components/maps/EntregasMap').then(m => ({ default: m.EntregasMap })));
@@ -50,6 +51,7 @@ interface EntregaComRelacoes {
   coletado_em: string | null;
   entregue_em: string | null;
   updated_at: string | null;
+  empresa_id: number | null;
   cargas: {
     codigo: string;
     descricao: string;
@@ -69,10 +71,6 @@ interface EntregaComRelacoes {
     marca: string | null;
     modelo: string | null;
   } | null;
-  transportadoras: {
-    nome_fantasia: string | null;
-    razao_social: string;
-  };
 }
 
 const statusConfig: Record<string, { color: string; icon: React.ElementType; label: string }> = {
@@ -126,31 +124,15 @@ const getTimeAgo = (dateString: string | null) => {
 
 export default function AcompanharEntregas() {
   const { user } = useAuth();
+  const { empresa } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
-  // Fetch embarcador
-  const { data: embarcador } = useQuery({
-    queryKey: ['embarcador', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('embarcadores')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-
   // Fetch entregas
   const { data: entregas = [], isLoading } = useQuery({
-    queryKey: ['entregas_embarcador', embarcador?.id],
+    queryKey: ['entregas_embarcador', empresa?.id],
     queryFn: async () => {
-      if (!embarcador?.id) return [];
+      if (!empresa?.id) return [];
 
       const { data, error } = await supabase
         .from('entregas')
@@ -164,11 +146,12 @@ export default function AcompanharEntregas() {
           coletado_em,
           entregue_em,
           updated_at,
+          empresa_id,
           cargas!inner (
             codigo,
             descricao,
             data_entrega_limite,
-            embarcador_id,
+            empresa_id,
             enderecos_carga (
               tipo,
               cidade,
@@ -183,19 +166,15 @@ export default function AcompanharEntregas() {
             placa,
             marca,
             modelo
-          ),
-          transportadoras (
-            nome_fantasia,
-            razao_social
           )
         `)
-        .eq('cargas.embarcador_id', embarcador.id)
+        .eq('cargas.empresa_id', empresa.id)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
       return (data || []) as EntregaComRelacoes[];
     },
-    enabled: !!embarcador?.id,
+    enabled: !!empresa?.id,
   });
 
   const filteredEntregas = entregas.filter(entrega => 

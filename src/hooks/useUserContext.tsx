@@ -69,48 +69,35 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     setLoading(true);
 
     try {
-      // Check user type by membership tables and get company info
-      const [
-        { data: embarcador },
-        { data: transportadora },
-        { data: motorista }
-      ] = await Promise.all([
-        supabase.from('embarcadores').select('id, razao_social, nome_fantasia, cnpj').eq('user_id', user.id).maybeSingle(),
-        supabase.from('transportadoras').select('id, razao_social, nome_fantasia, cnpj').eq('user_id', user.id).maybeSingle(),
-        supabase.from('motoristas').select('id').eq('user_id', user.id).maybeSingle(),
-      ]);
+      // Check if user is a motorista first
+      const { data: motorista } = await supabase
+        .from('motoristas')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      // Set company info from embarcador or transportadora
-      if (embarcador) {
-        setCompanyInfo({
-          id: embarcador.id,
-          razao_social: embarcador.razao_social,
-          nome_fantasia: embarcador.nome_fantasia,
-          cnpj: embarcador.cnpj,
-        });
-      } else if (transportadora) {
-        setCompanyInfo({
-          id: transportadora.id,
-          razao_social: transportadora.razao_social,
-          nome_fantasia: transportadora.nome_fantasia,
-          cnpj: transportadora.cnpj,
-        });
+      if (motorista) {
+        setUserType('motorista');
+        setLoading(false);
+        return;
       }
 
-      const type: UserType = embarcador
+      // Get empresa tipo using database function
+      const { data: empresaTipo } = await supabase
+        .rpc('get_user_empresa_tipo', { _user_id: user.id });
+
+      const type: UserType = empresaTipo === 'EMBARCADOR'
         ? 'embarcador'
-        : transportadora
+        : empresaTipo === 'TRANSPORTADORA'
           ? 'transportadora'
-          : motorista
-            ? 'motorista'
-            : null;
+          : null;
 
       setUserType(type);
 
       // Load company structure for embarcador/transportadora
-      if (type === 'embarcador' || type === 'transportadora') {
+      if (type) {
         // Get Usuario record and their filiais
-        const { data: usuarioData, error: usuarioError } = await supabase
+        const { data: usuarioData } = await supabase
           .from('usuarios')
           .select(`
             id,
@@ -139,7 +126,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
           const cargos = usuarioData.usuarios_filiais?.map((uf: any) => uf.cargo_na_filial) || [];
           setCargo(cargos.includes('ADMIN') ? 'ADMIN' : cargos[0] as UserCargo);
 
-          // Extract unique filiais
+          // Extract unique filiais and empresa info
           const filiaisData: Filial[] = [];
           let empresaData: Empresa | null = null;
 
@@ -163,6 +150,17 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
           setFiliais(filiaisData);
           setEmpresa(empresaData);
 
+          // Get company info from first filial
+          if (filiaisData.length > 0 && usuarioData.usuarios_filiais?.[0]?.filiais) {
+            const firstFilial = usuarioData.usuarios_filiais[0].filiais as any;
+            setCompanyInfo({
+              id: String(empresaData?.id || 0),
+              razao_social: firstFilial.nome || 'Empresa',
+              nome_fantasia: firstFilial.nome,
+              cnpj: firstFilial.cnpj || '',
+            });
+          }
+
           // Try to restore filial ativa from localStorage, or use first one
           const storedFilial = localStorage.getItem('hubfrete_filial_ativa');
           if (storedFilial) {
@@ -181,23 +179,6 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
             }
           } else if (filiaisData.length > 0) {
             setFilialAtivaState(filiaisData[0]);
-          }
-        } else {
-          // Fallback: No Usuario record found, use embarcador/transportadora as "virtual" filial
-          // This handles cases where user registered as embarcador but wasn't linked to Empresas/Filiais
-          console.log('No Usuario record found, using company info as virtual filial');
-          
-          if (embarcador || transportadora) {
-            const companyData = embarcador || transportadora;
-            const virtualFilial: Filial = {
-              id: 0, // Virtual ID
-              nome: companyData?.nome_fantasia || companyData?.razao_social || 'Matriz',
-              cnpj: companyData?.cnpj || null,
-            };
-            setFiliais([virtualFilial]);
-            setFilialAtivaState(virtualFilial);
-            // Set cargo as ADMIN for company owner
-            setCargo('ADMIN');
           }
         }
       }

@@ -61,22 +61,6 @@ export default function UsuariosEmpresa() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
-  // Fetch embarcador data to get company_id
-  const { data: embarcador } = useQuery({
-    queryKey: ['embarcador', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('embarcadores')
-        .select('id, razao_social, empresa_id')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
 
   // Fetch usuarios from the company
   const { data: usuarios = [], isLoading: loadingUsuarios, refetch: refetchUsuarios } = useQuery({
@@ -136,19 +120,19 @@ export default function UsuariosEmpresa() {
 
   // Fetch pending invites
   const { data: invites = [], refetch: refetchInvites } = useQuery({
-    queryKey: ['company_invites', embarcador?.id],
+    queryKey: ['company_invites', empresa?.id],
     queryFn: async () => {
-      if (!embarcador?.id) return [];
+      if (!empresa?.id) return [];
       const { data, error } = await supabase
         .from('company_invites')
         .select('*')
-        .eq('company_id', embarcador.id)
+        .eq('company_id', String(empresa.id))
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
     },
-    enabled: !!embarcador?.id,
+    enabled: !!empresa?.id,
   });
 
   const filteredUsuarios = usuarios.filter(usuario => 
@@ -211,12 +195,12 @@ export default function UsuariosEmpresa() {
         </div>
 
         {/* Invite Dialog */}
-        {embarcador && (
+        {empresa && (
           <InviteUserDialog
             open={isInviteDialogOpen}
             onOpenChange={setIsInviteDialogOpen}
             companyType="embarcador"
-            companyId={embarcador.id}
+            companyId={String(empresa.id)}
             filiais={contextFiliais.map(f => ({ id: f.id, nome: f.nome || 'Sem nome' }))}
             onSuccess={() => {
               refetchInvites();

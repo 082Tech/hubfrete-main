@@ -27,8 +27,8 @@ export type Database = {
           data_entrega_limite: string | null
           descricao: string
           documentacao: Json | null
-          embarcador_id: string
           empilhavel: boolean | null
+          empresa_id: number | null
           id: string
           numero_onu: string | null
           peso_kg: number
@@ -56,8 +56,8 @@ export type Database = {
           data_entrega_limite?: string | null
           descricao: string
           documentacao?: Json | null
-          embarcador_id: string
           empilhavel?: boolean | null
+          empresa_id?: number | null
           id?: string
           numero_onu?: string | null
           peso_kg: number
@@ -85,8 +85,8 @@ export type Database = {
           data_entrega_limite?: string | null
           descricao?: string
           documentacao?: Json | null
-          embarcador_id?: string
           empilhavel?: boolean | null
+          empresa_id?: number | null
           id?: string
           numero_onu?: string | null
           peso_kg?: number
@@ -104,10 +104,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "cargas_embarcador_id_fkey"
-            columns: ["embarcador_id"]
+            foreignKeyName: "cargas_empresa_id_fkey"
+            columns: ["empresa_id"]
             isOneToOne: false
-            referencedRelation: "embarcadores"
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -170,6 +170,7 @@ export type Database = {
           aceita_em: string | null
           carga_id: string
           created_at: string | null
+          empresa_id: number | null
           id: string
           motivo_recusa: string | null
           motorista_id: string | null
@@ -177,7 +178,6 @@ export type Database = {
           prazo_entrega_dias: number | null
           recusada_em: string | null
           status: Database["public"]["Enums"]["status_cotacao"] | null
-          transportadora_id: string
           updated_at: string | null
           validade: string | null
           valor_proposto: number
@@ -187,6 +187,7 @@ export type Database = {
           aceita_em?: string | null
           carga_id: string
           created_at?: string | null
+          empresa_id?: number | null
           id?: string
           motivo_recusa?: string | null
           motorista_id?: string | null
@@ -194,7 +195,6 @@ export type Database = {
           prazo_entrega_dias?: number | null
           recusada_em?: string | null
           status?: Database["public"]["Enums"]["status_cotacao"] | null
-          transportadora_id: string
           updated_at?: string | null
           validade?: string | null
           valor_proposto: number
@@ -204,6 +204,7 @@ export type Database = {
           aceita_em?: string | null
           carga_id?: string
           created_at?: string | null
+          empresa_id?: number | null
           id?: string
           motivo_recusa?: string | null
           motorista_id?: string | null
@@ -211,7 +212,6 @@ export type Database = {
           prazo_entrega_dias?: number | null
           recusada_em?: string | null
           status?: Database["public"]["Enums"]["status_cotacao"] | null
-          transportadora_id?: string
           updated_at?: string | null
           validade?: string | null
           valor_proposto?: number
@@ -226,6 +226,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cotacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cotacoes_motorista_id_fkey"
             columns: ["motorista_id"]
             isOneToOne: false
@@ -233,85 +240,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cotacoes_transportadora_id_fkey"
-            columns: ["transportadora_id"]
-            isOneToOne: false
-            referencedRelation: "transportadoras"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "cotacoes_veiculo_id_fkey"
             columns: ["veiculo_id"]
             isOneToOne: false
             referencedRelation: "veiculos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      embarcadores: {
-        Row: {
-          ativo: boolean | null
-          cep: string | null
-          cidade: string | null
-          cnpj: string
-          created_at: string | null
-          email: string | null
-          empresa_id: number | null
-          endereco: string | null
-          estado: string | null
-          id: string
-          inscricao_estadual: string | null
-          logo_url: string | null
-          nome_fantasia: string | null
-          razao_social: string
-          telefone: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          ativo?: boolean | null
-          cep?: string | null
-          cidade?: string | null
-          cnpj: string
-          created_at?: string | null
-          email?: string | null
-          empresa_id?: number | null
-          endereco?: string | null
-          estado?: string | null
-          id?: string
-          inscricao_estadual?: string | null
-          logo_url?: string | null
-          nome_fantasia?: string | null
-          razao_social: string
-          telefone?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          ativo?: boolean | null
-          cep?: string | null
-          cidade?: string | null
-          cnpj?: string
-          created_at?: string | null
-          email?: string | null
-          empresa_id?: number | null
-          endereco?: string | null
-          estado?: string | null
-          id?: string
-          inscricao_estadual?: string | null
-          logo_url?: string | null
-          nome_fantasia?: string | null
-          razao_social?: string
-          telefone?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "embarcadores_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -428,6 +360,7 @@ export type Database = {
           cotacao_id: string | null
           created_at: string | null
           documento_recebedor: string | null
+          empresa_id: number | null
           entregue_em: string | null
           foto_comprovante_coleta: string | null
           foto_comprovante_entrega: string | null
@@ -438,7 +371,6 @@ export type Database = {
           nome_recebedor: string | null
           observacoes: string | null
           status: Database["public"]["Enums"]["status_entrega"] | null
-          transportadora_id: string
           ultima_atualizacao_localizacao: string | null
           updated_at: string | null
           veiculo_id: string | null
@@ -450,6 +382,7 @@ export type Database = {
           cotacao_id?: string | null
           created_at?: string | null
           documento_recebedor?: string | null
+          empresa_id?: number | null
           entregue_em?: string | null
           foto_comprovante_coleta?: string | null
           foto_comprovante_entrega?: string | null
@@ -460,7 +393,6 @@ export type Database = {
           nome_recebedor?: string | null
           observacoes?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
-          transportadora_id: string
           ultima_atualizacao_localizacao?: string | null
           updated_at?: string | null
           veiculo_id?: string | null
@@ -472,6 +404,7 @@ export type Database = {
           cotacao_id?: string | null
           created_at?: string | null
           documento_recebedor?: string | null
+          empresa_id?: number | null
           entregue_em?: string | null
           foto_comprovante_coleta?: string | null
           foto_comprovante_entrega?: string | null
@@ -482,7 +415,6 @@ export type Database = {
           nome_recebedor?: string | null
           observacoes?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
-          transportadora_id?: string
           ultima_atualizacao_localizacao?: string | null
           updated_at?: string | null
           veiculo_id?: string | null
@@ -503,17 +435,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "entregas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "entregas_motorista_id_fkey"
             columns: ["motorista_id"]
             isOneToOne: false
             referencedRelation: "motoristas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "entregas_transportadora_id_fkey"
-            columns: ["transportadora_id"]
-            isOneToOne: false
-            referencedRelation: "transportadoras"
             referencedColumns: ["id"]
           },
           {
@@ -592,11 +524,11 @@ export type Database = {
           cpf: string
           created_at: string | null
           email: string | null
+          empresa_id: number | null
           foto_url: string | null
           id: string
           nome_completo: string
           telefone: string | null
-          transportadora_id: string | null
           updated_at: string | null
           user_id: string
           validade_cnh: string
@@ -608,11 +540,11 @@ export type Database = {
           cpf: string
           created_at?: string | null
           email?: string | null
+          empresa_id?: number | null
           foto_url?: string | null
           id?: string
           nome_completo: string
           telefone?: string | null
-          transportadora_id?: string | null
           updated_at?: string | null
           user_id: string
           validade_cnh: string
@@ -624,21 +556,21 @@ export type Database = {
           cpf?: string
           created_at?: string | null
           email?: string | null
+          empresa_id?: number | null
           foto_url?: string | null
           id?: string
           nome_completo?: string
           telefone?: string | null
-          transportadora_id?: string | null
           updated_at?: string | null
           user_id?: string
           validade_cnh?: string
         }
         Relationships: [
           {
-            foreignKeyName: "motoristas_transportadora_id_fkey"
-            columns: ["transportadora_id"]
+            foreignKeyName: "motoristas_empresa_id_fkey"
+            columns: ["empresa_id"]
             isOneToOne: false
-            referencedRelation: "transportadoras"
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -707,77 +639,6 @@ export type Database = {
             columns: ["entrega_id"]
             isOneToOne: false
             referencedRelation: "entregas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      transportadoras: {
-        Row: {
-          ativo: boolean | null
-          cep: string | null
-          cidade: string | null
-          cnpj: string
-          created_at: string | null
-          email: string | null
-          empresa_id: number | null
-          endereco: string | null
-          estado: string | null
-          id: string
-          inscricao_estadual: string | null
-          logo_url: string | null
-          nome_fantasia: string | null
-          razao_social: string
-          rntrc: string | null
-          telefone: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          ativo?: boolean | null
-          cep?: string | null
-          cidade?: string | null
-          cnpj: string
-          created_at?: string | null
-          email?: string | null
-          empresa_id?: number | null
-          endereco?: string | null
-          estado?: string | null
-          id?: string
-          inscricao_estadual?: string | null
-          logo_url?: string | null
-          nome_fantasia?: string | null
-          razao_social: string
-          rntrc?: string | null
-          telefone?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          ativo?: boolean | null
-          cep?: string | null
-          cidade?: string | null
-          cnpj?: string
-          created_at?: string | null
-          email?: string | null
-          empresa_id?: number | null
-          endereco?: string | null
-          estado?: string | null
-          id?: string
-          inscricao_estadual?: string | null
-          logo_url?: string | null
-          nome_fantasia?: string | null
-          razao_social?: string
-          rntrc?: string | null
-          telefone?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "transportadoras_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -907,6 +768,7 @@ export type Database = {
           capacidade_m3: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
           created_at: string | null
+          empresa_id: number | null
           id: string
           marca: string | null
           modelo: string | null
@@ -916,7 +778,6 @@ export type Database = {
           renavam: string | null
           seguro_ativo: boolean | null
           tipo: Database["public"]["Enums"]["tipo_veiculo"]
-          transportadora_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -926,6 +787,7 @@ export type Database = {
           capacidade_m3?: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
           created_at?: string | null
+          empresa_id?: number | null
           id?: string
           marca?: string | null
           modelo?: string | null
@@ -935,7 +797,6 @@ export type Database = {
           renavam?: string | null
           seguro_ativo?: boolean | null
           tipo: Database["public"]["Enums"]["tipo_veiculo"]
-          transportadora_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -945,6 +806,7 @@ export type Database = {
           capacidade_m3?: number | null
           carroceria?: Database["public"]["Enums"]["tipo_carroceria"]
           created_at?: string | null
+          empresa_id?: number | null
           id?: string
           marca?: string | null
           modelo?: string | null
@@ -954,22 +816,21 @@ export type Database = {
           renavam?: string | null
           seguro_ativo?: boolean | null
           tipo?: Database["public"]["Enums"]["tipo_veiculo"]
-          transportadora_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "veiculos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "veiculos_motorista_id_fkey"
             columns: ["motorista_id"]
             isOneToOne: false
             referencedRelation: "motoristas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "veiculos_transportadora_id_fkey"
-            columns: ["transportadora_id"]
-            isOneToOne: false
-            referencedRelation: "transportadoras"
             referencedColumns: ["id"]
           },
         ]

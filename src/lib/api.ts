@@ -18,19 +18,10 @@ export interface User {
   created_at?: string;
 }
 
-export interface Embarcador {
+export interface Empresa {
   id: number;
-  nome?: string;
-  email?: string;
-  cnpj?: string;
-  created_at?: string;
-}
-
-export interface Transportadora {
-  id: number;
-  nome?: string;
-  email?: string;
-  cnpj?: string;
+  tipo: 'EMBARCADOR' | 'TRANSPORTADORA';
+  classe: string;
   created_at?: string;
 }
 
@@ -195,25 +186,12 @@ export async function getUsers(id?: number): Promise<User[]> {
   return response.json();
 }
 
-// Get all embarcadores (requires JWT auth)
-export async function getEmbarcadores(id?: number): Promise<Embarcador[]> {
+// Get all empresas (requires JWT auth)
+export async function getEmpresas(tipo?: 'EMBARCADOR' | 'TRANSPORTADORA'): Promise<Empresa[]> {
   const token = getAuthToken();
-  const url = id
-    ? `${N8N_BASE_URL}/webhook/embarcadoras?id=${id}`
-    : `${N8N_BASE_URL}/webhook/embarcadoras`;
-
-  const response = await fetch(url, {
-    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-  });
-  return response.json();
-}
-
-// Get all transportadoras (requires JWT auth)
-export async function getTransportadoras(id?: number): Promise<Transportadora[]> {
-  const token = getAuthToken();
-  const url = id
-    ? `${N8N_BASE_URL}/webhook/transportadoras?id=${id}`
-    : `${N8N_BASE_URL}/webhook/transportadoras`;
+  const url = tipo
+    ? `${N8N_BASE_URL}/webhook/empresas?tipo=${tipo}`
+    : `${N8N_BASE_URL}/webhook/empresas`;
 
   const response = await fetch(url, {
     headers: token ? { 'Authorization': `Bearer ${token}` } : {},
