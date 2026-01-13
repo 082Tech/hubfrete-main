@@ -1,221 +1,244 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Truck,
-  Mail,
-  Lock,
-  Loader2,
-  CheckCircle,
-  KeyRound,
-  ShieldCheck,
-} from 'lucide-react';
+import { Truck, Mail, Lock, Loader2, CheckCircle, KeyRound, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from '@/components/ui/input-otp';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 type LoginStep = 'credentials' | 'mfa' | 'success';
 
-export default function Login({
-  setShowSplash,
-}: {
-  setShowSplash: (show: boolean) => void;
-}) {
+export default function Login({ setShowSplash }: { setShowSplash: (show: boolean) => void }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { signIn, loading: authLoading } = useAuth();
-
+  const { signIn, user, loading: authLoading, getRedirectPath } = useAuth();
+  
   const [step, setStep] = useState<LoginStep>('credentials');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
-
   const [mfaCode, setMfaCode] = useState('');
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
 
+  // Check for invite token in URL
   const inviteToken = searchParams.get('invite');
 
-  /* =======================
-     REDIRECT FINAL
-  ======================= */
+  // NOTE: We intentionally do NOT auto-redirect here when user is already logged in
+  // The redirect should only happen after explicit login action via handleLogin
+  // This prevents redirect loops when roles aren't loaded yet
+
+  const checkMfaRequirement = async () => {
+    try {
+      const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      
+      if (error) {
+        console.error('MFA check error:', error);
+        proceedToApp();
+        return;
+      }
+
+      // If user needs to complete MFA (has enrolled but not verified in this session)
+      if (data.nextLevel === 'aal2' && data.nextLevel !== data.currentLevel) {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const totpFactor = factors?.totp?.[0];
+        
+        if (totpFactor) {
+          setMfaFactorId(totpFactor.id);
+          setStep('mfa');
+          return;
+        }
+      }
+
+      proceedToApp();
+    } catch (error) {
+      console.error('MFA requirement check failed:', error);
+      proceedToApp();
+    }
+  };
+
   const proceedToApp = async () => {
     setStep('success');
     setShowSplash(true);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-
-    let redirectPath = '/login';
-
-    if (roles?.length) {
-      switch (roles[0].role) {
-        case 'embarcador':
-          redirectPath = '/embarcador';
-          break;
-        case 'transportadora':
-          redirectPath = '/transportadora';
-          break;
-        case 'motorista':
-          redirectPath = '/motorista';
-          break;
-        case 'admin':
-          redirectPath = '/admin';
-          break;
+    
+    // Fetch user roles to determine redirect path
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    
+    if (currentUser) {
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', currentUser.id);
+      
+      let redirectPath = '/login'; // fallback
+      
+      if (roles && roles.length > 0) {
+        const role = roles[0].role;
+        switch (role) {
+          case 'embarcador':
+            redirectPath = '/embarcador';
+            break;
+          case 'transportadora':
+            redirectPath = '/transportadora';
+            break;
+          case 'motorista':
+            redirectPath = '/motorista';
+            break;
+          default:
+            // Unknown role - show error (admin uses /admin/login)
+            toast.error('Perfil de acesso não encontrado. Contate o suporte.');
+            redirectPath = '/login';
+        }
+      } else {
+        toast.error('Nenhum perfil de acesso encontrado. Contate o suporte.');
       }
+      
+      setTimeout(() => {
+        navigate(redirectPath);
+      }, 500);
     }
-
-    setTimeout(() => navigate(redirectPath), 500);
   };
 
-  /* =======================
-     LOGIN
-  ======================= */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!email || !senha) {
       toast.error('Preencha todos os campos');
       return;
     }
 
     setLoading(true);
-
     try {
-      const { data, error } = await signIn(email, senha);
-
-      if (error || !data) {
-        toast.error(error?.message ?? 'Erro ao autenticar');
+      const { error } = await signIn(email, senha);
+      
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Email ou senha incorretos');
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error('Email não confirmado. Verifique sua caixa de entrada.');
+        } else {
+          toast.error(error.message);
+        }
+        setLoading(false);
         return;
       }
 
-      const { data: aal } =
-        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
-      if (aal.currentLevel === 'aal2') {
-        proceedToApp();
-        return;
-      }
-
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const totpFactor = factors?.totp?.[0];
-
-      if (totpFactor) {
-        setMfaFactorId(totpFactor.id);
-        setStep('mfa');
-        return;
-      }
-
-      proceedToApp();
-    } catch (err) {
-      toast.error('Erro ao conectar com o servidor');
+      // Check MFA requirement will be triggered by useEffect when user state changes
+      // But we can also check immediately after login
+      await checkMfaRequirement();
+      
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao conectar com o servidor';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
-  /* =======================
-     MFA VERIFY
-  ======================= */
   const handleMfaVerify = async () => {
-    if (!mfaFactorId || mfaCode.length !== 6) {
+    if (mfaCode.length !== 6 || !mfaFactorId) {
       toast.error('Digite o código de 6 dígitos');
       return;
     }
 
     setLoading(true);
-
     try {
-      const { data: challenge, error: challengeError } =
-        await supabase.auth.mfa.challenge({
-          factorId: mfaFactorId,
-        });
+      // Create challenge
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: mfaFactorId,
+      });
 
       if (challengeError) {
-        toast.error(challengeError.message);
+        toast.error('Erro ao iniciar verificação: ' + challengeError.message);
+        setLoading(false);
         return;
       }
 
+      // Verify code
       const { error: verifyError } = await supabase.auth.mfa.verify({
         factorId: mfaFactorId,
-        challengeId: challenge.id,
+        challengeId: challengeData.id,
         code: mfaCode,
       });
 
       if (verifyError) {
-        toast.error('Código inválido');
+        toast.error('Código inválido. Tente novamente.');
         setMfaCode('');
+        setLoading(false);
         return;
       }
 
-      toast.success('Verificação concluída');
+      toast.success('Verificação concluída!');
       proceedToApp();
-    } catch {
-      toast.error('Erro ao verificar MFA');
-    } finally {
+      
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro na verificação';
+      toast.error(message);
       setLoading(false);
     }
   };
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/30">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  /* =======================
-     UI STEPS
-  ======================= */
   const renderCredentialsStep = () => (
     <form onSubmit={handleLogin} className="space-y-4">
       <div className="space-y-2">
-        <Label>Email</Label>
+        <Label htmlFor="email">Email</Label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
+            id="email"
             type="email"
-            className="pl-10"
+            placeholder="seu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="pl-10"
+            autoComplete="email"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label>Senha</Label>
+        <Label htmlFor="senha">Senha</Label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
+            id="senha"
             type="password"
-            className="pl-10"
+            placeholder="••••••••"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
+            className="pl-10"
+            autoComplete="current-password"
           />
         </div>
       </div>
 
-      <Button className="w-full" disabled={loading}>
-        {loading ? 'Entrando...' : 'Entrar'}
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Entrando...
+          </>
+        ) : (
+          'Entrar'
+        )}
       </Button>
 
-      <Button asChild variant="link" className="w-full">
+      <Button
+        type="button"
+        variant="link"
+        className="w-full text-sm"
+        asChild
+      >
         <Link to="/esqueci-senha">
           <KeyRound className="w-4 h-4 mr-2" />
           Esqueci minha senha
@@ -227,74 +250,117 @@ export default function Login({
   const renderMfaStep = () => (
     <div className="space-y-6">
       <div className="flex flex-col items-center gap-4">
-        <ShieldCheck className="w-10 h-10 text-primary" />
-        <p className="text-sm text-muted-foreground text-center">
-          Digite o código do seu aplicativo autenticador
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+          <ShieldCheck className="w-8 h-8 text-primary" />
+        </div>
+        <p className="text-muted-foreground text-center text-sm">
+          Digite o código de 6 dígitos do seu aplicativo autenticador
         </p>
       </div>
 
-      <InputOTP maxLength={6} value={mfaCode} onChange={setMfaCode}>
-        <InputOTPGroup>
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <InputOTPSlot key={i} index={i} />
-          ))}
-        </InputOTPGroup>
-      </InputOTP>
+      <div className="flex justify-center">
+        <InputOTP
+          maxLength={6}
+          value={mfaCode}
+          onChange={(value) => setMfaCode(value)}
+          onComplete={handleMfaVerify}
+        >
+          <InputOTPGroup>
+            <InputOTPSlot index={0} />
+            <InputOTPSlot index={1} />
+            <InputOTPSlot index={2} />
+            <InputOTPSlot index={3} />
+            <InputOTPSlot index={4} />
+            <InputOTPSlot index={5} />
+          </InputOTPGroup>
+        </InputOTP>
+      </div>
 
-      <Button
-        onClick={handleMfaVerify}
+      <Button 
+        onClick={handleMfaVerify} 
+        className="w-full" 
         disabled={loading || mfaCode.length !== 6}
-        className="w-full"
       >
-        {loading ? 'Verificando...' : 'Verificar'}
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Verificando...
+          </>
+        ) : (
+          'Verificar'
+        )}
       </Button>
 
       <Button
+        type="button"
         variant="ghost"
-        className="w-full"
+        className="w-full text-sm"
         onClick={() => {
           setStep('credentials');
           setMfaCode('');
           setMfaFactorId(null);
         }}
       >
-        ← Voltar
+        ← Voltar para login
       </Button>
     </div>
   );
 
   const renderSuccessStep = () => (
     <div className="flex flex-col items-center gap-4 py-8">
-      <CheckCircle className="w-8 h-8 text-primary" />
-      <p className="text-muted-foreground">Preparando ambiente...</p>
+      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+        <CheckCircle className="w-8 h-8 text-primary" />
+      </div>
+      <p className="text-muted-foreground">Preparando seu ambiente...</p>
       <Loader2 className="w-6 h-6 animate-spin text-primary" />
     </div>
   );
 
+  const getStepTitle = () => {
+    switch (step) {
+      case 'credentials':
+        return 'Entrar na Plataforma';
+      case 'mfa':
+        return 'Verificação em 2 Etapas';
+      case 'success':
+        return 'Acesso Autorizado!';
+    }
+  };
+
+  const getStepDescription = () => {
+    switch (step) {
+      case 'credentials':
+        return inviteToken 
+          ? 'Você foi convidado! Entre com suas credenciais.'
+          : 'Entre com suas credenciais de usuário';
+      case 'mfa':
+        return 'Confirme sua identidade para continuar';
+      case 'success':
+        return 'Redirecionando para o dashboard...';
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Link to="/" className="flex justify-center mb-6 gap-2">
-          <Truck className="w-6 h-6 text-primary" />
-          <span className="font-bold text-xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/30 p-4">
+      {/* Background elements */}
+      <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-accent/20 rounded-full blur-2xl" />
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo */}
+        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
+          <div className="p-2 bg-primary rounded-lg">
+            <Truck className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <span className="text-2xl font-bold text-foreground">
             Hub<span className="text-primary">Frete</span>
           </span>
         </Link>
 
-        <Card>
+        <Card className="border-border shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle>
-              {step === 'credentials'
-                ? 'Entrar'
-                : step === 'mfa'
-                  ? 'Verificação em 2 Etapas'
-                  : 'Acesso Autorizado'}
-            </CardTitle>
-            <CardDescription>
-              {inviteToken && step === 'credentials'
-                ? 'Você foi convidado'
-                : null}
-            </CardDescription>
+            <CardTitle className="text-2xl">{getStepTitle()}</CardTitle>
+            <CardDescription>{getStepDescription()}</CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -303,6 +369,12 @@ export default function Login({
             {step === 'success' && renderSuccessStep()}
           </CardContent>
         </Card>
+
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          <Link to="/" className="hover:text-primary">
+            ← Voltar para o site
+          </Link>
+        </p>
       </div>
     </div>
   );
