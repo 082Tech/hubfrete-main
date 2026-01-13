@@ -1,5 +1,5 @@
 import { PortalLayout } from '@/components/portals/PortalLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,9 @@ import {
   Map,
   FileText,
   MessageSquare,
-  ExternalLink
+  ExternalLink,
+  Loader2,
+  Package
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -28,85 +30,180 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
-const mockEntregas = [
-  { 
-    id: 'ENT-001',
-    cargaId: 'CRG-2026-004',
-    descricao: 'Peças de Reposição',
-    motorista: 'João Silva',
-    telefone: '(94) 99999-1234',
-    placa: 'ABC-1234',
-    origem: 'Curitiba, PR',
-    destino: 'Marabá, PA',
-    status: 'Em Trânsito',
-    progresso: 65,
-    previsao: '14/01/2026 - 14:00',
-    ultimaAtualizacao: 'Há 30 min',
-    localizacao: 'Próximo a Goiânia, GO'
-  },
-  { 
-    id: 'ENT-002',
-    cargaId: 'CRG-2026-006',
-    descricao: 'Componentes Elétricos',
-    motorista: 'Carlos Mendes',
-    telefone: '(11) 98888-5678',
-    placa: 'XYZ-5678',
-    origem: 'São Paulo, SP',
-    destino: 'Parauapebas, PA',
-    status: 'Em Trânsito',
-    progresso: 35,
-    previsao: '16/01/2026 - 09:00',
-    ultimaAtualizacao: 'Há 15 min',
-    localizacao: 'Próximo a Palmas, TO'
-  },
-  { 
-    id: 'ENT-003',
-    cargaId: 'CRG-2026-007',
-    descricao: 'Material de Escritório',
-    motorista: 'Pedro Santos',
-    telefone: '(91) 97777-9012',
-    placa: 'DEF-9012',
-    origem: 'Belém, PA',
-    destino: 'São Luís, MA',
-    status: 'Coletado',
-    progresso: 10,
-    previsao: '13/01/2026 - 18:00',
-    ultimaAtualizacao: 'Há 1 hora',
-    localizacao: 'Saindo de Belém, PA'
-  },
-  { 
-    id: 'ENT-004',
-    cargaId: 'CRG-2026-003',
-    descricao: 'Equipamentos Industriais',
-    motorista: 'Roberto Lima',
-    telefone: '(94) 96666-3456',
-    placa: 'GHI-3456',
-    origem: 'São Paulo, SP',
-    destino: 'Parauapebas, PA',
-    status: 'Atrasado',
-    progresso: 80,
-    previsao: '12/01/2026 - 10:00',
-    ultimaAtualizacao: 'Há 2 horas',
-    localizacao: 'Próximo a Imperatriz, MA'
-  },
-];
+interface EntregaComRelacoes {
+  id: string;
+  carga_id: string;
+  status: string | null;
+  latitude_atual: number | null;
+  longitude_atual: number | null;
+  observacoes: string | null;
+  coletado_em: string | null;
+  entregue_em: string | null;
+  updated_at: string | null;
+  cargas: {
+    codigo: string;
+    descricao: string;
+    data_entrega_limite: string | null;
+    enderecos_carga: {
+      tipo: string;
+      cidade: string;
+      estado: string;
+    }[];
+  };
+  motoristas: {
+    nome_completo: string;
+    telefone: string | null;
+  } | null;
+  veiculos: {
+    placa: string;
+    marca: string | null;
+    modelo: string | null;
+  } | null;
+  transportadoras: {
+    nome_fantasia: string | null;
+    razao_social: string;
+  };
+}
 
-const statusConfig: Record<string, { color: string; icon: React.ElementType }> = {
-  'Coletado': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', icon: Truck },
-  'Em Trânsito': { color: 'bg-orange-500/10 text-orange-600 border-orange-500/20', icon: Navigation },
-  'Atrasado': { color: 'bg-red-500/10 text-red-600 border-red-500/20', icon: AlertCircle },
-  'Entregue': { color: 'bg-green-500/10 text-green-600 border-green-500/20', icon: CheckCircle },
+const statusConfig: Record<string, { color: string; icon: React.ElementType; label: string }> = {
+  'aguardando_coleta': { color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', icon: Package, label: 'Aguardando Coleta' },
+  'em_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', icon: Truck, label: 'Em Coleta' },
+  'coletado': { color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20', icon: Truck, label: 'Coletado' },
+  'em_transito': { color: 'bg-orange-500/10 text-orange-600 border-orange-500/20', icon: Navigation, label: 'Em Trânsito' },
+  'em_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', icon: MapPin, label: 'Em Entrega' },
+  'entregue': { color: 'bg-green-500/10 text-green-600 border-green-500/20', icon: CheckCircle, label: 'Entregue' },
+  'problema': { color: 'bg-red-500/10 text-red-600 border-red-500/20', icon: AlertCircle, label: 'Problema' },
+  'devolvida': { color: 'bg-red-500/10 text-red-600 border-red-500/20', icon: AlertCircle, label: 'Devolvida' },
+};
+
+// Estimate progress based on status
+const getProgressFromStatus = (status: string | null): number => {
+  switch (status) {
+    case 'aguardando_coleta': return 0;
+    case 'em_coleta': return 10;
+    case 'coletado': return 20;
+    case 'em_transito': return 50;
+    case 'em_entrega': return 85;
+    case 'entregue': return 100;
+    case 'problema': return 50;
+    case 'devolvida': return 100;
+    default: return 0;
+  }
+};
+
+const formatDateTime = (dateString: string | null) => {
+  if (!dateString) return '-';
+  return new Date(dateString).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const getTimeAgo = (dateString: string | null) => {
+  if (!dateString) return 'Sem atualização';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 60) return `Há ${diffMins} min`;
+  if (diffMins < 1440) return `Há ${Math.floor(diffMins / 60)} horas`;
+  return `Há ${Math.floor(diffMins / 1440)} dias`;
 };
 
 export default function AcompanharEntregas() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredEntregas = mockEntregas.filter(entrega => 
-    entrega.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    entrega.cargaId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    entrega.motorista.toLowerCase().includes(searchTerm.toLowerCase())
+  // Fetch embarcador
+  const { data: embarcador } = useQuery({
+    queryKey: ['embarcador', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('embarcadores')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch entregas
+  const { data: entregas = [], isLoading } = useQuery({
+    queryKey: ['entregas_embarcador', embarcador?.id],
+    queryFn: async () => {
+      if (!embarcador?.id) return [];
+
+      const { data, error } = await supabase
+        .from('entregas')
+        .select(`
+          id,
+          carga_id,
+          status,
+          latitude_atual,
+          longitude_atual,
+          observacoes,
+          coletado_em,
+          entregue_em,
+          updated_at,
+          cargas!inner (
+            codigo,
+            descricao,
+            data_entrega_limite,
+            embarcador_id,
+            enderecos_carga (
+              tipo,
+              cidade,
+              estado
+            )
+          ),
+          motoristas (
+            nome_completo,
+            telefone
+          ),
+          veiculos (
+            placa,
+            marca,
+            modelo
+          ),
+          transportadoras (
+            nome_fantasia,
+            razao_social
+          )
+        `)
+        .eq('cargas.embarcador_id', embarcador.id)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as EntregaComRelacoes[];
+    },
+    enabled: !!embarcador?.id,
+  });
+
+  const filteredEntregas = entregas.filter(entrega => 
+    entrega.cargas.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    entrega.cargas.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (entrega.motoristas?.nome_completo || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Stats
+  const stats = {
+    emTransito: entregas.filter(e => e.status === 'em_transito').length,
+    coletados: entregas.filter(e => e.status === 'coletado' || e.status === 'em_coleta').length,
+    problemas: entregas.filter(e => e.status === 'problema').length,
+    entregues: entregas.filter(e => e.status === 'entregue').length,
+  };
 
   return (
     <PortalLayout expectedUserType="embarcador">
@@ -128,7 +225,7 @@ export default function AcompanharEntregas() {
                   <Navigation className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">8</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.emTransito}</p>
                   <p className="text-xs text-muted-foreground">Em Trânsito</p>
                 </div>
               </div>
@@ -141,7 +238,7 @@ export default function AcompanharEntregas() {
                   <Truck className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">3</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.coletados}</p>
                   <p className="text-xs text-muted-foreground">Coletados</p>
                 </div>
               </div>
@@ -154,8 +251,8 @@ export default function AcompanharEntregas() {
                   <AlertCircle className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">1</p>
-                  <p className="text-xs text-muted-foreground">Atrasados</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.problemas}</p>
+                  <p className="text-xs text-muted-foreground">Problemas</p>
                 </div>
               </div>
             </CardContent>
@@ -167,8 +264,8 @@ export default function AcompanharEntregas() {
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">47</p>
-                  <p className="text-xs text-muted-foreground">Entregues (mês)</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.entregues}</p>
+                  <p className="text-xs text-muted-foreground">Entregues</p>
                 </div>
               </div>
             </CardContent>
@@ -179,7 +276,7 @@ export default function AcompanharEntregas() {
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
-            placeholder="Buscar por ID, carga ou motorista..." 
+            placeholder="Buscar por código, carga ou motorista..." 
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -187,122 +284,161 @@ export default function AcompanharEntregas() {
         </div>
 
         {/* Entregas Cards */}
-        <div className="grid gap-4">
-          {filteredEntregas.map((entrega) => {
-            const StatusIcon = statusConfig[entrega.status]?.icon || Truck;
-            return (
-              <Card key={entrega.id} className="border-border overflow-hidden">
-                <CardContent className="p-0">
-                  <div className="flex flex-col lg:flex-row">
-                    {/* Main Info */}
-                    <div className="flex-1 p-6 space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-foreground">{entrega.id}</h3>
-                            <Badge variant="outline" className={statusConfig[entrega.status]?.color}>
-                              <StatusIcon className="w-3 h-3 mr-1" />
-                              {entrega.status}
-                            </Badge>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-32">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredEntregas.length === 0 ? (
+          <Card className="border-border">
+            <CardContent className="p-8 text-center">
+              <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-medium text-foreground mb-1">Nenhuma entrega encontrada</h3>
+              <p className="text-sm text-muted-foreground">
+                As entregas das suas cargas aparecerão aqui
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {filteredEntregas.map((entrega) => {
+              const status = entrega.status || 'aguardando_coleta';
+              const config = statusConfig[status] || statusConfig['aguardando_coleta'];
+              const StatusIcon = config.icon;
+              const progress = getProgressFromStatus(status);
+              
+              const origem = entrega.cargas.enderecos_carga?.find(e => e.tipo === 'origem');
+              const destino = entrega.cargas.enderecos_carga?.find(e => e.tipo === 'destino');
+
+              return (
+                <Card key={entrega.id} className="border-border overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="flex flex-col lg:flex-row">
+                      {/* Main Info */}
+                      <div className="flex-1 p-6 space-y-4">
+                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-bold text-foreground">{entrega.cargas.codigo}</h3>
+                              <Badge variant="outline" className={config.color}>
+                                <StatusIcon className="w-3 h-3 mr-1" />
+                                {config.label}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {entrega.cargas.descricao}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            Carga: {entrega.cargaId} - {entrega.descricao}
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-foreground">Previsão de Entrega</p>
-                            <p className="text-sm text-muted-foreground">{entrega.previsao}</p>
+                          <div className="flex items-start gap-3">
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-foreground">Previsão de Entrega</p>
+                              <p className="text-sm text-muted-foreground">
+                                {entrega.cargas.data_entrega_limite 
+                                  ? new Date(entrega.cargas.data_entrega_limite).toLocaleDateString('pt-BR')
+                                  : '-'}
+                              </p>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem 
+                                  className="gap-2"
+                                  onClick={() => toast.info('Abrindo mapa...')}
+                                >
+                                  <Map className="w-4 h-4" />
+                                  Ver no Mapa
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="gap-2">
+                                  <FileText className="w-4 h-4" />
+                                  Ver Detalhes Completos
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="gap-2">
+                                  <MessageSquare className="w-4 h-4" />
+                                  Enviar Mensagem
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="gap-2">
+                                  <ExternalLink className="w-4 h-4" />
+                                  Abrir em Nova Aba
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem 
-                                className="gap-2"
-                                onClick={() => toast.info('Abrindo mapa...')}
-                              >
-                                <Map className="w-4 h-4" />
-                                Ver no Mapa
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2">
-                                <FileText className="w-4 h-4" />
-                                Ver Detalhes Completos
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2">
-                                <MessageSquare className="w-4 h-4" />
-                                Enviar Mensagem
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2">
-                                <ExternalLink className="w-4 h-4" />
-                                Abrir em Nova Aba
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                        </div>
+
+                        {/* Route */}
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              {origem ? `${origem.cidade}, ${origem.estado}` : '-'}
+                            </span>
+                          </div>
+                          <div className="flex-1 h-px bg-border" />
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-primary" />
+                            <span className="text-sm font-medium text-foreground">
+                              {destino ? `${destino.cidade}, ${destino.estado}` : '-'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Progress */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Progresso da viagem</span>
+                            <span className="font-medium text-foreground">{progress}%</span>
+                          </div>
+                          <Progress value={progress} className="h-2" />
+                        </div>
+
+                        {/* Location */}
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="w-4 h-4 text-primary" />
+                          <span className="text-foreground">
+                            {entrega.observacoes || 'Localização não disponível'}
+                          </span>
+                          <span className="text-muted-foreground">• {getTimeAgo(entrega.updated_at)}</span>
                         </div>
                       </div>
 
-                      {/* Route */}
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">{entrega.origem}</span>
+                      {/* Driver Info */}
+                      <div className="lg:w-64 p-6 bg-muted/10 border-t lg:border-t-0 lg:border-l border-border/50">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                          Motorista
+                        </p>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <User className="w-5 h-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {entrega.motoristas?.nome_completo || 'Não atribuído'}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Placa: {entrega.veiculos?.placa || '-'}
+                              </p>
+                            </div>
+                          </div>
+                          {entrega.motoristas?.telefone && (
+                            <Button variant="outline" size="sm" className="w-full gap-2">
+                              <Phone className="w-4 h-4" />
+                              {entrega.motoristas.telefone}
+                            </Button>
+                          )}
                         </div>
-                        <div className="flex-1 h-px bg-border" />
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-primary" />
-                          <span className="text-sm font-medium text-foreground">{entrega.destino}</span>
-                        </div>
-                      </div>
-
-                      {/* Progress */}
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Progresso da viagem</span>
-                          <span className="font-medium text-foreground">{entrega.progresso}%</span>
-                        </div>
-                        <Progress value={entrega.progresso} className="h-2" />
-                      </div>
-
-                      {/* Location */}
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="w-4 h-4 text-primary" />
-                        <span className="text-foreground">{entrega.localizacao}</span>
-                        <span className="text-muted-foreground">• Atualizado {entrega.ultimaAtualizacao}</span>
                       </div>
                     </div>
-
-                    {/* Driver Info */}
-                    <div className="lg:w-64 p-6 bg-muted/10 border-t lg:border-t-0 lg:border-l border-border/50">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-                        Motorista
-                      </p>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">{entrega.motorista}</p>
-                            <p className="text-xs text-muted-foreground">Placa: {entrega.placa}</p>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="sm" className="w-full gap-2">
-                          <Phone className="w-4 h-4" />
-                          {entrega.telefone}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </PortalLayout>
   );
