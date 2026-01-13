@@ -4,11 +4,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
 import { SplashScreen } from "@/components/SplashScreen";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/admin/AdminLogin";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import TorreControle from "./pages/admin/TorreControle";
 import Usuarios from "./pages/admin/Usuarios";
@@ -35,44 +37,47 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login setShowSplash={setShowSplash} />} />
-            <Route path="/admin" element={<AdminLogin setShowSplash={setShowSplash} />} />
-            <Route path="/esqueci-senha" element={<ForgotPassword />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/admin/torre-controle" element={<TorreControle />} />
-            <Route path="/admin/usuarios" element={<Usuarios />} />
-            <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
-            <Route path="/cadastro/embarcador" element={<CadastroEmbarcador />} />
-            <Route path="/cadastro/transportadora" element={<CadastroTransportadora />} />
-            
-            {/* Portal Embarcador */}
-            <Route path="/embarcador" element={<EmbarcadorDashboard />} />
-            <Route path="/embarcador/cargas" element={<MinhasCargas />} />
-            <Route path="/embarcador/entregas" element={<AcompanharEntregas />} />
-            <Route path="/embarcador/cotacoes" element={<Cotacoes />} />
-            <Route path="/embarcador/relatorios" element={<Relatorios />} />
-            <Route path="/embarcador/filiais" element={<GerenciarFiliais />} />
-            <Route path="/embarcador/usuarios" element={<UsuariosEmpresa />} />
-            <Route path="/embarcador/configuracoes" element={<Configuracoes />} />
-            
-            {/* Portal Transportadora */}
-            <Route path="/transportadora" element={<TransportadoraDashboard />} />
-            <Route path="/transportadora/*" element={<TransportadoraDashboard />} />
-            
-            {/* Portal Motorista */}
-            <Route path="/motorista" element={<MotoristaDashboard />} />
-            <Route path="/motorista/*" element={<MotoristaDashboard />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login setShowSplash={setShowSplash} />} />
+              <Route path="/admin" element={<AdminLogin setShowSplash={setShowSplash} />} />
+              <Route path="/esqueci-senha" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/admin/torre-controle" element={<TorreControle />} />
+              <Route path="/admin/usuarios" element={<Usuarios />} />
+              <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
+              <Route path="/cadastro/embarcador" element={<CadastroEmbarcador />} />
+              <Route path="/cadastro/transportadora" element={<CadastroTransportadora />} />
+              
+              {/* Portal Embarcador */}
+              <Route path="/embarcador" element={<EmbarcadorDashboard />} />
+              <Route path="/embarcador/cargas" element={<MinhasCargas />} />
+              <Route path="/embarcador/entregas" element={<AcompanharEntregas />} />
+              <Route path="/embarcador/cotacoes" element={<Cotacoes />} />
+              <Route path="/embarcador/relatorios" element={<Relatorios />} />
+              <Route path="/embarcador/filiais" element={<GerenciarFiliais />} />
+              <Route path="/embarcador/usuarios" element={<UsuariosEmpresa />} />
+              <Route path="/embarcador/configuracoes" element={<Configuracoes />} />
+              
+              {/* Portal Transportadora */}
+              <Route path="/transportadora" element={<TransportadoraDashboard />} />
+              <Route path="/transportadora/*" element={<TransportadoraDashboard />} />
+              
+              {/* Portal Motorista */}
+              <Route path="/motorista" element={<MotoristaDashboard />} />
+              <Route path="/motorista/*" element={<MotoristaDashboard />} />
+              
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
