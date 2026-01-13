@@ -584,7 +584,7 @@ export default function GestaoCargas() {
                         const status = carga.status || 'rascunho';
                         const config = statusCargaConfig[status];
                         const StatusIcon = config?.icon || Package;
-                        const entrega = carga.entregas[0];
+                        const entrega = carga.entregas;
                         const progress = getProgress(carga);
 
                         return (
