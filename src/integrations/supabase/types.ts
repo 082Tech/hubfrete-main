@@ -980,6 +980,7 @@ export type Database = {
     }
     Functions: {
       get_user_empresa_id: { Args: { _user_id: string }; Returns: number }
+      get_user_empresa_tipo: { Args: { _user_id: string }; Returns: string }
       get_user_filial_ids: { Args: { _user_id: string }; Returns: number[] }
       has_role: {
         Args: {
