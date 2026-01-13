@@ -27,12 +27,9 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
   // Check for invite token in URL
   const inviteToken = searchParams.get('invite');
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user && !authLoading && step === 'credentials') {
-      checkMfaRequirement();
-    }
-  }, [user, authLoading]);
+  // NOTE: We intentionally do NOT auto-redirect here when user is already logged in
+  // The redirect should only happen after explicit login action via handleLogin
+  // This prevents redirect loops when roles aren't loaded yet
 
   const checkMfaRequirement = async () => {
     try {
@@ -66,9 +63,10 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
   const proceedToApp = () => {
     setStep('success');
     setShowSplash(true);
-    const redirectPath = getRedirectPath();
+    // Always redirect to embarcador for now (default portal)
+    // TODO: Implement dynamic redirect based on user roles when they're properly set
     setTimeout(() => {
-      navigate(redirectPath);
+      navigate('/embarcador');
     }, 500);
   };
 
