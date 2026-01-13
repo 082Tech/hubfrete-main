@@ -112,6 +112,59 @@ export type Database = {
           },
         ]
       }
+      company_invites: {
+        Row: {
+          accepted_at: string | null
+          company_id: string
+          company_type: string
+          created_at: string
+          email: string
+          expires_at: string
+          filial_id: number | null
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["usuario_cargo"]
+          status: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          company_id: string
+          company_type: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          filial_id?: number | null
+          id?: string
+          invited_by: string
+          role?: Database["public"]["Enums"]["usuario_cargo"]
+          status?: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          company_id?: string
+          company_type?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          filial_id?: number | null
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["usuario_cargo"]
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invites_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "Filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cotacoes: {
         Row: {
           aceita_em: string | null
@@ -733,6 +786,7 @@ export type Database = {
       }
       Usuarios: {
         Row: {
+          auth_user_id: string | null
           cargo: Database["public"]["Enums"]["usuario_cargo"] | null
           created_at: string
           email: string | null
@@ -744,6 +798,7 @@ export type Database = {
           senha: string | null
         }
         Insert: {
+          auth_user_id?: string | null
           cargo?: Database["public"]["Enums"]["usuario_cargo"] | null
           created_at?: string
           email?: string | null
@@ -755,6 +810,7 @@ export type Database = {
           senha?: string | null
         }
         Update: {
+          auth_user_id?: string | null
           cargo?: Database["public"]["Enums"]["usuario_cargo"] | null
           created_at?: string
           email?: string | null
