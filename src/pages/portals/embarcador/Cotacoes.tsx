@@ -63,16 +63,16 @@ interface CotacaoAgrupada {
 
 export default function Cotacoes() {
   const { user } = useAuth();
-  const { empresa } = useUserContext();
+  const { empresa, filialAtiva } = useUserContext();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCotacao, setExpandedCotacao] = useState<string | null>(null);
 
-  // Fetch cotações with related data
+  // Fetch cotações with related data - filter by filial_id
   const { data: cotacoesData = [], isLoading } = useQuery({
-    queryKey: ['cotacoes_embarcador', empresa?.id],
+    queryKey: ['cotacoes_embarcador', filialAtiva?.id],
     queryFn: async () => {
-      if (!empresa?.id) return [];
+      if (!filialAtiva?.id) return [];
 
       const { data, error } = await supabase
         .from('cotacoes')
@@ -88,7 +88,7 @@ export default function Cotacoes() {
             codigo,
             descricao,
             status,
-            empresa_id,
+            filial_id,
             enderecos_carga (
               tipo,
               cidade,
@@ -96,13 +96,13 @@ export default function Cotacoes() {
             )
           )
         `)
-        .eq('cargas.empresa_id', empresa.id)
+        .eq('cargas.filial_id', filialAtiva.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return (data || []) as CotacaoComRelacoes[];
     },
-    enabled: !!empresa?.id,
+    enabled: !!filialAtiva?.id,
   });
 
   // Group cotações by carga

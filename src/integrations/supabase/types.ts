@@ -29,6 +29,7 @@ export type Database = {
           documentacao: Json | null
           empilhavel: boolean | null
           empresa_id: number | null
+          filial_id: number | null
           id: string
           numero_onu: string | null
           peso_kg: number
@@ -58,6 +59,7 @@ export type Database = {
           documentacao?: Json | null
           empilhavel?: boolean | null
           empresa_id?: number | null
+          filial_id?: number | null
           id?: string
           numero_onu?: string | null
           peso_kg: number
@@ -87,6 +89,7 @@ export type Database = {
           documentacao?: Json | null
           empilhavel?: boolean | null
           empresa_id?: number | null
+          filial_id?: number | null
           id?: string
           numero_onu?: string | null
           peso_kg?: number
@@ -108,6 +111,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargas_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
             referencedColumns: ["id"]
           },
         ]
