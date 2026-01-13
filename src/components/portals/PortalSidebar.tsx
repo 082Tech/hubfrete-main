@@ -140,8 +140,8 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
           </div>
         </div>
         
-        {/* Branch Selector - only show if more than 1 filial */}
-        {filiais.length > 1 && (
+        {/* Branch Selector - always show to indicate current branch */}
+        {filiais.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
