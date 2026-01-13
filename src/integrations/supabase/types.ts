@@ -160,7 +160,7 @@ export type Database = {
             foreignKeyName: "company_invites_filial_id_fkey"
             columns: ["filial_id"]
             isOneToOne: false
-            referencedRelation: "Filiais"
+            referencedRelation: "filiais"
             referencedColumns: ["id"]
           },
         ]
@@ -311,12 +311,12 @@ export type Database = {
             foreignKeyName: "embarcadores_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
-            referencedRelation: "Empresas"
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
       }
-      Empresas: {
+      empresas: {
         Row: {
           classe: Database["public"]["Enums"]["classe_empresa"]
           created_at: string
@@ -525,7 +525,7 @@ export type Database = {
           },
         ]
       }
-      Filiais: {
+      filiais: {
         Row: {
           ativa: boolean | null
           cep: string | null
@@ -579,7 +579,7 @@ export type Database = {
             foreignKeyName: "Filiais_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
-            referencedRelation: "Empresas"
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -643,7 +643,7 @@ export type Database = {
           },
         ]
       }
-      SuperAdmins: {
+      super_admins: {
         Row: {
           created_at: string
           email: string | null
@@ -777,7 +777,7 @@ export type Database = {
             foreignKeyName: "transportadoras_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
-            referencedRelation: "Empresas"
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -800,7 +800,7 @@ export type Database = {
         }
         Relationships: []
       }
-      Usuarios: {
+      usuarios: {
         Row: {
           auth_user_id: string | null
           cargo: Database["public"]["Enums"]["usuario_cargo"] | null
@@ -839,7 +839,7 @@ export type Database = {
         }
         Relationships: []
       }
-      Usuarios_Filiais: {
+      usuarios_filiais: {
         Row: {
           cargo_na_filial: Database["public"]["Enums"]["usuario_cargo"] | null
           created_at: string
@@ -866,19 +866,19 @@ export type Database = {
             foreignKeyName: "Usuarios_Filiais_filial_id_fkey"
             columns: ["filial_id"]
             isOneToOne: false
-            referencedRelation: "Filiais"
+            referencedRelation: "filiais"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "Usuarios_Filiais_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "Usuarios"
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
       }
-      V2F: {
+      v2f: {
         Row: {
           code: number
           created_at: string
