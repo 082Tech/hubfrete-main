@@ -74,7 +74,7 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
 
     let redirectPath = '/login';
 
-    // Check if user belongs to an embarcador company
+    // Check if user is company owner (embarcador)
     const { data: embarcador } = await supabase
       .from('embarcadores')
       .select('id')
@@ -84,7 +84,7 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
     if (embarcador) {
       redirectPath = '/embarcador';
     } else {
-      // Check if user belongs to a transportadora company
+      // Check if user is company owner (transportadora)
       const { data: transportadora } = await supabase
         .from('transportadoras')
         .select('id')
@@ -104,10 +104,45 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
         if (motorista) {
           redirectPath = '/motorista';
         } else {
-          toast.error('Nenhum perfil de empresa encontrado. Contate o suporte.');
-          setStep('credentials');
-          setShowSplash(false);
-          return;
+          // Check if user is an invited employee linked via usuarios table
+          const { data: usuario } = await supabase
+            .from('usuarios')
+            .select(`
+              id,
+              usuarios_filiais (
+                filial_id,
+                filiais (
+                  empresa_id,
+                  empresas (
+                    tipo
+                  )
+                )
+              )
+            `)
+            .eq('auth_user_id', currentUser.id)
+            .maybeSingle();
+
+          if (usuario && usuario.usuarios_filiais && usuario.usuarios_filiais.length > 0) {
+            // Get company type from first linked filial
+            const firstFilial = usuario.usuarios_filiais[0] as any;
+            const empresaTipo = firstFilial?.filiais?.empresas?.tipo;
+            
+            if (empresaTipo === 'EMBARCADOR') {
+              redirectPath = '/embarcador';
+            } else if (empresaTipo === 'TRANSPORTADORA') {
+              redirectPath = '/transportadora';
+            } else {
+              toast.error('Tipo de empresa não reconhecido. Contate o suporte.');
+              setStep('credentials');
+              setShowSplash(false);
+              return;
+            }
+          } else {
+            toast.error('Nenhum perfil de empresa encontrado. Contate o suporte.');
+            setStep('credentials');
+            setShowSplash(false);
+            return;
+          }
         }
       }
     }
