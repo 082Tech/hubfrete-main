@@ -17,10 +17,18 @@ export interface Empresa {
   classe: string;
 }
 
+export interface CompanyInfo {
+  id: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj: string;
+}
+
 export interface UserContextData {
   userType: UserType;
   cargo: UserCargo;
   empresa: Empresa | null;
+  companyInfo: CompanyInfo | null;
   filiais: Filial[];
   filialAtiva: Filial | null;
   loading: boolean;
@@ -35,6 +43,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   const [userType, setUserType] = useState<UserType>(null);
   const [cargo, setCargo] = useState<UserCargo>(null);
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [filiais, setFiliais] = useState<Filial[]>([]);
   const [filialAtiva, setFilialAtivaState] = useState<Filial | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +59,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       setUserType(null);
       setCargo(null);
       setEmpresa(null);
+      setCompanyInfo(null);
       setFiliais([]);
       setFilialAtivaState(null);
       setLoading(false);
@@ -59,16 +69,33 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     setLoading(true);
 
     try {
-      // Check user type by membership tables
+      // Check user type by membership tables and get company info
       const [
         { data: embarcador },
         { data: transportadora },
         { data: motorista }
       ] = await Promise.all([
-        supabase.from('embarcadores').select('id').eq('user_id', user.id).maybeSingle(),
-        supabase.from('transportadoras').select('id').eq('user_id', user.id).maybeSingle(),
+        supabase.from('embarcadores').select('id, razao_social, nome_fantasia, cnpj').eq('user_id', user.id).maybeSingle(),
+        supabase.from('transportadoras').select('id, razao_social, nome_fantasia, cnpj').eq('user_id', user.id).maybeSingle(),
         supabase.from('motoristas').select('id').eq('user_id', user.id).maybeSingle(),
       ]);
+
+      // Set company info from embarcador or transportadora
+      if (embarcador) {
+        setCompanyInfo({
+          id: embarcador.id,
+          razao_social: embarcador.razao_social,
+          nome_fantasia: embarcador.nome_fantasia,
+          cnpj: embarcador.cnpj,
+        });
+      } else if (transportadora) {
+        setCompanyInfo({
+          id: transportadora.id,
+          razao_social: transportadora.razao_social,
+          nome_fantasia: transportadora.nome_fantasia,
+          cnpj: transportadora.cnpj,
+        });
+      }
 
       const type: UserType = embarcador
         ? 'embarcador'
@@ -176,6 +203,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         userType,
         cargo,
         empresa,
+        companyInfo,
         filiais,
         filialAtiva,
         loading: authLoading || loading,

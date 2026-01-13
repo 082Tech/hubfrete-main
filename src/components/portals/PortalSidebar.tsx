@@ -80,7 +80,7 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
-  const { empresa, filiais, filialAtiva, setFilialAtiva, cargo } = useUserContext();
+  const { empresa, companyInfo, filiais, filialAtiva, setFilialAtiva, cargo } = useUserContext();
   
   const allMenuItems = menusByType[userType];
   // Filter menu items based on user cargo (ADMIN sees all, OPERADOR sees non-admin items)
@@ -94,7 +94,8 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
     navigate('/');
   };
 
-  const empresaNome = empresa?.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora';
+  // Use nome_fantasia if available, otherwise razao_social
+  const companyName = companyInfo?.nome_fantasia || companyInfo?.razao_social || config.title;
 
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border h-screen fixed left-0 top-0 flex flex-col">
@@ -130,11 +131,11 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
               )}
             </div>
             <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
-              {filialAtiva?.nome || empresaNome}
+              {companyName}
             </p>
-            {filialAtiva?.cnpj && (
+            {companyInfo?.cnpj && (
               <p className="text-[10px] text-sidebar-foreground/60">
-                CNPJ: {filialAtiva.cnpj}
+                CNPJ: {companyInfo.cnpj}
               </p>
             )}
           </div>
