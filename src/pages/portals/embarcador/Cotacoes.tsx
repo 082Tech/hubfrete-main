@@ -21,10 +21,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
+import { useUserContext } from '@/hooks/useUserContext';
+
 interface CotacaoComRelacoes {
   id: string;
   carga_id: string;
-  transportadora_id: string;
+  empresa_id: number | null;
   valor_proposto: number;
   prazo_entrega_dias: number | null;
   status: string | null;
@@ -38,10 +40,6 @@ interface CotacaoComRelacoes {
       cidade: string;
       estado: string;
     }[];
-  };
-  transportadoras: {
-    razao_social: string;
-    nome_fantasia: string | null;
   };
 }
 
@@ -65,39 +63,23 @@ interface CotacaoAgrupada {
 
 export default function Cotacoes() {
   const { user } = useAuth();
+  const { empresa } = useUserContext();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCotacao, setExpandedCotacao] = useState<string | null>(null);
 
-  // Fetch embarcador
-  const { data: embarcador } = useQuery({
-    queryKey: ['embarcador', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('embarcadores')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-
   // Fetch cotações with related data
   const { data: cotacoesData = [], isLoading } = useQuery({
-    queryKey: ['cotacoes_embarcador', embarcador?.id],
+    queryKey: ['cotacoes_embarcador', empresa?.id],
     queryFn: async () => {
-      if (!embarcador?.id) return [];
+      if (!empresa?.id) return [];
 
       const { data, error } = await supabase
         .from('cotacoes')
         .select(`
           id,
           carga_id,
-          transportadora_id,
+          empresa_id,
           valor_proposto,
           prazo_entrega_dias,
           status,
@@ -106,25 +88,21 @@ export default function Cotacoes() {
             codigo,
             descricao,
             status,
-            embarcador_id,
+            empresa_id,
             enderecos_carga (
               tipo,
               cidade,
               estado
             )
-          ),
-          transportadoras (
-            razao_social,
-            nome_fantasia
           )
         `)
-        .eq('cargas.embarcador_id', embarcador.id)
+        .eq('cargas.empresa_id', empresa.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return (data || []) as CotacaoComRelacoes[];
     },
-    enabled: !!embarcador?.id,
+    enabled: !!empresa?.id,
   });
 
   // Group cotações by carga
@@ -136,7 +114,7 @@ export default function Cotacoes() {
 
     const cotacaoItem = {
       id: cotacao.id,
-      transportadora: cotacao.transportadoras?.nome_fantasia || cotacao.transportadoras?.razao_social || 'Transportadora',
+      transportadora: 'Transportadora', // empresa_id now links to empresas, not transportadoras
       valor: cotacao.valor_proposto,
       prazo: cotacao.prazo_entrega_dias,
       observacoes: cotacao.observacoes,

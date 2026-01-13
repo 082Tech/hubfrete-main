@@ -3,7 +3,7 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, Truck, Building2, Users, TrendingUp, Clock } from 'lucide-react';
-import { getUsers, getEmbarcadores, getTransportadoras, User, Embarcador, Transportadora } from '@/lib/api';
+import { getUsers, getEmpresas, User, Empresa } from '@/lib/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 
 const monthlyData = [
@@ -31,21 +31,18 @@ const recentDeliveries = [
 
 export default function Dashboard() {
   const [users, setUsers] = useState<User[]>([]);
-  const [embarcadores, setEmbarcadores] = useState<Embarcador[]>([]);
-  const [transportadoras, setTransportadoras] = useState<Transportadora[]>([]);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [usersData, embarcadoresData, transportadorasData] = await Promise.all([
+        const [usersData, empresasData] = await Promise.all([
           getUsers().catch(() => []),
-          getEmbarcadores().catch(() => []),
-          getTransportadoras().catch(() => []),
+          getEmpresas().catch(() => []),
         ]);
         setUsers(usersData);
-        setEmbarcadores(embarcadoresData);
-        setTransportadoras(transportadorasData);
+        setEmpresas(empresasData);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
       } finally {
@@ -85,7 +82,7 @@ export default function Dashboard() {
           />
           <StatsCard
             title="Embarcadores"
-            value={embarcadores.length || 156}
+            value={empresas.filter(e => e.tipo === 'EMBARCADOR').length || 156}
             change={8.2}
             changeLabel="vs mês anterior"
             icon={<Building2 className="w-6 h-6" />}
@@ -93,7 +90,7 @@ export default function Dashboard() {
           />
           <StatsCard
             title="Transportadoras"
-            value={transportadoras.length || 89}
+            value={empresas.filter(e => e.tipo === 'TRANSPORTADORA').length || 89}
             change={5.1}
             changeLabel="vs mês anterior"
             icon={<Truck className="w-6 h-6" />}

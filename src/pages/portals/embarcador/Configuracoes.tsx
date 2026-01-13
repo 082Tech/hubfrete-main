@@ -26,12 +26,10 @@ import { useUserContext } from '@/hooks/useUserContext';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Filial = Tables<'filiais'>;
-type Embarcador = Tables<'embarcadores'>;
 
 export default function Configuracoes() {
-  const { companyInfo, empresa } = useUserContext();
+  const { companyInfo, empresa, filiais: contextFiliais } = useUserContext();
   const [loading, setLoading] = useState(true);
-  const [embarcador, setEmbarcador] = useState<Embarcador | null>(null);
   const [filiais, setFiliais] = useState<Filial[]>([]);
   const [userData, setUserData] = useState({
     nome: '',
@@ -63,7 +61,7 @@ export default function Configuracoes() {
             .from('usuarios')
             .select('*')
             .eq('auth_user_id', authUser.id)
-            .single();
+            .maybeSingle();
           
           if (usuarioData) {
             setUserData({
@@ -79,26 +77,15 @@ export default function Configuracoes() {
             }));
           }
           
-          // Buscar dados do embarcador
-          const { data: embarcadorData } = await supabase
-            .from('embarcadores')
-            .select('*')
-            .eq('user_id', authUser.id)
-            .single();
-          
-          if (embarcadorData) {
-            setEmbarcador(embarcadorData);
+          // Buscar filiais da empresa usando o contexto
+          if (empresa?.id) {
+            const { data: filiaisData } = await supabase
+              .from('filiais')
+              .select('*')
+              .eq('empresa_id', empresa.id)
+              .order('is_matriz', { ascending: false });
             
-            // Buscar filiais da empresa
-            if (embarcadorData.empresa_id) {
-              const { data: filiaisData } = await supabase
-                .from('filiais')
-                .select('*')
-                .eq('empresa_id', embarcadorData.empresa_id)
-                .order('is_matriz', { ascending: false });
-              
-              setFiliais(filiaisData || []);
-            }
+            setFiliais(filiaisData || []);
           }
         }
       } catch (error) {
@@ -110,7 +97,7 @@ export default function Configuracoes() {
     };
     
     fetchData();
-  }, []);
+  }, [empresa?.id]);
 
   const handleSave = async () => {
     try {
@@ -229,22 +216,16 @@ export default function Configuracoes() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Razão Social</Label>
-                <Input value={embarcador?.razao_social || companyInfo?.razao_social || 'Não informado'} disabled />
+                <Input value={companyInfo?.razao_social || 'Não informado'} disabled />
               </div>
               <div className="space-y-2">
                 <Label>CNPJ</Label>
-                <Input value={embarcador?.cnpj || 'Não informado'} disabled />
+                <Input value={companyInfo?.cnpj || 'Não informado'} disabled />
               </div>
-              {embarcador?.nome_fantasia && (
+              {companyInfo?.nome_fantasia && (
                 <div className="space-y-2">
                   <Label>Nome Fantasia</Label>
-                  <Input value={embarcador.nome_fantasia} disabled />
-                </div>
-              )}
-              {embarcador?.email && (
-                <div className="space-y-2">
-                  <Label>Email da Empresa</Label>
-                  <Input value={embarcador.email} disabled />
+                  <Input value={companyInfo.nome_fantasia} disabled />
                 </div>
               )}
             </div>

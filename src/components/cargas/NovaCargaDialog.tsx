@@ -167,15 +167,12 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         return;
       }
 
-      // Buscar o embarcador do usuário
-      const { data: embarcador, error: embarcadorError } = await supabase
-        .from('embarcadores')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      // Buscar a empresa_id do usuário via database function
+      const { data: empresaId, error: empresaError } = await supabase
+        .rpc('get_user_empresa_id', { _user_id: user.id });
 
-      if (embarcadorError || !embarcador) {
-        toast.error('Você precisa ter um perfil de embarcador para criar cargas');
+      if (empresaError || !empresaId) {
+        toast.error('Você precisa estar vinculado a uma empresa para criar cargas');
         setIsLoading(false);
         return;
       }
@@ -184,7 +181,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       const { data: carga, error: cargaError } = await supabase
         .from('cargas')
         .insert({
-          embarcador_id: embarcador.id,
+          empresa_id: empresaId,
           descricao: values.descricao,
           tipo: values.tipo,
           peso_kg: values.peso_kg,
