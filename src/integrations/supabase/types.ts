@@ -14,16 +14,974 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cargas: {
+        Row: {
+          carga_fragil: boolean | null
+          carga_perigosa: boolean | null
+          carga_viva: boolean | null
+          codigo: string
+          comercial: Json | null
+          created_at: string | null
+          data_coleta_ate: string | null
+          data_coleta_de: string | null
+          data_entrega_limite: string | null
+          descricao: string
+          documentacao: Json | null
+          embarcador_id: string
+          empilhavel: boolean | null
+          id: string
+          numero_onu: string | null
+          peso_kg: number
+          publicada_em: string | null
+          quantidade: number | null
+          requer_refrigeracao: boolean | null
+          status: Database["public"]["Enums"]["status_carga"] | null
+          temperatura_max: number | null
+          temperatura_min: number | null
+          tipo: Database["public"]["Enums"]["tipo_carga"]
+          updated_at: string | null
+          valor_mercadoria: number | null
+          veiculo_requisitos: Json | null
+          volume_m3: number | null
+        }
+        Insert: {
+          carga_fragil?: boolean | null
+          carga_perigosa?: boolean | null
+          carga_viva?: boolean | null
+          codigo: string
+          comercial?: Json | null
+          created_at?: string | null
+          data_coleta_ate?: string | null
+          data_coleta_de?: string | null
+          data_entrega_limite?: string | null
+          descricao: string
+          documentacao?: Json | null
+          embarcador_id: string
+          empilhavel?: boolean | null
+          id?: string
+          numero_onu?: string | null
+          peso_kg: number
+          publicada_em?: string | null
+          quantidade?: number | null
+          requer_refrigeracao?: boolean | null
+          status?: Database["public"]["Enums"]["status_carga"] | null
+          temperatura_max?: number | null
+          temperatura_min?: number | null
+          tipo: Database["public"]["Enums"]["tipo_carga"]
+          updated_at?: string | null
+          valor_mercadoria?: number | null
+          veiculo_requisitos?: Json | null
+          volume_m3?: number | null
+        }
+        Update: {
+          carga_fragil?: boolean | null
+          carga_perigosa?: boolean | null
+          carga_viva?: boolean | null
+          codigo?: string
+          comercial?: Json | null
+          created_at?: string | null
+          data_coleta_ate?: string | null
+          data_coleta_de?: string | null
+          data_entrega_limite?: string | null
+          descricao?: string
+          documentacao?: Json | null
+          embarcador_id?: string
+          empilhavel?: boolean | null
+          id?: string
+          numero_onu?: string | null
+          peso_kg?: number
+          publicada_em?: string | null
+          quantidade?: number | null
+          requer_refrigeracao?: boolean | null
+          status?: Database["public"]["Enums"]["status_carga"] | null
+          temperatura_max?: number | null
+          temperatura_min?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_carga"]
+          updated_at?: string | null
+          valor_mercadoria?: number | null
+          veiculo_requisitos?: Json | null
+          volume_m3?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cargas_embarcador_id_fkey"
+            columns: ["embarcador_id"]
+            isOneToOne: false
+            referencedRelation: "embarcadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cotacoes: {
+        Row: {
+          aceita_em: string | null
+          carga_id: string
+          created_at: string | null
+          id: string
+          motivo_recusa: string | null
+          motorista_id: string | null
+          observacoes: string | null
+          prazo_entrega_dias: number | null
+          recusada_em: string | null
+          status: Database["public"]["Enums"]["status_cotacao"] | null
+          transportadora_id: string
+          updated_at: string | null
+          validade: string | null
+          valor_proposto: number
+          veiculo_id: string | null
+        }
+        Insert: {
+          aceita_em?: string | null
+          carga_id: string
+          created_at?: string | null
+          id?: string
+          motivo_recusa?: string | null
+          motorista_id?: string | null
+          observacoes?: string | null
+          prazo_entrega_dias?: number | null
+          recusada_em?: string | null
+          status?: Database["public"]["Enums"]["status_cotacao"] | null
+          transportadora_id: string
+          updated_at?: string | null
+          validade?: string | null
+          valor_proposto: number
+          veiculo_id?: string | null
+        }
+        Update: {
+          aceita_em?: string | null
+          carga_id?: string
+          created_at?: string | null
+          id?: string
+          motivo_recusa?: string | null
+          motorista_id?: string | null
+          observacoes?: string | null
+          prazo_entrega_dias?: number | null
+          recusada_em?: string | null
+          status?: Database["public"]["Enums"]["status_cotacao"] | null
+          transportadora_id?: string
+          updated_at?: string | null
+          validade?: string | null
+          valor_proposto?: number
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotacoes_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "transportadoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      embarcadores: {
+        Row: {
+          ativo: boolean | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string
+          created_at: string | null
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          inscricao_estadual: string | null
+          logo_url: string | null
+          nome_fantasia: string | null
+          razao_social: string
+          telefone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj: string
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          logo_url?: string | null
+          nome_fantasia?: string | null
+          razao_social: string
+          telefone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          logo_url?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string
+          telefone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      Empresas: {
+        Row: {
+          classe: Database["public"]["Enums"]["classe_empresa"]
+          created_at: string
+          id: number
+          tipo: Database["public"]["Enums"]["tipo_empresa"]
+        }
+        Insert: {
+          classe: Database["public"]["Enums"]["classe_empresa"]
+          created_at?: string
+          id?: number
+          tipo: Database["public"]["Enums"]["tipo_empresa"]
+        }
+        Update: {
+          classe?: Database["public"]["Enums"]["classe_empresa"]
+          created_at?: string
+          id?: number
+          tipo?: Database["public"]["Enums"]["tipo_empresa"]
+        }
+        Relationships: []
+      }
+      enderecos_carga: {
+        Row: {
+          bairro: string | null
+          carga_id: string
+          cep: string
+          cidade: string
+          complemento: string | null
+          contato_email: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
+          created_at: string | null
+          estado: string
+          horario_funcionamento_fim: string | null
+          horario_funcionamento_inicio: string | null
+          id: string
+          latitude: number | null
+          logradouro: string
+          longitude: number | null
+          numero: string | null
+          observacoes: string | null
+          opera_domingo: boolean | null
+          opera_sabado: boolean | null
+          tipo: Database["public"]["Enums"]["tipo_endereco"]
+          updated_at: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          carga_id: string
+          cep: string
+          cidade: string
+          complemento?: string | null
+          contato_email?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          created_at?: string | null
+          estado: string
+          horario_funcionamento_fim?: string | null
+          horario_funcionamento_inicio?: string | null
+          id?: string
+          latitude?: number | null
+          logradouro: string
+          longitude?: number | null
+          numero?: string | null
+          observacoes?: string | null
+          opera_domingo?: boolean | null
+          opera_sabado?: boolean | null
+          tipo: Database["public"]["Enums"]["tipo_endereco"]
+          updated_at?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          carga_id?: string
+          cep?: string
+          cidade?: string
+          complemento?: string | null
+          contato_email?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          created_at?: string | null
+          estado?: string
+          horario_funcionamento_fim?: string | null
+          horario_funcionamento_inicio?: string | null
+          id?: string
+          latitude?: number | null
+          logradouro?: string
+          longitude?: number | null
+          numero?: string | null
+          observacoes?: string | null
+          opera_domingo?: boolean | null
+          opera_sabado?: boolean | null
+          tipo?: Database["public"]["Enums"]["tipo_endereco"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enderecos_carga_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entregas: {
+        Row: {
+          assinatura_recebedor: string | null
+          carga_id: string
+          coletado_em: string | null
+          cotacao_id: string | null
+          created_at: string | null
+          documento_recebedor: string | null
+          entregue_em: string | null
+          foto_comprovante_coleta: string | null
+          foto_comprovante_entrega: string | null
+          id: string
+          latitude_atual: number | null
+          longitude_atual: number | null
+          motorista_id: string | null
+          nome_recebedor: string | null
+          observacoes: string | null
+          status: Database["public"]["Enums"]["status_entrega"] | null
+          transportadora_id: string
+          ultima_atualizacao_localizacao: string | null
+          updated_at: string | null
+          veiculo_id: string | null
+        }
+        Insert: {
+          assinatura_recebedor?: string | null
+          carga_id: string
+          coletado_em?: string | null
+          cotacao_id?: string | null
+          created_at?: string | null
+          documento_recebedor?: string | null
+          entregue_em?: string | null
+          foto_comprovante_coleta?: string | null
+          foto_comprovante_entrega?: string | null
+          id?: string
+          latitude_atual?: number | null
+          longitude_atual?: number | null
+          motorista_id?: string | null
+          nome_recebedor?: string | null
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_entrega"] | null
+          transportadora_id: string
+          ultima_atualizacao_localizacao?: string | null
+          updated_at?: string | null
+          veiculo_id?: string | null
+        }
+        Update: {
+          assinatura_recebedor?: string | null
+          carga_id?: string
+          coletado_em?: string | null
+          cotacao_id?: string | null
+          created_at?: string | null
+          documento_recebedor?: string | null
+          entregue_em?: string | null
+          foto_comprovante_coleta?: string | null
+          foto_comprovante_entrega?: string | null
+          id?: string
+          latitude_atual?: number | null
+          longitude_atual?: number | null
+          motorista_id?: string | null
+          nome_recebedor?: string | null
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_entrega"] | null
+          transportadora_id?: string
+          ultima_atualizacao_localizacao?: string | null
+          updated_at?: string | null
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregas_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: true
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "transportadoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Filiais: {
+        Row: {
+          cnpj: string | null
+          created_at: string
+          empresa_id: number | null
+          id: number
+          nome: string | null
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string
+          empresa_id?: number | null
+          id?: number
+          nome?: string | null
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string
+          empresa_id?: number | null
+          id?: number
+          nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Filiais_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "Empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      motoristas: {
+        Row: {
+          ativo: boolean | null
+          categoria_cnh: string
+          cnh: string
+          cpf: string
+          created_at: string | null
+          email: string | null
+          foto_url: string | null
+          id: string
+          nome_completo: string
+          telefone: string | null
+          transportadora_id: string | null
+          updated_at: string | null
+          user_id: string
+          validade_cnh: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria_cnh: string
+          cnh: string
+          cpf: string
+          created_at?: string | null
+          email?: string | null
+          foto_url?: string | null
+          id?: string
+          nome_completo: string
+          telefone?: string | null
+          transportadora_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          validade_cnh: string
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria_cnh?: string
+          cnh?: string
+          cpf?: string
+          created_at?: string | null
+          email?: string | null
+          foto_url?: string | null
+          id?: string
+          nome_completo?: string
+          telefone?: string | null
+          transportadora_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          validade_cnh?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motoristas_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "transportadoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          cpf: string | null
+          created_at: string | null
+          email: string
+          id: string
+          nome_completo: string
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          email: string
+          id: string
+          nome_completo: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          nome_completo?: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      SuperAdmins: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: number
+          imagem_url: string | null
+          jwt: string | null
+          nome: string | null
+          senha: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: number
+          imagem_url?: string | null
+          jwt?: string | null
+          nome?: string | null
+          senha?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: number
+          imagem_url?: string | null
+          jwt?: string | null
+          nome?: string | null
+          senha?: string | null
+        }
+        Relationships: []
+      }
+      tracking_historico: {
+        Row: {
+          created_at: string | null
+          entrega_id: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          observacao: string | null
+          status: Database["public"]["Enums"]["status_entrega"]
+        }
+        Insert: {
+          created_at?: string | null
+          entrega_id: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          observacao?: string | null
+          status: Database["public"]["Enums"]["status_entrega"]
+        }
+        Update: {
+          created_at?: string | null
+          entrega_id?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["status_entrega"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_historico_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transportadoras: {
+        Row: {
+          ativo: boolean | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string
+          created_at: string | null
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          inscricao_estadual: string | null
+          logo_url: string | null
+          nome_fantasia: string | null
+          razao_social: string
+          rntrc: string | null
+          telefone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj: string
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          logo_url?: string | null
+          nome_fantasia?: string | null
+          razao_social: string
+          rntrc?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          logo_url?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string
+          rntrc?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      Usuarios: {
+        Row: {
+          cargo: Database["public"]["Enums"]["usuario_cargo"] | null
+          created_at: string
+          email: string | null
+          id: number
+          imagemUrl: string | null
+          jwt: string | null
+          motorista_autonomo: boolean
+          nome: string | null
+          senha: string | null
+        }
+        Insert: {
+          cargo?: Database["public"]["Enums"]["usuario_cargo"] | null
+          created_at?: string
+          email?: string | null
+          id?: number
+          imagemUrl?: string | null
+          jwt?: string | null
+          motorista_autonomo?: boolean
+          nome?: string | null
+          senha?: string | null
+        }
+        Update: {
+          cargo?: Database["public"]["Enums"]["usuario_cargo"] | null
+          created_at?: string
+          email?: string | null
+          id?: number
+          imagemUrl?: string | null
+          jwt?: string | null
+          motorista_autonomo?: boolean
+          nome?: string | null
+          senha?: string | null
+        }
+        Relationships: []
+      }
+      Usuarios_Filiais: {
+        Row: {
+          cargo_na_filial: Database["public"]["Enums"]["usuario_cargo"] | null
+          created_at: string
+          filial_id: number | null
+          id: number
+          usuario_id: number | null
+        }
+        Insert: {
+          cargo_na_filial?: Database["public"]["Enums"]["usuario_cargo"] | null
+          created_at?: string
+          filial_id?: number | null
+          id?: number
+          usuario_id?: number | null
+        }
+        Update: {
+          cargo_na_filial?: Database["public"]["Enums"]["usuario_cargo"] | null
+          created_at?: string
+          filial_id?: number | null
+          id?: number
+          usuario_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Usuarios_Filiais_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "Filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Usuarios_Filiais_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "Usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      V2F: {
+        Row: {
+          code: number
+          created_at: string
+          email: string | null
+          id: number
+        }
+        Insert: {
+          code: number
+          created_at?: string
+          email?: string | null
+          id?: number
+        }
+        Update: {
+          code?: number
+          created_at?: string
+          email?: string | null
+          id?: number
+        }
+        Relationships: []
+      }
+      veiculos: {
+        Row: {
+          ano: number | null
+          ativo: boolean | null
+          capacidade_kg: number | null
+          capacidade_m3: number | null
+          carroceria: Database["public"]["Enums"]["tipo_carroceria"]
+          created_at: string | null
+          id: string
+          marca: string | null
+          modelo: string | null
+          motorista_id: string | null
+          placa: string
+          rastreador: boolean | null
+          renavam: string | null
+          seguro_ativo: boolean | null
+          tipo: Database["public"]["Enums"]["tipo_veiculo"]
+          transportadora_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ano?: number | null
+          ativo?: boolean | null
+          capacidade_kg?: number | null
+          capacidade_m3?: number | null
+          carroceria: Database["public"]["Enums"]["tipo_carroceria"]
+          created_at?: string | null
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          motorista_id?: string | null
+          placa: string
+          rastreador?: boolean | null
+          renavam?: string | null
+          seguro_ativo?: boolean | null
+          tipo: Database["public"]["Enums"]["tipo_veiculo"]
+          transportadora_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ano?: number | null
+          ativo?: boolean | null
+          capacidade_kg?: number | null
+          capacidade_m3?: number | null
+          carroceria?: Database["public"]["Enums"]["tipo_carroceria"]
+          created_at?: string | null
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          motorista_id?: string | null
+          placa?: string
+          rastreador?: boolean | null
+          renavam?: string | null
+          seguro_ativo?: boolean | null
+          tipo?: Database["public"]["Enums"]["tipo_veiculo"]
+          transportadora_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veiculos_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "transportadoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "embarcador" | "transportadora" | "motorista"
+      classe_empresa: "INDÚSTRIA" | "LOJA" | "COMÉRCIO"
+      forma_pagamento:
+        | "a_vista"
+        | "faturado_7"
+        | "faturado_14"
+        | "faturado_21"
+        | "faturado_30"
+      status_carga:
+        | "rascunho"
+        | "publicada"
+        | "em_cotacao"
+        | "aceita"
+        | "em_coleta"
+        | "em_transito"
+        | "entregue"
+        | "cancelada"
+      status_cotacao:
+        | "pendente"
+        | "aceita"
+        | "recusada"
+        | "expirada"
+        | "cancelada"
+      status_entrega:
+        | "aguardando_coleta"
+        | "em_coleta"
+        | "coletado"
+        | "em_transito"
+        | "em_entrega"
+        | "entregue"
+        | "problema"
+        | "devolvida"
+      tipo_carga:
+        | "granel_solido"
+        | "granel_liquido"
+        | "carga_seca"
+        | "refrigerada"
+        | "congelada"
+        | "perigosa"
+        | "viva"
+        | "indivisivel"
+        | "container"
+      tipo_carroceria:
+        | "aberta"
+        | "fechada_bau"
+        | "graneleira"
+        | "tanque"
+        | "sider"
+        | "frigorifico"
+        | "cegonha"
+        | "prancha"
+        | "container"
+      tipo_empresa: "EMBARCADOR" | "TRANSPORTADORA"
+      tipo_endereco: "origem" | "destino"
+      tipo_frete: "cif" | "fob"
+      tipo_veiculo:
+        | "truck"
+        | "toco"
+        | "tres_quartos"
+        | "vuc"
+        | "carreta"
+        | "carreta_ls"
+        | "bitrem"
+        | "rodotrem"
+        | "vanderleia"
+      usuario_cargo: "ADMIN" | "OPERADOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +1108,80 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "embarcador", "transportadora", "motorista"],
+      classe_empresa: ["INDÚSTRIA", "LOJA", "COMÉRCIO"],
+      forma_pagamento: [
+        "a_vista",
+        "faturado_7",
+        "faturado_14",
+        "faturado_21",
+        "faturado_30",
+      ],
+      status_carga: [
+        "rascunho",
+        "publicada",
+        "em_cotacao",
+        "aceita",
+        "em_coleta",
+        "em_transito",
+        "entregue",
+        "cancelada",
+      ],
+      status_cotacao: [
+        "pendente",
+        "aceita",
+        "recusada",
+        "expirada",
+        "cancelada",
+      ],
+      status_entrega: [
+        "aguardando_coleta",
+        "em_coleta",
+        "coletado",
+        "em_transito",
+        "em_entrega",
+        "entregue",
+        "problema",
+        "devolvida",
+      ],
+      tipo_carga: [
+        "granel_solido",
+        "granel_liquido",
+        "carga_seca",
+        "refrigerada",
+        "congelada",
+        "perigosa",
+        "viva",
+        "indivisivel",
+        "container",
+      ],
+      tipo_carroceria: [
+        "aberta",
+        "fechada_bau",
+        "graneleira",
+        "tanque",
+        "sider",
+        "frigorifico",
+        "cegonha",
+        "prancha",
+        "container",
+      ],
+      tipo_empresa: ["EMBARCADOR", "TRANSPORTADORA"],
+      tipo_endereco: ["origem", "destino"],
+      tipo_frete: ["cif", "fob"],
+      tipo_veiculo: [
+        "truck",
+        "toco",
+        "tres_quartos",
+        "vuc",
+        "carreta",
+        "carreta_ls",
+        "bitrem",
+        "rodotrem",
+        "vanderleia",
+      ],
+      usuario_cargo: ["ADMIN", "OPERADOR"],
+    },
   },
 } as const
