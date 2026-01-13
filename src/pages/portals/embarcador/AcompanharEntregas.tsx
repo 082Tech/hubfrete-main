@@ -124,15 +124,15 @@ const getTimeAgo = (dateString: string | null) => {
 
 export default function AcompanharEntregas() {
   const { user } = useAuth();
-  const { empresa } = useUserContext();
+  const { empresa, filialAtiva } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
-  // Fetch entregas
+  // Fetch entregas - filter by filial_id
   const { data: entregas = [], isLoading } = useQuery({
-    queryKey: ['entregas_embarcador', empresa?.id],
+    queryKey: ['entregas_embarcador', filialAtiva?.id],
     queryFn: async () => {
-      if (!empresa?.id) return [];
+      if (!filialAtiva?.id) return [];
 
       const { data, error } = await supabase
         .from('entregas')
@@ -151,7 +151,7 @@ export default function AcompanharEntregas() {
             codigo,
             descricao,
             data_entrega_limite,
-            empresa_id,
+            filial_id,
             enderecos_carga (
               tipo,
               cidade,
@@ -168,13 +168,13 @@ export default function AcompanharEntregas() {
             modelo
           )
         `)
-        .eq('cargas.empresa_id', empresa.id)
+        .eq('cargas.filial_id', filialAtiva.id)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
       return (data || []) as EntregaComRelacoes[];
     },
-    enabled: !!empresa?.id,
+    enabled: !!filialAtiva?.id,
   });
 
   const filteredEntregas = entregas.filter(entrega => 
