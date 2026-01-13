@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
-import { Session, User, AuthError } from '@supabase/supabase-js';
+import { Session, User, AuthError, AuthResponse } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,7 +20,7 @@ interface AuthContextType {
   profile: Profile | null;
   roles: UserRole[];
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signIn: (email: string, password: string) => Promise<AuthResponse>;
   signUp: (email: string, password: string, metadata?: { nome_completo?: string }) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
@@ -102,8 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile, fetchRoles]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    const authLogin = await supabase.auth.signInWithPassword({ email, password });
+    return authLogin;
   };
 
   const signUp = async (email: string, password: string, metadata?: { nome_completo?: string }) => {
