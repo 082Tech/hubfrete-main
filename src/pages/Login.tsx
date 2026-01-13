@@ -74,76 +74,37 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
 
     let redirectPath = '/login';
 
-    // Check if user is company owner (embarcador)
-    const { data: embarcador } = await supabase
-      .from('embarcadores')
+    // First check if user is a motorista (autonomous driver)
+    const { data: motorista } = await supabase
+      .from('motoristas')
       .select('id')
       .eq('user_id', currentUser.id)
       .maybeSingle();
 
-    if (embarcador) {
-      redirectPath = '/embarcador';
+    if (motorista) {
+      redirectPath = '/motorista';
     } else {
-      // Check if user is company owner (transportadora)
-      const { data: transportadora } = await supabase
-        .from('transportadoras')
-        .select('id')
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
+      // Use database function to get empresa tipo via usuarios_filiais hierarchy
+      const { data: empresaTipo, error } = await supabase
+        .rpc('get_user_empresa_tipo', { _user_id: currentUser.id });
 
-      if (transportadora) {
+      if (error) {
+        console.error('Error getting empresa tipo:', error);
+        toast.error('Erro ao identificar tipo de empresa. Contate o suporte.');
+        setStep('credentials');
+        setShowSplash(false);
+        return;
+      }
+
+      if (empresaTipo === 'EMBARCADOR') {
+        redirectPath = '/embarcador';
+      } else if (empresaTipo === 'TRANSPORTADORA') {
         redirectPath = '/transportadora';
       } else {
-        // Check if user is a motorista
-        const { data: motorista } = await supabase
-          .from('motoristas')
-          .select('id')
-          .eq('user_id', currentUser.id)
-          .maybeSingle();
-
-        if (motorista) {
-          redirectPath = '/motorista';
-        } else {
-          // Check if user is an invited employee linked via usuarios table
-          const { data: usuario } = await supabase
-            .from('usuarios')
-            .select(`
-              id,
-              usuarios_filiais (
-                filial_id,
-                filiais (
-                  empresa_id,
-                  empresas (
-                    tipo
-                  )
-                )
-              )
-            `)
-            .eq('auth_user_id', currentUser.id)
-            .maybeSingle();
-
-          if (usuario && usuario.usuarios_filiais && usuario.usuarios_filiais.length > 0) {
-            // Get company type from first linked filial
-            const firstFilial = usuario.usuarios_filiais[0] as any;
-            const empresaTipo = firstFilial?.filiais?.empresas?.tipo;
-            
-            if (empresaTipo === 'EMBARCADOR') {
-              redirectPath = '/embarcador';
-            } else if (empresaTipo === 'TRANSPORTADORA') {
-              redirectPath = '/transportadora';
-            } else {
-              toast.error('Tipo de empresa não reconhecido. Contate o suporte.');
-              setStep('credentials');
-              setShowSplash(false);
-              return;
-            }
-          } else {
-            toast.error('Nenhum perfil de empresa encontrado. Contate o suporte.');
-            setStep('credentials');
-            setShowSplash(false);
-            return;
-          }
-        }
+        toast.error('Nenhum perfil de empresa encontrado. Contate o suporte.');
+        setStep('credentials');
+        setShowSplash(false);
+        return;
       }
     }
 
