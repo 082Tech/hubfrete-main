@@ -1,10 +1,10 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Package, 
-  FileText, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Package,
+  FileText,
+  Settings,
   LogOut,
   Truck,
   Building2,
@@ -14,11 +14,10 @@ import {
   BarChart3,
   Bell,
   ChevronDown,
-  Check
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { clearAuth, getAuthUser } from '@/lib/api';
 import { clearUserSession, getUserSession, UserType } from '@/lib/userSession';
 import {
   DropdownMenu,
@@ -27,6 +26,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/hooks/useAuth';
 
 // Mock data - será substituído por dados reais da API
 const mockEmpresa = {
@@ -90,7 +90,7 @@ interface PortalSidebarProps {
 export function PortalSidebar({ userType }: PortalSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const userEmail = getAuthUser();
+  const { profile, signOut } = useAuth();
   const userSession = getUserSession();
   const menuItems = menusByType[userType];
   const config = portalConfig[userType];
@@ -99,8 +99,8 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
   // Estado para filial ativa (usar mockEmpresa por enquanto)
   const [filialAtiva, setFilialAtiva] = useState(mockEmpresa.filiais[0]);
 
-  const handleLogout = () => {
-    clearAuth();
+  const handleLogout = async () => {
+    await signOut();
     clearUserSession();
     navigate('/');
   };
@@ -218,15 +218,15 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0">
             <span className="text-sidebar-primary font-semibold">
-              {userSession?.nome?.charAt(0).toUpperCase() || userEmail?.charAt(0).toUpperCase() || 'U'}
+              {(profile?.nome_completo || userSession?.nome || profile?.email || 'U').charAt(0).toUpperCase()}
             </span>
           </div>
           <div className="flex-1 min-w-0 overflow-hidden">
             <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {userSession?.nome || userEmail || 'Usuário'}
+              {profile?.nome_completo || userSession?.nome || 'Usuário'}
             </p>
-            <p className="text-xs text-sidebar-foreground/60 truncate" title={userEmail || ''}>
-              {userEmail}
+            <p className="text-xs text-sidebar-foreground/60 truncate" title={profile?.email || ''}>
+              {profile?.email || ''}
             </p>
           </div>
         </div>
