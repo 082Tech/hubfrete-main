@@ -19,8 +19,11 @@ import {
   MessageSquare,
   ExternalLink,
   Loader2,
-  Package
+  Package,
+  List,
+  MapPinned
 } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -121,6 +124,7 @@ const getTimeAgo = (dateString: string | null) => {
 export default function AcompanharEntregas() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   // Fetch embarcador
   const { data: embarcador } = useQuery({
@@ -272,18 +276,44 @@ export default function AcompanharEntregas() {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por código, carga ou motorista..." 
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        {/* Search and View Toggle */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar por código, carga ou motorista..." 
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <ToggleGroup 
+            type="single" 
+            value={viewMode} 
+            onValueChange={(value) => value && setViewMode(value as 'list' | 'map')}
+            className="border border-border rounded-lg p-1"
+          >
+            <ToggleGroupItem 
+              value="list" 
+              aria-label="Visualização em lista"
+              className="gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              <List className="w-4 h-4" />
+              <span className="hidden sm:inline">Lista</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem 
+              value="map" 
+              aria-label="Visualização em mapa"
+              className="gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              <MapPinned className="w-4 h-4" />
+              <span className="hidden sm:inline">Mapa</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
-        {/* Entregas Cards */}
+        {/* View Content */}
         {isLoading ? (
           <div className="flex items-center justify-center h-32">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -296,6 +326,50 @@ export default function AcompanharEntregas() {
               <p className="text-sm text-muted-foreground">
                 As entregas das suas cargas aparecerão aqui
               </p>
+            </CardContent>
+          </Card>
+        ) : viewMode === 'map' ? (
+          /* Map View */
+          <Card className="border-border">
+            <CardContent className="p-0">
+              <div className="relative w-full h-[500px] bg-muted/30 rounded-lg overflow-hidden">
+                {/* Map Placeholder */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                  <div className="p-4 bg-primary/10 rounded-full mb-4">
+                    <MapPinned className="w-12 h-12 text-primary" />
+                  </div>
+                  <h3 className="font-bold text-lg text-foreground mb-2">Visualização em Mapa</h3>
+                  <p className="text-muted-foreground max-w-md mb-4">
+                    O mapa interativo com rastreamento em tempo real será implementado em breve.
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {filteredEntregas.slice(0, 5).map((entrega) => {
+                      const status = entrega.status || 'aguardando_coleta';
+                      const config = statusConfig[status] || statusConfig['aguardando_coleta'];
+                      return (
+                        <Badge key={entrega.id} variant="outline" className={config.color}>
+                          {entrega.cargas.codigo}
+                        </Badge>
+                      );
+                    })}
+                    {filteredEntregas.length > 5 && (
+                      <Badge variant="secondary">+{filteredEntregas.length - 5} mais</Badge>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Decorative map-like background */}
+                <div className="absolute inset-0 opacity-10">
+                  <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/>
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                  </svg>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : (
