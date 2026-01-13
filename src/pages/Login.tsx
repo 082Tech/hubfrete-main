@@ -64,42 +64,57 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
     setStep('success');
     setShowSplash(true);
     
-    // Fetch user roles to determine redirect path
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     
-    if (currentUser) {
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', currentUser.id);
-      
-      let redirectPath = '/login'; // fallback
-      
-      if (roles && roles.length > 0) {
-        const role = roles[0].role;
-        switch (role) {
-          case 'embarcador':
-            redirectPath = '/embarcador';
-            break;
-          case 'transportadora':
-            redirectPath = '/transportadora';
-            break;
-          case 'motorista':
-            redirectPath = '/motorista';
-            break;
-          default:
-            // Unknown role - show error (admin uses /admin/login)
-            toast.error('Perfil de acesso não encontrado. Contate o suporte.');
-            redirectPath = '/login';
-        }
-      } else {
-        toast.error('Nenhum perfil de acesso encontrado. Contate o suporte.');
-      }
-      
-      setTimeout(() => {
-        navigate(redirectPath);
-      }, 500);
+    if (!currentUser) {
+      toast.error('Erro ao obter dados do usuário.');
+      navigate('/login');
+      return;
     }
+
+    let redirectPath = '/login';
+
+    // Check if user belongs to an embarcador company
+    const { data: embarcador } = await supabase
+      .from('embarcadores')
+      .select('id')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    if (embarcador) {
+      redirectPath = '/embarcador';
+    } else {
+      // Check if user belongs to a transportadora company
+      const { data: transportadora } = await supabase
+        .from('transportadoras')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      if (transportadora) {
+        redirectPath = '/transportadora';
+      } else {
+        // Check if user is a motorista
+        const { data: motorista } = await supabase
+          .from('motoristas')
+          .select('id')
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
+
+        if (motorista) {
+          redirectPath = '/motorista';
+        } else {
+          toast.error('Nenhum perfil de empresa encontrado. Contate o suporte.');
+          setStep('credentials');
+          setShowSplash(false);
+          return;
+        }
+      }
+    }
+
+    setTimeout(() => {
+      navigate(redirectPath);
+    }, 500);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
