@@ -131,7 +131,7 @@ export function EntregasMap({ entregas }: EntregasMapProps) {
   }
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-border">
+    <div className="relative w-full h-[500px] rounded-lg overflow-hidden border border-border">
       <MapContainer
         center={center}
         zoom={defaultZoom}
