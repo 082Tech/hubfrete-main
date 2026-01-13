@@ -19,8 +19,7 @@ import CadastroMotorista from "./pages/CadastroMotorista";
 import CadastroEmbarcador from "./pages/CadastroEmbarcador";
 import CadastroTransportadora from "./pages/CadastroTransportadora";
 import EmbarcadorDashboard from "./pages/portals/EmbarcadorDashboard";
-import MinhasCargas from "./pages/portals/embarcador/MinhasCargas";
-import AcompanharEntregas from "./pages/portals/embarcador/AcompanharEntregas";
+import GestaoCargas from "./pages/portals/embarcador/GestaoCargas";
 import Cotacoes from "./pages/portals/embarcador/Cotacoes";
 import Relatorios from "./pages/portals/embarcador/Relatorios";
 import Configuracoes from "./pages/portals/embarcador/Configuracoes";
@@ -59,8 +58,7 @@ const App = () => {
                 
                 {/* Portal Embarcador */}
                 <Route path="/embarcador" element={<EmbarcadorDashboard />} />
-                <Route path="/embarcador/cargas" element={<MinhasCargas />} />
-                <Route path="/embarcador/entregas" element={<AcompanharEntregas />} />
+                <Route path="/embarcador/cargas" element={<GestaoCargas />} />
                 <Route path="/embarcador/cotacoes" element={<Cotacoes />} />
                 <Route path="/embarcador/relatorios" element={<Relatorios />} />
                 <Route path="/embarcador/filiais" element={<GerenciarFiliais />} />
