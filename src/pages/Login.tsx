@@ -48,23 +48,52 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
         } else {
           toast.error(error.message);
         }
+        setLoading(false);
         return;
       }
 
-      setSuccess(true);
-      toast.success('Login realizado com sucesso!');
-      setShowSplash(true);
-      
-      // Small delay to show success state
-      setTimeout(() => {
-        const redirectPath = getRedirectPath();
-        navigate(redirectPath);
-      }, 500);
+      // Call n8n workflow to send 2FA code
+      try {
+        const n8nResponse = await fetch('https://hubfrete.app.n8n.cloud/webhook/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            senha,
+          }),
+        });
+
+        const n8nData = await n8nResponse.json();
+
+        if (!n8nResponse.ok) {
+          toast.error(n8nData.output || 'Erro ao enviar código de verificação');
+          setLoading(false);
+          return;
+        }
+
+        setSuccess(true);
+        toast.success('Código de verificação enviado para seu email!');
+        
+        // Redirect to 2FA page
+        setTimeout(() => {
+          navigate('/v2f', { state: { email } });
+        }, 500);
+        
+      } catch (n8nError) {
+        console.error('n8n 2FA error:', n8nError);
+        // If n8n fails, still allow login but skip 2FA (fallback)
+        toast.warning('Verificação em 2 etapas indisponível');
+        setShowSplash(true);
+        setTimeout(() => {
+          navigate('/embarcador');
+        }, 500);
+      }
       
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao conectar com o servidor';
       toast.error(message);
-    } finally {
       setLoading(false);
     }
   };
