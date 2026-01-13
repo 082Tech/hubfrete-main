@@ -24,7 +24,7 @@ export function CTASection() {
           </h2>
           <p className="text-xl text-primary-foreground/80 mb-8">
             Junte-se a milhares de empresas e motoristas que já fazem parte da maior 
-            rede de logística do Brasil.
+            rede de logística do Brazil.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
