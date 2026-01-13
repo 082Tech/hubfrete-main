@@ -256,6 +256,7 @@ export type Database = {
           cnpj: string
           created_at: string | null
           email: string | null
+          empresa_id: number | null
           endereco: string | null
           estado: string | null
           id: string
@@ -274,6 +275,7 @@ export type Database = {
           cnpj: string
           created_at?: string | null
           email?: string | null
+          empresa_id?: number | null
           endereco?: string | null
           estado?: string | null
           id?: string
@@ -292,6 +294,7 @@ export type Database = {
           cnpj?: string
           created_at?: string | null
           email?: string | null
+          empresa_id?: number | null
           endereco?: string | null
           estado?: string | null
           id?: string
@@ -303,7 +306,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "embarcadores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "Empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       Empresas: {
         Row: {
@@ -714,6 +725,7 @@ export type Database = {
           cnpj: string
           created_at: string | null
           email: string | null
+          empresa_id: number | null
           endereco: string | null
           estado: string | null
           id: string
@@ -733,6 +745,7 @@ export type Database = {
           cnpj: string
           created_at?: string | null
           email?: string | null
+          empresa_id?: number | null
           endereco?: string | null
           estado?: string | null
           id?: string
@@ -752,6 +765,7 @@ export type Database = {
           cnpj?: string
           created_at?: string | null
           email?: string | null
+          empresa_id?: number | null
           endereco?: string | null
           estado?: string | null
           id?: string
@@ -764,7 +778,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transportadoras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "Empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
