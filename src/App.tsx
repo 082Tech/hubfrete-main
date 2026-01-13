@@ -8,7 +8,6 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { SplashScreen } from "@/components/SplashScreen";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
-import TwoFactorVerification from "./pages/TwoFactorVerification";
 import AdminLogin from "./pages/admin/AdminLogin";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -46,7 +45,6 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login setShowSplash={setShowSplash} />} />
-              <Route path="/v2f" element={<TwoFactorVerification setShowSplash={setShowSplash} />} />
               <Route path="/admin" element={<AdminLogin setShowSplash={setShowSplash} />} />
               <Route path="/esqueci-senha" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
