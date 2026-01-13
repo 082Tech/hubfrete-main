@@ -97,14 +97,14 @@ export default function GerenciarFiliais() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('Filiais')
+        .from('filiais')
         .select('*')
         .eq('empresa_id', empresa.id)
         .order('is_matriz', { ascending: false })
         .order('nome', { ascending: true });
 
       if (error) throw error;
-      setFiliais(data || []);
+      setFiliais((data as Filial[]) || []);
     } catch (error) {
       console.error('Erro ao carregar filiais:', error);
       toast.error('Erro ao carregar filiais');
@@ -143,7 +143,7 @@ export default function GerenciarFiliais() {
     setSaving(true);
     try {
       const { error } = await supabase
-        .from('Filiais')
+        .from('filiais')
         .insert({
           nome: formData.nome,
           cnpj: formData.cnpj || null,
@@ -184,7 +184,7 @@ export default function GerenciarFiliais() {
     setSaving(true);
     try {
       const { error } = await supabase
-        .from('Filiais')
+        .from('filiais')
         .update({
           nome: formData.nome,
           cnpj: formData.cnpj || null,
@@ -232,7 +232,7 @@ export default function GerenciarFiliais() {
   const handleToggleStatus = async (filial: Filial) => {
     try {
       const { error } = await supabase
-        .from('Filiais')
+        .from('filiais')
         .update({ ativa: !filial.ativa })
         .eq('id', filial.id);
 
@@ -256,7 +256,7 @@ export default function GerenciarFiliais() {
 
     try {
       const { error } = await supabase
-        .from('Filiais')
+        .from('filiais')
         .delete()
         .eq('id', filial.id);
 

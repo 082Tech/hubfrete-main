@@ -111,19 +111,19 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       if (type === 'embarcador' || type === 'transportadora') {
         // Get Usuario record and their filiais
         const { data: usuarioData, error: usuarioError } = await supabase
-          .from('Usuarios')
+          .from('usuarios')
           .select(`
             id,
             cargo,
-            Usuarios_Filiais (
+            usuarios_filiais (
               cargo_na_filial,
               filial_id,
-              Filiais (
+              filiais (
                 id,
                 nome,
                 cnpj,
                 empresa_id,
-                Empresas (
+                empresas (
                   id,
                   tipo,
                   classe
@@ -136,25 +136,25 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
 
         if (usuarioData) {
           // Set cargo (highest privilege if multiple)
-          const cargos = usuarioData.Usuarios_Filiais?.map(uf => uf.cargo_na_filial) || [];
+          const cargos = usuarioData.usuarios_filiais?.map((uf: any) => uf.cargo_na_filial) || [];
           setCargo(cargos.includes('ADMIN') ? 'ADMIN' : cargos[0] as UserCargo);
 
           // Extract unique filiais
           const filiaisData: Filial[] = [];
           let empresaData: Empresa | null = null;
 
-          usuarioData.Usuarios_Filiais?.forEach((uf: any) => {
-            if (uf.Filiais) {
+          usuarioData.usuarios_filiais?.forEach((uf: any) => {
+            if (uf.filiais) {
               filiaisData.push({
-                id: uf.Filiais.id,
-                nome: uf.Filiais.nome,
-                cnpj: uf.Filiais.cnpj,
+                id: uf.filiais.id,
+                nome: uf.filiais.nome,
+                cnpj: uf.filiais.cnpj,
               });
-              if (!empresaData && uf.Filiais.Empresas) {
+              if (!empresaData && uf.filiais.empresas) {
                 empresaData = {
-                  id: uf.Filiais.Empresas.id,
-                  tipo: uf.Filiais.Empresas.tipo,
-                  classe: uf.Filiais.Empresas.classe,
+                  id: uf.filiais.empresas.id,
+                  tipo: uf.filiais.empresas.tipo,
+                  classe: uf.filiais.empresas.classe,
                 };
               }
             }

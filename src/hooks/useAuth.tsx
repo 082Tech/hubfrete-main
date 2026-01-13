@@ -40,13 +40,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
+      .from('usuarios')
+      .select('id, email, nome, imagemUrl')
+      .eq('auth_user_id', userId)
       .single();
 
     if (!error && data) {
-      setProfile(data as Profile);
+      setProfile({
+        id: String(data.id),
+        email: data.email || '',
+        nome_completo: data.nome || '',
+        avatar_url: data.imagemUrl || undefined,
+      });
     }
   }, []);
 
