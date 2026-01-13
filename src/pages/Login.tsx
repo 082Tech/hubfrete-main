@@ -60,14 +60,45 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
     }
   };
 
-  const proceedToApp = () => {
+  const proceedToApp = async () => {
     setStep('success');
     setShowSplash(true);
-    // Always redirect to embarcador for now (default portal)
-    // TODO: Implement dynamic redirect based on user roles when they're properly set
-    setTimeout(() => {
-      navigate('/embarcador');
-    }, 500);
+    
+    // Fetch user roles to determine redirect path
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    
+    if (currentUser) {
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', currentUser.id);
+      
+      let redirectPath = '/login'; // fallback
+      
+      if (roles && roles.length > 0) {
+        const role = roles[0].role;
+        switch (role) {
+          case 'embarcador':
+            redirectPath = '/embarcador';
+            break;
+          case 'transportadora':
+            redirectPath = '/transportadora';
+            break;
+          case 'motorista':
+            redirectPath = '/motorista';
+            break;
+          case 'admin':
+            redirectPath = '/admin';
+            break;
+          default:
+            redirectPath = '/login';
+        }
+      }
+      
+      setTimeout(() => {
+        navigate(redirectPath);
+      }, 500);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
