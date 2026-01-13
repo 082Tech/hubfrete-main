@@ -527,25 +527,52 @@ export type Database = {
       }
       Filiais: {
         Row: {
+          ativa: boolean | null
+          cep: string | null
+          cidade: string | null
           cnpj: string | null
           created_at: string
+          email: string | null
           empresa_id: number | null
+          endereco: string | null
+          estado: string | null
           id: number
+          is_matriz: boolean | null
           nome: string | null
+          responsavel: string | null
+          telefone: string | null
         }
         Insert: {
+          ativa?: boolean | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
           created_at?: string
+          email?: string | null
           empresa_id?: number | null
+          endereco?: string | null
+          estado?: string | null
           id?: number
+          is_matriz?: boolean | null
           nome?: string | null
+          responsavel?: string | null
+          telefone?: string | null
         }
         Update: {
+          ativa?: boolean | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
           created_at?: string
+          email?: string | null
           empresa_id?: number | null
+          endereco?: string | null
+          estado?: string | null
           id?: number
+          is_matriz?: boolean | null
           nome?: string | null
+          responsavel?: string | null
+          telefone?: string | null
         }
         Relationships: [
           {
