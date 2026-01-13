@@ -6,25 +6,111 @@ import {
   Truck, 
   Clock, 
   CheckCircle,
-  Plus,
-  ArrowUpRight
+  ArrowUpRight,
+  Loader2
 } from 'lucide-react';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useUserContext } from '@/hooks/useUserContext';
+import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
-const stats = [
-  { label: 'Cargas Ativas', value: '12', icon: Package, color: 'chart-2' },
-  { label: 'Em Trânsito', value: '8', icon: Truck, color: 'chart-1' },
-  { label: 'Aguardando Coleta', value: '4', icon: Clock, color: 'chart-4' },
-  { label: 'Entregues (mês)', value: '47', icon: CheckCircle, color: 'chart-3' },
-];
-
-const recentLoads = [
-  { id: 'CRG-001', destino: 'São Paulo, SP', status: 'Em Trânsito', data: '12/01/2026' },
-  { id: 'CRG-002', destino: 'Rio de Janeiro, RJ', status: 'Aguardando', data: '11/01/2026' },
-  { id: 'CRG-003', destino: 'Curitiba, PR', status: 'Entregue', data: '10/01/2026' },
-];
+const statusLabels: Record<string, { label: string; color: string }> = {
+  'rascunho': { label: 'Rascunho', color: 'bg-gray-500/10 text-gray-600 border-gray-500/20' },
+  'publicada': { label: 'Publicada', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+  'em_cotacao': { label: 'Em Cotação', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20' },
+  'aceita': { label: 'Aceita', color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
+  'em_coleta': { label: 'Em Coleta', color: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
+  'em_transito': { label: 'Em Trânsito', color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
+  'entregue': { label: 'Entregue', color: 'bg-green-500/10 text-green-600 border-green-500/20' },
+  'cancelada': { label: 'Cancelada', color: 'bg-red-500/10 text-red-600 border-red-500/20' },
+};
 
 export default function EmbarcadorDashboard() {
+  const { empresa } = useUserContext();
+  const navigate = useNavigate();
+
+  // Fetch cargas
+  const { data: cargas = [], isLoading: loadingCargas } = useQuery({
+    queryKey: ['dashboard_cargas', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      const { data, error } = await supabase
+        .from('cargas')
+        .select(`
+          id,
+          codigo,
+          descricao,
+          status,
+          created_at,
+          enderecos_carga (
+            tipo,
+            cidade,
+            estado
+          )
+        `)
+        .eq('empresa_id', empresa.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Fetch entregas
+  const { data: entregas = [], isLoading: loadingEntregas } = useQuery({
+    queryKey: ['dashboard_entregas', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      const { data, error } = await supabase
+        .from('entregas')
+        .select(`
+          id,
+          status,
+          cargas!inner (
+            empresa_id
+          )
+        `)
+        .eq('cargas.empresa_id', empresa.id);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Calculate stats
+  const activeCargas = cargas.filter(c => 
+    c.status && !['entregue', 'cancelada'].includes(c.status)
+  );
+  const emTransito = entregas.filter(e => e.status === 'em_transito').length;
+  const aguardandoColeta = entregas.filter(e => e.status === 'aguardando_coleta' || e.status === 'em_coleta').length;
+  const entreguesMes = entregas.filter(e => e.status === 'entregue').length;
+
+  const stats = [
+    { label: 'Cargas Ativas', value: activeCargas.length, icon: Package, color: 'chart-2' },
+    { label: 'Em Trânsito', value: emTransito, icon: Truck, color: 'chart-1' },
+    { label: 'Aguardando Coleta', value: aguardandoColeta, icon: Clock, color: 'chart-4' },
+    { label: 'Entregues (mês)', value: entreguesMes, icon: CheckCircle, color: 'chart-3' },
+  ];
+
+  // Get recent cargas (last 5)
+  const recentCargas = cargas.slice(0, 5).map(carga => {
+    const destino = carga.enderecos_carga?.find((e: any) => e.tipo === 'destino');
+    return {
+      id: carga.codigo,
+      destino: destino ? `${destino.cidade}, ${destino.estado}` : '-',
+      status: carga.status || 'rascunho',
+      data: new Date(carga.created_at).toLocaleDateString('pt-BR'),
+    };
+  });
+
+  const isLoading = loadingCargas || loadingEntregas;
+
   return (
     <PortalLayout expectedUserType="embarcador">
       <div className="space-y-6">
@@ -38,49 +124,73 @@ export default function EmbarcadorDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <Card key={stat.label} className="border-border">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className={`p-3 bg-[hsl(var(--${stat.color}))]/10 rounded-xl`}>
-                  <stat.icon className={`w-6 h-6 text-[hsl(var(--${stat.color}))]`} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-24">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {stats.map((stat) => (
+              <Card key={stat.label} className="border-border">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className={`p-3 bg-[hsl(var(--${stat.color}))]/10 rounded-xl`}>
+                    <stat.icon className={`w-6 h-6 text-[hsl(var(--${stat.color}))]`} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Recent Loads */}
         <Card className="border-border">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Cargas Recentes</CardTitle>
-            <Button variant="ghost" size="sm" className="gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1"
+              onClick={() => navigate('/embarcador/minhas-cargas')}
+            >
               Ver todas <ArrowUpRight className="w-4 h-4" />
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentLoads.map((load) => (
-                <div key={load.id} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card">
-                  <div>
-                    <p className="font-medium text-foreground">{load.id}</p>
-                    <p className="text-sm text-muted-foreground">{load.destino}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-medium ${
-                      load.status === 'Entregue' ? 'text-[hsl(var(--chart-1))]' :
-                      load.status === 'Em Trânsito' ? 'text-[hsl(var(--chart-2))]' :
-                      'text-[hsl(var(--chart-4))]'
-                    }`}>{load.status}</p>
-                    <p className="text-xs text-muted-foreground">{load.data}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-24">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : recentCargas.length === 0 ? (
+              <div className="text-center py-8">
+                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <p className="text-muted-foreground">Nenhuma carga cadastrada ainda</p>
+                <p className="text-sm text-muted-foreground">Clique em "Nova Carga" para começar</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {recentCargas.map((load) => {
+                  const statusInfo = statusLabels[load.status] || statusLabels['rascunho'];
+                  return (
+                    <div key={load.id} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card">
+                      <div>
+                        <p className="font-medium text-foreground">{load.id}</p>
+                        <p className="text-sm text-muted-foreground">{load.destino}</p>
+                      </div>
+                      <div className="text-right flex items-center gap-3">
+                        <Badge variant="outline" className={statusInfo.color}>
+                          {statusInfo.label}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground">{load.data}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
