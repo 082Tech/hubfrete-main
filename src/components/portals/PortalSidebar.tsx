@@ -119,17 +119,10 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
             <Building2 className="w-5 h-5 text-sidebar-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <Badge variant={config.badgeVariant} className="text-[10px] py-0 px-1.5 h-5">
-                <PortalIcon className="w-2.5 h-2.5 mr-1" />
-                {config.title}
-              </Badge>
-              {cargo && (
-                <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5">
-                  {cargo}
-                </Badge>
-              )}
-            </div>
+            <Badge variant={config.badgeVariant} className="text-[10px] py-0 px-1.5 h-5 mb-1">
+              <PortalIcon className="w-2.5 h-2.5 mr-1" />
+              {config.title}
+            </Badge>
             <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
               {companyName}
             </p>
@@ -232,9 +225,16 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
             </span>
           </div>
           <div className="flex-1 min-w-0 overflow-hidden">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {profile?.nome_completo || 'Usuário'}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
+                {profile?.nome_completo || 'Usuário'}
+              </p>
+              {cargo && (
+                <Badge variant="outline" className="text-[10px] py-0 px-1 h-4 shrink-0">
+                  {cargo}
+                </Badge>
+              )}
+            </div>
             <p className="text-xs text-sidebar-foreground/60 truncate" title={profile?.email || ''}>
               {profile?.email || ''}
             </p>
