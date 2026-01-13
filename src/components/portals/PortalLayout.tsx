@@ -1,10 +1,10 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PortalSidebar } from './PortalSidebar';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserContext, type UserType } from '@/hooks/useUserContext';
 
-export type UserType = 'embarcador' | 'transportadora' | 'motorista';
+export type { UserType };
 
 function getRedirectByUserType(tipo: UserType): string {
   switch (tipo) {
@@ -21,68 +21,30 @@ function getRedirectByUserType(tipo: UserType): string {
 
 interface PortalLayoutProps {
   children: ReactNode;
-  expectedUserType: UserType;
+  expectedUserType: 'embarcador' | 'transportadora' | 'motorista';
 }
 
 export function PortalLayout({ children, expectedUserType }: PortalLayoutProps) {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
-  const [userType, setUserType] = useState<UserType | null>(null);
-  const [checkingType, setCheckingType] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const { userType, loading: contextLoading } = useUserContext();
 
-  const isBusy = useMemo(() => loading || checkingType, [loading, checkingType]);
+  const isLoading = authLoading || contextLoading;
 
   useEffect(() => {
-    if (loading) return;
+    if (isLoading) return;
 
     if (!user) {
       navigate('/login');
       return;
     }
 
-    let cancelled = false;
-
-    const loadUserType = async () => {
-      setCheckingType(true);
-      try {
-        // Determine user type by membership tables
-        const [{ data: embarcador }, { data: transportadora }, { data: motorista }] = await Promise.all([
-          supabase.from('embarcadores').select('id').eq('user_id', user.id).maybeSingle(),
-          supabase.from('transportadoras').select('id').eq('user_id', user.id).maybeSingle(),
-          supabase.from('motoristas').select('id').eq('user_id', user.id).maybeSingle(),
-        ]);
-
-        const found: UserType | null = embarcador
-          ? 'embarcador'
-          : transportadora
-            ? 'transportadora'
-            : motorista
-              ? 'motorista'
-              : null;
-
-        if (!cancelled) setUserType(found);
-      } finally {
-        if (!cancelled) setCheckingType(false);
-      }
-    };
-
-    loadUserType();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    if (isBusy) return;
-    if (!user || !userType) return;
-
-    if (userType !== expectedUserType) {
+    if (userType && userType !== expectedUserType) {
       navigate(getRedirectByUserType(userType));
     }
-  }, [isBusy, user, userType, expectedUserType, navigate]);
+  }, [user, userType, isLoading, expectedUserType, navigate]);
 
-  if (isBusy) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -99,4 +61,3 @@ export function PortalLayout({ children, expectedUserType }: PortalLayoutProps) 
     </div>
   );
 }
-

@@ -963,11 +963,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_empresa_id: { Args: { _user_id: string }; Returns: number }
+      get_user_filial_ids: { Args: { _user_id: string }; Returns: number[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      user_belongs_to_empresa: {
+        Args: { _empresa_id: number; _user_id: string }
+        Returns: boolean
+      }
+      user_belongs_to_filial: {
+        Args: { _filial_id: number; _user_id: string }
         Returns: boolean
       }
     }
