@@ -1,5 +1,4 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
 import {
   LayoutDashboard,
   Package,
@@ -18,7 +17,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { clearUserSession, getUserSession, UserType } from '@/lib/userSession';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,35 +25,26 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
-
-// Mock data - será substituído por dados reais da API
-const mockEmpresa = {
-  id: '1',
-  nome: 'Carajás Mineração S.A.',
-  cnpj: '12.345.678/0001-99',
-  filiais: [
-    { id: 'f1', nome: 'Matriz - Parauapebas', cidade: 'Parauapebas', estado: 'PA' },
-    { id: 'f2', nome: 'Filial São Luís', cidade: 'São Luís', estado: 'MA' },
-    { id: 'f3', nome: 'Filial Marabá', cidade: 'Marabá', estado: 'PA' },
-    { id: 'f4', nome: 'Centro de Distribuição SP', cidade: 'São Paulo', estado: 'SP' },
-  ],
-};
+import { useUserContext, type UserType } from '@/hooks/useUserContext';
 
 interface MenuItem {
   icon: React.ElementType;
   label: string;
   href: string;
+  adminOnly?: boolean;
 }
 
-const menusByType: Record<UserType, MenuItem[]> = {
+type SidebarUserType = 'embarcador' | 'transportadora' | 'motorista';
+
+const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/embarcador' },
     { icon: Package, label: 'Minhas Cargas', href: '/embarcador/cargas' },
     { icon: Truck, label: 'Acompanhar Entregas', href: '/embarcador/entregas' },
     { icon: FileText, label: 'Cotações', href: '/embarcador/cotacoes' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
-    { icon: MapPin, label: 'Gerenciar Filiais', href: '/embarcador/filiais' },
-    { icon: User, label: 'Usuários da Empresa', href: '/embarcador/usuarios' },
+    { icon: MapPin, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
+    { icon: User, label: 'Usuários da Empresa', href: '/embarcador/usuarios', adminOnly: true },
     { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
   ],
   transportadora: [
@@ -77,33 +66,35 @@ const menusByType: Record<UserType, MenuItem[]> = {
   ],
 };
 
-const portalConfig: Record<UserType, { title: string; icon: React.ElementType; badgeVariant: 'default' | 'secondary' | 'outline' }> = {
+const portalConfig: Record<SidebarUserType, { title: string; icon: React.ElementType; badgeVariant: 'default' | 'secondary' | 'outline' }> = {
   embarcador: { title: 'Embarcador', icon: Building2, badgeVariant: 'default' },
   transportadora: { title: 'Transportadora', icon: Truck, badgeVariant: 'secondary' },
   motorista: { title: 'Motorista Autônomo', icon: User, badgeVariant: 'outline' },
 };
 
 interface PortalSidebarProps {
-  userType: UserType;
+  userType: SidebarUserType;
 }
 
 export function PortalSidebar({ userType }: PortalSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
-  const userSession = getUserSession();
-  const menuItems = menusByType[userType];
+  const { empresa, filiais, filialAtiva, setFilialAtiva, cargo } = useUserContext();
+  
+  const allMenuItems = menusByType[userType];
+  // Filter menu items based on user cargo (ADMIN sees all, OPERADOR sees non-admin items)
+  const menuItems = allMenuItems.filter(item => !item.adminOnly || cargo === 'ADMIN');
   const config = portalConfig[userType];
   const PortalIcon = config.icon;
-  
-  // Estado para filial ativa (usar mockEmpresa por enquanto)
-  const [filialAtiva, setFilialAtiva] = useState(mockEmpresa.filiais[0]);
 
   const handleLogout = async () => {
     await signOut();
-    clearUserSession();
+    localStorage.removeItem('hubfrete_filial_ativa');
     navigate('/');
   };
+
+  const empresaNome = empresa?.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora';
 
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border h-screen fixed left-0 top-0 flex flex-col">
@@ -119,7 +110,7 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
         </Link>
       </div>
 
-      {/* Company & Branch Section - Estilo iFood */}
+      {/* Company & Branch Section */}
       <div className="px-4 py-4 border-b border-sidebar-border bg-sidebar-accent/10">
         {/* Company Header */}
         <div className="flex items-start gap-3 mb-3">
@@ -132,64 +123,82 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
                 <PortalIcon className="w-2.5 h-2.5 mr-1" />
                 {config.title}
               </Badge>
+              {cargo && (
+                <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5">
+                  {cargo}
+                </Badge>
+              )}
             </div>
             <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
-              {mockEmpresa.nome}
+              {filialAtiva?.nome || empresaNome}
             </p>
-            <p className="text-[10px] text-sidebar-foreground/60">
-              CNPJ: {mockEmpresa.cnpj}
-            </p>
+            {filialAtiva?.cnpj && (
+              <p className="text-[10px] text-sidebar-foreground/60">
+                CNPJ: {filialAtiva.cnpj}
+              </p>
+            )}
           </div>
         </div>
         
-        {/* Branch Selector */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full justify-between h-9 px-3 text-xs bg-sidebar border-sidebar-border hover:bg-sidebar-accent"
-            >
-              <span className="flex items-center gap-2 text-sidebar-foreground">
-                <MapPin className="w-3.5 h-3.5 text-sidebar-primary" />
-                <span className="font-medium truncate">{filialAtiva.nome}</span>
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground/60 shrink-0" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-64">
-            <div className="px-3 py-2 border-b border-border">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                Selecionar Filial
-              </p>
-            </div>
-            {mockEmpresa.filiais.map((filial) => (
-              <DropdownMenuItem 
-                key={filial.id}
-                onClick={() => setFilialAtiva(filial)}
-                className={`flex items-center gap-2 py-2.5 cursor-pointer ${
-                  filialAtiva.id === filial.id ? 'bg-accent' : ''
-                }`}
+        {/* Branch Selector - only show if more than 1 filial */}
+        {filiais.length > 1 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full justify-between h-9 px-3 text-xs bg-sidebar border-sidebar-border hover:bg-sidebar-accent"
               >
-                <MapPin className={`w-3.5 h-3.5 ${filialAtiva.id === filial.id ? 'text-primary' : 'text-muted-foreground'}`} />
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium truncate ${filialAtiva.id === filial.id ? 'text-primary' : ''}`}>
-                    {filial.nome}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">{filial.cidade}, {filial.estado}</p>
-                </div>
-                {filialAtiva.id === filial.id && (
-                  <Check className="w-4 h-4 text-primary shrink-0" />
-                )}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 text-muted-foreground text-xs">
-              <Settings className="w-3.5 h-3.5" />
-              Gerenciar filiais
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                <span className="flex items-center gap-2 text-sidebar-foreground">
+                  <MapPin className="w-3.5 h-3.5 text-sidebar-primary" />
+                  <span className="font-medium truncate">{filialAtiva?.nome || 'Selecionar filial'}</span>
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground/60 shrink-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              <div className="px-3 py-2 border-b border-border">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Selecionar Filial
+                </p>
+              </div>
+              {filiais.map((filial) => (
+                <DropdownMenuItem 
+                  key={filial.id}
+                  onClick={() => setFilialAtiva(filial)}
+                  className={`flex items-center gap-2 py-2.5 cursor-pointer ${
+                    filialAtiva?.id === filial.id ? 'bg-accent' : ''
+                  }`}
+                >
+                  <MapPin className={`w-3.5 h-3.5 ${filialAtiva?.id === filial.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${filialAtiva?.id === filial.id ? 'text-primary' : ''}`}>
+                      {filial.nome || 'Filial'}
+                    </p>
+                    {filial.cnpj && (
+                      <p className="text-[10px] text-muted-foreground">{filial.cnpj}</p>
+                    )}
+                  </div>
+                  {filialAtiva?.id === filial.id && (
+                    <Check className="w-4 h-4 text-primary shrink-0" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+              {cargo === 'ADMIN' && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="gap-2 text-muted-foreground text-xs"
+                    onClick={() => navigate(`/${userType}/filiais`)}
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    Gerenciar filiais
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       
       {/* Navigation */}
@@ -218,12 +227,12 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0">
             <span className="text-sidebar-primary font-semibold">
-              {(profile?.nome_completo || userSession?.nome || profile?.email || 'U').charAt(0).toUpperCase()}
+              {(profile?.nome_completo || profile?.email || 'U').charAt(0).toUpperCase()}
             </span>
           </div>
           <div className="flex-1 min-w-0 overflow-hidden">
             <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {profile?.nome_completo || userSession?.nome || 'Usuário'}
+              {profile?.nome_completo || 'Usuário'}
             </p>
             <p className="text-xs text-sidebar-foreground/60 truncate" title={profile?.email || ''}>
               {profile?.email || ''}
