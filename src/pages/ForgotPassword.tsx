@@ -4,23 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Truck, Mail, Lock, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Truck, Mail, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { forgotPasswordRequest, forgotPasswordConfirm } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 
-type ForgotStep = 'email' | 'code' | 'success';
+type ForgotStep = 'email' | 'success';
 
 export default function ForgotPassword() {
+  const { resetPassword } = useAuth();
   const [step, setStep] = useState<ForgotStep>('email');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [novaSenha, setNovaSenha] = useState('');
-  const [confirmSenha, setConfirmSenha] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Etapa 1: Solicitar código enviando apenas email
-  const handleRequestCode = async (e: React.FormEvent) => {
+  const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       toast.error('Preencha o email');
@@ -29,58 +25,17 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      const response = await forgotPasswordRequest(email);
+      const { error } = await resetPassword(email);
 
-      if (response.status === 200) {
-        toast.success(response.data?.output || 'Código enviado para seu email');
-        setStep('code');
+      if (error) {
+        toast.error(error.message);
         return;
       }
 
-      toast.error(response.data?.output || 'Erro ao solicitar recuperação');
+      toast.success('Email de recuperação enviado!');
+      setStep('success');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao conectar com o servidor';
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Etapa 2: Confirmar código + nova senha
-  const handleConfirmPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (code.length !== 6) {
-      toast.error('Digite o código completo');
-      return;
-    }
-    if (!novaSenha || !confirmSenha) {
-      toast.error('Preencha todos os campos de senha');
-      return;
-    }
-    if (novaSenha !== confirmSenha) {
-      toast.error('As senhas não coincidem');
-      return;
-    }
-    if (novaSenha.length < 6) {
-      toast.error('A senha deve ter pelo menos 6 caracteres');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await forgotPasswordConfirm(email, parseInt(code), novaSenha);
-      const output = (response?.data?.output || '').trim();
-
-      if (!output || output.toLowerCase().includes('sucesso') || output.toLowerCase().includes('alterada')) {
-        setStep('success');
-        toast.success('Senha alterada com sucesso!');
-        return;
-      }
-
-      toast.error(output || 'Código inválido');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erro ao verificar código';
       toast.error(message);
     } finally {
       setLoading(false);
@@ -107,20 +62,19 @@ export default function ForgotPassword() {
         <Card className="border-border shadow-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">
-              {step === 'email' && 'Recuperar Senha'}
-              {step === 'code' && 'Confirmar Código'}
-              {step === 'success' && 'Senha Alterada!'}
+              {step === 'email' ? 'Recuperar Senha' : 'Email Enviado!'}
             </CardTitle>
             <CardDescription>
-              {step === 'email' && 'Digite seu email para receber o código'}
-              {step === 'code' && 'Insira o código e defina sua nova senha'}
-              {step === 'success' && 'Você pode fazer login com sua nova senha'}
+              {step === 'email' 
+                ? 'Digite seu email para receber o link de recuperação'
+                : 'Verifique sua caixa de entrada'
+              }
             </CardDescription>
           </CardHeader>
 
           <CardContent>
             {step === 'email' && (
-              <form onSubmit={handleRequestCode} className="space-y-4">
+              <form onSubmit={handleRequestReset} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="forgot-email">Email</Label>
                   <div className="relative">
@@ -132,6 +86,7 @@ export default function ForgotPassword() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
+                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -143,7 +98,7 @@ export default function ForgotPassword() {
                       Enviando...
                     </>
                   ) : (
-                    'Enviar Código'
+                    'Enviar Link de Recuperação'
                   )}
                 </Button>
 
@@ -161,112 +116,22 @@ export default function ForgotPassword() {
               </form>
             )}
 
-            {step === 'code' && (
-              <form onSubmit={handleConfirmPassword} className="space-y-4">
-                {/* Email bloqueado */}
-                <div className="space-y-2">
-                  <Label htmlFor="forgot-code-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="forgot-code-email"
-                      type="email"
-                      value={email}
-                      disabled
-                      className="pl-10 bg-muted cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-
-                {/* Código OTP */}
-                <div className="space-y-2">
-                  <Label>Código de Verificação</Label>
-                  <div className="flex justify-center">
-                    <InputOTP
-                      maxLength={6}
-                      value={code}
-                      onChange={setCode}
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
-                </div>
-
-                {/* Nova Senha */}
-                <div className="space-y-2">
-                  <Label htmlFor="novaSenha">Nova Senha</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="novaSenha"
-                      type="password"
-                      placeholder="••••••••"
-                      value={novaSenha}
-                      onChange={(e) => setNovaSenha(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                {/* Confirmar Senha */}
-                <div className="space-y-2">
-                  <Label htmlFor="confirmSenha">Confirmar Nova Senha</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="confirmSenha"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmSenha}
-                      onChange={(e) => setConfirmSenha(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full" disabled={loading || code.length !== 6}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Confirmando...
-                    </>
-                  ) : (
-                    'Confirmar Nova Senha'
-                  )}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => {
-                    setCode('');
-                    setNovaSenha('');
-                    setConfirmSenha('');
-                    setStep('email');
-                  }}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Voltar
-                </Button>
-              </form>
-            )}
-
             {step === 'success' && (
               <div className="flex flex-col items-center gap-4 py-8">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-8 h-8 text-primary" />
                 </div>
-                <p className="text-muted-foreground">Sua senha foi alterada com sucesso!</p>
-                <Button className="w-full" asChild>
-                  <Link to="/login">Fazer Login</Link>
+                <div className="text-center space-y-2">
+                  <p className="text-muted-foreground">
+                    Enviamos um link de recuperação para:
+                  </p>
+                  <p className="font-medium text-foreground">{email}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Clique no link do email para redefinir sua senha.
+                  </p>
+                </div>
+                <Button className="w-full mt-4" asChild>
+                  <Link to="/login">Voltar ao Login</Link>
                 </Button>
               </div>
             )}

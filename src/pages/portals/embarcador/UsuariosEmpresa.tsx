@@ -16,9 +16,10 @@ import {
   UserCheck,
   UserX,
   Shield,
-  MapPin
+  MapPin,
+  Send
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,15 +27,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -43,8 +35,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { InviteUserDialog } from '@/components/users/InviteUserDialog';
+import { useQuery } from '@tanstack/react-query';
 
 type UserRole = 'admin' | 'gerente' | 'operador' | 'visualizador';
 
@@ -134,21 +129,49 @@ const mockUsuarios: Usuario[] = [
 ];
 
 export default function UsuariosEmpresa() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedFiliais, setSelectedFiliais] = useState<string[]>([]);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+
+  // Fetch embarcador data to get company_id
+  const { data: embarcador } = useQuery({
+    queryKey: ['embarcador', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('embarcadores')
+        .select('id, razao_social')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch pending invites
+  const { data: invites, refetch: refetchInvites } = useQuery({
+    queryKey: ['company_invites', embarcador?.id],
+    queryFn: async () => {
+      if (!embarcador?.id) return [];
+      const { data, error } = await supabase
+        .from('company_invites')
+        .select('*')
+        .eq('company_id', embarcador.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!embarcador?.id,
+  });
 
   const filteredUsuarios = mockUsuarios.filter(usuario => 
     usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     usuario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     roleLabels[usuario.cargo].toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const handleAddUsuario = () => {
-    toast.success('Usuário adicionado com sucesso!');
-    setIsAddDialogOpen(false);
-    setSelectedFiliais([]);
-  };
 
   const handleToggleStatus = (userId: string, currentStatus: boolean) => {
     toast.success(currentStatus ? 'Usuário desativado' : 'Usuário ativado');
@@ -165,14 +188,6 @@ export default function UsuariosEmpresa() {
       .join(', ');
   };
 
-  const toggleFilial = (filialId: string) => {
-    setSelectedFiliais(prev => 
-      prev.includes(filialId) 
-        ? prev.filter(id => id !== filialId)
-        : [...prev, filialId]
-    );
-  };
-
   return (
     <PortalLayout expectedUserType="embarcador">
       <div className="space-y-6">
@@ -182,79 +197,45 @@ export default function UsuariosEmpresa() {
             <h1 className="text-2xl font-bold text-foreground">Usuários da Empresa</h1>
             <p className="text-muted-foreground">Gerencie os usuários e suas permissões</p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                Novo Usuário
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Adicionar Novo Usuário</DialogTitle>
-                <DialogDescription>
-                  Preencha os dados do novo usuário
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome Completo</Label>
-                  <Input id="nome" placeholder="Nome do usuário" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="email@empresa.com.br" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="telefone">Telefone</Label>
-                    <Input id="telefone" placeholder="(00) 00000-0000" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cargo">Cargo/Função</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o cargo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="gerente">Gerente</SelectItem>
-                      <SelectItem value="operador">Operador</SelectItem>
-                      <SelectItem value="visualizador">Visualizador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Filiais com Acesso</Label>
-                  <div className="grid grid-cols-1 gap-2 p-3 border border-border rounded-lg bg-muted/20">
-                    {mockFiliais.map((filial) => (
-                      <div key={filial.id} className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={filial.id} 
-                          checked={selectedFiliais.includes(filial.id)}
-                          onCheckedChange={() => toggleFilial(filial.id)}
-                        />
-                        <label
-                          htmlFor={filial.id}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                        >
-                          {filial.nome}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleAddUsuario}>Adicionar Usuário</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button className="gap-2" onClick={() => setIsInviteDialogOpen(true)}>
+            <Send className="w-4 h-4" />
+            Convidar Usuário
+          </Button>
         </div>
+
+        {/* Invite Dialog */}
+        {embarcador && (
+          <InviteUserDialog
+            open={isInviteDialogOpen}
+            onOpenChange={setIsInviteDialogOpen}
+            companyType="embarcador"
+            companyId={embarcador.id}
+            filiais={mockFiliais.map(f => ({ id: parseInt(f.id.replace('f', '')), nome: f.nome }))}
+            onSuccess={() => refetchInvites()}
+          />
+        )}
+
+        {/* Pending Invites */}
+        {invites && invites.filter(i => i.status === 'pending').length > 0 && (
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                <Mail className="w-4 h-4 text-amber-600" />
+                Convites Pendentes
+              </h3>
+              <div className="space-y-2">
+                {invites.filter(i => i.status === 'pending').map((invite) => (
+                  <div key={invite.id} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{invite.email}</span>
+                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+                      Aguardando
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

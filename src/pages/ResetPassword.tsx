@@ -1,68 +1,66 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Truck, Mail, Lock, Loader2, CheckCircle, KeyRound } from 'lucide-react';
+import { Truck, Lock, Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
-export default function Login({ setShowSplash }: { setShowSplash: (show: boolean) => void }) {
+export default function ResetPassword() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { signIn, user, loading: authLoading, getRedirectPath } = useAuth();
+  const { updatePassword, user, loading: authLoading } = useAuth();
   
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Check for invite token in URL
-  const inviteToken = searchParams.get('invite');
-
-  // Redirect if already logged in
+  // User should be logged in via the reset link
   useEffect(() => {
-    if (user && !authLoading) {
-      const redirectPath = getRedirectPath();
-      navigate(redirectPath);
+    if (!authLoading && !user) {
+      toast.error('Link de redefinição expirado ou inválido');
+      navigate('/esqueci-senha');
     }
-  }, [user, authLoading, navigate, getRedirectPath]);
+  }, [user, authLoading, navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !senha) {
+    
+    if (!password || !confirmPassword) {
       toast.error('Preencha todos os campos');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error('As senhas não coincidem');
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await signIn(email, senha);
+      const { error } = await updatePassword(password);
       
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error('Email ou senha incorretos');
-        } else if (error.message.includes('Email not confirmed')) {
-          toast.error('Email não confirmado. Verifique sua caixa de entrada.');
-        } else {
-          toast.error(error.message);
-        }
+        toast.error(error.message);
         return;
       }
 
       setSuccess(true);
-      toast.success('Login realizado com sucesso!');
-      setShowSplash(true);
+      toast.success('Senha alterada com sucesso!');
       
-      // Small delay to show success state
       setTimeout(() => {
-        const redirectPath = getRedirectPath();
-        navigate(redirectPath);
-      }, 500);
+        navigate('/login');
+      }, 2000);
       
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erro ao conectar com o servidor';
+      const message = error instanceof Error ? error.message : 'Erro ao alterar senha';
       toast.error(message);
     } finally {
       setLoading(false);
@@ -97,14 +95,12 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
         <Card className="border-border shadow-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">
-              {success ? 'Acesso Autorizado!' : 'Entrar na Plataforma'}
+              {success ? 'Senha Alterada!' : 'Redefinir Senha'}
             </CardTitle>
             <CardDescription>
               {success 
-                ? 'Redirecionando para o dashboard...' 
-                : inviteToken 
-                  ? 'Você foi convidado! Entre com suas credenciais.'
-                  : 'Entre com suas credenciais de usuário'
+                ? 'Redirecionando para o login...' 
+                : 'Digite sua nova senha'
               }
             </CardDescription>
           </CardHeader>
@@ -115,39 +111,39 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-8 h-8 text-primary" />
                 </div>
-                <p className="text-muted-foreground">Preparando seu ambiente...</p>
+                <p className="text-muted-foreground">Sua senha foi alterada com sucesso!</p>
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : (
-              <form onSubmit={handleLogin} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="password">Nova Senha</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
-                      autoComplete="email"
+                      autoComplete="new-password"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="senha">Senha</Label>
+                  <Label htmlFor="confirmPassword">Confirmar Senha</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
-                      id="senha"
+                      id="confirmPassword"
                       type="password"
                       placeholder="••••••••"
-                      value={senha}
-                      onChange={(e) => setSenha(e.target.value)}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pl-10"
-                      autoComplete="current-password"
+                      autoComplete="new-password"
                     />
                   </div>
                 </div>
@@ -156,23 +152,11 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Entrando...
+                      Alterando...
                     </>
                   ) : (
-                    'Entrar'
+                    'Alterar Senha'
                   )}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="link"
-                  className="w-full text-sm"
-                  asChild
-                >
-                  <Link to="/esqueci-senha">
-                    <KeyRound className="w-4 h-4 mr-2" />
-                    Esqueci minha senha
-                  </Link>
                 </Button>
               </form>
             )}
@@ -180,8 +164,8 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          <Link to="/" className="hover:text-primary">
-            ← Voltar para o site
+          <Link to="/login" className="hover:text-primary">
+            ← Voltar para o login
           </Link>
         </p>
       </div>
