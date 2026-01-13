@@ -66,6 +66,26 @@ const EntregasMap = lazy(() => import('@/components/maps/EntregasMap').then(m =>
 type StatusCarga = Database['public']['Enums']['status_carga'];
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
+interface EntregaData {
+  id: string;
+  status: StatusEntrega | null;
+  latitude_atual: number | null;
+  longitude_atual: number | null;
+  motorista_id: string | null;
+  coletado_em: string | null;
+  entregue_em: string | null;
+  updated_at: string | null;
+  motoristas: {
+    nome_completo: string;
+    telefone: string | null;
+  } | null;
+  veiculos: {
+    placa: string;
+    marca: string | null;
+    modelo: string | null;
+  } | null;
+}
+
 interface CargaCompleta {
   id: string;
   codigo: string;
@@ -84,25 +104,8 @@ interface CargaCompleta {
     latitude: number | null;
     longitude: number | null;
   }[];
-  entregas: {
-    id: string;
-    status: StatusEntrega | null;
-    latitude_atual: number | null;
-    longitude_atual: number | null;
-    motorista_id: string | null;
-    coletado_em: string | null;
-    entregue_em: string | null;
-    updated_at: string | null;
-    motoristas: {
-      nome_completo: string;
-      telefone: string | null;
-    } | null;
-    veiculos: {
-      placa: string;
-      marca: string | null;
-      modelo: string | null;
-    } | null;
-  }[];
+  // entregas can be a single object (one-to-one) or null
+  entregas: EntregaData | null;
   cotacoes: {
     id: string;
     status: string | null;
@@ -233,14 +236,15 @@ export default function GestaoCargas() {
     em_cotacao: cargas.filter(c => c.status === 'em_cotacao').length,
     em_transito: cargas.filter(c => c.status === 'em_transito' || c.status === 'em_coleta').length,
     entregues: cargas.filter(c => c.status === 'entregue').length,
-    problemas: cargas.filter(c => c.entregas.some(e => e.status === 'problema')).length,
+    problemas: cargas.filter(c => c.entregas?.status === 'problema').length,
   }), [cargas]);
 
   // Map data for entregas with location
   const mapData = useMemo(() => {
     return filteredCargas
-      .filter(c => c.entregas.length > 0)
-      .flatMap(c => c.entregas.map(e => {
+      .filter(c => c.entregas !== null)
+      .map(c => {
+        const e = c.entregas!;
         const destino = c.enderecos_carga?.find(end => end.tipo === 'destino');
         return {
           id: e.id,
@@ -254,7 +258,7 @@ export default function GestaoCargas() {
           placa: e.veiculos?.placa || null,
           destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
         };
-      }));
+      });
   }, [filteredCargas]);
 
   const handleStatusToggle = (status: string) => {
