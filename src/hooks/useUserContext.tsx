@@ -110,7 +110,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       // Load company structure for embarcador/transportadora
       if (type === 'embarcador' || type === 'transportadora') {
         // Get Usuario record and their filiais
-        const { data: usuarioData } = await supabase
+        const { data: usuarioData, error: usuarioError } = await supabase
           .from('Usuarios')
           .select(`
             id,
@@ -132,7 +132,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
             )
           `)
           .eq('auth_user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (usuarioData) {
           // Set cargo (highest privilege if multiple)
@@ -181,6 +181,23 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
             }
           } else if (filiaisData.length > 0) {
             setFilialAtivaState(filiaisData[0]);
+          }
+        } else {
+          // Fallback: No Usuario record found, use embarcador/transportadora as "virtual" filial
+          // This handles cases where user registered as embarcador but wasn't linked to Empresas/Filiais
+          console.log('No Usuario record found, using company info as virtual filial');
+          
+          if (embarcador || transportadora) {
+            const companyData = embarcador || transportadora;
+            const virtualFilial: Filial = {
+              id: 0, // Virtual ID
+              nome: companyData?.nome_fantasia || companyData?.razao_social || 'Matriz',
+              cnpj: companyData?.cnpj || null,
+            };
+            setFiliais([virtualFilial]);
+            setFilialAtivaState(virtualFilial);
+            // Set cargo as ADMIN for company owner
+            setCargo('ADMIN');
           }
         }
       }
