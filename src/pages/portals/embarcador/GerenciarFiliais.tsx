@@ -395,7 +395,7 @@ export default function GerenciarFiliais() {
                 Nova Filial
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Adicionar Nova Filial</DialogTitle>
                 <DialogDescription>
@@ -604,7 +604,7 @@ export default function GerenciarFiliais() {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Filial</DialogTitle>
               <DialogDescription>
