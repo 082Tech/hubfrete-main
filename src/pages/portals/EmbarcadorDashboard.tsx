@@ -9,6 +9,7 @@ import {
   Plus,
   ArrowUpRight
 } from 'lucide-react';
+import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 
 const stats = [
   { label: 'Cargas Ativas', value: '12', icon: Package, color: 'chart-2' },
@@ -33,10 +34,7 @@ export default function EmbarcadorDashboard() {
             <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
             <p className="text-muted-foreground">Gerencie suas cargas e acompanhe entregas</p>
           </div>
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nova Carga
-          </Button>
+          <NovaCargaDialog />
         </div>
 
         {/* Stats */}
