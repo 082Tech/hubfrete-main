@@ -17,7 +17,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-muted-foreground text-sm">
-              Conectando o Brazil com logística inteligente. Marketplace que une 
+              Conectando o Brasil com logística inteligente. Marketplace que une 
               fábricas, distribuidores e transportadoras.
             </p>
             <div className="flex gap-3">
@@ -69,7 +69,7 @@ export function Footer() {
               </li>
               <li className="flex items-start gap-2 text-muted-foreground text-sm">
                 <MapPin className="w-4 h-4 text-primary mt-0.5" />
-                São Paulo, SP - Brazil
+                São Paulo, SP - Brasil
               </li>
             </ul>
           </div>

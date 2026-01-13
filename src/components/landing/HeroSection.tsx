@@ -34,13 +34,13 @@ export function HeroSection() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full">
               <Package className="w-4 h-4 text-accent-foreground" />
               <span className="text-xs sm:text-sm font-medium text-accent-foreground">
-                Marketplace de Logística #1 do Brazil
+                Marketplace de Logística #1 do Brasil
               </span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black leading-tight">
               Conectando o{' '}
-              <span className="text-primary">Brazil</span>{' '}
+              <span className="text-primary">Brasil</span>{' '}
               com logística inteligente
             </h1>
 
