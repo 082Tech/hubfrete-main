@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, MapPin, Pencil, X, Check } from 'lucide-react';
+import { Building2, MapPin, Pencil, X, Check, Loader2 } from 'lucide-react';
 import { useUserContext, type Filial } from '@/hooks/useUserContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
@@ -62,16 +62,17 @@ interface FilialCompleta extends Filial {
 
 interface CenterMapProps {
   center: [number, number] | null;
+  zoom?: number;
 }
 
-function CenterMap({ center }: CenterMapProps) {
+function CenterMap({ center, zoom = 15 }: CenterMapProps) {
   const map = useMap();
   
   useEffect(() => {
-    if (center) {
-      map.setView(center, 15, { animate: true });
+    if (center && center[0] !== 0 && center[1] !== 0) {
+      map.setView(center, zoom, { animate: true });
     }
-  }, [center, map]);
+  }, [center, zoom, map]);
   
   return null;
 }
@@ -84,6 +85,7 @@ interface OrigemSectionProps {
 export function OrigemSection({ initialData, onLocationChange }: OrigemSectionProps) {
   const { filialAtiva } = useUserContext();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [filialData, setFilialData] = useState<FilialCompleta | null>(null);
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [formData, setFormData] = useState<LocationData>({
@@ -100,73 +102,82 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
     contato_telefone: initialData?.contato_telefone || '',
   });
 
-  // Load full filial data
+  // Load full filial data and geocode
   useEffect(() => {
     const loadFilialData = async () => {
-      if (!filialAtiva?.id) return;
+      if (!filialAtiva?.id) {
+        setIsLoading(false);
+        return;
+      }
 
-      const { data, error } = await supabase
-        .from('filiais')
-        .select('*')
-        .eq('id', filialAtiva.id)
-        .single();
+      setIsLoading(true);
 
-      if (!error && data) {
-        setFilialData(data as FilialCompleta);
-        
-        // Geocode the address to get coordinates
-        if (data.endereco && data.cidade) {
-          const addressQuery = `${data.endereco}, ${data.cidade}, ${data.estado}, Brasil`;
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&limit=1`,
-              { headers: { 'User-Agent': 'HubFrete/1.0' } }
-            );
-            const results = await response.json();
-            
-            let lat = 0, lng = 0;
-            if (results.length > 0) {
-              lat = parseFloat(results[0].lat);
-              lng = parseFloat(results[0].lon);
-              setPosition([lat, lng]);
+      try {
+        const { data, error } = await supabase
+          .from('filiais')
+          .select('*')
+          .eq('id', filialAtiva.id)
+          .single();
+
+        if (!error && data) {
+          setFilialData(data as FilialCompleta);
+          
+          // Build address for geocoding
+          const addressParts = [
+            data.endereco,
+            data.cidade,
+            data.estado,
+            'Brasil'
+          ].filter(Boolean);
+          
+          const addressQuery = addressParts.join(', ');
+          
+          let lat = 0, lng = 0;
+          
+          if (addressQuery && data.cidade) {
+            try {
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&limit=1`,
+                { headers: { 'User-Agent': 'HubFrete/1.0' } }
+              );
+              const results = await response.json();
+              
+              if (results.length > 0) {
+                lat = parseFloat(results[0].lat);
+                lng = parseFloat(results[0].lon);
+              }
+            } catch (err) {
+              console.error('Geocoding error:', err);
             }
-
-            const newData: LocationData = {
-              latitude: lat,
-              longitude: lng,
-              cep: data.cep || '',
-              logradouro: data.endereco || '',
-              numero: '',
-              complemento: '',
-              bairro: '',
-              cidade: data.cidade || '',
-              estado: data.estado || '',
-              contato_nome: data.responsavel || '',
-              contato_telefone: data.telefone || '',
-            };
-            
-            setFormData(newData);
-            onLocationChange(newData);
-          } catch (err) {
-            console.error('Geocoding error:', err);
-            // Still set the data without coordinates
-            const newData: LocationData = {
-              latitude: 0,
-              longitude: 0,
-              cep: data.cep || '',
-              logradouro: data.endereco || '',
-              numero: '',
-              complemento: '',
-              bairro: '',
-              cidade: data.cidade || '',
-              estado: data.estado || '',
-              contato_nome: data.responsavel || '',
-              contato_telefone: data.telefone || '',
-            };
-            setFormData(newData);
-            onLocationChange(newData);
           }
+
+          // Set position for the marker
+          if (lat !== 0 && lng !== 0) {
+            setPosition([lat, lng]);
+          }
+
+          // Build the location data with all fields filled
+          const newData: LocationData = {
+            latitude: lat,
+            longitude: lng,
+            cep: data.cep || '',
+            logradouro: data.endereco || '',
+            numero: '',
+            complemento: '',
+            bairro: '',
+            cidade: data.cidade || '',
+            estado: data.estado || '',
+            contato_nome: data.responsavel || '',
+            contato_telefone: data.telefone || '',
+          };
+          
+          setFormData(newData);
+          onLocationChange(newData);
         }
+      } catch (err) {
+        console.error('Error loading filial:', err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -209,6 +220,8 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
   };
 
   const defaultCenter: [number, number] = [-15.7801, -47.9292];
+  const mapCenter = position && position[0] !== 0 ? position : defaultCenter;
+  const mapZoom = position && position[0] !== 0 ? 15 : 4;
 
   return (
     <div className="space-y-4">
@@ -268,8 +281,8 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
       <div className="relative">
         <div className="w-full h-[200px] rounded-lg overflow-hidden border border-border">
           <MapContainer
-            center={position || defaultCenter}
-            zoom={position ? 15 : 4}
+            center={mapCenter}
+            zoom={mapZoom}
             style={{ height: '100%', width: '100%' }}
             scrollWheelZoom={true}
           >
@@ -277,26 +290,35 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <CenterMap center={position} />
-            {position && (
+            <CenterMap center={position} zoom={15} />
+            {position && position[0] !== 0 && (
               <Marker position={position} icon={createLocationIcon('#6b7280')} />
             )}
           </MapContainer>
         </div>
         
-        {!position && (
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/70 rounded-lg">
+            <div className="flex items-center gap-2 bg-background px-4 py-2 rounded-lg shadow-lg">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Carregando localização...</span>
+            </div>
+          </div>
+        )}
+        
+        {!isLoading && !position && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="bg-background/90 px-4 py-2 rounded-lg shadow-lg">
               <p className="text-sm text-muted-foreground flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                Carregando localização da filial...
+                Endereço da filial não localizado
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Address Fields */}
+      {/* Address Fields - Always filled, disabled unless editing */}
       <div className="grid gap-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -306,6 +328,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
               onChange={(e) => handleInputChange('cep', e.target.value)}
               placeholder="00000-000"
               disabled={!isEditing}
+              className={!isEditing ? 'bg-muted' : ''}
             />
           </div>
           <div>
@@ -316,6 +339,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
               placeholder="SP"
               maxLength={2}
               disabled={!isEditing}
+              className={!isEditing ? 'bg-muted' : ''}
             />
           </div>
         </div>
@@ -327,6 +351,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
             onChange={(e) => handleInputChange('cidade', e.target.value)}
             placeholder="São Paulo"
             disabled={!isEditing}
+            className={!isEditing ? 'bg-muted' : ''}
           />
         </div>
 
@@ -337,6 +362,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
             onChange={(e) => handleInputChange('bairro', e.target.value)}
             placeholder="Centro"
             disabled={!isEditing}
+            className={!isEditing ? 'bg-muted' : ''}
           />
         </div>
 
@@ -348,6 +374,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
               onChange={(e) => handleInputChange('logradouro', e.target.value)}
               placeholder="Rua, Avenida, etc."
               disabled={!isEditing}
+              className={!isEditing ? 'bg-muted' : ''}
             />
           </div>
           <div>
@@ -357,6 +384,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
               onChange={(e) => handleInputChange('numero', e.target.value)}
               placeholder="123"
               disabled={!isEditing}
+              className={!isEditing ? 'bg-muted' : ''}
             />
           </div>
         </div>
@@ -368,6 +396,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
             onChange={(e) => handleInputChange('complemento', e.target.value)}
             placeholder="Galpão 2, Doca 5"
             disabled={!isEditing}
+            className={!isEditing ? 'bg-muted' : ''}
           />
         </div>
 
@@ -379,6 +408,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
               onChange={(e) => handleInputChange('contato_nome', e.target.value)}
               placeholder="Nome do responsável"
               disabled={!isEditing}
+              className={!isEditing ? 'bg-muted' : ''}
             />
           </div>
           <div>
@@ -388,6 +418,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
               onChange={(e) => handleInputChange('contato_telefone', e.target.value)}
               placeholder="(11) 99999-9999"
               disabled={!isEditing}
+              className={!isEditing ? 'bg-muted' : ''}
             />
           </div>
         </div>

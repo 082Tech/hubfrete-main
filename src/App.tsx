@@ -25,6 +25,7 @@ import Configuracoes from "./pages/portals/embarcador/Configuracoes";
 import GerenciarFiliais from "./pages/portals/embarcador/GerenciarFiliais";
 import UsuariosEmpresa from "./pages/portals/embarcador/UsuariosEmpresa";
 import Assistente from "./pages/portals/embarcador/Assistente";
+import Destinatarios from "./pages/portals/embarcador/Destinatarios";
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import MotoristaDashboard from "./pages/portals/MotoristaDashboard";
 import NotFound from "./pages/NotFound";
@@ -61,6 +62,7 @@ const App = () => {
                 <Route path="/embarcador/cargas" element={<GestaoCargas />} />
                 <Route path="/embarcador/relatorios" element={<Relatorios />} />
                 <Route path="/embarcador/assistente" element={<Assistente />} />
+                <Route path="/embarcador/destinatarios" element={<Destinatarios />} />
                 <Route path="/embarcador/filiais" element={<GerenciarFiliais />} />
                 <Route path="/embarcador/usuarios" element={<UsuariosEmpresa />} />
                 <Route path="/embarcador/configuracoes" element={<Configuracoes />} />

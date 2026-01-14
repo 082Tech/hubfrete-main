@@ -42,6 +42,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/embarcador' },
     { icon: Package, label: 'Minhas Cargas', href: '/embarcador/cargas' },
+    { icon: Building2, label: 'Destinatários', href: '/embarcador/destinatarios' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: MessageCircle, label: 'Assistente', href: '/embarcador/assistente' },
     { icon: MapPin, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },

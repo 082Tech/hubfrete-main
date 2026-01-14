@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, MapPin, Search, Building2, Save, BookmarkPlus, Users } from 'lucide-react';
+import { Loader2, MapPin, Search, Building2, BookmarkPlus, Users } from 'lucide-react';
 import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 import { useCnpjLookup } from '@/hooks/useCnpjLookup';
 import { toast } from 'sonner';
@@ -75,16 +75,17 @@ function MapClickHandler({ onLocationSelect }: MapClickHandlerProps) {
 
 interface CenterMapProps {
   center: [number, number] | null;
+  zoom?: number;
 }
 
-function CenterMap({ center }: CenterMapProps) {
+function CenterMap({ center, zoom = 15 }: CenterMapProps) {
   const map = useMap();
   
   useEffect(() => {
-    if (center) {
-      map.setView(center, 15, { animate: true });
+    if (center && center[0] !== 0 && center[1] !== 0) {
+      map.setView(center, zoom, { animate: true });
     }
-  }, [center, map]);
+  }, [center, zoom, map]);
   
   return null;
 }
@@ -277,9 +278,11 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
     onLocationChange(newData);
     setCnpjInput(contato.cnpj);
 
+    // Set position and center map if coordinates exist
     if (contato.latitude && contato.longitude) {
-      setPosition([contato.latitude, contato.longitude]);
-      setCenterTo([contato.latitude, contato.longitude]);
+      const pos: [number, number] = [contato.latitude, contato.longitude];
+      setPosition(pos);
+      setCenterTo(pos);
     }
 
     toast.success(`Contato "${contato.nome_fantasia || contato.razao_social}" selecionado`);
@@ -343,6 +346,10 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
     onLocationChange(newData);
   };
 
+  // Determine map center and zoom
+  const mapCenter = position && position[0] !== 0 ? position : defaultCenter;
+  const mapZoom = position && position[0] !== 0 ? 15 : 4;
+
   return (
     <div className="space-y-4">
       {/* Saved Contacts */}
@@ -386,7 +393,7 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
                 placeholder="00.000.000/0000-00"
                 value={cnpjInput}
                 onChange={(e) => setCnpjInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCnpjSearch()}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCnpjSearch())}
               />
             </div>
             <Button 
@@ -436,8 +443,8 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
       <div className="relative">
         <div className="w-full h-[250px] rounded-lg overflow-hidden border border-border">
           <MapContainer
-            center={position || defaultCenter}
-            zoom={position ? 15 : 4}
+            center={mapCenter}
+            zoom={mapZoom}
             style={{ height: '100%', width: '100%' }}
             scrollWheelZoom={true}
           >
@@ -446,8 +453,8 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <MapClickHandler onLocationSelect={handleLocationSelect} />
-            <CenterMap center={centerTo} />
-            {position && (
+            <CenterMap center={centerTo} zoom={15} />
+            {position && position[0] !== 0 && (
               <Marker position={position} icon={createLocationIcon('#3b82f6')} />
             )}
           </MapContainer>
