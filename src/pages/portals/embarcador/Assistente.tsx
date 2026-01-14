@@ -64,12 +64,12 @@ export default function Assistente() {
   return (
     <PortalLayout expectedUserType="embarcador">
       {/* Container that fills the content area with dark background */}
-      <div className="relative min-h-[calc(100vh-4rem)] -m-8 overflow-hidden">
+      <div className="relative min-h-[calc(100vh)] -m-8 overflow-hidden">
         {/* Animated Background */}
         <AnimatedBackground />
         
         {/* Main content */}
-        <div className="relative z-10 h-[calc(100vh-4rem)] flex flex-col p-4 md:p-6">
+        <div className="relative z-10 h-[calc(100vh)] max-w-4xl bg-black/90 h-[800px] rounded-md mt-20 mx-auto flex flex-col p-4 md:p-6">
           {/* Chat Header */}
           <ChatHeader onNewChat={handleNewChat} />
           
