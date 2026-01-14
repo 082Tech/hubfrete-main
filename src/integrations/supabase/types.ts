@@ -473,6 +473,8 @@ export type Database = {
           estado: string | null
           id: number
           is_matriz: boolean | null
+          latitude: number | null
+          longitude: number | null
           nome: string | null
           responsavel: string | null
           telefone: string | null
@@ -489,6 +491,8 @@ export type Database = {
           estado?: string | null
           id?: number
           is_matriz?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           nome?: string | null
           responsavel?: string | null
           telefone?: string | null
@@ -505,6 +509,8 @@ export type Database = {
           estado?: string | null
           id?: number
           is_matriz?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           nome?: string | null
           responsavel?: string | null
           telefone?: string | null
