@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PortalSidebar } from './PortalSidebar';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,8 +28,16 @@ export function PortalLayout({ children, expectedUserType }: PortalLayoutProps) 
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { userType, loading: contextLoading } = useUserContext();
+  const [collapsed, setCollapsed] = useState(() => {
+    const saved = localStorage.getItem('hubfrete_sidebar_collapsed');
+    return saved === 'true';
+  });
 
   const isLoading = authLoading || contextLoading;
+
+  useEffect(() => {
+    localStorage.setItem('hubfrete_sidebar_collapsed', String(collapsed));
+  }, [collapsed]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -56,8 +64,14 @@ export function PortalLayout({ children, expectedUserType }: PortalLayoutProps) 
 
   return (
     <div className="min-h-screen bg-background">
-      <PortalSidebar userType={expectedUserType} />
-      <main className="ml-64 p-8">{children}</main>
+      <PortalSidebar 
+        userType={expectedUserType} 
+        collapsed={collapsed} 
+        onToggleCollapse={() => setCollapsed(!collapsed)} 
+      />
+      <main className={`transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'} p-8`}>
+        {children}
+      </main>
     </div>
   );
 }
