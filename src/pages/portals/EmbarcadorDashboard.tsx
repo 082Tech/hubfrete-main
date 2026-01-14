@@ -14,8 +14,10 @@ import {
   BarChart3,
   Sparkles,
   Send,
-  ExternalLink
+  ExternalLink,
+  Shield
 } from 'lucide-react';
+import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -384,6 +386,39 @@ export default function EmbarcadorDashboard() {
             </Card>
           </div>
         </div>
+
+        {/* Advertisement Banner */}
+        <Card className="overflow-hidden border-border hover:shadow-lg transition-all cursor-pointer group">
+          <a href="https://www.itau.com.br/seguros" target="_blank" rel="noopener noreferrer">
+            <div className="relative">
+              <img 
+                src={adSeguroTransporte} 
+                alt="Seguro de Transporte de Cargas" 
+                className="w-full h-32 sm:h-40 md:h-48 object-cover group-hover:scale-[1.02] transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex items-center">
+                <div className="p-6 text-white max-w-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-5 h-5 text-chart-2" />
+                    <span className="text-xs font-medium uppercase tracking-wide text-chart-2">Patrocinado</span>
+                  </div>
+                  <h3 className="text-lg md:text-xl font-bold mb-1">Seguro de Carga Itaú</h3>
+                  <p className="text-sm text-white/80 hidden sm:block">
+                    Proteja suas mercadorias com o melhor seguro do mercado. Cobertura completa para todo tipo de transporte.
+                  </p>
+                  <Button 
+                    size="sm" 
+                    className="mt-3 bg-chart-2 hover:bg-chart-2/90 text-white"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Saiba mais
+                    <ArrowUpRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </a>
+        </Card>
       </div>
     </PortalLayout>
   );
