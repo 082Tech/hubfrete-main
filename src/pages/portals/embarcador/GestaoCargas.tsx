@@ -68,8 +68,6 @@ type StatusEntrega = Database['public']['Enums']['status_entrega'];
 interface EntregaData {
   id: string;
   status: StatusEntrega | null;
-  latitude_atual: number | null;
-  longitude_atual: number | null;
   motorista_id: string | null;
   coletado_em: string | null;
   entregue_em: string | null;
@@ -77,6 +75,7 @@ interface EntregaData {
   motoristas: {
     nome_completo: string;
     telefone: string | null;
+    email: string | null;
   } | null;
   veiculos: {
     placa: string;
@@ -87,6 +86,14 @@ interface EntregaData {
     capacidade_m3: number | null;
   } | null;
   cotacao_id: string | null;
+}
+
+interface MotoristaLocalizacao {
+  email_motorista: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  timestamp: number | null;
+  status: boolean | null;
 }
 
 interface CotacaoData {
@@ -238,8 +245,6 @@ export default function GestaoCargas() {
           entregas (
             id,
             status,
-            latitude_atual,
-            longitude_atual,
             motorista_id,
             coletado_em,
             entregue_em,
@@ -247,7 +252,8 @@ export default function GestaoCargas() {
             cotacao_id,
             motoristas (
               nome_completo,
-              telefone
+              telefone,
+              email
             ),
             veiculos (
               placa,
@@ -267,6 +273,46 @@ export default function GestaoCargas() {
     },
     enabled: !!filialAtiva?.id,
   });
+
+  // Fetch driver locations from localizações table
+  const motoristaEmails = useMemo(() => {
+    const emails = new Set<string>();
+    cargas.forEach(c => {
+      if (c.entregas?.motoristas?.email) {
+        emails.add(c.entregas.motoristas.email);
+      }
+    });
+    return Array.from(emails);
+  }, [cargas]);
+
+  const { data: localizacoes = [] } = useQuery({
+    queryKey: ['localizacoes_motoristas', motoristaEmails],
+    queryFn: async () => {
+      if (motoristaEmails.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('localizações')
+        .select('email_motorista, latitude, longitude, timestamp, status')
+        .in('email_motorista', motoristaEmails)
+        .eq('visivel', true);
+
+      if (error) throw error;
+      return (data || []) as MotoristaLocalizacao[];
+    },
+    enabled: motoristaEmails.length > 0,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Create a map of email to location for quick lookup
+  const localizacaoMap = useMemo(() => {
+    const map = new Map<string, MotoristaLocalizacao>();
+    localizacoes.forEach(loc => {
+      if (loc.email_motorista) {
+        map.set(loc.email_motorista, loc);
+      }
+    });
+    return map;
+  }, [localizacoes]);
 
   // Filter cargas
   const filteredCargas = useMemo(() => {
@@ -292,7 +338,7 @@ export default function GestaoCargas() {
     problemas: cargas.filter(c => c.entregas?.status === 'problema').length,
   }), [cargas]);
 
-  // Map data for entregas with location
+  // Map data for entregas with location from localizações table
   const mapData = useMemo(() => {
     return filteredCargas
       .map(c => {
@@ -300,8 +346,12 @@ export default function GestaoCargas() {
         const origem = c.enderecos_carga?.find(end => end.tipo === 'origem');
         const destino = c.enderecos_carga?.find(end => end.tipo === 'destino');
 
-        // Include if has entrega with location OR has origin/destination coords
-        const hasLocation = e?.latitude_atual && e?.longitude_atual;
+        // Get driver location from localizações table
+        const motoristaEmail = e?.motoristas?.email;
+        const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
+
+        // Include if has driver location OR has origin/destination coords
+        const hasLocation = localizacao?.latitude && localizacao?.longitude;
         const hasRoute = (origem?.latitude && origem?.longitude) || (destino?.latitude && destino?.longitude);
 
         if (!hasLocation && !hasRoute) return null;
@@ -309,8 +359,8 @@ export default function GestaoCargas() {
         return {
           id: e?.id || c.id,
           cargaId: c.id,
-          latitude: e?.latitude_atual || null,
-          longitude: e?.longitude_atual || null,
+          latitude: localizacao?.latitude || null,
+          longitude: localizacao?.longitude || null,
           status: e?.status || null,
           codigo: c.codigo,
           descricao: c.descricao,
@@ -327,7 +377,7 @@ export default function GestaoCargas() {
         };
       })
       .filter(Boolean) as NonNullable<typeof mapData[number]>[];
-  }, [filteredCargas]);
+  }, [filteredCargas, localizacaoMap]);
 
   const handleStatusToggle = (status: string) => {
     setSelectedStatuses(prev =>
