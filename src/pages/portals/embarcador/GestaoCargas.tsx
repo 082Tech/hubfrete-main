@@ -300,13 +300,13 @@ export default function GestaoCargas() {
         const e = c.entregas;
         const origem = c.enderecos_carga?.find(end => end.tipo === 'origem');
         const destino = c.enderecos_carga?.find(end => end.tipo === 'destino');
-        
+
         // Include if has entrega with location OR has origin/destination coords
         const hasLocation = e?.latitude_atual && e?.longitude_atual;
         const hasRoute = (origem?.latitude && origem?.longitude) || (destino?.latitude && destino?.longitude);
-        
+
         if (!hasLocation && !hasRoute) return null;
-        
+
         return {
           id: e?.id || c.id,
           cargaId: c.id,
@@ -319,11 +319,11 @@ export default function GestaoCargas() {
           telefone: e?.motoristas?.telefone || null,
           placa: e?.veiculos?.placa || null,
           destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
-          origemCoords: origem?.latitude && origem?.longitude 
-            ? { lat: origem.latitude, lng: origem.longitude } 
+          origemCoords: origem?.latitude && origem?.longitude
+            ? { lat: origem.latitude, lng: origem.longitude }
             : null,
-          destinoCoords: destino?.latitude && destino?.longitude 
-            ? { lat: destino.latitude, lng: destino.longitude } 
+          destinoCoords: destino?.latitude && destino?.longitude
+            ? { lat: destino.latitude, lng: destino.longitude }
             : null,
         };
       })
@@ -373,7 +373,7 @@ export default function GestaoCargas() {
   const getEndereco = (carga: CargaCompleta, tipo: 'origem' | 'destino') => {
     const endereco = carga.enderecos_carga?.find(e => e.tipo === tipo);
     if (!endereco) return { cidade: '-', contato: null, endereco: null };
-    return { 
+    return {
       cidade: `${endereco.cidade}, ${endereco.estado}`,
       contato: endereco.contato_nome,
       telefone: endereco.contato_telefone,
@@ -697,8 +697,8 @@ export default function GestaoCargas() {
                   </CardContent>
                 </Card>
               }>
-                <EntregasMap 
-                  entregas={mapData} 
+                <EntregasMap
+                  entregas={mapData}
                   selectedCargaId={selectedCargaId}
                   onSelectCarga={setSelectedCargaId}
                 />
@@ -732,8 +732,8 @@ export default function GestaoCargas() {
                   </CardContent>
                 </Card>
               }>
-                <EntregasMap 
-                  entregas={mapData} 
+                <EntregasMap
+                  entregas={mapData}
                   selectedCargaId={selectedCargaId}
                   onSelectCarga={setSelectedCargaId}
                 />
@@ -741,7 +741,7 @@ export default function GestaoCargas() {
 
               <Card className="border-border">
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border">
@@ -773,8 +773,8 @@ export default function GestaoCargas() {
                           const destino = getEndereco(carga, 'destino');
 
                           return (
-                            <TableRow 
-                              key={carga.id} 
+                            <TableRow
+                              key={carga.id}
                               className={`border-border cursor-pointer transition-colors ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-muted/50'}`}
                               onClick={() => setSelectedCargaId(isSelected ? null : carga.id)}
                             >
@@ -785,7 +785,7 @@ export default function GestaoCargas() {
                                   <p className="text-xs text-muted-foreground line-clamp-1">{carga.descricao}</p>
                                 </div>
                               </TableCell>
-                              
+
                               {/* Remetente (Origem - Filial) */}
                               <TableCell>
                                 <div className="text-sm max-w-[180px]">
@@ -801,7 +801,7 @@ export default function GestaoCargas() {
                                   )}
                                 </div>
                               </TableCell>
-                              
+
                               {/* Destinatário */}
                               <TableCell>
                                 <div className="text-sm max-w-[180px]">
@@ -821,29 +821,29 @@ export default function GestaoCargas() {
                                   )}
                                 </div>
                               </TableCell>
-                              
+
                               {/* Peso */}
                               <TableCell className="text-sm">{formatPeso(carga.peso_kg)}</TableCell>
-                              
+
                               {/* Cubagem */}
                               <TableCell className="text-sm">{formatVolume(carga.volume_m3)}</TableCell>
-                              
+
                               {/* Tipo Carga */}
                               <TableCell>
                                 <Badge variant="outline" className="text-xs whitespace-nowrap">
                                   {tipoCargaLabels[carga.tipo] || carga.tipo}
                                 </Badge>
                               </TableCell>
-                              
+
                               {/* Valor Mercadoria */}
                               <TableCell className="text-sm font-medium">{formatValor(carga.valor_mercadoria)}</TableCell>
-                              
+
                               {/* Valor Frete */}
                               <TableCell className="text-sm font-medium text-primary">
                                 {/* TODO: Quando tiver cotação aceita, mostrar valor */}
                                 -
                               </TableCell>
-                              
+
                               {/* Motorista */}
                               <TableCell>
                                 {entrega?.motoristas ? (
@@ -863,7 +863,7 @@ export default function GestaoCargas() {
                                   <span className="text-sm text-muted-foreground">-</span>
                                 )}
                               </TableCell>
-                              
+
                               {/* Veículo */}
                               <TableCell>
                                 {entrega?.veiculos ? (
@@ -877,7 +877,7 @@ export default function GestaoCargas() {
                                   <span className="text-sm text-muted-foreground">-</span>
                                 )}
                               </TableCell>
-                              
+
                               {/* Status */}
                               <TableCell>
                                 <Badge variant="outline" className={config?.color}>
@@ -885,7 +885,7 @@ export default function GestaoCargas() {
                                   {config?.label}
                                 </Badge>
                               </TableCell>
-                              
+
                               {/* Previsão de Chegada */}
                               <TableCell>
                                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -893,7 +893,7 @@ export default function GestaoCargas() {
                                   {formatDate(carga.data_entrega_limite)}
                                 </div>
                               </TableCell>
-                              
+
                               {/* Ações (sticky) */}
                               <TableCell className="sticky right-0 bg-background z-10">
                                 <DropdownMenu>
@@ -903,7 +903,7 @@ export default function GestaoCargas() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="bg-popover border-border z-50">
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       className="gap-2 cursor-pointer"
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -912,7 +912,7 @@ export default function GestaoCargas() {
                                     >
                                       <Eye className="w-4 h-4" /> Ver detalhes
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       className="gap-2 cursor-pointer"
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -940,7 +940,7 @@ export default function GestaoCargas() {
                                       </>
                                     )}
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       className="gap-2 cursor-pointer text-destructive"
                                       onClick={(e) => e.stopPropagation()}
                                     >
@@ -966,10 +966,10 @@ export default function GestaoCargas() {
       {detailsCargaId && (() => {
         const carga = cargas.find(c => c.id === detailsCargaId);
         if (!carga) return null;
-        
+
         const remetente = getRemetente(carga);
         const destinatario = getDestinatario(carga);
-        
+
         return (
           <CargaDetailsDialog
             carga={{

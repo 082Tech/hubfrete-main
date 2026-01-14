@@ -16,6 +16,7 @@ import {
   Check,
   MessageCircle,
   Loader2,
+  Home,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +41,7 @@ type SidebarUserType = 'embarcador' | 'transportadora' | 'motorista';
 
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
-    { icon: LayoutDashboard, label: 'Dashboard', href: '/embarcador' },
+    { icon: Home, label: 'Home', href: '/embarcador' },
     { icon: Package, label: 'Minhas Cargas', href: '/embarcador/cargas' },
     { icon: Building2, label: 'Destinatários', href: '/embarcador/destinatarios' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
