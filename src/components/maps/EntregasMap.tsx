@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Phone, Truck, MapPin, Navigation, Route } from 'lucide-react';
+import { Phone, Truck, MapPin, Navigation, Route, Loader2 } from 'lucide-react';
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -122,6 +122,30 @@ interface EntregasMapProps {
   onSelectCarga?: (cargaId: string | null) => void;
 }
 
+// Fetch route from OSRM
+async function fetchRoute(
+  start: { lat: number; lng: number },
+  end: { lat: number; lng: number }
+): Promise<[number, number][]> {
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates) {
+      // OSRM returns [lng, lat], we need [lat, lng] for Leaflet
+      return data.routes[0].geometry.coordinates.map(
+        (coord: [number, number]) => [coord[1], coord[0]] as [number, number]
+      );
+    }
+  } catch (error) {
+    console.error('Error fetching route:', error);
+  }
+  
+  // Fallback to straight line
+  return [[start.lat, start.lng], [end.lat, end.lng]];
+}
+
 // Component to fit bounds to markers
 function FitBounds({ entregas, selectedEntrega }: { entregas: EntregaMapData[]; selectedEntrega: EntregaMapData | null }) {
   const map = useMap();
@@ -159,6 +183,84 @@ function FitBounds({ entregas, selectedEntrega }: { entregas: EntregaMapData[]; 
   }, [entregas, selectedEntrega, map]);
   
   return null;
+}
+
+// Route display component with OSRM integration
+function RouteDisplay({ 
+  selectedEntrega 
+}: { 
+  selectedEntrega: EntregaMapData | null;
+}) {
+  const [fullRoute, setFullRoute] = useState<[number, number][]>([]);
+  const [completedRoute, setCompletedRoute] = useState<[number, number][]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedEntrega?.origemCoords || !selectedEntrega?.destinoCoords) {
+      setFullRoute([]);
+      setCompletedRoute([]);
+      return;
+    }
+
+    const loadRoutes = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Fetch full route (origin to destination)
+        const mainRoute = await fetchRoute(
+          selectedEntrega.origemCoords!,
+          selectedEntrega.destinoCoords!
+        );
+        setFullRoute(mainRoute);
+        
+        // If truck has position, fetch route from origin to truck
+        if (selectedEntrega.latitude && selectedEntrega.longitude) {
+          const truckRoute = await fetchRoute(
+            selectedEntrega.origemCoords!,
+            { lat: selectedEntrega.latitude, lng: selectedEntrega.longitude }
+          );
+          setCompletedRoute(truckRoute);
+        } else {
+          setCompletedRoute([]);
+        }
+      } catch (error) {
+        console.error('Error loading routes:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRoutes();
+  }, [selectedEntrega]);
+
+  if (!selectedEntrega || fullRoute.length === 0) return null;
+
+  return (
+    <>
+      {/* Full route from origin to destination (dashed blue) */}
+      <Polyline
+        positions={fullRoute}
+        pathOptions={{
+          color: '#3b82f6',
+          weight: 4,
+          opacity: 0.6,
+          dashArray: '12, 8',
+        }}
+      />
+      
+      {/* Completed portion of route: origin to truck (solid orange) */}
+      {completedRoute.length > 0 && (
+        <Polyline
+          positions={completedRoute}
+          pathOptions={{
+            color: '#f97316',
+            weight: 5,
+            opacity: 0.9,
+          }}
+        />
+      )}
+    </>
+  );
 }
 
 export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: EntregasMapProps) {
@@ -213,20 +315,6 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
     );
   }
 
-  // Direct route line from origin to destination (always dashed)
-  const directRouteLine: [number, number][] = [];
-  if (selectedEntrega?.origemCoords && selectedEntrega?.destinoCoords) {
-    directRouteLine.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
-    directRouteLine.push([selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]);
-  }
-  
-  // Route showing progress: origin -> truck -> (remaining dashed to destination)
-  const completedRoute: [number, number][] = [];
-  if (selectedEntrega?.origemCoords && selectedEntrega?.latitude && selectedEntrega?.longitude) {
-    completedRoute.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
-    completedRoute.push([selectedEntrega.latitude, selectedEntrega.longitude]);
-  }
-
   return (
     <div className="relative w-full h-[500px] rounded-lg overflow-hidden border border-border">
       <MapContainer
@@ -241,30 +329,8 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
         />
         <FitBounds entregas={validEntregas} selectedEntrega={selectedEntrega} />
         
-        {/* Full route line from origin to destination (dashed blue) */}
-        {directRouteLine.length === 2 && (
-          <Polyline
-            positions={directRouteLine}
-            pathOptions={{
-              color: '#3b82f6',
-              weight: 4,
-              opacity: 0.7,
-              dashArray: '15, 10',
-            }}
-          />
-        )}
-        
-        {/* Completed portion of route: origin to truck (solid orange) */}
-        {completedRoute.length === 2 && (
-          <Polyline
-            positions={completedRoute}
-            pathOptions={{
-              color: '#f97316',
-              weight: 5,
-              opacity: 0.9,
-            }}
-          />
-        )}
+        {/* Route display with real roads */}
+        <RouteDisplay selectedEntrega={selectedEntrega} />
 
         {/* Origin marker for selected entrega */}
         {selectedEntrega?.origemCoords && (
@@ -406,6 +472,12 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
                 <span className="text-xs">Destino</span>
               </div>
             </div>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-6 h-0.5 bg-orange-500" />
+              <span className="text-xs">Percorrido</span>
+              <div className="w-6 h-0.5 bg-blue-500 border-dashed" style={{ borderTop: '2px dashed #3b82f6', height: 0 }} />
+              <span className="text-xs">Restante</span>
+            </div>
           </div>
         )}
       </div>
@@ -417,7 +489,7 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
             <Route className="w-4 h-4 text-primary" />
             <div>
               <p className="text-sm font-medium">{selectedEntrega.codigo}</p>
-              <p className="text-xs text-muted-foreground">Rota selecionada</p>
+              <p className="text-xs text-muted-foreground">Rota real via estradas</p>
             </div>
             <Button
               size="sm"
