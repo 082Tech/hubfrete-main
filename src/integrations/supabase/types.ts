@@ -261,20 +261,26 @@ export type Database = {
       empresas: {
         Row: {
           classe: Database["public"]["Enums"]["classe_empresa"]
+          cnpj_matriz: string | null
           created_at: string
           id: number
+          nome: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
         Insert: {
           classe: Database["public"]["Enums"]["classe_empresa"]
+          cnpj_matriz?: string | null
           created_at?: string
           id?: number
+          nome?: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
         Update: {
           classe?: Database["public"]["Enums"]["classe_empresa"]
+          cnpj_matriz?: string | null
           created_at?: string
           id?: number
+          nome?: string | null
           tipo?: Database["public"]["Enums"]["tipo_empresa"]
         }
         Relationships: []
