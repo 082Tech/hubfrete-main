@@ -130,35 +130,67 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         if (usuarioData) {
           // Set cargo (highest privilege if multiple)
           const cargos = usuarioData.usuarios_filiais?.map((uf: any) => uf.cargo_na_filial) || [];
-          setCargo(cargos.includes('ADMIN') ? 'ADMIN' : cargos[0] as UserCargo);
+          const userCargo = cargos.includes('ADMIN') ? 'ADMIN' : cargos[0] as UserCargo;
+          setCargo(userCargo);
 
-          // Extract unique filiais and empresa info
-          const filiaisData: Filial[] = [];
+          // Extract empresa info from the first filial
           let empresaData: Empresa | null = null;
+          let empresaId: number | null = null;
 
           usuarioData.usuarios_filiais?.forEach((uf: any) => {
             if (uf.filiais) {
-              filiaisData.push({
-                id: uf.filiais.id,
-                nome: uf.filiais.nome,
-                cnpj: uf.filiais.cnpj,
-              });
               if (!empresaData && uf.filiais.empresas) {
                 empresaData = {
                   id: uf.filiais.empresas.id,
                   tipo: uf.filiais.empresas.tipo,
                   classe: uf.filiais.empresas.classe,
                 };
+                empresaId = uf.filiais.empresa_id;
               }
             }
           });
 
-          setFiliais(filiaisData);
           setEmpresa(empresaData);
 
+          // For ADMINs, fetch ALL filiais of the empresa dynamically
+          // For OPERADORs, only show the filiais they're assigned to
+          let filiaisData: Filial[] = [];
+          
+          if (userCargo === 'ADMIN' && empresaId) {
+            // Fetch all active filiais for the empresa
+            const { data: allFiliais } = await supabase
+              .from('filiais')
+              .select('id, nome, cnpj')
+              .eq('empresa_id', empresaId)
+              .eq('ativa', true)
+              .order('is_matriz', { ascending: false })
+              .order('nome', { ascending: true });
+            
+            if (allFiliais) {
+              filiaisData = allFiliais.map(f => ({
+                id: f.id,
+                nome: f.nome,
+                cnpj: f.cnpj,
+              }));
+            }
+          } else {
+            // For non-admins, only show assigned filiais
+            usuarioData.usuarios_filiais?.forEach((uf: any) => {
+              if (uf.filiais) {
+                filiaisData.push({
+                  id: uf.filiais.id,
+                  nome: uf.filiais.nome,
+                  cnpj: uf.filiais.cnpj,
+                });
+              }
+            });
+          }
+
+          setFiliais(filiaisData);
+
           // Get company info from first filial
-          if (filiaisData.length > 0 && usuarioData.usuarios_filiais?.[0]?.filiais) {
-            const firstFilial = usuarioData.usuarios_filiais[0].filiais as any;
+          if (filiaisData.length > 0) {
+            const firstFilial = filiaisData[0];
             setCompanyInfo({
               id: String(empresaData?.id || 0),
               razao_social: firstFilial.nome || 'Empresa',
