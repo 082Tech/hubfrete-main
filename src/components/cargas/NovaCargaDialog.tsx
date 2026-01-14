@@ -34,13 +34,14 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Package, MapPin, Truck, Loader2, ClipboardList } from 'lucide-react';
+import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, Eye } from 'lucide-react';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
 import { OrigemSection } from './OrigemSection';
 import { DestinoSection } from './DestinoSection';
 import { NecessidadesEspeciais } from './NecessidadesEspeciais';
 import { NotaFiscalUpload } from './NotaFiscalUpload';
+import { ResumoSection } from './ResumoSection';
 
 type TipoCarga = Database['public']['Enums']['tipo_carga'];
 
@@ -326,7 +327,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="carga" className="gap-2">
                   <Package className="w-4 h-4" />
                   <span className="hidden sm:inline">Carga</span>
@@ -342,6 +343,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 <TabsTrigger value="destino" className="gap-2">
                   <Truck className="w-4 h-4" />
                   <span className="hidden sm:inline">Destino</span>
+                </TabsTrigger>
+                <TabsTrigger value="resumo" className="gap-2">
+                  <Eye className="w-4 h-4" />
+                  <span className="hidden sm:inline">Resumo</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -670,6 +675,35 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 <DestinoSection
                   initialData={destinoData}
                   onLocationChange={setDestinoData}
+                />
+              </TabsContent>
+
+              <TabsContent value="resumo" className="mt-4">
+                <ResumoSection
+                  origemData={origemData}
+                  destinoData={destinoData}
+                  cargaData={{
+                    descricao: form.getValues('descricao'),
+                    tipo: form.getValues('tipo'),
+                    peso_kg: form.getValues('peso_kg'),
+                    volume_m3: form.getValues('volume_m3'),
+                    quantidade: form.getValues('quantidade'),
+                    valor_mercadoria: form.getValues('valor_mercadoria'),
+                    data_coleta_de: form.getValues('data_coleta_de'),
+                    data_coleta_ate: form.getValues('data_coleta_ate'),
+                    data_entrega_limite: form.getValues('data_entrega_limite'),
+                    carga_fragil: form.getValues('carga_fragil'),
+                    carga_perigosa: form.getValues('carga_perigosa'),
+                    carga_viva: form.getValues('carga_viva'),
+                    empilhavel: form.getValues('empilhavel'),
+                    requer_refrigeracao: form.getValues('requer_refrigeracao'),
+                    temperatura_min: form.getValues('temperatura_min'),
+                    temperatura_max: form.getValues('temperatura_max'),
+                    numero_onu: form.getValues('numero_onu'),
+                    regras_carregamento: form.getValues('regras_carregamento'),
+                  }}
+                  necessidadesEspeciais={necessidadesEspeciais}
+                  notaFiscalUrl={notaFiscalUrl}
                 />
               </TabsContent>
             </Tabs>

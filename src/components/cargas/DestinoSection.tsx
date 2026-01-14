@@ -1,13 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, MapPin, Search, Building2, BookmarkPlus, Users } from 'lucide-react';
-import { useReverseGeocode } from '@/hooks/useReverseGeocode';
+import { Loader2, Search, Building2, BookmarkPlus, Users } from 'lucide-react';
 import { useCnpjLookup } from '@/hooks/useCnpjLookup';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,53 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-// Fix for default marker icons in Leaflet with Vite
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
-
-const destinoIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-interface MapClickHandlerProps {
-  onLocationSelect: (lat: number, lng: number) => void;
-}
-
-function MapClickHandler({ onLocationSelect }: MapClickHandlerProps) {
-  useMapEvents({
-    click: (e) => {
-      onLocationSelect(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
-
-interface CenterMapProps {
-  center: [number, number] | null;
-  zoom?: number;
-}
-
-function CenterMap({ center, zoom = 15 }: CenterMapProps) {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (center && center[0] !== 0 && center[1] !== 0) {
-      map.setView(center, zoom, { animate: true });
-    }
-  }, [center, zoom, map]);
-  
-  return null;
-}
 
 interface ContatoDestino {
   id: string;
@@ -93,12 +42,6 @@ interface DestinoSectionProps {
 
 export function DestinoSection({ initialData, onLocationChange }: DestinoSectionProps) {
   const { empresa } = useUserContext();
-  const [position, setPosition] = useState<[number, number] | null>(
-    initialData?.latitude && initialData?.longitude 
-      ? [initialData.latitude, initialData.longitude] 
-      : null
-  );
-  const [centerTo, setCenterTo] = useState<[number, number] | null>(null);
   const [cnpjInput, setCnpjInput] = useState('');
   const [contatos, setContatos] = useState<ContatoDestino[]>([]);
   const [savingContato, setSavingContato] = useState(false);
@@ -118,10 +61,7 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
     razao_social: initialData?.razao_social || '',
   });
 
-  const { reverseGeocode, isLoading: isGeocodingLoading } = useReverseGeocode();
   const { lookup: lookupCnpj, isLoading: isCnpjLoading } = useCnpjLookup();
-
-  const defaultCenter: [number, number] = [-15.7801, -47.9292];
 
   // Load saved contacts
   useEffect(() => {
@@ -142,27 +82,6 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
     loadContatos();
   }, [empresa?.id]);
 
-  const handleLocationSelect = useCallback(async (lat: number, lng: number) => {
-    setPosition([lat, lng]);
-    
-    const geocoded = await reverseGeocode(lat, lng);
-    if (geocoded) {
-      const newData: LocationData = {
-        ...formData,
-        latitude: lat,
-        longitude: lng,
-        cep: geocoded.cep || formData.cep,
-        logradouro: geocoded.logradouro || formData.logradouro,
-        bairro: geocoded.bairro || formData.bairro,
-        cidade: geocoded.cidade || formData.cidade,
-        estado: geocoded.estado || formData.estado,
-      };
-      setFormData(newData);
-      onLocationChange(newData);
-      toast.success('Endereço capturado do mapa');
-    }
-  }, [formData, onLocationChange, reverseGeocode]);
-
   const handleCnpjSearch = async () => {
     if (!cnpjInput) {
       toast.error('Digite um CNPJ');
@@ -174,6 +93,7 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
       // Try to geocode the address from CNPJ
       const addressQuery = `${data.logradouro}, ${data.numero}, ${data.municipio}, ${data.uf}, Brasil`;
       
+      let lat = 0, lng = 0;
       try {
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&limit=1`,
@@ -181,52 +101,33 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
         );
         const results = await response.json();
         
-        let lat = 0, lng = 0;
         if (results.length > 0) {
           lat = parseFloat(results[0].lat);
           lng = parseFloat(results[0].lon);
-          setPosition([lat, lng]);
-          setCenterTo([lat, lng]);
         }
-
-        const newData: LocationData = {
-          latitude: lat,
-          longitude: lng,
-          cep: data.cep.replace(/\D/g, ''),
-          logradouro: data.logradouro,
-          numero: data.numero,
-          complemento: data.complemento,
-          bairro: data.bairro,
-          cidade: data.municipio,
-          estado: data.uf,
-          contato_nome: formData.contato_nome,
-          contato_telefone: data.telefone || formData.contato_telefone,
-          cnpj: data.cnpj,
-          razao_social: data.razao_social,
-        };
-        
-        setFormData(newData);
-        onLocationChange(newData);
-        toast.success(`Dados da empresa "${data.nome_fantasia || data.razao_social}" carregados`);
       } catch (err) {
-        // Still update with CNPJ data even if geocoding fails
-        const newData: LocationData = {
-          ...formData,
-          cep: data.cep.replace(/\D/g, ''),
-          logradouro: data.logradouro,
-          numero: data.numero,
-          complemento: data.complemento,
-          bairro: data.bairro,
-          cidade: data.municipio,
-          estado: data.uf,
-          contato_telefone: data.telefone || formData.contato_telefone,
-          cnpj: data.cnpj,
-          razao_social: data.razao_social,
-        };
-        setFormData(newData);
-        onLocationChange(newData);
-        toast.success('Dados do CNPJ carregados (selecione o local no mapa)');
+        console.error('Geocoding error:', err);
       }
+
+      const newData: LocationData = {
+        latitude: lat,
+        longitude: lng,
+        cep: data.cep.replace(/\D/g, ''),
+        logradouro: data.logradouro,
+        numero: data.numero,
+        complemento: data.complemento,
+        bairro: data.bairro,
+        cidade: data.municipio,
+        estado: data.uf,
+        contato_nome: formData.contato_nome,
+        contato_telefone: data.telefone || formData.contato_telefone,
+        cnpj: data.cnpj,
+        razao_social: data.razao_social,
+      };
+      
+      setFormData(newData);
+      onLocationChange(newData);
+      toast.success(`Dados da empresa "${data.nome_fantasia || data.razao_social}" carregados`);
     } else {
       toast.error('CNPJ não encontrado');
     }
@@ -255,13 +156,6 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
     setFormData(newData);
     onLocationChange(newData);
     setCnpjInput(contato.cnpj);
-
-    // Set position and center map if coordinates exist
-    if (contato.latitude && contato.longitude) {
-      const pos: [number, number] = [contato.latitude, contato.longitude];
-      setPosition(pos);
-      setCenterTo(pos);
-    }
 
     toast.success(`Contato "${contato.nome_fantasia || contato.razao_social}" selecionado`);
   };
@@ -323,10 +217,6 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
     setFormData(newData);
     onLocationChange(newData);
   };
-
-  // Determine map center and zoom
-  const mapCenter = position && position[0] !== 0 ? position : defaultCenter;
-  const mapZoom = position && position[0] !== 0 ? 15 : 4;
 
   return (
     <div className="space-y-4">
@@ -416,48 +306,6 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
           )}
         </CardContent>
       </Card>
-
-      {/* Map */}
-      <div className="relative">
-        <div className="w-full h-[250px] rounded-lg overflow-hidden border border-border">
-          <MapContainer
-            center={mapCenter}
-            zoom={mapZoom}
-            style={{ height: '100%', width: '100%' }}
-            scrollWheelZoom={true}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <MapClickHandler onLocationSelect={handleLocationSelect} />
-            <CenterMap center={centerTo} zoom={15} />
-            {position && position[0] !== 0 && (
-              <Marker position={position} icon={destinoIcon} />
-            )}
-          </MapContainer>
-        </div>
-        
-        {isGeocodingLoading && (
-          <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg">
-            <div className="flex items-center gap-2 bg-background px-4 py-2 rounded-lg shadow-lg">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Buscando endereço...</span>
-            </div>
-          </div>
-        )}
-        
-        {!position && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-background/90 px-4 py-2 rounded-lg shadow-lg">
-              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Clique no mapa para selecionar o local
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Address Fields */}
       <div className="grid gap-4">
