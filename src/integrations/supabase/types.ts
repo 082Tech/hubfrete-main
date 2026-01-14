@@ -385,19 +385,15 @@ export type Database = {
           cotacao_id: string | null
           created_at: string | null
           documento_recebedor: string | null
-          empresa_id: number | null
           entregue_em: string | null
           foto_comprovante_coleta: string | null
           foto_comprovante_entrega: string | null
           id: string
-          latitude_atual: number | null
-          longitude_atual: number | null
           motorista_id: string | null
           nome_recebedor: string | null
           observacoes: string | null
           peso_alocado_kg: number | null
           status: Database["public"]["Enums"]["status_entrega"] | null
-          ultima_atualizacao_localizacao: string | null
           updated_at: string | null
           valor_frete: number | null
           veiculo_id: string | null
@@ -409,19 +405,15 @@ export type Database = {
           cotacao_id?: string | null
           created_at?: string | null
           documento_recebedor?: string | null
-          empresa_id?: number | null
           entregue_em?: string | null
           foto_comprovante_coleta?: string | null
           foto_comprovante_entrega?: string | null
           id?: string
-          latitude_atual?: number | null
-          longitude_atual?: number | null
           motorista_id?: string | null
           nome_recebedor?: string | null
           observacoes?: string | null
           peso_alocado_kg?: number | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
-          ultima_atualizacao_localizacao?: string | null
           updated_at?: string | null
           valor_frete?: number | null
           veiculo_id?: string | null
@@ -433,19 +425,15 @@ export type Database = {
           cotacao_id?: string | null
           created_at?: string | null
           documento_recebedor?: string | null
-          empresa_id?: number | null
           entregue_em?: string | null
           foto_comprovante_coleta?: string | null
           foto_comprovante_entrega?: string | null
           id?: string
-          latitude_atual?: number | null
-          longitude_atual?: number | null
           motorista_id?: string | null
           nome_recebedor?: string | null
           observacoes?: string | null
           peso_alocado_kg?: number | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
-          ultima_atualizacao_localizacao?: string | null
           updated_at?: string | null
           valor_frete?: number | null
           veiculo_id?: string | null
@@ -456,13 +444,6 @@ export type Database = {
             columns: ["carga_id"]
             isOneToOne: true
             referencedRelation: "cargas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "entregas_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
           {
