@@ -449,7 +449,7 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
       </MapContainer>
       
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 z-40 bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
+      <div className="absolute bottom-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
         <p className="text-xs font-medium text-muted-foreground mb-2">Legenda</p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
           {Object.entries(statusLabels).slice(0, 6).map(([key, label]) => (
@@ -486,7 +486,7 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
 
       {/* Selected info badge */}
       {selectedEntrega && (
-        <div className="absolute top-4 right-4 z-40 bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
+        <div className="absolute top-4 right-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
           <div className="flex items-center gap-2">
             <Route className="w-4 h-4 text-primary" />
             <div>
