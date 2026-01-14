@@ -15,7 +15,8 @@ import {
   Sparkles,
   Send,
   ExternalLink,
-  Shield
+  Shield,
+  Settings
 } from 'lucide-react';
 import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
@@ -307,7 +308,7 @@ export default function EmbarcadorDashboard() {
                     className="h-auto py-4 flex-col gap-2 hover:bg-chart-4/5 hover:border-chart-4/20"
                     onClick={() => navigate('/embarcador/configuracoes')}
                   >
-                    <Truck className="w-5 h-5 text-chart-4" />
+                    <Settings className="w-5 h-5 text-chart-4" />
                     <span className="text-xs">Configurações</span>
                   </Button>
                 </div>
@@ -394,7 +395,7 @@ export default function EmbarcadorDashboard() {
               <img 
                 src={adSeguroTransporte} 
                 alt="Seguro de Transporte de Cargas" 
-                className="w-full h-32 sm:h-40 md:h-48 object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                className="w-full h-32 sm:h-40 md:h-[400px] object-cover group-hover:scale-[1.02] transition-transform duration-300"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex items-center">
                 <div className="p-6 text-white max-w-md">
