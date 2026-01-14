@@ -293,8 +293,7 @@ export default function GestaoCargas() {
       const { data, error } = await supabase
         .from('localizações')
         .select('email_motorista, latitude, longitude, timestamp, status')
-        .in('email_motorista', motoristaEmails)
-        .eq('visivel', true);
+        .in('email_motorista', motoristaEmails);
 
       if (error) throw error;
       return (data || []) as MotoristaLocalizacao[];
