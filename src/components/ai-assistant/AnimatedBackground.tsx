@@ -90,8 +90,9 @@ export function AnimatedBackground() {
     }
 
     function resize() {
-      canvas!.width = window.innerWidth;
-      canvas!.height = window.innerHeight;
+      const parent = canvas!.parentElement;
+      canvas!.width = parent?.clientWidth || window.innerWidth;
+      canvas!.height = parent?.clientHeight || window.innerHeight;
       init();
     }
 
@@ -107,7 +108,7 @@ export function AnimatedBackground() {
   }, []);
 
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* Gradient overlays */}
       <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-black" />
       <div 
