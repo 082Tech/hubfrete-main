@@ -1,5 +1,5 @@
 import { PortalLayout } from '@/components/portals/PortalLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Package, 
@@ -9,57 +9,40 @@ import {
   ArrowUpRight,
   Loader2,
   DollarSign,
-  MapPin
+  MapPin,
+  MessageCircle,
+  Send,
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { StatsCard } from '@/components/dashboard/StatsCard';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  AreaChart,
-  Area
-} from 'recharts';
-import { format, subDays, startOfMonth, endOfMonth, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { useMemo } from 'react';
-
-const statusLabels: Record<string, { label: string; color: string }> = {
-  'rascunho': { label: 'Rascunho', color: 'bg-muted text-muted-foreground border-border' },
-  'publicada': { label: 'Publicada', color: 'bg-primary/10 text-primary border-primary/20' },
-  'aceita': { label: 'Aceita', color: 'bg-chart-3/10 text-chart-3 border-chart-3/20' },
-  'em_coleta': { label: 'Em Coleta', color: 'bg-chart-4/10 text-chart-4 border-chart-4/20' },
-  'em_transito': { label: 'Em Trânsito', color: 'bg-chart-1/10 text-chart-1 border-chart-1/20' },
-  'entregue': { label: 'Entregue', color: 'bg-chart-2/10 text-chart-2 border-chart-2/20' },
-  'cancelada': { label: 'Cancelada', color: 'bg-destructive/10 text-destructive border-destructive/20' },
-};
-
-const CHART_COLORS = [
-  'hsl(var(--chart-1))',
-  'hsl(var(--chart-2))',
-  'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))',
-];
+import { startOfMonth, endOfMonth, parseISO, subDays } from 'date-fns';
+import { useMemo, useState } from 'react';
 
 export default function EmbarcadorDashboard() {
   const { empresa, filialAtiva } = useUserContext();
+  const { profile } = useAuth();
   const navigate = useNavigate();
+  const [chatMessage, setChatMessage] = useState('');
 
-  // Fetch cargas with more details
+  // Get greeting based on time of day
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }, []);
+
+  const firstName = profile?.nome_completo?.split(' ')[0] || 'Usuário';
+
+  // Fetch cargas
   const { data: cargas = [], isLoading: loadingCargas } = useQuery({
     queryKey: ['dashboard_cargas', empresa?.id, filialAtiva?.id],
     queryFn: async () => {
@@ -70,16 +53,9 @@ export default function EmbarcadorDashboard() {
         .select(`
           id,
           codigo,
-          descricao,
           status,
           created_at,
-          peso_kg,
-          valor_mercadoria,
-          enderecos_carga (
-            tipo,
-            cidade,
-            estado
-          )
+          valor_mercadoria
         `)
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });
@@ -106,9 +82,7 @@ export default function EmbarcadorDashboard() {
         .select(`
           id,
           status,
-          created_at,
           entregue_em,
-          coletado_em,
           cargas!inner (
             empresa_id,
             filial_id
@@ -126,7 +100,6 @@ export default function EmbarcadorDashboard() {
     },
     enabled: !!empresa?.id,
   });
-
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -154,7 +127,7 @@ export default function EmbarcadorDashboard() {
       .filter(c => c.status && !['entregue', 'cancelada'].includes(c.status))
       .reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0);
 
-    // Comparação com período anterior (últimos 30 dias vs 30 dias anteriores)
+    // Comparação com período anterior
     const last30Days = subDays(now, 30);
     const prev30Days = subDays(now, 60);
     
@@ -175,64 +148,9 @@ export default function EmbarcadorDashboard() {
       entreguesMes,
       valorTotalMercadorias,
       changePercent,
+      totalCargas: cargas.length,
     };
   }, [cargas, entregas]);
-
-  // Chart data: Cargas por status
-  const statusChartData = useMemo(() => {
-    const statusCounts: Record<string, number> = {};
-    cargas.forEach(c => {
-      const status = c.status || 'rascunho';
-      statusCounts[status] = (statusCounts[status] || 0) + 1;
-    });
-
-    return Object.entries(statusCounts).map(([status, count]) => ({
-      name: statusLabels[status]?.label || status,
-      value: count,
-      status,
-    }));
-  }, [cargas]);
-
-  // Chart data: Cargas nos últimos 7 dias
-  const weeklyChartData = useMemo(() => {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = subDays(new Date(), i);
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const dayName = format(date, 'EEE', { locale: ptBR });
-      
-      const cargasCount = cargas.filter(c => 
-        format(parseISO(c.created_at), 'yyyy-MM-dd') === dateStr
-      ).length;
-      
-      const entregasCount = entregas.filter(e => 
-        e.entregue_em && format(parseISO(e.entregue_em), 'yyyy-MM-dd') === dateStr
-      ).length;
-
-      days.push({
-        name: dayName.charAt(0).toUpperCase() + dayName.slice(1),
-        cargas: cargasCount,
-        entregas: entregasCount,
-      });
-    }
-    return days;
-  }, [cargas, entregas]);
-
-  // Get recent cargas (last 5)
-  const recentCargas = useMemo(() => {
-    return cargas.slice(0, 5).map(carga => {
-      const destino = carga.enderecos_carga?.find((e: any) => e.tipo === 'destino');
-      const origem = carga.enderecos_carga?.find((e: any) => e.tipo === 'origem');
-      return {
-        id: carga.codigo,
-        destino: destino ? `${destino.cidade}, ${destino.estado}` : '-',
-        origem: origem ? `${origem.cidade}, ${origem.estado}` : '-',
-        status: carga.status || 'rascunho',
-        data: format(parseISO(carga.created_at), 'dd/MM/yyyy'),
-        peso: carga.peso_kg,
-      };
-    });
-  }, [cargas]);
 
   const isLoading = loadingCargas || loadingEntregas;
 
@@ -243,266 +161,223 @@ export default function EmbarcadorDashboard() {
     }).format(value);
   };
 
+  const handleSendMessage = () => {
+    if (chatMessage.trim()) {
+      // Placeholder for future AI assistant integration
+      setChatMessage('');
+    }
+  };
+
   return (
     <PortalLayout expectedUserType="embarcador">
       <div className="space-y-6">
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-foreground mb-1">
+              {greeting}, {firstName}! 👋
+            </h1>
             <p className="text-muted-foreground">
-              {filialAtiva ? `Filial: ${filialAtiva.nome}` : 'Visão geral da empresa'}
+              {filialAtiva ? `Filial: ${filialAtiva.nome}` : 'Visão geral da sua operação'}
             </p>
           </div>
-          <NovaCargaDialog />
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/embarcador/relatorios')}
+              className="gap-2"
+            >
+              <BarChart3 className="w-4 h-4" />
+              Relatórios
+            </Button>
+            <NovaCargaDialog />
+          </div>
         </div>
 
-        {/* Main Stats */}
-        {isLoading ? (
-          <div className="flex items-center justify-center h-24">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatsCard
-              title="Cargas Ativas"
-              value={stats.activeCargas}
-              change={stats.changePercent}
-              changeLabel="vs. mês anterior"
-              icon={<Package className="w-5 h-5" />}
-              color="primary"
-            />
-            <StatsCard
-              title="Em Trânsito"
-              value={stats.emTransito}
-              icon={<Truck className="w-5 h-5" />}
-              color="chart1"
-            />
-            <StatsCard
-              title="Aguardando Coleta"
-              value={stats.aguardandoColeta}
-              icon={<Clock className="w-5 h-5" />}
-              color="chart4"
-            />
-            <StatsCard
-              title="Entregues (mês)"
-              value={stats.entreguesMes}
-              icon={<CheckCircle className="w-5 h-5" />}
-              color="chart2"
-            />
-          </div>
-        )}
-
-        {/* Secondary Stats */}
-        {!isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 bg-chart-2/10 rounded-xl">
-                  <DollarSign className="w-5 h-5 text-chart-2" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Valor em Cargas Ativas</p>
-                  <p className="text-xl font-bold text-foreground">
-                    {formatCurrency(stats.valorTotalMercadorias)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <MapPin className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Total de Cargas</p>
-                  <p className="text-2xl font-bold text-foreground">{cargas.length}</p>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => navigate('/embarcador/cargas')}
-                >
-                  <ArrowUpRight className="w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Charts Section */}
-        {!isLoading && cargas.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Weekly Activity Chart */}
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="text-lg">Atividade Semanal</CardTitle>
-                <CardDescription>Cargas criadas e entregas nos últimos 7 dias</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={weeklyChartData}>
-                      <defs>
-                        <linearGradient id="colorCargas" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorEntregas" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis 
-                        dataKey="name" 
-                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                        axisLine={{ stroke: 'hsl(var(--border))' }}
-                      />
-                      <YAxis 
-                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                        axisLine={{ stroke: 'hsl(var(--border))' }}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                          color: 'hsl(var(--foreground))'
-                        }}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="cargas" 
-                        stroke="hsl(var(--primary))" 
-                        fillOpacity={1} 
-                        fill="url(#colorCargas)"
-                        name="Cargas Criadas"
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="entregas" 
-                        stroke="hsl(var(--chart-2))" 
-                        fillOpacity={1} 
-                        fill="url(#colorEntregas)"
-                        name="Entregas"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Status Distribution Chart */}
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="text-lg">Distribuição por Status</CardTitle>
-                <CardDescription>Status atual das suas cargas</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={statusChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={2}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine={false}
-                      >
-                        {statusChartData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={CHART_COLORS[index % CHART_COLORS.length]} 
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                          color: 'hsl(var(--foreground))'
-                        }}
-                        formatter={(value: number) => [`${value} cargas`, 'Quantidade']}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Bottom Section: Recent Items */}
-        <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Cargas Recentes</CardTitle>
-              <CardDescription>Últimas cargas cadastradas</CardDescription>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="gap-1"
-              onClick={() => navigate('/embarcador/cargas')}
-            >
-              Ver todas <ArrowUpRight className="w-4 h-4" />
-            </Button>
-          </CardHeader>
-          <CardContent>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Stats and Quick Actions */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Stats Cards */}
             {isLoading ? (
-              <div className="flex items-center justify-center h-24">
+              <div className="flex items-center justify-center h-32">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
-            ) : recentCargas.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">Nenhuma carga cadastrada ainda</p>
-                <p className="text-sm text-muted-foreground">Clique em "Nova Carga" para começar</p>
-              </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {recentCargas.map((load) => {
-                  const statusInfo = statusLabels[load.status] || statusLabels['rascunho'];
-                  return (
-                    <div 
-                      key={load.id} 
-                      className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
-                      onClick={() => navigate('/embarcador/cargas')}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-foreground truncate">{load.id}</p>
-                          <Badge variant="outline" className={statusInfo.color}>
-                            {statusInfo.label}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                          <span className="truncate">{load.origem}</span>
-                          <ArrowUpRight className="w-3 h-3 flex-shrink-0" />
-                          <span className="truncate">{load.destino}</span>
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0 ml-4">
-                        <p className="text-sm font-medium text-foreground">
-                          {load.peso ? `${Number(load.peso).toLocaleString('pt-BR')} kg` : '-'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{load.data}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatsCard
+                  title="Cargas Ativas"
+                  value={stats.activeCargas}
+                  change={stats.changePercent}
+                  changeLabel="vs. mês anterior"
+                  icon={<Package className="w-5 h-5" />}
+                  color="primary"
+                />
+                <StatsCard
+                  title="Em Trânsito"
+                  value={stats.emTransito}
+                  icon={<Truck className="w-5 h-5" />}
+                  color="chart1"
+                />
+                <StatsCard
+                  title="Aguardando Coleta"
+                  value={stats.aguardandoColeta}
+                  icon={<Clock className="w-5 h-5" />}
+                  color="chart4"
+                />
+                <StatsCard
+                  title="Entregues (mês)"
+                  value={stats.entreguesMes}
+                  icon={<CheckCircle className="w-5 h-5" />}
+                  color="chart2"
+                />
               </div>
             )}
-          </CardContent>
-        </Card>
+
+            {/* Summary Cards */}
+            {!isLoading && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/embarcador/cargas')}>
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="p-3 bg-primary/10 rounded-xl">
+                      <MapPin className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">Total de Cargas</p>
+                      <p className="text-3xl font-bold text-foreground">{stats.totalCargas}</p>
+                    </div>
+                    <ArrowUpRight className="w-5 h-5 text-muted-foreground" />
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border">
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="p-3 bg-chart-2/10 rounded-xl">
+                      <DollarSign className="w-6 h-6 text-chart-2" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">Valor em Cargas Ativas</p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {formatCurrency(stats.valorTotalMercadorias)}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <Card className="border-border bg-gradient-to-br from-primary/5 to-transparent">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  Ações Rápidas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20"
+                    onClick={() => navigate('/embarcador/cargas')}
+                  >
+                    <Package className="w-5 h-5 text-primary" />
+                    <span className="text-xs">Ver Cargas</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-auto py-4 flex-col gap-2 hover:bg-chart-1/5 hover:border-chart-1/20"
+                    onClick={() => navigate('/embarcador/relatorios')}
+                  >
+                    <BarChart3 className="w-5 h-5 text-chart-1" />
+                    <span className="text-xs">Relatórios</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-auto py-4 flex-col gap-2 hover:bg-chart-2/5 hover:border-chart-2/20"
+                    onClick={() => navigate('/embarcador/filiais')}
+                  >
+                    <MapPin className="w-5 h-5 text-chart-2" />
+                    <span className="text-xs">Filiais</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-auto py-4 flex-col gap-2 hover:bg-chart-4/5 hover:border-chart-4/20"
+                    onClick={() => navigate('/embarcador/configuracoes')}
+                  >
+                    <Truck className="w-5 h-5 text-chart-4" />
+                    <span className="text-xs">Configurações</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - AI Assistant Chat */}
+          <div className="lg:col-span-1">
+            <Card className="border-border h-full min-h-[400px] flex flex-col bg-gradient-to-br from-accent/30 to-transparent">
+              <CardHeader className="border-b border-border/50">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="p-2 bg-primary rounded-lg">
+                    <MessageCircle className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                  Assistente HubFrete
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Converse sobre suas cargas e operações
+                </p>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col p-4">
+                {/* Chat Messages Area */}
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                    <Sparkles className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-2">
+                    Olá! Sou o assistente do HubFrete
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Em breve você poderá conversar comigo sobre suas cargas, entregas e muito mais!
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
+                      "Status das minhas cargas"
+                    </span>
+                    <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
+                      "Criar nova carga"
+                    </span>
+                    <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
+                      "Ver relatórios"
+                    </span>
+                  </div>
+                </div>
+
+                {/* Chat Input */}
+                <div className="flex gap-2 mt-4">
+                  <Input
+                    placeholder="Digite sua mensagem..."
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                    className="flex-1"
+                    disabled
+                  />
+                  <Button 
+                    size="icon" 
+                    onClick={handleSendMessage}
+                    disabled
+                    className="shrink-0"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  🚧 Em desenvolvimento
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </PortalLayout>
   );
