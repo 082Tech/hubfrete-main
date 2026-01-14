@@ -52,7 +52,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -516,7 +515,6 @@ export default function GestaoCargas() {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2">
-            <NovaCargaDialog onSuccess={() => refetch()} />
             <Button
               variant="outline"
               size="icon"
@@ -626,9 +624,8 @@ export default function GestaoCargas() {
                 onClick={() => refetch()}
                 disabled={isLoading || switchingFilial}
               >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
-              <NovaCargaDialog onSuccess={() => refetch()} />
             </div>
           </div>
 

@@ -121,8 +121,8 @@ interface ResumoSectionProps {
     tipo: string;
     peso_kg: number;
     volume_m3?: number;
-    quantidade?: number;
     valor_mercadoria?: number;
+    valor_frete_tonelada?: number;
     data_coleta_de: string;
     data_coleta_ate?: string;
     data_entrega_limite?: string;
@@ -425,14 +425,19 @@ export function ResumoSection({
                 {cargaData.volume_m3} m³
               </Badge>
             )}
-            {cargaData.quantidade && cargaData.quantidade > 1 && (
-              <Badge variant="secondary">
-                Qtd: {cargaData.quantidade}
-              </Badge>
-            )}
             {cargaData.valor_mercadoria && (
               <Badge variant="secondary">
                 R$ {cargaData.valor_mercadoria.toLocaleString('pt-BR')}
+              </Badge>
+            )}
+            {cargaData.valor_frete_tonelada && (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                Frete: R$ {cargaData.valor_frete_tonelada.toLocaleString('pt-BR')}/ton
+              </Badge>
+            )}
+            {cargaData.valor_frete_tonelada && cargaData.peso_kg > 0 && (
+              <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20">
+                Total: R$ {((cargaData.peso_kg / 1000) * cargaData.valor_frete_tonelada).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </Badge>
             )}
           </div>
