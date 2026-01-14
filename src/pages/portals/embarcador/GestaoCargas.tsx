@@ -4,10 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
   TableBody,
@@ -83,7 +81,15 @@ interface EntregaData {
     placa: string;
     marca: string | null;
     modelo: string | null;
+    tipo: string | null;
+    capacidade_kg: number | null;
+    capacidade_m3: number | null;
   } | null;
+  cotacao_id: string | null;
+}
+
+interface CotacaoData {
+  valor_frete: number | null;
 }
 
 interface CargaCompleta {
@@ -92,6 +98,7 @@ interface CargaCompleta {
   descricao: string;
   tipo: string;
   peso_kg: number;
+  volume_m3: number | null;
   valor_mercadoria: number | null;
   status: StatusCarga | null;
   data_coleta_de: string | null;
@@ -103,6 +110,8 @@ interface CargaCompleta {
     estado: string;
     latitude: number | null;
     longitude: number | null;
+    contato_nome: string | null;
+    contato_telefone: string | null;
   }[];
   // entregas can be a single object (one-to-one) or null
   entregas: EntregaData | null;
@@ -162,6 +171,7 @@ export default function GestaoCargas() {
           descricao,
           tipo,
           peso_kg,
+          volume_m3,
           valor_mercadoria,
           status,
           data_coleta_de,
@@ -172,7 +182,9 @@ export default function GestaoCargas() {
             cidade,
             estado,
             latitude,
-            longitude
+            longitude,
+            contato_nome,
+            contato_telefone
           ),
           entregas (
             id,
@@ -183,6 +195,7 @@ export default function GestaoCargas() {
             coletado_em,
             entregue_em,
             updated_at,
+            cotacao_id,
             motoristas (
               nome_completo,
               telefone
@@ -190,7 +203,10 @@ export default function GestaoCargas() {
             veiculos (
               placa,
               marca,
-              modelo
+              modelo,
+              tipo,
+              capacidade_kg,
+              capacidade_m3
             )
           )
         `)
@@ -279,8 +295,41 @@ export default function GestaoCargas() {
 
   const getEndereco = (carga: CargaCompleta, tipo: 'origem' | 'destino') => {
     const endereco = carga.enderecos_carga?.find(e => e.tipo === tipo);
-    if (!endereco) return '-';
-    return `${endereco.cidade}, ${endereco.estado}`;
+    if (!endereco) return { cidade: '-', contato: null };
+    return { 
+      cidade: `${endereco.cidade}, ${endereco.estado}`,
+      contato: endereco.contato_nome,
+      telefone: endereco.contato_telefone
+    };
+  };
+
+  const formatVolume = (volume: number | null) => {
+    if (!volume) return '-';
+    return `${volume.toLocaleString('pt-BR')} m³`;
+  };
+
+  const tipoCargaLabels: Record<string, string> = {
+    'carga_seca': 'Carga Seca',
+    'granel_solido': 'Granel Sólido',
+    'granel_liquido': 'Granel Líquido',
+    'refrigerada': 'Refrigerada',
+    'congelada': 'Congelada',
+    'perigosa': 'Perigosa',
+    'viva': 'Carga Viva',
+    'indivisivel': 'Indivisível',
+    'container': 'Container',
+  };
+
+  const tipoVeiculoLabels: Record<string, string> = {
+    'truck': 'Truck',
+    'toco': 'Toco',
+    'tres_quartos': '3/4',
+    'vuc': 'VUC',
+    'carreta': 'Carreta',
+    'carreta_ls': 'Carreta LS',
+    'bitrem': 'Bitrem',
+    'rodotrem': 'Rodotrem',
+    'vanderleia': 'Vanderléia',
   };
 
   const formatDate = (dateString: string | null) => {
@@ -565,19 +614,23 @@ export default function GestaoCargas() {
 
               <Card className="border-border">
                 <CardContent className="p-0">
-                  <ScrollArea className="w-full">
+                  <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border">
-                          <TableHead className="min-w-[200px]">Carga</TableHead>
-                          <TableHead className="min-w-[120px]">Origem</TableHead>
-                          <TableHead className="min-w-[120px]">Destino</TableHead>
+                          <TableHead className="min-w-[180px] sticky left-0 bg-background z-10">Carga</TableHead>
+                          <TableHead className="min-w-[160px]">Remetente</TableHead>
+                          <TableHead className="min-w-[160px]">Destinatário</TableHead>
                           <TableHead className="min-w-[100px]">Peso</TableHead>
-                          <TableHead className="min-w-[120px]">Valor</TableHead>
-                          <TableHead className="min-w-[150px]">Status</TableHead>
-                          <TableHead className="min-w-[140px]">Progresso</TableHead>
-                          <TableHead className="min-w-[100px]">Data</TableHead>
-                          <TableHead className="w-[50px]"></TableHead>
+                          <TableHead className="min-w-[80px]">Cubagem</TableHead>
+                          <TableHead className="min-w-[110px]">Tipo Carga</TableHead>
+                          <TableHead className="min-w-[120px]">Valor Mercadoria</TableHead>
+                          <TableHead className="min-w-[120px]">Valor Frete</TableHead>
+                          <TableHead className="min-w-[150px]">Motorista</TableHead>
+                          <TableHead className="min-w-[110px]">Veículo</TableHead>
+                          <TableHead className="min-w-[130px]">Status</TableHead>
+                          <TableHead className="min-w-[110px]">Previsão</TableHead>
+                          <TableHead className="w-[50px] sticky right-0 bg-background z-10"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -586,8 +639,9 @@ export default function GestaoCargas() {
                           const config = statusCargaConfig[status];
                           const StatusIcon = config?.icon || Package;
                           const entrega = carga.entregas;
-                          const progress = getProgress(carga);
                           const isSelected = selectedCargaId === carga.id;
+                          const origem = getEndereco(carga, 'origem');
+                          const destino = getEndereco(carga, 'destino');
 
                           return (
                             <TableRow 
@@ -595,64 +649,132 @@ export default function GestaoCargas() {
                               className={`border-border cursor-pointer transition-colors ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-muted/50'}`}
                               onClick={() => setSelectedCargaId(isSelected ? null : carga.id)}
                             >
-                              <TableCell>
+                              {/* Carga (sticky) */}
+                              <TableCell className="sticky left-0 bg-background z-10">
                                 <div>
                                   <p className="font-medium text-foreground">{carga.codigo}</p>
-                                  <p className="text-sm text-muted-foreground line-clamp-1">{carga.descricao}</p>
+                                  <p className="text-xs text-muted-foreground line-clamp-1">{carga.descricao}</p>
                                 </div>
                               </TableCell>
+                              
+                              {/* Remetente (Origem) */}
                               <TableCell>
-                                <div className="flex items-center gap-1.5 text-sm">
-                                  <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                  <span className="truncate">{getEndereco(carga, 'origem')}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1.5 text-sm">
-                                  <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-                                  <span className="truncate">{getEndereco(carga, 'destino')}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-sm">{formatPeso(carga.peso_kg)}</TableCell>
-                              <TableCell className="text-sm font-medium">{formatValor(carga.valor_mercadoria)}</TableCell>
-                              <TableCell>
-                                <div className="space-y-1">
-                                  <Badge variant="outline" className={config?.color}>
-                                    <StatusIcon className="w-3 h-3 mr-1" />
-                                    {config?.label}
-                                  </Badge>
-                                  {entrega && entrega.motoristas && (
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                      <User className="w-3 h-3" />
-                                      <span className="truncate max-w-[100px]">{entrega.motoristas.nome_completo}</span>
-                                    </div>
+                                <div className="text-sm">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                                    <span className="truncate">{origem.cidade}</span>
+                                  </div>
+                                  {origem.contato && (
+                                    <p className="text-xs text-muted-foreground truncate">{origem.contato}</p>
                                   )}
                                 </div>
                               </TableCell>
+                              
+                              {/* Destinatário */}
                               <TableCell>
-                                <div className="space-y-1">
-                                  <Progress value={progress} className="h-2" />
-                                  <p className="text-xs text-muted-foreground">{progress}%</p>
+                                <div className="text-sm">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                                    <span className="truncate">{destino.cidade}</span>
+                                  </div>
+                                  {destino.contato && (
+                                    <p className="text-xs text-muted-foreground truncate">{destino.contato}</p>
+                                  )}
                                 </div>
                               </TableCell>
+                              
+                              {/* Peso */}
+                              <TableCell className="text-sm">{formatPeso(carga.peso_kg)}</TableCell>
+                              
+                              {/* Cubagem */}
+                              <TableCell className="text-sm">{formatVolume(carga.volume_m3)}</TableCell>
+                              
+                              {/* Tipo Carga */}
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs whitespace-nowrap">
+                                  {tipoCargaLabels[carga.tipo] || carga.tipo}
+                                </Badge>
+                              </TableCell>
+                              
+                              {/* Valor Mercadoria */}
+                              <TableCell className="text-sm font-medium">{formatValor(carga.valor_mercadoria)}</TableCell>
+                              
+                              {/* Valor Frete */}
+                              <TableCell className="text-sm font-medium text-primary">
+                                {/* TODO: Quando tiver cotação aceita, mostrar valor */}
+                                -
+                              </TableCell>
+                              
+                              {/* Motorista */}
+                              <TableCell>
+                                {entrega?.motoristas ? (
+                                  <div className="text-sm">
+                                    <div className="flex items-center gap-1">
+                                      <User className="w-3 h-3 text-muted-foreground" />
+                                      <span className="truncate max-w-[120px]">{entrega.motoristas.nome_completo}</span>
+                                    </div>
+                                    {entrega.motoristas.telefone && (
+                                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                        <Phone className="w-3 h-3" />
+                                        <span>{entrega.motoristas.telefone}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              
+                              {/* Veículo */}
+                              <TableCell>
+                                {entrega?.veiculos ? (
+                                  <div className="text-sm">
+                                    <p className="font-medium">{entrega.veiculos.placa}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {tipoVeiculoLabels[entrega.veiculos.tipo || ''] || entrega.veiculos.tipo || '-'}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              
+                              {/* Status */}
+                              <TableCell>
+                                <Badge variant="outline" className={config?.color}>
+                                  <StatusIcon className="w-3 h-3 mr-1" />
+                                  {config?.label}
+                                </Badge>
+                              </TableCell>
+                              
+                              {/* Previsão de Chegada */}
                               <TableCell>
                                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                                   <Calendar className="w-3.5 h-3.5" />
-                                  {formatDate(carga.data_coleta_de)}
+                                  {formatDate(carga.data_entrega_limite)}
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              
+                              {/* Ações (sticky) */}
+                              <TableCell className="sticky right-0 bg-background z-10">
                                 <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
+                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
                                       <MoreHorizontal className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="bg-popover border-border z-50">
-                                    <DropdownMenuItem className="gap-2 cursor-pointer">
-                                      <Eye className="w-4 h-4" /> Ver detalhes
+                                    <DropdownMenuItem 
+                                      className="gap-2 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedCargaId(carga.id);
+                                        toast.info('Detalhes da carga selecionada no mapa');
+                                      }}
+                                    >
+                                      <Eye className="w-4 h-4" /> Ver no mapa
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="gap-2 cursor-pointer">
+                                    <DropdownMenuItem className="gap-2 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                                       <Edit className="w-4 h-4" /> Editar
                                     </DropdownMenuItem>
                                     {entrega?.motoristas?.telefone && (
@@ -660,14 +782,20 @@ export default function GestaoCargas() {
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                           className="gap-2 cursor-pointer"
-                                          onClick={() => window.open(`tel:${entrega.motoristas!.telefone}`, '_blank')}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(`tel:${entrega.motoristas!.telefone}`, '_blank');
+                                          }}
                                         >
                                           <Phone className="w-4 h-4" /> Ligar para motorista
                                         </DropdownMenuItem>
                                       </>
                                     )}
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="gap-2 cursor-pointer text-destructive">
+                                    <DropdownMenuItem 
+                                      className="gap-2 cursor-pointer text-destructive"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       <Trash2 className="w-4 h-4" /> Cancelar
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -678,7 +806,7 @@ export default function GestaoCargas() {
                         })}
                       </TableBody>
                     </Table>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
             </div>
