@@ -50,23 +50,31 @@ const destinoIcon = new L.Icon({
 });
 
 interface FitBoundsProps {
-  origem: [number, number] | null;
-  destino: [number, number] | null;
+  origemLat: number;
+  origemLng: number;
+  destinoLat: number;
+  destinoLng: number;
 }
 
-function FitBounds({ origem, destino }: FitBoundsProps) {
+function FitBounds({ origemLat, origemLng, destinoLat, destinoLng }: FitBoundsProps) {
   const map = useMap();
   
   useEffect(() => {
-    if (origem && destino && origem[0] !== 0 && destino[0] !== 0) {
-      const bounds = L.latLngBounds([origem, destino]);
+    const hasOrigem = origemLat !== 0 && origemLng !== 0;
+    const hasDestino = destinoLat !== 0 && destinoLng !== 0;
+    
+    if (hasOrigem && hasDestino) {
+      const bounds = L.latLngBounds(
+        [origemLat, origemLng],
+        [destinoLat, destinoLng]
+      );
       map.fitBounds(bounds, { padding: [50, 50] });
-    } else if (origem && origem[0] !== 0) {
-      map.setView(origem, 12);
-    } else if (destino && destino[0] !== 0) {
-      map.setView(destino, 12);
+    } else if (hasOrigem) {
+      map.setView([origemLat, origemLng], 12);
+    } else if (hasDestino) {
+      map.setView([destinoLat, destinoLng], 12);
     }
-  }, [origem, destino, map]);
+  }, [origemLat, origemLng, destinoLat, destinoLng, map]);
   
   return null;
 }
@@ -197,7 +205,12 @@ export function ResumoSection({
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <FitBounds origem={origemPosition} destino={destinoPosition} />
+            <FitBounds 
+              origemLat={origemData.latitude || 0}
+              origemLng={origemData.longitude || 0}
+              destinoLat={destinoData.latitude || 0}
+              destinoLng={destinoData.longitude || 0}
+            />
             
             {/* Route line */}
             {routeCoords.length > 0 && (

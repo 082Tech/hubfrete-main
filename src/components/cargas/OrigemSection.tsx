@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,10 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [filialData, setFilialData] = useState<FilialCompleta | null>(null);
+  const hasLoadedRef = useRef(false);
+  const onLocationChangeRef = useRef(onLocationChange);
+  onLocationChangeRef.current = onLocationChange;
+  
   const [formData, setFormData] = useState<LocationData>({
     latitude: initialData?.latitude || 0,
     longitude: initialData?.longitude || 0,
@@ -42,8 +46,11 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
     contato_telefone: initialData?.contato_telefone || '',
   });
 
-  // Load full filial data and geocode
+  // Load full filial data and geocode - only once per filial
   useEffect(() => {
+    // Prevent double loading
+    if (hasLoadedRef.current) return;
+    
     const loadFilialData = async () => {
       if (!filialAtiva?.id) {
         setIsLoading(false);
@@ -51,6 +58,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
       }
 
       setIsLoading(true);
+      hasLoadedRef.current = true;
 
       try {
         const { data, error } = await supabase
@@ -107,7 +115,8 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
           };
           
           setFormData(newData);
-          onLocationChange(newData);
+          // Use ref to avoid dependency on onLocationChange
+          onLocationChangeRef.current(newData);
         }
       } catch (err) {
         console.error('Error loading filial:', err);
