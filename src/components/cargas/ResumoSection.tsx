@@ -142,18 +142,27 @@ export function ResumoSection({
 
   const defaultCenter: [number, number] = [-15.7801, -47.9292];
 
+  // Use stable values for dependencies
+  const origemLat = origemData.latitude || 0;
+  const origemLng = origemData.longitude || 0;
+  const destinoLat = destinoData.latitude || 0;
+  const destinoLng = destinoData.longitude || 0;
+
   // Fetch route from OSRM
   useEffect(() => {
     const fetchRoute = async () => {
-      if (!origemPosition || !destinoPosition || origemPosition[0] === 0 || destinoPosition[0] === 0) {
+      // Check if we have valid coordinates
+      if (origemLat === 0 || origemLng === 0 || destinoLat === 0 || destinoLng === 0) {
         setRouteCoords([]);
+        setDistance(null);
+        setDuration(null);
         return;
       }
 
       setIsLoadingRoute(true);
       try {
         const response = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${origemPosition[1]},${origemPosition[0]};${destinoPosition[1]},${destinoPosition[0]}?overview=full&geometries=geojson`
+          `https://router.project-osrm.org/route/v1/driving/${origemLng},${origemLat};${destinoLng},${destinoLat}?overview=full&geometries=geojson`
         );
         const data = await response.json();
         
@@ -173,7 +182,7 @@ export function ResumoSection({
     };
 
     fetchRoute();
-  }, [origemPosition?.[0], origemPosition?.[1], destinoPosition?.[0], destinoPosition?.[1]]);
+  }, [origemLat, origemLng, destinoLat, destinoLng]);
 
   const formatAddress = (data: LocationData) => {
     const parts = [
@@ -188,7 +197,7 @@ export function ResumoSection({
 
   const hasValidOrigin = origemData.cidade && origemData.logradouro;
   const hasValidDestino = destinoData.cidade && destinoData.logradouro;
-  const hasValidRoute = origemPosition && destinoPosition && origemPosition[0] !== 0 && destinoPosition[0] !== 0;
+  const hasValidRoute = origemLat !== 0 && origemLng !== 0 && destinoLat !== 0 && destinoLng !== 0;
 
   return (
     <div className="space-y-4">
