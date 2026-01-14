@@ -366,84 +366,86 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
           </Marker>
         )}
         
-        {/* Truck markers */}
-        {validEntregas.map((entrega) => {
-          const status = entrega.status || 'aguardando_coleta';
-          const color = statusColors[status] || statusColors['aguardando_coleta'];
-          const label = statusLabels[status] || 'Desconhecido';
-          const isSelected = selectedCargaId === entrega.cargaId;
-          
-          return (
-            <Marker
-              key={entrega.id}
-              position={[entrega.latitude!, entrega.longitude!]}
-              icon={createColoredIcon(color, isSelected)}
-              eventHandlers={{
-                click: () => handleMarkerClick(entrega),
-              }}
-            >
-              <Popup>
-                <div className="min-w-[200px] p-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-bold text-foreground">{entrega.codigo}</span>
-                    <span 
-                      className="text-xs px-2 py-0.5 rounded-full text-white"
-                      style={{ backgroundColor: color }}
-                    >
-                      {label}
-                    </span>
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                    {entrega.descricao}
-                  </p>
-                  
-                  {entrega.destino && (
-                    <div className="flex items-center gap-2 text-sm mb-2">
-                      <MapPin className="w-3 h-3 text-primary shrink-0" />
-                      <span className="text-foreground">{entrega.destino}</span>
+        {/* Truck markers - hide others when one is selected */}
+        {validEntregas
+          .filter((entrega) => !selectedCargaId || entrega.cargaId === selectedCargaId)
+          .map((entrega) => {
+            const status = entrega.status || 'aguardando_coleta';
+            const color = statusColors[status] || statusColors['aguardando_coleta'];
+            const label = statusLabels[status] || 'Desconhecido';
+            const isSelected = selectedCargaId === entrega.cargaId;
+            
+            return (
+              <Marker
+                key={entrega.id}
+                position={[entrega.latitude!, entrega.longitude!]}
+                icon={createColoredIcon(color, isSelected)}
+                eventHandlers={{
+                  click: () => handleMarkerClick(entrega),
+                }}
+              >
+                <Popup>
+                  <div className="min-w-[200px] p-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-bold text-foreground">{entrega.codigo}</span>
+                      <span 
+                        className="text-xs px-2 py-0.5 rounded-full text-white"
+                        style={{ backgroundColor: color }}
+                      >
+                        {label}
+                      </span>
                     </div>
-                  )}
-                  
-                  {entrega.motorista && (
-                    <div className="flex items-center gap-2 text-sm mb-2">
-                      <Truck className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <span className="text-foreground">{entrega.motorista}</span>
-                      {entrega.placa && (
-                        <span className="text-muted-foreground">({entrega.placa})</span>
-                      )}
-                    </div>
-                  )}
-                  
-                  {entrega.telefone && (
-                    <a 
-                      href={`tel:${entrega.telefone}`}
-                      className="flex items-center gap-2 text-sm text-primary hover:underline mb-2"
-                    >
-                      <Phone className="w-3 h-3" />
-                      {entrega.telefone}
-                    </a>
-                  )}
+                    
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {entrega.descricao}
+                    </p>
+                    
+                    {entrega.destino && (
+                      <div className="flex items-center gap-2 text-sm mb-2">
+                        <MapPin className="w-3 h-3 text-primary shrink-0" />
+                        <span className="text-foreground">{entrega.destino}</span>
+                      </div>
+                    )}
+                    
+                    {entrega.motorista && (
+                      <div className="flex items-center gap-2 text-sm mb-2">
+                        <Truck className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="text-foreground">{entrega.motorista}</span>
+                        {entrega.placa && (
+                          <span className="text-muted-foreground">({entrega.placa})</span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {entrega.telefone && (
+                      <a 
+                        href={`tel:${entrega.telefone}`}
+                        className="flex items-center gap-2 text-sm text-primary hover:underline mb-2"
+                      >
+                        <Phone className="w-3 h-3" />
+                        {entrega.telefone}
+                      </a>
+                    )}
 
-                  {!isSelected && entrega.origemCoords && entrega.destinoCoords && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full mt-2 gap-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMarkerClick(entrega);
-                      }}
-                    >
-                      <Route className="w-3 h-3" />
-                      Ver rota
-                    </Button>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+                    {!isSelected && entrega.origemCoords && entrega.destinoCoords && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full mt-2 gap-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMarkerClick(entrega);
+                        }}
+                      >
+                        <Route className="w-3 h-3" />
+                        Ver rota
+                      </Button>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
       </MapContainer>
       
       {/* Legend */}
