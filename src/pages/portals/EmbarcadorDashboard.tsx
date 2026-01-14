@@ -1,5 +1,5 @@
 import { PortalLayout } from '@/components/portals/PortalLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Package, 
@@ -7,7 +7,13 @@ import {
   Clock, 
   CheckCircle,
   ArrowUpRight,
-  Loader2
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  FileText,
+  DollarSign,
+  AlertCircle,
+  MapPin
 } from 'lucide-react';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { useQuery } from '@tanstack/react-query';
@@ -15,29 +21,56 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  AreaChart,
+  Area
+} from 'recharts';
+import { format, subDays, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useMemo } from 'react';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
-  'rascunho': { label: 'Rascunho', color: 'bg-gray-500/10 text-gray-600 border-gray-500/20' },
-  'publicada': { label: 'Publicada', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
-  'em_cotacao': { label: 'Em Cotação', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20' },
-  'aceita': { label: 'Aceita', color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
-  'em_coleta': { label: 'Em Coleta', color: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
-  'em_transito': { label: 'Em Trânsito', color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
-  'entregue': { label: 'Entregue', color: 'bg-green-500/10 text-green-600 border-green-500/20' },
-  'cancelada': { label: 'Cancelada', color: 'bg-red-500/10 text-red-600 border-red-500/20' },
+  'rascunho': { label: 'Rascunho', color: 'bg-muted text-muted-foreground border-border' },
+  'publicada': { label: 'Publicada', color: 'bg-primary/10 text-primary border-primary/20' },
+  'em_cotacao': { label: 'Em Cotação', color: 'bg-accent text-accent-foreground border-accent' },
+  'aceita': { label: 'Aceita', color: 'bg-chart-3/10 text-chart-3 border-chart-3/20' },
+  'em_coleta': { label: 'Em Coleta', color: 'bg-chart-4/10 text-chart-4 border-chart-4/20' },
+  'em_transito': { label: 'Em Trânsito', color: 'bg-chart-1/10 text-chart-1 border-chart-1/20' },
+  'entregue': { label: 'Entregue', color: 'bg-chart-2/10 text-chart-2 border-chart-2/20' },
+  'cancelada': { label: 'Cancelada', color: 'bg-destructive/10 text-destructive border-destructive/20' },
 };
 
+const CHART_COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+];
+
 export default function EmbarcadorDashboard() {
-  const { empresa } = useUserContext();
+  const { empresa, filialAtiva } = useUserContext();
   const navigate = useNavigate();
 
-  // Fetch cargas
+  // Fetch cargas with more details
   const { data: cargas = [], isLoading: loadingCargas } = useQuery({
-    queryKey: ['dashboard_cargas', empresa?.id],
+    queryKey: ['dashboard_cargas', empresa?.id, filialAtiva?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('cargas')
         .select(`
           id,
@@ -45,6 +78,8 @@ export default function EmbarcadorDashboard() {
           descricao,
           status,
           created_at,
+          peso_kg,
+          valor_mercadoria,
           enderecos_carga (
             tipo,
             cidade,
@@ -54,6 +89,11 @@ export default function EmbarcadorDashboard() {
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });
 
+      if (filialAtiva?.id) {
+        query = query.eq('filial_id', filialAtiva.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
@@ -62,17 +102,52 @@ export default function EmbarcadorDashboard() {
 
   // Fetch entregas
   const { data: entregas = [], isLoading: loadingEntregas } = useQuery({
-    queryKey: ['dashboard_entregas', empresa?.id],
+    queryKey: ['dashboard_entregas', empresa?.id, filialAtiva?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('entregas')
         .select(`
           id,
           status,
+          created_at,
+          entregue_em,
+          coletado_em,
           cargas!inner (
-            empresa_id
+            empresa_id,
+            filial_id
+          )
+        `)
+        .eq('cargas.empresa_id', empresa.id);
+
+      if (filialAtiva?.id) {
+        query = query.eq('cargas.filial_id', filialAtiva.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Fetch cotacoes
+  const { data: cotacoes = [], isLoading: loadingCotacoes } = useQuery({
+    queryKey: ['dashboard_cotacoes', empresa?.id, filialAtiva?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      const { data, error } = await supabase
+        .from('cotacoes')
+        .select(`
+          id,
+          status,
+          valor_proposto,
+          created_at,
+          cargas!inner (
+            empresa_id,
+            filial_id
           )
         `)
         .eq('cargas.empresa_id', empresa.id);
@@ -84,32 +159,135 @@ export default function EmbarcadorDashboard() {
   });
 
   // Calculate stats
-  const activeCargas = cargas.filter(c => 
-    c.status && !['entregue', 'cancelada'].includes(c.status)
-  );
-  const emTransito = entregas.filter(e => e.status === 'em_transito').length;
-  const aguardandoColeta = entregas.filter(e => e.status === 'aguardando_coleta' || e.status === 'em_coleta').length;
-  const entreguesMes = entregas.filter(e => e.status === 'entregue').length;
+  const stats = useMemo(() => {
+    const activeCargas = cargas.filter(c => 
+      c.status && !['entregue', 'cancelada'].includes(c.status)
+    ).length;
+    
+    const emTransito = entregas.filter(e => e.status === 'em_transito').length;
+    const aguardandoColeta = entregas.filter(e => 
+      e.status === 'aguardando_coleta' || e.status === 'em_coleta'
+    ).length;
+    
+    // Entregas do mês atual
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    const entreguesMes = entregas.filter(e => {
+      if (e.status !== 'entregue' || !e.entregue_em) return false;
+      const entregueDate = parseISO(e.entregue_em);
+      return entregueDate >= monthStart && entregueDate <= monthEnd;
+    }).length;
 
-  const stats = [
-    { label: 'Cargas Ativas', value: activeCargas.length, icon: Package, color: 'chart-2' },
-    { label: 'Em Trânsito', value: emTransito, icon: Truck, color: 'chart-1' },
-    { label: 'Aguardando Coleta', value: aguardandoColeta, icon: Clock, color: 'chart-4' },
-    { label: 'Entregues (mês)', value: entreguesMes, icon: CheckCircle, color: 'chart-3' },
-  ];
+    // Cotações pendentes
+    const cotacoesPendentes = cotacoes.filter(c => c.status === 'pendente').length;
+
+    // Valor total de mercadorias ativas
+    const valorTotalMercadorias = cargas
+      .filter(c => c.status && !['entregue', 'cancelada'].includes(c.status))
+      .reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0);
+
+    // Comparação com período anterior (últimos 30 dias vs 30 dias anteriores)
+    const last30Days = subDays(now, 30);
+    const prev30Days = subDays(now, 60);
+    
+    const cargasLast30 = cargas.filter(c => parseISO(c.created_at) >= last30Days).length;
+    const cargasPrev30 = cargas.filter(c => {
+      const date = parseISO(c.created_at);
+      return date >= prev30Days && date < last30Days;
+    }).length;
+    
+    const changePercent = cargasPrev30 > 0 
+      ? Math.round(((cargasLast30 - cargasPrev30) / cargasPrev30) * 100)
+      : cargasLast30 > 0 ? 100 : 0;
+
+    return {
+      activeCargas,
+      emTransito,
+      aguardandoColeta,
+      entreguesMes,
+      cotacoesPendentes,
+      valorTotalMercadorias,
+      changePercent,
+    };
+  }, [cargas, entregas, cotacoes]);
+
+  // Chart data: Cargas por status
+  const statusChartData = useMemo(() => {
+    const statusCounts: Record<string, number> = {};
+    cargas.forEach(c => {
+      const status = c.status || 'rascunho';
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+
+    return Object.entries(statusCounts).map(([status, count]) => ({
+      name: statusLabels[status]?.label || status,
+      value: count,
+      status,
+    }));
+  }, [cargas]);
+
+  // Chart data: Cargas nos últimos 7 dias
+  const weeklyChartData = useMemo(() => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = subDays(new Date(), i);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const dayName = format(date, 'EEE', { locale: ptBR });
+      
+      const cargasCount = cargas.filter(c => 
+        format(parseISO(c.created_at), 'yyyy-MM-dd') === dateStr
+      ).length;
+      
+      const entregasCount = entregas.filter(e => 
+        e.entregue_em && format(parseISO(e.entregue_em), 'yyyy-MM-dd') === dateStr
+      ).length;
+
+      days.push({
+        name: dayName.charAt(0).toUpperCase() + dayName.slice(1),
+        cargas: cargasCount,
+        entregas: entregasCount,
+      });
+    }
+    return days;
+  }, [cargas, entregas]);
 
   // Get recent cargas (last 5)
-  const recentCargas = cargas.slice(0, 5).map(carga => {
-    const destino = carga.enderecos_carga?.find((e: any) => e.tipo === 'destino');
-    return {
-      id: carga.codigo,
-      destino: destino ? `${destino.cidade}, ${destino.estado}` : '-',
-      status: carga.status || 'rascunho',
-      data: new Date(carga.created_at).toLocaleDateString('pt-BR'),
-    };
-  });
+  const recentCargas = useMemo(() => {
+    return cargas.slice(0, 5).map(carga => {
+      const destino = carga.enderecos_carga?.find((e: any) => e.tipo === 'destino');
+      const origem = carga.enderecos_carga?.find((e: any) => e.tipo === 'origem');
+      return {
+        id: carga.codigo,
+        destino: destino ? `${destino.cidade}, ${destino.estado}` : '-',
+        origem: origem ? `${origem.cidade}, ${origem.estado}` : '-',
+        status: carga.status || 'rascunho',
+        data: format(parseISO(carga.created_at), 'dd/MM/yyyy'),
+        peso: carga.peso_kg,
+      };
+    });
+  }, [cargas]);
 
-  const isLoading = loadingCargas || loadingEntregas;
+  // Pending cotacoes
+  const pendingCotacoes = useMemo(() => {
+    return cotacoes
+      .filter(c => c.status === 'pendente')
+      .slice(0, 3)
+      .map(c => ({
+        id: c.id.slice(0, 8),
+        valor: c.valor_proposto,
+        data: format(parseISO(c.created_at), 'dd/MM/yyyy'),
+      }));
+  }, [cotacoes]);
+
+  const isLoading = loadingCargas || loadingEntregas || loadingCotacoes;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
 
   return (
     <PortalLayout expectedUserType="embarcador">
@@ -118,81 +296,336 @@ export default function EmbarcadorDashboard() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">Gerencie suas cargas e acompanhe entregas</p>
+            <p className="text-muted-foreground">
+              {filialAtiva ? `Filial: ${filialAtiva.nome}` : 'Visão geral da empresa'}
+            </p>
           </div>
           <NovaCargaDialog />
         </div>
 
-        {/* Stats */}
+        {/* Main Stats */}
         {isLoading ? (
           <div className="flex items-center justify-center h-24">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {stats.map((stat) => (
-              <Card key={stat.label} className="border-border">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className={`p-3 bg-[hsl(var(--${stat.color}))]/10 rounded-xl`}>
-                    <stat.icon className={`w-6 h-6 text-[hsl(var(--${stat.color}))]`} />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatsCard
+              title="Cargas Ativas"
+              value={stats.activeCargas}
+              change={stats.changePercent}
+              changeLabel="vs. mês anterior"
+              icon={<Package className="w-5 h-5" />}
+              color="primary"
+            />
+            <StatsCard
+              title="Em Trânsito"
+              value={stats.emTransito}
+              icon={<Truck className="w-5 h-5" />}
+              color="chart1"
+            />
+            <StatsCard
+              title="Aguardando Coleta"
+              value={stats.aguardandoColeta}
+              icon={<Clock className="w-5 h-5" />}
+              color="chart4"
+            />
+            <StatsCard
+              title="Entregues (mês)"
+              value={stats.entreguesMes}
+              icon={<CheckCircle className="w-5 h-5" />}
+              color="chart2"
+            />
           </div>
         )}
 
-        {/* Recent Loads */}
-        <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Cargas Recentes</CardTitle>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="gap-1"
-              onClick={() => navigate('/embarcador/minhas-cargas')}
-            >
-              Ver todas <ArrowUpRight className="w-4 h-4" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center h-24">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        {/* Secondary Stats */}
+        {!isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-border">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="p-3 bg-accent rounded-xl">
+                  <FileText className="w-5 h-5 text-accent-foreground" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">Cotações Pendentes</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.cotacoesPendentes}</p>
+                </div>
+                {stats.cotacoesPendentes > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/embarcador/cotacoes')}
+                  >
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="p-3 bg-chart-2/10 rounded-xl">
+                  <DollarSign className="w-5 h-5 text-chart-2" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">Valor em Cargas Ativas</p>
+                  <p className="text-xl font-bold text-foreground">
+                    {formatCurrency(stats.valorTotalMercadorias)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <MapPin className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">Total de Cargas</p>
+                  <p className="text-2xl font-bold text-foreground">{cargas.length}</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate('/embarcador/cargas')}
+                >
+                  <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Charts Section */}
+        {!isLoading && cargas.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Weekly Activity Chart */}
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-lg">Atividade Semanal</CardTitle>
+                <CardDescription>Cargas criadas e entregas nos últimos 7 dias</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={weeklyChartData}>
+                      <defs>
+                        <linearGradient id="colorCargas" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorEntregas" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis 
+                        dataKey="name" 
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                        axisLine={{ stroke: 'hsl(var(--border))' }}
+                      />
+                      <YAxis 
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                        axisLine={{ stroke: 'hsl(var(--border))' }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          color: 'hsl(var(--foreground))'
+                        }}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="cargas" 
+                        stroke="hsl(var(--primary))" 
+                        fillOpacity={1} 
+                        fill="url(#colorCargas)"
+                        name="Cargas Criadas"
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="entregas" 
+                        stroke="hsl(var(--chart-2))" 
+                        fillOpacity={1} 
+                        fill="url(#colorEntregas)"
+                        name="Entregas"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Status Distribution Chart */}
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-lg">Distribuição por Status</CardTitle>
+                <CardDescription>Status atual das suas cargas</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={statusChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={2}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {statusChartData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={CHART_COLORS[index % CHART_COLORS.length]} 
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          color: 'hsl(var(--foreground))'
+                        }}
+                        formatter={(value: number) => [`${value} cargas`, 'Quantidade']}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Bottom Section: Recent Items */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent Loads */}
+          <Card className="border-border lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Cargas Recentes</CardTitle>
+                <CardDescription>Últimas cargas cadastradas</CardDescription>
               </div>
-            ) : recentCargas.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">Nenhuma carga cadastrada ainda</p>
-                <p className="text-sm text-muted-foreground">Clique em "Nova Carga" para começar</p>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="gap-1"
+                onClick={() => navigate('/embarcador/cargas')}
+              >
+                Ver todas <ArrowUpRight className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-24">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : recentCargas.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">Nenhuma carga cadastrada ainda</p>
+                  <p className="text-sm text-muted-foreground">Clique em "Nova Carga" para começar</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentCargas.map((load) => {
+                    const statusInfo = statusLabels[load.status] || statusLabels['rascunho'];
+                    return (
+                      <div 
+                        key={load.id} 
+                        className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                        onClick={() => navigate('/embarcador/cargas')}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-foreground truncate">{load.id}</p>
+                            <Badge variant="outline" className={statusInfo.color}>
+                              {statusInfo.label}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                            <span className="truncate">{load.origem}</span>
+                            <ArrowUpRight className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{load.destino}</span>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-4">
+                          <p className="text-sm font-medium text-foreground">
+                            {load.peso ? `${Number(load.peso).toLocaleString('pt-BR')} kg` : '-'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{load.data}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pending Cotacoes */}
+          <Card className="border-border">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CardTitle>Cotações Pendentes</CardTitle>
+                {pendingCotacoes.length > 0 && (
+                  <Badge variant="secondary" className="bg-accent text-accent-foreground">
+                    {stats.cotacoesPendentes}
+                  </Badge>
+                )}
               </div>
-            ) : (
-              <div className="space-y-4">
-                {recentCargas.map((load) => {
-                  const statusInfo = statusLabels[load.status] || statusLabels['rascunho'];
-                  return (
-                    <div key={load.id} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card">
+              <CardDescription>Aguardando sua análise</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-24">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : pendingCotacoes.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">Nenhuma cotação pendente</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingCotacoes.map((cotacao) => (
+                    <div 
+                      key={cotacao.id} 
+                      className="flex items-center justify-between p-3 rounded-lg border border-border bg-card"
+                    >
                       <div>
-                        <p className="font-medium text-foreground">{load.id}</p>
-                        <p className="text-sm text-muted-foreground">{load.destino}</p>
+                        <p className="font-medium text-foreground text-sm">#{cotacao.id}</p>
+                        <p className="text-xs text-muted-foreground">{cotacao.data}</p>
                       </div>
-                      <div className="text-right flex items-center gap-3">
-                        <Badge variant="outline" className={statusInfo.color}>
-                          {statusInfo.label}
-                        </Badge>
-                        <p className="text-xs text-muted-foreground">{load.data}</p>
-                      </div>
+                      <p className="font-semibold text-chart-2">
+                        {formatCurrency(Number(cotacao.valor))}
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                  {stats.cotacoesPendentes > 3 && (
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      size="sm"
+                      onClick={() => navigate('/embarcador/cotacoes')}
+                    >
+                      Ver mais {stats.cotacoesPendentes - 3} cotações
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </PortalLayout>
   );
