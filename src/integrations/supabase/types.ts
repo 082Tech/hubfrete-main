@@ -31,10 +31,13 @@ export type Database = {
           empresa_id: number | null
           filial_id: number | null
           id: string
+          necessidades_especiais: string[] | null
+          nota_fiscal_url: string | null
           numero_onu: string | null
           peso_kg: number
           publicada_em: string | null
           quantidade: number | null
+          regras_carregamento: string | null
           requer_refrigeracao: boolean | null
           status: Database["public"]["Enums"]["status_carga"] | null
           temperatura_max: number | null
@@ -61,10 +64,13 @@ export type Database = {
           empresa_id?: number | null
           filial_id?: number | null
           id?: string
+          necessidades_especiais?: string[] | null
+          nota_fiscal_url?: string | null
           numero_onu?: string | null
           peso_kg: number
           publicada_em?: string | null
           quantidade?: number | null
+          regras_carregamento?: string | null
           requer_refrigeracao?: boolean | null
           status?: Database["public"]["Enums"]["status_carga"] | null
           temperatura_max?: number | null
@@ -91,10 +97,13 @@ export type Database = {
           empresa_id?: number | null
           filial_id?: number | null
           id?: string
+          necessidades_especiais?: string[] | null
+          nota_fiscal_url?: string | null
           numero_onu?: string | null
           peso_kg?: number
           publicada_em?: string | null
           quantidade?: number | null
+          regras_carregamento?: string | null
           requer_refrigeracao?: boolean | null
           status?: Database["public"]["Enums"]["status_carga"] | null
           temperatura_max?: number | null
@@ -171,6 +180,80 @@ export type Database = {
             columns: ["filial_id"]
             isOneToOne: false
             referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contatos_destino: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string
+          complemento: string | null
+          contato_email: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
+          created_at: string | null
+          empresa_id: number
+          estado: string | null
+          id: string
+          latitude: number | null
+          logradouro: string | null
+          longitude: number | null
+          nome_fantasia: string | null
+          numero: string | null
+          razao_social: string
+          updated_at: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj: string
+          complemento?: string | null
+          contato_email?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          created_at?: string | null
+          empresa_id: number
+          estado?: string | null
+          id?: string
+          latitude?: number | null
+          logradouro?: string | null
+          longitude?: number | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          razao_social: string
+          updated_at?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string
+          complemento?: string | null
+          contato_email?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          created_at?: string | null
+          empresa_id?: number
+          estado?: string | null
+          id?: string
+          latitude?: number | null
+          logradouro?: string | null
+          longitude?: number | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          razao_social?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contatos_destino_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
