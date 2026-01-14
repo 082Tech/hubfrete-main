@@ -19,36 +19,14 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-const createLocationIcon = (color: string) => {
-  return new L.DivIcon({
-    className: 'custom-location-marker',
-    html: `
-      <div style="
-        background-color: ${color};
-        width: 32px;
-        height: 32px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        <div style="
-          transform: rotate(45deg);
-          width: 10px;
-          height: 10px;
-          background: white;
-          border-radius: 50%;
-        "></div>
-      </div>
-    `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
-};
+const originIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
 interface FilialCompleta extends Filial {
   endereco?: string | null;
@@ -292,7 +270,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
             />
             <CenterMap center={position} zoom={15} />
             {position && position[0] !== 0 && (
-              <Marker position={position} icon={createLocationIcon('#6b7280')} />
+              <Marker position={position} icon={originIcon} />
             )}
           </MapContainer>
         </div>
