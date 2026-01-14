@@ -130,23 +130,20 @@ export function ResumoSection({
   const [distance, setDistance] = useState<number | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
 
-  const origemPosition: [number, number] | null = 
-    origemData.latitude && origemData.longitude 
-      ? [origemData.latitude, origemData.longitude] 
-      : null;
-  
-  const destinoPosition: [number, number] | null = 
-    destinoData.latitude && destinoData.longitude 
-      ? [destinoData.latitude, destinoData.longitude] 
-      : null;
+  // Use stable primitive values for coordinates
+  const origemLat = Number(origemData.latitude) || 0;
+  const origemLng = Number(origemData.longitude) || 0;
+  const destinoLat = Number(destinoData.latitude) || 0;
+  const destinoLng = Number(destinoData.longitude) || 0;
 
   const defaultCenter: [number, number] = [-15.7801, -47.9292];
-
-  // Use stable values for dependencies
-  const origemLat = origemData.latitude || 0;
-  const origemLng = origemData.longitude || 0;
-  const destinoLat = destinoData.latitude || 0;
-  const destinoLng = destinoData.longitude || 0;
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('ResumoSection coords:', { origemLat, origemLng, destinoLat, destinoLng });
+    console.log('origemData:', origemData);
+    console.log('destinoData:', destinoData);
+  }, [origemLat, origemLng, destinoLat, destinoLng, origemData, destinoData]);
 
   // Fetch route from OSRM
   useEffect(() => {
