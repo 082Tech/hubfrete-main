@@ -540,6 +540,7 @@ export type Database = {
           precisao: number | null
           status: boolean | null
           timestamp: number | null
+          visivel: boolean | null
         }
         Insert: {
           email_motorista?: string | null
@@ -549,6 +550,7 @@ export type Database = {
           precisao?: number | null
           status?: boolean | null
           timestamp?: number | null
+          visivel?: boolean | null
         }
         Update: {
           email_motorista?: string | null
@@ -558,6 +560,7 @@ export type Database = {
           precisao?: number | null
           status?: boolean | null
           timestamp?: number | null
+          visivel?: boolean | null
         }
         Relationships: [
           {
