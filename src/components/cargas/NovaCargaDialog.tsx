@@ -34,9 +34,13 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Package, MapPin, Truck, Loader2 } from 'lucide-react';
-import { LocationPickerMap, LocationData } from '@/components/maps/LocationPickerMap';
+import { Plus, Package, MapPin, Truck, Loader2, ClipboardList } from 'lucide-react';
+import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
+import { OrigemSection } from './OrigemSection';
+import { DestinoSection } from './DestinoSection';
+import { NecessidadesEspeciais } from './NecessidadesEspeciais';
+import { NotaFiscalUpload } from './NotaFiscalUpload';
 
 type TipoCarga = Database['public']['Enums']['tipo_carga'];
 
@@ -75,6 +79,9 @@ const formSchema = z.object({
   data_coleta_de: z.string().min(1, 'Data de coleta é obrigatória'),
   data_coleta_ate: z.string().optional(),
   data_entrega_limite: z.string().optional(),
+  
+  // Regras de carregamento
+  regras_carregamento: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -89,6 +96,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('carga');
   const { filialAtiva } = useUserContext();
+  
+  // Additional state for new fields
+  const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
+  const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
   
   // Location data for origin and destination
   const [origemData, setOrigemData] = useState<LocationData>({
@@ -131,6 +142,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       carga_viva: false,
       empilhavel: true,
       requer_refrigeracao: false,
+      regras_carregamento: '',
     },
   });
 
@@ -139,7 +151,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
   const validateLocations = (): boolean => {
     if (!origemData.cidade || !origemData.logradouro) {
-      toast.error('Selecione o local de origem no mapa');
+      toast.error('Verifique os dados de origem');
       setActiveTab('origem');
       return false;
     }
@@ -198,6 +210,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           data_entrega_limite: values.data_entrega_limite || null,
           status: 'rascunho',
           codigo: '',
+          // New fields
+          necessidades_especiais: necessidadesEspeciais,
+          regras_carregamento: values.regras_carregamento || null,
+          nota_fiscal_url: notaFiscalUrl,
         })
         .select()
         .single();
@@ -263,6 +279,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
       toast.success('Carga criada com sucesso!');
       form.reset();
+      setNecessidadesEspeciais([]);
+      setNotaFiscalUrl(null);
       setOrigemData({
         latitude: 0, longitude: 0, cep: '', logradouro: '', numero: '',
         complemento: '', bairro: '', cidade: '', estado: '',
@@ -301,25 +319,29 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
             Nova Carga
           </DialogTitle>
           <DialogDescription>
-            Preencha os dados da carga e selecione os locais no mapa
+            Preencha os dados da carga e verifique os locais de origem e destino
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="carga" className="gap-2">
                   <Package className="w-4 h-4" />
-                  Carga
+                  <span className="hidden sm:inline">Carga</span>
+                </TabsTrigger>
+                <TabsTrigger value="requisitos" className="gap-2">
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="hidden sm:inline">Requisitos</span>
                 </TabsTrigger>
                 <TabsTrigger value="origem" className="gap-2">
                   <MapPin className="w-4 h-4" />
-                  Origem
+                  <span className="hidden sm:inline">Origem</span>
                 </TabsTrigger>
                 <TabsTrigger value="destino" className="gap-2">
                   <Truck className="w-4 h-4" />
-                  Destino
+                  <span className="hidden sm:inline">Destino</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -354,7 +376,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                               <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent className="bg-popover border-border z-50">
+                          <SelectContent className="bg-popover border-border z-[10000]">
                             {tipoCargaOptions.map((option) => (
                               <SelectItem key={option.value} value={option.value}>
                                 {option.label}
@@ -416,7 +438,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     name="valor_mercadoria"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Valor da Mercadoria (R$)</FormLabel>
+                        <FormLabel>Valor (R$)</FormLabel>
                         <FormControl>
                           <Input type="number" step="0.01" placeholder="0,00" {...field} />
                         </FormControl>
@@ -470,6 +492,14 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   />
                 </div>
 
+                {/* Nota Fiscal Upload */}
+                <NotaFiscalUpload
+                  value={notaFiscalUrl}
+                  onChange={setNotaFiscalUrl}
+                />
+              </TabsContent>
+
+              <TabsContent value="requisitos" className="space-y-6 mt-4">
                 <div className="space-y-3">
                   <Label>Características Especiais</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -602,19 +632,42 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     )}
                   />
                 )}
+
+                {/* Necessidades Especiais */}
+                <NecessidadesEspeciais
+                  value={necessidadesEspeciais}
+                  onChange={setNecessidadesEspeciais}
+                />
+
+                {/* Regras de Carregamento */}
+                <FormField
+                  control={form.control}
+                  name="regras_carregamento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Regras de Carregamento</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Instruções especiais para carregamento (ex: Não tomblar, manter na vertical, empilhar máximo 3 caixas...)"
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </TabsContent>
 
               <TabsContent value="origem" className="mt-4">
-                <LocationPickerMap
-                  tipo="origem"
+                <OrigemSection
                   initialData={origemData}
                   onLocationChange={setOrigemData}
                 />
               </TabsContent>
 
               <TabsContent value="destino" className="mt-4">
-                <LocationPickerMap
-                  tipo="destino"
+                <DestinoSection
                   initialData={destinoData}
                   onLocationChange={setDestinoData}
                 />
