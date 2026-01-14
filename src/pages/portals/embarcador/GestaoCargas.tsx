@@ -504,9 +504,82 @@ export default function GestaoCargas() {
   return (
     <PortalLayout expectedUserType="embarcador">
       <div className="flex gap-6">
-        {/* Desktop Sidebar Filters */}
-        <aside className="hidden lg:block w-64 shrink-0">
-          <Card className="border-border sticky top-4">
+        {/* Desktop Sidebar: Filters + Stats + Search */}
+        <aside className="hidden lg:flex flex-col w-72 shrink-0 gap-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Gestão de Cargas</h1>
+              <p className="text-sm text-muted-foreground">Gerencie suas cargas e entregas</p>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            <NovaCargaDialog onSuccess={() => refetch()} />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isLoading || switchingFilial}
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar código ou descrição..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Stats Cards - Compact */}
+          <div className="grid grid-cols-3 gap-2">
+            <Card className="border-border">
+              <CardContent className="p-2 text-center">
+                <p className="text-lg font-bold text-foreground">{stats.total}</p>
+                <p className="text-[10px] text-muted-foreground">Total</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="p-2 text-center">
+                <p className="text-lg font-bold text-blue-600">{stats.publicadas}</p>
+                <p className="text-[10px] text-muted-foreground">Publicadas</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="p-2 text-center">
+                <p className="text-lg font-bold text-purple-600">{stats.aceitas}</p>
+                <p className="text-[10px] text-muted-foreground">Aceitas</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="p-2 text-center">
+                <p className="text-lg font-bold text-orange-600">{stats.em_transito}</p>
+                <p className="text-[10px] text-muted-foreground">Em Trânsito</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="p-2 text-center">
+                <p className="text-lg font-bold text-green-600">{stats.entregues}</p>
+                <p className="text-[10px] text-muted-foreground">Entregues</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="p-2 text-center">
+                <p className="text-lg font-bold text-red-600">{stats.problemas}</p>
+                <p className="text-[10px] text-muted-foreground">Problemas</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filters Card */}
+          <Card className="border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Filter className="w-4 h-4" />
@@ -517,15 +590,34 @@ export default function GestaoCargas() {
               <FiltersContent />
             </CardContent>
           </Card>
+
+          {/* Active Filters */}
+          {selectedStatuses.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {selectedStatuses.map(status => {
+                const config = statusCargaConfig[status];
+                return (
+                  <Badge
+                    key={status}
+                    variant="outline"
+                    className={`${config?.color || ''} cursor-pointer text-xs`}
+                    onClick={() => handleStatusToggle(status)}
+                  >
+                    {config?.label || status}
+                    <X className="w-3 h-3 ml-1" />
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
         </aside>
 
-        {/* Main Content */}
-        <div className="flex-1 space-y-6 min-w-0">
-          {/* Header */}
+        {/* Mobile Header */}
+        <div className="lg:hidden flex flex-col gap-4 w-full">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Gestão de Cargas</h1>
-              <p className="text-muted-foreground">Gerencie todas as suas cargas e entregas</p>
+              <p className="text-muted-foreground">Gerencie suas cargas e entregas</p>
             </div>
             <div className="flex items-center gap-3">
               <Button
@@ -540,79 +632,34 @@ export default function GestaoCargas() {
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <Card className="border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-blue-600">{stats.publicadas}</p>
-                <p className="text-xs text-muted-foreground">Publicadas</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-purple-600">{stats.aceitas}</p>
-                <p className="text-xs text-muted-foreground">Aceitas</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-orange-600">{stats.em_transito}</p>
-                <p className="text-xs text-muted-foreground">Em Trânsito</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-green-600">{stats.entregues}</p>
-                <p className="text-xs text-muted-foreground">Entregues</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-red-600">{stats.problemas}</p>
-                <p className="text-xs text-muted-foreground">Problemas</p>
-              </CardContent>
-            </Card>
-          </div>
+          <div className="flex gap-3 w-full">
+            <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0">
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80">
+                <SheetHeader>
+                  <SheetTitle>Filtros</SheetTitle>
+                </SheetHeader>
+                <div className="mt-6">
+                  <FiltersContent />
+                </div>
+              </SheetContent>
+            </Sheet>
 
-          {/* Search and View Toggle */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex gap-3 w-full sm:w-auto">
-              {/* Mobile Filter Button */}
-              <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" className="lg:hidden shrink-0">
-                    <Filter className="w-4 h-4" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-80">
-                  <SheetHeader>
-                    <SheetTitle>Filtros</SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-6">
-                    <FiltersContent />
-                  </div>
-                </SheetContent>
-              </Sheet>
-
-              <div className="relative flex-1 sm:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por código ou descrição..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
 
-          {/* Active Filters */}
           {selectedStatuses.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {selectedStatuses.map(status => {
@@ -631,14 +678,16 @@ export default function GestaoCargas() {
               })}
             </div>
           )}
+        </div>
 
-          {/* Content */}
+        {/* Main Content - Map and Table */}
+        <div className="flex-1 space-y-4 min-w-0">
           {isLoading || switchingFilial ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : filteredCargas.length === 0 ? (
-            <div className='space-y-6'>
+            <div className='space-y-4'>
               <Suspense fallback={
                 <Card className="border-border">
                   <CardContent className="p-0">
@@ -673,7 +722,7 @@ export default function GestaoCargas() {
               </Card>
             </div>
           ) : (
-            <div className='space-y-6'>
+            <div className='space-y-4'>
               <Suspense fallback={
                 <Card className="border-border">
                   <CardContent className="p-0">
