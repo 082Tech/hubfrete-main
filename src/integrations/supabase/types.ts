@@ -526,6 +526,41 @@ export type Database = {
           },
         ]
       }
+      localizações: {
+        Row: {
+          email_motorista: string | null
+          id: number
+          latitude: number | null
+          longitude: number | null
+          precisao: number | null
+          timestamp: number | null
+        }
+        Insert: {
+          email_motorista?: string | null
+          id?: number
+          latitude?: number | null
+          longitude?: number | null
+          precisao?: number | null
+          timestamp?: number | null
+        }
+        Update: {
+          email_motorista?: string | null
+          id?: number
+          latitude?: number | null
+          longitude?: number | null
+          precisao?: number | null
+          timestamp?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "localizações_email_motorista_fkey"
+            columns: ["email_motorista"]
+            isOneToOne: true
+            referencedRelation: "motoristas"
+            referencedColumns: ["email"]
+          },
+        ]
+      }
       motoristas: {
         Row: {
           ativo: boolean | null
@@ -537,7 +572,9 @@ export type Database = {
           empresa_id: number | null
           foto_url: string | null
           id: string
+          jwt: string | null
           nome_completo: string
+          senha: string | null
           telefone: string | null
           updated_at: string | null
           user_id: string
@@ -553,7 +590,9 @@ export type Database = {
           empresa_id?: number | null
           foto_url?: string | null
           id?: string
+          jwt?: string | null
           nome_completo: string
+          senha?: string | null
           telefone?: string | null
           updated_at?: string | null
           user_id: string
@@ -569,7 +608,9 @@ export type Database = {
           empresa_id?: number | null
           foto_url?: string | null
           id?: string
+          jwt?: string | null
           nome_completo?: string
+          senha?: string | null
           telefone?: string | null
           updated_at?: string | null
           user_id?: string
