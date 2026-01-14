@@ -215,13 +215,13 @@ export function ResumoSection({
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <FitBounds 
-              origemLat={origemData.latitude || 0}
-              origemLng={origemData.longitude || 0}
-              destinoLat={destinoData.latitude || 0}
-              destinoLng={destinoData.longitude || 0}
+              origemLat={origemLat}
+              origemLng={origemLng}
+              destinoLat={destinoLat}
+              destinoLng={destinoLng}
             />
             
-            {/* Route line */}
+            {/* Route line - render when we have both coordinates */}
             {routeCoords.length > 0 && (
               <Polyline
                 positions={routeCoords}
@@ -234,14 +234,27 @@ export function ResumoSection({
               />
             )}
             
+            {/* Fallback straight line when route is loading or failed but we have coordinates */}
+            {routeCoords.length === 0 && origemLat !== 0 && destinoLat !== 0 && (
+              <Polyline
+                positions={[[origemLat, origemLng], [destinoLat, destinoLng]]}
+                pathOptions={{
+                  color: '#94a3b8',
+                  weight: 3,
+                  opacity: 0.5,
+                  dashArray: '5, 10',
+                }}
+              />
+            )}
+            
             {/* Origin marker */}
-            {origemPosition && origemPosition[0] !== 0 && (
-              <Marker position={origemPosition} icon={originIcon} />
+            {origemLat !== 0 && origemLng !== 0 && (
+              <Marker position={[origemLat, origemLng]} icon={originIcon} />
             )}
             
             {/* Destination marker */}
-            {destinoPosition && destinoPosition[0] !== 0 && (
-              <Marker position={destinoPosition} icon={destinoIcon} />
+            {destinoLat !== 0 && destinoLng !== 0 && (
+              <Marker position={[destinoLat, destinoLng]} icon={destinoIcon} />
             )}
           </MapContainer>
         </div>
