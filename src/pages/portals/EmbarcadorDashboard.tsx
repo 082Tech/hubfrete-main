@@ -11,7 +11,6 @@ import {
   DollarSign,
   MapPin,
   MessageCircle,
-  Send,
   BarChart3,
   Sparkles
 } from 'lucide-react';
@@ -21,16 +20,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Input } from '@/components/ui/input';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { startOfMonth, endOfMonth, parseISO, subDays } from 'date-fns';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 export default function EmbarcadorDashboard() {
   const { empresa, filialAtiva } = useUserContext();
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const [chatMessage, setChatMessage] = useState('');
 
   // Get greeting based on time of day
   const greeting = useMemo(() => {
@@ -161,13 +158,6 @@ export default function EmbarcadorDashboard() {
     }).format(value);
   };
 
-  const handleSendMessage = () => {
-    if (chatMessage.trim()) {
-      // Placeholder for future AI assistant integration
-      setChatMessage('');
-    }
-  };
-
   return (
     <PortalLayout expectedUserType="embarcador">
       <div className="space-y-6">
@@ -204,7 +194,7 @@ export default function EmbarcadorDashboard() {
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatsCard
                   title="Cargas Ativas"
                   value={stats.activeCargas}
@@ -313,9 +303,12 @@ export default function EmbarcadorDashboard() {
             </Card>
           </div>
 
-          {/* Right Column - AI Assistant Chat */}
+          {/* Right Column - AI Assistant Card */}
           <div className="lg:col-span-1">
-            <Card className="border-border h-full min-h-[400px] flex flex-col bg-gradient-to-br from-accent/30 to-transparent">
+            <Card 
+              className="border-border h-full min-h-[300px] flex flex-col bg-gradient-to-br from-accent/30 to-transparent cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate('/embarcador/assistente')}
+            >
               <CardHeader className="border-b border-border/50">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <div className="p-2 bg-primary rounded-lg">
@@ -327,53 +320,28 @@ export default function EmbarcadorDashboard() {
                   Converse sobre suas cargas e operações
                 </p>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col p-4">
-                {/* Chat Messages Area */}
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <Sparkles className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    Olá! Sou o assistente do HubFrete
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Em breve você poderá conversar comigo sobre suas cargas, entregas e muito mais!
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
-                      "Status das minhas cargas"
-                    </span>
-                    <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
-                      "Criar nova carga"
-                    </span>
-                    <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
-                      "Ver relatórios"
-                    </span>
-                  </div>
+              <CardContent className="flex-1 flex flex-col items-center justify-center text-center p-6">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Sparkles className="w-8 h-8 text-primary" />
                 </div>
-
-                {/* Chat Input */}
-                <div className="flex gap-2 mt-4">
-                  <Input
-                    placeholder="Digite sua mensagem..."
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="flex-1"
-                    disabled
-                  />
-                  <Button 
-                    size="icon" 
-                    onClick={handleSendMessage}
-                    disabled
-                    className="shrink-0"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  🚧 Em desenvolvimento
+                <h3 className="font-semibold text-foreground mb-2">
+                  Olá! Sou o Mau Saya
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Clique para conversar sobre suas cargas, entregas e muito mais!
                 </p>
+                <div className="flex flex-wrap gap-2 justify-center mb-4">
+                  <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
+                    "Status das minhas cargas"
+                  </span>
+                  <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
+                    "Criar nova carga"
+                  </span>
+                </div>
+                <Button variant="outline" className="gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  Iniciar conversa
+                </Button>
               </CardContent>
             </Card>
           </div>

@@ -14,6 +14,7 @@ import {
   Bell,
   ChevronDown,
   Check,
+  MessageCircle,
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: LayoutDashboard, label: 'Dashboard', href: '/embarcador' },
     { icon: Package, label: 'Minhas Cargas', href: '/embarcador/cargas' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
+    { icon: MessageCircle, label: 'Assistente', href: '/embarcador/assistente' },
     { icon: MapPin, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
     { icon: User, label: 'Usuários da Empresa', href: '/embarcador/usuarios', adminOnly: true },
     { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
