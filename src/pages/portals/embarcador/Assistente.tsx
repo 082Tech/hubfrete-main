@@ -81,11 +81,11 @@ export default function Assistente() {
                   <MessageSquare className="w-10 h-10 text-primary" />
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-3">
+                <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-3">
                   Bem-vindo ao HubFrete AI
                 </h2>
 
-                <p className="text-muted-foreground mb-8 max-w-md">
+                <p className="text-white/70 mb-8 max-w-md">
                   Sou seu assistente inteligente. Como posso ajudar você hoje?
                 </p>
                 
@@ -98,7 +98,7 @@ export default function Assistente() {
                     <button
                       key={suggestion}
                       onClick={() => handleSend(suggestion)}
-                      className="glass px-4 py-3 rounded-xl text-sm text-left text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all duration-300 hover:scale-[1.02] border border-white/10 bg-white/5 backdrop-blur-sm"
+                      className="glass px-4 py-3 rounded-xl text-sm text-left text-white/70 hover:text-white hover:border-primary/30 transition-all duration-300 hover:scale-[1.02] border border-white/20 bg-white/10 backdrop-blur-sm"
                     >
                       {suggestion}
                     </button>
