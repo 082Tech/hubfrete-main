@@ -162,9 +162,10 @@ function FitBounds({ entregas, selectedEntrega }: { entregas: EntregaMapData[]; 
 }
 
 export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: EntregasMapProps) {
+  // Entregas with truck location
   const validEntregas = entregas.filter(e => e.latitude && e.longitude);
   
-  // Find selected entrega
+  // Find selected entrega (can be any entrega, even without truck location)
   const selectedEntrega = selectedCargaId 
     ? entregas.find(e => e.cargaId === selectedCargaId) || null
     : null;
@@ -173,11 +174,18 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
   const defaultCenter: [number, number] = [-15.7801, -47.9292];
   const defaultZoom = 4;
   
-  // Calculate center based on entregas
-  const center: [number, number] = validEntregas.length > 0
+  // Calculate center based on all available points
+  const allPoints: [number, number][] = [];
+  entregas.forEach(e => {
+    if (e.latitude && e.longitude) allPoints.push([e.latitude, e.longitude]);
+    if (e.origemCoords) allPoints.push([e.origemCoords.lat, e.origemCoords.lng]);
+    if (e.destinoCoords) allPoints.push([e.destinoCoords.lat, e.destinoCoords.lng]);
+  });
+  
+  const center: [number, number] = allPoints.length > 0
     ? [
-        validEntregas.reduce((acc, e) => acc + e.latitude!, 0) / validEntregas.length,
-        validEntregas.reduce((acc, e) => acc + e.longitude!, 0) / validEntregas.length,
+        allPoints.reduce((acc, p) => acc + p[0], 0) / allPoints.length,
+        allPoints.reduce((acc, p) => acc + p[1], 0) / allPoints.length,
       ]
     : defaultCenter;
 
@@ -188,7 +196,10 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
     }
   };
 
-  if (validEntregas.length === 0) {
+  // Check if we have any displayable content
+  const hasContent = validEntregas.length > 0 || entregas.some(e => e.origemCoords || e.destinoCoords);
+
+  if (!hasContent) {
     return (
       <div className="w-full h-[500px] bg-muted/30 rounded-lg flex flex-col items-center justify-center text-center p-6">
         <div className="p-4 bg-primary/10 rounded-full mb-4">
@@ -202,28 +213,18 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
     );
   }
 
-  // Build route line for selected entrega - always show origin to destination
-  const routePoints: [number, number][] = [];
-  if (selectedEntrega) {
-    // First: Origin
-    if (selectedEntrega.origemCoords) {
-      routePoints.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
-    }
-    // Middle: Current truck position (if available)
-    if (selectedEntrega.latitude && selectedEntrega.longitude) {
-      routePoints.push([selectedEntrega.latitude, selectedEntrega.longitude]);
-    }
-    // Last: Destination
-    if (selectedEntrega.destinoCoords) {
-      routePoints.push([selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]);
-    }
-  }
-  
-  // Also create a direct origin-to-destination line for reference
+  // Direct route line from origin to destination (always dashed)
   const directRouteLine: [number, number][] = [];
   if (selectedEntrega?.origemCoords && selectedEntrega?.destinoCoords) {
     directRouteLine.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
     directRouteLine.push([selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]);
+  }
+  
+  // Route showing progress: origin -> truck -> (remaining dashed to destination)
+  const completedRoute: [number, number][] = [];
+  if (selectedEntrega?.origemCoords && selectedEntrega?.latitude && selectedEntrega?.longitude) {
+    completedRoute.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
+    completedRoute.push([selectedEntrega.latitude, selectedEntrega.longitude]);
   }
 
   return (
@@ -240,26 +241,26 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
         />
         <FitBounds entregas={validEntregas} selectedEntrega={selectedEntrega} />
         
-        {/* Direct route line from origin to destination (dashed) */}
+        {/* Full route line from origin to destination (dashed blue) */}
         {directRouteLine.length === 2 && (
           <Polyline
             positions={directRouteLine}
             pathOptions={{
               color: '#3b82f6',
-              weight: 3,
-              opacity: 0.6,
-              dashArray: '12, 8',
+              weight: 4,
+              opacity: 0.7,
+              dashArray: '15, 10',
             }}
           />
         )}
         
-        {/* Route line through truck position (solid overlay) */}
-        {routePoints.length >= 2 && selectedEntrega?.latitude && selectedEntrega?.longitude && (
+        {/* Completed portion of route: origin to truck (solid orange) */}
+        {completedRoute.length === 2 && (
           <Polyline
-            positions={routePoints}
+            positions={completedRoute}
             pathOptions={{
               color: '#f97316',
-              weight: 4,
+              weight: 5,
               opacity: 0.9,
             }}
           />
