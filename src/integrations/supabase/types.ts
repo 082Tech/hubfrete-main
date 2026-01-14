@@ -538,6 +538,7 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           precisao: number | null
+          status: boolean | null
           timestamp: number | null
         }
         Insert: {
@@ -546,6 +547,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           precisao?: number | null
+          status?: boolean | null
           timestamp?: number | null
         }
         Update: {
@@ -554,6 +556,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           precisao?: number | null
+          status?: boolean | null
           timestamp?: number | null
         }
         Relationships: [

@@ -1,0 +1,417 @@
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Package, 
+  MapPin, 
+  Calendar, 
+  Truck, 
+  User, 
+  Phone, 
+  Building2,
+  Weight,
+  Box,
+  AlertTriangle,
+  Snowflake,
+  FileText,
+  Navigation,
+  CheckCircle
+} from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
+
+type StatusCarga = Database['public']['Enums']['status_carga'];
+type StatusEntrega = Database['public']['Enums']['status_entrega'];
+
+interface CargaDetailsProps {
+  carga: {
+    id: string;
+    codigo: string;
+    descricao: string;
+    tipo: string;
+    peso_kg: number;
+    volume_m3: number | null;
+    valor_mercadoria: number | null;
+    status: StatusCarga | null;
+    data_coleta_de: string | null;
+    data_coleta_ate: string | null;
+    data_entrega_limite: string | null;
+    created_at: string | null;
+    necessidades_especiais?: string[] | null;
+    regras_carregamento?: string | null;
+    nota_fiscal_url?: string | null;
+    carga_fragil?: boolean | null;
+    carga_perigosa?: boolean | null;
+    carga_viva?: boolean | null;
+    empilhavel?: boolean | null;
+    requer_refrigeracao?: boolean | null;
+    temperatura_min?: number | null;
+    temperatura_max?: number | null;
+    numero_onu?: string | null;
+    remetente?: {
+      nome: string | null;
+      cidade: string | null;
+      estado: string | null;
+      endereco?: string | null;
+      contato_nome?: string | null;
+      contato_telefone?: string | null;
+    } | null;
+    destinatario?: {
+      nome: string | null;
+      cidade: string | null;
+      estado: string | null;
+      endereco?: string | null;
+      contato_nome?: string | null;
+      contato_telefone?: string | null;
+    } | null;
+    entregas?: {
+      status: StatusEntrega | null;
+      motoristas?: {
+        nome_completo: string;
+        telefone: string | null;
+      } | null;
+      veiculos?: {
+        placa: string;
+        marca: string | null;
+        modelo: string | null;
+        tipo: string | null;
+      } | null;
+    } | null;
+  };
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const statusCargaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
+  'rascunho': { color: 'bg-muted text-muted-foreground', label: 'Rascunho', icon: Package },
+  'publicada': { color: 'bg-blue-500/10 text-blue-600', label: 'Publicada', icon: Package },
+  'aceita': { color: 'bg-purple-500/10 text-purple-600', label: 'Aceita', icon: Package },
+  'em_coleta': { color: 'bg-cyan-500/10 text-cyan-600', label: 'Em Coleta', icon: Truck },
+  'em_transito': { color: 'bg-orange-500/10 text-orange-600', label: 'Em Trânsito', icon: Navigation },
+  'entregue': { color: 'bg-green-500/10 text-green-600', label: 'Entregue', icon: CheckCircle },
+  'cancelada': { color: 'bg-red-500/10 text-red-600', label: 'Cancelada', icon: AlertTriangle },
+};
+
+const tipoCargaLabels: Record<string, string> = {
+  'carga_seca': 'Carga Seca',
+  'granel_solido': 'Granel Sólido',
+  'granel_liquido': 'Granel Líquido',
+  'refrigerada': 'Refrigerada',
+  'congelada': 'Congelada',
+  'perigosa': 'Perigosa',
+  'viva': 'Carga Viva',
+  'indivisivel': 'Indivisível',
+  'container': 'Container',
+};
+
+const tipoVeiculoLabels: Record<string, string> = {
+  'truck': 'Truck',
+  'toco': 'Toco',
+  'tres_quartos': '3/4',
+  'vuc': 'VUC',
+  'carreta': 'Carreta',
+  'carreta_ls': 'Carreta LS',
+  'bitrem': 'Bitrem',
+  'rodotrem': 'Rodotrem',
+  'vanderleia': 'Vanderléia',
+};
+
+export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsProps) {
+  const status = carga.status || 'rascunho';
+  const config = statusCargaConfig[status];
+  const StatusIcon = config?.icon || Package;
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  const formatValor = (valor: number | null) => {
+    if (!valor) return '-';
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <Package className="w-5 h-5" />
+            <span>{carga.codigo}</span>
+            <Badge variant="outline" className={config?.color}>
+              <StatusIcon className="w-3 h-3 mr-1" />
+              {config?.label}
+            </Badge>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Descrição */}
+          <div>
+            <p className="text-lg font-medium">{carga.descricao}</p>
+            <p className="text-sm text-muted-foreground">
+              Criado em {formatDate(carga.created_at)}
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* Remetente e Destinatário */}
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Remetente */}
+            <Card className="border-green-500/30 bg-green-500/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">
+                    O
+                  </div>
+                  Remetente (Origem)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {carga.remetente?.nome && (
+                  <p className="font-medium flex items-center gap-2">
+                    <Building2 className="w-3 h-3" />
+                    {carga.remetente.nome}
+                  </p>
+                )}
+                {carga.remetente?.cidade && (
+                  <p className="text-muted-foreground flex items-center gap-2">
+                    <MapPin className="w-3 h-3" />
+                    {carga.remetente.cidade}, {carga.remetente.estado}
+                  </p>
+                )}
+                {carga.remetente?.endereco && (
+                  <p className="text-muted-foreground text-xs">{carga.remetente.endereco}</p>
+                )}
+                {carga.remetente?.contato_nome && (
+                  <p className="flex items-center gap-2">
+                    <User className="w-3 h-3" />
+                    {carga.remetente.contato_nome}
+                  </p>
+                )}
+                {carga.remetente?.contato_telefone && (
+                  <p className="flex items-center gap-2">
+                    <Phone className="w-3 h-3" />
+                    {carga.remetente.contato_telefone}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Destinatário */}
+            <Card className="border-red-500/30 bg-red-500/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold">
+                    D
+                  </div>
+                  Destinatário (Destino)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {carga.destinatario?.nome && (
+                  <p className="font-medium flex items-center gap-2">
+                    <Building2 className="w-3 h-3" />
+                    {carga.destinatario.nome}
+                  </p>
+                )}
+                {carga.destinatario?.cidade && (
+                  <p className="text-muted-foreground flex items-center gap-2">
+                    <MapPin className="w-3 h-3" />
+                    {carga.destinatario.cidade}, {carga.destinatario.estado}
+                  </p>
+                )}
+                {carga.destinatario?.endereco && (
+                  <p className="text-muted-foreground text-xs">{carga.destinatario.endereco}</p>
+                )}
+                {carga.destinatario?.contato_nome && (
+                  <p className="flex items-center gap-2">
+                    <User className="w-3 h-3" />
+                    {carga.destinatario.contato_nome}
+                  </p>
+                )}
+                {carga.destinatario?.contato_telefone && (
+                  <p className="flex items-center gap-2">
+                    <Phone className="w-3 h-3" />
+                    {carga.destinatario.contato_telefone}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Separator />
+
+          {/* Dados da Carga */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Dados da Carga
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">
+                  {tipoCargaLabels[carga.tipo] || carga.tipo}
+                </Badge>
+                <Badge variant="secondary">
+                  <Weight className="w-3 h-3 mr-1" />
+                  {carga.peso_kg.toLocaleString('pt-BR')} kg
+                </Badge>
+                {carga.volume_m3 && (
+                  <Badge variant="secondary">
+                    <Box className="w-3 h-3 mr-1" />
+                    {carga.volume_m3} m³
+                  </Badge>
+                )}
+                {carga.valor_mercadoria && (
+                  <Badge variant="secondary">
+                    {formatValor(carga.valor_mercadoria)}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Características especiais */}
+              <div className="flex flex-wrap gap-2">
+                {carga.carga_fragil && (
+                  <Badge variant="outline" className="border-amber-500 text-amber-600">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Frágil
+                  </Badge>
+                )}
+                {carga.carga_perigosa && (
+                  <Badge variant="outline" className="border-red-500 text-red-600">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Perigosa {carga.numero_onu && `(${carga.numero_onu})`}
+                  </Badge>
+                )}
+                {carga.carga_viva && (
+                  <Badge variant="outline" className="border-green-500 text-green-600">
+                    Carga Viva
+                  </Badge>
+                )}
+                {carga.requer_refrigeracao && (
+                  <Badge variant="outline" className="border-blue-500 text-blue-600">
+                    <Snowflake className="w-3 h-3 mr-1" />
+                    Refrigerada
+                    {carga.temperatura_min !== undefined && carga.temperatura_max !== undefined &&
+                      ` (${carga.temperatura_min}°C ~ ${carga.temperatura_max}°C)`
+                    }
+                  </Badge>
+                )}
+                {carga.empilhavel === false && (
+                  <Badge variant="outline">Não empilhável</Badge>
+                )}
+              </div>
+
+              {/* Datas */}
+              <div className="flex flex-wrap gap-4 text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  Coleta: {formatDate(carga.data_coleta_de)}
+                  {carga.data_coleta_ate && ` até ${formatDate(carga.data_coleta_ate)}`}
+                </span>
+                {carga.data_entrega_limite && (
+                  <span>
+                    Entrega até: {formatDate(carga.data_entrega_limite)}
+                  </span>
+                )}
+              </div>
+
+              {/* Necessidades especiais */}
+              {carga.necessidades_especiais && carga.necessidades_especiais.length > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Equipamentos:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {carga.necessidades_especiais.map((item) => (
+                      <Badge key={item} variant="outline" className="text-xs">
+                        {item}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Regras de carregamento */}
+              {carga.regras_carregamento && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Regras de Carregamento:</p>
+                  <p className="text-sm bg-muted/50 p-2 rounded">{carga.regras_carregamento}</p>
+                </div>
+              )}
+
+              {/* Nota fiscal */}
+              {carga.nota_fiscal_url && (
+                <div className="flex items-center gap-2 text-green-600">
+                  <FileText className="w-4 h-4" />
+                  <a 
+                    href={carga.nota_fiscal_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:underline"
+                  >
+                    Ver nota fiscal
+                  </a>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Motorista e Veículo */}
+          {carga.entregas && (
+            <>
+              <Separator />
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Truck className="w-4 h-4" />
+                    Transporte
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {carga.entregas.motoristas && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Motorista</p>
+                        <p className="font-medium flex items-center gap-2">
+                          <User className="w-3 h-3" />
+                          {carga.entregas.motoristas.nome_completo}
+                        </p>
+                        {carga.entregas.motoristas.telefone && (
+                          <a 
+                            href={`tel:${carga.entregas.motoristas.telefone}`}
+                            className="text-primary hover:underline flex items-center gap-2"
+                          >
+                            <Phone className="w-3 h-3" />
+                            {carga.entregas.motoristas.telefone}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {carga.entregas.veiculos && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Veículo</p>
+                        <p className="font-medium">{carga.entregas.veiculos.placa}</p>
+                        <p className="text-muted-foreground">
+                          {carga.entregas.veiculos.marca} {carga.entregas.veiculos.modelo}
+                          {carga.entregas.veiculos.tipo && ` - ${tipoVeiculoLabels[carga.entregas.veiculos.tipo] || carga.entregas.veiculos.tipo}`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

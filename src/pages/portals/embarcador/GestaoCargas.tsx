@@ -35,6 +35,7 @@ import {
   MapPinned,
   RefreshCw,
   X,
+  Building2,
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
@@ -52,6 +53,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
+import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -92,6 +94,19 @@ interface CotacaoData {
   valor_frete: number | null;
 }
 
+interface EnderecoData {
+  tipo: string;
+  cidade: string;
+  estado: string;
+  logradouro: string;
+  numero: string | null;
+  bairro: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  contato_nome: string | null;
+  contato_telefone: string | null;
+}
+
 interface CargaCompleta {
   id: string;
   codigo: string;
@@ -102,18 +117,29 @@ interface CargaCompleta {
   valor_mercadoria: number | null;
   status: StatusCarga | null;
   data_coleta_de: string | null;
+  data_coleta_ate: string | null;
   data_entrega_limite: string | null;
   created_at: string | null;
-  enderecos_carga: {
-    tipo: string;
-    cidade: string;
-    estado: string;
-    latitude: number | null;
-    longitude: number | null;
-    contato_nome: string | null;
-    contato_telefone: string | null;
-  }[];
-  // entregas can be a single object (one-to-one) or null
+  necessidades_especiais: string[] | null;
+  regras_carregamento: string | null;
+  nota_fiscal_url: string | null;
+  carga_fragil: boolean | null;
+  carga_perigosa: boolean | null;
+  carga_viva: boolean | null;
+  empilhavel: boolean | null;
+  requer_refrigeracao: boolean | null;
+  temperatura_min: number | null;
+  temperatura_max: number | null;
+  numero_onu: string | null;
+  enderecos_carga: EnderecoData[];
+  filiais: {
+    nome: string | null;
+    cidade: string | null;
+    estado: string | null;
+    endereco: string | null;
+    telefone: string | null;
+    responsavel: string | null;
+  } | null;
   entregas: EntregaData | null;
 }
 
@@ -156,6 +182,7 @@ export default function GestaoCargas() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedCargaId, setSelectedCargaId] = useState<string | null>(null);
+  const [detailsCargaId, setDetailsCargaId] = useState<string | null>(null);
 
   // Fetch all cargas with related data
   const { data: cargas = [], isLoading, refetch } = useQuery({
@@ -175,12 +202,35 @@ export default function GestaoCargas() {
           valor_mercadoria,
           status,
           data_coleta_de,
+          data_coleta_ate,
           data_entrega_limite,
           created_at,
+          necessidades_especiais,
+          regras_carregamento,
+          nota_fiscal_url,
+          carga_fragil,
+          carga_perigosa,
+          carga_viva,
+          empilhavel,
+          requer_refrigeracao,
+          temperatura_min,
+          temperatura_max,
+          numero_onu,
+          filiais (
+            nome,
+            cidade,
+            estado,
+            endereco,
+            telefone,
+            responsavel
+          ),
           enderecos_carga (
             tipo,
             cidade,
             estado,
+            logradouro,
+            numero,
+            bairro,
             latitude,
             longitude,
             contato_nome,
@@ -293,13 +343,41 @@ export default function GestaoCargas() {
     setSearchTerm('');
   };
 
+  const getRemetente = (carga: CargaCompleta) => {
+    // Remetente is the filial (branch) that sent the cargo
+    const origem = carga.enderecos_carga?.find(e => e.tipo === 'origem');
+    return {
+      nome: carga.filiais?.nome || 'Filial',
+      cidade: origem?.cidade || carga.filiais?.cidade || '-',
+      estado: origem?.estado || carga.filiais?.estado || '',
+      endereco: origem ? `${origem.logradouro}${origem.numero ? `, ${origem.numero}` : ''}` : carga.filiais?.endereco,
+      contato_nome: origem?.contato_nome || carga.filiais?.responsavel,
+      contato_telefone: origem?.contato_telefone || carga.filiais?.telefone,
+    };
+  };
+
+  const getDestinatario = (carga: CargaCompleta) => {
+    // Destinatário is the destination contact/company
+    const destino = carga.enderecos_carga?.find(e => e.tipo === 'destino');
+    if (!destino) return null;
+    return {
+      nome: destino.contato_nome || 'Destinatário',
+      cidade: destino.cidade,
+      estado: destino.estado,
+      endereco: `${destino.logradouro}${destino.numero ? `, ${destino.numero}` : ''}`,
+      contato_nome: destino.contato_nome,
+      contato_telefone: destino.contato_telefone,
+    };
+  };
+
   const getEndereco = (carga: CargaCompleta, tipo: 'origem' | 'destino') => {
     const endereco = carga.enderecos_carga?.find(e => e.tipo === tipo);
-    if (!endereco) return { cidade: '-', contato: null };
+    if (!endereco) return { cidade: '-', contato: null, endereco: null };
     return { 
       cidade: `${endereco.cidade}, ${endereco.estado}`,
       contato: endereco.contato_nome,
-      telefone: endereco.contato_telefone
+      telefone: endereco.contato_telefone,
+      endereco: `${endereco.logradouro}${endereco.numero ? `, ${endereco.numero}` : ''}`,
     };
   };
 
@@ -640,6 +718,8 @@ export default function GestaoCargas() {
                           const StatusIcon = config?.icon || Package;
                           const entrega = carga.entregas;
                           const isSelected = selectedCargaId === carga.id;
+                          const remetente = getRemetente(carga);
+                          const destinatario = getDestinatario(carga);
                           const origem = getEndereco(carga, 'origem');
                           const destino = getEndereco(carga, 'destino');
 
@@ -657,28 +737,38 @@ export default function GestaoCargas() {
                                 </div>
                               </TableCell>
                               
-                              {/* Remetente (Origem) */}
+                              {/* Remetente (Origem - Filial) */}
                               <TableCell>
-                                <div className="text-sm">
+                                <div className="text-sm max-w-[180px]">
                                   <div className="flex items-center gap-1.5">
                                     <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                                    <span className="truncate">{origem.cidade}</span>
+                                    <span className="font-medium truncate">{remetente.nome}</span>
                                   </div>
-                                  {origem.contato && (
-                                    <p className="text-xs text-muted-foreground truncate">{origem.contato}</p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {remetente.cidade}{remetente.estado ? `, ${remetente.estado}` : ''}
+                                  </p>
+                                  {remetente.endereco && (
+                                    <p className="text-xs text-muted-foreground/70 truncate">{remetente.endereco}</p>
                                   )}
                                 </div>
                               </TableCell>
                               
                               {/* Destinatário */}
                               <TableCell>
-                                <div className="text-sm">
+                                <div className="text-sm max-w-[180px]">
                                   <div className="flex items-center gap-1.5">
                                     <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                                    <span className="truncate">{destino.cidade}</span>
+                                    <span className="font-medium truncate">{destinatario?.nome || '-'}</span>
                                   </div>
-                                  {destino.contato && (
-                                    <p className="text-xs text-muted-foreground truncate">{destino.contato}</p>
+                                  {destinatario && (
+                                    <>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {destinatario.cidade}, {destinatario.estado}
+                                      </p>
+                                      {destinatario.endereco && (
+                                        <p className="text-xs text-muted-foreground/70 truncate">{destinatario.endereco}</p>
+                                      )}
+                                    </>
                                   )}
                                 </div>
                               </TableCell>
@@ -768,11 +858,20 @@ export default function GestaoCargas() {
                                       className="gap-2 cursor-pointer"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setSelectedCargaId(carga.id);
-                                        toast.info('Detalhes da carga selecionada no mapa');
+                                        setDetailsCargaId(carga.id);
                                       }}
                                     >
-                                      <Eye className="w-4 h-4" /> Ver no mapa
+                                      <Eye className="w-4 h-4" /> Ver detalhes
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      className="gap-2 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedCargaId(carga.id);
+                                        toast.info('Carga destacada no mapa');
+                                      }}
+                                    >
+                                      <MapPin className="w-4 h-4" /> Ver no mapa
                                     </DropdownMenuItem>
                                     <DropdownMenuItem className="gap-2 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                                       <Edit className="w-4 h-4" /> Editar
@@ -813,6 +912,27 @@ export default function GestaoCargas() {
           )}
         </div>
       </div>
+
+      {/* Details Dialog */}
+      {detailsCargaId && (() => {
+        const carga = cargas.find(c => c.id === detailsCargaId);
+        if (!carga) return null;
+        
+        const remetente = getRemetente(carga);
+        const destinatario = getDestinatario(carga);
+        
+        return (
+          <CargaDetailsDialog
+            carga={{
+              ...carga,
+              remetente,
+              destinatario,
+            }}
+            open={!!detailsCargaId}
+            onOpenChange={(open) => !open && setDetailsCargaId(null)}
+          />
+        );
+      })()}
     </PortalLayout>
   );
 }
