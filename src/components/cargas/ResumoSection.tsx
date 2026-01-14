@@ -31,22 +31,56 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-const originIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+// Circular icon for origin (green with O)
+const createOriginIcon = () => new L.DivIcon({
+  className: 'origin-marker',
+  html: `
+    <div style="
+      background-color: #22c55e;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    ">
+      O
+    </div>
+  `,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  popupAnchor: [0, -14],
 });
 
-const destinoIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+// Circular icon for destination (red with D)
+const createDestinoIcon = () => new L.DivIcon({
+  className: 'destino-marker',
+  html: `
+    <div style="
+      background-color: #ef4444;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    ">
+      D
+    </div>
+  `,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  popupAnchor: [0, -14],
 });
 
 interface FitBoundsProps {
@@ -244,14 +278,14 @@ export function ResumoSection({
               />
             )}
             
-            {/* Origin marker */}
+            {/* Origin marker with circular O icon */}
             {origemLat !== 0 && origemLng !== 0 && (
-              <Marker position={[origemLat, origemLng]} icon={originIcon} />
+              <Marker position={[origemLat, origemLng]} icon={createOriginIcon()} />
             )}
             
-            {/* Destination marker */}
+            {/* Destination marker with circular D icon */}
             {destinoLat !== 0 && destinoLng !== 0 && (
-              <Marker position={[destinoLat, destinoLng]} icon={destinoIcon} />
+              <Marker position={[destinoLat, destinoLng]} icon={createDestinoIcon()} />
             )}
           </MapContainer>
         </div>
