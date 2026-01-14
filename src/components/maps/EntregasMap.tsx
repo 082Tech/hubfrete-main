@@ -202,18 +202,28 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
     );
   }
 
-  // Build route line for selected entrega
+  // Build route line for selected entrega - always show origin to destination
   const routePoints: [number, number][] = [];
   if (selectedEntrega) {
+    // First: Origin
     if (selectedEntrega.origemCoords) {
       routePoints.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
     }
+    // Middle: Current truck position (if available)
     if (selectedEntrega.latitude && selectedEntrega.longitude) {
       routePoints.push([selectedEntrega.latitude, selectedEntrega.longitude]);
     }
+    // Last: Destination
     if (selectedEntrega.destinoCoords) {
       routePoints.push([selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]);
     }
+  }
+  
+  // Also create a direct origin-to-destination line for reference
+  const directRouteLine: [number, number][] = [];
+  if (selectedEntrega?.origemCoords && selectedEntrega?.destinoCoords) {
+    directRouteLine.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
+    directRouteLine.push([selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]);
   }
 
   return (
@@ -230,15 +240,27 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
         />
         <FitBounds entregas={validEntregas} selectedEntrega={selectedEntrega} />
         
-        {/* Route line for selected entrega */}
-        {routePoints.length >= 2 && (
+        {/* Direct route line from origin to destination (dashed) */}
+        {directRouteLine.length === 2 && (
+          <Polyline
+            positions={directRouteLine}
+            pathOptions={{
+              color: '#3b82f6',
+              weight: 3,
+              opacity: 0.6,
+              dashArray: '12, 8',
+            }}
+          />
+        )}
+        
+        {/* Route line through truck position (solid overlay) */}
+        {routePoints.length >= 2 && selectedEntrega?.latitude && selectedEntrega?.longitude && (
           <Polyline
             positions={routePoints}
             pathOptions={{
-              color: '#3b82f6',
+              color: '#f97316',
               weight: 4,
-              opacity: 0.8,
-              dashArray: '10, 10',
+              opacity: 0.9,
             }}
           />
         )}
