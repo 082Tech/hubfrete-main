@@ -34,6 +34,8 @@ export type Database = {
           necessidades_especiais: string[] | null
           nota_fiscal_url: string | null
           numero_onu: string | null
+          permite_fracionado: boolean | null
+          peso_disponivel_kg: number | null
           peso_kg: number
           publicada_em: string | null
           quantidade: number | null
@@ -44,6 +46,7 @@ export type Database = {
           temperatura_min: number | null
           tipo: Database["public"]["Enums"]["tipo_carga"]
           updated_at: string | null
+          valor_frete_tonelada: number | null
           valor_mercadoria: number | null
           veiculo_requisitos: Json | null
           volume_m3: number | null
@@ -67,6 +70,8 @@ export type Database = {
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
+          permite_fracionado?: boolean | null
+          peso_disponivel_kg?: number | null
           peso_kg: number
           publicada_em?: string | null
           quantidade?: number | null
@@ -77,6 +82,7 @@ export type Database = {
           temperatura_min?: number | null
           tipo: Database["public"]["Enums"]["tipo_carga"]
           updated_at?: string | null
+          valor_frete_tonelada?: number | null
           valor_mercadoria?: number | null
           veiculo_requisitos?: Json | null
           volume_m3?: number | null
@@ -100,6 +106,8 @@ export type Database = {
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
+          permite_fracionado?: boolean | null
+          peso_disponivel_kg?: number | null
           peso_kg?: number
           publicada_em?: string | null
           quantidade?: number | null
@@ -110,6 +118,7 @@ export type Database = {
           temperatura_min?: number | null
           tipo?: Database["public"]["Enums"]["tipo_carga"]
           updated_at?: string | null
+          valor_frete_tonelada?: number | null
           valor_mercadoria?: number | null
           veiculo_requisitos?: Json | null
           volume_m3?: number | null
@@ -386,9 +395,11 @@ export type Database = {
           motorista_id: string | null
           nome_recebedor: string | null
           observacoes: string | null
+          peso_alocado_kg: number | null
           status: Database["public"]["Enums"]["status_entrega"] | null
           ultima_atualizacao_localizacao: string | null
           updated_at: string | null
+          valor_frete: number | null
           veiculo_id: string | null
         }
         Insert: {
@@ -408,9 +419,11 @@ export type Database = {
           motorista_id?: string | null
           nome_recebedor?: string | null
           observacoes?: string | null
+          peso_alocado_kg?: number | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
           ultima_atualizacao_localizacao?: string | null
           updated_at?: string | null
+          valor_frete?: number | null
           veiculo_id?: string | null
         }
         Update: {
@@ -430,9 +443,11 @@ export type Database = {
           motorista_id?: string | null
           nome_recebedor?: string | null
           observacoes?: string | null
+          peso_alocado_kg?: number | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
           ultima_atualizacao_localizacao?: string | null
           updated_at?: string | null
+          valor_frete?: number | null
           veiculo_id?: string | null
         }
         Relationships: [
@@ -540,6 +555,7 @@ export type Database = {
           precisao: number | null
           status: boolean | null
           timestamp: number | null
+          visivel: boolean | null
         }
         Insert: {
           email_motorista?: string | null
@@ -549,6 +565,7 @@ export type Database = {
           precisao?: number | null
           status?: boolean | null
           timestamp?: number | null
+          visivel?: boolean | null
         }
         Update: {
           email_motorista?: string | null
@@ -558,6 +575,7 @@ export type Database = {
           precisao?: number | null
           status?: boolean | null
           timestamp?: number | null
+          visivel?: boolean | null
         }
         Relationships: [
           {
