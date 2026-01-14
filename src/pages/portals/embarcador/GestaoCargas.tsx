@@ -106,18 +106,12 @@ interface CargaCompleta {
   }[];
   // entregas can be a single object (one-to-one) or null
   entregas: EntregaData | null;
-  cotacoes: {
-    id: string;
-    status: string | null;
-    valor_proposto: number;
-  }[];
 }
 
 // Status configuration for display
 const statusCargaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
   'rascunho': { color: 'bg-muted text-muted-foreground border-muted', label: 'Rascunho', icon: Package },
   'publicada': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Publicada', icon: Package },
-  'em_cotacao': { color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20', label: 'Em Cotação', icon: Package },
   'aceita': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Aceita', icon: Package },
   'em_coleta': { color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20', label: 'Em Coleta', icon: Truck },
   'em_transito': { color: 'bg-orange-500/10 text-orange-600 border-orange-500/20', label: 'Em Trânsito', icon: Navigation },
@@ -140,7 +134,6 @@ const statusEntregaConfig: Record<string, { color: string; label: string }> = {
 const allStatusFilters = [
   { value: 'rascunho', label: 'Rascunho', group: 'carga' },
   { value: 'publicada', label: 'Publicada', group: 'carga' },
-  { value: 'em_cotacao', label: 'Em Cotação', group: 'carga' },
   { value: 'aceita', label: 'Aceita', group: 'carga' },
   { value: 'em_coleta', label: 'Em Coleta', group: 'transporte' },
   { value: 'em_transito', label: 'Em Trânsito', group: 'transporte' },
@@ -198,11 +191,6 @@ export default function GestaoCargas() {
               marca,
               modelo
             )
-          ),
-          cotacoes (
-            id,
-            status,
-            valor_proposto
           )
         `)
         .eq('filial_id', filialAtiva.id)
@@ -232,7 +220,7 @@ export default function GestaoCargas() {
   const stats = useMemo(() => ({
     total: cargas.length,
     publicadas: cargas.filter(c => c.status === 'publicada').length,
-    em_cotacao: cargas.filter(c => c.status === 'em_cotacao').length,
+    aceitas: cargas.filter(c => c.status === 'aceita').length,
     em_transito: cargas.filter(c => c.status === 'em_transito' || c.status === 'em_coleta').length,
     entregues: cargas.filter(c => c.status === 'entregue').length,
     problemas: cargas.filter(c => c.entregas?.status === 'problema').length,
@@ -294,9 +282,8 @@ export default function GestaoCargas() {
   const getProgress = (carga: CargaCompleta): number => {
     switch (carga.status) {
       case 'rascunho': return 5;
-      case 'publicada': return 15;
-      case 'em_cotacao': return 30;
-      case 'aceita': return 45;
+      case 'publicada': return 20;
+      case 'aceita': return 40;
       case 'em_coleta': return 55;
       case 'em_transito': return 75;
       case 'entregue': return 100;
@@ -426,8 +413,8 @@ export default function GestaoCargas() {
             </Card>
             <Card className="border-border">
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-yellow-600">{stats.em_cotacao}</p>
-                <p className="text-xs text-muted-foreground">Em Cotação</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.aceitas}</p>
+                <p className="text-xs text-muted-foreground">Aceitas</p>
               </CardContent>
             </Card>
             <Card className="border-border">
