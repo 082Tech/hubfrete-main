@@ -10,7 +10,14 @@ import {
   Package,
   DollarSign,
   Truck,
-  Loader2
+  Loader2,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  MapPin,
+  Weight,
+  Target,
+  Activity
 } from 'lucide-react';
 import {
   Select,
@@ -33,14 +40,19 @@ import {
   Pie,
   Cell,
   AreaChart,
-  Area
+  Area,
+  Legend,
+  RadialBarChart,
+  RadialBar,
+  ComposedChart
 } from 'recharts';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { format, subDays, startOfMonth, endOfMonth, parseISO, eachDayOfInterval, subMonths, startOfDay } from 'date-fns';
+import { format, subDays, parseISO, subMonths, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Progress } from '@/components/ui/progress';
 
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
@@ -58,6 +70,18 @@ const statusLabels: Record<string, string> = {
   'em_transito': 'Em Trânsito',
   'entregue': 'Entregue',
   'cancelada': 'Cancelada',
+};
+
+const tipoCargaLabels: Record<string, string> = {
+  'granel_solido': 'Granel Sólido',
+  'granel_liquido': 'Granel Líquido',
+  'carga_seca': 'Carga Seca',
+  'refrigerada': 'Refrigerada',
+  'congelada': 'Congelada',
+  'perigosa': 'Perigosa',
+  'viva': 'Viva',
+  'indivisivel': 'Indivisível',
+  'container': 'Container',
 };
 
 export default function Relatorios() {
@@ -99,9 +123,13 @@ export default function Relatorios() {
           id,
           codigo,
           status,
+          tipo,
           created_at,
           peso_kg,
-          valor_mercadoria
+          volume_m3,
+          valor_mercadoria,
+          data_coleta_de,
+          data_entrega_limite
         `)
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });
@@ -170,13 +198,22 @@ export default function Relatorios() {
   const kpis = useMemo(() => {
     const totalCargas = filteredCargas.length;
     const valorTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0);
+    const pesoTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.peso_kg) || 0), 0);
+    const volumeTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.volume_m3) || 0), 0);
     const entregues = filteredEntregas.filter(e => e.status === 'entregue').length;
-    const taxaPontualidade = filteredEntregas.length > 0 
+    const emTransito = filteredEntregas.filter(e => e.status === 'em_transito').length;
+    const aguardandoColeta = filteredEntregas.filter(e => 
+      e.status === 'aguardando_coleta' || e.status === 'em_coleta'
+    ).length;
+    const problemas = filteredEntregas.filter(e => e.status === 'problema').length;
+    
+    const taxaConclusao = filteredEntregas.length > 0 
       ? Math.round((entregues / filteredEntregas.length) * 100) 
       : 0;
     
     // Compare with previous period
-    const prevStart = subDays(dateRange.start, (dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+    const periodDays = differenceInDays(dateRange.end, dateRange.start);
+    const prevStart = subDays(dateRange.start, periodDays);
     const prevCargas = cargas.filter(c => {
       const createdAt = parseISO(c.created_at);
       return createdAt >= prevStart && createdAt < dateRange.start;
@@ -191,33 +228,54 @@ export default function Relatorios() {
       ? Math.round(((valorTotal - prevValor) / prevValor) * 100)
       : valorTotal > 0 ? 100 : 0;
 
+    // Average per day
+    const mediaCargasDia = totalCargas / Math.max(periodDays, 1);
+    const mediaValorDia = valorTotal / Math.max(periodDays, 1);
+
     return {
       totalCargas,
       cargasChange,
       valorTotal,
       valorChange,
-      taxaPontualidade,
+      pesoTotal,
+      volumeTotal,
+      taxaConclusao,
       entregues,
+      emTransito,
+      aguardandoColeta,
+      problemas,
+      mediaCargasDia,
+      mediaValorDia,
     };
   }, [filteredCargas, filteredEntregas, cargas, dateRange]);
 
   // Chart: Weekly/Daily activity
   const activityChartData = useMemo(() => {
     const days = [];
-    const interval = periodo === '7dias' ? 7 : periodo === '30dias' ? 30 : periodo === '90dias' ? 90 : 365;
+    const interval = periodo === '7dias' ? 7 : periodo === '30dias' ? 30 : periodo === '90dias' ? 14 : 12;
+    const step = periodo === '90dias' ? 6 : periodo === 'ano' ? 30 : 1;
     
-    for (let i = Math.min(interval - 1, 30); i >= 0; i--) {
-      const date = subDays(new Date(), i);
+    for (let i = interval - 1; i >= 0; i--) {
+      const date = subDays(new Date(), i * step);
       const dateStr = format(date, 'yyyy-MM-dd');
       const dayName = format(date, periodo === '7dias' ? 'EEE' : 'dd/MM', { locale: ptBR });
       
-      const cargasCount = filteredCargas.filter(c => 
-        format(parseISO(c.created_at), 'yyyy-MM-dd') === dateStr
-      ).length;
+      const cargasCount = filteredCargas.filter(c => {
+        const cargaDate = format(parseISO(c.created_at), 'yyyy-MM-dd');
+        if (step === 1) return cargaDate === dateStr;
+        const startDate = subDays(date, step);
+        const cargaParsed = parseISO(c.created_at);
+        return cargaParsed >= startDate && cargaParsed <= date;
+      }).length;
       
-      const entregasCount = filteredEntregas.filter(e => 
-        e.entregue_em && format(parseISO(e.entregue_em), 'yyyy-MM-dd') === dateStr
-      ).length;
+      const entregasCount = filteredEntregas.filter(e => {
+        if (!e.entregue_em) return false;
+        const entregaDate = format(parseISO(e.entregue_em), 'yyyy-MM-dd');
+        if (step === 1) return entregaDate === dateStr;
+        const startDate = subDays(date, step);
+        const entregaParsed = parseISO(e.entregue_em);
+        return entregaParsed >= startDate && entregaParsed <= date;
+      }).length;
 
       days.push({
         name: dayName.charAt(0).toUpperCase() + dayName.slice(1),
@@ -244,20 +302,85 @@ export default function Relatorios() {
       }));
   }, [filteredCargas]);
 
-  // Chart: Monthly value trend
-  const monthlyValueData = useMemo(() => {
-    const months: Record<string, number> = {};
-    
-    cargas.forEach(c => {
-      const month = format(parseISO(c.created_at), 'MMM', { locale: ptBR });
-      months[month] = (months[month] || 0) + (Number(c.valor_mercadoria) || 0);
+  // Chart: Tipo de carga distribution
+  const tipoCargaData = useMemo(() => {
+    const tipoCounts: Record<string, number> = {};
+    filteredCargas.forEach(c => {
+      const tipo = c.tipo || 'carga_seca';
+      tipoCounts[tipo] = (tipoCounts[tipo] || 0) + 1;
     });
 
-    return Object.entries(months).slice(-7).map(([mes, valor]) => ({
+    return Object.entries(tipoCounts)
+      .filter(([, count]) => count > 0)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([tipo, count]) => ({
+        name: tipoCargaLabels[tipo] || tipo,
+        value: count,
+      }));
+  }, [filteredCargas]);
+
+  // Chart: Monthly value trend
+  const monthlyValueData = useMemo(() => {
+    const months: Record<string, { valor: number; cargas: number; peso: number }> = {};
+    
+    cargas.forEach(c => {
+      const month = format(parseISO(c.created_at), 'MMM/yy', { locale: ptBR });
+      if (!months[month]) months[month] = { valor: 0, cargas: 0, peso: 0 };
+      months[month].valor += Number(c.valor_mercadoria) || 0;
+      months[month].cargas += 1;
+      months[month].peso += Number(c.peso_kg) || 0;
+    });
+
+    return Object.entries(months).slice(-7).map(([mes, data]) => ({
       mes: mes.charAt(0).toUpperCase() + mes.slice(1),
-      valor,
+      valor: data.valor,
+      cargas: data.cargas,
+      peso: data.peso,
     }));
   }, [cargas]);
+
+  // Delivery status for radial chart
+  const deliveryStatusData = useMemo(() => {
+    const total = filteredEntregas.length;
+    if (total === 0) return [];
+    
+    return [
+      { name: 'Entregues', value: kpis.entregues, fill: 'hsl(var(--chart-2))' },
+      { name: 'Em Trânsito', value: kpis.emTransito, fill: 'hsl(var(--chart-1))' },
+      { name: 'Aguardando', value: kpis.aguardandoColeta, fill: 'hsl(var(--chart-4))' },
+      { name: 'Problemas', value: kpis.problemas, fill: 'hsl(var(--destructive))' },
+    ].filter(d => d.value > 0);
+  }, [filteredEntregas, kpis]);
+
+  // Weekly comparison
+  const weeklyComparisonData = useMemo(() => {
+    const weeks = [];
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = subDays(new Date(), (i + 1) * 7);
+      const weekEnd = subDays(new Date(), i * 7);
+      const weekLabel = `Sem ${4 - i}`;
+      
+      const weekCargas = cargas.filter(c => {
+        const date = parseISO(c.created_at);
+        return date >= weekStart && date < weekEnd;
+      });
+      
+      const weekEntregas = entregas.filter(e => {
+        if (!e.entregue_em) return false;
+        const date = parseISO(e.entregue_em);
+        return date >= weekStart && date < weekEnd;
+      });
+
+      weeks.push({
+        semana: weekLabel,
+        cargas: weekCargas.length,
+        entregas: weekEntregas.length,
+        valor: weekCargas.reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0),
+      });
+    }
+    return weeks;
+  }, [cargas, entregas]);
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
@@ -267,6 +390,13 @@ export default function Relatorios() {
       return `R$ ${(value / 1000).toFixed(0)}k`;
     }
     return `R$ ${value.toFixed(0)}`;
+  };
+
+  const formatWeight = (value: number) => {
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(1)}t`;
+    }
+    return `${value.toFixed(0)}kg`;
   };
 
   return (
@@ -304,70 +434,144 @@ export default function Relatorios() {
           </div>
         ) : (
           <>
-            {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="border-border">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
+            {/* Main KPIs Row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-border bg-gradient-to-br from-primary/5 to-transparent">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Total de Cargas</p>
-                      <p className="text-2xl font-bold text-foreground">{kpis.totalCargas}</p>
+                      <p className="text-3xl font-bold text-foreground mt-1">{kpis.totalCargas}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        ~{kpis.mediaCargasDia.toFixed(1)}/dia
+                      </p>
                     </div>
-                    <div className={`flex items-center text-sm ${kpis.cargasChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {kpis.cargasChange >= 0 ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                      {kpis.cargasChange >= 0 ? '+' : ''}{kpis.cargasChange}%
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Package className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className={`flex items-center text-xs ${kpis.cargasChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {kpis.cargasChange >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                        {kpis.cargasChange >= 0 ? '+' : ''}{kpis.cargasChange}%
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-border">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
+
+              <Card className="border-border bg-gradient-to-br from-chart-2/5 to-transparent">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Valor Total</p>
-                      <p className="text-2xl font-bold text-foreground">{formatCurrency(kpis.valorTotal)}</p>
+                      <p className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.valorTotal)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        ~{formatCurrency(kpis.mediaValorDia)}/dia
+                      </p>
                     </div>
-                    <div className={`flex items-center text-sm ${kpis.valorChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {kpis.valorChange >= 0 ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                      {kpis.valorChange >= 0 ? '+' : ''}{kpis.valorChange}%
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Taxa Conclusão</p>
-                      <p className="text-2xl font-bold text-foreground">{kpis.taxaPontualidade}%</p>
-                    </div>
-                    <div className="p-2 bg-chart-2/10 rounded-lg">
-                      <Truck className="w-4 h-4 text-chart-2" />
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="p-2 bg-chart-2/10 rounded-lg">
+                        <DollarSign className="w-5 h-5 text-chart-2" />
+                      </div>
+                      <div className={`flex items-center text-xs ${kpis.valorChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {kpis.valorChange >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                        {kpis.valorChange >= 0 ? '+' : ''}{kpis.valorChange}%
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+
               <Card className="border-border">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Entregas Concluídas</p>
-                      <p className="text-2xl font-bold text-foreground">{kpis.entregues}</p>
+                      <p className="text-sm text-muted-foreground">Peso Total</p>
+                      <p className="text-3xl font-bold text-foreground mt-1">{formatWeight(kpis.pesoTotal)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {kpis.volumeTotal.toFixed(1)} m³ volume
+                      </p>
+                    </div>
+                    <div className="p-2 bg-chart-4/10 rounded-lg">
+                      <Weight className="w-5 h-5 text-chart-4" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Taxa de Conclusão</p>
+                      <p className="text-3xl font-bold text-foreground mt-1">{kpis.taxaConclusao}%</p>
+                      <Progress value={kpis.taxaConclusao} className="h-2 mt-2 w-24" />
                     </div>
                     <div className="p-2 bg-chart-1/10 rounded-lg">
-                      <Package className="w-4 h-4 text-chart-1" />
+                      <Target className="w-5 h-5 text-chart-1" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
+            {/* Secondary KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="border-border">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 bg-green-500/10 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{kpis.entregues}</p>
+                    <p className="text-xs text-muted-foreground">Entregues</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <Truck className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{kpis.emTransito}</p>
+                    <p className="text-xs text-muted-foreground">Em Trânsito</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 bg-amber-500/10 rounded-lg">
+                    <Clock className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{kpis.aguardandoColeta}</p>
+                    <p className="text-xs text-muted-foreground">Aguardando</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 bg-red-500/10 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{kpis.problemas}</p>
+                    <p className="text-xs text-muted-foreground">Problemas</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Charts Row 1 */}
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid lg:grid-cols-2 gap-6">
               {/* Activity Chart */}
               <Card className="border-border">
                 <CardHeader>
-                  <CardTitle className="text-lg">Atividade</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-primary" />
+                    Atividade
+                  </CardTitle>
                   <CardDescription>Cargas criadas e entregas no período</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -402,6 +606,7 @@ export default function Relatorios() {
                             color: 'hsl(var(--foreground))'
                           }}
                         />
+                        <Legend />
                         <Area 
                           type="monotone" 
                           dataKey="cargas" 
@@ -424,17 +629,70 @@ export default function Relatorios() {
                 </CardContent>
               </Card>
 
-              {/* Status Distribution */}
+              {/* Weekly Comparison */}
               <Card className="border-border">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" />
-                    Distribuição por Status
+                    <BarChart3 className="w-5 h-5 text-chart-1" />
+                    Comparativo Semanal
                   </CardTitle>
-                  <CardDescription>Status das cargas no período</CardDescription>
+                  <CardDescription>Últimas 4 semanas</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[250px] flex items-center justify-center">
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={weeklyComparisonData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis 
+                          dataKey="semana" 
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                          axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
+                        <YAxis 
+                          yAxisId="left"
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                          axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
+                        <YAxis 
+                          yAxisId="right"
+                          orientation="right"
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                          axisLine={{ stroke: 'hsl(var(--border))' }}
+                          tickFormatter={(value) => formatCurrency(value)}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--popover))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            color: 'hsl(var(--foreground))'
+                          }}
+                          formatter={(value: number, name: string) => {
+                            if (name === 'valor') return [formatCurrency(value), 'Valor'];
+                            return [value, name === 'cargas' ? 'Cargas' : 'Entregas'];
+                          }}
+                        />
+                        <Legend />
+                        <Bar yAxisId="left" dataKey="cargas" fill="hsl(var(--primary))" name="Cargas" radius={[4, 4, 0, 0]} />
+                        <Bar yAxisId="left" dataKey="entregas" fill="hsl(var(--chart-2))" name="Entregas" radius={[4, 4, 0, 0]} />
+                        <Line yAxisId="right" type="monotone" dataKey="valor" stroke="hsl(var(--chart-4))" strokeWidth={2} name="valor" dot={{ fill: 'hsl(var(--chart-4))' }} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts Row 2 */}
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* Status Distribution */}
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="text-lg">Status das Cargas</CardTitle>
+                  <CardDescription>Distribuição por status</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[220px] flex items-center justify-center">
                     {statusChartData.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -442,8 +700,8 @@ export default function Relatorios() {
                             data={statusChartData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
-                            outerRadius={90}
+                            innerRadius={50}
+                            outerRadius={80}
                             paddingAngle={2}
                             dataKey="value"
                           >
@@ -461,15 +719,104 @@ export default function Relatorios() {
                         </PieChart>
                       </ResponsiveContainer>
                     ) : (
-                      <p className="text-muted-foreground">Sem dados no período</p>
+                      <p className="text-muted-foreground text-sm">Sem dados no período</p>
                     )}
                   </div>
-                  <div className="flex flex-wrap justify-center gap-3 mt-4">
+                  <div className="flex flex-wrap justify-center gap-2 mt-2">
                     {statusChartData.map((item, index) => (
-                      <div key={item.name} className="flex items-center gap-2">
+                      <div key={item.name} className="flex items-center gap-1.5">
                         <div 
-                          className="w-3 h-3 rounded-full" 
+                          className="w-2.5 h-2.5 rounded-full" 
                           style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }} 
+                        />
+                        <span className="text-xs text-muted-foreground">{item.name}: {item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tipo de Carga Distribution */}
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="text-lg">Tipos de Carga</CardTitle>
+                  <CardDescription>Principais tipos movimentados</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[220px]">
+                    {tipoCargaData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={tipoCargaData} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                          <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+                          <YAxis 
+                            type="category" 
+                            dataKey="name" 
+                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                            width={80}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--popover))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Bar dataKey="value" fill="hsl(var(--chart-3))" radius={[0, 4, 4, 0]} name="Quantidade" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground text-sm">Sem dados no período</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Delivery Status Radial */}
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="text-lg">Status Entregas</CardTitle>
+                  <CardDescription>Situação atual das entregas</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[220px] flex items-center justify-center">
+                    {deliveryStatusData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadialBarChart 
+                          cx="50%" 
+                          cy="50%" 
+                          innerRadius="30%" 
+                          outerRadius="90%" 
+                          data={deliveryStatusData}
+                          startAngle={180}
+                          endAngle={0}
+                        >
+                          <RadialBar
+                            dataKey="value"
+                            cornerRadius={10}
+                            background={{ fill: 'hsl(var(--muted))' }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--popover))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                          />
+                        </RadialBarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">Sem entregas no período</p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2 mt-2">
+                    {deliveryStatusData.map((item) => (
+                      <div key={item.name} className="flex items-center gap-1.5">
+                        <div 
+                          className="w-2.5 h-2.5 rounded-full" 
+                          style={{ backgroundColor: item.fill }} 
                         />
                         <span className="text-xs text-muted-foreground">{item.name}: {item.value}</span>
                       </div>
@@ -483,16 +830,16 @@ export default function Relatorios() {
             <Card className="border-border">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
-                  Valor Movimentado por Mês
+                  <DollarSign className="w-5 h-5 text-chart-2" />
+                  Evolução Mensal
                 </CardTitle>
-                <CardDescription>Evolução do valor das cargas ao longo do tempo</CardDescription>
+                <CardDescription>Valor e volume de cargas ao longo do tempo</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   {monthlyValueData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={monthlyValueData}>
+                      <ComposedChart data={monthlyValueData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis 
                           dataKey="mes" 
@@ -500,9 +847,16 @@ export default function Relatorios() {
                           axisLine={{ stroke: 'hsl(var(--border))' }}
                         />
                         <YAxis 
+                          yAxisId="left"
                           tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                           axisLine={{ stroke: 'hsl(var(--border))' }}
                           tickFormatter={(value) => formatCurrency(value)}
+                        />
+                        <YAxis 
+                          yAxisId="right"
+                          orientation="right"
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                          axisLine={{ stroke: 'hsl(var(--border))' }}
                         />
                         <Tooltip 
                           contentStyle={{ 
@@ -511,19 +865,16 @@ export default function Relatorios() {
                             borderRadius: '8px',
                             color: 'hsl(var(--foreground))'
                           }}
-                          formatter={(value: number) => [
-                            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value), 
-                            'Valor'
-                          ]}
+                          formatter={(value: number, name: string) => {
+                            if (name === 'Valor') return [formatCurrency(value), 'Valor'];
+                            if (name === 'Peso') return [formatWeight(value), 'Peso'];
+                            return [value, 'Cargas'];
+                          }}
                         />
-                        <Line 
-                          type="monotone" 
-                          dataKey="valor" 
-                          stroke="hsl(var(--chart-1))" 
-                          strokeWidth={2}
-                          dot={{ fill: 'hsl(var(--chart-1))' }}
-                        />
-                      </LineChart>
+                        <Legend />
+                        <Bar yAxisId="right" dataKey="cargas" fill="hsl(var(--chart-1))" name="Cargas" radius={[4, 4, 0, 0]} />
+                        <Line yAxisId="left" type="monotone" dataKey="valor" stroke="hsl(var(--chart-2))" strokeWidth={3} name="Valor" dot={{ fill: 'hsl(var(--chart-2))', strokeWidth: 2 }} />
+                      </ComposedChart>
                     </ResponsiveContainer>
                   ) : (
                     <div className="flex items-center justify-center h-full">
