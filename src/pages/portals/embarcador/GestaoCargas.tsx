@@ -146,6 +146,7 @@ export default function GestaoCargas() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [selectedCargaId, setSelectedCargaId] = useState<string | null>(null);
 
   // Fetch all cargas with related data
   const { data: cargas = [], isLoading, refetch } = useQuery({
@@ -232,9 +233,11 @@ export default function GestaoCargas() {
       .filter(c => c.entregas !== null)
       .map(c => {
         const e = c.entregas!;
+        const origem = c.enderecos_carga?.find(end => end.tipo === 'origem');
         const destino = c.enderecos_carga?.find(end => end.tipo === 'destino');
         return {
           id: e.id,
+          cargaId: c.id,
           latitude: e.latitude_atual,
           longitude: e.longitude_atual,
           status: e.status,
@@ -244,6 +247,12 @@ export default function GestaoCargas() {
           telefone: e.motoristas?.telefone || null,
           placa: e.veiculos?.placa || null,
           destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
+          origemCoords: origem?.latitude && origem?.longitude 
+            ? { lat: origem.latitude, lng: origem.longitude } 
+            : null,
+          destinoCoords: destino?.latitude && destino?.longitude 
+            ? { lat: destino.latitude, lng: destino.longitude } 
+            : null,
         };
       });
   }, [filteredCargas]);
@@ -505,7 +514,11 @@ export default function GestaoCargas() {
                   </CardContent>
                 </Card>
               }>
-                <EntregasMap entregas={mapData} />
+                <EntregasMap 
+                  entregas={mapData} 
+                  selectedCargaId={selectedCargaId}
+                  onSelectCarga={setSelectedCargaId}
+                />
               </Suspense>
 
               <Card className="border-border">
@@ -536,7 +549,11 @@ export default function GestaoCargas() {
                   </CardContent>
                 </Card>
               }>
-                <EntregasMap entregas={mapData} />
+                <EntregasMap 
+                  entregas={mapData} 
+                  selectedCargaId={selectedCargaId}
+                  onSelectCarga={setSelectedCargaId}
+                />
               </Suspense>
 
               <Card className="border-border">
@@ -563,9 +580,14 @@ export default function GestaoCargas() {
                           const StatusIcon = config?.icon || Package;
                           const entrega = carga.entregas;
                           const progress = getProgress(carga);
+                          const isSelected = selectedCargaId === carga.id;
 
                           return (
-                            <TableRow key={carga.id} className="border-border">
+                            <TableRow 
+                              key={carga.id} 
+                              className={`border-border cursor-pointer transition-colors ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-muted/50'}`}
+                              onClick={() => setSelectedCargaId(isSelected ? null : carga.id)}
+                            >
                               <TableCell>
                                 <div>
                                   <p className="font-medium text-foreground">{carga.codigo}</p>

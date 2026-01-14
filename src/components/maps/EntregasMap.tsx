@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { useEffect, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Phone, Truck, MapPin, Navigation } from 'lucide-react';
+import { Phone, Truck, MapPin, Navigation, Route } from 'lucide-react';
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -15,22 +15,25 @@ L.Icon.Default.mergeOptions({
 });
 
 // Custom colored markers
-const createColoredIcon = (color: string) => {
+const createColoredIcon = (color: string, isSelected: boolean = false) => {
+  const size = isSelected ? 32 : 24;
+  const borderWidth = isSelected ? 4 : 3;
   return new L.DivIcon({
     className: 'custom-marker',
     html: `
       <div style="
         background-color: ${color};
-        width: 24px;
-        height: 24px;
+        width: ${size}px;
+        height: ${size}px;
         border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        border: ${borderWidth}px solid ${isSelected ? '#fbbf24' : 'white'};
+        box-shadow: ${isSelected ? '0 0 12px rgba(251, 191, 36, 0.8)' : '0 2px 5px rgba(0,0,0,0.3)'};
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: all 0.2s ease;
       ">
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="${isSelected ? 16 : 12}" height="${isSelected ? 16 : 12}" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
           <path d="M15 18H9"/>
           <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
@@ -39,9 +42,39 @@ const createColoredIcon = (color: string) => {
         </svg>
       </div>
     `,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    popupAnchor: [0, -12],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+};
+
+// Location marker icon (origin/destination)
+const createLocationIcon = (type: 'origem' | 'destino') => {
+  const color = type === 'origem' ? '#22c55e' : '#ef4444';
+  const letter = type === 'origem' ? 'O' : 'D';
+  return new L.DivIcon({
+    className: 'location-marker',
+    html: `
+      <div style="
+        background-color: ${color};
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+      ">
+        ${letter}
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14],
   });
 };
 
@@ -69,6 +102,7 @@ const statusLabels: Record<string, string> = {
 
 interface EntregaMapData {
   id: string;
+  cargaId: string;
   latitude: number | null;
   longitude: number | null;
   status: string | null;
@@ -78,31 +112,62 @@ interface EntregaMapData {
   telefone: string | null;
   placa: string | null;
   destino: string | null;
+  origemCoords: { lat: number; lng: number } | null;
+  destinoCoords: { lat: number; lng: number } | null;
 }
 
 interface EntregasMapProps {
   entregas: EntregaMapData[];
+  selectedCargaId?: string | null;
+  onSelectCarga?: (cargaId: string | null) => void;
 }
 
 // Component to fit bounds to markers
-function FitBounds({ entregas }: { entregas: EntregaMapData[] }) {
+function FitBounds({ entregas, selectedEntrega }: { entregas: EntregaMapData[]; selectedEntrega: EntregaMapData | null }) {
   const map = useMap();
   
   useEffect(() => {
-    const validEntregas = entregas.filter(e => e.latitude && e.longitude);
-    if (validEntregas.length > 0) {
-      const bounds = L.latLngBounds(
-        validEntregas.map(e => [e.latitude!, e.longitude!] as [number, number])
-      );
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+    if (selectedEntrega) {
+      // If there's a selected entrega, fit bounds to show the route
+      const points: [number, number][] = [];
+      
+      if (selectedEntrega.latitude && selectedEntrega.longitude) {
+        points.push([selectedEntrega.latitude, selectedEntrega.longitude]);
+      }
+      if (selectedEntrega.origemCoords) {
+        points.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
+      }
+      if (selectedEntrega.destinoCoords) {
+        points.push([selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]);
+      }
+      
+      if (points.length > 1) {
+        const bounds = L.latLngBounds(points);
+        map.fitBounds(bounds, { padding: [80, 80], maxZoom: 12 });
+      } else if (points.length === 1) {
+        map.setView(points[0], 10);
+      }
+    } else {
+      const validEntregas = entregas.filter(e => e.latitude && e.longitude);
+      if (validEntregas.length > 0) {
+        const bounds = L.latLngBounds(
+          validEntregas.map(e => [e.latitude!, e.longitude!] as [number, number])
+        );
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+      }
     }
-  }, [entregas, map]);
+  }, [entregas, selectedEntrega, map]);
   
   return null;
 }
 
-export function EntregasMap({ entregas }: EntregasMapProps) {
+export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: EntregasMapProps) {
   const validEntregas = entregas.filter(e => e.latitude && e.longitude);
+  
+  // Find selected entrega
+  const selectedEntrega = selectedCargaId 
+    ? entregas.find(e => e.cargaId === selectedCargaId) || null
+    : null;
   
   // Default center (Brazil)
   const defaultCenter: [number, number] = [-15.7801, -47.9292];
@@ -115,6 +180,13 @@ export function EntregasMap({ entregas }: EntregasMapProps) {
         validEntregas.reduce((acc, e) => acc + e.longitude!, 0) / validEntregas.length,
       ]
     : defaultCenter;
+
+  const handleMarkerClick = (entrega: EntregaMapData) => {
+    if (onSelectCarga) {
+      // Toggle selection
+      onSelectCarga(selectedCargaId === entrega.cargaId ? null : entrega.cargaId);
+    }
+  };
 
   if (validEntregas.length === 0) {
     return (
@@ -130,6 +202,20 @@ export function EntregasMap({ entregas }: EntregasMapProps) {
     );
   }
 
+  // Build route line for selected entrega
+  const routePoints: [number, number][] = [];
+  if (selectedEntrega) {
+    if (selectedEntrega.origemCoords) {
+      routePoints.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
+    }
+    if (selectedEntrega.latitude && selectedEntrega.longitude) {
+      routePoints.push([selectedEntrega.latitude, selectedEntrega.longitude]);
+    }
+    if (selectedEntrega.destinoCoords) {
+      routePoints.push([selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]);
+    }
+  }
+
   return (
     <div className="relative w-full h-[500px] rounded-lg overflow-hidden border border-border">
       <MapContainer
@@ -142,18 +228,70 @@ export function EntregasMap({ entregas }: EntregasMapProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBounds entregas={validEntregas} />
+        <FitBounds entregas={validEntregas} selectedEntrega={selectedEntrega} />
         
+        {/* Route line for selected entrega */}
+        {routePoints.length >= 2 && (
+          <Polyline
+            positions={routePoints}
+            pathOptions={{
+              color: '#3b82f6',
+              weight: 4,
+              opacity: 0.8,
+              dashArray: '10, 10',
+            }}
+          />
+        )}
+
+        {/* Origin marker for selected entrega */}
+        {selectedEntrega?.origemCoords && (
+          <Marker
+            position={[selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]}
+            icon={createLocationIcon('origem')}
+          >
+            <Popup>
+              <div className="min-w-[150px] p-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-green-600">Origem</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Ponto de coleta</p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        {/* Destination marker for selected entrega */}
+        {selectedEntrega?.destinoCoords && (
+          <Marker
+            position={[selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]}
+            icon={createLocationIcon('destino')}
+          >
+            <Popup>
+              <div className="min-w-[150px] p-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-red-600">Destino</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{selectedEntrega.destino || 'Ponto de entrega'}</p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+        
+        {/* Truck markers */}
         {validEntregas.map((entrega) => {
           const status = entrega.status || 'aguardando_coleta';
           const color = statusColors[status] || statusColors['aguardando_coleta'];
           const label = statusLabels[status] || 'Desconhecido';
+          const isSelected = selectedCargaId === entrega.cargaId;
           
           return (
             <Marker
               key={entrega.id}
               position={[entrega.latitude!, entrega.longitude!]}
-              icon={createColoredIcon(color)}
+              icon={createColoredIcon(color, isSelected)}
+              eventHandlers={{
+                click: () => handleMarkerClick(entrega),
+              }}
             >
               <Popup>
                 <div className="min-w-[200px] p-1">
@@ -191,11 +329,26 @@ export function EntregasMap({ entregas }: EntregasMapProps) {
                   {entrega.telefone && (
                     <a 
                       href={`tel:${entrega.telefone}`}
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      className="flex items-center gap-2 text-sm text-primary hover:underline mb-2"
                     >
                       <Phone className="w-3 h-3" />
                       {entrega.telefone}
                     </a>
+                  )}
+
+                  {!isSelected && entrega.origemCoords && entrega.destinoCoords && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full mt-2 gap-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMarkerClick(entrega);
+                      }}
+                    >
+                      <Route className="w-3 h-3" />
+                      Ver rota
+                    </Button>
                   )}
                 </div>
               </Popup>
@@ -218,7 +371,42 @@ export function EntregasMap({ entregas }: EntregasMapProps) {
             </div>
           ))}
         </div>
+        {selectedCargaId && (
+          <div className="mt-2 pt-2 border-t border-border">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-green-500 border border-white" />
+                <span className="text-xs">Origem</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-red-500 border border-white" />
+                <span className="text-xs">Destino</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Selected info badge */}
+      {selectedEntrega && (
+        <div className="absolute top-4 right-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
+          <div className="flex items-center gap-2">
+            <Route className="w-4 h-4 text-primary" />
+            <div>
+              <p className="text-sm font-medium">{selectedEntrega.codigo}</p>
+              <p className="text-xs text-muted-foreground">Rota selecionada</p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-2 h-6 w-6 p-0"
+              onClick={() => onSelectCarga?.(null)}
+            >
+              ×
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
