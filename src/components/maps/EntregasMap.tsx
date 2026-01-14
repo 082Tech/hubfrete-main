@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Badge } from '@/components/ui/badge';
@@ -384,6 +384,31 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
                   click: () => handleMarkerClick(entrega),
                 }}
               >
+                {/* Tooltip on hover */}
+                <Tooltip 
+                  direction="top" 
+                  offset={[0, -12]} 
+                  opacity={0.95}
+                  permanent={false}
+                >
+                  <div className="text-xs min-w-[140px]">
+                    <div className="font-bold mb-1">{entrega.codigo}</div>
+                    {entrega.motorista && (
+                      <div className="text-gray-600">{entrega.motorista}</div>
+                    )}
+                    {entrega.placa && (
+                      <div className="text-gray-500">{entrega.placa}</div>
+                    )}
+                    <div 
+                      className="mt-1 px-1.5 py-0.5 rounded text-white text-center"
+                      style={{ backgroundColor: color }}
+                    >
+                      {label}
+                    </div>
+                  </div>
+                </Tooltip>
+                
+                {/* Popup on click - more details */}
                 <Popup>
                   <div className="min-w-[200px] p-1">
                     <div className="flex items-center gap-2 mb-2">
