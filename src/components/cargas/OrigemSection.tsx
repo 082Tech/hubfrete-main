@@ -21,16 +21,16 @@ interface FilialCompleta extends Filial {
 interface OrigemSectionProps {
   initialData?: Partial<LocationData>;
   onLocationChange: (data: LocationData) => void;
+  dialogOpen?: boolean; // To detect when dialog opens/closes
 }
 
-export function OrigemSection({ initialData, onLocationChange }: OrigemSectionProps) {
+export function OrigemSection({ initialData, onLocationChange, dialogOpen = true }: OrigemSectionProps) {
   const { filialAtiva } = useUserContext();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [filialData, setFilialData] = useState<FilialCompleta | null>(null);
-  const hasLoadedRef = useRef(false);
-  const onLocationChangeRef = useRef(onLocationChange);
-  onLocationChangeRef.current = onLocationChange;
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const lastFilialIdRef = useRef<number | null>(null);
   
   const [formData, setFormData] = useState<LocationData>({
     latitude: initialData?.latitude || 0,
@@ -46,10 +46,13 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
     contato_telefone: initialData?.contato_telefone || '',
   });
 
-  // Load full filial data and geocode - only once per filial
+  // Load full filial data and geocode
   useEffect(() => {
-    // Prevent double loading
-    if (hasLoadedRef.current) return;
+    // Skip if dialog is not open
+    if (!dialogOpen) return;
+    
+    // Skip if already loaded for this filial
+    if (hasLoaded && lastFilialIdRef.current === filialAtiva?.id) return;
     
     const loadFilialData = async () => {
       if (!filialAtiva?.id) {
@@ -58,7 +61,6 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
       }
 
       setIsLoading(true);
-      hasLoadedRef.current = true;
 
       try {
         const { data, error } = await supabase
@@ -69,6 +71,7 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
 
         if (!error && data) {
           setFilialData(data as FilialCompleta);
+          lastFilialIdRef.current = filialAtiva.id;
           
           // Build address for geocoding
           const addressParts = [
@@ -80,9 +83,11 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
           
           const addressQuery = addressParts.join(', ');
           
-          let lat = 0, lng = 0;
+          let lat = data.latitude ? Number(data.latitude) : 0;
+          let lng = data.longitude ? Number(data.longitude) : 0;
           
-          if (addressQuery && data.cidade) {
+          // Only geocode if we don't have coordinates stored
+          if ((lat === 0 || lng === 0) && addressQuery && data.cidade) {
             try {
               const response = await fetch(
                 `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&limit=1`,
@@ -115,8 +120,8 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
           };
           
           setFormData(newData);
-          // Use ref to avoid dependency on onLocationChange
-          onLocationChangeRef.current(newData);
+          setHasLoaded(true);
+          onLocationChange(newData);
         }
       } catch (err) {
         console.error('Error loading filial:', err);
@@ -126,7 +131,14 @@ export function OrigemSection({ initialData, onLocationChange }: OrigemSectionPr
     };
 
     loadFilialData();
-  }, [filialAtiva?.id]);
+  }, [filialAtiva?.id, dialogOpen, hasLoaded, onLocationChange]);
+
+  // Reset hasLoaded when dialog closes to allow reload on next open
+  useEffect(() => {
+    if (!dialogOpen) {
+      setHasLoaded(false);
+    }
+  }, [dialogOpen]);
 
   const handleInputChange = (field: keyof LocationData, value: string) => {
     const newData = { ...formData, [field]: value };
