@@ -82,6 +82,33 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
     loadContatos();
   }, [empresa?.id]);
 
+  const geocodeAddress = async (logradouro: string, numero: string, cidade: string, estado: string): Promise<{lat: number, lng: number}> => {
+    // Try multiple geocoding strategies
+    const queries = [
+      `${logradouro}, ${numero}, ${cidade}, ${estado}, Brasil`,
+      `${logradouro}, ${cidade}, ${estado}, Brasil`,
+      `${cidade}, ${estado}, Brasil`,
+    ];
+
+    for (const query of queries) {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`,
+          { headers: { 'User-Agent': 'HubFrete/1.0' } }
+        );
+        const results = await response.json();
+        
+        if (results.length > 0) {
+          console.log('Geocoded:', query, results[0].lat, results[0].lon);
+          return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+        }
+      } catch (err) {
+        console.error('Geocoding error for query:', query, err);
+      }
+    }
+    return { lat: 0, lng: 0 };
+  };
+
   const handleCnpjSearch = async () => {
     if (!cnpjInput) {
       toast.error('Digite um CNPJ');
@@ -90,24 +117,8 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
 
     const data = await lookupCnpj(cnpjInput);
     if (data) {
-      // Try to geocode the address from CNPJ
-      const addressQuery = `${data.logradouro}, ${data.numero}, ${data.municipio}, ${data.uf}, Brasil`;
-      
-      let lat = 0, lng = 0;
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressQuery)}&limit=1`,
-          { headers: { 'User-Agent': 'HubFrete/1.0' } }
-        );
-        const results = await response.json();
-        
-        if (results.length > 0) {
-          lat = parseFloat(results[0].lat);
-          lng = parseFloat(results[0].lon);
-        }
-      } catch (err) {
-        console.error('Geocoding error:', err);
-      }
+      // Geocode the address from CNPJ
+      const { lat, lng } = await geocodeAddress(data.logradouro, data.numero, data.municipio, data.uf);
 
       const newData: LocationData = {
         latitude: lat,
@@ -127,19 +138,39 @@ export function DestinoSection({ initialData, onLocationChange }: DestinoSection
       
       setFormData(newData);
       onLocationChange(newData);
-      toast.success(`Dados da empresa "${data.nome_fantasia || data.razao_social}" carregados`);
+      
+      if (lat === 0 && lng === 0) {
+        toast.warning(`Dados carregados, mas não foi possível geocodificar o endereço`);
+      } else {
+        toast.success(`Dados da empresa "${data.nome_fantasia || data.razao_social}" carregados`);
+      }
     } else {
       toast.error('CNPJ não encontrado');
     }
   };
 
-  const handleSelectContato = (contatoId: string) => {
+  const handleSelectContato = async (contatoId: string) => {
     const contato = contatos.find(c => c.id === contatoId);
     if (!contato) return;
 
+    // If contact doesn't have coords, try to geocode
+    let lat = contato.latitude || 0;
+    let lng = contato.longitude || 0;
+    
+    if (lat === 0 && lng === 0 && contato.cidade && contato.estado) {
+      const coords = await geocodeAddress(
+        contato.logradouro || '', 
+        contato.numero || '', 
+        contato.cidade, 
+        contato.estado
+      );
+      lat = coords.lat;
+      lng = coords.lng;
+    }
+
     const newData: LocationData = {
-      latitude: contato.latitude || 0,
-      longitude: contato.longitude || 0,
+      latitude: lat,
+      longitude: lng,
       cep: contato.cep || '',
       logradouro: contato.logradouro || '',
       numero: contato.numero || '',
