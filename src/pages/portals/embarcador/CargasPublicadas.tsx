@@ -1,15 +1,16 @@
-import { useState, Suspense, lazy } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { PortalLayout } from '@/components/portals/PortalLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Table,
   TableBody,
@@ -25,6 +26,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Package,
   Search,
   MoreHorizontal,
@@ -34,9 +41,12 @@ import {
   TrendingUp,
   Loader2,
   MapPin,
+  Building2,
+  Calendar,
+  Truck,
+  CircleDot,
+  Percent,
 } from 'lucide-react';
-
-const EntregasMap = lazy(() => import('@/components/maps/EntregasMap').then(module => ({ default: module.EntregasMap })));
 
 interface CargaPublicada {
   id: string;
@@ -50,11 +60,17 @@ interface CargaPublicada {
   valor_frete_tonelada: number | null;
   status: string;
   data_coleta_de: string | null;
+  data_coleta_ate: string | null;
   created_at: string;
   enderecos_carga: Array<{
     tipo: string;
+    logradouro: string;
+    numero: string | null;
+    bairro: string | null;
     cidade: string;
     estado: string;
+    cep: string;
+    contato_nome: string | null;
     latitude: number | null;
     longitude: number | null;
   }>;
@@ -69,7 +85,6 @@ interface CargaPublicada {
 export default function CargasPublicadas() {
   const { filialAtiva } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCarga, setSelectedCarga] = useState<CargaPublicada | null>(null);
   const [detailsCarga, setDetailsCarga] = useState<any>(null);
 
   const { data: cargas = [], isLoading, refetch } = useQuery({
@@ -91,11 +106,17 @@ export default function CargasPublicadas() {
           valor_frete_tonelada,
           status,
           data_coleta_de,
+          data_coleta_ate,
           created_at,
           enderecos_carga (
             tipo,
+            logradouro,
+            numero,
+            bairro,
             cidade,
             estado,
+            cep,
+            contato_nome,
             latitude,
             longitude
           ),
@@ -125,14 +146,23 @@ export default function CargasPublicadas() {
     carga.descricao.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getOrigem = (carga: CargaPublicada) => {
-    const origem = carga.enderecos_carga?.find(e => e.tipo === 'origem');
-    return origem ? `${origem.cidade}/${origem.estado}` : '-';
-  };
-
-  const getDestino = (carga: CargaPublicada) => {
-    const destino = carga.enderecos_carga?.find(e => e.tipo === 'destino');
-    return destino ? `${destino.cidade}/${destino.estado}` : '-';
+  const getEnderecoData = (carga: CargaPublicada, tipo: 'origem' | 'destino') => {
+    const endereco = carga.enderecos_carga?.find(e => e.tipo === tipo);
+    if (!endereco) return { empresa: '-', cidade: '-', enderecoCompleto: '-' };
+    
+    const enderecoCompleto = [
+      endereco.logradouro,
+      endereco.numero,
+      endereco.bairro,
+      `${endereco.cidade}/${endereco.estado}`,
+      endereco.cep
+    ].filter(Boolean).join(', ');
+    
+    return {
+      empresa: endereco.contato_nome || filialAtiva?.nome || 'Remetente',
+      cidade: `${endereco.cidade}/${endereco.estado}`,
+      enderecoCompleto
+    };
   };
 
   const getPesoDisponivel = (carga: CargaPublicada) => {
@@ -155,6 +185,21 @@ export default function CargasPublicadas() {
     return <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">Aguardando</Badge>;
   };
 
+  const getTipoBadge = (tipo: string) => {
+    const tipoLabels: Record<string, string> = {
+      'granel_solido': 'Granel Sólido',
+      'granel_liquido': 'Granel Líquido',
+      'carga_seca': 'Carga Seca',
+      'refrigerada': 'Refrigerada',
+      'congelada': 'Congelada',
+      'perigosa': 'Perigosa',
+      'viva': 'Viva',
+      'indivisivel': 'Indivisível',
+      'container': 'Container',
+    };
+    return <Badge variant="outline" className="text-xs">{tipoLabels[tipo] || tipo}</Badge>;
+  };
+
   const formatCurrency = (value: number | null) => {
     if (!value) return '-';
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -167,281 +212,362 @@ export default function CargasPublicadas() {
     return `${kg}kg`;
   };
 
+  const formatDate = (date: string | null) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString('pt-BR');
+  };
+
   // Stats
   const totalCargas = cargas.length;
   const pesoTotalPublicado = cargas.reduce((acc, c) => acc + c.peso_kg, 0);
   const pesoTotalDisponivel = cargas.reduce((acc, c) => acc + getPesoDisponivel(c), 0);
+  const percentualMedioAlocado = totalCargas > 0 
+    ? cargas.reduce((acc, c) => acc + getPercentualAlocado(c), 0) / totalCargas 
+    : 0;
   const valorFreteEstimado = cargas.reduce((acc, c) => {
     if (c.valor_frete_tonelada && c.peso_kg) {
       return acc + (c.valor_frete_tonelada * c.peso_kg / 1000);
     }
     return acc;
   }, 0);
-
-  // Map data - convert to EntregaMapData format
-  const mapCargas = selectedCarga ? [selectedCarga] : filteredCargas;
-  const entregasForMap = mapCargas.flatMap(carga => {
-    const origem = carga.enderecos_carga?.find(e => e.tipo === 'origem');
-    const destino = carga.enderecos_carga?.find(e => e.tipo === 'destino');
-    
-    if (!origem?.latitude || !destino?.latitude) return [];
-    
-    return [{
-      id: carga.id,
-      cargaId: carga.id,
-      latitude: origem.latitude,
-      longitude: origem.longitude,
-      status: 'aguardando_coleta',
-      codigo: carga.codigo,
-      descricao: carga.descricao,
-      motorista: null,
-      telefone: null,
-      placa: null,
-      destino: `${destino.cidade}/${destino.estado}`,
-      origemCoords: { lat: origem.latitude!, lng: origem.longitude! },
-      destinoCoords: { lat: destino.latitude!, lng: destino.longitude! },
-    }];
-  });
+  const valorMercadoriaTotal = cargas.reduce((acc, c) => acc + (c.valor_mercadoria || 0), 0);
+  const cargasAguardando = cargas.filter(c => getPercentualAlocado(c) === 0).length;
+  const cargasParciais = cargas.filter(c => {
+    const p = getPercentualAlocado(c);
+    return p > 0 && p < 100;
+  }).length;
+  const cargasCompletas = cargas.filter(c => getPercentualAlocado(c) >= 100).length;
 
   return (
     <PortalLayout expectedUserType="embarcador">
-      <div className="flex gap-6 h-[calc(100vh-2rem)]">
-        {/* Sidebar */}
-        <aside className="hidden lg:flex flex-col w-80 shrink-0 gap-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Package className="w-6 h-6 text-primary" />
-                Cargas Publicadas
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Gerencie suas cargas disponíveis para transporte
-              </p>
-            </div>
+      <div className="space-y-6 p-1">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Package className="w-6 h-6 text-primary" />
+              Cargas Publicadas
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Gerencie suas cargas disponíveis para transporte
+            </p>
           </div>
-
-          {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar código ou descrição..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             <NovaCargaDialog onSuccess={refetch} />
           </div>
+        </div>
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por código ou descrição..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 gap-3">
-            <Card className="bg-card/50">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2">
-                  <Package className="w-4 h-4 text-primary" />
-                  <span className="text-xs text-muted-foreground">Cargas</span>
-                </div>
-                <p className="text-xl font-bold">{totalCargas}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card/50">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2">
-                  <Weight className="w-4 h-4 text-blue-500" />
-                  <span className="text-xs text-muted-foreground">Peso Total</span>
-                </div>
-                <p className="text-xl font-bold">{formatWeight(pesoTotalPublicado)}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card/50">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-green-500" />
-                  <span className="text-xs text-muted-foreground">Disponível</span>
-                </div>
-                <p className="text-xl font-bold">{formatWeight(pesoTotalDisponivel)}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card/50">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-yellow-500" />
-                  <span className="text-xs text-muted-foreground">Frete Est.</span>
-                </div>
-                <p className="text-lg font-bold">{formatCurrency(valorFreteEstimado)}</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Legend */}
-          <Card className="bg-card/50">
-            <CardHeader className="py-2 px-3">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Legenda</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <span className="text-xs">Aguardando motoristas</span>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Package className="w-4 h-4 text-primary" />
+                <span className="text-xs text-muted-foreground">Total Cargas</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500" />
-                <span className="text-xs">Parcialmente alocada</span>
+              <p className="text-2xl font-bold text-primary">{totalCargas}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Weight className="w-4 h-4 text-blue-500" />
+                <span className="text-xs text-muted-foreground">Peso Total</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-xs">100% alocada</span>
+              <p className="text-2xl font-bold text-blue-500">{formatWeight(pesoTotalPublicado)}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="w-4 h-4 text-green-500" />
+                <span className="text-xs text-muted-foreground">Disponível</span>
+              </div>
+              <p className="text-2xl font-bold text-green-500">{formatWeight(pesoTotalDisponivel)}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Percent className="w-4 h-4 text-purple-500" />
+                <span className="text-xs text-muted-foreground">% Alocado</span>
+              </div>
+              <p className="text-2xl font-bold text-purple-500">{percentualMedioAlocado.toFixed(0)}%</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 border-yellow-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="w-4 h-4 text-yellow-600" />
+                <span className="text-xs text-muted-foreground">Frete Est.</span>
+              </div>
+              <p className="text-xl font-bold text-yellow-600">{formatCurrency(valorFreteEstimado)}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Truck className="w-4 h-4 text-amber-600" />
+                <span className="text-xs text-muted-foreground">Mercadoria</span>
+              </div>
+              <p className="text-xl font-bold text-amber-600">{formatCurrency(valorMercadoriaTotal)}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CircleDot className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Por Status</span>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                  <span>{cargasAguardando}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span>{cargasParciais}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <span>{cargasCompletas}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </aside>
 
-        {/* Main Content */}
-        <div className="flex-1 space-y-4 min-w-0">
-          {/* Map */}
-          <Suspense fallback={
-            <div className="w-full h-64 bg-muted/20 rounded-lg flex items-center justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-          }>
-            <div className="h-64 rounded-lg overflow-hidden">
-              <EntregasMap
-                entregas={entregasForMap}
-                selectedCargaId={selectedCarga?.id}
-                onSelectCarga={(id) => {
-                  const carga = cargas.find(c => c.id === id);
-                  setSelectedCarga(carga === selectedCarga ? null : carga || null);
-                }}
-              />
-            </div>
-          </Suspense>
-
-          {/* Table */}
-          <Card>
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Card className="bg-muted/30">
+            <CardContent className="p-4">
+              <div className="text-xs text-muted-foreground mb-2">Legenda</div>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                  <span>Aguardando</span>
                 </div>
-              ) : filteredCargas.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Package className="w-12 h-12 text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">
-                    Nenhuma carga publicada
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Crie e publique novas cargas para disponibilizá-las aos transportadores
-                  </p>
-                  <NovaCargaDialog onSuccess={refetch} />
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span>Parcial</span>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="font-semibold">Código</TableHead>
-                        <TableHead className="font-semibold">Rota</TableHead>
-                        <TableHead className="font-semibold">Peso Total</TableHead>
-                        <TableHead className="font-semibold">Disponível</TableHead>
-                        <TableHead className="font-semibold">Progresso</TableHead>
-                        <TableHead className="font-semibold">Frete/ton</TableHead>
-                        <TableHead className="font-semibold">Status</TableHead>
-                        <TableHead className="font-semibold w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredCargas.map((carga) => {
-                        const percentual = getPercentualAlocado(carga);
-                        const isSelected = selectedCarga?.id === carga.id;
-                        
-                        return (
-                          <TableRow 
-                            key={carga.id}
-                            className={`cursor-pointer transition-colors ${isSelected ? 'bg-primary/5 border-l-2 border-l-primary' : 'hover:bg-muted/50'}`}
-                            onClick={() => setSelectedCarga(isSelected ? null : carga)}
-                          >
-                            <TableCell>
-                              <div>
-                                <p className="font-medium text-primary">{carga.codigo}</p>
-                                <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                                  {carga.descricao}
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1 text-sm">
-                                <MapPin className="w-3 h-3 text-green-500" />
-                                <span>{getOrigem(carga)}</span>
-                                <span className="text-muted-foreground mx-1">→</span>
-                                <MapPin className="w-3 h-3 text-red-500" />
-                                <span>{getDestino(carga)}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-medium">{formatWeight(carga.peso_kg)}</span>
-                            </TableCell>
-                            <TableCell>
-                              <span className={`font-medium ${getPesoDisponivel(carga) === 0 ? 'text-green-500' : 'text-yellow-500'}`}>
-                                {formatWeight(getPesoDisponivel(carga))}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <div className="w-24">
-                                <Progress value={percentual} className="h-2" />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {percentual.toFixed(0)}% alocado
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-medium">
-                                {formatCurrency(carga.valor_frete_tonelada)}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(carga)}
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDetailsCarga(carga);
-                                  }}>
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    Ver detalhes
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedCarga(carga);
-                                  }}>
-                                    <MapPin className="w-4 h-4 mr-2" />
-                                    Ver no mapa
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <span>Completa</span>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Table */}
+        <Card>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : filteredCargas.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Package className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  Nenhuma carga publicada
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Crie e publique novas cargas para disponibilizá-las aos transportadores
+                </p>
+                <NovaCargaDialog onSuccess={refetch} />
+              </div>
+            ) : (
+              <ScrollArea className="w-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold min-w-[120px] sticky left-0 bg-muted/50 z-10">Código</TableHead>
+                      <TableHead className="font-semibold min-w-[180px]">
+                        <div className="flex items-center gap-1">
+                          <Building2 className="w-3 h-3" />
+                          Remetente
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold min-w-[180px]">
+                        <div className="flex items-center gap-1">
+                          <Building2 className="w-3 h-3" />
+                          Destinatário
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold min-w-[100px]">Tipo</TableHead>
+                      <TableHead className="font-semibold min-w-[100px]">Peso Total</TableHead>
+                      <TableHead className="font-semibold min-w-[100px]">Disponível</TableHead>
+                      <TableHead className="font-semibold min-w-[140px]">Progresso</TableHead>
+                      <TableHead className="font-semibold min-w-[120px]">Valor Mercad.</TableHead>
+                      <TableHead className="font-semibold min-w-[100px]">Frete/ton</TableHead>
+                      <TableHead className="font-semibold min-w-[100px]">Frete Total</TableHead>
+                      <TableHead className="font-semibold min-w-[100px]">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          Coleta
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
+                      <TableHead className="font-semibold w-10"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCargas.map((carga) => {
+                      const percentual = getPercentualAlocado(carga);
+                      const origem = getEnderecoData(carga, 'origem');
+                      const destino = getEnderecoData(carga, 'destino');
+                      const freteTotal = carga.valor_frete_tonelada && carga.peso_kg 
+                        ? (carga.valor_frete_tonelada * carga.peso_kg / 1000) 
+                        : null;
+                      
+                      return (
+                        <TableRow 
+                          key={carga.id}
+                          className="hover:bg-muted/50 cursor-pointer"
+                          onClick={() => setDetailsCarga(carga)}
+                        >
+                          <TableCell className="sticky left-0 bg-background z-10">
+                            <div>
+                              <p className="font-medium text-primary">{carga.codigo}</p>
+                              <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                                {carga.descricao}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="cursor-help">
+                                    <div className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3 text-green-500 shrink-0" />
+                                      <p className="font-medium text-sm truncate max-w-[160px]">{origem.empresa}</p>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground truncate max-w-[160px]">
+                                      {origem.cidade}
+                                    </p>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-xs">
+                                  <p className="font-medium">{origem.empresa}</p>
+                                  <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                          <TableCell>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="cursor-help">
+                                    <div className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                                      <p className="font-medium text-sm truncate max-w-[160px]">{destino.empresa}</p>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground truncate max-w-[160px]">
+                                      {destino.cidade}
+                                    </p>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-xs">
+                                  <p className="font-medium">{destino.empresa}</p>
+                                  <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                          <TableCell>
+                            {getTipoBadge(carga.tipo)}
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">{formatWeight(carga.peso_kg)}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`font-medium ${getPesoDisponivel(carga) === 0 ? 'text-green-500' : 'text-yellow-500'}`}>
+                              {formatWeight(getPesoDisponivel(carga))}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="w-28">
+                              <Progress value={percentual} className="h-2" />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {percentual.toFixed(0)}% alocado
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-sm">
+                              {formatCurrency(carga.valor_mercadoria)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-sm">
+                              {formatCurrency(carga.valor_frete_tonelada)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-sm text-primary">
+                              {formatCurrency(freteTotal)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-xs">
+                              {carga.data_coleta_de && (
+                                <p>{formatDate(carga.data_coleta_de)}</p>
+                              )}
+                              {carga.data_coleta_ate && carga.data_coleta_de !== carga.data_coleta_ate && (
+                                <p className="text-muted-foreground">até {formatDate(carga.data_coleta_ate)}</p>
+                              )}
+                              {!carga.data_coleta_de && '-'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(carga)}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDetailsCarga(carga);
+                                }}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Ver detalhes
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Details Dialog */}
       {detailsCarga && (
         <CargaDetailsDialog
           carga={detailsCarga}
