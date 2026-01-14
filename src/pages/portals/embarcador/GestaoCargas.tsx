@@ -230,22 +230,28 @@ export default function GestaoCargas() {
   // Map data for entregas with location
   const mapData = useMemo(() => {
     return filteredCargas
-      .filter(c => c.entregas !== null)
       .map(c => {
-        const e = c.entregas!;
+        const e = c.entregas;
         const origem = c.enderecos_carga?.find(end => end.tipo === 'origem');
         const destino = c.enderecos_carga?.find(end => end.tipo === 'destino');
+        
+        // Include if has entrega with location OR has origin/destination coords
+        const hasLocation = e?.latitude_atual && e?.longitude_atual;
+        const hasRoute = (origem?.latitude && origem?.longitude) || (destino?.latitude && destino?.longitude);
+        
+        if (!hasLocation && !hasRoute) return null;
+        
         return {
-          id: e.id,
+          id: e?.id || c.id,
           cargaId: c.id,
-          latitude: e.latitude_atual,
-          longitude: e.longitude_atual,
-          status: e.status,
+          latitude: e?.latitude_atual || null,
+          longitude: e?.longitude_atual || null,
+          status: e?.status || null,
           codigo: c.codigo,
           descricao: c.descricao,
-          motorista: e.motoristas?.nome_completo || null,
-          telefone: e.motoristas?.telefone || null,
-          placa: e.veiculos?.placa || null,
+          motorista: e?.motoristas?.nome_completo || null,
+          telefone: e?.motoristas?.telefone || null,
+          placa: e?.veiculos?.placa || null,
           destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
           origemCoords: origem?.latitude && origem?.longitude 
             ? { lat: origem.latitude, lng: origem.longitude } 
@@ -254,7 +260,8 @@ export default function GestaoCargas() {
             ? { lat: destino.latitude, lng: destino.longitude } 
             : null,
         };
-      });
+      })
+      .filter(Boolean) as NonNullable<typeof mapData[number]>[];
   }, [filteredCargas]);
 
   const handleStatusToggle = (status: string) => {
