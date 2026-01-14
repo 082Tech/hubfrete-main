@@ -8,11 +8,7 @@ import {
   CheckCircle,
   ArrowUpRight,
   Loader2,
-  TrendingUp,
-  TrendingDown,
-  FileText,
   DollarSign,
-  AlertCircle,
   MapPin
 } from 'lucide-react';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
@@ -44,7 +40,6 @@ import { useMemo } from 'react';
 const statusLabels: Record<string, { label: string; color: string }> = {
   'rascunho': { label: 'Rascunho', color: 'bg-muted text-muted-foreground border-border' },
   'publicada': { label: 'Publicada', color: 'bg-primary/10 text-primary border-primary/20' },
-  'em_cotacao': { label: 'Em Cotação', color: 'bg-accent text-accent-foreground border-accent' },
   'aceita': { label: 'Aceita', color: 'bg-chart-3/10 text-chart-3 border-chart-3/20' },
   'em_coleta': { label: 'Em Coleta', color: 'bg-chart-4/10 text-chart-4 border-chart-4/20' },
   'em_transito': { label: 'Em Trânsito', color: 'bg-chart-1/10 text-chart-1 border-chart-1/20' },
@@ -132,31 +127,6 @@ export default function EmbarcadorDashboard() {
     enabled: !!empresa?.id,
   });
 
-  // Fetch cotacoes
-  const { data: cotacoes = [], isLoading: loadingCotacoes } = useQuery({
-    queryKey: ['dashboard_cotacoes', empresa?.id, filialAtiva?.id],
-    queryFn: async () => {
-      if (!empresa?.id) return [];
-
-      const { data, error } = await supabase
-        .from('cotacoes')
-        .select(`
-          id,
-          status,
-          valor_proposto,
-          created_at,
-          cargas!inner (
-            empresa_id,
-            filial_id
-          )
-        `)
-        .eq('cargas.empresa_id', empresa.id);
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!empresa?.id,
-  });
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -178,9 +148,6 @@ export default function EmbarcadorDashboard() {
       const entregueDate = parseISO(e.entregue_em);
       return entregueDate >= monthStart && entregueDate <= monthEnd;
     }).length;
-
-    // Cotações pendentes
-    const cotacoesPendentes = cotacoes.filter(c => c.status === 'pendente').length;
 
     // Valor total de mercadorias ativas
     const valorTotalMercadorias = cargas
@@ -206,11 +173,10 @@ export default function EmbarcadorDashboard() {
       emTransito,
       aguardandoColeta,
       entreguesMes,
-      cotacoesPendentes,
       valorTotalMercadorias,
       changePercent,
     };
-  }, [cargas, entregas, cotacoes]);
+  }, [cargas, entregas]);
 
   // Chart data: Cargas por status
   const statusChartData = useMemo(() => {
@@ -268,19 +234,7 @@ export default function EmbarcadorDashboard() {
     });
   }, [cargas]);
 
-  // Pending cotacoes
-  const pendingCotacoes = useMemo(() => {
-    return cotacoes
-      .filter(c => c.status === 'pendente')
-      .slice(0, 3)
-      .map(c => ({
-        id: c.id.slice(0, 8),
-        valor: c.valor_proposto,
-        data: format(parseISO(c.created_at), 'dd/MM/yyyy'),
-      }));
-  }, [cotacoes]);
-
-  const isLoading = loadingCargas || loadingEntregas || loadingCotacoes;
+  const isLoading = loadingCargas || loadingEntregas;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -341,27 +295,7 @@ export default function EmbarcadorDashboard() {
 
         {/* Secondary Stats */}
         {!isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 bg-accent rounded-xl">
-                  <FileText className="w-5 h-5 text-accent-foreground" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Cotações Pendentes</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.cotacoesPendentes}</p>
-                </div>
-                {stats.cotacoesPendentes > 0 && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => navigate('/embarcador/cotacoes')}
-                  >
-                    <ArrowUpRight className="w-4 h-4" />
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             <Card className="border-border">
               <CardContent className="p-4 flex items-center gap-4">
@@ -507,125 +441,68 @@ export default function EmbarcadorDashboard() {
         )}
 
         {/* Bottom Section: Recent Items */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Loads */}
-          <Card className="border-border lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Cargas Recentes</CardTitle>
-                <CardDescription>Últimas cargas cadastradas</CardDescription>
+        <Card className="border-border">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Cargas Recentes</CardTitle>
+              <CardDescription>Últimas cargas cadastradas</CardDescription>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1"
+              onClick={() => navigate('/embarcador/cargas')}
+            >
+              Ver todas <ArrowUpRight className="w-4 h-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-24">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="gap-1"
-                onClick={() => navigate('/embarcador/cargas')}
-              >
-                Ver todas <ArrowUpRight className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center h-24">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : recentCargas.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">Nenhuma carga cadastrada ainda</p>
-                  <p className="text-sm text-muted-foreground">Clique em "Nova Carga" para começar</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {recentCargas.map((load) => {
-                    const statusInfo = statusLabels[load.status] || statusLabels['rascunho'];
-                    return (
-                      <div 
-                        key={load.id} 
-                        className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
-                        onClick={() => navigate('/embarcador/cargas')}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-foreground truncate">{load.id}</p>
-                            <Badge variant="outline" className={statusInfo.color}>
-                              {statusInfo.label}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                            <span className="truncate">{load.origem}</span>
-                            <ArrowUpRight className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{load.destino}</span>
-                          </div>
-                        </div>
-                        <div className="text-right flex-shrink-0 ml-4">
-                          <p className="text-sm font-medium text-foreground">
-                            {load.peso ? `${Number(load.peso).toLocaleString('pt-BR')} kg` : '-'}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{load.data}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Pending Cotacoes */}
-          <Card className="border-border">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <CardTitle>Cotações Pendentes</CardTitle>
-                {pendingCotacoes.length > 0 && (
-                  <Badge variant="secondary" className="bg-accent text-accent-foreground">
-                    {stats.cotacoesPendentes}
-                  </Badge>
-                )}
+            ) : recentCargas.length === 0 ? (
+              <div className="text-center py-8">
+                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <p className="text-muted-foreground">Nenhuma carga cadastrada ainda</p>
+                <p className="text-sm text-muted-foreground">Clique em "Nova Carga" para começar</p>
               </div>
-              <CardDescription>Aguardando sua análise</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center h-24">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : pendingCotacoes.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">Nenhuma cotação pendente</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {pendingCotacoes.map((cotacao) => (
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {recentCargas.map((load) => {
+                  const statusInfo = statusLabels[load.status] || statusLabels['rascunho'];
+                  return (
                     <div 
-                      key={cotacao.id} 
-                      className="flex items-center justify-between p-3 rounded-lg border border-border bg-card"
+                      key={load.id} 
+                      className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => navigate('/embarcador/cargas')}
                     >
-                      <div>
-                        <p className="font-medium text-foreground text-sm">#{cotacao.id}</p>
-                        <p className="text-xs text-muted-foreground">{cotacao.data}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground truncate">{load.id}</p>
+                          <Badge variant="outline" className={statusInfo.color}>
+                            {statusInfo.label}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                          <span className="truncate">{load.origem}</span>
+                          <ArrowUpRight className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{load.destino}</span>
+                        </div>
                       </div>
-                      <p className="font-semibold text-chart-2">
-                        {formatCurrency(Number(cotacao.valor))}
-                      </p>
+                      <div className="text-right flex-shrink-0 ml-4">
+                        <p className="text-sm font-medium text-foreground">
+                          {load.peso ? `${Number(load.peso).toLocaleString('pt-BR')} kg` : '-'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{load.data}</p>
+                      </div>
                     </div>
-                  ))}
-                  {stats.cotacoesPendentes > 3 && (
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      size="sm"
-                      onClick={() => navigate('/embarcador/cotacoes')}
-                    >
-                      Ver mais {stats.cotacoesPendentes - 3} cotações
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </PortalLayout>
   );

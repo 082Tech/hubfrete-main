@@ -175,89 +175,6 @@ export type Database = {
           },
         ]
       }
-      cotacoes: {
-        Row: {
-          aceita_em: string | null
-          carga_id: string
-          created_at: string | null
-          empresa_id: number | null
-          id: string
-          motivo_recusa: string | null
-          motorista_id: string | null
-          observacoes: string | null
-          prazo_entrega_dias: number | null
-          recusada_em: string | null
-          status: Database["public"]["Enums"]["status_cotacao"] | null
-          updated_at: string | null
-          validade: string | null
-          valor_proposto: number
-          veiculo_id: string | null
-        }
-        Insert: {
-          aceita_em?: string | null
-          carga_id: string
-          created_at?: string | null
-          empresa_id?: number | null
-          id?: string
-          motivo_recusa?: string | null
-          motorista_id?: string | null
-          observacoes?: string | null
-          prazo_entrega_dias?: number | null
-          recusada_em?: string | null
-          status?: Database["public"]["Enums"]["status_cotacao"] | null
-          updated_at?: string | null
-          validade?: string | null
-          valor_proposto: number
-          veiculo_id?: string | null
-        }
-        Update: {
-          aceita_em?: string | null
-          carga_id?: string
-          created_at?: string | null
-          empresa_id?: number | null
-          id?: string
-          motivo_recusa?: string | null
-          motorista_id?: string | null
-          observacoes?: string | null
-          prazo_entrega_dias?: number | null
-          recusada_em?: string | null
-          status?: Database["public"]["Enums"]["status_cotacao"] | null
-          updated_at?: string | null
-          validade?: string | null
-          valor_proposto?: number
-          veiculo_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cotacoes_carga_id_fkey"
-            columns: ["carga_id"]
-            isOneToOne: false
-            referencedRelation: "cargas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cotacoes_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cotacoes_motorista_id_fkey"
-            columns: ["motorista_id"]
-            isOneToOne: false
-            referencedRelation: "motoristas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cotacoes_veiculo_id_fkey"
-            columns: ["veiculo_id"]
-            isOneToOne: false
-            referencedRelation: "veiculos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       empresas: {
         Row: {
           classe: Database["public"]["Enums"]["classe_empresa"]
@@ -435,13 +352,6 @@ export type Database = {
             columns: ["carga_id"]
             isOneToOne: true
             referencedRelation: "cargas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "entregas_cotacao_id_fkey"
-            columns: ["cotacao_id"]
-            isOneToOne: false
-            referencedRelation: "cotacoes"
             referencedColumns: ["id"]
           },
           {
@@ -928,12 +838,6 @@ export type Database = {
         | "em_transito"
         | "entregue"
         | "cancelada"
-      status_cotacao:
-        | "pendente"
-        | "aceita"
-        | "recusada"
-        | "expirada"
-        | "cancelada"
       status_entrega:
         | "aguardando_coleta"
         | "em_coleta"
@@ -1121,13 +1025,6 @@ export const Constants = {
         "em_coleta",
         "em_transito",
         "entregue",
-        "cancelada",
-      ],
-      status_cotacao: [
-        "pendente",
-        "aceita",
-        "recusada",
-        "expirada",
         "cancelada",
       ],
       status_entrega: [
