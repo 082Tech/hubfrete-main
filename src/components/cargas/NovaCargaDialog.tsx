@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, Eye } from 'lucide-react';
+import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, Eye, DollarSign } from 'lucide-react';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
 import { OrigemSection } from './OrigemSection';
@@ -63,8 +63,9 @@ const formSchema = z.object({
   tipo: z.enum(['granel_solido', 'granel_liquido', 'carga_seca', 'refrigerada', 'congelada', 'perigosa', 'viva', 'indivisivel', 'container'] as const),
   peso_kg: z.coerce.number().min(1, 'Peso deve ser maior que 0'),
   volume_m3: z.coerce.number().optional(),
-  quantidade: z.coerce.number().min(1).default(1),
   valor_mercadoria: z.coerce.number().optional(),
+  valor_frete_tonelada: z.coerce.number().optional(),
+  permite_fracionado: z.boolean().default(true),
   
   // Características especiais
   carga_fragil: z.boolean().default(false),
@@ -137,7 +138,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       descricao: '',
       tipo: 'carga_seca',
       peso_kg: 0,
-      quantidade: 1,
+      valor_frete_tonelada: 0,
+      permite_fracionado: true,
       carga_fragil: false,
       carga_perigosa: false,
       carga_viva: false,
@@ -146,6 +148,12 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       regras_carregamento: '',
     },
   });
+
+  const pesoKg = form.watch('peso_kg');
+  const valorFreteTonelada = form.watch('valor_frete_tonelada');
+  
+  // Calcular preview do frete total
+  const freteTotal = pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
 
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
@@ -195,9 +203,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           descricao: values.descricao,
           tipo: values.tipo,
           peso_kg: values.peso_kg,
+          peso_disponivel_kg: values.peso_kg, // Inicialmente todo peso está disponível
           volume_m3: values.volume_m3 || null,
-          quantidade: values.quantidade,
           valor_mercadoria: values.valor_mercadoria || null,
+          valor_frete_tonelada: values.valor_frete_tonelada || null,
+          permite_fracionado: values.permite_fracionado,
           carga_fragil: values.carga_fragil,
           carga_perigosa: values.carga_perigosa,
           carga_viva: values.carga_viva,
@@ -409,7 +419,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="volume_m3"
@@ -426,28 +436,73 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
                   <FormField
                     control={form.control}
-                    name="quantidade"
+                    name="valor_mercadoria"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Quantidade</FormLabel>
+                        <FormLabel>Valor Mercadoria (R$)</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="1" {...field} />
+                          <Input type="number" step="0.01" placeholder="0,00" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Seção de Frete */}
+                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
+                  <h4 className="font-medium text-sm flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-primary" />
+                    Valor do Frete
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="valor_frete_tonelada"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Frete por Tonelada (R$)</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" placeholder="0,00" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="space-y-2">
+                      <Label className="text-sm">Frete Total Estimado</Label>
+                      <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center">
+                        <span className="font-bold text-primary">
+                          {freteTotal > 0 
+                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
+                            : 'R$ 0,00'
+                          }
+                        </span>
+                      </div>
+                      {pesoKg > 0 && valorFreteTonelada > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {(pesoKg / 1000).toFixed(2)}t × R$ {valorFreteTonelada.toFixed(2)}/ton
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
                   <FormField
                     control={form.control}
-                    name="valor_mercadoria"
+                    name="permite_fracionado"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Valor (R$)</FormLabel>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0,00" {...field} />
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
                         </FormControl>
-                        <FormMessage />
+                        <FormLabel className="font-normal text-sm">
+                          Permitir transporte fracionado (múltiplos motoristas)
+                        </FormLabel>
                       </FormItem>
                     )}
                   />
@@ -688,8 +743,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     tipo: form.getValues('tipo'),
                     peso_kg: form.getValues('peso_kg'),
                     volume_m3: form.getValues('volume_m3'),
-                    quantidade: form.getValues('quantidade'),
                     valor_mercadoria: form.getValues('valor_mercadoria'),
+                    valor_frete_tonelada: form.getValues('valor_frete_tonelada'),
                     data_coleta_de: form.getValues('data_coleta_de'),
                     data_coleta_ate: form.getValues('data_coleta_ate'),
                     data_entrega_limite: form.getValues('data_entrega_limite'),

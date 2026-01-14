@@ -46,6 +46,7 @@ export type Database = {
           temperatura_min: number | null
           tipo: Database["public"]["Enums"]["tipo_carga"]
           updated_at: string | null
+          valor_frete_tonelada: number | null
           valor_mercadoria: number | null
           veiculo_requisitos: Json | null
           volume_m3: number | null
@@ -81,6 +82,7 @@ export type Database = {
           temperatura_min?: number | null
           tipo: Database["public"]["Enums"]["tipo_carga"]
           updated_at?: string | null
+          valor_frete_tonelada?: number | null
           valor_mercadoria?: number | null
           veiculo_requisitos?: Json | null
           volume_m3?: number | null
@@ -116,6 +118,7 @@ export type Database = {
           temperatura_min?: number | null
           tipo?: Database["public"]["Enums"]["tipo_carga"]
           updated_at?: string | null
+          valor_frete_tonelada?: number | null
           valor_mercadoria?: number | null
           veiculo_requisitos?: Json | null
           volume_m3?: number | null

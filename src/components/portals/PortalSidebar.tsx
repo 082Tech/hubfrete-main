@@ -41,7 +41,8 @@ type SidebarUserType = 'embarcador' | 'transportadora' | 'motorista';
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/embarcador' },
-    { icon: Package, label: 'Minhas Cargas', href: '/embarcador/cargas' },
+    { icon: Package, label: 'Cargas Publicadas', href: '/embarcador/cargas-publicadas' },
+    { icon: Truck, label: 'Cargas em Rota', href: '/embarcador/cargas' },
     { icon: Building2, label: 'Destinatários', href: '/embarcador/destinatarios' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: MessageCircle, label: 'Assistente', href: '/embarcador/assistente' },
