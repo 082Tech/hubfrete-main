@@ -102,7 +102,7 @@ export default function Assistente() {
                 <Bot className="w-4 h-4 text-primary-foreground" />
               </div>
               <div>
-                <span>Mau Saya</span>
+                <span>HubFrete AI</span>
                 <p className="text-xs font-normal text-muted-foreground">Assistente Virtual</p>
               </div>
             </CardTitle>
