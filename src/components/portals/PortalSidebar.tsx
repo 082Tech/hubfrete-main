@@ -126,11 +126,11 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
               {config.title}
             </Badge>
             <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
-              {companyName}
+              {empresa?.nome || companyName}
             </p>
-            {companyInfo?.cnpj && (
+            {empresa?.cnpj_matriz && (
               <p className="text-[10px] text-sidebar-foreground/60">
-                CNPJ: {companyInfo.cnpj}
+                CNPJ: {empresa.cnpj_matriz}
               </p>
             )}
           </div>
@@ -138,33 +138,37 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
         
         {/* Branch Selector - always show to indicate current branch */}
         {filiais.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full justify-between h-9 px-3 text-xs bg-sidebar border-sidebar-border hover:bg-sidebar-accent"
-                disabled={switchingFilial}
-              >
-                <span className="flex items-center gap-2 text-sidebar-foreground">
-                  {switchingFilial ? (
-                    <Loader2 className="w-3.5 h-3.5 text-sidebar-primary animate-spin" />
-                  ) : (
-                    <MapPin className="w-3.5 h-3.5 text-sidebar-primary" />
-                  )}
-                  <span className="font-medium truncate">
-                    {switchingFilial ? 'Carregando...' : (filialAtiva?.nome || 'Selecionar filial')}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-medium text-sidebar-foreground/60 uppercase tracking-wider">
+              Filial Ativa
+            </p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-between h-9 px-3 text-xs bg-sidebar border-sidebar-border hover:bg-sidebar-accent"
+                  disabled={switchingFilial}
+                >
+                  <span className="flex items-center gap-2 text-sidebar-foreground">
+                    {switchingFilial ? (
+                      <Loader2 className="w-3.5 h-3.5 text-sidebar-primary animate-spin" />
+                    ) : (
+                      <MapPin className="w-3.5 h-3.5 text-sidebar-primary" />
+                    )}
+                    <span className="font-medium truncate">
+                      {switchingFilial ? 'Carregando...' : (filialAtiva?.nome || 'Selecionar filial')}
+                    </span>
                   </span>
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground/60 shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <div className="px-3 py-2 border-b border-border">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                  Selecionar Filial
-                </p>
-              </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground/60 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <div className="px-3 py-2 border-b border-border">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    Selecionar Filial
+                  </p>
+                </div>
               {filiais.map((filial) => (
                 <DropdownMenuItem 
                   key={filial.id}
@@ -199,8 +203,9 @@ export function PortalSidebar({ userType }: PortalSidebarProps) {
                   </DropdownMenuItem>
                 </>
               )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
       

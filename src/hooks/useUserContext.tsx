@@ -13,6 +13,8 @@ export interface Filial {
 
 export interface Empresa {
   id: number;
+  nome: string | null;
+  cnpj_matriz: string | null;
   tipo: 'EMBARCADOR' | 'TRANSPORTADORA';
   classe: string;
 }
@@ -118,6 +120,8 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
                 empresa_id,
                 empresas (
                   id,
+                  nome,
+                  cnpj_matriz,
                   tipo,
                   classe
                 )
@@ -142,6 +146,8 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
               if (!empresaData && uf.filiais.empresas) {
                 empresaData = {
                   id: uf.filiais.empresas.id,
+                  nome: uf.filiais.empresas.nome,
+                  cnpj_matriz: uf.filiais.empresas.cnpj_matriz,
                   tipo: uf.filiais.empresas.tipo,
                   classe: uf.filiais.empresas.classe,
                 };
@@ -188,14 +194,13 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
 
           setFiliais(filiaisData);
 
-          // Get company info from first filial
-          if (filiaisData.length > 0) {
-            const firstFilial = filiaisData[0];
+          // Get company info from empresa (not filial)
+          if (empresaData) {
             setCompanyInfo({
-              id: String(empresaData?.id || 0),
-              razao_social: firstFilial.nome || 'Empresa',
-              nome_fantasia: firstFilial.nome,
-              cnpj: firstFilial.cnpj || '',
+              id: String(empresaData.id),
+              razao_social: empresaData.nome || 'Empresa',
+              nome_fantasia: empresaData.nome,
+              cnpj: empresaData.cnpj_matriz || '',
             });
           }
 
