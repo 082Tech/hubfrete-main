@@ -16,8 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { 
-  Search, 
+import {
+  Search,
   Package,
   MapPin,
   Calendar,
@@ -152,7 +152,6 @@ export default function GestaoCargas() {
   const { filialAtiva, switchingFilial } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // Fetch all cargas with related data
@@ -218,13 +217,13 @@ export default function GestaoCargas() {
   // Filter cargas
   const filteredCargas = useMemo(() => {
     return cargas.filter(carga => {
-      const matchesSearch = 
+      const matchesSearch =
         carga.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         carga.descricao.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = selectedStatuses.length === 0 || 
+
+      const matchesStatus = selectedStatuses.length === 0 ||
         selectedStatuses.includes(carga.status || 'rascunho');
-      
+
       return matchesSearch && matchesStatus;
     });
   }, [cargas, searchTerm, selectedStatuses]);
@@ -262,8 +261,8 @@ export default function GestaoCargas() {
   }, [filteredCargas]);
 
   const handleStatusToggle = (status: string) => {
-    setSelectedStatuses(prev => 
-      prev.includes(status) 
+    setSelectedStatuses(prev =>
+      prev.includes(status)
         ? prev.filter(s => s !== status)
         : [...prev, status]
     );
@@ -399,8 +398,8 @@ export default function GestaoCargas() {
               <p className="text-muted-foreground">Gerencie todas as suas cargas e entregas</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="icon"
                 onClick={() => refetch()}
                 disabled={isLoading || switchingFilial}
@@ -473,38 +472,14 @@ export default function GestaoCargas() {
 
               <div className="relative flex-1 sm:w-80">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Buscar por código ou descrição..." 
+                <Input
+                  placeholder="Buscar por código ou descrição..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-            
-            <ToggleGroup 
-              type="single" 
-              value={viewMode} 
-              onValueChange={(value) => value && setViewMode(value as 'list' | 'map')}
-              className="border border-border rounded-lg p-1"
-            >
-              <ToggleGroupItem 
-                value="list" 
-                aria-label="Visualização em lista"
-                className="gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-              >
-                <List className="w-4 h-4" />
-                <span className="hidden sm:inline">Lista</span>
-              </ToggleGroupItem>
-              <ToggleGroupItem 
-                value="map" 
-                aria-label="Visualização em mapa"
-                className="gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-              >
-                <MapPinned className="w-4 h-4" />
-                <span className="hidden sm:inline">Mapa</span>
-              </ToggleGroupItem>
-            </ToggleGroup>
           </div>
 
           {/* Active Filters */}
@@ -513,9 +488,9 @@ export default function GestaoCargas() {
               {selectedStatuses.map(status => {
                 const config = statusCargaConfig[status];
                 return (
-                  <Badge 
-                    key={status} 
-                    variant="outline" 
+                  <Badge
+                    key={status}
+                    variant="outline"
                     className={`${config?.color || ''} cursor-pointer`}
                     onClick={() => handleStatusToggle(status)}
                   >
@@ -533,148 +508,164 @@ export default function GestaoCargas() {
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : filteredCargas.length === 0 ? (
-            <Card className="border-border">
-              <CardContent className="p-8 text-center">
-                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-medium text-foreground mb-1">Nenhuma carga encontrada</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {selectedStatuses.length > 0 
-                    ? 'Tente ajustar os filtros selecionados'
-                    : 'Clique em "Nova Carga" para começar'}
-                </p>
-                {selectedStatuses.length > 0 && (
-                  <Button variant="outline" onClick={clearFilters}>
-                    Limpar filtros
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : viewMode === 'map' ? (
-            <Suspense fallback={
+            <div className='space-y-6'>
+              <Suspense fallback={
+                <Card className="border-border">
+                  <CardContent className="p-0">
+                    <div className="w-full h-[500px] flex items-center justify-center bg-muted/30 rounded-lg">
+                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              }>
+                <EntregasMap entregas={mapData} />
+              </Suspense>
+
               <Card className="border-border">
-                <CardContent className="p-0">
-                  <div className="w-full h-[500px] flex items-center justify-center bg-muted/30 rounded-lg">
-                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                  </div>
+                <CardContent className="p-8 text-center">
+                  <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-medium text-foreground mb-1">Nenhuma carga encontrada</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {selectedStatuses.length > 0
+                      ? 'Tente ajustar os filtros selecionados'
+                      : 'Clique em "Nova Carga" para começar'}
+                  </p>
+                  {selectedStatuses.length > 0 && (
+                    <Button variant="outline" onClick={clearFilters}>
+                      Limpar filtros
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
-            }>
-              <EntregasMap entregas={mapData} />
-            </Suspense>
+            </div>
           ) : (
-            <Card className="border-border">
-              <CardContent className="p-0">
-                <ScrollArea className="w-full">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border">
-                        <TableHead className="min-w-[200px]">Carga</TableHead>
-                        <TableHead className="min-w-[120px]">Origem</TableHead>
-                        <TableHead className="min-w-[120px]">Destino</TableHead>
-                        <TableHead className="min-w-[100px]">Peso</TableHead>
-                        <TableHead className="min-w-[120px]">Valor</TableHead>
-                        <TableHead className="min-w-[150px]">Status</TableHead>
-                        <TableHead className="min-w-[140px]">Progresso</TableHead>
-                        <TableHead className="min-w-[100px]">Data</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredCargas.map((carga) => {
-                        const status = carga.status || 'rascunho';
-                        const config = statusCargaConfig[status];
-                        const StatusIcon = config?.icon || Package;
-                        const entrega = carga.entregas;
-                        const progress = getProgress(carga);
+            <div className='space-y-6'>
+              <Suspense fallback={
+                <Card className="border-border">
+                  <CardContent className="p-0">
+                    <div className="w-full h-[500px] flex items-center justify-center bg-muted/30 rounded-lg">
+                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              }>
+                <EntregasMap entregas={mapData} />
+              </Suspense>
 
-                        return (
-                          <TableRow key={carga.id} className="border-border">
-                            <TableCell>
-                              <div>
-                                <p className="font-medium text-foreground">{carga.codigo}</p>
-                                <p className="text-sm text-muted-foreground line-clamp-1">{carga.descricao}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1.5 text-sm">
-                                <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                <span className="truncate">{getEndereco(carga, 'origem')}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1.5 text-sm">
-                                <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-                                <span className="truncate">{getEndereco(carga, 'destino')}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">{formatPeso(carga.peso_kg)}</TableCell>
-                            <TableCell className="text-sm font-medium">{formatValor(carga.valor_mercadoria)}</TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <Badge variant="outline" className={config?.color}>
-                                  <StatusIcon className="w-3 h-3 mr-1" />
-                                  {config?.label}
-                                </Badge>
-                                {entrega && entrega.motoristas && (
-                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <User className="w-3 h-3" />
-                                    <span className="truncate max-w-[100px]">{entrega.motoristas.nome_completo}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <Progress value={progress} className="h-2" />
-                                <p className="text-xs text-muted-foreground">{progress}%</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                                <Calendar className="w-3.5 h-3.5" />
-                                {formatDate(carga.data_coleta_de)}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-popover border-border z-50">
-                                  <DropdownMenuItem className="gap-2 cursor-pointer">
-                                    <Eye className="w-4 h-4" /> Ver detalhes
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem className="gap-2 cursor-pointer">
-                                    <Edit className="w-4 h-4" /> Editar
-                                  </DropdownMenuItem>
-                                  {entrega?.motoristas?.telefone && (
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem 
-                                        className="gap-2 cursor-pointer"
-                                        onClick={() => window.open(`tel:${entrega.motoristas!.telefone}`, '_blank')}
-                                      >
-                                        <Phone className="w-4 h-4" /> Ligar para motorista
-                                      </DropdownMenuItem>
-                                    </>
+              <Card className="border-border">
+                <CardContent className="p-0">
+                  <ScrollArea className="w-full">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border">
+                          <TableHead className="min-w-[200px]">Carga</TableHead>
+                          <TableHead className="min-w-[120px]">Origem</TableHead>
+                          <TableHead className="min-w-[120px]">Destino</TableHead>
+                          <TableHead className="min-w-[100px]">Peso</TableHead>
+                          <TableHead className="min-w-[120px]">Valor</TableHead>
+                          <TableHead className="min-w-[150px]">Status</TableHead>
+                          <TableHead className="min-w-[140px]">Progresso</TableHead>
+                          <TableHead className="min-w-[100px]">Data</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredCargas.map((carga) => {
+                          const status = carga.status || 'rascunho';
+                          const config = statusCargaConfig[status];
+                          const StatusIcon = config?.icon || Package;
+                          const entrega = carga.entregas;
+                          const progress = getProgress(carga);
+
+                          return (
+                            <TableRow key={carga.id} className="border-border">
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium text-foreground">{carga.codigo}</p>
+                                  <p className="text-sm text-muted-foreground line-clamp-1">{carga.descricao}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5 text-sm">
+                                  <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                  <span className="truncate">{getEndereco(carga, 'origem')}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5 text-sm">
+                                  <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                  <span className="truncate">{getEndereco(carga, 'destino')}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm">{formatPeso(carga.peso_kg)}</TableCell>
+                              <TableCell className="text-sm font-medium">{formatValor(carga.valor_mercadoria)}</TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <Badge variant="outline" className={config?.color}>
+                                    <StatusIcon className="w-3 h-3 mr-1" />
+                                    {config?.label}
+                                  </Badge>
+                                  {entrega && entrega.motoristas && (
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                      <User className="w-3 h-3" />
+                                      <span className="truncate max-w-[100px]">{entrega.motoristas.nome_completo}</span>
+                                    </div>
                                   )}
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="gap-2 cursor-pointer text-destructive">
-                                    <Trash2 className="w-4 h-4" /> Cancelar
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <Progress value={progress} className="h-2" />
+                                  <p className="text-xs text-muted-foreground">{progress}%</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  {formatDate(carga.data_coleta_de)}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="bg-popover border-border z-50">
+                                    <DropdownMenuItem className="gap-2 cursor-pointer">
+                                      <Eye className="w-4 h-4" /> Ver detalhes
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="gap-2 cursor-pointer">
+                                      <Edit className="w-4 h-4" /> Editar
+                                    </DropdownMenuItem>
+                                    {entrega?.motoristas?.telefone && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          className="gap-2 cursor-pointer"
+                                          onClick={() => window.open(`tel:${entrega.motoristas!.telefone}`, '_blank')}
+                                        >
+                                          <Phone className="w-4 h-4" /> Ligar para motorista
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="gap-2 cursor-pointer text-destructive">
+                                      <Trash2 className="w-4 h-4" /> Cancelar
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </div>

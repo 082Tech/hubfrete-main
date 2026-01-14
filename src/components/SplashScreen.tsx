@@ -14,9 +14,9 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     // Stage 2: Truck stops at center (pause moment)
     // Stage 3: Truck accelerates to exit right
     const timer1 = setTimeout(() => setStage(1), 100);   // Truck starts entering
-    const timer2 = setTimeout(() => setStage(2), 1500);  // Truck at center, pause
-    const timer3 = setTimeout(() => setStage(3), 3200);  // Truck accelerates out
-    const timer4 = setTimeout(() => onComplete(), 4200); // Animation complete
+    const timer2 = setTimeout(() => setStage(2), 300);  // Truck at center, pause
+    const timer3 = setTimeout(() => setStage(3), 1500);  // Truck accelerates out
+    const timer4 = setTimeout(() => onComplete(), 3000); // Animation complete
 
     return () => {
       clearTimeout(timer1);
@@ -36,12 +36,12 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         };
       case 1:
         return {
-          left: 'calc(40%)',
+          left: 'calc(43%)',
           transition: 'left 1.4s ease-out',
         };
       case 2:
         return {
-          left: 'calc(40%)',
+          left: 'calc(43%)',
           transition: 'left 0.3s ease-out',
         };
       case 3:
