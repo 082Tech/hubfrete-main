@@ -109,30 +109,39 @@ export function AnimatedBackground() {
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Gradient overlays - darker teal/green base */}
+      {/* Gradient overlays - teal/green base with more brightness */}
       <div 
         className="absolute inset-0"
         style={{
-          background: "linear-gradient(135deg, hsl(160 30% 8%) 0%, hsl(155 40% 6%) 50%, hsl(150 35% 5%) 100%)"
+          background: "linear-gradient(135deg, #0f1716 0%, #0d1f1a 50%, #0a1914 100%)"
         }}
       />
       <div 
-        className="absolute inset-0 opacity-40"
+        className="absolute inset-0"
         style={{
-          background: "radial-gradient(ellipse at 50% 0%, hsl(152 76% 45% / 0.2), transparent 60%)"
+          background: "radial-gradient(ellipse at 50% 0%, rgba(45, 212, 191, 0.15), transparent 60%)"
         }}
       />
       <div 
-        className="absolute inset-0 opacity-30"
+        className="absolute inset-0"
         style={{
-          background: "radial-gradient(ellipse at 80% 80%, hsl(165 80% 35% / 0.2), transparent 50%)"
+          background: "radial-gradient(ellipse at 80% 80%, rgba(20, 184, 166, 0.1), transparent 50%)"
         }}
       />
       
-      {/* Floating orbs */}
-      <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-primary/10 blur-3xl animate-float" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-accent/10 blur-3xl animate-float" style={{ animationDelay: "-3s" }} />
-      <div className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full bg-primary/5 blur-3xl animate-pulse-slow" />
+      {/* Floating orbs with teal colors */}
+      <div 
+        className="absolute top-20 left-10 w-72 h-72 rounded-full blur-3xl animate-float" 
+        style={{ backgroundColor: 'rgba(45, 212, 191, 0.08)' }}
+      />
+      <div 
+        className="absolute bottom-20 right-10 w-96 h-96 rounded-full blur-3xl animate-float" 
+        style={{ backgroundColor: 'rgba(20, 184, 166, 0.06)', animationDelay: '-3s' }}
+      />
+      <div 
+        className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full blur-3xl animate-pulse-slow" 
+        style={{ backgroundColor: 'rgba(45, 212, 191, 0.04)' }}
+      />
       
       {/* Particle canvas */}
       <canvas ref={canvasRef} className="absolute inset-0 opacity-70" />
