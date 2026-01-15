@@ -491,7 +491,7 @@ export default function CargasDisponiveis() {
           /* Split View - List + Map (Airbnb style) */
           <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px]">
             {/* Left - Scrollable List */}
-            <div className="w-1/2 lg:w-2/5 overflow-y-auto pr-2 space-y-3">
+            <div className="w-1/2 lg:w-2/5 overflow-y-auto px-1 py-1 space-y-3">
               {filteredCargas.map((carga) => (
                 <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} />
               ))}
@@ -504,6 +504,7 @@ export default function CargasDisponiveis() {
                 zoom={4}
                 style={{ height: '100%', width: '100%' }}
                 scrollWheelZoom={true}
+                className='z-0'
               >
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
