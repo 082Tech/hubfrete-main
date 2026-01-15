@@ -69,7 +69,7 @@ export default function Assistente() {
         <AnimatedBackground />
         
         {/* Main content */}
-        <div className="relative z-10 h-[calc(100vh)] max-w-4xl bg-black/90 h-[800px] rounded-md mt-20 mx-auto flex flex-col p-4 md:p-6">
+        <div className="relative z-10 h-[calc(100vh)] max-w-4xl h-[800px] rounded-lg mt-20 mx-auto flex flex-col p-4 md:p-6 border border-primary/20 bg-black/40 backdrop-blur-sm">
           {/* Chat Header */}
           <ChatHeader onNewChat={handleNewChat} />
           
@@ -77,15 +77,16 @@ export default function Assistente() {
           <div className="flex-1 overflow-y-auto py-6 px-4 space-y-4 scrollbar-thin">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-4">
-                <div className="w-20 h-20 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center glow-border mb-6">
+                <div className="w-20 h-20 rounded-2xl bg-primary/20 border border-primary/40 flex items-center justify-center glow-border mb-6">
                   <MessageSquare className="w-10 h-10 text-primary" />
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-3">
-                  Bem-vindo ao HubFrete AI
+                <h2 className="text-2xl md:text-3xl font-display font-bold mb-3">
+                  <span className="text-white">Bem-vindo ao </span>
+                  <span className="text-primary">HubFrete AI</span>
                 </h2>
 
-                <p className="text-white/70 mb-8 max-w-md">
+                <p className="text-gray-400 mb-8 max-w-md">
                   Sou seu assistente inteligente. Como posso ajudar você hoje?
                 </p>
                 
@@ -98,7 +99,7 @@ export default function Assistente() {
                     <button
                       key={suggestion}
                       onClick={() => handleSend(suggestion)}
-                      className="glass px-4 py-3 rounded-xl text-sm text-left text-white/70 hover:text-white hover:border-primary/30 transition-all duration-300 hover:scale-[1.02] border border-white/20 bg-white/10 backdrop-blur-sm"
+                      className="px-4 py-3 rounded-xl text-sm text-left text-gray-300 hover:text-white hover:border-primary/50 transition-all duration-300 hover:scale-[1.02] border border-gray-600/50 bg-black/30 backdrop-blur-sm"
                     >
                       {suggestion}
                     </button>

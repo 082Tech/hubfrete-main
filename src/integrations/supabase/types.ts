@@ -581,6 +581,7 @@ export type Database = {
           id: string
           jwt: string | null
           nome_completo: string
+          push_token: string | null
           senha: string | null
           telefone: string | null
           updated_at: string | null
@@ -599,6 +600,7 @@ export type Database = {
           id?: string
           jwt?: string | null
           nome_completo: string
+          push_token?: string | null
           senha?: string | null
           telefone?: string | null
           updated_at?: string | null
@@ -617,6 +619,7 @@ export type Database = {
           id?: string
           jwt?: string | null
           nome_completo?: string
+          push_token?: string | null
           senha?: string | null
           telefone?: string | null
           updated_at?: string | null
