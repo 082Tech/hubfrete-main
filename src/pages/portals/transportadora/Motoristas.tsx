@@ -560,7 +560,7 @@ export default function Motoristas() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <CreditCard className="w-4 h-4" />
-                      <span>{formatCPF(motorista.cpf)}</span>
+                      <span>{motorista.cpf ? formatCPF(motorista.cpf) : 'CPF não informado'}</span>
                     </div>
                     {motorista.telefone && (
                       <div className="flex items-center gap-2 text-muted-foreground">
