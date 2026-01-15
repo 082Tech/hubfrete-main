@@ -23,6 +23,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Package,
   MapPin,
@@ -41,6 +44,10 @@ import {
   List,
   Map as MapIcon,
   DollarSign,
+  Rabbit,
+  Ban,
+  Layers,
+  Info,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,12 +60,18 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+interface VeiculoRequisitos {
+  tipos_veiculo?: string[];
+  tipos_carroceria?: string[];
+}
+
 interface Carga {
   id: string;
   codigo: string;
   descricao: string;
   tipo: string;
   peso_kg: number;
+  peso_disponivel_kg: number | null;
   volume_m3: number | null;
   valor_mercadoria: number | null;
   valor_frete_tonelada: number | null;
@@ -67,6 +80,10 @@ interface Carga {
   requer_refrigeracao: boolean;
   carga_perigosa: boolean;
   carga_fragil: boolean;
+  carga_viva: boolean;
+  empilhavel: boolean;
+  necessidades_especiais: string[] | null;
+  veiculo_requisitos: VeiculoRequisitos | null;
   endereco_origem: {
     cidade: string;
     estado: string;
@@ -84,16 +101,21 @@ interface Carga {
   } | null;
 }
 
+interface Veiculo {
+  id: string;
+  placa: string;
+  tipo: string;
+  carroceria: string;
+  capacidade_kg: number | null;
+  marca: string | null;
+  modelo: string | null;
+}
+
 interface Motorista {
   id: string;
   nome_completo: string;
   telefone: string | null;
-  veiculos: {
-    id: string;
-    placa: string;
-    tipo: string;
-    capacidade_kg: number | null;
-  }[];
+  veiculos: Veiculo[];
 }
 
 const tipoCargaLabels: Record<string, string> = {
@@ -151,6 +173,8 @@ export default function CargasDisponiveis() {
   const [filterTipo, setFilterTipo] = useState<string>('all');
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
   const [selectedMotorista, setSelectedMotorista] = useState<string>('');
+  const [selectedVeiculo, setSelectedVeiculo] = useState<string>('');
+  const [pesoAlocado, setPesoAlocado] = useState<string>('');
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
@@ -167,6 +191,7 @@ export default function CargasDisponiveis() {
           descricao,
           tipo,
           peso_kg,
+          peso_disponivel_kg,
           volume_m3,
           valor_mercadoria,
           valor_frete_tonelada,
@@ -175,6 +200,10 @@ export default function CargasDisponiveis() {
           requer_refrigeracao,
           carga_perigosa,
           carga_fragil,
+          carga_viva,
+          empilhavel,
+          necessidades_especiais,
+          veiculo_requisitos,
           endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
           endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude),
           empresa:empresas!cargas_empresa_id_fkey(nome)
@@ -199,7 +228,7 @@ export default function CargasDisponiveis() {
           id,
           nome_completo,
           telefone,
-          veiculos(id, placa, tipo, capacidade_kg)
+          veiculos(id, placa, tipo, carroceria, capacidade_kg, marca, modelo)
         `)
         .eq('empresa_id', empresa.id)
         .eq('ativo', true);
@@ -212,20 +241,52 @@ export default function CargasDisponiveis() {
 
   // Mutation para aceitar carga
   const acceptCarga = useMutation({
-    mutationFn: async ({ cargaId, motoristaId, veiculoId }: { cargaId: string; motoristaId: string; veiculoId: string }) => {
+    mutationFn: async ({ 
+      cargaId, 
+      motoristaId, 
+      veiculoId, 
+      pesoAlocadoKg, 
+      valorFrete 
+    }: { 
+      cargaId: string; 
+      motoristaId: string; 
+      veiculoId: string; 
+      pesoAlocadoKg: number;
+      valorFrete: number;
+    }) => {
+      // Get current cargo to update peso_disponivel_kg
+      const { data: cargaAtual, error: fetchError } = await supabase
+        .from('cargas')
+        .select('peso_disponivel_kg, peso_kg')
+        .eq('id', cargaId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const pesoDisponivel = cargaAtual.peso_disponivel_kg ?? cargaAtual.peso_kg;
+      const novoPesoDisponivel = pesoDisponivel - pesoAlocadoKg;
+
+      // Update cargo status and available weight
+      const novoStatus = novoPesoDisponivel <= 0 ? 'aceita' : 'publicada';
       const { error: cargaError } = await supabase
         .from('cargas')
-        .update({ status: 'aceita' })
+        .update({ 
+          status: novoStatus,
+          peso_disponivel_kg: Math.max(0, novoPesoDisponivel)
+        })
         .eq('id', cargaId);
 
       if (cargaError) throw cargaError;
 
+      // Create delivery record
       const { error: entregaError } = await supabase
         .from('entregas')
         .insert({
           carga_id: cargaId,
           motorista_id: motoristaId,
           veiculo_id: veiculoId,
+          peso_alocado_kg: pesoAlocadoKg,
+          valor_frete: valorFrete,
           status: 'aguardando_coleta',
         });
 
@@ -237,6 +298,8 @@ export default function CargasDisponiveis() {
       setIsAcceptDialogOpen(false);
       setSelectedCarga(null);
       setSelectedMotorista('');
+      setSelectedVeiculo('');
+      setPesoAlocado('');
     },
     onError: (error) => {
       console.error('Erro ao aceitar carga:', error);
@@ -271,25 +334,96 @@ export default function CargasDisponiveis() {
 
   const handleAcceptClick = (carga: Carga) => {
     setSelectedCarga(carga);
+    setSelectedMotorista('');
+    setSelectedVeiculo('');
+    // Default to available weight or full weight
+    const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
+    setPesoAlocado(pesoDisponivel.toString());
     setIsAcceptDialogOpen(true);
   };
 
+  // Get vehicles for selected driver
+  const selectedMotoristaData = useMemo(() => {
+    return motoristas.find((m) => m.id === selectedMotorista);
+  }, [motoristas, selectedMotorista]);
+
+  // Get selected vehicle data
+  const selectedVeiculoData = useMemo(() => {
+    return selectedMotoristaData?.veiculos?.find((v) => v.id === selectedVeiculo);
+  }, [selectedMotoristaData, selectedVeiculo]);
+
+  // Calculate freight based on allocated weight
+  const calculatedFrete = useMemo(() => {
+    if (!selectedCarga?.valor_frete_tonelada || !pesoAlocado) return 0;
+    const peso = parseFloat(pesoAlocado) || 0;
+    return (peso / 1000) * selectedCarga.valor_frete_tonelada;
+  }, [selectedCarga, pesoAlocado]);
+
   const handleConfirmAccept = () => {
-    if (!selectedCarga || !selectedMotorista) return;
+    if (!selectedCarga || !selectedMotorista || !selectedVeiculo) {
+      toast.error('Selecione motorista e veículo');
+      return;
+    }
 
-    const motorista = motoristas.find((m) => m.id === selectedMotorista);
-    const veiculo = motorista?.veiculos?.[0];
+    const peso = parseFloat(pesoAlocado) || 0;
+    if (peso <= 0) {
+      toast.error('Peso deve ser maior que zero');
+      return;
+    }
 
-    if (!veiculo) {
-      toast.error('Motorista não possui veículo cadastrado');
+    const pesoDisponivel = selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg;
+    if (peso > pesoDisponivel) {
+      toast.error('Peso alocado maior que o disponível');
       return;
     }
 
     acceptCarga.mutate({
       cargaId: selectedCarga.id,
       motoristaId: selectedMotorista,
-      veiculoId: veiculo.id,
+      veiculoId: selectedVeiculo,
+      pesoAlocadoKg: peso,
+      valorFrete: calculatedFrete,
     });
+  };
+
+  // Labels for vehicle types
+  const tipoVeiculoLabels: Record<string, string> = {
+    truck: 'Truck',
+    toco: 'Toco',
+    tres_quartos: '3/4',
+    vuc: 'VUC',
+    carreta: 'Carreta',
+    carreta_ls: 'Carreta LS',
+    bitrem: 'Bitrem',
+    rodotrem: 'Rodotrem',
+    vanderleia: 'Vanderléia',
+    bitruck: 'Bitruck',
+  };
+
+  const tipoCarroceriaLabels: Record<string, string> = {
+    aberta: 'Aberta',
+    fechada_bau: 'Fechada/Baú',
+    graneleira: 'Graneleira',
+    tanque: 'Tanque',
+    sider: 'Sider',
+    frigorifico: 'Frigorífico',
+    cegonha: 'Cegonha',
+    prancha: 'Prancha',
+    container: 'Container',
+    graneleiro: 'Graneleiro',
+    grade_baixa: 'Grade Baixa',
+    cacamba: 'Caçamba',
+    plataforma: 'Plataforma',
+    bau: 'Baú',
+    bau_frigorifico: 'Baú Frigorífico',
+    bau_refrigerado: 'Baú Refrigerado',
+    silo: 'Silo',
+    gaiola: 'Gaiola',
+    bug_porta_container: 'Bug Porta Container',
+    munk: 'Munk',
+    apenas_cavalo: 'Apenas Cavalo',
+    cavaqueira: 'Cavaqueira',
+    hopper: 'Hopper',
   };
 
   const formatCurrency = (value: number | null) => {
@@ -366,12 +500,26 @@ export default function CargasDisponiveis() {
           </div>
         </div>
 
+        {/* Available Weight Badge */}
+        {carga.peso_disponivel_kg !== null && carga.peso_disponivel_kg < carga.peso_kg && (
+          <div className="flex items-center gap-2 text-xs">
+            <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+              Fracionada - {((carga.peso_disponivel_kg / carga.peso_kg) * 100).toFixed(0)}% disponível
+            </Badge>
+          </div>
+        )}
+
         {/* Details Row */}
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Weight className="w-3.5 h-3.5" />
-              {carga.peso_kg.toLocaleString('pt-BR')} kg
+              <span className="font-medium text-foreground">
+                {(carga.peso_disponivel_kg ?? carga.peso_kg).toLocaleString('pt-BR')} kg
+              </span>
+              {carga.peso_disponivel_kg !== null && carga.peso_disponivel_kg < carga.peso_kg && (
+                <span className="text-muted-foreground">/ {carga.peso_kg.toLocaleString('pt-BR')} kg</span>
+              )}
             </span>
             {carga.data_coleta_de && (
               <span className="flex items-center gap-1">
@@ -559,74 +707,274 @@ export default function CargasDisponiveis() {
 
         {/* Accept Dialog */}
         <Dialog open={isAcceptDialogOpen} onOpenChange={setIsAcceptDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Aceitar Carga</DialogTitle>
               <DialogDescription>
-                Selecione o motorista que será responsável por esta carga.
+                Revise os detalhes da carga e selecione motorista e veículo.
               </DialogDescription>
             </DialogHeader>
 
             {selectedCarga && (
-              <div className="space-y-4">
-                <div className="p-4 bg-muted rounded-lg space-y-2">
-                  <p className="font-medium">{selectedCarga.codigo}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedCarga.descricao}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-chart-1" />
-                    <span>
-                      {selectedCarga.endereco_origem?.cidade},{' '}
-                      {selectedCarga.endereco_origem?.estado}
-                    </span>
-                    <ArrowRight className="w-4 h-4" />
-                    <MapPin className="w-4 h-4 text-chart-2" />
-                    <span>
-                      {selectedCarga.endereco_destino?.cidade},{' '}
-                      {selectedCarga.endereco_destino?.estado}
-                    </span>
+              <ScrollArea className="max-h-[60vh] pr-4">
+                <div className="space-y-4">
+                  {/* Cargo Basic Info */}
+                  <div className="p-4 bg-muted rounded-lg space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold text-lg">{selectedCarga.codigo}</p>
+                        <p className="text-sm text-muted-foreground">{selectedCarga.descricao}</p>
+                        {selectedCarga.empresa?.nome && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Embarcador: {selectedCarga.empresa.nome}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant="outline">{tipoCargaLabels[selectedCarga.tipo] || selectedCarga.tipo}</Badge>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="w-4 h-4 text-chart-1" />
+                      <span>{selectedCarga.endereco_origem?.cidade}, {selectedCarga.endereco_origem?.estado}</span>
+                      <ArrowRight className="w-4 h-4" />
+                      <MapPin className="w-4 h-4 text-chart-2" />
+                      <span>{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</span>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="flex items-center gap-1">
+                        <Weight className="w-4 h-4" />
+                        <span className="font-medium">
+                          {(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg disponíveis
+                        </span>
+                        {selectedCarga.peso_disponivel_kg !== null && selectedCarga.peso_disponivel_kg < selectedCarga.peso_kg && (
+                          <span className="text-muted-foreground">/ {selectedCarga.peso_kg.toLocaleString('pt-BR')} kg total</span>
+                        )}
+                      </span>
+                    </div>
+
+                    {selectedCarga.valor_frete_tonelada && (
+                      <p className="text-lg font-semibold text-chart-2">
+                        {formatCurrency(selectedCarga.valor_frete_tonelada)}/ton
+                      </p>
+                    )}
                   </div>
-                  {selectedCarga.valor_frete_tonelada && (
-                    <p className="text-lg font-semibold text-chart-2">
-                      {formatCurrency(selectedCarga.valor_frete_tonelada)}/ton
-                    </p>
+
+                  {/* Special Requirements */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Info className="w-4 h-4" />
+                      Características da Carga
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCarga.requer_refrigeracao && (
+                        <Badge variant="secondary" className="gap-1">
+                          <ThermometerSnowflake className="w-3.5 h-3.5" />
+                          Refrigerada
+                        </Badge>
+                      )}
+                      {selectedCarga.carga_perigosa && (
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          Perigosa
+                        </Badge>
+                      )}
+                      {selectedCarga.carga_fragil && (
+                        <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                          <Boxes className="w-3.5 h-3.5" />
+                          Frágil
+                        </Badge>
+                      )}
+                      {selectedCarga.carga_viva && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Rabbit className="w-3.5 h-3.5" />
+                          Carga Viva
+                        </Badge>
+                      )}
+                      {selectedCarga.empilhavel === false && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Ban className="w-3.5 h-3.5" />
+                          Não Empilhável
+                        </Badge>
+                      )}
+                      {selectedCarga.empilhavel === true && (
+                        <Badge variant="outline" className="gap-1">
+                          <Layers className="w-3.5 h-3.5" />
+                          Empilhável
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Special Needs */}
+                    {selectedCarga.necessidades_especiais && selectedCarga.necessidades_especiais.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-sm text-muted-foreground mb-1">Necessidades Especiais:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedCarga.necessidades_especiais.map((need, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {need}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Vehicle Requirements */}
+                  {selectedCarga.veiculo_requisitos && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Truck className="w-4 h-4" />
+                        Requisitos de Veículo
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        {selectedCarga.veiculo_requisitos.tipos_veiculo && selectedCarga.veiculo_requisitos.tipos_veiculo.length > 0 && (
+                          <div>
+                            <p className="text-muted-foreground mb-1">Tipos de Veículo:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {selectedCarga.veiculo_requisitos.tipos_veiculo.map((tipo) => (
+                                <Badge key={tipo} variant="outline" className="text-xs">
+                                  {tipoVeiculoLabels[tipo] || tipo}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {selectedCarga.veiculo_requisitos.tipos_carroceria && selectedCarga.veiculo_requisitos.tipos_carroceria.length > 0 && (
+                          <div>
+                            <p className="text-muted-foreground mb-1">Tipos de Carroceria:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {selectedCarga.veiculo_requisitos.tipos_carroceria.map((tipo) => (
+                                <Badge key={tipo} variant="outline" className="text-xs">
+                                  {tipoCarroceriaLabels[tipo] || tipo}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  {/* Driver Selection */}
+                  <div className="space-y-2">
+                    <Label>Motorista</Label>
+                    <Select
+                      value={selectedMotorista}
+                      onValueChange={(value) => {
+                        setSelectedMotorista(value);
+                        setSelectedVeiculo('');
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um motorista" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {motoristas.length === 0 ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            Nenhum motorista cadastrado
+                          </div>
+                        ) : (
+                          motoristas.map((motorista) => (
+                            <SelectItem key={motorista.id} value={motorista.id}>
+                              <div className="flex items-center gap-2">
+                                <User className="w-4 h-4" />
+                                <span>{motorista.nome_completo}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({motorista.veiculos?.length || 0} veículos)
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Vehicle Selection */}
+                  {selectedMotorista && (
+                    <div className="space-y-2">
+                      <Label>Veículo</Label>
+                      <Select value={selectedVeiculo} onValueChange={setSelectedVeiculo}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o veículo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedMotoristaData?.veiculos?.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              Motorista sem veículo cadastrado
+                            </div>
+                          ) : (
+                            selectedMotoristaData?.veiculos?.map((veiculo) => (
+                              <SelectItem key={veiculo.id} value={veiculo.id}>
+                                <div className="flex items-center gap-2">
+                                  <Truck className="w-4 h-4" />
+                                  <span className="font-medium">{veiculo.placa}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo} / {tipoCarroceriaLabels[veiculo.carroceria] || veiculo.carroceria}
+                                  </span>
+                                  {veiculo.capacidade_kg && (
+                                    <span className="text-xs text-muted-foreground">
+                                      ({veiculo.capacidade_kg.toLocaleString('pt-BR')} kg)
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Weight Allocation */}
+                  {selectedVeiculo && (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label>Peso a Carregar (kg)</Label>
+                        <Input
+                          type="number"
+                          value={pesoAlocado}
+                          onChange={(e) => setPesoAlocado(e.target.value)}
+                          placeholder="Informe o peso"
+                          max={selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg}
+                        />
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>
+                            Disponível: {(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg
+                          </span>
+                          {selectedVeiculoData?.capacidade_kg && (
+                            <span>
+                              Capacidade do veículo: {selectedVeiculoData.capacidade_kg.toLocaleString('pt-BR')} kg
+                            </span>
+                          )}
+                        </div>
+                        {selectedVeiculoData?.capacidade_kg && parseFloat(pesoAlocado) > selectedVeiculoData.capacidade_kg && (
+                          <p className="text-xs text-destructive flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            Peso excede a capacidade do veículo!
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Freight Calculation */}
+                      <div className="p-3 bg-chart-2/10 rounded-lg border border-chart-2/20">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Valor do Frete Calculado:</span>
+                          <span className="text-xl font-bold text-chart-2">
+                            {formatCurrency(calculatedFrete)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {(parseFloat(pesoAlocado) || 0).toLocaleString('pt-BR')} kg × {formatCurrency(selectedCarga.valor_frete_tonelada)}/ton
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Motorista</label>
-                  <Select
-                    value={selectedMotorista}
-                    onValueChange={setSelectedMotorista}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um motorista" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {motoristas.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                          Nenhum motorista cadastrado
-                        </div>
-                      ) : (
-                        motoristas.map((motorista) => (
-                          <SelectItem key={motorista.id} value={motorista.id}>
-                            <div className="flex items-center gap-2">
-                              <User className="w-4 h-4" />
-                              <span>{motorista.nome_completo}</span>
-                              {motorista.veiculos?.length > 0 && (
-                                <span className="text-xs text-muted-foreground">
-                                  ({motorista.veiculos[0].placa})
-                                </span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              </ScrollArea>
             )}
 
             <DialogFooter>
@@ -638,7 +986,7 @@ export default function CargasDisponiveis() {
               </Button>
               <Button
                 onClick={handleConfirmAccept}
-                disabled={!selectedMotorista || acceptCarga.isPending}
+                disabled={!selectedMotorista || !selectedVeiculo || !pesoAlocado || acceptCarga.isPending}
                 className="gap-2"
               >
                 {acceptCarga.isPending ? (
@@ -649,7 +997,7 @@ export default function CargasDisponiveis() {
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4" />
-                    Confirmar
+                    Confirmar Aceite
                   </>
                 )}
               </Button>
