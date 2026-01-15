@@ -72,6 +72,8 @@ interface EntregaData {
   coletado_em: string | null;
   entregue_em: string | null;
   updated_at: string | null;
+  peso_alocado_kg: number | null;
+  valor_frete: number | null;
   motoristas: {
     nome_completo: string;
     telefone: string | null;
@@ -85,7 +87,6 @@ interface EntregaData {
     capacidade_kg: number | null;
     capacidade_m3: number | null;
   } | null;
-  cotacao_id: string | null;
 }
 
 interface MotoristaLocalizacao {
@@ -94,10 +95,6 @@ interface MotoristaLocalizacao {
   longitude: number | null;
   timestamp: number | null;
   status: boolean | null;
-}
-
-interface CotacaoData {
-  valor_frete: number | null;
 }
 
 interface EnderecoData {
@@ -266,7 +263,8 @@ export default function GestaoCargas() {
             coletado_em,
             entregue_em,
             updated_at,
-            cotacao_id,
+            peso_alocado_kg,
+            valor_frete,
             motoristas (
               nome_completo,
               telefone,
