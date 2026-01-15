@@ -48,7 +48,7 @@ import { useUserContext } from '@/hooks/useUserContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 
 interface Motorista {
   id: string;
@@ -197,15 +197,32 @@ export default function Motoristas() {
     );
   }, [motoristas, searchTerm]);
 
+  const formatValidadeCNH = (validade: string | null | undefined): string => {
+    if (!validade) return 'Não informada';
+    try {
+      const date = parseISO(validade);
+      if (!isValid(date)) return 'Data inválida';
+      return format(date, 'dd/MM/yyyy');
+    } catch {
+      return 'Data inválida';
+    }
+  };
+
   const stats = useMemo(() => {
     const ativos = motoristas.filter((m) => m.ativo).length;
     const comVeiculo = motoristas.filter((m) => m.veiculos.length > 0).length;
     const cnhVencendo = motoristas.filter((m) => {
-      const validade = new Date(m.validade_cnh);
-      const hoje = new Date();
-      const diff = validade.getTime() - hoje.getTime();
-      const dias = diff / (1000 * 60 * 60 * 24);
-      return dias <= 30 && dias > 0;
+      if (!m.validade_cnh) return false;
+      try {
+        const validade = parseISO(m.validade_cnh);
+        if (!isValid(validade)) return false;
+        const hoje = new Date();
+        const diff = validade.getTime() - hoje.getTime();
+        const dias = diff / (1000 * 60 * 60 * 24);
+        return dias <= 30 && dias > 0;
+      } catch {
+        return false;
+      }
     }).length;
     return { total: motoristas.length, ativos, comVeiculo, cnhVencendo };
   }, [motoristas]);
@@ -577,8 +594,7 @@ export default function Motoristas() {
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Calendar className="w-4 h-4" />
                       <span>
-                        CNH válida até{' '}
-                        {format(new Date(motorista.validade_cnh), 'dd/MM/yyyy')}
+                        CNH válida até {formatValidadeCNH(motorista.validade_cnh)}
                       </span>
                     </div>
                   </div>
