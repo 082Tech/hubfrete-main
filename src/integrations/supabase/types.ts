@@ -464,7 +464,6 @@ export type Database = {
           carga_fracao_id: string | null
           carga_id: string
           coletado_em: string | null
-          cotacao_id: string | null
           created_at: string | null
           documento_recebedor: string | null
           entregue_em: string | null
@@ -485,7 +484,6 @@ export type Database = {
           carga_fracao_id?: string | null
           carga_id: string
           coletado_em?: string | null
-          cotacao_id?: string | null
           created_at?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
@@ -506,7 +504,6 @@ export type Database = {
           carga_fracao_id?: string | null
           carga_id?: string
           coletado_em?: string | null
-          cotacao_id?: string | null
           created_at?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
