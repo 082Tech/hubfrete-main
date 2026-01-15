@@ -232,7 +232,7 @@ export default function GestaoCargas() {
             telefone,
             responsavel
           ),
-          endereco_origem:enderecos_carga!endereco_origem_id (
+          endereco_origem:enderecos_carga!cargas_endereco_origem_fkey (
             id,
             tipo,
             cidade,
@@ -245,7 +245,7 @@ export default function GestaoCargas() {
             contato_nome,
             contato_telefone
           ),
-          endereco_destino:enderecos_carga!endereco_destino_id (
+          endereco_destino:enderecos_carga!cargas_endereco_destino_fkey (
             id,
             tipo,
             cidade,

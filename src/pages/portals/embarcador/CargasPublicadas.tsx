@@ -112,7 +112,7 @@ export default function CargasPublicadas() {
           data_coleta_de,
           data_coleta_ate,
           created_at,
-          endereco_origem:enderecos_carga!endereco_origem_id (
+          endereco_origem:enderecos_carga!cargas_endereco_origem_fkey (
             id,
             tipo,
             logradouro,
@@ -125,7 +125,7 @@ export default function CargasPublicadas() {
             latitude,
             longitude
           ),
-          endereco_destino:enderecos_carga!endereco_destino_id (
+          endereco_destino:enderecos_carga!cargas_endereco_destino_fkey (
             id,
             tipo,
             logradouro,
