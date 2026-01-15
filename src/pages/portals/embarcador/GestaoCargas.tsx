@@ -177,10 +177,8 @@ const statusEntregaConfig: Record<string, { color: string; label: string }> = {
   'devolvida': { color: 'bg-red-500/10 text-red-600', label: 'Devolvida' },
 };
 
-// All possible status filters (excluindo finalizados que vão pro Histórico)
+// Status filters for active loads (no rascunho/publicada - those are in CargasPublicadas)
 const allStatusFilters = [
-  { value: 'rascunho', label: 'Rascunho', group: 'carga' },
-  { value: 'publicada', label: 'Publicada', group: 'carga' },
   { value: 'aceita', label: 'Aceita', group: 'carga' },
   { value: 'em_coleta', label: 'Em Coleta', group: 'transporte' },
   { value: 'em_transito', label: 'Em Trânsito', group: 'transporte' },

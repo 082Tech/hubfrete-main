@@ -16,6 +16,7 @@ import {
   Weight,
   DollarSign,
   RotateCcw,
+  MoreHorizontal,
 } from 'lucide-react';
 import { PortalLayout } from '@/components/portals/PortalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,6 +44,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 
@@ -91,6 +99,7 @@ export default function HistoricoCargas() {
   const { filialAtiva, filiais } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedEntrega, setSelectedEntrega] = useState<EntregaHistorico | null>(null);
 
   const filialIds = filialAtiva ? [filialAtiva.id] : filiais.map(f => f.id);
 
@@ -300,18 +309,19 @@ export default function HistoricoCargas() {
                       <TableHead className="font-semibold">Frete</TableHead>
                       <TableHead className="font-semibold">Motorista</TableHead>
                       <TableHead className="font-semibold">Data Conclusão</TableHead>
+                      <TableHead className="font-semibold w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                        <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
                           Carregando...
                         </TableCell>
                       </TableRow>
                     ) : filteredEntregas.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                        <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
                           Nenhuma entrega encontrada no histórico
                         </TableCell>
                       </TableRow>
@@ -385,6 +395,24 @@ export default function HistoricoCargas() {
                                 {dataFinal ? format(new Date(dataFinal), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
                               </div>
                             </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    className="gap-2 cursor-pointer"
+                                    onClick={() => setSelectedEntrega(entrega)}
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    Ver detalhes
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
                           </TableRow>
                         );
                       })
@@ -396,6 +424,53 @@ export default function HistoricoCargas() {
           </Card>
         </div>
       </TooltipProvider>
+
+      {/* Details Dialog */}
+      {selectedEntrega?.carga && (
+        <CargaDetailsDialog
+          carga={{
+            id: selectedEntrega.carga.id,
+            codigo: selectedEntrega.carga.codigo,
+            descricao: selectedEntrega.carga.descricao,
+            tipo: selectedEntrega.carga.tipo,
+            peso_kg: selectedEntrega.peso_alocado_kg || selectedEntrega.carga.peso_kg,
+            volume_m3: null,
+            valor_mercadoria: selectedEntrega.carga.valor_mercadoria,
+            status: selectedEntrega.status as any,
+            data_coleta_de: null,
+            data_coleta_ate: null,
+            data_entrega_limite: null,
+            created_at: selectedEntrega.created_at,
+            remetente: selectedEntrega.carga.endereco_origem ? {
+              nome: selectedEntrega.carga.endereco_origem.cidade,
+              cidade: selectedEntrega.carga.endereco_origem.cidade,
+              estado: selectedEntrega.carga.endereco_origem.estado,
+              endereco: selectedEntrega.carga.endereco_origem.logradouro,
+            } : null,
+            destinatario: selectedEntrega.carga.endereco_destino ? {
+              nome: selectedEntrega.carga.endereco_destino.cidade,
+              cidade: selectedEntrega.carga.endereco_destino.cidade,
+              estado: selectedEntrega.carga.endereco_destino.estado,
+              endereco: selectedEntrega.carga.endereco_destino.logradouro,
+            } : null,
+            entregas: {
+              status: selectedEntrega.status as any,
+              motoristas: selectedEntrega.motorista ? {
+                nome_completo: selectedEntrega.motorista.nome_completo,
+                telefone: null,
+              } : null,
+              veiculos: selectedEntrega.veiculo ? {
+                placa: selectedEntrega.veiculo.placa,
+                marca: null,
+                modelo: selectedEntrega.veiculo.modelo,
+                tipo: null,
+              } : null,
+            },
+          }}
+          open={!!selectedEntrega}
+          onOpenChange={(open) => !open && setSelectedEntrega(null)}
+        />
+      )}
     </PortalLayout>
   );
 }

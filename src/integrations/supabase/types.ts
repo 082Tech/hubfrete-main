@@ -331,6 +331,7 @@ export type Database = {
       enderecos_carga: {
         Row: {
           bairro: string | null
+          carga_id: string | null
           cep: string
           cidade: string
           complemento: string | null
@@ -354,6 +355,7 @@ export type Database = {
         }
         Insert: {
           bairro?: string | null
+          carga_id?: string | null
           cep: string
           cidade: string
           complemento?: string | null
@@ -377,6 +379,7 @@ export type Database = {
         }
         Update: {
           bairro?: string | null
+          carga_id?: string | null
           cep?: string
           cidade?: string
           complemento?: string | null
@@ -398,7 +401,15 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["tipo_endereco"]
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "enderecos_carga_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entregas: {
         Row: {
