@@ -1001,6 +1001,20 @@ export type Database = {
         | "cegonha"
         | "prancha"
         | "container"
+        | "graneleiro"
+        | "grade_baixa"
+        | "cacamba"
+        | "plataforma"
+        | "bau"
+        | "bau_frigorifico"
+        | "bau_refrigerado"
+        | "silo"
+        | "gaiola"
+        | "bug_porta_container"
+        | "munk"
+        | "apenas_cavalo"
+        | "cavaqueira"
+        | "hopper"
       tipo_empresa: "EMBARCADOR" | "TRANSPORTADORA"
       tipo_endereco: "origem" | "destino"
       tipo_frete: "cif" | "fob"
@@ -1014,6 +1028,7 @@ export type Database = {
         | "bitrem"
         | "rodotrem"
         | "vanderleia"
+        | "bitruck"
       usuario_cargo: "ADMIN" | "OPERADOR"
     }
     CompositeTypes: {
@@ -1192,6 +1207,20 @@ export const Constants = {
         "cegonha",
         "prancha",
         "container",
+        "graneleiro",
+        "grade_baixa",
+        "cacamba",
+        "plataforma",
+        "bau",
+        "bau_frigorifico",
+        "bau_refrigerado",
+        "silo",
+        "gaiola",
+        "bug_porta_container",
+        "munk",
+        "apenas_cavalo",
+        "cavaqueira",
+        "hopper",
       ],
       tipo_empresa: ["EMBARCADOR", "TRANSPORTADORA"],
       tipo_endereco: ["origem", "destino"],
@@ -1206,6 +1235,7 @@ export const Constants = {
         "bitrem",
         "rodotrem",
         "vanderleia",
+        "bitruck",
       ],
       usuario_cargo: ["ADMIN", "OPERADOR"],
     },
