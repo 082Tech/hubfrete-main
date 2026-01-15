@@ -82,7 +82,7 @@ interface CargaDetailsProps {
         tipo: string | null;
       } | null;
     } | null;
-  };
+  } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -122,6 +122,19 @@ const tipoVeiculoLabels: Record<string, string> = {
 };
 
 export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsProps) {
+  // Early return if carga is null to prevent accessing properties of null
+  if (!carga) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Carregando...</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   const status = carga.status || 'rascunho';
   const config = statusCargaConfig[status];
   const StatusIcon = config?.icon || Package;
