@@ -180,10 +180,11 @@ const statusEntregaConfig: Record<string, { color: string; label: string }> = {
   'devolvida': { color: 'bg-red-500/10 text-red-600', label: 'Devolvida' },
 };
 
-// Status filters for active deliveries - only 2 statuses now
+// Status filters for active deliveries - 3 statuses now
 const allStatusFilters = [
   { value: 'aguardando_coleta', label: 'Aguardando Coleta', group: 'entrega' },
   { value: 'em_transito', label: 'Em Trânsito', group: 'entrega' },
+  { value: 'em_entrega', label: 'Em Entrega', group: 'entrega' },
 ];
 
 // Status finalizados que não devem aparecer na Gestão de Entregas
@@ -212,102 +213,150 @@ export default function GestaoCargas() {
     };
   }, []);
 
-  // Fetch all cargas with related data
+  // Fetch all cargas that have active entregas (not from cargas directly)
   const { data: cargas = [], isLoading, refetch } = useQuery({
-    queryKey: ['gestao_cargas', filialAtiva?.id],
+    queryKey: ['gestao_entregas', filialAtiva?.id],
     queryFn: async () => {
       if (!filialAtiva?.id) return [];
 
+      // First, get entregas with active statuses
+      const activeStatuses: Database['public']['Enums']['status_entrega'][] = ['aguardando_coleta', 'em_coleta', 'coletado', 'em_transito', 'em_entrega'];
+      
       const { data, error } = await supabase
-        .from('cargas')
+        .from('entregas')
         .select(`
           id,
-          codigo,
-          descricao,
-          tipo,
-          peso_kg,
-          volume_m3,
-          valor_mercadoria,
           status,
-          data_coleta_de,
-          data_coleta_ate,
-          data_entrega_limite,
-          created_at,
-          necessidades_especiais,
-          regras_carregamento,
-          nota_fiscal_url,
-          carga_fragil,
-          carga_perigosa,
-          carga_viva,
-          empilhavel,
-          requer_refrigeracao,
-          temperatura_min,
-          temperatura_max,
-          numero_onu,
-          filiais (
-            nome,
-            cidade,
-            estado,
-            endereco,
+          motorista_id,
+          coletado_em,
+          entregue_em,
+          updated_at,
+          peso_alocado_kg,
+          valor_frete,
+          motoristas (
+            nome_completo,
             telefone,
-            responsavel
+            email
           ),
-          endereco_origem:enderecos_carga!cargas_endereco_origem_fkey (
-            id,
+          veiculos (
+            placa,
+            marca,
+            modelo,
             tipo,
-            cidade,
-            estado,
-            logradouro,
-            numero,
-            bairro,
-            latitude,
-            longitude,
-            contato_nome,
-            contato_telefone
+            capacidade_kg,
+            capacidade_m3
           ),
-          endereco_destino:enderecos_carga!cargas_endereco_destino_fkey (
+          cargas!inner (
             id,
+            codigo,
+            descricao,
             tipo,
-            cidade,
-            estado,
-            logradouro,
-            numero,
-            bairro,
-            latitude,
-            longitude,
-            contato_nome,
-            contato_telefone
-          ),
-          entregas (
-            id,
+            peso_kg,
+            volume_m3,
+            valor_mercadoria,
             status,
-            motorista_id,
-            coletado_em,
-            entregue_em,
-            updated_at,
-            peso_alocado_kg,
-            valor_frete,
-            motoristas (
-              nome_completo,
+            data_coleta_de,
+            data_coleta_ate,
+            data_entrega_limite,
+            created_at,
+            necessidades_especiais,
+            regras_carregamento,
+            nota_fiscal_url,
+            carga_fragil,
+            carga_perigosa,
+            carga_viva,
+            empilhavel,
+            requer_refrigeracao,
+            temperatura_min,
+            temperatura_max,
+            numero_onu,
+            filial_id,
+            filiais (
+              nome,
+              cidade,
+              estado,
+              endereco,
               telefone,
-              email
+              responsavel
             ),
-            veiculos (
-              placa,
-              marca,
-              modelo,
+            endereco_origem:enderecos_carga!cargas_endereco_origem_fkey (
+              id,
               tipo,
-              capacidade_kg,
-              capacidade_m3
+              cidade,
+              estado,
+              logradouro,
+              numero,
+              bairro,
+              latitude,
+              longitude,
+              contato_nome,
+              contato_telefone
+            ),
+            endereco_destino:enderecos_carga!cargas_endereco_destino_fkey (
+              id,
+              tipo,
+              cidade,
+              estado,
+              logradouro,
+              numero,
+              bairro,
+              latitude,
+              longitude,
+              contato_nome,
+              contato_telefone
             )
           )
         `)
-        .eq('filial_id', filialAtiva.id)
-        .not('status', 'in', '(entregue,cancelada)')
-        .order('created_at', { ascending: false });
+        .in('status', activeStatuses)
+        .eq('cargas.filial_id', filialAtiva.id)
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as unknown as CargaCompleta[];
+      
+      // Transform data to match expected CargaCompleta format
+      return (data || []).map(entrega => {
+        const carga = entrega.cargas as any;
+        return {
+          id: carga.id,
+          codigo: carga.codigo,
+          descricao: carga.descricao,
+          tipo: carga.tipo,
+          peso_kg: carga.peso_kg,
+          volume_m3: carga.volume_m3,
+          valor_mercadoria: carga.valor_mercadoria,
+          status: carga.status,
+          data_coleta_de: carga.data_coleta_de,
+          data_coleta_ate: carga.data_coleta_ate,
+          data_entrega_limite: carga.data_entrega_limite,
+          created_at: carga.created_at,
+          necessidades_especiais: carga.necessidades_especiais,
+          regras_carregamento: carga.regras_carregamento,
+          nota_fiscal_url: carga.nota_fiscal_url,
+          carga_fragil: carga.carga_fragil,
+          carga_perigosa: carga.carga_perigosa,
+          carga_viva: carga.carga_viva,
+          empilhavel: carga.empilhavel,
+          requer_refrigeracao: carga.requer_refrigeracao,
+          temperatura_min: carga.temperatura_min,
+          temperatura_max: carga.temperatura_max,
+          numero_onu: carga.numero_onu,
+          endereco_origem: carga.endereco_origem,
+          endereco_destino: carga.endereco_destino,
+          filiais: carga.filiais,
+          entregas: {
+            id: entrega.id,
+            status: entrega.status,
+            motorista_id: entrega.motorista_id,
+            coletado_em: entrega.coletado_em,
+            entregue_em: entrega.entregue_em,
+            updated_at: entrega.updated_at,
+            peso_alocado_kg: entrega.peso_alocado_kg,
+            valor_frete: entrega.valor_frete,
+            motoristas: entrega.motoristas,
+            veiculos: entrega.veiculos,
+          }
+        } as CargaCompleta;
+      });
     },
     enabled: !!filialAtiva?.id,
   });
@@ -351,25 +400,27 @@ export default function GestaoCargas() {
     return map;
   }, [localizacoes]);
 
-  // Filter cargas
+  // Filter cargas based on entrega status
   const filteredCargas = useMemo(() => {
     return cargas.filter(carga => {
       const matchesSearch =
         carga.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         carga.descricao.toLowerCase().includes(searchTerm.toLowerCase());
 
+      const entregaStatus = carga.entregas?.status;
       const matchesStatus = selectedStatuses.length === 0 ||
-        selectedStatuses.includes(carga.status || 'rascunho');
+        selectedStatuses.includes(entregaStatus || '');
 
       return matchesSearch && matchesStatus;
     });
   }, [cargas, searchTerm, selectedStatuses]);
 
-  // Calculate stats - focused on the 2 delivery statuses
+  // Calculate stats - focused on 3 delivery statuses
   const stats = useMemo(() => ({
     total: cargas.length,
     aguardando_coleta: cargas.filter(c => c.entregas?.status === 'aguardando_coleta' || c.entregas?.status === 'em_coleta' || c.entregas?.status === 'coletado').length,
-    em_transito: cargas.filter(c => c.entregas?.status === 'em_transito' || c.entregas?.status === 'em_entrega').length,
+    em_transito: cargas.filter(c => c.entregas?.status === 'em_transito').length,
+    em_entrega: cargas.filter(c => c.entregas?.status === 'em_entrega').length,
   }), [cargas]);
 
   // Map data for entregas with location from localizações table
@@ -617,24 +668,33 @@ export default function GestaoCargas() {
             />
           </div>
 
-          {/* Stats Cards - 2 status cards only, larger */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Stats Cards - 3 status cards */}
+          <div className="grid grid-cols-3 gap-2">
             <Card className="border-border bg-gray-500/5">
-              <CardContent className="p-4 text-center">
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <Package className="w-5 h-5 text-gray-600" />
+              <CardContent className="p-3 text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Package className="w-4 h-4 text-gray-600" />
                 </div>
-                <p className="text-2xl font-bold text-gray-600">{stats.aguardando_coleta}</p>
-                <p className="text-xs text-muted-foreground">Aguardando Coleta</p>
+                <p className="text-xl font-bold text-gray-600">{stats.aguardando_coleta}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Aguardando Coleta</p>
               </CardContent>
             </Card>
             <Card className="border-border bg-orange-500/5">
-              <CardContent className="p-4 text-center">
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <Truck className="w-5 h-5 text-orange-600" />
+              <CardContent className="p-3 text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Truck className="w-4 h-4 text-orange-600" />
                 </div>
-                <p className="text-2xl font-bold text-orange-600">{stats.em_transito}</p>
-                <p className="text-xs text-muted-foreground">Em Trânsito</p>
+                <p className="text-xl font-bold text-orange-600">{stats.em_transito}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Em Trânsito</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-purple-500/5">
+              <CardContent className="p-3 text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Navigation className="w-4 h-4 text-purple-600" />
+                </div>
+                <p className="text-xl font-bold text-purple-600">{stats.em_entrega}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Em Entrega</p>
               </CardContent>
             </Card>
           </div>
@@ -693,24 +753,33 @@ export default function GestaoCargas() {
             </div>
           </div>
 
-          {/* Mobile Stats */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* Mobile Stats - 3 cards */}
+          <div className="grid grid-cols-3 gap-2">
             <Card className="border-border bg-gray-500/5">
-              <CardContent className="p-3 text-center">
-                <div className="flex items-center justify-center gap-1.5 mb-0.5">
-                  <Package className="w-4 h-4 text-gray-600" />
+              <CardContent className="p-2 text-center">
+                <div className="flex items-center justify-center gap-1 mb-0.5">
+                  <Package className="w-3 h-3 text-gray-600" />
                 </div>
-                <p className="text-xl font-bold text-gray-600">{stats.aguardando_coleta}</p>
-                <p className="text-[10px] text-muted-foreground">Aguardando Coleta</p>
+                <p className="text-lg font-bold text-gray-600">{stats.aguardando_coleta}</p>
+                <p className="text-[8px] text-muted-foreground leading-tight">Aguard. Coleta</p>
               </CardContent>
             </Card>
             <Card className="border-border bg-orange-500/5">
-              <CardContent className="p-3 text-center">
-                <div className="flex items-center justify-center gap-1.5 mb-0.5">
-                  <Truck className="w-4 h-4 text-orange-600" />
+              <CardContent className="p-2 text-center">
+                <div className="flex items-center justify-center gap-1 mb-0.5">
+                  <Truck className="w-3 h-3 text-orange-600" />
                 </div>
-                <p className="text-xl font-bold text-orange-600">{stats.em_transito}</p>
-                <p className="text-[10px] text-muted-foreground">Em Trânsito</p>
+                <p className="text-lg font-bold text-orange-600">{stats.em_transito}</p>
+                <p className="text-[8px] text-muted-foreground leading-tight">Em Trânsito</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-purple-500/5">
+              <CardContent className="p-2 text-center">
+                <div className="flex items-center justify-center gap-1 mb-0.5">
+                  <Navigation className="w-3 h-3 text-purple-600" />
+                </div>
+                <p className="text-lg font-bold text-purple-600">{stats.em_entrega}</p>
+                <p className="text-[8px] text-muted-foreground leading-tight">Em Entrega</p>
               </CardContent>
             </Card>
           </div>
