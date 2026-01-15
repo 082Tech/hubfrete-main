@@ -173,16 +173,17 @@ const statusEntregaConfig: Record<string, { color: string; label: string }> = {
   'devolvida': { color: 'bg-red-500/10 text-red-600', label: 'Devolvida' },
 };
 
-// All possible status filters
+// All possible status filters (excluindo finalizados que vão pro Histórico)
 const allStatusFilters = [
   { value: 'rascunho', label: 'Rascunho', group: 'carga' },
   { value: 'publicada', label: 'Publicada', group: 'carga' },
   { value: 'aceita', label: 'Aceita', group: 'carga' },
   { value: 'em_coleta', label: 'Em Coleta', group: 'transporte' },
   { value: 'em_transito', label: 'Em Trânsito', group: 'transporte' },
-  { value: 'entregue', label: 'Entregue', group: 'finalizado' },
-  { value: 'cancelada', label: 'Cancelada', group: 'finalizado' },
 ];
+
+// Status finalizados que não devem aparecer na Gestão de Cargas
+const finalizedStatuses = ['entregue', 'cancelada'];
 
 export default function GestaoCargas() {
   const { filialAtiva, switchingFilial } = useUserContext();
@@ -282,6 +283,7 @@ export default function GestaoCargas() {
           )
         `)
         .eq('filial_id', filialAtiva.id)
+        .not('status', 'in', '(entregue,cancelada)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
