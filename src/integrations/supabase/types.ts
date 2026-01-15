@@ -861,6 +861,7 @@ export type Database = {
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
           created_at: string | null
           empresa_id: number | null
+          foto_url: string | null
           id: string
           marca: string | null
           modelo: string | null
@@ -880,6 +881,7 @@ export type Database = {
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
           created_at?: string | null
           empresa_id?: number | null
+          foto_url?: string | null
           id?: string
           marca?: string | null
           modelo?: string | null
@@ -899,6 +901,7 @@ export type Database = {
           carroceria?: Database["public"]["Enums"]["tipo_carroceria"]
           created_at?: string | null
           empresa_id?: number | null
+          foto_url?: string | null
           id?: string
           marca?: string | null
           modelo?: string | null

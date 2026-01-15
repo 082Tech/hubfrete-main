@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Truck,
   Plus,
@@ -28,12 +29,14 @@ import {
   Shield,
   Gauge,
   User,
-  Calendar,
   Weight,
   Boxes,
   MoreVertical,
   Edit,
   Trash2,
+  Camera,
+  Upload,
+  Image,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -44,7 +47,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 
 interface Veiculo {
@@ -61,9 +64,11 @@ interface Veiculo {
   ativo: boolean;
   seguro_ativo: boolean;
   rastreador: boolean;
+  foto_url: string | null;
   motorista: {
     id: string;
     nome_completo: string;
+    foto_url: string | null;
   } | null;
 }
 
@@ -96,6 +101,12 @@ export default function MinhaFrota() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cardFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  
   const [newVeiculo, setNewVeiculo] = useState({
     placa: '',
     tipo: '',
@@ -130,7 +141,8 @@ export default function MinhaFrota() {
           ativo,
           seguro_ativo,
           rastreador,
-          motorista:motoristas(id, nome_completo)
+          foto_url,
+          motorista:motoristas(id, nome_completo, foto_url)
         `)
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });
@@ -141,9 +153,90 @@ export default function MinhaFrota() {
     enabled: !!empresa?.id,
   });
 
+  // Handle photo selection for new vehicle
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('A imagem deve ter no máximo 5MB');
+        return;
+      }
+      setSelectedPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle photo upload for existing vehicle
+  const handleVehiclePhotoUpload = async (veiculoId: string, file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    setUploadingPhoto(veiculoId);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${veiculoId}-${Date.now()}.${fileExt}`;
+      const filePath = `veiculos/${fileName}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('notas-fiscais')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('notas-fiscais')
+        .getPublicUrl(filePath);
+
+      // Update vehicle record
+      const { error: updateError } = await supabase
+        .from('veiculos')
+        .update({ foto_url: urlData.publicUrl })
+        .eq('id', veiculoId);
+
+      if (updateError) throw updateError;
+
+      toast.success('Foto do veículo atualizada!');
+      queryClient.invalidateQueries({ queryKey: ['veiculos_transportadora'] });
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+      toast.error('Erro ao fazer upload da foto');
+    } finally {
+      setUploadingPhoto(null);
+    }
+  };
+
   // Mutation para criar veículo
   const createVeiculo = useMutation({
     mutationFn: async (data: typeof newVeiculo) => {
+      let fotoUrl: string | null = null;
+
+      // Upload photo if selected
+      if (selectedPhoto) {
+        const fileExt = selectedPhoto.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `veiculos/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('notas-fiscais')
+          .upload(filePath, selectedPhoto);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('notas-fiscais')
+          .getPublicUrl(filePath);
+
+        fotoUrl = urlData.publicUrl;
+      }
+
       const { error } = await supabase.from('veiculos').insert({
         placa: data.placa.toUpperCase(),
         tipo: data.tipo as any,
@@ -156,6 +249,7 @@ export default function MinhaFrota() {
         renavam: data.renavam || null,
         empresa_id: empresa?.id,
         ativo: true,
+        foto_url: fotoUrl,
       });
 
       if (error) throw error;
@@ -164,6 +258,8 @@ export default function MinhaFrota() {
       toast.success('Veículo cadastrado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['veiculos_transportadora'] });
       setIsDialogOpen(false);
+      setSelectedPhoto(null);
+      setPhotoPreview(null);
       setNewVeiculo({
         placa: '',
         tipo: '',
@@ -224,6 +320,15 @@ export default function MinhaFrota() {
     createVeiculo.mutate(newVeiculo);
   };
 
+  const getDriverInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  };
+
   return (
     <PortalLayout expectedUserType="transportadora">
       <div className="space-y-6">
@@ -235,14 +340,20 @@ export default function MinhaFrota() {
               Gerencie os veículos da sua transportadora
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              setSelectedPhoto(null);
+              setPhotoPreview(null);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="w-4 h-4" />
                 Novo Veículo
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Cadastrar Veículo</DialogTitle>
                 <DialogDescription>
@@ -250,6 +361,41 @@ export default function MinhaFrota() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Photo Upload Section */}
+                <div className="space-y-2">
+                  <Label>Foto do Veículo</Label>
+                  <div className="flex items-center gap-4">
+                    <div 
+                      className="relative w-32 h-24 rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer overflow-hidden bg-muted/50"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {photoPreview ? (
+                        <img 
+                          src={photoPreview} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                          <Camera className="w-6 h-6 mb-1" />
+                          <span className="text-xs">Adicionar foto</span>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoSelect}
+                      className="hidden"
+                    />
+                    <div className="text-sm text-muted-foreground">
+                      <p>Clique para adicionar uma foto do veículo</p>
+                      <p className="text-xs">PNG, JPG até 5MB</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Placa *</Label>
@@ -496,10 +642,52 @@ export default function MinhaFrota() {
             {filteredVeiculos.map((veiculo) => (
               <Card
                 key={veiculo.id}
-                className={`border-border transition-all ${
+                className={`border-border transition-all overflow-hidden ${
                   !veiculo.ativo ? 'opacity-60' : 'hover:shadow-md'
                 }`}
               >
+                {/* Vehicle Photo Section */}
+                <div 
+                  className="relative h-40 bg-muted/50 group cursor-pointer"
+                  onClick={() => cardFileInputRefs.current[veiculo.id]?.click()}
+                >
+                  {uploadingPhoto === veiculo.id ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : veiculo.foto_url ? (
+                    <>
+                      <img 
+                        src={veiculo.foto_url} 
+                        alt={`${veiculo.marca} ${veiculo.modelo}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="text-white text-sm flex items-center gap-2">
+                          <Camera className="w-5 h-5" />
+                          Alterar foto
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground group-hover:text-primary transition-colors">
+                      <Image className="w-10 h-10 mb-2" />
+                      <span className="text-sm">Adicionar foto do veículo</span>
+                      <span className="text-xs">Clique para fazer upload</span>
+                    </div>
+                  )}
+                  <input
+                    ref={(el) => cardFileInputRefs.current[veiculo.id] = el}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleVehiclePhotoUpload(veiculo.id, file);
+                    }}
+                    className="hidden"
+                  />
+                </div>
+
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
@@ -517,6 +705,10 @@ export default function MinhaFrota() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => cardFileInputRefs.current[veiculo.id]?.click()}>
+                          <Upload className="w-4 h-4 mr-2" />
+                          {veiculo.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
+                        </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Edit className="w-4 h-4 mr-2" />
                           Editar
@@ -565,9 +757,19 @@ export default function MinhaFrota() {
                   </div>
 
                   {veiculo.motorista && (
-                    <div className="flex items-center gap-2 pt-2 border-t border-border">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">{veiculo.motorista.nome_completo}</span>
+                    <div className="flex items-center gap-3 pt-3 border-t border-border">
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={veiculo.motorista.foto_url || undefined} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                          {getDriverInitials(veiculo.motorista.nome_completo)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {veiculo.motorista.nome_completo}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Motorista</p>
+                      </div>
                     </div>
                   )}
 
