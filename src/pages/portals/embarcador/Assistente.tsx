@@ -93,7 +93,7 @@ export default function Assistente() {
         >
           {/* History Header */}
           <div 
-            className="p-4 flex items-center justify-between"
+            className="px-4 py-3.5 flex items-center justify-between"
             style={{ borderBottom: '1px solid hsl(var(--ai-border) / 0.5)' }}
           >
             {!historyCollapsed && (
@@ -170,7 +170,7 @@ export default function Assistente() {
         <div className="relative z-10 flex-1 flex flex-col h-full">
           {/* HubFrete AI Header */}
           <div 
-            className="flex items-center gap-3 px-6 py-4"
+            className="flex items-center gap-3 px-6 py-3"
             style={{ 
               backgroundColor: 'hsl(var(--ai-header-bg))',
               borderBottom: '1px solid hsl(var(--ai-border))'
@@ -203,12 +203,12 @@ export default function Assistente() {
 
           {/* Chat Content Area with overlay for better readability */}
           <div 
-            className="flex-1 overflow-y-auto"
+            className="flex-1 overflow-y-auto py-4"
             style={{ 
               backgroundColor: 'hsl(var(--ai-bg-base) / 0.85)'
             }}
           >
-            <div className="px-6 py-4 h-full">
+            <div className="px-6 h-full">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center">
                   <div 
@@ -262,7 +262,7 @@ export default function Assistente() {
                   </div>
                 </div>
               ) : (
-                <div className="max-w-3xl mx-auto space-y-6">
+                <div className="max-w-3xl mx-auto space-y-6 pb-3">
                   {messages.map((message) => (
                     <ChatMessage key={message.id} message={message} userName={userName} />
                   ))}

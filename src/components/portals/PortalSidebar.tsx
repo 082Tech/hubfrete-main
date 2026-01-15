@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
+import { useTheme } from 'next-themes';
 
 interface MenuItem {
   icon: React.ElementType;
@@ -95,7 +96,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const { empresa, companyInfo, filiais, filialAtiva, setFilialAtiva, cargo, switchingFilial } = useUserContext();
-  
+  const darkMode = useTheme().theme === 'dark';
   const allMenuItems = menusByType[userType];
   const menuItems = allMenuItems.filter(item => !item.adminOnly || cargo === 'ADMIN');
   const config = portalConfig[userType];
@@ -158,7 +159,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
                 )}
               </div>
             </div>
-            
+
             {filiais.length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-[10px] font-medium text-sidebar-foreground/60 uppercase tracking-wider">
@@ -166,9 +167,9 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
                 </p>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="w-full justify-between h-9 px-3 text-xs bg-sidebar border-sidebar-border hover:bg-sidebar-accent"
                       disabled={switchingFilial}
                     >
@@ -192,12 +193,11 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
                       </p>
                     </div>
                     {filiais.map((filial) => (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         key={filial.id}
                         onClick={() => setFilialAtiva(filial)}
-                        className={`flex items-center gap-2 py-2.5 cursor-pointer ${
-                          filialAtiva?.id === filial.id ? 'bg-accent' : ''
-                        }`}
+                        className={`flex items-center gap-2 py-2.5 cursor-pointer ${filialAtiva?.id === filial.id ? 'bg-accent' : ''
+                          }`}
                       >
                         <MapPin className={`w-3.5 h-3.5 ${filialAtiva?.id === filial.id ? 'text-primary' : 'text-muted-foreground'}`} />
                         <div className="flex-1 min-w-0">
@@ -216,7 +216,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
                     {cargo === 'ADMIN' && (
                       <>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="gap-2 text-muted-foreground text-xs"
                           onClick={() => navigate(`/${userType}/filiais`)}
                         >
@@ -231,7 +231,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
             )}
           </div>
         )}
-        
+
         {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
@@ -240,13 +240,11 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
               <Link
                 key={item.href}
                 to={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                  collapsed ? 'justify-center' : ''
-                } ${
-                  isActive 
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground' 
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-primary'
-                }`}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                  } ${isActive
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                    : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                  }`}
               >
                 <item.icon className="w-5 h-5 shrink-0" />
                 {!collapsed && <span className="font-medium">{item.label}</span>}
@@ -269,7 +267,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
             return linkContent;
           })}
         </nav>
-        
+
         {/* User */}
         <div className={`p-4 border-t border-sidebar-border ${collapsed ? 'flex flex-col items-center' : ''}`}>
           {!collapsed ? (
@@ -296,8 +294,8 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
                   </p>
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="w-full justify-start text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
                 onClick={handleLogout}
               >

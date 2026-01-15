@@ -39,7 +39,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   return (
     <form onSubmit={handleSubmit} className="relative">
       <div className="glass-card input-glow p-1.5">
-        <div className="flex items-end gap-2">
+        <div className="flex items-center gap-2">
           <div className="flex-1 relative">
             <textarea
               ref={textareaRef}
@@ -49,7 +49,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
               placeholder="Digite sua mensagem..."
               disabled={disabled}
               rows={1}
-              className="w-full bg-transparent border-0 px-4 py-3 text-foreground placeholder:text-muted-foreground/50 focus:outline-none resize-none scrollbar-thin"
+              className="w-full px-4 py-3 rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none resize-none scrollbar-thin"
             />
           </div>
           
@@ -57,7 +57,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             type="submit"
             disabled={!input.trim() || disabled}
             size="icon"
-            className="h-11 w-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+            className="h-11 w-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 mb-2"
           >
             {disabled ? (
               <Sparkles className="w-5 h-5 animate-pulse" />
