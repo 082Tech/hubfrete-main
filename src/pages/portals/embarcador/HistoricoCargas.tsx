@@ -15,6 +15,7 @@ import {
   MapPin,
   Weight,
   DollarSign,
+  RotateCcw,
 } from 'lucide-react';
 import { PortalLayout } from '@/components/portals/PortalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,72 +45,120 @@ import {
 } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 
-type StatusCarga = 'entregue' | 'cancelada';
+type StatusEntrega = 'entregue' | 'devolvida' | 'problema';
 
-const statusConfig: Record<StatusCarga, { label: string; color: string; icon: React.ElementType }> = {
+const statusConfig: Record<StatusEntrega, { label: string; color: string; icon: React.ElementType }> = {
   entregue: { label: 'Entregue', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 },
-  cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle },
+  devolvida: { label: 'Devolvida', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: RotateCcw },
+  problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle },
 };
+
+interface EntregaHistorico {
+  id: string;
+  status: string;
+  peso_alocado_kg: number | null;
+  valor_frete: number | null;
+  entregue_em: string | null;
+  created_at: string | null;
+  motorista: { nome_completo: string } | null;
+  veiculo: { placa: string; modelo: string | null } | null;
+  carga: {
+    id: string;
+    codigo: string;
+    descricao: string;
+    tipo: string;
+    peso_kg: number;
+    valor_mercadoria: number | null;
+    valor_frete_tonelada: number | null;
+    filial_id: number | null;
+    endereco_origem: {
+      cidade: string;
+      estado: string;
+      logradouro: string;
+      bairro: string | null;
+    } | null;
+    endereco_destino: {
+      cidade: string;
+      estado: string;
+      logradouro: string;
+      bairro: string | null;
+    } | null;
+  } | null;
+}
 
 export default function HistoricoCargas() {
   const { filialAtiva, filiais } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedCarga, setSelectedCarga] = useState<any>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const filialIds = filialAtiva ? [filialAtiva.id] : filiais.map(f => f.id);
 
-  const { data: cargas = [], isLoading } = useQuery({
-    queryKey: ['historico-cargas', filialIds],
+  // Buscar entregas finalizadas (entregue, devolvida, problema)
+  const { data: entregas = [], isLoading } = useQuery({
+    queryKey: ['historico-entregas', filialIds],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('cargas')
+        .from('entregas')
         .select(`
-          *,
-          endereco_origem:enderecos_carga!cargas_endereco_origem_fkey (
-            cidade, estado, logradouro, bairro
-          ),
-          endereco_destino:enderecos_carga!cargas_endereco_destino_fkey (
-            cidade, estado, logradouro, bairro
-          ),
-          entregas (
+          id,
+          status,
+          peso_alocado_kg,
+          valor_frete,
+          entregue_em,
+          created_at,
+          motorista:motoristas (nome_completo),
+          veiculo:veiculos (placa, modelo),
+          carga:cargas!inner (
             id,
-            status,
-            entregue_em,
-            motorista:motoristas (nome_completo),
-            veiculo:veiculos (placa, modelo)
+            codigo,
+            descricao,
+            tipo,
+            peso_kg,
+            valor_mercadoria,
+            valor_frete_tonelada,
+            filial_id,
+            endereco_origem:enderecos_carga!cargas_endereco_origem_fkey (
+              cidade, estado, logradouro, bairro
+            ),
+            endereco_destino:enderecos_carga!cargas_endereco_destino_fkey (
+              cidade, estado, logradouro, bairro
+            )
           )
         `)
-        .in('filial_id', filialIds)
-        .in('status', ['entregue', 'cancelada'])
-        .order('updated_at', { ascending: false });
+        .in('status', ['entregue', 'devolvida', 'problema'])
+        .order('entregue_em', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
-      return data || [];
+      
+      // Filtrar por filial
+      const filtered = (data || []).filter((entrega: any) => 
+        filialIds.includes(entrega.carga?.filial_id)
+      );
+      
+      return filtered as EntregaHistorico[];
     },
     enabled: filialIds.length > 0,
   });
 
   // Calculate stats
   const stats = {
-    totalEntregues: cargas.filter(c => c.status === 'entregue').length,
-    totalCanceladas: cargas.filter(c => c.status === 'cancelada').length,
-    pesoTotal: cargas.filter(c => c.status === 'entregue').reduce((acc, c) => acc + (c.peso_kg || 0), 0),
-    valorTotal: cargas.filter(c => c.status === 'entregue').reduce((acc, c) => acc + (c.valor_mercadoria || 0), 0),
+    totalEntregues: entregas.filter(e => e.status === 'entregue').length,
+    totalDevolvidas: entregas.filter(e => e.status === 'devolvida' || e.status === 'problema').length,
+    pesoTotal: entregas.filter(e => e.status === 'entregue').reduce((acc, e) => acc + (e.peso_alocado_kg || 0), 0),
+    valorFrete: entregas.filter(e => e.status === 'entregue').reduce((acc, e) => acc + (e.valor_frete || 0), 0),
   };
 
-  // Filter cargas
-  const filteredCargas = cargas.filter(carga => {
+  // Filter entregas
+  const filteredEntregas = entregas.filter(entrega => {
     const matchesSearch =
-      carga.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      carga.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      carga.endereco_origem?.cidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      carga.endereco_destino?.cidade?.toLowerCase().includes(searchTerm.toLowerCase());
+      entrega.carga?.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      entrega.carga?.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      entrega.carga?.endereco_origem?.cidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      entrega.carga?.endereco_destino?.cidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      entrega.motorista?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'all' || carga.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || entrega.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -125,11 +174,6 @@ export default function HistoricoCargas() {
     return `${kg}kg`;
   };
 
-  const handleViewDetails = (carga: any) => {
-    setSelectedCarga(carga);
-    setDetailsOpen(true);
-  };
-
   return (
     <PortalLayout expectedUserType="embarcador">
       <TooltipProvider>
@@ -139,10 +183,10 @@ export default function HistoricoCargas() {
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Package className="w-7 h-7 text-primary" />
-                Histórico de Cargas
+                Histórico de Entregas
               </h1>
               <p className="text-muted-foreground mt-1">
-                Visualize todas as cargas entregues e canceladas
+                Visualize todas as entregas finalizadas
               </p>
             </div>
             <Button variant="outline" className="gap-2">
@@ -169,12 +213,12 @@ export default function HistoricoCargas() {
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-red-100">
-                    <XCircle className="w-5 h-5 text-red-600" />
+                  <div className="p-2 rounded-lg bg-orange-100">
+                    <RotateCcw className="w-5 h-5 text-orange-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Canceladas</p>
-                    <p className="text-2xl font-bold text-foreground">{stats.totalCanceladas}</p>
+                    <p className="text-sm text-muted-foreground">Devolvidas</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.totalDevolvidas}</p>
                   </div>
                 </div>
               </CardContent>
@@ -199,8 +243,8 @@ export default function HistoricoCargas() {
                     <DollarSign className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Valor Total</p>
-                    <p className="text-2xl font-bold text-foreground">{formatCurrency(stats.valorTotal)}</p>
+                    <p className="text-sm text-muted-foreground">Total Frete</p>
+                    <p className="text-2xl font-bold text-foreground">{formatCurrency(stats.valorFrete)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -214,7 +258,7 @@ export default function HistoricoCargas() {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar por código, descrição ou cidade..."
+                    placeholder="Buscar por código, descrição, cidade ou motorista..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9"
@@ -228,7 +272,8 @@ export default function HistoricoCargas() {
                   <SelectContent>
                     <SelectItem value="all">Todos os Status</SelectItem>
                     <SelectItem value="entregue">Entregues</SelectItem>
-                    <SelectItem value="cancelada">Canceladas</SelectItem>
+                    <SelectItem value="devolvida">Devolvidas</SelectItem>
+                    <SelectItem value="problema">Com Problema</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -239,7 +284,7 @@ export default function HistoricoCargas() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">
-                {filteredCargas.length} {filteredCargas.length === 1 ? 'carga encontrada' : 'cargas encontradas'}
+                {filteredEntregas.length} {filteredEntregas.length === 1 ? 'entrega encontrada' : 'entregas encontradas'}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -252,9 +297,9 @@ export default function HistoricoCargas() {
                       <TableHead className="font-semibold">Origem</TableHead>
                       <TableHead className="font-semibold">Destino</TableHead>
                       <TableHead className="font-semibold">Peso</TableHead>
-                      <TableHead className="font-semibold">Valor</TableHead>
+                      <TableHead className="font-semibold">Frete</TableHead>
+                      <TableHead className="font-semibold">Motorista</TableHead>
                       <TableHead className="font-semibold">Data Conclusão</TableHead>
-                      <TableHead className="font-semibold text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -264,24 +309,23 @@ export default function HistoricoCargas() {
                           Carregando...
                         </TableCell>
                       </TableRow>
-                    ) : filteredCargas.length === 0 ? (
+                    ) : filteredEntregas.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
-                          Nenhuma carga encontrada no histórico
+                          Nenhuma entrega encontrada no histórico
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredCargas.map((carga) => {
-                        const status = carga.status as StatusCarga;
-                        const config = statusConfig[status];
+                      filteredEntregas.map((entrega) => {
+                        const status = entrega.status as StatusEntrega;
+                        const config = statusConfig[status] || statusConfig.entregue;
                         const StatusIcon = config?.icon || Package;
-                        const entrega = carga.entregas?.[0];
-                        const dataFinal = entrega?.entregue_em || carga.updated_at;
+                        const dataFinal = entrega.entregue_em || entrega.created_at;
 
                         return (
-                          <TableRow key={carga.id} className="hover:bg-muted/30">
+                          <TableRow key={entrega.id} className="hover:bg-muted/30">
                             <TableCell className="font-mono font-medium text-primary">
-                              {carga.codigo}
+                              {entrega.carga?.codigo || '-'}
                             </TableCell>
                             <TableCell>
                               <Badge className={`${config?.color} border gap-1`}>
@@ -295,13 +339,13 @@ export default function HistoricoCargas() {
                                   <div className="flex items-center gap-1.5 cursor-help">
                                     <MapPin className="w-3.5 h-3.5 text-green-600" />
                                     <span className="truncate max-w-[120px]">
-                                      {carga.endereco_origem?.cidade || '-'}
+                                      {entrega.carga?.endereco_origem?.cidade || '-'}
                                     </span>
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  {carga.endereco_origem?.logradouro}, {carga.endereco_origem?.bairro}<br />
-                                  {carga.endereco_origem?.cidade}/{carga.endereco_origem?.estado}
+                                  {entrega.carga?.endereco_origem?.logradouro}, {entrega.carga?.endereco_origem?.bairro}<br />
+                                  {entrega.carga?.endereco_origem?.cidade}/{entrega.carga?.endereco_origem?.estado}
                                 </TooltipContent>
                               </Tooltip>
                             </TableCell>
@@ -311,38 +355,35 @@ export default function HistoricoCargas() {
                                   <div className="flex items-center gap-1.5 cursor-help">
                                     <MapPin className="w-3.5 h-3.5 text-red-600" />
                                     <span className="truncate max-w-[120px]">
-                                      {carga.endereco_destino?.cidade || '-'}
+                                      {entrega.carga?.endereco_destino?.cidade || '-'}
                                     </span>
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  {carga.endereco_destino?.logradouro}, {carga.endereco_destino?.bairro}<br />
-                                  {carga.endereco_destino?.cidade}/{carga.endereco_destino?.estado}
+                                  {entrega.carga?.endereco_destino?.logradouro}, {entrega.carga?.endereco_destino?.bairro}<br />
+                                  {entrega.carga?.endereco_destino?.cidade}/{entrega.carga?.endereco_destino?.estado}
                                 </TooltipContent>
                               </Tooltip>
                             </TableCell>
                             <TableCell className="font-medium">
-                              {formatWeight(carga.peso_kg)}
+                              {formatWeight(entrega.peso_alocado_kg)}
                             </TableCell>
                             <TableCell className="font-medium text-emerald-600">
-                              {formatCurrency(carga.valor_mercadoria)}
+                              {formatCurrency(entrega.valor_frete)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5">
+                                <Truck className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span className="truncate max-w-[100px]">
+                                  {entrega.motorista?.nome_completo || '-'}
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                                 <Calendar className="w-3.5 h-3.5" />
                                 {dataFinal ? format(new Date(dataFinal), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
                               </div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleViewDetails(carga)}
-                                className="gap-1"
-                              >
-                                <Eye className="w-4 h-4" />
-                                Ver
-                              </Button>
                             </TableCell>
                           </TableRow>
                         );
@@ -354,13 +395,6 @@ export default function HistoricoCargas() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Details Dialog */}
-        <CargaDetailsDialog
-          carga={selectedCarga}
-          open={detailsOpen}
-          onOpenChange={setDetailsOpen}
-        />
       </TooltipProvider>
     </PortalLayout>
   );
