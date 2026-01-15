@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { PortalLayout } from "@/components/portals/PortalLayout";
 import { Button } from "@/components/ui/button";
 import { useUserContext } from "@/hooks/useUserContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Assistente() {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -16,10 +17,10 @@ export default function Assistente() {
   const [sessionId, setSessionId] = useState(() => getOrCreateSessionId());
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { companyInfo } = useUserContext();
+  const { profile } = useAuth();
 
   // Get user's name from companyInfo or use default
-  const userName = companyInfo?.razao_social?.split(' ')[0] || 'Você';
+  const userName = profile?.nome_completo?.split(' ')[0] || 'Você';
 
   // Mock chat history - will be replaced with real data
   const chatHistory = [
