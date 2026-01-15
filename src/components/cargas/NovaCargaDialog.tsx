@@ -42,6 +42,7 @@ import { DestinoSection } from './DestinoSection';
 import { NecessidadesEspeciais } from './NecessidadesEspeciais';
 import { NotaFiscalUpload } from './NotaFiscalUpload';
 import { ResumoSection } from './ResumoSection';
+import { VeiculoCarroceriaSelect, ALL_VEICULOS, ALL_CARROCERIAS } from './VeiculoCarroceriaSelect';
 
 type TipoCarga = Database['public']['Enums']['tipo_carga'];
 
@@ -102,6 +103,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   // Additional state for new fields
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
+  
+  // Vehicle and body type requirements
+  const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([...ALL_VEICULOS]);
+  const [carroceriasSelecionadas, setCarroceriasSelecionadas] = useState<string[]>([...ALL_CARROCERIAS]);
   
   // Location data for origin and destination
   const [origemData, setOrigemData] = useState<LocationData>({
@@ -225,6 +230,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           necessidades_especiais: necessidadesEspeciais,
           regras_carregamento: values.regras_carregamento || null,
           nota_fiscal_url: notaFiscalUrl,
+          // Vehicle requirements as JSON
+          veiculo_requisitos: {
+            tipos_veiculo: veiculosSelecionados,
+            tipos_carroceria: carroceriasSelecionadas,
+          },
         })
         .select()
         .single();
@@ -292,6 +302,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       form.reset();
       setNecessidadesEspeciais([]);
       setNotaFiscalUrl(null);
+      setVeiculosSelecionados([...ALL_VEICULOS]);
+      setCarroceriasSelecionadas([...ALL_CARROCERIAS]);
       setOrigemData({
         latitude: 0, longitude: 0, cep: '', logradouro: '', numero: '',
         complemento: '', bairro: '', cidade: '', estado: '',
@@ -693,6 +705,16 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   />
                 )}
 
+                {/* Veículos e Carrocerias Aceitos */}
+                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
+                  <VeiculoCarroceriaSelect
+                    veiculosSelecionados={veiculosSelecionados}
+                    carroceriasSelecionadas={carroceriasSelecionadas}
+                    onVeiculosChange={setVeiculosSelecionados}
+                    onCarroceriasChange={setCarroceriasSelecionadas}
+                  />
+                </div>
+
                 {/* Necessidades Especiais */}
                 <NecessidadesEspeciais
                   value={necessidadesEspeciais}
@@ -760,6 +782,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   }}
                   necessidadesEspeciais={necessidadesEspeciais}
                   notaFiscalUrl={notaFiscalUrl}
+                  veiculosSelecionados={veiculosSelecionados}
+                  carroceriasSelecionadas={carroceriasSelecionadas}
                 />
               </TabsContent>
             </Tabs>

@@ -19,9 +19,12 @@ import {
   Box,
   AlertTriangle,
   Snowflake,
-  FileText
+  FileText,
+  Container,
+  CheckCircle2
 } from 'lucide-react';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
+import { VEICULOS_CONFIG, CARROCERIAS_CONFIG, ALL_VEICULOS, ALL_CARROCERIAS } from './VeiculoCarroceriaSelect';
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -138,6 +141,8 @@ interface ResumoSectionProps {
   };
   necessidadesEspeciais: string[];
   notaFiscalUrl: string | null;
+  veiculosSelecionados?: string[];
+  carroceriasSelecionadas?: string[];
 }
 
 const tipoCargaLabels: Record<string, string> = {
@@ -157,7 +162,9 @@ export function ResumoSection({
   destinoData, 
   cargaData,
   necessidadesEspeciais,
-  notaFiscalUrl
+  notaFiscalUrl,
+  veiculosSelecionados = [],
+  carroceriasSelecionadas = [],
 }: ResumoSectionProps) {
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
@@ -508,6 +515,60 @@ export function ResumoSection({
             <div>
               <p className="text-xs text-muted-foreground mb-1">Regras de Carregamento:</p>
               <p className="text-sm bg-muted/50 p-2 rounded">{cargaData.regras_carregamento}</p>
+            </div>
+          )}
+
+          {/* Vehicle requirements */}
+          {veiculosSelecionados.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                <Truck className="w-3 h-3" />
+                Veículos Aceitos:
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {veiculosSelecionados.length === ALL_VEICULOS.length ? (
+                  <Badge variant="default" className="text-xs gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Todos os veículos
+                  </Badge>
+                ) : (
+                  veiculosSelecionados.map((v) => {
+                    const item = Object.values(VEICULOS_CONFIG).flatMap(c => c.items).find(i => i.value === v);
+                    return item ? (
+                      <Badge key={v} variant="outline" className="text-xs">
+                        {item.label}
+                      </Badge>
+                    ) : null;
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Body type requirements */}
+          {carroceriasSelecionadas.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                <Container className="w-3 h-3" />
+                Carrocerias Aceitas:
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {carroceriasSelecionadas.length === ALL_CARROCERIAS.length ? (
+                  <Badge variant="default" className="text-xs gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Todas as carrocerias
+                  </Badge>
+                ) : (
+                  carroceriasSelecionadas.map((c) => {
+                    const item = Object.values(CARROCERIAS_CONFIG).flatMap(cat => cat.items).find(i => i.value === c);
+                    return item ? (
+                      <Badge key={c} variant="outline" className="text-xs">
+                        {item.label}
+                      </Badge>
+                    ) : null;
+                  })
+                )}
+              </div>
             </div>
           )}
 
