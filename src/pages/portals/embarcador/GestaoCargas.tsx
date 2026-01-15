@@ -53,6 +53,13 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -803,23 +810,36 @@ export default function GestaoCargas() {
 
               <Card className="border-border">
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
+                  <ScrollArea className="w-full">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-border">
-                          <TableHead className="min-w-[180px] sticky left-0 bg-background z-10">Carga</TableHead>
-                          <TableHead className="min-w-[160px]">Remetente</TableHead>
-                          <TableHead className="min-w-[160px]">Destinatário</TableHead>
-                          <TableHead className="min-w-[100px]">Peso</TableHead>
-                          <TableHead className="min-w-[80px]">Cubagem</TableHead>
-                          <TableHead className="min-w-[110px]">Tipo Carga</TableHead>
-                          <TableHead className="min-w-[120px]">Valor Mercadoria</TableHead>
-                          <TableHead className="min-w-[120px]">Valor Frete</TableHead>
-                          <TableHead className="min-w-[150px]">Motorista</TableHead>
-                          <TableHead className="min-w-[110px]">Veículo</TableHead>
-                          <TableHead className="min-w-[130px]">Status</TableHead>
-                          <TableHead className="min-w-[110px]">Previsão</TableHead>
-                          <TableHead className="w-[50px] sticky right-0 bg-background z-10"></TableHead>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="font-semibold min-w-[140px] sticky left-0 bg-muted/50 z-10">Código</TableHead>
+                          <TableHead className="font-semibold min-w-[180px]">
+                            <div className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              Remetente
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-semibold min-w-[180px]">
+                            <div className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              Destinatário
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-semibold min-w-[90px]">Peso</TableHead>
+                          <TableHead className="font-semibold min-w-[80px]">Volume</TableHead>
+                          <TableHead className="font-semibold min-w-[100px]">Tipo</TableHead>
+                          <TableHead className="font-semibold min-w-[110px]">Motorista</TableHead>
+                          <TableHead className="font-semibold min-w-[90px]">Veículo</TableHead>
+                          <TableHead className="font-semibold min-w-[110px]">Status</TableHead>
+                          <TableHead className="font-semibold min-w-[100px]">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              Previsão
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-semibold w-10"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -831,79 +851,84 @@ export default function GestaoCargas() {
                           const isSelected = selectedCargaId === carga.id;
                           const remetente = getRemetente(carga);
                           const destinatario = getDestinatario(carga);
-                          const origem = getEndereco(carga, 'origem');
-                          const destino = getEndereco(carga, 'destino');
 
                           return (
                             <TableRow
                               key={carga.id}
-                              className={`border-border cursor-pointer transition-colors ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-muted/50'}`}
+                              className={`hover:bg-muted/50 cursor-pointer ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : ''}`}
                               onClick={() => setSelectedCargaId(isSelected ? null : carga.id)}
                             >
-                              {/* Carga (sticky) */}
+                              {/* Código (sticky) */}
                               <TableCell className="sticky left-0 bg-background z-10">
                                 <div>
                                   <p className="font-medium text-foreground">{carga.codigo}</p>
-                                  <p className="text-xs text-muted-foreground line-clamp-1">{carga.descricao}</p>
+                                  <p className="text-xs text-muted-foreground line-clamp-1 max-w-[120px]">{carga.descricao}</p>
                                 </div>
                               </TableCell>
 
-                              {/* Remetente (Origem - Filial) */}
+                              {/* Remetente */}
                               <TableCell>
-                                <div className="text-sm max-w-[180px]">
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                                    <span className="font-medium truncate">{remetente.nome}</span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground truncate">
-                                    {remetente.cidade}{remetente.estado ? `, ${remetente.estado}` : ''}
-                                  </p>
-                                  {remetente.endereco && (
-                                    <p className="text-xs text-muted-foreground/70 truncate">{remetente.endereco}</p>
-                                  )}
-                                </div>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="text-sm">
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                                          <span className="font-medium truncate max-w-[140px]">{remetente.nome}</span>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground truncate max-w-[140px]">
+                                          {remetente.cidade}{remetente.estado ? `, ${remetente.estado}` : ''}
+                                        </p>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="max-w-xs">
+                                      <p className="font-medium">{remetente.nome}</p>
+                                      {remetente.endereco && <p className="text-xs">{remetente.endereco}</p>}
+                                      <p className="text-xs">{remetente.cidade}, {remetente.estado}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </TableCell>
 
                               {/* Destinatário */}
                               <TableCell>
-                                <div className="text-sm max-w-[180px]">
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                                    <span className="font-medium truncate">{destinatario?.nome || '-'}</span>
-                                  </div>
-                                  {destinatario && (
-                                    <>
-                                      <p className="text-xs text-muted-foreground truncate">
-                                        {destinatario.cidade}, {destinatario.estado}
-                                      </p>
-                                      {destinatario.endereco && (
-                                        <p className="text-xs text-muted-foreground/70 truncate">{destinatario.endereco}</p>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
+                                {destinatario ? (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="text-sm">
+                                          <div className="flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                                            <span className="font-medium truncate max-w-[140px]">{destinatario.nome}</span>
+                                          </div>
+                                          <p className="text-xs text-muted-foreground truncate max-w-[140px]">
+                                            {destinatario.cidade}, {destinatario.estado}
+                                          </p>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom" className="max-w-xs">
+                                        <p className="font-medium">{destinatario.nome}</p>
+                                        {destinatario.endereco && <p className="text-xs">{destinatario.endereco}</p>}
+                                        <p className="text-xs">{destinatario.cidade}, {destinatario.estado}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                )}
                               </TableCell>
 
                               {/* Peso */}
                               <TableCell className="text-sm">{formatPeso(carga.peso_kg)}</TableCell>
 
-                              {/* Cubagem */}
+                              {/* Volume */}
                               <TableCell className="text-sm">{formatVolume(carga.volume_m3)}</TableCell>
 
-                              {/* Tipo Carga */}
+                              {/* Tipo */}
                               <TableCell>
                                 <Badge variant="outline" className="text-xs whitespace-nowrap">
                                   {tipoCargaLabels[carga.tipo] || carga.tipo}
                                 </Badge>
-                              </TableCell>
-
-                              {/* Valor Mercadoria */}
-                              <TableCell className="text-sm font-medium">{formatValor(carga.valor_mercadoria)}</TableCell>
-
-                              {/* Valor Frete */}
-                              <TableCell className="text-sm font-medium text-primary">
-                                {/* TODO: Quando tiver cotação aceita, mostrar valor */}
-                                -
                               </TableCell>
 
                               {/* Motorista */}
@@ -912,7 +937,7 @@ export default function GestaoCargas() {
                                   <div className="text-sm">
                                     <div className="flex items-center gap-1">
                                       <User className="w-3 h-3 text-muted-foreground" />
-                                      <span className="truncate max-w-[120px]">{entrega.motoristas.nome_completo}</span>
+                                      <span className="truncate max-w-[90px]">{entrega.motoristas.nome_completo}</span>
                                     </div>
                                     {entrega.motoristas.telefone && (
                                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -948,7 +973,7 @@ export default function GestaoCargas() {
                                 </Badge>
                               </TableCell>
 
-                              {/* Previsão de Chegada */}
+                              {/* Previsão */}
                               <TableCell>
                                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                                   <Calendar className="w-3.5 h-3.5" />
@@ -956,8 +981,8 @@ export default function GestaoCargas() {
                                 </div>
                               </TableCell>
 
-                              {/* Ações (sticky) */}
-                              <TableCell className="sticky right-0 bg-background z-10">
+                              {/* Ações */}
+                              <TableCell>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1016,7 +1041,8 @@ export default function GestaoCargas() {
                         })}
                       </TableBody>
                     </Table>
-                  </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </div>
