@@ -208,23 +208,28 @@ export default function Motoristas() {
     }
   };
 
+  const getCNHStatus = (validade: string | null | undefined): 'valid' | 'expiring' | 'expired' | 'unknown' => {
+    if (!validade) return 'unknown';
+    try {
+      const date = parseISO(validade);
+      if (!isValid(date)) return 'unknown';
+      const hoje = new Date();
+      const diff = date.getTime() - hoje.getTime();
+      const dias = diff / (1000 * 60 * 60 * 24);
+      if (dias < 0) return 'expired';
+      if (dias <= 30) return 'expiring';
+      return 'valid';
+    } catch {
+      return 'unknown';
+    }
+  };
+
   const stats = useMemo(() => {
     const ativos = motoristas.filter((m) => m.ativo).length;
     const comVeiculo = motoristas.filter((m) => m.veiculos.length > 0).length;
-    const cnhVencendo = motoristas.filter((m) => {
-      if (!m.validade_cnh) return false;
-      try {
-        const validade = parseISO(m.validade_cnh);
-        if (!isValid(validade)) return false;
-        const hoje = new Date();
-        const diff = validade.getTime() - hoje.getTime();
-        const dias = diff / (1000 * 60 * 60 * 24);
-        return dias <= 30 && dias > 0;
-      } catch {
-        return false;
-      }
-    }).length;
-    return { total: motoristas.length, ativos, comVeiculo, cnhVencendo };
+    const cnhVencendo = motoristas.filter((m) => getCNHStatus(m.validade_cnh) === 'expiring').length;
+    const cnhVencida = motoristas.filter((m) => getCNHStatus(m.validade_cnh) === 'expired').length;
+    return { total: motoristas.length, ativos, comVeiculo, cnhVencendo, cnhVencida };
   }, [motoristas]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -396,7 +401,7 @@ export default function Motoristas() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-3 bg-primary/10 rounded-xl">
@@ -442,6 +447,19 @@ export default function Motoristas() {
                   {stats.cnhVencendo}
                 </p>
                 <p className="text-sm text-muted-foreground">CNH Vencendo</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-destructive/10 rounded-xl">
+                <XCircle className="w-6 h-6 text-destructive" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.cnhVencida}
+                </p>
+                <p className="text-sm text-muted-foreground">CNH Vencida</p>
               </div>
             </CardContent>
           </Card>
@@ -566,6 +584,18 @@ export default function Motoristas() {
                     ) : (
                       <Badge variant="destructive">Inativo</Badge>
                     )}
+                    {getCNHStatus(motorista.validade_cnh) === 'expired' && (
+                      <Badge variant="destructive" className="gap-1">
+                        <XCircle className="w-3 h-3" />
+                        CNH Vencida
+                      </Badge>
+                    )}
+                    {getCNHStatus(motorista.validade_cnh) === 'expiring' && (
+                      <Badge className="bg-chart-4/10 text-chart-4 border-chart-4/20 gap-1">
+                        <Calendar className="w-3 h-3" />
+                        CNH Vencendo
+                      </Badge>
+                    )}
                     {motorista.veiculos.length > 0 && (
                       <Badge variant="outline" className="gap-1">
                         <Truck className="w-3 h-3" />
@@ -591,7 +621,13 @@ export default function Motoristas() {
                         <span className="truncate">{motorista.email}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className={`flex items-center gap-2 ${
+                      getCNHStatus(motorista.validade_cnh) === 'expired' 
+                        ? 'text-destructive font-medium' 
+                        : getCNHStatus(motorista.validade_cnh) === 'expiring'
+                        ? 'text-chart-4 font-medium'
+                        : 'text-muted-foreground'
+                    }`}>
                       <Calendar className="w-4 h-4" />
                       <span>
                         CNH válida até {formatValidadeCNH(motorista.validade_cnh)}
