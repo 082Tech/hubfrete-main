@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -19,6 +20,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Home,
+  History,
+  Send,
+  Route,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +33,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   Tooltip,
   TooltipContent,
@@ -46,13 +55,35 @@ interface MenuItem {
   adminOnly?: boolean;
 }
 
+interface SubMenuItem {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+}
+
+interface MenuGroup {
+  icon: React.ElementType;
+  label: string;
+  subItems: SubMenuItem[];
+}
+
 type SidebarUserType = 'embarcador' | 'transportadora' | 'motorista';
+
+// Submenu for Cargas (embarcador only)
+const cargasSubmenu: MenuGroup = {
+  icon: Package,
+  label: 'Cargas',
+  subItems: [
+    { icon: Send, label: 'Publicadas', href: '/embarcador/cargas-publicadas' },
+    { icon: Route, label: 'Em Rota', href: '/embarcador/cargas' },
+    { icon: History, label: 'Histórico', href: '/embarcador/historico' },
+  ],
+};
 
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: Home, label: 'Home', href: '/embarcador' },
-    { icon: Package, label: 'Cargas Publicadas', href: '/embarcador/cargas-publicadas' },
-    { icon: Truck, label: 'Cargas em Rota', href: '/embarcador/cargas' },
+    // Cargas is now a submenu - handled separately
     { icon: Building2, label: 'Destinatários', href: '/embarcador/destinatarios' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: MessageCircle, label: 'Assistente', href: '/embarcador/assistente' },
@@ -101,6 +132,12 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
   const menuItems = allMenuItems.filter(item => !item.adminOnly || cargo === 'ADMIN');
   const config = portalConfig[userType];
   const PortalIcon = config.icon;
+
+  // Check if any submenu item is active
+  const isCargasSubmenuActive = cargasSubmenu.subItems.some(
+    (sub) => location.pathname === sub.href
+  );
+  const [cargasOpen, setCargasOpen] = useState(isCargasSubmenuActive);
 
   const handleLogout = async () => {
     await signOut();
@@ -234,7 +271,114 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
 
         {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => {
+          {/* Home link - first item for embarcador */}
+          {userType === 'embarcador' && (
+            (() => {
+              const homeItem = menuItems.find(item => item.href === '/embarcador');
+              if (!homeItem) return null;
+              const isActive = location.pathname === homeItem.href;
+              const linkContent = (
+                <Link
+                  to={homeItem.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                    } ${isActive
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                    }`}
+                >
+                  <homeItem.icon className="w-5 h-5 shrink-0" />
+                  {!collapsed && <span className="font-medium">{homeItem.label}</span>}
+                </Link>
+              );
+              if (collapsed) {
+                return (
+                  <Tooltip key={homeItem.href}>
+                    <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={10}>{homeItem.label}</TooltipContent>
+                  </Tooltip>
+                );
+              }
+              return linkContent;
+            })()
+          )}
+
+          {/* Cargas Submenu - only for embarcador */}
+          {userType === 'embarcador' && (
+            collapsed ? (
+              // Collapsed: show dropdown on hover/click
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${
+                          isCargasSubmenuActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                        }`}
+                      >
+                        <Package className="w-5 h-5 shrink-0" />
+                      </button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" sideOffset={10}>Cargas</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent side="right" align="start" className="w-48">
+                  {cargasSubmenu.subItems.map((sub) => (
+                    <DropdownMenuItem
+                      key={sub.href}
+                      onClick={() => navigate(sub.href)}
+                      className={location.pathname === sub.href ? 'bg-accent' : ''}
+                    >
+                      <sub.icon className="w-4 h-4 mr-2" />
+                      {sub.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              // Expanded: show collapsible submenu
+              <Collapsible open={cargasOpen} onOpenChange={setCargasOpen}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${
+                      isCargasSubmenuActive
+                        ? 'bg-sidebar-primary/10 text-sidebar-primary'
+                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                    }`}
+                  >
+                    <Package className="w-5 h-5 shrink-0" />
+                    <span className="font-medium flex-1 text-left">Cargas</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${cargasOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                  {cargasSubmenu.subItems.map((sub) => {
+                    const isSubActive = location.pathname === sub.href;
+                    return (
+                      <Link
+                        key={sub.href}
+                        to={sub.href}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                          isSubActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                        }`}
+                      >
+                        <sub.icon className="w-4 h-4 shrink-0" />
+                        <span className="text-sm">{sub.label}</span>
+                      </Link>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+            )
+          )}
+
+          {/* Regular menu items - exclude Home for embarcador since it's rendered above */}
+          {menuItems
+            .filter(item => userType !== 'embarcador' || item.href !== '/embarcador')
+            .map((item) => {
             const isActive = location.pathname === item.href;
             const linkContent = (
               <Link
