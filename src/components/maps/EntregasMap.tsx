@@ -473,17 +473,17 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
           })}
       </MapContainer>
       
-      {/* Legend */}
+      {/* Legend - simplified for active deliveries */}
       <div className="absolute bottom-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
         <p className="text-xs font-medium text-muted-foreground mb-2">Legenda</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          {Object.entries(statusLabels).slice(0, 6).map(([key, label]) => (
+        <div className="flex flex-col gap-1">
+          {['em_coleta', 'em_transito', 'em_entrega'].map((key) => (
             <div key={key} className="flex items-center gap-1.5">
               <div 
                 className="w-3 h-3 rounded-full border-2 border-white shadow-sm"
                 style={{ backgroundColor: statusColors[key] }}
               />
-              <span className="text-xs text-foreground">{label}</span>
+              <span className="text-xs text-foreground">{statusLabels[key]}</span>
             </div>
           ))}
         </div>

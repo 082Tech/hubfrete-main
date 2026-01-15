@@ -7,6 +7,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { 
   Package, 
   MapPin, 
@@ -21,7 +29,8 @@ import {
   Snowflake,
   FileText,
   Navigation,
-  CheckCircle
+  CheckCircle,
+  PackageOpen
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -69,7 +78,24 @@ interface CargaDetailsProps {
       contato_nome?: string | null;
       contato_telefone?: string | null;
     } | null;
-    entregas?: {
+    entregas?: Array<{
+      id: string;
+      status: StatusEntrega | null;
+      peso_alocado_kg: number | null;
+      valor_frete: number | null;
+      coletado_em: string | null;
+      entregue_em: string | null;
+      motoristas?: {
+        nome_completo: string;
+        telefone: string | null;
+      } | null;
+      veiculos?: {
+        placa: string;
+        marca: string | null;
+        modelo: string | null;
+        tipo: string | null;
+      } | null;
+    }> | {
       status: StatusEntrega | null;
       motoristas?: {
         nome_completo: string;
@@ -119,6 +145,17 @@ const tipoVeiculoLabels: Record<string, string> = {
   'bitrem': 'Bitrem',
   'rodotrem': 'Rodotrem',
   'vanderleia': 'Vanderléia',
+};
+
+const statusEntregaConfig: Record<string, { color: string; label: string }> = {
+  'aguardando_coleta': { color: 'bg-muted text-muted-foreground', label: 'Aguardando Coleta' },
+  'em_coleta': { color: 'bg-blue-500/10 text-blue-600', label: 'Em Coleta' },
+  'coletado': { color: 'bg-cyan-500/10 text-cyan-600', label: 'Coletado' },
+  'em_transito': { color: 'bg-orange-500/10 text-orange-600', label: 'Em Trânsito' },
+  'em_entrega': { color: 'bg-purple-500/10 text-purple-600', label: 'Em Entrega' },
+  'entregue': { color: 'bg-green-500/10 text-green-600', label: 'Entregue' },
+  'problema': { color: 'bg-red-500/10 text-red-600', label: 'Problema' },
+  'devolvida': { color: 'bg-red-500/10 text-red-600', label: 'Devolvida' },
 };
 
 export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsProps) {
@@ -377,8 +414,91 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
             </CardContent>
           </Card>
 
-          {/* Motorista e Veículo */}
-          {carga.entregas && (
+          {/* Entregas (Frações) - Show table if it's an array with items */}
+          {carga.entregas && Array.isArray(carga.entregas) && carga.entregas.length > 0 && (
+            <>
+              <Separator />
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <PackageOpen className="w-4 h-4" />
+                    Entregas ({carga.entregas.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Status</TableHead>
+                        <TableHead className="text-xs">Peso</TableHead>
+                        <TableHead className="text-xs">Frete</TableHead>
+                        <TableHead className="text-xs">Motorista</TableHead>
+                        <TableHead className="text-xs">Veículo</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {carga.entregas.map((entrega) => {
+                        const statusConfig = statusEntregaConfig[entrega.status || 'aguardando_coleta'];
+                        return (
+                          <TableRow key={entrega.id}>
+                            <TableCell>
+                              <Badge variant="outline" className={`text-xs ${statusConfig?.color || ''}`}>
+                                {statusConfig?.label || entrega.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {entrega.peso_alocado_kg 
+                                ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg`
+                                : '-'
+                              }
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {entrega.valor_frete 
+                                ? entrega.valor_frete.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                                : '-'
+                              }
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {entrega.motoristas ? (
+                                <div>
+                                  <p className="font-medium">{entrega.motoristas.nome_completo}</p>
+                                  {entrega.motoristas.telefone && (
+                                    <a 
+                                      href={`tel:${entrega.motoristas.telefone}`}
+                                      className="text-primary hover:underline text-xs"
+                                    >
+                                      {entrega.motoristas.telefone}
+                                    </a>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {entrega.veiculos ? (
+                                <div>
+                                  <p className="font-medium">{entrega.veiculos.placa}</p>
+                                  <p className="text-muted-foreground text-xs">
+                                    {entrega.veiculos.marca} {entrega.veiculos.modelo}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {/* Single Entrega (legacy format from GestaoCargas/HistoricoCargas) */}
+          {carga.entregas && !Array.isArray(carga.entregas) && (
             <>
               <Separator />
               <Card>

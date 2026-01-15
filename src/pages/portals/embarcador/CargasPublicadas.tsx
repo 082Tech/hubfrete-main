@@ -81,8 +81,21 @@ interface CargaPublicada {
   entregas: Array<{
     id: string;
     peso_alocado_kg: number | null;
+    valor_frete: number | null;
     status: string;
+    coletado_em: string | null;
+    entregue_em: string | null;
     motorista_id: string | null;
+    motoristas: {
+      nome_completo: string;
+      telefone: string | null;
+    } | null;
+    veiculos: {
+      placa: string;
+      marca: string | null;
+      modelo: string | null;
+      tipo: string | null;
+    } | null;
   }> | null;
 }
 
@@ -141,8 +154,21 @@ export default function CargasPublicadas() {
           entregas (
             id,
             peso_alocado_kg,
+            valor_frete,
             status,
-            motorista_id
+            coletado_em,
+            entregue_em,
+            motorista_id,
+            motoristas (
+              nome_completo,
+              telefone
+            ),
+            veiculos (
+              placa,
+              marca,
+              modelo,
+              tipo
+            )
           )
         `)
         .eq('filial_id', filialAtiva.id)
@@ -588,7 +614,42 @@ export default function CargasPublicadas() {
 
       {detailsCarga && (
         <CargaDetailsDialog
-          carga={detailsCarga}
+          carga={{
+            id: detailsCarga.id,
+            codigo: detailsCarga.codigo,
+            descricao: detailsCarga.descricao,
+            tipo: detailsCarga.tipo,
+            peso_kg: detailsCarga.peso_kg,
+            volume_m3: null,
+            valor_mercadoria: detailsCarga.valor_mercadoria,
+            status: detailsCarga.status as any,
+            data_coleta_de: detailsCarga.data_coleta_de,
+            data_coleta_ate: detailsCarga.data_coleta_ate,
+            data_entrega_limite: null,
+            created_at: detailsCarga.created_at,
+            remetente: detailsCarga.endereco_origem ? {
+              nome: detailsCarga.endereco_origem.contato_nome || detailsCarga.endereco_origem.cidade,
+              cidade: detailsCarga.endereco_origem.cidade,
+              estado: detailsCarga.endereco_origem.estado,
+              endereco: `${detailsCarga.endereco_origem.logradouro}${detailsCarga.endereco_origem.numero ? `, ${detailsCarga.endereco_origem.numero}` : ''}`,
+            } : null,
+            destinatario: detailsCarga.endereco_destino ? {
+              nome: detailsCarga.endereco_destino.contato_nome || detailsCarga.endereco_destino.cidade,
+              cidade: detailsCarga.endereco_destino.cidade,
+              estado: detailsCarga.endereco_destino.estado,
+              endereco: `${detailsCarga.endereco_destino.logradouro}${detailsCarga.endereco_destino.numero ? `, ${detailsCarga.endereco_destino.numero}` : ''}`,
+            } : null,
+            entregas: detailsCarga.entregas?.map(e => ({
+              id: e.id,
+              status: e.status as any,
+              peso_alocado_kg: e.peso_alocado_kg,
+              valor_frete: e.valor_frete,
+              coletado_em: e.coletado_em,
+              entregue_em: e.entregue_em,
+              motoristas: e.motoristas,
+              veiculos: e.veiculos,
+            })) || [],
+          }}
           open={!!detailsCarga}
           onOpenChange={(open) => !open && setDetailsCarga(null)}
         />
