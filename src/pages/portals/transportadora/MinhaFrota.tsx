@@ -146,8 +146,8 @@ export default function MinhaFrota() {
     mutationFn: async (data: typeof newVeiculo) => {
       const { error } = await supabase.from('veiculos').insert({
         placa: data.placa.toUpperCase(),
-        tipo: data.tipo,
-        carroceria: data.carroceria,
+        tipo: data.tipo as any,
+        carroceria: data.carroceria as any,
         marca: data.marca || null,
         modelo: data.modelo || null,
         ano: data.ano ? parseInt(data.ano) : null,

@@ -30,6 +30,11 @@ import UsuariosEmpresa from "./pages/portals/embarcador/UsuariosEmpresa";
 import Assistente from "./pages/portals/embarcador/Assistente";
 import Destinatarios from "./pages/portals/embarcador/Destinatarios";
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
+import TransportadoraCargas from "./pages/portals/transportadora/CargasDisponiveis";
+import TransportadoraFrota from "./pages/portals/transportadora/MinhaFrota";
+import TransportadoraMotoristas from "./pages/portals/transportadora/Motoristas";
+import TransportadoraEntregas from "./pages/portals/transportadora/EntregasAndamento";
+import TransportadoraRastreamento from "./pages/portals/transportadora/Rastreamento";
 import MotoristaDashboard from "./pages/portals/MotoristaDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -75,7 +80,11 @@ const App = () => {
                 
                 {/* Portal Transportadora */}
                 <Route path="/transportadora" element={<TransportadoraDashboard />} />
-                <Route path="/transportadora/*" element={<TransportadoraDashboard />} />
+                <Route path="/transportadora/cargas" element={<TransportadoraCargas />} />
+                <Route path="/transportadora/frota" element={<TransportadoraFrota />} />
+                <Route path="/transportadora/motoristas" element={<TransportadoraMotoristas />} />
+                <Route path="/transportadora/entregas" element={<TransportadoraEntregas />} />
+                <Route path="/transportadora/rastreamento" element={<TransportadoraRastreamento />} />
                 
                 {/* Portal Motorista */}
                 <Route path="/motorista" element={<MotoristaDashboard />} />
