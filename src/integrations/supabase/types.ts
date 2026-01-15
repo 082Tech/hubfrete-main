@@ -14,6 +14,64 @@ export type Database = {
   }
   public: {
     Tables: {
+      carga_fracoes: {
+        Row: {
+          carga_id: string
+          created_at: string | null
+          id: string
+          motorista_id: string | null
+          peso_alocado: number
+          status: Database["public"]["Enums"]["status_fracao"]
+          updated_at: string | null
+          valor_frete: number | null
+          veiculo_id: string | null
+        }
+        Insert: {
+          carga_id: string
+          created_at?: string | null
+          id?: string
+          motorista_id?: string | null
+          peso_alocado: number
+          status?: Database["public"]["Enums"]["status_fracao"]
+          updated_at?: string | null
+          valor_frete?: number | null
+          veiculo_id?: string | null
+        }
+        Update: {
+          carga_id?: string
+          created_at?: string | null
+          id?: string
+          motorista_id?: string | null
+          peso_alocado?: number
+          status?: Database["public"]["Enums"]["status_fracao"]
+          updated_at?: string | null
+          valor_frete?: number | null
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carga_fracoes_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carga_fracoes_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carga_fracoes_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cargas: {
         Row: {
           carga_fragil: boolean | null
@@ -403,6 +461,7 @@ export type Database = {
       entregas: {
         Row: {
           assinatura_recebedor: string | null
+          carga_fracao_id: string | null
           carga_id: string
           coletado_em: string | null
           cotacao_id: string | null
@@ -423,6 +482,7 @@ export type Database = {
         }
         Insert: {
           assinatura_recebedor?: string | null
+          carga_fracao_id?: string | null
           carga_id: string
           coletado_em?: string | null
           cotacao_id?: string | null
@@ -443,6 +503,7 @@ export type Database = {
         }
         Update: {
           assinatura_recebedor?: string | null
+          carga_fracao_id?: string | null
           carga_id?: string
           coletado_em?: string | null
           cotacao_id?: string | null
@@ -462,6 +523,13 @@ export type Database = {
           veiculo_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "entregas_carga_fracao_id_fkey"
+            columns: ["carga_fracao_id"]
+            isOneToOne: false
+            referencedRelation: "carga_fracoes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "entregas_carga_id_fkey"
             columns: ["carga_id"]
@@ -970,6 +1038,12 @@ export type Database = {
         | "entregue"
         | "problema"
         | "devolvida"
+      status_fracao:
+        | "confirmada"
+        | "em_coleta"
+        | "em_transito"
+        | "concluida"
+        | "cancelada"
       tipo_carga:
         | "granel_solido"
         | "granel_liquido"
@@ -1159,6 +1233,13 @@ export const Constants = {
         "entregue",
         "problema",
         "devolvida",
+      ],
+      status_fracao: [
+        "confirmada",
+        "em_coleta",
+        "em_transito",
+        "concluida",
+        "cancelada",
       ],
       tipo_carga: [
         "granel_solido",
