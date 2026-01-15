@@ -82,20 +82,29 @@ export default function Assistente() {
             historyCollapsed ? 'w-16' : 'w-64'
           }`}
           style={{ 
-            backgroundColor: 'rgba(15, 23, 22, 0.95)',
-            borderRight: '1px solid rgba(45, 212, 191, 0.2)'
+            backgroundColor: 'hsl(var(--ai-sidebar-bg))',
+            borderRight: '1px solid hsl(var(--ai-border))'
           }}
         >
           {/* History Header */}
-          <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(45, 212, 191, 0.1)' }}>
+          <div 
+            className="p-4 flex items-center justify-between"
+            style={{ borderBottom: '1px solid hsl(var(--ai-border) / 0.5)' }}
+          >
             {!historyCollapsed && (
-              <span className="text-white font-medium text-sm">Histórico</span>
+              <span 
+                className="font-medium text-sm"
+                style={{ color: 'hsl(var(--ai-text-primary))' }}
+              >
+                Histórico
+              </span>
             )}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setHistoryCollapsed(!historyCollapsed)}
-              className="text-gray-400 hover:text-white hover:bg-white/10 ml-auto"
+              className="ml-auto hover:bg-[hsl(var(--ai-accent)/0.1)]"
+              style={{ color: 'hsl(var(--ai-text-secondary))' }}
             >
               {historyCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </Button>
@@ -105,7 +114,7 @@ export default function Assistente() {
           <div className="p-3">
             <Button
               onClick={handleNewChat}
-              className={`w-full justify-start gap-2 bg-teal-600 hover:bg-teal-500 text-white ${
+              className={`w-full justify-start gap-2 bg-primary hover:bg-primary/90 text-primary-foreground ${
                 historyCollapsed ? 'px-3' : ''
               }`}
             >
@@ -119,18 +128,31 @@ export default function Assistente() {
             {chatHistory.map((chat) => (
               <button
                 key={chat.id}
-                className={`w-full text-left rounded-lg transition-all duration-200 hover:bg-white/10 group ${
+                className={`w-full text-left rounded-lg transition-all duration-200 hover:bg-[hsl(var(--ai-accent)/0.1)] group ${
                   historyCollapsed ? 'p-3 flex justify-center' : 'p-3'
                 }`}
               >
                 {historyCollapsed ? (
-                  <MessageCircle className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                  <MessageCircle 
+                    className="w-4 h-4 group-hover:text-primary" 
+                    style={{ color: 'hsl(var(--ai-text-muted))' }}
+                  />
                 ) : (
                   <div>
-                    <p className="text-white text-sm truncate">{chat.title}</p>
+                    <p 
+                      className="text-sm truncate"
+                      style={{ color: 'hsl(var(--ai-text-primary))' }}
+                    >
+                      {chat.title}
+                    </p>
                     <div className="flex items-center gap-1 mt-1">
-                      <Clock className="w-3 h-3 text-gray-500" />
-                      <span className="text-xs text-gray-500">{chat.date}</span>
+                      <Clock className="w-3 h-3" style={{ color: 'hsl(var(--ai-text-muted))' }} />
+                      <span 
+                        className="text-xs"
+                        style={{ color: 'hsl(var(--ai-text-muted))' }}
+                      >
+                        {chat.date}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -145,22 +167,32 @@ export default function Assistente() {
           <div 
             className="flex items-center gap-3 px-6 py-4"
             style={{ 
-              backgroundColor: 'rgba(15, 23, 22, 0.8)',
-              borderBottom: '1px solid rgba(45, 212, 191, 0.2)'
+              backgroundColor: 'hsl(var(--ai-header-bg))',
+              borderBottom: '1px solid hsl(var(--ai-border))'
             }}
           >
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ 
-                backgroundColor: 'rgba(45, 212, 191, 0.2)',
-                border: '1px solid rgba(45, 212, 191, 0.4)'
+                backgroundColor: 'hsl(var(--ai-accent) / 0.15)',
+                border: '1px solid hsl(var(--ai-accent) / 0.3)'
               }}
             >
-              <MessageSquare className="w-5 h-5" style={{ color: '#2dd4bf' }} />
+              <MessageSquare className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">HubFrete AI</h1>
-              <p className="text-xs" style={{ color: '#9ca3af' }}>Assistente inteligente</p>
+              <h1 
+                className="text-lg font-bold"
+                style={{ color: 'hsl(var(--ai-text-primary))' }}
+              >
+                HubFrete AI
+              </h1>
+              <p 
+                className="text-xs"
+                style={{ color: 'hsl(var(--ai-text-secondary))' }}
+              >
+                Assistente inteligente
+              </p>
             </div>
           </div>
 
@@ -171,20 +203,23 @@ export default function Assistente() {
                 <div 
                   className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
                   style={{ 
-                    backgroundColor: 'rgba(45, 212, 191, 0.15)',
-                    border: '1px solid rgba(45, 212, 191, 0.3)',
-                    boxShadow: '0 0 30px rgba(45, 212, 191, 0.2)'
+                    backgroundColor: 'hsl(var(--ai-accent) / 0.15)',
+                    border: '1px solid hsl(var(--ai-accent) / 0.3)',
+                    boxShadow: '0 0 30px hsl(var(--ai-accent) / 0.2)'
                   }}
                 >
-                  <MessageSquare className="w-10 h-10" style={{ color: '#2dd4bf' }} />
+                  <MessageSquare className="w-10 h-10 text-primary" />
                 </div>
 
                 <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                  <span className="text-white">Bem-vindo ao </span>
-                  <span style={{ color: '#2dd4bf' }}>HubFrete AI</span>
+                  <span style={{ color: 'hsl(var(--ai-text-primary))' }}>Bem-vindo ao </span>
+                  <span className="text-primary">HubFrete AI</span>
                 </h2>
 
-                <p className="mb-8 max-w-md" style={{ color: '#9ca3af' }}>
+                <p 
+                  className="mb-8 max-w-md"
+                  style={{ color: 'hsl(var(--ai-text-secondary))' }}
+                >
                   Sou seu assistente inteligente. Como posso ajudar você hoje?
                 </p>
                 
@@ -197,19 +232,17 @@ export default function Assistente() {
                     <button
                       key={suggestion}
                       onClick={() => handleSend(suggestion)}
-                      className="px-4 py-3 rounded-xl text-sm text-left transition-all duration-300 hover:scale-[1.02]"
+                      className="px-4 py-3 rounded-xl text-sm text-left transition-all duration-300 hover:scale-[1.02] hover:border-primary/50"
                       style={{ 
-                        color: '#d1d5db',
-                        border: '1px solid rgba(107, 114, 128, 0.5)',
-                        backgroundColor: 'rgba(0, 0, 0, 0.3)'
+                        color: 'hsl(var(--ai-text-secondary))',
+                        border: '1px solid hsl(var(--ai-border))',
+                        backgroundColor: 'hsl(var(--ai-input-bg) / 0.5)'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(45, 212, 191, 0.5)';
-                        e.currentTarget.style.color = '#ffffff';
+                        e.currentTarget.style.color = 'hsl(var(--ai-text-primary))';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.5)';
-                        e.currentTarget.style.color = '#d1d5db';
+                        e.currentTarget.style.color = 'hsl(var(--ai-text-secondary))';
                       }}
                     >
                       {suggestion}
@@ -232,8 +265,8 @@ export default function Assistente() {
           <div 
             className="px-6 py-4"
             style={{ 
-              backgroundColor: 'rgba(15, 23, 22, 0.6)',
-              borderTop: '1px solid rgba(45, 212, 191, 0.1)'
+              backgroundColor: 'hsl(var(--ai-input-bg) / 0.6)',
+              borderTop: '1px solid hsl(var(--ai-border) / 0.5)'
             }}
           >
             <div className="max-w-3xl mx-auto">

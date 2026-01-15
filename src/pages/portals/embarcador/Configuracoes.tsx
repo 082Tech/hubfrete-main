@@ -17,18 +17,23 @@ import {
   Phone,
   Key,
   Save,
-  Plus
+  Plus,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useTheme } from 'next-themes';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Filial = Tables<'filiais'>;
 
 export default function Configuracoes() {
   const { companyInfo, empresa, filiais: contextFiliais } = useUserContext();
+  const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [filiais, setFiliais] = useState<Filial[]>([]);
   const [userData, setUserData] = useState({
@@ -292,6 +297,48 @@ export default function Configuracoes() {
                   </div>
                 ))
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Appearance */}
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sun className="w-5 h-5" />
+              Aparência
+            </CardTitle>
+            <CardDescription>Escolha o tema da interface</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Button
+                variant={theme === 'light' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTheme('light')}
+                className="gap-2"
+              >
+                <Sun className="w-4 h-4" />
+                Claro
+              </Button>
+              <Button
+                variant={theme === 'dark' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTheme('dark')}
+                className="gap-2"
+              >
+                <Moon className="w-4 h-4" />
+                Escuro
+              </Button>
+              <Button
+                variant={theme === 'system' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTheme('system')}
+                className="gap-2"
+              >
+                <Monitor className="w-4 h-4" />
+                Sistema
+              </Button>
             </div>
           </CardContent>
         </Card>

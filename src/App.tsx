@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { UserContextProvider } from "@/hooks/useUserContext";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -38,13 +39,14 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <UserContextProvider>
-            <Toaster />
-            <Sonner />
-            {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
-            <BrowserRouter>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <TooltipProvider>
+          <AuthProvider>
+            <UserContextProvider>
+              <Toaster />
+              <Sonner />
+              {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+              <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login setShowSplash={setShowSplash} />} />
@@ -84,8 +86,9 @@ const App = () => {
           </UserContextProvider>
         </AuthProvider>
       </TooltipProvider>
-    </QueryClientProvider>
-  );
+    </ThemeProvider>
+  </QueryClientProvider>
+);
 };
 
 export default App;
