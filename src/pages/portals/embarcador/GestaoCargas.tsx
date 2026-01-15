@@ -315,7 +315,7 @@ export default function GestaoCargas() {
       return (data || []) as MotoristaLocalizacao[];
     },
     enabled: motoristaEmails.length > 0,
-    refetchInterval: 120000, // Refresh every 2 minutes
+    refetchInterval: 60000, // Refresh every 1 minutes
   });
 
   // Create a map of email to location for quick lookup
