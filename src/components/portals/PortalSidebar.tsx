@@ -98,6 +98,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
     { icon: Route, label: 'Entregas', href: '/transportadora/entregas' },
     { icon: MapPin, label: 'Rastreamento', href: '/transportadora/rastreamento' },
+    { icon: MessageCircle, label: 'Assistente', href: '/transportadora/assistente' },
     { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
   ],
   motorista: [
