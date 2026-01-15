@@ -1,19 +1,27 @@
 import { useState, useRef, useEffect } from "react";
-import { ChatHeader } from "@/components/ai-assistant/ChatHeader";
 import { ChatMessage } from "@/components/ai-assistant/ChatMessage";
 import { ChatInput } from "@/components/ai-assistant/ChatInput";
 import { TypingIndicator } from "@/components/ai-assistant/TypingIndicator";
 import { AnimatedBackground } from "@/components/ai-assistant/AnimatedBackground";
 import { sendMessage, getOrCreateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { PortalLayout } from "@/components/portals/PortalLayout";
+import { Button } from "@/components/ui/button";
 
 export default function Assistente() {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState(() => getOrCreateSessionId());
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Mock chat history - will be replaced with real data
+  const chatHistory = [
+    { id: "1", title: "Rastreamento de carga", date: "Hoje" },
+    { id: "2", title: "Dúvidas sobre frete", date: "Ontem" },
+    { id: "3", title: "Cotação de envio", date: "3 dias atrás" },
+  ];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -63,30 +71,120 @@ export default function Assistente() {
 
   return (
     <PortalLayout expectedUserType="embarcador">
-      {/* Container that fills the content area with dark background */}
-      <div className="relative min-h-[calc(100vh)] -m-8 overflow-hidden">
+      {/* Full height container without scroll */}
+      <div className="relative h-[100dvh] -m-8 overflow-hidden flex">
         {/* Animated Background */}
         <AnimatedBackground />
         
-        {/* Main content */}
-        <div className="relative z-10 h-[calc(100vh)] max-w-4xl h-[800px] rounded-lg mt-20 mx-auto flex flex-col p-4 md:p-6 border border-primary/20 bg-black/40 backdrop-blur-sm">
-          {/* Chat Header */}
-          <ChatHeader onNewChat={handleNewChat} />
-          
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto py-6 px-4 space-y-4 scrollbar-thin">
+        {/* Left Sidebar - Chat History */}
+        <div 
+          className={`relative z-10 h-full flex flex-col transition-all duration-300 ${
+            historyCollapsed ? 'w-16' : 'w-64'
+          }`}
+          style={{ 
+            backgroundColor: 'rgba(15, 23, 22, 0.95)',
+            borderRight: '1px solid rgba(45, 212, 191, 0.2)'
+          }}
+        >
+          {/* History Header */}
+          <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(45, 212, 191, 0.1)' }}>
+            {!historyCollapsed && (
+              <span className="text-white font-medium text-sm">Histórico</span>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setHistoryCollapsed(!historyCollapsed)}
+              className="text-gray-400 hover:text-white hover:bg-white/10 ml-auto"
+            >
+              {historyCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </Button>
+          </div>
+
+          {/* New Chat Button */}
+          <div className="p-3">
+            <Button
+              onClick={handleNewChat}
+              className={`w-full justify-start gap-2 bg-teal-600 hover:bg-teal-500 text-white ${
+                historyCollapsed ? 'px-3' : ''
+              }`}
+            >
+              <Plus className="w-4 h-4" />
+              {!historyCollapsed && <span>Nova conversa</span>}
+            </Button>
+          </div>
+
+          {/* Chat History List */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {chatHistory.map((chat) => (
+              <button
+                key={chat.id}
+                className={`w-full text-left rounded-lg transition-all duration-200 hover:bg-white/10 group ${
+                  historyCollapsed ? 'p-3 flex justify-center' : 'p-3'
+                }`}
+              >
+                {historyCollapsed ? (
+                  <MessageCircle className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                ) : (
+                  <div>
+                    <p className="text-white text-sm truncate">{chat.title}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Clock className="w-3 h-3 text-gray-500" />
+                      <span className="text-xs text-gray-500">{chat.date}</span>
+                    </div>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Chat Area */}
+        <div className="relative z-10 flex-1 flex flex-col h-full">
+          {/* HubFrete AI Header */}
+          <div 
+            className="flex items-center gap-3 px-6 py-4"
+            style={{ 
+              backgroundColor: 'rgba(15, 23, 22, 0.8)',
+              borderBottom: '1px solid rgba(45, 212, 191, 0.2)'
+            }}
+          >
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ 
+                backgroundColor: 'rgba(45, 212, 191, 0.2)',
+                border: '1px solid rgba(45, 212, 191, 0.4)'
+              }}
+            >
+              <MessageSquare className="w-5 h-5" style={{ color: '#2dd4bf' }} />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-white">HubFrete AI</h1>
+              <p className="text-xs" style={{ color: '#9ca3af' }}>Assistente inteligente</p>
+            </div>
+          </div>
+
+          {/* Chat Content Area */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
             {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center px-4">
-                <div className="w-20 h-20 rounded-2xl bg-primary/20 border border-primary/40 flex items-center justify-center glow-border mb-6">
-                  <MessageSquare className="w-10 h-10 text-primary" />
+              <div className="h-full flex flex-col items-center justify-center text-center">
+                <div 
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
+                  style={{ 
+                    backgroundColor: 'rgba(45, 212, 191, 0.15)',
+                    border: '1px solid rgba(45, 212, 191, 0.3)',
+                    boxShadow: '0 0 30px rgba(45, 212, 191, 0.2)'
+                  }}
+                >
+                  <MessageSquare className="w-10 h-10" style={{ color: '#2dd4bf' }} />
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-display font-bold mb-3">
+                <h2 className="text-2xl md:text-3xl font-bold mb-3">
                   <span className="text-white">Bem-vindo ao </span>
-                  <span className="text-primary">HubFrete AI</span>
+                  <span style={{ color: '#2dd4bf' }}>HubFrete AI</span>
                 </h2>
 
-                <p className="text-gray-400 mb-8 max-w-md">
+                <p className="mb-8 max-w-md" style={{ color: '#9ca3af' }}>
                   Sou seu assistente inteligente. Como posso ajudar você hoje?
                 </p>
                 
@@ -99,7 +197,20 @@ export default function Assistente() {
                     <button
                       key={suggestion}
                       onClick={() => handleSend(suggestion)}
-                      className="px-4 py-3 rounded-xl text-sm text-left text-gray-300 hover:text-white hover:border-primary/50 transition-all duration-300 hover:scale-[1.02] border border-gray-600/50 bg-black/30 backdrop-blur-sm"
+                      className="px-4 py-3 rounded-xl text-sm text-left transition-all duration-300 hover:scale-[1.02]"
+                      style={{ 
+                        color: '#d1d5db',
+                        border: '1px solid rgba(107, 114, 128, 0.5)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.3)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(45, 212, 191, 0.5)';
+                        e.currentTarget.style.color = '#ffffff';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.5)';
+                        e.currentTarget.style.color = '#d1d5db';
+                      }}
                     >
                       {suggestion}
                     </button>
@@ -107,19 +218,27 @@ export default function Assistente() {
                 </div>
               </div>
             ) : (
-              <>
+              <div className="max-w-3xl mx-auto space-y-4">
                 {messages.map((message) => (
                   <ChatMessage key={message.id} message={message} />
                 ))}
                 {isLoading && <TypingIndicator />}
                 <div ref={messagesEndRef} />
-              </>
+              </div>
             )}
           </div>
           
           {/* Input Area */}
-          <div className="mt-auto pt-4">
-            <ChatInput onSend={handleSend} disabled={isLoading} />
+          <div 
+            className="px-6 py-4"
+            style={{ 
+              backgroundColor: 'rgba(15, 23, 22, 0.6)',
+              borderTop: '1px solid rgba(45, 212, 191, 0.1)'
+            }}
+          >
+            <div className="max-w-3xl mx-auto">
+              <ChatInput onSend={handleSend} disabled={isLoading} />
+            </div>
           </div>
         </div>
       </div>
