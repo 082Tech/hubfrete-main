@@ -1,0 +1,593 @@
+import { PortalLayout } from '@/components/portals/PortalLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  User,
+  Plus,
+  Search,
+  Loader2,
+  Phone,
+  Mail,
+  CreditCard,
+  Calendar,
+  Truck,
+  MoreVertical,
+  Edit,
+  Trash2,
+  CheckCircle,
+  XCircle,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useUserContext } from '@/hooks/useUserContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+
+interface Motorista {
+  id: string;
+  nome_completo: string;
+  cpf: string;
+  email: string | null;
+  telefone: string | null;
+  cnh: string;
+  categoria_cnh: string;
+  validade_cnh: string;
+  ativo: boolean;
+  foto_url: string | null;
+  veiculos: {
+    id: string;
+    placa: string;
+    tipo: string;
+  }[];
+}
+
+export default function Motoristas() {
+  const { empresa } = useUserContext();
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newMotorista, setNewMotorista] = useState({
+    nome_completo: '',
+    cpf: '',
+    email: '',
+    telefone: '',
+    cnh: '',
+    categoria_cnh: '',
+    validade_cnh: '',
+  });
+
+  // Fetch motoristas
+  const { data: motoristas = [], isLoading } = useQuery({
+    queryKey: ['motoristas_transportadora', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      const { data, error } = await supabase
+        .from('motoristas')
+        .select(`
+          id,
+          nome_completo,
+          cpf,
+          email,
+          telefone,
+          cnh,
+          categoria_cnh,
+          validade_cnh,
+          ativo,
+          foto_url,
+          veiculos(id, placa, tipo)
+        `)
+        .eq('empresa_id', empresa.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as Motorista[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Mutation para criar motorista
+  const createMotorista = useMutation({
+    mutationFn: async (data: typeof newMotorista) => {
+      const { error } = await supabase.from('motoristas').insert({
+        nome_completo: data.nome_completo,
+        cpf: data.cpf,
+        email: data.email || null,
+        telefone: data.telefone || null,
+        cnh: data.cnh,
+        categoria_cnh: data.categoria_cnh,
+        validade_cnh: data.validade_cnh,
+        empresa_id: empresa?.id,
+        user_id: session?.user?.id || crypto.randomUUID(), // Placeholder
+        ativo: true,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Motorista cadastrado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
+      setIsDialogOpen(false);
+      setNewMotorista({
+        nome_completo: '',
+        cpf: '',
+        email: '',
+        telefone: '',
+        cnh: '',
+        categoria_cnh: '',
+        validade_cnh: '',
+      });
+    },
+    onError: (error) => {
+      console.error('Erro ao cadastrar motorista:', error);
+      toast.error('Erro ao cadastrar motorista');
+    },
+  });
+
+  // Mutation para toggle ativo
+  const toggleAtivo = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase
+        .from('motoristas')
+        .update({ ativo })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Status atualizado!');
+      queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
+    },
+    onError: (error) => {
+      console.error('Erro ao atualizar status:', error);
+      toast.error('Erro ao atualizar status');
+    },
+  });
+
+  // Mutation para deletar motorista
+  const deleteMotorista = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('motoristas').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Motorista removido com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
+    },
+    onError: (error) => {
+      console.error('Erro ao remover motorista:', error);
+      toast.error('Erro ao remover motorista');
+    },
+  });
+
+  const filteredMotoristas = useMemo(() => {
+    return motoristas.filter(
+      (m) =>
+        m.nome_completo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.cpf.includes(searchTerm) ||
+        m.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.telefone?.includes(searchTerm)
+    );
+  }, [motoristas, searchTerm]);
+
+  const stats = useMemo(() => {
+    const ativos = motoristas.filter((m) => m.ativo).length;
+    const comVeiculo = motoristas.filter((m) => m.veiculos.length > 0).length;
+    const cnhVencendo = motoristas.filter((m) => {
+      const validade = new Date(m.validade_cnh);
+      const hoje = new Date();
+      const diff = validade.getTime() - hoje.getTime();
+      const dias = diff / (1000 * 60 * 60 * 24);
+      return dias <= 30 && dias > 0;
+    }).length;
+    return { total: motoristas.length, ativos, comVeiculo, cnhVencendo };
+  }, [motoristas]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !newMotorista.nome_completo ||
+      !newMotorista.cpf ||
+      !newMotorista.cnh ||
+      !newMotorista.categoria_cnh ||
+      !newMotorista.validade_cnh
+    ) {
+      toast.error('Preencha os campos obrigatórios');
+      return;
+    }
+    createMotorista.mutate(newMotorista);
+  };
+
+  const formatCPF = (cpf: string) => {
+    return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  };
+
+  return (
+    <PortalLayout expectedUserType="transportadora">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Motoristas</h1>
+            <p className="text-muted-foreground">
+              Gerencie os motoristas da sua transportadora
+            </p>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Novo Motorista
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Cadastrar Motorista</DialogTitle>
+                <DialogDescription>
+                  Adicione um novo motorista à sua equipe
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Nome Completo *</Label>
+                    <Input
+                      placeholder="Nome do motorista"
+                      value={newMotorista.nome_completo}
+                      onChange={(e) =>
+                        setNewMotorista({
+                          ...newMotorista,
+                          nome_completo: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CPF *</Label>
+                    <Input
+                      placeholder="000.000.000-00"
+                      value={newMotorista.cpf}
+                      onChange={(e) =>
+                        setNewMotorista({ ...newMotorista, cpf: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>E-mail</Label>
+                    <Input
+                      type="email"
+                      placeholder="email@exemplo.com"
+                      value={newMotorista.email}
+                      onChange={(e) =>
+                        setNewMotorista({ ...newMotorista, email: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Telefone</Label>
+                    <Input
+                      placeholder="(00) 00000-0000"
+                      value={newMotorista.telefone}
+                      onChange={(e) =>
+                        setNewMotorista({
+                          ...newMotorista,
+                          telefone: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>CNH *</Label>
+                    <Input
+                      placeholder="00000000000"
+                      value={newMotorista.cnh}
+                      onChange={(e) =>
+                        setNewMotorista({ ...newMotorista, cnh: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Categoria *</Label>
+                    <Select
+                      value={newMotorista.categoria_cnh}
+                      onValueChange={(v) =>
+                        setNewMotorista({ ...newMotorista, categoria_cnh: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A">A</SelectItem>
+                        <SelectItem value="B">B</SelectItem>
+                        <SelectItem value="C">C</SelectItem>
+                        <SelectItem value="D">D</SelectItem>
+                        <SelectItem value="E">E</SelectItem>
+                        <SelectItem value="AB">AB</SelectItem>
+                        <SelectItem value="AC">AC</SelectItem>
+                        <SelectItem value="AD">AD</SelectItem>
+                        <SelectItem value="AE">AE</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Validade CNH *</Label>
+                    <Input
+                      type="date"
+                      value={newMotorista.validade_cnh}
+                      onChange={(e) =>
+                        setNewMotorista({
+                          ...newMotorista,
+                          validade_cnh: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={createMotorista.isPending}>
+                    {createMotorista.isPending && (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    )}
+                    Cadastrar
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="border-border">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-xl">
+                <User className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                <p className="text-sm text-muted-foreground">Total</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-chart-2/10 rounded-xl">
+                <CheckCircle className="w-6 h-6 text-chart-2" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats.ativos}</p>
+                <p className="text-sm text-muted-foreground">Ativos</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-chart-1/10 rounded-xl">
+                <Truck className="w-6 h-6 text-chart-1" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.comVeiculo}
+                </p>
+                <p className="text-sm text-muted-foreground">Com Veículo</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-chart-4/10 rounded-xl">
+                <Calendar className="w-6 h-6 text-chart-4" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.cnhVencendo}
+                </p>
+                <p className="text-sm text-muted-foreground">CNH Vencendo</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, CPF, e-mail..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {/* Motoristas List */}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredMotoristas.length === 0 ? (
+          <Card className="border-border">
+            <CardContent className="p-12 text-center">
+              <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Nenhum motorista encontrado
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm
+                  ? 'Nenhum motorista corresponde à busca.'
+                  : 'Adicione motoristas à sua equipe.'}
+              </p>
+              {!searchTerm && (
+                <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Novo Motorista
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredMotoristas.map((motorista) => (
+              <Card
+                key={motorista.id}
+                className={`border-border transition-all ${
+                  !motorista.ativo ? 'opacity-60' : 'hover:shadow-md'
+                }`}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        {motorista.foto_url ? (
+                          <img
+                            src={motorista.foto_url}
+                            alt={motorista.nome_completo}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-6 h-6 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <CardTitle className="text-base font-semibold">
+                          {motorista.nome_completo}
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground">
+                          CNH: {motorista.categoria_cnh}
+                        </p>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            toggleAtivo.mutate({
+                              id: motorista.id,
+                              ativo: !motorista.ativo,
+                            })
+                          }
+                        >
+                          {motorista.ativo ? (
+                            <>
+                              <XCircle className="w-4 h-4 mr-2" />
+                              Desativar
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Ativar
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => deleteMotorista.mutate(motorista.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Remover
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    {motorista.ativo ? (
+                      <Badge className="bg-chart-2/10 text-chart-2 border-chart-2/20">
+                        Ativo
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive">Inativo</Badge>
+                    )}
+                    {motorista.veiculos.length > 0 && (
+                      <Badge variant="outline" className="gap-1">
+                        <Truck className="w-3 h-3" />
+                        {motorista.veiculos[0].placa}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <CreditCard className="w-4 h-4" />
+                      <span>{formatCPF(motorista.cpf)}</span>
+                    </div>
+                    {motorista.telefone && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Phone className="w-4 h-4" />
+                        <span>{motorista.telefone}</span>
+                      </div>
+                    )}
+                    {motorista.email && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="w-4 h-4" />
+                        <span className="truncate">{motorista.email}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        CNH válida até{' '}
+                        {format(new Date(motorista.validade_cnh), 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </PortalLayout>
+  );
+}
