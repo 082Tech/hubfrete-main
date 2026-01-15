@@ -138,8 +138,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cargas_endereco_destino_fkey"
+            columns: ["endereco_destino_id"]
+            isOneToOne: false
+            referencedRelation: "enderecos_carga"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cargas_endereco_destino_id_fkey"
             columns: ["endereco_destino_id"]
+            isOneToOne: false
+            referencedRelation: "enderecos_carga"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargas_endereco_origem_fkey"
+            columns: ["endereco_origem_id"]
             isOneToOne: false
             referencedRelation: "enderecos_carga"
             referencedColumns: ["id"]
