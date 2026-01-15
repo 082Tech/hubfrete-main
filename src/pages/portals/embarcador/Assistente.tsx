@@ -8,6 +8,7 @@ import { MessageSquare, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight } 
 import { toast } from "sonner";
 import { PortalLayout } from "@/components/portals/PortalLayout";
 import { Button } from "@/components/ui/button";
+import { useUserContext } from "@/hooks/useUserContext";
 
 export default function Assistente() {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -15,6 +16,10 @@ export default function Assistente() {
   const [sessionId, setSessionId] = useState(() => getOrCreateSessionId());
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { companyInfo } = useUserContext();
+
+  // Get user's name from companyInfo or use default
+  const userName = companyInfo?.razao_social?.split(' ')[0] || 'Você';
 
   // Mock chat history - will be replaced with real data
   const chatHistory = [
@@ -196,76 +201,83 @@ export default function Assistente() {
             </div>
           </div>
 
-          {/* Chat Content Area */}
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <div 
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
-                  style={{ 
-                    backgroundColor: 'hsl(var(--ai-accent) / 0.15)',
-                    border: '1px solid hsl(var(--ai-accent) / 0.3)',
-                    boxShadow: '0 0 30px hsl(var(--ai-accent) / 0.2)'
-                  }}
-                >
-                  <MessageSquare className="w-10 h-10 text-primary" />
+          {/* Chat Content Area with overlay for better readability */}
+          <div 
+            className="flex-1 overflow-y-auto"
+            style={{ 
+              backgroundColor: 'hsl(var(--ai-bg-base) / 0.85)'
+            }}
+          >
+            <div className="px-6 py-4 h-full">
+              {messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center">
+                  <div 
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
+                    style={{ 
+                      backgroundColor: 'hsl(var(--ai-accent) / 0.15)',
+                      border: '1px solid hsl(var(--ai-accent) / 0.3)',
+                      boxShadow: '0 0 30px hsl(var(--ai-accent) / 0.2)'
+                    }}
+                  >
+                    <MessageSquare className="w-10 h-10 text-primary" />
+                  </div>
+
+                  <h2 className="text-2xl md:text-3xl font-bold mb-3">
+                    <span style={{ color: 'hsl(var(--ai-text-primary))' }}>Bem-vindo ao </span>
+                    <span className="text-primary">HubFrete AI</span>
+                  </h2>
+
+                  <p 
+                    className="mb-8 max-w-md"
+                    style={{ color: 'hsl(var(--ai-text-secondary))' }}
+                  >
+                    Sou seu assistente inteligente. Como posso ajudar você hoje?
+                  </p>
+                  
+                  <div className="grid gap-3 w-full max-w-md">
+                    {[
+                      "Quais são os serviços disponíveis?",
+                      "Como funciona o rastreamento?",
+                      "Preciso de ajuda com um envio",
+                    ].map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        onClick={() => handleSend(suggestion)}
+                        className="px-4 py-3 rounded-xl text-sm text-left transition-all duration-300 hover:scale-[1.02] hover:border-primary/50"
+                        style={{ 
+                          color: 'hsl(var(--ai-text-secondary))',
+                          border: '1px solid hsl(var(--ai-border))',
+                          backgroundColor: 'hsl(var(--ai-sidebar-bg) / 0.8)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = 'hsl(var(--ai-text-primary))';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = 'hsl(var(--ai-text-secondary))';
+                        }}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-
-                <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                  <span style={{ color: 'hsl(var(--ai-text-primary))' }}>Bem-vindo ao </span>
-                  <span className="text-primary">HubFrete AI</span>
-                </h2>
-
-                <p 
-                  className="mb-8 max-w-md"
-                  style={{ color: 'hsl(var(--ai-text-secondary))' }}
-                >
-                  Sou seu assistente inteligente. Como posso ajudar você hoje?
-                </p>
-                
-                <div className="grid gap-3 w-full max-w-md">
-                  {[
-                    "Quais são os serviços disponíveis?",
-                    "Como funciona o rastreamento?",
-                    "Preciso de ajuda com um envio",
-                  ].map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      onClick={() => handleSend(suggestion)}
-                      className="px-4 py-3 rounded-xl text-sm text-left transition-all duration-300 hover:scale-[1.02] hover:border-primary/50"
-                      style={{ 
-                        color: 'hsl(var(--ai-text-secondary))',
-                        border: '1px solid hsl(var(--ai-border))',
-                        backgroundColor: 'hsl(var(--ai-input-bg) / 0.5)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = 'hsl(var(--ai-text-primary))';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = 'hsl(var(--ai-text-secondary))';
-                      }}
-                    >
-                      {suggestion}
-                    </button>
+              ) : (
+                <div className="max-w-3xl mx-auto space-y-6">
+                  {messages.map((message) => (
+                    <ChatMessage key={message.id} message={message} userName={userName} />
                   ))}
+                  {isLoading && <TypingIndicator />}
+                  <div ref={messagesEndRef} />
                 </div>
-              </div>
-            ) : (
-              <div className="max-w-3xl mx-auto space-y-4">
-                {messages.map((message) => (
-                  <ChatMessage key={message.id} message={message} />
-                ))}
-                {isLoading && <TypingIndicator />}
-                <div ref={messagesEndRef} />
-              </div>
-            )}
+              )}
+            </div>
           </div>
           
           {/* Input Area */}
           <div 
             className="px-6 py-4"
             style={{ 
-              backgroundColor: 'hsl(var(--ai-input-bg) / 0.6)',
+              backgroundColor: 'hsl(var(--ai-input-bg) / 0.9)',
               borderTop: '1px solid hsl(var(--ai-border) / 0.5)'
             }}
           >
