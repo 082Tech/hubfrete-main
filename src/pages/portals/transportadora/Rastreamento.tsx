@@ -17,13 +17,12 @@ import {
   Clock,
   User,
   RefreshCw,
-  Maximize2,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { useState, useMemo, useEffect } from 'react';
-import { EntregasMap } from '@/components/maps/EntregasMap';
+import { useState, useMemo } from 'react';
+import { RastreamentoMap } from '@/components/maps/RastreamentoMap';
 
 interface MotoristaLocation {
   id: string;
@@ -131,17 +130,6 @@ export default function Rastreamento() {
     return date.toLocaleString('pt-BR');
   };
 
-  // Mapeia para o formato esperado pelo EntregasMap
-  const mapMarkers = useMemo(() => {
-    return motoristasComLocalizacao.map((m) => ({
-      id: m.id,
-      latitude: m.latitude!,
-      longitude: m.longitude!,
-      codigo: m.veiculo?.placa || 'N/A',
-      descricao: m.nome_completo,
-      status: m.status ? 'online' : 'offline',
-    }));
-  }, [motoristasComLocalizacao]);
 
   return (
     <PortalLayout expectedUserType="transportadora">
@@ -253,17 +241,17 @@ export default function Rastreamento() {
                     </p>
                   </div>
                 ) : (
-                  <EntregasMap
-                    entregas={mapMarkers.map((m) => ({
+                  <RastreamentoMap
+                    drivers={motoristasComLocalizacao.map((m) => ({
                       id: m.id,
-                      origemLat: m.latitude,
-                      origemLng: m.longitude,
-                      destinoLat: m.latitude,
-                      destinoLng: m.longitude,
-                      codigo: m.codigo,
-                      descricao: m.descricao,
-                      status: m.status as any,
+                      nome: m.nome_completo,
+                      placa: m.veiculo?.placa || null,
+                      latitude: m.latitude!,
+                      longitude: m.longitude!,
+                      isOnline: m.status,
+                      lastUpdate: m.timestamp ? formatTimestamp(m.timestamp) : null,
                     }))}
+                    selectedDriverId={selectedMotorista !== 'all' ? selectedMotorista : null}
                   />
                 )}
               </CardContent>

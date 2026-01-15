@@ -9,6 +9,7 @@ interface StatsCardProps {
   changeLabel?: string;
   icon: ReactNode;
   color?: 'primary' | 'accent' | 'chart1' | 'chart2' | 'chart3' | 'chart4';
+  onClick?: () => void;
 }
 
 export function StatsCard({ 
@@ -17,7 +18,8 @@ export function StatsCard({
   change, 
   changeLabel, 
   icon,
-  color = 'primary' 
+  color = 'primary',
+  onClick,
 }: StatsCardProps) {
   const colorClasses = {
     primary: 'bg-primary/10 text-primary',
@@ -29,7 +31,10 @@ export function StatsCard({
   };
 
   return (
-    <Card className="border-border">
+    <Card 
+      className={`border-border ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+      onClick={onClick}
+    >
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2">

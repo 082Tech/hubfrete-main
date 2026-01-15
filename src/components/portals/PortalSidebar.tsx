@@ -92,12 +92,12 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
   ],
   transportadora: [
-    { icon: LayoutDashboard, label: 'Dashboard', href: '/transportadora' },
+    { icon: Home, label: 'Home', href: '/transportadora' },
+    { icon: Package, label: 'Cargas Disponíveis', href: '/transportadora/cargas' },
     { icon: Truck, label: 'Minha Frota', href: '/transportadora/frota' },
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
-    { icon: Package, label: 'Cargas Disponíveis', href: '/transportadora/cargas' },
+    { icon: Route, label: 'Entregas', href: '/transportadora/entregas' },
     { icon: MapPin, label: 'Rastreamento', href: '/transportadora/rastreamento' },
-    { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
     { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
   ],
   motorista: [
