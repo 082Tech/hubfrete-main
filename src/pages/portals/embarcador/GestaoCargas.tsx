@@ -1,4 +1,4 @@
-import { useState, useMemo, Suspense, lazy } from 'react';
+import { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { PortalLayout } from '@/components/portals/PortalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,9 @@ import {
   RefreshCw,
   X,
   Building2,
+  Wifi,
+  WifiOff,
+  Radio,
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
@@ -177,15 +180,14 @@ const statusEntregaConfig: Record<string, { color: string; label: string }> = {
   'devolvida': { color: 'bg-red-500/10 text-red-600', label: 'Devolvida' },
 };
 
-// Status filters for active loads (no rascunho/publicada - those are in CargasPublicadas)
+// Status filters for active deliveries - only 2 statuses now
 const allStatusFilters = [
-  { value: 'aceita', label: 'Aceita', group: 'carga' },
-  { value: 'em_coleta', label: 'Em Coleta', group: 'transporte' },
-  { value: 'em_transito', label: 'Em Trânsito', group: 'transporte' },
+  { value: 'aguardando_coleta', label: 'Aguardando Coleta', group: 'entrega' },
+  { value: 'em_transito', label: 'Em Trânsito', group: 'entrega' },
 ];
 
-// Status finalizados que não devem aparecer na Gestão de Cargas
-const finalizedStatuses = ['entregue', 'cancelada'];
+// Status finalizados que não devem aparecer na Gestão de Entregas
+const finalizedStatuses = ['entregue', 'cancelada', 'problema', 'devolvida'];
 
 export default function GestaoCargas() {
   const { filialAtiva, switchingFilial } = useUserContext();
@@ -194,6 +196,21 @@ export default function GestaoCargas() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedCargaId, setSelectedCargaId] = useState<string | null>(null);
   const [detailsCargaId, setDetailsCargaId] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Monitor internet connection status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Fetch all cargas with related data
   const { data: cargas = [], isLoading, refetch } = useQuery({
@@ -348,14 +365,11 @@ export default function GestaoCargas() {
     });
   }, [cargas, searchTerm, selectedStatuses]);
 
-  // Calculate stats
+  // Calculate stats - focused on the 2 delivery statuses
   const stats = useMemo(() => ({
     total: cargas.length,
-    publicadas: cargas.filter(c => c.status === 'publicada').length,
-    aceitas: cargas.filter(c => c.status === 'aceita').length,
-    em_transito: cargas.filter(c => c.status === 'em_transito' || c.status === 'em_coleta').length,
-    entregues: cargas.filter(c => c.status === 'entregue').length,
-    problemas: cargas.filter(c => c.entregas?.status === 'problema').length,
+    aguardando_coleta: cargas.filter(c => c.entregas?.status === 'aguardando_coleta' || c.entregas?.status === 'em_coleta' || c.entregas?.status === 'coletado').length,
+    em_transito: cargas.filter(c => c.entregas?.status === 'em_transito' || c.entregas?.status === 'em_entrega').length,
   }), [cargas]);
 
   // Map data for entregas with location from localizações table
@@ -508,45 +522,9 @@ export default function GestaoCargas() {
   const FiltersContent = () => (
     <div className="space-y-6">
       <div>
-        <h4 className="font-medium text-sm text-foreground mb-3">Status da Carga</h4>
+        <h4 className="font-medium text-sm text-foreground mb-3">Status da Entrega</h4>
         <div className="space-y-2">
-          {allStatusFilters.filter(s => s.group === 'carga').map(status => (
-            <div key={status.value} className="flex items-center space-x-2">
-              <Checkbox
-                id={`filter-${status.value}`}
-                checked={selectedStatuses.includes(status.value)}
-                onCheckedChange={() => handleStatusToggle(status.value)}
-              />
-              <Label htmlFor={`filter-${status.value}`} className="text-sm font-normal cursor-pointer">
-                {status.label}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h4 className="font-medium text-sm text-foreground mb-3">Em Transporte</h4>
-        <div className="space-y-2">
-          {allStatusFilters.filter(s => s.group === 'transporte').map(status => (
-            <div key={status.value} className="flex items-center space-x-2">
-              <Checkbox
-                id={`filter-${status.value}`}
-                checked={selectedStatuses.includes(status.value)}
-                onCheckedChange={() => handleStatusToggle(status.value)}
-              />
-              <Label htmlFor={`filter-${status.value}`} className="text-sm font-normal cursor-pointer">
-                {status.label}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h4 className="font-medium text-sm text-foreground mb-3">Finalizados</h4>
-        <div className="space-y-2">
-          {allStatusFilters.filter(s => s.group === 'finalizado').map(status => (
+          {allStatusFilters.map(status => (
             <div key={status.value} className="flex items-center space-x-2">
               <Checkbox
                 id={`filter-${status.value}`}
@@ -570,6 +548,38 @@ export default function GestaoCargas() {
     </div>
   );
 
+  // Live indicator component
+  const LiveIndicator = () => (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+            isOnline 
+              ? 'bg-primary/10 text-primary border border-primary/20' 
+              : 'bg-destructive/10 text-destructive border border-destructive/20'
+          }`}>
+            {isOnline ? (
+              <>
+                <Radio className="w-3 h-3 animate-pulse" />
+                <span>Ao Vivo</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-3 h-3" />
+                <span>Offline</span>
+              </>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          {isOnline 
+            ? 'Mapa atualizado em tempo real' 
+            : 'Sem conexão com a internet'}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   return (
     <PortalLayout expectedUserType="embarcador">
       <div className="flex gap-6">
@@ -578,12 +588,12 @@ export default function GestaoCargas() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-foreground">Gestão de Cargas</h1>
-              <p className="text-sm text-muted-foreground">Gerencie suas cargas e entregas</p>
+              <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
+              <p className="text-sm text-muted-foreground">Acompanhe suas entregas em tempo real</p>
             </div>
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons and Live Indicator */}
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -593,6 +603,7 @@ export default function GestaoCargas() {
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
+            <LiveIndicator />
           </div>
 
           {/* Search */}
@@ -606,42 +617,24 @@ export default function GestaoCargas() {
             />
           </div>
 
-          {/* Stats Cards - Compact */}
-          <div className="grid grid-cols-3 gap-2">
-            <Card className="border-border">
-              <CardContent className="p-2 text-center">
-                <p className="text-lg font-bold text-foreground">{stats.total}</p>
-                <p className="text-[10px] text-muted-foreground">Total</p>
+          {/* Stats Cards - 2 status cards only, larger */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="border-border bg-gray-500/5">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Package className="w-5 h-5 text-gray-600" />
+                </div>
+                <p className="text-2xl font-bold text-gray-600">{stats.aguardando_coleta}</p>
+                <p className="text-xs text-muted-foreground">Aguardando Coleta</p>
               </CardContent>
             </Card>
-            <Card className="border-border">
-              <CardContent className="p-2 text-center">
-                <p className="text-lg font-bold text-blue-600">{stats.publicadas}</p>
-                <p className="text-[10px] text-muted-foreground">Publicadas</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-2 text-center">
-                <p className="text-lg font-bold text-purple-600">{stats.aceitas}</p>
-                <p className="text-[10px] text-muted-foreground">Aceitas</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-2 text-center">
-                <p className="text-lg font-bold text-orange-600">{stats.em_transito}</p>
-                <p className="text-[10px] text-muted-foreground">Em Trânsito</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-2 text-center">
-                <p className="text-lg font-bold text-green-600">{stats.entregues}</p>
-                <p className="text-[10px] text-muted-foreground">Entregues</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-2 text-center">
-                <p className="text-lg font-bold text-red-600">{stats.problemas}</p>
-                <p className="text-[10px] text-muted-foreground">Problemas</p>
+            <Card className="border-border bg-orange-500/5">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Truck className="w-5 h-5 text-orange-600" />
+                </div>
+                <p className="text-2xl font-bold text-orange-600">{stats.em_transito}</p>
+                <p className="text-xs text-muted-foreground">Em Trânsito</p>
               </CardContent>
             </Card>
           </div>
@@ -663,7 +656,7 @@ export default function GestaoCargas() {
           {selectedStatuses.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {selectedStatuses.map(status => {
-                const config = statusCargaConfig[status];
+                const config = statusEntregaConfig[status];
                 return (
                   <Badge
                     key={status}
@@ -684,10 +677,11 @@ export default function GestaoCargas() {
         <div className="lg:hidden flex flex-col gap-4 w-full">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Gestão de Cargas</h1>
-              <p className="text-muted-foreground">Gerencie suas cargas e entregas</p>
+              <h1 className="text-2xl font-bold text-foreground">Gestão de Entregas</h1>
+              <p className="text-muted-foreground">Acompanhe suas entregas em tempo real</p>
             </div>
             <div className="flex items-center gap-3">
+              <LiveIndicator />
               <Button
                 variant="outline"
                 size="icon"
@@ -697,6 +691,28 @@ export default function GestaoCargas() {
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
+          </div>
+
+          {/* Mobile Stats */}
+          <div className="grid grid-cols-2 gap-2">
+            <Card className="border-border bg-gray-500/5">
+              <CardContent className="p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                  <Package className="w-4 h-4 text-gray-600" />
+                </div>
+                <p className="text-xl font-bold text-gray-600">{stats.aguardando_coleta}</p>
+                <p className="text-[10px] text-muted-foreground">Aguardando Coleta</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-orange-500/5">
+              <CardContent className="p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                  <Truck className="w-4 h-4 text-orange-600" />
+                </div>
+                <p className="text-xl font-bold text-orange-600">{stats.em_transito}</p>
+                <p className="text-[10px] text-muted-foreground">Em Trânsito</p>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="flex gap-3 w-full">
@@ -730,7 +746,7 @@ export default function GestaoCargas() {
           {selectedStatuses.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {selectedStatuses.map(status => {
-                const config = statusCargaConfig[status];
+                const config = statusEntregaConfig[status];
                 return (
                   <Badge
                     key={status}
