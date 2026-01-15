@@ -216,7 +216,7 @@ export default function CargasDisponiveis() {
     },
   });
 
-  // Fetch motoristas da transportadora
+  // Fetch motoristas da transportadora com status de disponibilidade
   const { data: motoristas = [] } = useQuery({
     queryKey: ['motoristas_transportadora', empresa?.id],
     queryFn: async () => {
@@ -238,6 +238,33 @@ export default function CargasDisponiveis() {
     },
     enabled: !!empresa?.id,
   });
+
+  // Fetch entregas ativas para saber quais motoristas estão ocupados
+  const { data: entregasAtivas = [] } = useQuery({
+    queryKey: ['entregas_ativas_motoristas', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      const { data, error } = await supabase
+        .from('entregas')
+        .select('motorista_id')
+        .in('status', ['aguardando_coleta', 'em_coleta', 'coletado', 'em_transito', 'em_entrega'])
+        .not('motorista_id', 'is', null);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Filtrar motoristas disponíveis (sem entrega ativa)
+  const motoristasOcupados = useMemo(() => {
+    return new Set(entregasAtivas.map(e => e.motorista_id));
+  }, [entregasAtivas]);
+
+  const motoristasDisponiveis = useMemo(() => {
+    return motoristas.filter(m => !motoristasOcupados.has(m.id));
+  }, [motoristas, motoristasOcupados]);
 
   // Mutation para aceitar carga
   const acceptCarga = useMutation({
@@ -344,8 +371,8 @@ export default function CargasDisponiveis() {
 
   // Get vehicles for selected driver
   const selectedMotoristaData = useMemo(() => {
-    return motoristas.find((m) => m.id === selectedMotorista);
-  }, [motoristas, selectedMotorista]);
+    return motoristasDisponiveis.find((m) => m.id === selectedMotorista);
+  }, [motoristasDisponiveis, selectedMotorista]);
 
   // Get selected vehicle data
   const selectedVeiculoData = useMemo(() => {
@@ -860,7 +887,7 @@ export default function CargasDisponiveis() {
 
                   {/* Driver Selection */}
                   <div className="space-y-2">
-                    <Label>Motorista</Label>
+                    <Label>Motorista Disponível</Label>
                     <Select
                       value={selectedMotorista}
                       onValueChange={(value) => {
@@ -872,16 +899,21 @@ export default function CargasDisponiveis() {
                         <SelectValue placeholder="Selecione um motorista" />
                       </SelectTrigger>
                       <SelectContent>
-                        {motoristas.length === 0 ? (
+                        {motoristasDisponiveis.length === 0 ? (
                           <div className="p-4 text-center text-sm text-muted-foreground">
-                            Nenhum motorista cadastrado
+                            {motoristas.length === 0 
+                              ? 'Nenhum motorista cadastrado' 
+                              : 'Todos os motoristas estão em rota'}
                           </div>
                         ) : (
-                          motoristas.map((motorista) => (
+                          motoristasDisponiveis.map((motorista) => (
                             <SelectItem key={motorista.id} value={motorista.id}>
                               <div className="flex items-center gap-2">
                                 <User className="w-4 h-4" />
                                 <span>{motorista.nome_completo}</span>
+                                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                                  Disponível
+                                </Badge>
                                 <span className="text-xs text-muted-foreground">
                                   ({motorista.veiculos?.length || 0} veículos)
                                 </span>
@@ -891,6 +923,11 @@ export default function CargasDisponiveis() {
                         )}
                       </SelectContent>
                     </Select>
+                    {motoristasOcupados.size > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {motoristasOcupados.size} motorista(s) em rota não listado(s)
+                      </p>
+                    )}
                   </div>
 
                   {/* Vehicle Selection */}
