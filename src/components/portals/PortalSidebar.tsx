@@ -9,6 +9,7 @@ import {
   Truck,
   Building2,
   User,
+  Users,
   MapPin,
   Calendar,
   BarChart3,
@@ -98,6 +99,8 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
     { icon: Route, label: 'Gestão de Entregas', href: '/transportadora/entregas' },
     { icon: MessageCircle, label: 'Assistente', href: '/transportadora/assistente' },
+    { icon: MapPin, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true },
+    { icon: Users, label: 'Usuários da Empresa', href: '/transportadora/usuarios', adminOnly: true },
     { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
   ],
   motorista: [

@@ -36,6 +36,8 @@ import TransportadoraMotoristas from "./pages/portals/transportadora/Motoristas"
 import TransportadoraGestaoEntregas from "./pages/portals/transportadora/GestaoEntregas";
 import TransportadoraAssistente from "./pages/portals/transportadora/Assistente";
 import TransportadoraConfiguracoes from "./pages/portals/transportadora/Configuracoes";
+import TransportadoraFiliais from "./pages/portals/transportadora/GerenciarFiliais";
+import TransportadoraUsuarios from "./pages/portals/transportadora/UsuariosEmpresa";
 import MotoristaDashboard from "./pages/portals/MotoristaDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -86,6 +88,8 @@ const App = () => {
                 <Route path="/transportadora/motoristas" element={<TransportadoraMotoristas />} />
                 <Route path="/transportadora/entregas" element={<TransportadoraGestaoEntregas />} />
                 <Route path="/transportadora/assistente" element={<TransportadoraAssistente />} />
+                <Route path="/transportadora/filiais" element={<TransportadoraFiliais />} />
+                <Route path="/transportadora/usuarios" element={<TransportadoraUsuarios />} />
                 <Route path="/transportadora/configuracoes" element={<TransportadoraConfiguracoes />} />
                 
                 {/* Portal Motorista */}
