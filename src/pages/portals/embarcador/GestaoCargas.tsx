@@ -101,6 +101,7 @@ interface CotacaoData {
 }
 
 interface EnderecoData {
+  id: string;
   tipo: string;
   cidade: string;
   estado: string;
@@ -137,7 +138,8 @@ interface CargaCompleta {
   temperatura_min: number | null;
   temperatura_max: number | null;
   numero_onu: string | null;
-  enderecos_carga: EnderecoData[];
+  endereco_origem: EnderecoData | null;
+  endereco_destino: EnderecoData | null;
   filiais: {
     nome: string | null;
     cidade: string | null;
@@ -230,7 +232,21 @@ export default function GestaoCargas() {
             telefone,
             responsavel
           ),
-          enderecos_carga (
+          endereco_origem:enderecos_carga!endereco_origem_id (
+            id,
+            tipo,
+            cidade,
+            estado,
+            logradouro,
+            numero,
+            bairro,
+            latitude,
+            longitude,
+            contato_nome,
+            contato_telefone
+          ),
+          endereco_destino:enderecos_carga!endereco_destino_id (
+            id,
             tipo,
             cidade,
             estado,
@@ -342,8 +358,8 @@ export default function GestaoCargas() {
     return filteredCargas
       .map(c => {
         const e = c.entregas;
-        const origem = c.enderecos_carga?.find(end => end.tipo === 'origem');
-        const destino = c.enderecos_carga?.find(end => end.tipo === 'destino');
+        const origem = c.endereco_origem;
+        const destino = c.endereco_destino;
 
         // Get driver location from localizações table
         const motoristaEmail = e?.motoristas?.email;
@@ -393,7 +409,7 @@ export default function GestaoCargas() {
 
   const getRemetente = (carga: CargaCompleta) => {
     // Remetente is the filial (branch) that sent the cargo
-    const origem = carga.enderecos_carga?.find(e => e.tipo === 'origem');
+    const origem = carga.endereco_origem;
     return {
       nome: carga.filiais?.nome || 'Filial',
       cidade: origem?.cidade || carga.filiais?.cidade || '-',
@@ -406,7 +422,7 @@ export default function GestaoCargas() {
 
   const getDestinatario = (carga: CargaCompleta) => {
     // Destinatário is the destination contact/company
-    const destino = carga.enderecos_carga?.find(e => e.tipo === 'destino');
+    const destino = carga.endereco_destino;
     if (!destino) return null;
     return {
       nome: destino.contato_nome || 'Destinatário',
@@ -419,7 +435,7 @@ export default function GestaoCargas() {
   };
 
   const getEndereco = (carga: CargaCompleta, tipo: 'origem' | 'destino') => {
-    const endereco = carga.enderecos_carga?.find(e => e.tipo === tipo);
+    const endereco = tipo === 'origem' ? carga.endereco_origem : carga.endereco_destino;
     if (!endereco) return { cidade: '-', contato: null, endereco: null };
     return {
       cidade: `${endereco.cidade}, ${endereco.estado}`,
