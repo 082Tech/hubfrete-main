@@ -48,6 +48,20 @@ import {
   Percent,
 } from 'lucide-react';
 
+interface EnderecoData {
+  id: string;
+  tipo: string;
+  logradouro: string;
+  numero: string | null;
+  bairro: string | null;
+  cidade: string;
+  estado: string;
+  cep: string;
+  contato_nome: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 interface CargaPublicada {
   id: string;
   codigo: string;
@@ -62,18 +76,8 @@ interface CargaPublicada {
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
   created_at: string;
-  enderecos_carga: Array<{
-    tipo: string;
-    logradouro: string;
-    numero: string | null;
-    bairro: string | null;
-    cidade: string;
-    estado: string;
-    cep: string;
-    contato_nome: string | null;
-    latitude: number | null;
-    longitude: number | null;
-  }>;
+  endereco_origem: EnderecoData | null;
+  endereco_destino: EnderecoData | null;
   entregas: Array<{
     id: string;
     peso_alocado_kg: number | null;
@@ -108,7 +112,21 @@ export default function CargasPublicadas() {
           data_coleta_de,
           data_coleta_ate,
           created_at,
-          enderecos_carga (
+          endereco_origem:enderecos_carga!endereco_origem_id (
+            id,
+            tipo,
+            logradouro,
+            numero,
+            bairro,
+            cidade,
+            estado,
+            cep,
+            contato_nome,
+            latitude,
+            longitude
+          ),
+          endereco_destino:enderecos_carga!endereco_destino_id (
+            id,
             tipo,
             logradouro,
             numero,
@@ -147,7 +165,7 @@ export default function CargasPublicadas() {
   );
 
   const getEnderecoData = (carga: CargaPublicada, tipo: 'origem' | 'destino') => {
-    const endereco = carga.enderecos_carga?.find(e => e.tipo === tipo);
+    const endereco = tipo === 'origem' ? carga.endereco_origem : carga.endereco_destino;
     if (!endereco) return { empresa: '-', cidade: '-', enderecoCompleto: '-' };
     
     const enderecoCompleto = [

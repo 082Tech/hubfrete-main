@@ -29,6 +29,8 @@ export type Database = {
           documentacao: Json | null
           empilhavel: boolean | null
           empresa_id: number | null
+          endereco_destino_id: string | null
+          endereco_origem_id: string | null
           filial_id: number | null
           id: string
           necessidades_especiais: string[] | null
@@ -65,6 +67,8 @@ export type Database = {
           documentacao?: Json | null
           empilhavel?: boolean | null
           empresa_id?: number | null
+          endereco_destino_id?: string | null
+          endereco_origem_id?: string | null
           filial_id?: number | null
           id?: string
           necessidades_especiais?: string[] | null
@@ -101,6 +105,8 @@ export type Database = {
           documentacao?: Json | null
           empilhavel?: boolean | null
           empresa_id?: number | null
+          endereco_destino_id?: string | null
+          endereco_origem_id?: string | null
           filial_id?: number | null
           id?: string
           necessidades_especiais?: string[] | null
@@ -129,6 +135,20 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargas_endereco_destino_id_fkey"
+            columns: ["endereco_destino_id"]
+            isOneToOne: false
+            referencedRelation: "enderecos_carga"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargas_endereco_origem_id_fkey"
+            columns: ["endereco_origem_id"]
+            isOneToOne: false
+            referencedRelation: "enderecos_carga"
             referencedColumns: ["id"]
           },
           {
