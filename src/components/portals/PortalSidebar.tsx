@@ -403,112 +403,213 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
             )
           )}
 
-          {/* Entregas Submenu - only for transportadora */}
-          {userType === 'transportadora' && (
-            collapsed ? (
-              <DropdownMenu>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${
-                          isEntregasSubmenuActive
-                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
-                        }`}
-                      >
-                        <Route className="w-5 h-5 shrink-0" />
-                      </button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={10}>Entregas</TooltipContent>
-                </Tooltip>
-                <DropdownMenuContent side="right" align="start" className="w-48">
-                  {entregasSubmenu.subItems.map((sub) => (
-                    <DropdownMenuItem
-                      key={sub.href}
-                      onClick={() => navigate(sub.href)}
-                      className={location.pathname === sub.href ? 'bg-accent' : ''}
-                    >
-                      <sub.icon className="w-4 h-4 mr-2" />
-                      {sub.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Collapsible open={entregasOpen} onOpenChange={setEntregasOpen}>
-                <CollapsibleTrigger asChild>
-                  <button
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${
-                      isEntregasSubmenuActive
-                        ? 'bg-sidebar-primary/10 text-sidebar-primary'
+          {/* Regular menu items - with custom ordering for transportadora */}
+          {userType === 'transportadora' ? (
+            // Transportadora: Home -> Cargas Disponíveis -> Entregas Submenu -> Rest
+            <>
+              {/* Home */}
+              {(() => {
+                const homeItem = menuItems.find(item => item.href === '/transportadora');
+                if (!homeItem) return null;
+                const isActive = location.pathname === homeItem.href;
+                const linkContent = (
+                  <Link
+                    to={homeItem.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                      } ${isActive
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                         : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
-                    }`}
+                      }`}
                   >
-                    <Route className="w-5 h-5 shrink-0" />
-                    <span className="font-medium flex-1 text-left">Entregas</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${entregasOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pl-4 mt-1 space-y-1">
-                  {entregasSubmenu.subItems.map((sub) => {
-                    const isSubActive = location.pathname === sub.href;
-                    return (
-                      <Link
+                    <homeItem.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{homeItem.label}</span>}
+                  </Link>
+                );
+                if (collapsed) {
+                  return (
+                    <Tooltip key={homeItem.href}>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>{homeItem.label}</TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return linkContent;
+              })()}
+
+              {/* Cargas Disponíveis */}
+              {(() => {
+                const cargasItem = menuItems.find(item => item.href === '/transportadora/cargas');
+                if (!cargasItem) return null;
+                const isActive = location.pathname === cargasItem.href;
+                const linkContent = (
+                  <Link
+                    to={cargasItem.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                      } ${isActive
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                      }`}
+                  >
+                    <cargasItem.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{cargasItem.label}</span>}
+                  </Link>
+                );
+                if (collapsed) {
+                  return (
+                    <Tooltip key={cargasItem.href}>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>{cargasItem.label}</TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return linkContent;
+              })()}
+
+              {/* Entregas Submenu - right after Cargas Disponíveis */}
+              {collapsed ? (
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${
+                            isEntregasSubmenuActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                          }`}
+                        >
+                          <MapPin className="w-5 h-5 shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={10}>Entregas</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent side="right" align="start" className="w-48">
+                    {entregasSubmenu.subItems.map((sub) => (
+                      <DropdownMenuItem
                         key={sub.href}
-                        to={sub.href}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                          isSubActive
-                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
-                        }`}
+                        onClick={() => navigate(sub.href)}
+                        className={location.pathname === sub.href ? 'bg-accent' : ''}
                       >
-                        <sub.icon className="w-4 h-4 shrink-0" />
-                        <span className="text-sm">{sub.label}</span>
-                      </Link>
+                        <sub.icon className="w-4 h-4 mr-2" />
+                        {sub.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Collapsible open={entregasOpen} onOpenChange={setEntregasOpen}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${
+                        isEntregasSubmenuActive
+                          ? 'bg-sidebar-primary/10 text-sidebar-primary'
+                          : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                      }`}
+                    >
+                      <MapPin className="w-5 h-5 shrink-0" />
+                      <span className="font-medium flex-1 text-left">Entregas</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${entregasOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                    {entregasSubmenu.subItems.map((sub) => {
+                      const isSubActive = location.pathname === sub.href;
+                      return (
+                        <Link
+                          key={sub.href}
+                          to={sub.href}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                            isSubActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                          }`}
+                        >
+                          <sub.icon className="w-4 h-4 shrink-0" />
+                          <span className="text-sm">{sub.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              {/* Rest of transportadora menu items */}
+              {menuItems
+                .filter(item => 
+                  item.href !== '/transportadora' && 
+                  item.href !== '/transportadora/cargas'
+                )
+                .map((item) => {
+                  const isActive = location.pathname === item.href;
+                  const linkContent = (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                        } ${isActive
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                          : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                        }`}
+                    >
+                      <item.icon className="w-5 h-5 shrink-0" />
+                      {!collapsed && <span className="font-medium">{item.label}</span>}
+                    </Link>
+                  );
+
+                  if (collapsed) {
+                    return (
+                      <Tooltip key={item.href}>
+                        <TooltipTrigger asChild>
+                          {linkContent}
+                        </TooltipTrigger>
+                        <TooltipContent side="right" sideOffset={10}>
+                          {item.label}
+                        </TooltipContent>
+                      </Tooltip>
                     );
-                  })}
-                </CollapsibleContent>
-              </Collapsible>
-            )
+                  }
+
+                  return linkContent;
+                })}
+            </>
+          ) : (
+            // Other user types: original logic
+            menuItems
+              .filter(item => (userType !== 'embarcador' || item.href !== '/embarcador'))
+              .map((item) => {
+                const isActive = location.pathname === item.href;
+                const linkContent = (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                      } ${isActive
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                      }`}
+                  >
+                    <item.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{item.label}</span>}
+                  </Link>
+                );
+
+                if (collapsed) {
+                  return (
+                    <Tooltip key={item.href}>
+                      <TooltipTrigger asChild>
+                        {linkContent}
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>
+                        {item.label}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                return linkContent;
+              })
           )}
-
-          {/* Regular menu items - exclude Home for embarcador since it's rendered above */}
-          {menuItems
-            .filter(item => (userType !== 'embarcador' || item.href !== '/embarcador') && (userType !== 'transportadora' || item.href !== '/transportadora/entregas'))
-            .map((item) => {
-            const isActive = location.pathname === item.href;
-            const linkContent = (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
-                  } ${isActive
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                    : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
-                  }`}
-              >
-                <item.icon className="w-5 h-5 shrink-0" />
-                {!collapsed && <span className="font-medium">{item.label}</span>}
-              </Link>
-            );
-
-            if (collapsed) {
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>
-                    {linkContent}
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={10}>
-                    {item.label}
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
-
-            return linkContent;
-          })}
         </nav>
 
         {/* User */}
