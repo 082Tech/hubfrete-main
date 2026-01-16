@@ -1,4 +1,4 @@
-import { GoogleMap, OverlayView, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, InfoWindow, MarkerF } from '@react-google-maps/api';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { MapPin, ArrowRight, Loader2 } from 'lucide-react';
@@ -140,12 +140,38 @@ export default function CargasGoogleMap({
   const { isLoaded, loadError } = useGoogleMaps();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
+  const [primaryHsl, setPrimaryHsl] = useState<string>('161 93% 30%');
+  const [primaryFgHsl, setPrimaryFgHsl] = useState<string>('151 80% 95%');
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const styles = getComputedStyle(root);
+    const p = styles.getPropertyValue('--primary').trim();
+    const pf = styles.getPropertyValue('--primary-foreground').trim();
+    if (p) setPrimaryHsl(p);
+    if (pf) setPrimaryFgHsl(pf);
+  }, []);
 
   const toNumber = useCallback((value: number | string | null | undefined) => {
     if (value === null || value === undefined) return null;
     const n = typeof value === 'string' ? Number.parseFloat(value) : value;
     return Number.isFinite(n) ? n : null;
   }, []);
+
+  const markerIcon = useCallback(
+    (hovered: boolean) => {
+      const fill = `hsl(${primaryHsl})`;
+      const stroke = hovered ? 'hsl(0 0% 100%)' : 'hsl(0 0% 100%)';
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="92" height="36" viewBox="0 0 92 36"><rect x="2" y="2" width="88" height="32" rx="16" fill="${fill}" stroke="${stroke}" stroke-width="3"/></svg>`;
+      return {
+        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+        scaledSize: new google.maps.Size(92, 36),
+        anchor: new google.maps.Point(46, 18),
+        labelOrigin: new google.maps.Point(46, 18),
+      } as google.maps.Icon;
+    },
+    [primaryHsl]
+  );
 
   // Filter cargas with valid coordinates
   const cargasComCoordenadas = useMemo(() => {
@@ -204,41 +230,33 @@ export default function CargasGoogleMap({
         onUnmount={onUnmount}
         options={mapOptions}
       >
-        {/* Price markers using OverlayView */}
+        {/* Price markers (Airbnb-style) */}
         {cargasComCoordenadas.map((carga) => {
           const isHovered = hoveredCargaId === carga.id;
           const priceText = carga.valor_frete_tonelada
-            ? `R$${Math.round(carga.valor_frete_tonelada)}`
-            : '---';
+            ? `R$ ${Math.round(carga.valor_frete_tonelada)}/ton`
+            : '---/ton';
 
           const lat = toNumber(carga.endereco_origem?.latitude);
           const lng = toNumber(carga.endereco_origem?.longitude);
           if (lat === null || lng === null) return null;
 
           return (
-            <OverlayView
+            <MarkerF
               key={carga.id}
               position={{ lat, lng }}
-              mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-            >
-              <div
-                onClick={() => setSelectedCarga(carga)}
-                onMouseEnter={() => setHoveredCargaId(carga.id)}
-                onMouseLeave={() => setHoveredCargaId(null)}
-                className={
-                  `cursor-pointer px-3 py-1.5 rounded-full font-semibold text-xs whitespace-nowrap ` +
-                  `shadow-lg border-2 border-background transition-all duration-200 ` +
-                  (isHovered
-                    ? 'bg-foreground text-background scale-110 z-50'
-                    : 'bg-primary text-primary-foreground')
-                }
-                style={{
-                  transform: 'translate(-50%, -50%)',
-                }}
-              >
-                {priceText}/ton
-              </div>
-            </OverlayView>
+              icon={markerIcon(isHovered)}
+              label={{
+                text: priceText,
+                color: `hsl(${primaryFgHsl})`,
+                fontSize: '12px',
+                fontWeight: '700',
+              }}
+              onMouseOver={() => setHoveredCargaId(carga.id)}
+              onMouseOut={() => setHoveredCargaId(null)}
+              onClick={() => setSelectedCarga(carga)}
+              zIndex={isHovered ? 999 : 1}
+            />
           );
         })}
 
