@@ -9,18 +9,32 @@ interface Carga {
   codigo: string;
   descricao: string;
   peso_kg: number;
+  peso_disponivel_kg?: number | null;
+  volume_m3?: number | null;
   valor_frete_tonelada: number | null;
+  destinatario_nome_fantasia?: string | null;
+  destinatario_razao_social?: string | null;
   endereco_origem: {
     cidade: string;
     estado: string;
     latitude: number | null;
     longitude: number | null;
+    logradouro?: string | null;
+    numero?: string | null;
+    bairro?: string | null;
   } | null;
   endereco_destino: {
     cidade: string;
     estado: string;
     latitude: number | null;
     longitude: number | null;
+    logradouro?: string | null;
+    numero?: string | null;
+    bairro?: string | null;
+  } | null;
+  empresa?: {
+    nome: string;
+    logo_url?: string | null;
   } | null;
 }
 
