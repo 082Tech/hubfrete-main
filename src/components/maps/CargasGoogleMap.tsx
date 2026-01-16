@@ -247,7 +247,11 @@ export default function CargasGoogleMap({
         onLoad={onLoad}
         onUnmount={onUnmount}
         options={mapOptions}
-        onClick={handleClearSelection}
+        onClick={() => {
+          setSelectedCarga(null);
+          setDirections(null);
+          setRouteInfo(null);
+        }}
       >
         {/* Directions route */}
         {directions && (
@@ -298,14 +302,6 @@ export default function CargasGoogleMap({
           return (
             <MarkerF
               position={{ lat: destLat, lng: destLng }}
-              icon={{
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 10,
-                fillColor: '#ef4444',
-                fillOpacity: 1,
-                strokeColor: '#ffffff',
-                strokeWeight: 2,
-              }}
               zIndex={998}
             />
           );
