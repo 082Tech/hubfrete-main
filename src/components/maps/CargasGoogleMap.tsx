@@ -53,7 +53,7 @@ const formatCurrency = (value: number | null) => {
   }).format(value);
 };
 
-// Clean silver map style - minimal and elegant
+// Clean silver map style with blue water
 const mapStyles: google.maps.MapTypeStyle[] = [
   {
     elementType: 'geometry',
@@ -126,15 +126,16 @@ const mapStyles: google.maps.MapTypeStyle[] = [
     elementType: 'geometry',
     stylers: [{ color: '#eeeeee' }],
   },
+  // Water - nice blue
   {
     featureType: 'water',
     elementType: 'geometry',
-    stylers: [{ color: '#c9c9c9' }],
+    stylers: [{ color: '#a8d4f0' }],
   },
   {
     featureType: 'water',
     elementType: 'labels.text.fill',
-    stylers: [{ color: '#9e9e9e' }],
+    stylers: [{ color: '#4a90b8' }],
   },
 ];
 
@@ -163,32 +164,46 @@ export default function CargasGoogleMap({
     return Number.isFinite(n) ? n : null;
   }, []);
 
-  // Create premium Airbnb-style price marker icon with gradient and shadow
+  // Create premium Airbnb-style price marker with text embedded in SVG
   const createMarkerIcon = useCallback(
-    (isHovered: boolean, isSelected: boolean) => {
-      const scale = isHovered || isSelected ? 1.15 : 1;
-      const width = Math.round(72 * scale);
-      const height = Math.round(34 * scale);
+    (isHovered: boolean, isSelected: boolean, priceText: string) => {
+      const scale = isHovered || isSelected ? 1.12 : 1;
+      const baseWidth = 68;
+      const baseHeight = 32;
+      const width = Math.round(baseWidth * scale);
+      const height = Math.round(baseHeight * scale);
+      const fontSize = Math.round(12 * scale);
       
-      // Premium pill with gradient, subtle border, and elegant shadow
+      const isActive = isSelected || isHovered;
+      const gradStart = isActive ? '#2d2d2d' : '#10b981';
+      const gradEnd = isActive ? '#1a1a1a' : '#059669';
+      const shadowBlur = isActive ? 4 : 2;
+      const shadowY = isActive ? 3 : 2;
+      const shadowOpacity = isActive ? 0.4 : 0.25;
+      
       const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 72 34">
+        <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${baseWidth} ${baseHeight}">
           <defs>
-            <linearGradient id="pillGrad${isSelected ? 'S' : isHovered ? 'H' : 'N'}" x1="0%" y1="0%" x2="0%" y2="100%">
-              ${isSelected || isHovered 
-                ? '<stop offset="0%" style="stop-color:#2d2d2d"/><stop offset="100%" style="stop-color:#1a1a1a"/>'
-                : '<stop offset="0%" style="stop-color:#10b981"/><stop offset="100%" style="stop-color:#059669"/>'
-              }
+            <linearGradient id="pg" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="${gradStart}"/>
+              <stop offset="100%" stop-color="${gradEnd}"/>
             </linearGradient>
-            <filter id="shadow${isSelected ? 'S' : isHovered ? 'H' : 'N'}" x="-20%" y="-20%" width="140%" height="160%">
-              <feDropShadow dx="0" dy="${isHovered || isSelected ? '4' : '2'}" stdDeviation="${isHovered || isSelected ? '4' : '2'}" flood-color="#000" flood-opacity="${isHovered || isSelected ? '0.35' : '0.2'}"/>
+            <filter id="sh" x="-30%" y="-30%" width="160%" height="180%">
+              <feDropShadow dx="0" dy="${shadowY}" stdDeviation="${shadowBlur}" flood-color="#000" flood-opacity="${shadowOpacity}"/>
             </filter>
           </defs>
-          <rect x="2" y="2" width="68" height="30" rx="15" 
-            fill="url(#pillGrad${isSelected ? 'S' : isHovered ? 'H' : 'N'})" 
-            filter="url(#shadow${isSelected ? 'S' : isHovered ? 'H' : 'N'})"
-            stroke="rgba(255,255,255,0.25)" 
+          <rect x="2" y="2" width="${baseWidth - 4}" height="${baseHeight - 4}" rx="14" 
+            fill="url(#pg)" 
+            filter="url(#sh)"
+            stroke="rgba(255,255,255,0.2)" 
             stroke-width="1"/>
+          <text x="${baseWidth / 2}" y="${baseHeight / 2 + 1}" 
+            text-anchor="middle" 
+            dominant-baseline="middle" 
+            fill="#ffffff" 
+            font-family="system-ui, -apple-system, sans-serif" 
+            font-size="${fontSize}" 
+            font-weight="600">${priceText}</text>
         </svg>
       `;
       
@@ -196,7 +211,6 @@ export default function CargasGoogleMap({
         url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.trim())}`,
         scaledSize: new google.maps.Size(width, height),
         anchor: new google.maps.Point(width / 2, height / 2),
-        labelOrigin: new google.maps.Point(width / 2, height / 2),
       } as google.maps.Icon;
     },
     []
@@ -289,14 +303,7 @@ export default function CargasGoogleMap({
             <MarkerF
               key={carga.id}
               position={{ lat, lng }}
-              icon={createMarkerIcon(isHovered, isSelected)}
-              label={{
-                text: priceText,
-                color: '#ffffff',
-                fontSize: isHovered || isSelected ? '13px' : '12px',
-                fontWeight: '600',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-              }}
+              icon={createMarkerIcon(isHovered, isSelected, priceText)}
               onMouseOver={() => setHoveredCargaId(carga.id)}
               onMouseOut={() => setHoveredCargaId(null)}
               onClick={() => handleMarkerClick(carga)}
