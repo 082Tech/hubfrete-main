@@ -156,6 +156,56 @@ const createPriceIcon = (price: number | null) => {
   });
 };
 
+// Origin marker (green O)
+const createOriginIcon = () => {
+  return L.divIcon({
+    className: 'custom-origin-marker',
+    html: `
+      <div style="
+        background: hsl(142.1 76.2% 36.3%);
+        color: white;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        border: 2px solid white;
+      ">O</div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+};
+
+// Destination marker (red D)
+const createDestinationIcon = () => {
+  return L.divIcon({
+    className: 'custom-destination-marker',
+    html: `
+      <div style="
+        background: hsl(0 84.2% 60.2%);
+        color: white;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        border: 2px solid white;
+      ">D</div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+};
+
 // Fit bounds component
 function FitBounds({ bounds }: { bounds: L.LatLngBoundsExpression | null }) {
   const map = useMap();
@@ -756,47 +806,115 @@ export default function CargasDisponiveis() {
             {selectedCarga && (
               <ScrollArea className="max-h-[60vh] pr-4">
                 <div className="space-y-4">
-                  {/* Cargo Basic Info */}
-                  <div className="p-4 bg-muted rounded-lg space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-lg">{selectedCarga.codigo}</p>
-                        <p className="text-sm text-muted-foreground">{selectedCarga.descricao}</p>
-                        {selectedCarga.empresa?.nome && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Embarcador: {selectedCarga.empresa.nome}
-                          </p>
-                        )}
+                  {/* Header with Logo and Basic Info */}
+                  <div className="flex items-start gap-4 p-4 bg-muted rounded-lg">
+                    {/* Company Logo */}
+                    {selectedCarga.empresa?.logo_url && (
+                      <div className="shrink-0 w-16 h-16 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={selectedCarga.empresa.logo_url} 
+                          alt={selectedCarga.empresa.nome || 'Logo'} 
+                          className="w-full h-full object-contain p-1"
+                        />
                       </div>
-                      <Badge variant="outline">{tipoCargaLabels[selectedCarga.tipo] || selectedCarga.tipo}</Badge>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="w-4 h-4 text-chart-1" />
-                      <span>{selectedCarga.endereco_origem?.cidade}, {selectedCarga.endereco_origem?.estado}</span>
-                      <ArrowRight className="w-4 h-4" />
-                      <MapPin className="w-4 h-4 text-chart-2" />
-                      <span>{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</span>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="flex items-center gap-1">
-                        <Weight className="w-4 h-4" />
-                        <span className="font-medium">
-                          {(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg disponíveis
-                        </span>
-                        {selectedCarga.peso_disponivel_kg !== null && selectedCarga.peso_disponivel_kg < selectedCarga.peso_kg && (
-                          <span className="text-muted-foreground">/ {selectedCarga.peso_kg.toLocaleString('pt-BR')} kg total</span>
-                        )}
-                      </span>
-                    </div>
-
-                    {selectedCarga.valor_frete_tonelada && (
-                      <p className="text-lg font-semibold text-chart-2">
-                        {formatCurrency(selectedCarga.valor_frete_tonelada)}/ton
-                      </p>
                     )}
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-semibold text-lg">{selectedCarga.codigo}</p>
+                          <p className="text-sm text-muted-foreground">{selectedCarga.descricao}</p>
+                          {selectedCarga.empresa?.nome && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Embarcador: {selectedCarga.empresa.nome}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant="outline">{tipoCargaLabels[selectedCarga.tipo] || selectedCarga.tipo}</Badge>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="flex items-center gap-1">
+                          <Weight className="w-4 h-4" />
+                          <span className="font-medium">
+                            {(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg disponíveis
+                          </span>
+                          {selectedCarga.peso_disponivel_kg !== null && selectedCarga.peso_disponivel_kg < selectedCarga.peso_kg && (
+                            <span className="text-muted-foreground">/ {selectedCarga.peso_kg.toLocaleString('pt-BR')} kg total</span>
+                          )}
+                        </span>
+                      </div>
+
+                      {selectedCarga.valor_frete_tonelada && (
+                        <p className="text-lg font-semibold text-chart-2">
+                          {formatCurrency(selectedCarga.valor_frete_tonelada)}/ton
+                        </p>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Route Map */}
+                  {selectedCarga.endereco_origem?.latitude && selectedCarga.endereco_destino?.latitude && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <MapIcon className="w-4 h-4" />
+                        Rota
+                      </h4>
+                      <div className="h-48 rounded-lg overflow-hidden border border-border">
+                        <MapContainer
+                          center={[
+                            (Number(selectedCarga.endereco_origem.latitude) + Number(selectedCarga.endereco_destino.latitude)) / 2,
+                            (Number(selectedCarga.endereco_origem.longitude) + Number(selectedCarga.endereco_destino.longitude)) / 2
+                          ]}
+                          zoom={5}
+                          style={{ height: '100%', width: '100%' }}
+                          scrollWheelZoom={false}
+                          className='z-0'
+                        >
+                          <TileLayer
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          />
+                          <FitBounds 
+                            bounds={L.latLngBounds(
+                              [Number(selectedCarga.endereco_origem.latitude), Number(selectedCarga.endereco_origem.longitude)],
+                              [Number(selectedCarga.endereco_destino.latitude), Number(selectedCarga.endereco_destino.longitude)]
+                            )} 
+                          />
+                          {/* Origin Marker */}
+                          <Marker
+                            position={[Number(selectedCarga.endereco_origem.latitude), Number(selectedCarga.endereco_origem.longitude)]}
+                            icon={createOriginIcon()}
+                          >
+                            <Popup>
+                              <div className="text-sm">
+                                <p className="font-semibold">Origem</p>
+                                <p>{selectedCarga.endereco_origem.cidade}, {selectedCarga.endereco_origem.estado}</p>
+                              </div>
+                            </Popup>
+                          </Marker>
+                          {/* Destination Marker */}
+                          <Marker
+                            position={[Number(selectedCarga.endereco_destino.latitude), Number(selectedCarga.endereco_destino.longitude)]}
+                            icon={createDestinationIcon()}
+                          >
+                            <Popup>
+                              <div className="text-sm">
+                                <p className="font-semibold">Destino</p>
+                                <p>{selectedCarga.endereco_destino.cidade}, {selectedCarga.endereco_destino.estado}</p>
+                              </div>
+                            </Popup>
+                          </Marker>
+                        </MapContainer>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="w-4 h-4 text-green-600" />
+                        <span>{selectedCarga.endereco_origem?.cidade}, {selectedCarga.endereco_origem?.estado}</span>
+                        <ArrowRight className="w-4 h-4" />
+                        <MapPin className="w-4 h-4 text-red-500" />
+                        <span>{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Special Requirements */}
                   <div className="space-y-2">
