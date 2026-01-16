@@ -95,6 +95,8 @@ interface NovaCargaDialogProps {
 }
 
 export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
+  if (import.meta.env.DEV) console.count('render: NovaCargaDialog');
+
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('carga');
@@ -403,7 +405,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Tipo de Carga *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select value={field.value} onValueChange={field.onChange}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione o tipo" />

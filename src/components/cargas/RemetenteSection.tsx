@@ -36,6 +36,8 @@ interface RemetenteSectionProps {
 }
 
 export function RemetenteSection({ initialData, onLocationChange }: RemetenteSectionProps) {
+  if (import.meta.env.DEV) console.count('render: RemetenteSection');
+
   const { filialAtiva, empresa } = useUserContext();
   const [sourceType, setSourceType] = useState<'filial' | 'cnpj'>('filial');
   const [selectedFilialId, setSelectedFilialId] = useState<string>(() =>

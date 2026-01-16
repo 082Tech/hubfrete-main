@@ -55,6 +55,8 @@ interface DestinoSectionProps {
 }
 
 export function DestinoSection({ initialData, onLocationChange, dialogOpen = true }: DestinoSectionProps) {
+  if (import.meta.env.DEV) console.count('render: DestinoSection');
+
   const { empresa } = useUserContext();
   const [sourceType, setSourceType] = useState<'filial' | 'cnpj'>('cnpj');
   const [selectedFilialId, setSelectedFilialId] = useState<string>('');
