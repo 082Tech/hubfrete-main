@@ -244,7 +244,7 @@ export default function CargasDisponiveis() {
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('');
   const [pesoAlocado, setPesoAlocado] = useState<string>('');
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
   
   // Route data for dialog map
