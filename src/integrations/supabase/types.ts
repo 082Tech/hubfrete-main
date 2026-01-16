@@ -307,6 +307,7 @@ export type Database = {
           cnpj_matriz: string | null
           created_at: string
           id: number
+          logo_url: string | null
           nome: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
@@ -315,6 +316,7 @@ export type Database = {
           cnpj_matriz?: string | null
           created_at?: string
           id?: number
+          logo_url?: string | null
           nome?: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
@@ -323,6 +325,7 @@ export type Database = {
           cnpj_matriz?: string | null
           created_at?: string
           id?: number
+          logo_url?: string | null
           nome?: string | null
           tipo?: Database["public"]["Enums"]["tipo_empresa"]
         }

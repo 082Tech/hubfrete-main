@@ -98,6 +98,7 @@ interface Carga {
   } | null;
   empresa: {
     nome: string;
+    logo_url: string | null;
   } | null;
 }
 
@@ -206,7 +207,7 @@ export default function CargasDisponiveis() {
           veiculo_requisitos,
           endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
           endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude),
-          empresa:empresas!cargas_empresa_id_fkey(nome)
+          empresa:empresas!cargas_empresa_id_fkey(nome, logo_url)
         `)
         .eq('status', 'publicada')
         .order('created_at', { ascending: false });
@@ -482,8 +483,17 @@ export default function CargasDisponiveis() {
               </Badge>
             </div>
             <p className="font-medium text-sm line-clamp-1">{carga.descricao}</p>
-            {carga.empresa?.nome && (
-              <p className="text-xs text-muted-foreground mt-0.5">{carga.empresa.nome}</p>
+            {carga.empresa && (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {carga.empresa.logo_url && (
+                  <img 
+                    src={carga.empresa.logo_url} 
+                    alt={carga.empresa.nome || 'Logo'} 
+                    className="w-4 h-4 rounded-sm object-contain"
+                  />
+                )}
+                <p className="text-xs text-muted-foreground">{carga.empresa.nome}</p>
+              </div>
             )}
           </div>
           <div className="flex gap-1 shrink-0">
