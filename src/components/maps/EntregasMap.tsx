@@ -14,32 +14,89 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// Custom colored markers
-const createColoredIcon = (color: string, isSelected: boolean = false) => {
-  const size = isSelected ? 32 : 24;
-  const borderWidth = isSelected ? 4 : 3;
-  return new L.DivIcon({
-    className: 'custom-marker',
-    html: `
-      <div style="
-        background-color: ${color};
-        width: ${size}px;
-        height: ${size}px;
-        border-radius: 50%;
-        border: ${borderWidth}px solid ${isSelected ? '#fbbf24' : 'white'};
-        box-shadow: ${isSelected ? '0 0 12px rgba(251, 191, 36, 0.8)' : '0 2px 5px rgba(0,0,0,0.3)'};
+// Custom avatar marker with online/offline status
+const createAvatarIcon = (
+  fotoUrl: string | null, 
+  isOnline: boolean, 
+  isSelected: boolean = false
+) => {
+  const size = isSelected ? 48 : 40;
+  const borderWidth = isSelected ? 3 : 2;
+  const borderColor = isSelected ? '#3b82f6' : isOnline ? '#22c55e' : '#9ca3af';
+  
+  // Pulse animation CSS - only for online
+  const pulseStyle = isOnline ? `
+    <style>
+      @keyframes avatar-pulse {
+        0%, 100% { transform: scale(1); opacity: 0.6; }
+        50% { transform: scale(1.4); opacity: 0; }
+      }
+    </style>
+    <div style="
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background-color: #22c55e;
+      opacity: 0.4;
+      animation: avatar-pulse 2s ease-in-out infinite;
+    "></div>
+  ` : '';
+  
+  // Avatar content - either image or truck fallback
+  const avatarContent = fotoUrl 
+    ? `<img 
+        src="${fotoUrl}" 
+        alt="Motorista" 
+        style="
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 50%;
+          ${!isOnline ? 'filter: grayscale(100%); opacity: 0.6;' : ''}
+        "
+        referrerpolicy="no-referrer"
+      />`
+    : `<div style="
+        width: 100%;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
+        background-color: ${isSelected ? '#3b82f6' : '#e5e7eb'};
+        border-radius: 50%;
+        ${!isOnline ? 'filter: grayscale(100%); opacity: 0.6;' : ''}
       ">
-        <svg xmlns="http://www.w3.org/2000/svg" width="${isSelected ? 16 : 12}" height="${isSelected ? 16 : 12}" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="${size * 0.45}" height="${size * 0.45}" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? 'white' : '#6b7280'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
           <path d="M15 18H9"/>
           <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
           <circle cx="17" cy="18" r="2"/>
           <circle cx="7" cy="18" r="2"/>
         </svg>
+      </div>`;
+  
+  return new L.DivIcon({
+    className: 'avatar-marker',
+    html: `
+      <div style="
+        position: relative;
+        width: ${size}px;
+        height: ${size}px;
+      ">
+        ${pulseStyle}
+        <div style="
+          position: relative;
+          width: ${size}px;
+          height: ${size}px;
+          border-radius: 50%;
+          border: ${borderWidth}px solid ${borderColor};
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          overflow: hidden;
+          background: white;
+          z-index: 1;
+        ">
+          ${avatarContent}
+        </div>
       </div>
     `,
     iconSize: [size, size],
@@ -109,6 +166,8 @@ interface EntregaMapData {
   codigo: string;
   descricao: string;
   motorista: string | null;
+  motoristaFotoUrl?: string | null;
+  motoristaOnline?: boolean | null;
   telefone: string | null;
   placa: string | null;
   destino: string | null;
@@ -366,7 +425,7 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
           </Marker>
         )}
         
-        {/* Truck markers - hide others when one is selected */}
+        {/* Driver avatar markers - hide others when one is selected */}
         {validEntregas
           .filter((entrega) => !selectedCargaId || entrega.cargaId === selectedCargaId)
           .map((entrega) => {
@@ -374,12 +433,13 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
             const color = statusColors[status] || statusColors['aguardando_coleta'];
             const label = statusLabels[status] || 'Desconhecido';
             const isSelected = selectedCargaId === entrega.cargaId;
+            const isOnline = entrega.motoristaOnline === true;
             
             return (
               <Marker
                 key={entrega.id}
                 position={[entrega.latitude!, entrega.longitude!]}
-                icon={createColoredIcon(color, isSelected)}
+                icon={createAvatarIcon(entrega.motoristaFotoUrl || null, isOnline, isSelected)}
                 eventHandlers={{
                   click: () => handleMarkerClick(entrega),
                 }}
