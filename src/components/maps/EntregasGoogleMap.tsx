@@ -83,10 +83,10 @@ function DriverMarker({
           if (!isSelected) (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
         }}
       >
-        {/* Pulse animation for active deliveries - behind */}
-        {entrega.status === 'em_transito' && (
+        {/* Pulse animation when ONLINE */}
+        {isOnline && (
           <div
-            className="absolute inset-0 rounded-full bg-primary/30 animate-ping"
+            className="absolute inset-0 rounded-full bg-emerald-500/40 animate-ping"
             style={{ zIndex: 0 }}
           />
         )}
@@ -95,25 +95,20 @@ function DriverMarker({
         <div
           className={
             `absolute inset-0 rounded-full shadow-lg border-2 overflow-hidden ` +
-            (isSelected ? 'border-primary bg-primary' : 'border-border bg-background')
+            (isSelected ? 'border-primary bg-primary' : isOnline ? 'border-emerald-500 bg-background' : 'border-border bg-background')
           }
           style={{ zIndex: 1 }}
         >
-          {/* Offline indicator */}
-          {!isOnline && (
-            <div className="absolute top-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" />
-          )}
-
           {entrega.motoristaFotoUrl ? (
             <img
               src={entrega.motoristaFotoUrl}
               alt={entrega.motorista || 'Motorista'}
-              className={'w-full h-full object-cover ' + (!isOnline ? 'grayscale opacity-70' : '')}
+              className={'w-full h-full object-cover ' + (!isOnline ? 'grayscale opacity-60' : '')}
               loading="lazy"
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className={'w-full h-full flex items-center justify-center ' + (!isOnline ? 'opacity-70' : '')}>
+            <div className={'w-full h-full flex items-center justify-center ' + (!isOnline ? 'grayscale opacity-60' : '')}>
               <Truck className={`w-5 h-5 ${isSelected ? 'text-primary-foreground' : 'text-primary'}`} />
             </div>
           )}
@@ -237,8 +232,19 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
               suppressMarkers: true,
               polylineOptions: {
                 strokeColor: '#10b981',
-                strokeOpacity: 0.85,
-                strokeWeight: 5,
+                strokeOpacity: 0.9,
+                strokeWeight: 4,
+                icons: [
+                  {
+                    icon: {
+                      path: 'M 0,-1 0,1',
+                      strokeOpacity: 1,
+                      scale: 3,
+                    },
+                    offset: '0',
+                    repeat: '16px',
+                  },
+                ],
               },
             }}
           />
