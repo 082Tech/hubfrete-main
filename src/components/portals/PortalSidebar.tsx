@@ -428,10 +428,10 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
           {!collapsed ? (
             <>
               <div className="flex items-center gap-3 mb-3">
-                {empresa?.logo_url ? (
+                {profile?.avatar_url ? (
                   <img 
-                    src={empresa.logo_url} 
-                    alt={empresa.nome || 'Logo'} 
+                    src={profile.avatar_url} 
+                    alt={profile.nome_completo || 'Logo'} 
                     className="w-10 h-10 rounded-full object-contain bg-white border border-sidebar-border shrink-0"
                   />
                 ) : (
