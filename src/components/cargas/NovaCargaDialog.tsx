@@ -751,7 +751,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 <RemetenteSection
                   initialData={origemData}
                   onLocationChange={setOrigemData}
-                  dialogOpen={open}
                 />
               </TabsContent>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,16 +33,16 @@ interface FilialCompleta extends Filial {
 interface RemetenteSectionProps {
   initialData?: Partial<LocationData>;
   onLocationChange: (data: LocationData) => void;
-  dialogOpen?: boolean;
 }
 
-export function RemetenteSection({ initialData, onLocationChange, dialogOpen = true }: RemetenteSectionProps) {
+export function RemetenteSection({ initialData, onLocationChange }: RemetenteSectionProps) {
   const { filialAtiva, empresa } = useUserContext();
   const [sourceType, setSourceType] = useState<'filial' | 'cnpj'>('filial');
   const [selectedFilialId, setSelectedFilialId] = useState<string>('');
   const [cnpjInput, setCnpjInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [hasAutoLoaded, setHasAutoLoaded] = useState(false);
+  const hasAutoLoaded = useRef(false);
+  const [filiaisCompletas, setFiliaisCompletas] = useState<FilialCompleta[]>([]);
   
   const [formData, setFormData] = useState<LocationData>({
     latitude: initialData?.latitude || 0,
@@ -63,7 +63,7 @@ export function RemetenteSection({ initialData, onLocationChange, dialogOpen = t
   const { lookup: lookupCnpj, isLoading: isCnpjLoading } = useCnpjLookup();
 
   // Load filial data when selected
-  const loadFilialData = async (filialId: string) => {
+  const loadFilialData = useCallback(async (filialId: string, showToast = true) => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -116,7 +116,9 @@ export function RemetenteSection({ initialData, onLocationChange, dialogOpen = t
 
         setFormData(newData);
         onLocationChange(newData);
-        toast.success(`Filial "${filialData.nome}" selecionada`);
+        if (showToast) {
+          toast.success(`Filial "${filialData.nome}" selecionada`);
+        }
       }
     } catch (err) {
       console.error('Error loading filial:', err);
@@ -124,7 +126,7 @@ export function RemetenteSection({ initialData, onLocationChange, dialogOpen = t
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [empresa?.nome, onLocationChange]);
 
   // Handle filial selection
   const handleFilialSelect = (filialId: string) => {
@@ -201,26 +203,7 @@ export function RemetenteSection({ initialData, onLocationChange, dialogOpen = t
     onLocationChange(newData);
   };
 
-  // Auto-select filial ativa when dialog opens (only once)
-  useEffect(() => {
-    if (dialogOpen && filialAtiva?.id && sourceType === 'filial' && !hasAutoLoaded) {
-      const filialIdStr = String(filialAtiva.id);
-      setSelectedFilialId(filialIdStr);
-      setHasAutoLoaded(true);
-      loadFilialData(filialIdStr);
-    }
-  }, [dialogOpen, filialAtiva?.id, sourceType, hasAutoLoaded]);
-
-  // Reset auto-load flag when dialog closes
-  useEffect(() => {
-    if (!dialogOpen) {
-      setHasAutoLoaded(false);
-    }
-  }, [dialogOpen]);
-
   // Fetch full filial list with cidade/estado
-  const [filiaisCompletas, setFiliaisCompletas] = useState<FilialCompleta[]>([]);
-  
   useEffect(() => {
     const fetchFiliais = async () => {
       if (!empresa?.id) return;
@@ -233,10 +216,18 @@ export function RemetenteSection({ initialData, onLocationChange, dialogOpen = t
       
       if (!error && data) {
         setFiliaisCompletas(data as FilialCompleta[]);
+        
+        // Auto-select filial ativa after loading list (only once)
+        if (!hasAutoLoaded.current && filialAtiva?.id && sourceType === 'filial') {
+          hasAutoLoaded.current = true;
+          const filialIdStr = String(filialAtiva.id);
+          setSelectedFilialId(filialIdStr);
+          // Don't call loadFilialData here to avoid loops, user can manually select
+        }
       }
     };
     fetchFiliais();
-  }, [empresa?.id]);
+  }, [empresa?.id, filialAtiva?.id, sourceType]);
 
   return (
     <div className="space-y-4">
