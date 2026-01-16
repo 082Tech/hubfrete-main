@@ -1,7 +1,7 @@
-import { GoogleMap, MarkerF, DirectionsRenderer } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, DirectionsRenderer, OverlayView } from '@react-google-maps/api';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGoogleMaps, airbnbMapStyles, defaultMapContainerStyle, defaultCenter } from './GoogleMapsLoader';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Truck } from 'lucide-react';
 
 export type EntregaMapItem = {
   id: string;
@@ -12,6 +12,7 @@ export type EntregaMapItem = {
   codigo: string;
   descricao: string;
   motorista: string | null;
+  motoristaFotoUrl: string | null;
   telefone: string | null;
   placa: string | null;
   destino: string | null;
@@ -33,6 +34,73 @@ const mapOptions: google.maps.MapOptions = {
   fullscreenControl: true,
   styles: airbnbMapStyles,
 };
+
+// Driver marker component - shows avatar or truck icon
+function DriverMarker({ 
+  entrega, 
+  isSelected, 
+  onClick 
+}: { 
+  entrega: EntregaMapItem; 
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  const lat = entrega.latitude ?? entrega.origemCoords?.lat ?? null;
+  const lng = entrega.longitude ?? entrega.origemCoords?.lng ?? null;
+  
+  if (lat == null || lng == null) return null;
+
+  return (
+    <OverlayView
+      position={{ lat, lng }}
+      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+    >
+      <div 
+        className={`
+          relative cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200
+          ${isSelected ? 'scale-125 z-50' : 'z-10 hover:scale-110'}
+        `}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+      >
+        {/* Avatar or Truck icon */}
+        <div 
+          className={`
+            w-10 h-10 rounded-full flex items-center justify-center shadow-lg border-2
+            ${isSelected 
+              ? 'border-primary bg-primary' 
+              : 'border-background bg-background'
+            }
+          `}
+        >
+          {entrega.motoristaFotoUrl ? (
+            <img 
+              src={entrega.motoristaFotoUrl} 
+              alt={entrega.motorista || 'Motorista'}
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            <Truck className={`w-5 h-5 ${isSelected ? 'text-primary-foreground' : 'text-primary'}`} />
+          )}
+        </div>
+        
+        {/* Pulse animation for active deliveries */}
+        {entrega.status === 'em_transito' && (
+          <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+        )}
+
+        {/* Label badge */}
+        {isSelected && (
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-0.5 rounded-full font-medium shadow-md">
+            {entrega.codigo}
+          </div>
+        )}
+      </div>
+    </OverlayView>
+  );
+}
 
 export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: EntregasGoogleMapProps) {
   const { isLoaded, loadError } = useGoogleMaps();
@@ -145,30 +213,17 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
           />
         )}
 
-        {entregas.map((e) => {
-          const lat = e.latitude ?? e.origemCoords?.lat ?? null;
-          const lng = e.longitude ?? e.origemCoords?.lng ?? null;
-          if (lat == null || lng == null) return null;
+        {/* Driver markers with avatar/truck */}
+        {entregas.map((e) => (
+          <DriverMarker
+            key={e.id}
+            entrega={e}
+            isSelected={e.id === selectedCargaId}
+            onClick={() => onSelectCarga(e.id)}
+          />
+        ))}
 
-          const isSelected = e.id === selectedCargaId;
-          return (
-            <MarkerF
-              key={e.id}
-              position={{ lat, lng }}
-              onClick={() => onSelectCarga(e.id)}
-              zIndex={isSelected ? 1000 : 1}
-              label={
-                isSelected
-                  ? {
-                      text: e.codigo,
-                      className: 'text-[12px] font-semibold',
-                    }
-                  : undefined
-              }
-            />
-          );
-        })}
-
+        {/* Destination marker (default red pin) */}
         {selected?.destinoCoords && (
           <MarkerF
             key={`dest-${selected.id}`}
