@@ -603,6 +603,16 @@ export default function CargasDisponiveis() {
         onClick={() => handleAcceptClick(carga)}
       >
         <CardContent className="p-4 space-y-3">
+          {/* Destinatário Company Name - First Line */}
+          {(carga.destinatario_nome_fantasia || carga.destinatario_razao_social) && (
+            <div className="flex items-center gap-2 pb-2 border-b border-border">
+              <Package className="w-4 h-4 text-primary shrink-0" />
+              <span className="font-semibold text-sm text-primary truncate">
+                {carga.destinatario_nome_fantasia || carga.destinatario_razao_social}
+              </span>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-start gap-3">
             {/* Company Logo */}
@@ -625,10 +635,6 @@ export default function CargasDisponiveis() {
                 </Badge>
               </div>
               <p className="font-medium text-sm line-clamp-1">{carga.descricao}</p>
-              {/* Empresa Remetente + Filial */}
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {formatEmpresaFilial(carga)}
-              </p>
             </div>
             <div className="flex gap-1 shrink-0">
               {carga.requer_refrigeracao && (
@@ -658,9 +664,13 @@ export default function CargasDisponiveis() {
             </div>
           </div>
 
-          {/* Route with address details on click card */}
+          {/* Route with company names and address details */}
           <div className="flex items-center gap-2 text-xs">
             <div className="flex flex-col gap-0.5">
+              {/* Origin company name */}
+              <span className="text-xs text-muted-foreground font-medium truncate max-w-[150px]">
+                {formatEmpresaFilial(carga)}
+              </span>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5 text-chart-1 shrink-0" />
                 <span className="font-medium text-foreground">{carga.endereco_origem?.cidade || 'N/A'}, {carga.endereco_origem?.estado || ''}</span>
@@ -673,16 +683,14 @@ export default function CargasDisponiveis() {
             </div>
             <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0 mx-1" />
             <div className="flex flex-col gap-0.5">
+              {/* Destination company name */}
+              <span className="text-xs text-muted-foreground font-medium truncate max-w-[150px]">
+                {carga.destinatario_nome_fantasia || carga.destinatario_razao_social || 'Destinatário'}
+              </span>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5 text-chart-2 shrink-0" />
                 <span className="font-medium text-foreground">{carga.endereco_destino?.cidade || 'N/A'}, {carga.endereco_destino?.estado || ''}</span>
               </div>
-              {/* Destinatário company name */}
-              {carga.destinatario_nome_fantasia && (
-                <span className="text-xs text-primary ml-5 truncate max-w-[150px] font-medium">
-                  {carga.destinatario_nome_fantasia}
-                </span>
-              )}
               {carga.endereco_destino?.logradouro && (
                 <span className="text-muted-foreground ml-5 truncate max-w-[150px]">
                   {carga.endereco_destino.logradouro}{carga.endereco_destino.numero ? `, ${carga.endereco_destino.numero}` : ''}
@@ -691,7 +699,7 @@ export default function CargasDisponiveis() {
             </div>
           </div>
 
-          {/* Weight Progress Bar */}
+          {/* Weight Progress Bar - Green primary when full, decreasing with availability */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Disponível</span>
@@ -701,14 +709,11 @@ export default function CargasDisponiveis() {
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div 
-                className={`h-full rounded-full transition-all ${
-                  percentDisponivel <= 25 
-                    ? 'bg-red-500' 
-                    : percentDisponivel <= 50 
-                    ? 'bg-amber-500' 
-                    : 'bg-chart-2'
-                }`}
-                style={{ width: `${percentDisponivel}%` }}
+                className="h-full rounded-full transition-all bg-primary"
+                style={{ 
+                  width: `${percentDisponivel}%`,
+                  opacity: percentDisponivel >= 75 ? 1 : percentDisponivel >= 50 ? 0.8 : percentDisponivel >= 25 ? 0.6 : 0.4
+                }}
               />
             </div>
           </div>
