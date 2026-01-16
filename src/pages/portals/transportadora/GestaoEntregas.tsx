@@ -300,28 +300,29 @@ export default function GestaoEntregas() {
         const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
 
         // Include if has driver location OR has origin/destination coords
-        const hasLocation = localizacao?.latitude && localizacao?.longitude;
-        const hasRoute = (origem?.latitude && origem?.longitude) || (destino?.latitude && destino?.longitude);
+        const hasLocation = localizacao?.latitude != null && localizacao?.longitude != null;
+        const hasRoute = (origem?.latitude != null && origem?.longitude != null) || (destino?.latitude != null && destino?.longitude != null);
 
         if (!hasLocation && !hasRoute) return null;
 
         return {
           id: e.id,
           cargaId: e.carga.id,
-          latitude: localizacao?.latitude || null,
-          longitude: localizacao?.longitude || null,
+          latitude: localizacao?.latitude ?? null,
+          longitude: localizacao?.longitude ?? null,
           status: e.status || null,
           codigo: e.carga.codigo,
           descricao: e.carga.descricao,
           motorista: e.motorista?.nome_completo || null,
           motoristaFotoUrl: e.motorista?.foto_url || null,
+          motoristaOnline: localizacao?.status ?? null,
           telefone: e.motorista?.telefone || null,
           placa: e.veiculo?.placa || null,
           destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
-          origemCoords: origem?.latitude && origem?.longitude
+          origemCoords: origem?.latitude != null && origem?.longitude != null
             ? { lat: origem.latitude, lng: origem.longitude }
             : null,
-          destinoCoords: destino?.latitude && destino?.longitude
+          destinoCoords: destino?.latitude != null && destino?.longitude != null
             ? { lat: destino.latitude, lng: destino.longitude }
             : null,
         };

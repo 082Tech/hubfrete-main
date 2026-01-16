@@ -13,6 +13,7 @@ export type EntregaMapItem = {
   descricao: string;
   motorista: string | null;
   motoristaFotoUrl: string | null;
+  motoristaOnline?: boolean | null;
   telefone: string | null;
   placa: string | null;
   destino: string | null;
@@ -47,7 +48,8 @@ function DriverMarker({
 }) {
   const lat = entrega.latitude ?? entrega.origemCoords?.lat ?? null;
   const lng = entrega.longitude ?? entrega.origemCoords?.lng ?? null;
-  
+  const isOnline = entrega.motoristaOnline ?? true;
+
   if (lat == null || lng == null) return null;
 
   return (
@@ -59,7 +61,7 @@ function DriverMarker({
         y: -(height / 2),
       })}
     >
-      <div 
+      <div
         className={`cursor-pointer transition-all duration-200 ${isSelected ? 'z-50' : 'z-10'}`}
         style={{
           transform: isSelected ? 'scale(1.25)' : 'scale(1)',
@@ -77,36 +79,52 @@ function DriverMarker({
       >
         {/* Pulse animation for active deliveries - placed behind */}
         {entrega.status === 'em_transito' && (
-          <div 
+          <div
             className="absolute rounded-full bg-primary/30 animate-ping"
             style={{ width: 40, height: 40, top: 0, left: 0 }}
           />
         )}
-        
+
         {/* Avatar or Truck icon */}
-        <div 
-          className={`
-            relative w-10 h-10 rounded-full flex items-center justify-center shadow-lg border-2 overflow-hidden
-            ${isSelected 
-              ? 'border-primary bg-primary' 
-              : 'border-white bg-white'
-            }
-          `}
+        <div
+          className={
+            `relative w-10 h-10 rounded-full shadow-lg border-2 overflow-hidden ` +
+            (isSelected
+              ? 'border-primary bg-primary'
+              : 'border-border bg-background')
+          }
         >
+          {/* Offline indicator */}
+          {!isOnline && (
+            <div className="absolute top-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" />
+          )}
+
           {entrega.motoristaFotoUrl ? (
-            <img 
-              src={entrega.motoristaFotoUrl} 
+            <img
+              src={entrega.motoristaFotoUrl}
               alt={entrega.motorista || 'Motorista'}
-              className="w-full h-full object-cover"
+              className={
+                'w-full h-full object-cover ' +
+                (!isOnline ? 'grayscale opacity-70' : '')
+              }
+              loading="lazy"
+              referrerPolicy="no-referrer"
             />
           ) : (
-            <Truck className={`w-5 h-5 ${isSelected ? 'text-primary-foreground' : 'text-primary'}`} />
+            <div
+              className={
+                `w-full h-full flex items-center justify-center ` +
+                (!isOnline ? 'opacity-70' : '')
+              }
+            >
+              <Truck className={`w-5 h-5 ${isSelected ? 'text-primary-foreground' : 'text-primary'}`} />
+            </div>
           )}
         </div>
 
         {/* Label badge */}
         {isSelected && (
-          <div 
+          <div
             className="absolute whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-0.5 rounded-full font-medium shadow-md"
             style={{ top: 46, left: '50%', transform: 'translateX(-50%)' }}
           >
