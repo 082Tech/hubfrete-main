@@ -55,8 +55,7 @@ function DriverMarker({
   return (
     <OverlayView
       position={{ lat, lng }}
-      mapPaneName={OverlayView.FLOAT_PANE}
-      zIndex={isSelected ? 9999 : 1000}
+      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
       getPixelPositionOffset={(width, height) => ({
         x: -(width / 2),
         y: -(height / 2),
@@ -86,7 +85,7 @@ function DriverMarker({
         {/* Pulse animation when ONLINE */}
         {isOnline && (
           <div
-            className="absolute inset-0 rounded-full bg-emerald-500/40 animate-ping"
+            className="absolute inset-0 rounded-full bg-primary/30 animate-ping"
             style={{ zIndex: 0 }}
           />
         )}
@@ -95,7 +94,7 @@ function DriverMarker({
         <div
           className={
             `absolute inset-0 rounded-full shadow-lg border-2 overflow-hidden ` +
-            (isSelected ? 'border-primary bg-primary' : isOnline ? 'border-emerald-500 bg-background' : 'border-border bg-background')
+            (isSelected ? 'border-primary bg-primary' : isOnline ? 'border-primary/60 bg-background' : 'border-border bg-background')
           }
           style={{ zIndex: 1 }}
         >
