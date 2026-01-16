@@ -56,8 +56,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
 import type { Database } from '@/integrations/supabase/types';
 
-// Lazy load the map component
-const EntregasMap = lazy(() => import('@/components/maps/EntregasMap').then(m => ({ default: m.EntregasMap })));
+// Lazy load the Google map component
+const EntregasMap = lazy(() => import('@/components/maps/EntregasGoogleMap').then(m => ({ default: m.EntregasGoogleMap })));
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
