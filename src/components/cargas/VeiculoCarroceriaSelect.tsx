@@ -88,31 +88,35 @@ interface VeiculoCarroceriaSelectProps {
 }
 
 export function VeiculoCarroceriaSelect({
-  veiculosSelecionados,
-  carroceriasSelecionadas,
+  veiculosSelecionados = [],
+  carroceriasSelecionadas = [],
   onVeiculosChange,
   onCarroceriasChange,
 }: VeiculoCarroceriaSelectProps) {
   const [veiculosOpen, setVeiculosOpen] = useState(true);
   const [carroceriasOpen, setCarroceriasOpen] = useState(true);
 
+  // Ensure arrays are always valid
+  const safeVeiculos = Array.isArray(veiculosSelecionados) ? veiculosSelecionados : [];
+  const safeCarrocerias = Array.isArray(carroceriasSelecionadas) ? carroceriasSelecionadas : [];
+
   // Check if all are selected
-  const todosVeiculosSelecionados = ALL_VEICULOS.every(v => veiculosSelecionados.includes(v));
-  const todasCarroceriasSelecionadas = ALL_CARROCERIAS.every(c => carroceriasSelecionadas.includes(c));
+  const todosVeiculosSelecionados = ALL_VEICULOS.length > 0 && ALL_VEICULOS.every(v => safeVeiculos.includes(v));
+  const todasCarroceriasSelecionadas = ALL_CARROCERIAS.length > 0 && ALL_CARROCERIAS.every(c => safeCarrocerias.includes(c));
 
   const handleToggleVeiculo = (value: string) => {
-    if (veiculosSelecionados.includes(value)) {
-      onVeiculosChange(veiculosSelecionados.filter(v => v !== value));
+    if (safeVeiculos.includes(value)) {
+      onVeiculosChange(safeVeiculos.filter(v => v !== value));
     } else {
-      onVeiculosChange([...veiculosSelecionados, value]);
+      onVeiculosChange([...safeVeiculos, value]);
     }
   };
 
   const handleToggleCarroceria = (value: string) => {
-    if (carroceriasSelecionadas.includes(value)) {
-      onCarroceriasChange(carroceriasSelecionadas.filter(c => c !== value));
+    if (safeCarrocerias.includes(value)) {
+      onCarroceriasChange(safeCarrocerias.filter(c => c !== value));
     } else {
-      onCarroceriasChange([...carroceriasSelecionadas, value]);
+      onCarroceriasChange([...safeCarrocerias, value]);
     }
   };
 
@@ -134,7 +138,8 @@ export function VeiculoCarroceriaSelect({
 
   // Check if all in category are selected
   const isCategoryFullySelected = (items: { value: string }[], selected: string[]) => {
-    return items.every(item => selected.includes(item.value));
+    const safeSelected = Array.isArray(selected) ? selected : [];
+    return items.every(item => safeSelected.includes(item.value));
   };
 
   const handleToggleCategory = (
@@ -188,16 +193,16 @@ export function VeiculoCarroceriaSelect({
 
         <CollapsibleContent className="mt-3 space-y-4">
           {Object.entries(VEICULOS_CONFIG).map(([key, category]) => {
-            const categorySelected = isCategoryFullySelected(category.items, veiculosSelecionados);
+            const categorySelected = isCategoryFullySelected(category.items, safeVeiculos);
             return (
               <div key={key} className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Checkbox
                     checked={categorySelected}
-                    onCheckedChange={() => handleToggleCategory(category.items, veiculosSelecionados, onVeiculosChange)}
+                    onCheckedChange={() => handleToggleCategory(category.items, safeVeiculos, onVeiculosChange)}
                   />
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleToggleCategory(category.items, veiculosSelecionados, onVeiculosChange)}
+                    onClick={() => handleToggleCategory(category.items, safeVeiculos, onVeiculosChange)}
                   >
                     {category.label}
                   </Label>
@@ -207,14 +212,14 @@ export function VeiculoCarroceriaSelect({
                     <div
                       key={item.value}
                       className={`flex items-center space-x-2 p-2 rounded-md border cursor-pointer transition-colors ${
-                        veiculosSelecionados.includes(item.value)
+                        safeVeiculos.includes(item.value)
                           ? 'bg-primary/10 border-primary/30'
                           : 'border-border hover:bg-accent/50'
                       }`}
                       onClick={() => handleToggleVeiculo(item.value)}
                     >
                       <Checkbox
-                        checked={veiculosSelecionados.includes(item.value)}
+                        checked={safeVeiculos.includes(item.value)}
                         onCheckedChange={() => handleToggleVeiculo(item.value)}
                         className="pointer-events-none"
                       />
@@ -229,7 +234,7 @@ export function VeiculoCarroceriaSelect({
           })}
         </CollapsibleContent>
 
-        {!veiculosOpen && veiculosSelecionados.length > 0 && (
+        {!veiculosOpen && safeVeiculos.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {todosVeiculosSelecionados ? (
               <Badge variant="default" className="gap-1">
@@ -237,7 +242,7 @@ export function VeiculoCarroceriaSelect({
                 Todos os veículos
               </Badge>
             ) : (
-              veiculosSelecionados.slice(0, 5).map(v => {
+              safeVeiculos.slice(0, 5).map(v => {
                 const item = ALL_VEICULOS.includes(v) 
                   ? Object.values(VEICULOS_CONFIG).flatMap(c => c.items).find(i => i.value === v)
                   : null;
@@ -248,9 +253,9 @@ export function VeiculoCarroceriaSelect({
                 ) : null;
               })
             )}
-            {!todosVeiculosSelecionados && veiculosSelecionados.length > 5 && (
+            {!todosVeiculosSelecionados && safeVeiculos.length > 5 && (
               <Badge variant="outline" className="text-xs">
-                +{veiculosSelecionados.length - 5}
+                +{safeVeiculos.length - 5}
               </Badge>
             )}
           </div>
@@ -285,16 +290,16 @@ export function VeiculoCarroceriaSelect({
 
         <CollapsibleContent className="mt-3 space-y-4">
           {Object.entries(CARROCERIAS_CONFIG).map(([key, category]) => {
-            const categorySelected = isCategoryFullySelected(category.items, carroceriasSelecionadas);
+            const categorySelected = isCategoryFullySelected(category.items, safeCarrocerias);
             return (
               <div key={key} className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Checkbox
                     checked={categorySelected}
-                    onCheckedChange={() => handleToggleCategory(category.items, carroceriasSelecionadas, onCarroceriasChange)}
+                    onCheckedChange={() => handleToggleCategory(category.items, safeCarrocerias, onCarroceriasChange)}
                   />
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleToggleCategory(category.items, carroceriasSelecionadas, onCarroceriasChange)}
+                    onClick={() => handleToggleCategory(category.items, safeCarrocerias, onCarroceriasChange)}
                   >
                     {category.label}
                   </Label>
@@ -304,14 +309,14 @@ export function VeiculoCarroceriaSelect({
                     <div
                       key={item.value}
                       className={`flex items-center space-x-2 p-2 rounded-md border cursor-pointer transition-colors ${
-                        carroceriasSelecionadas.includes(item.value)
+                        safeCarrocerias.includes(item.value)
                           ? 'bg-primary/10 border-primary/30'
                           : 'border-border hover:bg-accent/50'
                       }`}
                       onClick={() => handleToggleCarroceria(item.value)}
                     >
                       <Checkbox
-                        checked={carroceriasSelecionadas.includes(item.value)}
+                        checked={safeCarrocerias.includes(item.value)}
                         onCheckedChange={() => handleToggleCarroceria(item.value)}
                         className="pointer-events-none"
                       />
@@ -326,7 +331,7 @@ export function VeiculoCarroceriaSelect({
           })}
         </CollapsibleContent>
 
-        {!carroceriasOpen && carroceriasSelecionadas.length > 0 && (
+        {!carroceriasOpen && safeCarrocerias.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {todasCarroceriasSelecionadas ? (
               <Badge variant="default" className="gap-1">
@@ -334,7 +339,7 @@ export function VeiculoCarroceriaSelect({
                 Todas as carrocerias
               </Badge>
             ) : (
-              carroceriasSelecionadas.slice(0, 5).map(c => {
+              safeCarrocerias.slice(0, 5).map(c => {
                 const item = ALL_CARROCERIAS.includes(c)
                   ? Object.values(CARROCERIAS_CONFIG).flatMap(cat => cat.items).find(i => i.value === c)
                   : null;
@@ -345,9 +350,9 @@ export function VeiculoCarroceriaSelect({
                 ) : null;
               })
             )}
-            {!todasCarroceriasSelecionadas && carroceriasSelecionadas.length > 5 && (
+            {!todasCarroceriasSelecionadas && safeCarrocerias.length > 5 && (
               <Badge variant="outline" className="text-xs">
-                +{carroceriasSelecionadas.length - 5}
+                +{safeCarrocerias.length - 5}
               </Badge>
             )}
           </div>
