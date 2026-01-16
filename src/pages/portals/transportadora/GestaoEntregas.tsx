@@ -88,6 +88,8 @@ interface EntregaCompleta {
     peso_kg: number;
     tipo: string;
     data_entrega_limite: string | null;
+    destinatario_nome_fantasia: string | null;
+    destinatario_razao_social: string | null;
     endereco_origem: {
       cidade: string;
       estado: string;
@@ -196,6 +198,8 @@ export default function GestaoEntregas() {
             peso_kg,
             tipo,
             data_entrega_limite,
+            destinatario_nome_fantasia,
+            destinatario_razao_social,
             endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro, latitude, longitude),
             endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro, latitude, longitude),
             empresa:empresas!cargas_empresa_id_fkey(nome)
