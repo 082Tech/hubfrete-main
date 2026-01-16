@@ -253,9 +253,10 @@ export default function CargasGoogleMap({
           setRouteInfo(null);
         }}
       >
-        {/* Directions route */}
-        {directions && (
+        {/* Directions route - key forces remount on change */}
+        {selectedCarga && directions && (
           <DirectionsRenderer
+            key={selectedCarga.id}
             directions={directions}
             options={{
               suppressMarkers: true,
@@ -293,15 +294,29 @@ export default function CargasGoogleMap({
           );
         })}
 
-        {/* Destination marker when route is shown */}
+        {/* Destination marker - Google Maps style red pin with transparent center */}
         {selectedCarga && directions && (() => {
           const destLat = toNumber(selectedCarga.endereco_destino?.latitude);
           const destLng = toNumber(selectedCarga.endereco_destino?.longitude);
           if (destLat === null || destLng === null) return null;
 
+          // SVG for red pin with transparent/white center dot
+          const pinSvg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">
+              <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.268 21.732 0 14 0z" fill="#EA4335"/>
+              <circle cx="14" cy="14" r="5" fill="#FFFFFF"/>
+            </svg>
+          `;
+
           return (
             <MarkerF
+              key={`dest-${selectedCarga.id}`}
               position={{ lat: destLat, lng: destLng }}
+              icon={{
+                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(pinSvg.trim())}`,
+                scaledSize: new google.maps.Size(28, 40),
+                anchor: new google.maps.Point(14, 40),
+              }}
               zIndex={998}
             />
           );
