@@ -62,9 +62,14 @@ function DriverMarker({
       })}
     >
       <div
-        className={`cursor-pointer transition-all duration-200 ${isSelected ? 'z-50' : 'z-10'}`}
+        className="relative cursor-pointer"
         style={{
+          width: 40,
+          height: 40,
+          zIndex: isSelected ? 9999 : 1000,
           transform: isSelected ? 'scale(1.25)' : 'scale(1)',
+          transition: 'transform 200ms ease',
+          pointerEvents: 'auto',
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -77,22 +82,21 @@ function DriverMarker({
           if (!isSelected) (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
         }}
       >
-        {/* Pulse animation for active deliveries - placed behind */}
+        {/* Pulse animation for active deliveries - behind */}
         {entrega.status === 'em_transito' && (
           <div
-            className="absolute rounded-full bg-primary/30 animate-ping"
-            style={{ width: 40, height: 40, top: 0, left: 0 }}
+            className="absolute inset-0 rounded-full bg-primary/30 animate-ping"
+            style={{ zIndex: 0 }}
           />
         )}
 
-        {/* Avatar or Truck icon */}
+        {/* Avatar/Truck */}
         <div
           className={
-            `relative w-10 h-10 rounded-full shadow-lg border-2 overflow-hidden ` +
-            (isSelected
-              ? 'border-primary bg-primary'
-              : 'border-border bg-background')
+            `absolute inset-0 rounded-full shadow-lg border-2 overflow-hidden ` +
+            (isSelected ? 'border-primary bg-primary' : 'border-border bg-background')
           }
+          style={{ zIndex: 1 }}
         >
           {/* Offline indicator */}
           {!isOnline && (
@@ -103,30 +107,22 @@ function DriverMarker({
             <img
               src={entrega.motoristaFotoUrl}
               alt={entrega.motorista || 'Motorista'}
-              className={
-                'w-full h-full object-cover ' +
-                (!isOnline ? 'grayscale opacity-70' : '')
-              }
+              className={'w-full h-full object-cover ' + (!isOnline ? 'grayscale opacity-70' : '')}
               loading="lazy"
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div
-              className={
-                `w-full h-full flex items-center justify-center ` +
-                (!isOnline ? 'opacity-70' : '')
-              }
-            >
+            <div className={'w-full h-full flex items-center justify-center ' + (!isOnline ? 'opacity-70' : '')}>
               <Truck className={`w-5 h-5 ${isSelected ? 'text-primary-foreground' : 'text-primary'}`} />
             </div>
           )}
         </div>
 
-        {/* Label badge */}
+        {/* Label */}
         {isSelected && (
           <div
             className="absolute whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-0.5 rounded-full font-medium shadow-md"
-            style={{ top: 46, left: '50%', transform: 'translateX(-50%)' }}
+            style={{ top: 46, left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}
           >
             {entrega.codigo}
           </div>
