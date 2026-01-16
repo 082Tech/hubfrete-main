@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import {
   User,
   Plus,
@@ -35,6 +37,8 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
+  Car,
+  Container,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -68,6 +72,63 @@ interface Motorista {
   }[];
 }
 
+interface Veiculo {
+  id: string;
+  placa: string;
+  tipo: string;
+  marca: string | null;
+  modelo: string | null;
+  motorista_id: string | null;
+}
+
+interface Carroceria {
+  id: string;
+  placa: string;
+  tipo: string;
+  marca: string | null;
+  modelo: string | null;
+  motorista_id: string | null;
+}
+
+const tipoVeiculoLabels: Record<string, string> = {
+  truck: 'Truck',
+  toco: 'Toco',
+  tres_quartos: '3/4',
+  vuc: 'VUC',
+  carreta: 'Carreta',
+  carreta_ls: 'Carreta LS',
+  bitrem: 'Bitrem',
+  rodotrem: 'Rodotrem',
+  vanderleia: 'Vanderleia',
+  bitruck: 'Bitruck',
+};
+
+const tipoCarroceriaLabels: Record<string, string> = {
+  aberta: 'Aberta',
+  fechada_bau: 'Baú',
+  graneleira: 'Graneleira',
+  tanque: 'Tanque',
+  sider: 'Sider',
+  frigorifico: 'Frigorífico',
+  cegonha: 'Cegonha',
+  prancha: 'Prancha',
+  container: 'Container',
+  graneleiro: 'Graneleiro',
+  grade_baixa: 'Grade Baixa',
+  cacamba: 'Caçamba',
+  plataforma: 'Plataforma',
+  bau: 'Baú',
+  bau_frigorifico: 'Baú Frigorífico',
+  bau_refrigerado: 'Baú Refrigerado',
+  silo: 'Silo',
+  gaiola: 'Gaiola',
+  bug_porta_container: 'Bug Porta Container',
+  munk: 'Munk',
+  apenas_cavalo: 'Apenas Cavalo',
+  cavaqueira: 'Cavaqueira',
+  hopper: 'Hopper',
+};
+
 export default function Motoristas() {
   const { empresa } = useUserContext();
   const { session } = useAuth();
@@ -82,6 +143,8 @@ export default function Motoristas() {
     cnh: '',
     categoria_cnh: '',
     validade_cnh: '',
+    veiculo_id: '',
+    carroceria_id: '',
   });
 
   // Fetch motoristas
@@ -114,27 +177,102 @@ export default function Motoristas() {
     enabled: !!empresa?.id,
   });
 
+  // Fetch veículos disponíveis (sem motorista atribuído)
+  const { data: veiculosDisponiveis = [] } = useQuery({
+    queryKey: ['veiculos_disponiveis', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      const { data, error } = await supabase
+        .from('veiculos')
+        .select('id, placa, tipo, marca, modelo, motorista_id')
+        .eq('empresa_id', empresa.id)
+        .eq('ativo', true)
+        .order('placa');
+
+      if (error) throw error;
+      return (data || []) as Veiculo[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Fetch carrocerias disponíveis (sem motorista atribuído)
+  const { data: carroceriasDisponiveis = [] } = useQuery({
+    queryKey: ['carrocerias_disponiveis', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      const { data, error } = await supabase
+        .from('carrocerias')
+        .select('id, placa, tipo, marca, modelo, motorista_id')
+        .eq('empresa_id', empresa.id)
+        .eq('ativo', true)
+        .order('placa');
+
+      if (error) throw error;
+      return (data || []) as Carroceria[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Veículos disponíveis para seleção (sem motorista ou o que será editado)
+  const veiculosSelecionaveis = useMemo(() => {
+    return veiculosDisponiveis.filter(v => !v.motorista_id);
+  }, [veiculosDisponiveis]);
+
+  // Carrocerias disponíveis para seleção (sem motorista ou o que será editado)
+  const carroceriasSelecionaveis = useMemo(() => {
+    return carroceriasDisponiveis.filter(c => !c.motorista_id);
+  }, [carroceriasDisponiveis]);
+
   // Mutation para criar motorista
   const createMotorista = useMutation({
     mutationFn: async (data: typeof newMotorista) => {
-      const { error } = await supabase.from('motoristas').insert({
-        nome_completo: data.nome_completo,
-        cpf: data.cpf,
-        email: data.email || null,
-        telefone: data.telefone || null,
-        cnh: data.cnh,
-        categoria_cnh: data.categoria_cnh,
-        validade_cnh: data.validade_cnh,
-        empresa_id: empresa?.id,
-        user_id: session?.user?.id || crypto.randomUUID(), // Placeholder
-        ativo: true,
-      });
+      // Primeiro insere o motorista
+      const { data: motoristaData, error: motoristaError } = await supabase
+        .from('motoristas')
+        .insert({
+          nome_completo: data.nome_completo,
+          cpf: data.cpf,
+          email: data.email || null,
+          telefone: data.telefone || null,
+          cnh: data.cnh,
+          categoria_cnh: data.categoria_cnh,
+          validade_cnh: data.validade_cnh,
+          empresa_id: empresa?.id,
+          user_id: session?.user?.id || crypto.randomUUID(),
+          ativo: true,
+        })
+        .select('id')
+        .single();
 
-      if (error) throw error;
+      if (motoristaError) throw motoristaError;
+
+      // Se selecionou veículo, atualiza o vínculo
+      if (data.veiculo_id) {
+        const { error: veiculoError } = await supabase
+          .from('veiculos')
+          .update({ motorista_id: motoristaData.id })
+          .eq('id', data.veiculo_id);
+
+        if (veiculoError) throw veiculoError;
+      }
+
+      // Se selecionou carroceria, atualiza o vínculo
+      if (data.carroceria_id) {
+        const { error: carroceriaError } = await supabase
+          .from('carrocerias')
+          .update({ motorista_id: motoristaData.id })
+          .eq('id', data.carroceria_id);
+
+        if (carroceriaError) throw carroceriaError;
+      }
     },
     onSuccess: () => {
       toast.success('Motorista cadastrado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
+      queryClient.invalidateQueries({ queryKey: ['veiculos_disponiveis'] });
+      queryClient.invalidateQueries({ queryKey: ['carrocerias_disponiveis'] });
       setIsDialogOpen(false);
       setNewMotorista({
         nome_completo: '',
@@ -144,6 +282,8 @@ export default function Motoristas() {
         cnh: '',
         categoria_cnh: '',
         validade_cnh: '',
+        veiculo_id: '',
+        carroceria_id: '',
       });
     },
     onError: (error) => {
@@ -174,12 +314,18 @@ export default function Motoristas() {
   // Mutation para deletar motorista
   const deleteMotorista = useMutation({
     mutationFn: async (id: string) => {
+      // Primeiro remove vínculos de veículos e carrocerias
+      await supabase.from('veiculos').update({ motorista_id: null }).eq('motorista_id', id);
+      await supabase.from('carrocerias').update({ motorista_id: null }).eq('motorista_id', id);
+      
       const { error } = await supabase.from('motoristas').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Motorista removido com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
+      queryClient.invalidateQueries({ queryKey: ['veiculos_disponiveis'] });
+      queryClient.invalidateQueries({ queryKey: ['carrocerias_disponiveis'] });
     },
     onError: (error) => {
       console.error('Erro ao remover motorista:', error);
@@ -269,114 +415,198 @@ export default function Motoristas() {
                 Novo Motorista
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Cadastrar Motorista</DialogTitle>
                 <DialogDescription>
-                  Adicione um novo motorista à sua equipe
+                  Adicione um novo motorista à sua equipe e vincule seu veículo/carroceria
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nome Completo *</Label>
-                    <Input
-                      placeholder="Nome do motorista"
-                      value={newMotorista.nome_completo}
-                      onChange={(e) =>
-                        setNewMotorista({
-                          ...newMotorista,
-                          nome_completo: e.target.value,
-                        })
-                      }
-                    />
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Dados Pessoais */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <User className="w-4 h-4" />
+                    Dados Pessoais
                   </div>
-                  <div className="space-y-2">
-                    <Label>CPF *</Label>
-                    <Input
-                      placeholder="000.000.000-00"
-                      value={newMotorista.cpf}
-                      onChange={(e) =>
-                        setNewMotorista({ ...newMotorista, cpf: e.target.value })
-                      }
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nome Completo *</Label>
+                      <Input
+                        placeholder="Nome do motorista"
+                        value={newMotorista.nome_completo}
+                        onChange={(e) =>
+                          setNewMotorista({
+                            ...newMotorista,
+                            nome_completo: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>CPF *</Label>
+                      <Input
+                        placeholder="000.000.000-00"
+                        value={newMotorista.cpf}
+                        onChange={(e) =>
+                          setNewMotorista({ ...newMotorista, cpf: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>E-mail</Label>
+                      <Input
+                        type="email"
+                        placeholder="email@exemplo.com"
+                        value={newMotorista.email}
+                        onChange={(e) =>
+                          setNewMotorista({ ...newMotorista, email: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Telefone</Label>
+                      <Input
+                        placeholder="(00) 00000-0000"
+                        value={newMotorista.telefone}
+                        onChange={(e) =>
+                          setNewMotorista({
+                            ...newMotorista,
+                            telefone: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>E-mail</Label>
-                    <Input
-                      type="email"
-                      placeholder="email@exemplo.com"
-                      value={newMotorista.email}
-                      onChange={(e) =>
-                        setNewMotorista({ ...newMotorista, email: e.target.value })
-                      }
-                    />
+                <Separator />
+
+                {/* CNH */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <CreditCard className="w-4 h-4" />
+                    Carteira de Habilitação
                   </div>
-                  <div className="space-y-2">
-                    <Label>Telefone</Label>
-                    <Input
-                      placeholder="(00) 00000-0000"
-                      value={newMotorista.telefone}
-                      onChange={(e) =>
-                        setNewMotorista({
-                          ...newMotorista,
-                          telefone: e.target.value,
-                        })
-                      }
-                    />
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Número CNH *</Label>
+                      <Input
+                        placeholder="00000000000"
+                        value={newMotorista.cnh}
+                        onChange={(e) =>
+                          setNewMotorista({ ...newMotorista, cnh: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Categoria *</Label>
+                      <Select
+                        value={newMotorista.categoria_cnh}
+                        onValueChange={(v) =>
+                          setNewMotorista({ ...newMotorista, categoria_cnh: v })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A">A</SelectItem>
+                          <SelectItem value="B">B</SelectItem>
+                          <SelectItem value="C">C</SelectItem>
+                          <SelectItem value="D">D</SelectItem>
+                          <SelectItem value="E">E</SelectItem>
+                          <SelectItem value="AB">AB</SelectItem>
+                          <SelectItem value="AC">AC</SelectItem>
+                          <SelectItem value="AD">AD</SelectItem>
+                          <SelectItem value="AE">AE</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Validade CNH *</Label>
+                      <Input
+                        type="date"
+                        value={newMotorista.validade_cnh}
+                        onChange={(e) =>
+                          setNewMotorista({
+                            ...newMotorista,
+                            validade_cnh: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>CNH *</Label>
-                    <Input
-                      placeholder="00000000000"
-                      value={newMotorista.cnh}
-                      onChange={(e) =>
-                        setNewMotorista({ ...newMotorista, cnh: e.target.value })
-                      }
-                    />
+                <Separator />
+
+                {/* Veículo e Carroceria */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Truck className="w-4 h-4" />
+                    Equipamentos Vinculados
                   </div>
-                  <div className="space-y-2">
-                    <Label>Categoria *</Label>
-                    <Select
-                      value={newMotorista.categoria_cnh}
-                      onValueChange={(v) =>
-                        setNewMotorista({ ...newMotorista, categoria_cnh: v })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A">A</SelectItem>
-                        <SelectItem value="B">B</SelectItem>
-                        <SelectItem value="C">C</SelectItem>
-                        <SelectItem value="D">D</SelectItem>
-                        <SelectItem value="E">E</SelectItem>
-                        <SelectItem value="AB">AB</SelectItem>
-                        <SelectItem value="AC">AC</SelectItem>
-                        <SelectItem value="AD">AD</SelectItem>
-                        <SelectItem value="AE">AE</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Validade CNH *</Label>
-                    <Input
-                      type="date"
-                      value={newMotorista.validade_cnh}
-                      onChange={(e) =>
-                        setNewMotorista({
-                          ...newMotorista,
-                          validade_cnh: e.target.value,
-                        })
-                      }
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Car className="w-4 h-4" />
+                        Veículo (Cavalo)
+                      </Label>
+                      <Select
+                        value={newMotorista.veiculo_id}
+                        onValueChange={(v) =>
+                          setNewMotorista({ ...newMotorista, veiculo_id: v })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um veículo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Nenhum</SelectItem>
+                          {veiculosSelecionaveis.map((v) => (
+                            <SelectItem key={v.id} value={v.id}>
+                              {v.placa} - {tipoVeiculoLabels[v.tipo] || v.tipo}
+                              {v.marca && ` (${v.marca})`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Apenas veículos sem motorista atribuído
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Container className="w-4 h-4" />
+                        Carroceria (Implemento)
+                      </Label>
+                      <Select
+                        value={newMotorista.carroceria_id}
+                        onValueChange={(v) =>
+                          setNewMotorista({ ...newMotorista, carroceria_id: v })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma carroceria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Nenhuma</SelectItem>
+                          {carroceriasSelecionaveis.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
+                              {c.marca && ` (${c.marca})`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Apenas carrocerias sem motorista atribuído
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -503,140 +733,143 @@ export default function Motoristas() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredMotoristas.map((motorista) => (
-              <Card
-                key={motorista.id}
-                className={`border-border transition-all ${
-                  !motorista.ativo ? 'opacity-60' : 'hover:shadow-md'
-                }`}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        {motorista.foto_url ? (
-                          <img
-                            src={motorista.foto_url}
-                            alt={motorista.nome_completo}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                        ) : (
+            {filteredMotoristas.map((motorista) => {
+              const cnhStatus = getCNHStatus(motorista.validade_cnh);
+              return (
+                <Card
+                  key={motorista.id}
+                  className={`border-border transition-all ${
+                    !motorista.ativo ? 'opacity-60' : 'hover:shadow-md'
+                  }`}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                           <User className="w-6 h-6 text-primary" />
-                        )}
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg font-semibold">
+                            {motorista.nome_completo}
+                          </CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            CPF: {formatCPF(motorista.cpf)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-base font-semibold">
-                          {motorista.nome_completo}
-                        </CardTitle>
-                        <p className="text-xs text-muted-foreground">
-                          CNH: {motorista.categoria_cnh}
-                        </p>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              toggleAtivo.mutate({
+                                id: motorista.id,
+                                ativo: !motorista.ativo,
+                              })
+                            }
+                          >
+                            {motorista.ativo ? (
+                              <>
+                                <XCircle className="w-4 h-4 mr-2" />
+                                Desativar
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Ativar
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => deleteMotorista.mutate(motorista.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remover
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            toggleAtivo.mutate({
-                              id: motorista.id,
-                              ativo: !motorista.ativo,
-                            })
-                          }
-                        >
-                          {motorista.ativo ? (
-                            <>
-                              <XCircle className="w-4 h-4 mr-2" />
-                              Desativar
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Ativar
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => deleteMotorista.mutate(motorista.id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Remover
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    {motorista.ativo ? (
-                      <Badge className="bg-chart-2/10 text-chart-2 border-chart-2/20">
-                        Ativo
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">Inativo</Badge>
-                    )}
-                    {getCNHStatus(motorista.validade_cnh) === 'expired' && (
-                      <Badge variant="destructive" className="gap-1">
-                        <XCircle className="w-3 h-3" />
-                        CNH Vencida
-                      </Badge>
-                    )}
-                    {getCNHStatus(motorista.validade_cnh) === 'expiring' && (
-                      <Badge className="bg-chart-4/10 text-chart-4 border-chart-4/20 gap-1">
-                        <Calendar className="w-3 h-3" />
-                        CNH Vencendo
-                      </Badge>
-                    )}
-                    {motorista.veiculos.length > 0 && (
-                      <Badge variant="outline" className="gap-1">
-                        <Truck className="w-3 h-3" />
-                        {motorista.veiculos[0].placa}
-                      </Badge>
-                    )}
-                  </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {motorista.ativo ? (
+                        <Badge className="bg-chart-2/10 text-chart-2 border-chart-2/20">
+                          Ativo
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive">Inativo</Badge>
+                      )}
+                      <Badge variant="secondary">CNH {motorista.categoria_cnh}</Badge>
+                      {cnhStatus === 'valid' && (
+                        <Badge className="bg-chart-2/10 text-chart-2 border-chart-2/20">
+                          CNH Válida
+                        </Badge>
+                      )}
+                      {cnhStatus === 'expiring' && (
+                        <Badge className="bg-chart-4/10 text-chart-4 border-chart-4/20">
+                          CNH Vencendo
+                        </Badge>
+                      )}
+                      {cnhStatus === 'expired' && (
+                        <Badge variant="destructive">CNH Vencida</Badge>
+                      )}
+                    </div>
 
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <CreditCard className="w-4 h-4" />
-                      <span>{motorista.cpf ? formatCPF(motorista.cpf) : 'CPF não informado'}</span>
-                    </div>
-                    {motorista.telefone && (
+                    <div className="space-y-2 text-sm">
+                      {motorista.telefone && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Phone className="w-4 h-4" />
+                          {motorista.telefone}
+                        </div>
+                      )}
+                      {motorista.email && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Mail className="w-4 h-4" />
+                          {motorista.email}
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <Phone className="w-4 h-4" />
-                        <span>{motorista.telefone}</span>
+                        <CreditCard className="w-4 h-4" />
+                        CNH: {motorista.cnh}
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        Validade: {formatValidadeCNH(motorista.validade_cnh)}
+                      </div>
+                    </div>
+
+                    {motorista.veiculos.length > 0 && (
+                      <div className="pt-3 border-t border-border">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">
+                          Veículos vinculados:
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {motorista.veiculos.map((v) => (
+                            <Badge
+                              key={v.id}
+                              variant="outline"
+                              className="text-xs gap-1"
+                            >
+                              <Truck className="w-3 h-3" />
+                              {v.placa}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    {motorista.email && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="w-4 h-4" />
-                        <span className="truncate">{motorista.email}</span>
-                      </div>
-                    )}
-                    <div className={`flex items-center gap-2 ${
-                      getCNHStatus(motorista.validade_cnh) === 'expired' 
-                        ? 'text-destructive font-medium' 
-                        : getCNHStatus(motorista.validade_cnh) === 'expiring'
-                        ? 'text-chart-4 font-medium'
-                        : 'text-muted-foreground'
-                    }`}>
-                      <Calendar className="w-4 h-4" />
-                      <span>
-                        CNH válida até {formatValidadeCNH(motorista.validade_cnh)}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
