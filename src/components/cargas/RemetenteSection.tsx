@@ -42,6 +42,7 @@ export function RemetenteSection({ initialData, onLocationChange, dialogOpen = t
   const [selectedFilialId, setSelectedFilialId] = useState<string>('');
   const [cnpjInput, setCnpjInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [hasAutoLoaded, setHasAutoLoaded] = useState(false);
   
   const [formData, setFormData] = useState<LocationData>({
     latitude: initialData?.latitude || 0,
@@ -200,14 +201,22 @@ export function RemetenteSection({ initialData, onLocationChange, dialogOpen = t
     onLocationChange(newData);
   };
 
-  // Auto-select filial ativa when dialog opens
+  // Auto-select filial ativa when dialog opens (only once)
   useEffect(() => {
-    if (dialogOpen && filialAtiva?.id && sourceType === 'filial' && !selectedFilialId) {
+    if (dialogOpen && filialAtiva?.id && sourceType === 'filial' && !hasAutoLoaded) {
       const filialIdStr = String(filialAtiva.id);
       setSelectedFilialId(filialIdStr);
+      setHasAutoLoaded(true);
       loadFilialData(filialIdStr);
     }
-  }, [dialogOpen, filialAtiva?.id, sourceType]);
+  }, [dialogOpen, filialAtiva?.id, sourceType, hasAutoLoaded]);
+
+  // Reset auto-load flag when dialog closes
+  useEffect(() => {
+    if (!dialogOpen) {
+      setHasAutoLoaded(false);
+    }
+  }, [dialogOpen]);
 
   // Fetch full filial list with cidade/estado
   const [filiaisCompletas, setFiliaisCompletas] = useState<FilialCompleta[]>([]);
