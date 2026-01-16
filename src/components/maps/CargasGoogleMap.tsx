@@ -1,8 +1,7 @@
-import { GoogleMap, InfoWindow, MarkerF } from '@react-google-maps/api';
+import { GoogleMap, InfoWindow, MarkerF, DirectionsRenderer } from '@react-google-maps/api';
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { MapPin, ArrowRight, Loader2, Weight, Package } from 'lucide-react';
-import { useGoogleMaps, defaultMapContainerStyle, defaultCenter } from './GoogleMapsLoader';
+import { ArrowRight, Loader2, Weight, Package } from 'lucide-react';
+import { useGoogleMaps, defaultMapContainerStyle, defaultCenter, airbnbMapStyles } from './GoogleMapsLoader';
 
 interface Carga {
   id: string;
@@ -53,102 +52,13 @@ const formatCurrency = (value: number | null) => {
   }).format(value);
 };
 
-// Airbnb-style map with soft natural colors
-const mapStyles: google.maps.MapTypeStyle[] = [
-  {
-    featureType: 'all',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#6b7280' }],
-  },
-  {
-    featureType: 'all',
-    elementType: 'labels.text.stroke',
-    stylers: [{ color: '#ffffff' }, { weight: 2 }],
-  },
-  {
-    featureType: 'administrative',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#e5e7eb' }],
-  },
-  {
-    featureType: 'administrative.land_parcel',
-    stylers: [{ visibility: 'off' }],
-  },
-  {
-    featureType: 'administrative.neighborhood',
-    stylers: [{ visibility: 'off' }],
-  },
-  {
-    featureType: 'landscape',
-    elementType: 'geometry.fill',
-    stylers: [{ color: '#f9fafb' }],
-  },
-  {
-    featureType: 'landscape.natural',
-    elementType: 'geometry.fill',
-    stylers: [{ color: '#e8f5e9' }],
-  },
-  {
-    featureType: 'poi',
-    stylers: [{ visibility: 'off' }],
-  },
-  {
-    featureType: 'poi.park',
-    stylers: [{ visibility: 'on' }],
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'geometry.fill',
-    stylers: [{ color: '#c8e6c9' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry.fill',
-    stylers: [{ color: '#ffffff' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#e5e7eb' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'labels.icon',
-    stylers: [{ visibility: 'off' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry.fill',
-    stylers: [{ color: '#fef3c7' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#fcd34d' }],
-  },
-  {
-    featureType: 'transit',
-    stylers: [{ visibility: 'off' }],
-  },
-  {
-    featureType: 'water',
-    elementType: 'geometry.fill',
-    stylers: [{ color: '#bfdbfe' }],
-  },
-  {
-    featureType: 'water',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#3b82f6' }],
-  },
-];
-
 const mapOptions: google.maps.MapOptions = {
   disableDefaultUI: false,
   zoomControl: true,
   streetViewControl: false,
   mapTypeControl: false,
   fullscreenControl: true,
-  styles: mapStyles,
+  styles: airbnbMapStyles,
 };
 
 export default function CargasGoogleMap({
@@ -160,6 +70,8 @@ export default function CargasGoogleMap({
   const { isLoaded, loadError } = useGoogleMaps();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null);
 
   const toNumber = useCallback((value: number | string | null | undefined) => {
     if (value === null || value === undefined) return null;
@@ -224,6 +136,9 @@ export default function CargasGoogleMap({
   useEffect(() => {
     if (!map || cargasComCoordenadas.length === 0) return;
 
+    // If there's a selected carga with route, fit to route bounds
+    if (selectedCarga && directions) return;
+
     const bounds = new google.maps.LatLngBounds();
     cargasComCoordenadas.forEach((carga) => {
       const lat = toNumber(carga.endereco_origem?.latitude);
@@ -232,13 +147,60 @@ export default function CargasGoogleMap({
     });
 
     map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
-  }, [map, cargasComCoordenadas, toNumber]);
+  }, [map, cargasComCoordenadas, toNumber, selectedCarga, directions]);
+
+  // Calculate route when a carga is selected
+  useEffect(() => {
+    if (!isLoaded || !selectedCarga) {
+      setDirections(null);
+      setRouteInfo(null);
+      return;
+    }
+
+    const origemLat = toNumber(selectedCarga.endereco_origem?.latitude);
+    const origemLng = toNumber(selectedCarga.endereco_origem?.longitude);
+    const destLat = toNumber(selectedCarga.endereco_destino?.latitude);
+    const destLng = toNumber(selectedCarga.endereco_destino?.longitude);
+
+    if (origemLat === null || origemLng === null || destLat === null || destLng === null) {
+      setDirections(null);
+      setRouteInfo(null);
+      return;
+    }
+
+    const directionsService = new google.maps.DirectionsService();
+    directionsService.route(
+      {
+        origin: { lat: origemLat, lng: origemLng },
+        destination: { lat: destLat, lng: destLng },
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK && result) {
+          setDirections(result);
+          const route = result.routes[0];
+          if (route && route.legs[0]) {
+            const leg = route.legs[0];
+            setRouteInfo({
+              distance: leg.distance?.text || '',
+              duration: leg.duration?.text || '',
+            });
+          }
+
+          // Fit bounds to show route
+          if (map && result.routes[0]?.bounds) {
+            map.fitBounds(result.routes[0].bounds, { top: 80, right: 50, bottom: 50, left: 50 });
+          }
+        }
+      }
+    );
+  }, [isLoaded, selectedCarga, toNumber, map]);
 
   const onUnmount = useCallback(() => {
     setMap(null);
   }, []);
 
-  // Handle marker click - only open InfoWindow, don't trigger accept dialog
+  // Handle marker click - select carga and show route
   const handleMarkerClick = useCallback((carga: Carga) => {
     setSelectedCarga(carga);
   }, []);
@@ -248,8 +210,17 @@ export default function CargasGoogleMap({
     if (selectedCarga) {
       onCargaClick(selectedCarga);
       setSelectedCarga(null);
+      setDirections(null);
+      setRouteInfo(null);
     }
   }, [selectedCarga, onCargaClick]);
+
+  // Clear selection
+  const handleClearSelection = useCallback(() => {
+    setSelectedCarga(null);
+    setDirections(null);
+    setRouteInfo(null);
+  }, []);
 
   if (loadError) {
     return (
@@ -276,8 +247,23 @@ export default function CargasGoogleMap({
         onLoad={onLoad}
         onUnmount={onUnmount}
         options={mapOptions}
-        onClick={() => setSelectedCarga(null)}
+        onClick={handleClearSelection}
       >
+        {/* Directions route */}
+        {directions && (
+          <DirectionsRenderer
+            directions={directions}
+            options={{
+              suppressMarkers: true,
+              polylineOptions: {
+                strokeColor: '#10b981',
+                strokeWeight: 5,
+                strokeOpacity: 0.8,
+              },
+            }}
+          />
+        )}
+
         {/* Price markers (Airbnb-style) */}
         {cargasComCoordenadas.map((carga) => {
           const isHovered = hoveredCargaId === carga.id;
@@ -303,93 +289,25 @@ export default function CargasGoogleMap({
           );
         })}
 
-        {/* Info Window for selected carga - styled nicely */}
-        {selectedCarga && (() => {
-          const lat = toNumber(selectedCarga.endereco_origem?.latitude);
-          const lng = toNumber(selectedCarga.endereco_origem?.longitude);
-          if (lat === null || lng === null) return null;
-
-          const destinatario = selectedCarga.destinatario_nome_fantasia || selectedCarga.destinatario_razao_social;
-          const pesoDisponivel = selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg;
+        {/* Destination marker when route is shown */}
+        {selectedCarga && directions && (() => {
+          const destLat = toNumber(selectedCarga.endereco_destino?.latitude);
+          const destLng = toNumber(selectedCarga.endereco_destino?.longitude);
+          if (destLat === null || destLng === null) return null;
 
           return (
-            <InfoWindow
-              position={{ lat, lng }}
-              onCloseClick={() => setSelectedCarga(null)}
-              options={{
-                pixelOffset: new google.maps.Size(0, -20),
-                maxWidth: 320,
+            <MarkerF
+              position={{ lat: destLat, lng: destLng }}
+              icon={{
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: '#ef4444',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
               }}
-            >
-              <div className="p-1" style={{ minWidth: '280px' }}>
-                {/* Header with logo */}
-                <div className="flex items-start gap-3 mb-3">
-                  {selectedCarga.empresa?.logo_url && (
-                    <div className="shrink-0 w-12 h-12 rounded-lg border border-gray-200 bg-white flex items-center justify-center overflow-hidden">
-                      <img 
-                        src={selectedCarga.empresa.logo_url} 
-                        alt={selectedCarga.empresa.nome || 'Logo'} 
-                        className="w-full h-full object-contain p-1"
-                      />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-800 text-white">
-                        {selectedCarga.codigo}
-                      </span>
-                    </div>
-                    <p className="font-semibold text-sm text-gray-900 line-clamp-1">{selectedCarga.descricao}</p>
-                    {selectedCarga.empresa?.nome && (
-                      <p className="text-xs text-gray-500">{selectedCarga.empresa.nome}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Destinatário */}
-                {destinatario && (
-                  <div className="flex items-center gap-2 mb-3 p-2 bg-gray-50 rounded-lg">
-                    <Package className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="text-sm font-medium text-gray-700 truncate">{destinatario}</span>
-                  </div>
-                )}
-
-                {/* Route */}
-                <div className="flex items-center gap-2 mb-3 text-sm">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    <span className="text-gray-700">{selectedCarga.endereco_origem?.cidade}, {selectedCarga.endereco_origem?.estado}</span>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                    <span className="text-gray-700">{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</span>
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="flex items-center justify-between mb-4 p-2 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-1.5">
-                    <Weight className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-700">{pesoDisponivel.toLocaleString('pt-BR')} kg</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-lg font-bold text-emerald-600">
-                      {formatCurrency(selectedCarga.valor_frete_tonelada)}
-                    </span>
-                    <span className="text-sm text-gray-500">/ton</span>
-                  </div>
-                </div>
-
-                {/* Action button */}
-                <button
-                  onClick={handleAcceptClick}
-                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-lg transition-colors"
-                >
-                  Ver Detalhes e Aceitar
-                </button>
-              </div>
-            </InfoWindow>
+              zIndex={998}
+            />
           );
         })()}
       </GoogleMap>
@@ -398,6 +316,83 @@ export default function CargasGoogleMap({
       <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-full border border-border bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-md backdrop-blur-sm">
         {cargasComCoordenadas.length} cargas disponíveis
       </div>
+
+      {/* Route info + cargo card when selected */}
+      {selectedCarga && (
+        <div className="absolute bottom-4 left-4 right-4 z-10 bg-background/95 backdrop-blur-sm rounded-xl shadow-lg border border-border p-4 max-w-md">
+          {/* Header with logo */}
+          <div className="flex items-start gap-3 mb-3">
+            {selectedCarga.empresa?.logo_url && (
+              <div className="shrink-0 w-12 h-12 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden">
+                <img 
+                  src={selectedCarga.empresa.logo_url} 
+                  alt={selectedCarga.empresa.nome || 'Logo'} 
+                  className="w-full h-full object-contain p-1"
+                />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-foreground text-background">
+                  {selectedCarga.codigo}
+                </span>
+                {routeInfo && (
+                  <span className="text-xs text-muted-foreground">
+                    {routeInfo.distance} • {routeInfo.duration}
+                  </span>
+                )}
+              </div>
+              <p className="font-semibold text-sm text-foreground line-clamp-1">{selectedCarga.descricao}</p>
+              {selectedCarga.empresa?.nome && (
+                <p className="text-xs text-muted-foreground">{selectedCarga.empresa.nome}</p>
+              )}
+            </div>
+            <button 
+              onClick={handleClearSelection}
+              className="shrink-0 p-1.5 hover:bg-muted rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Route */}
+          <div className="flex items-center gap-2 mb-3 text-sm">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              <span className="text-foreground">{selectedCarga.endereco_origem?.cidade}, {selectedCarga.endereco_origem?.estado}</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
+              <span className="text-foreground">{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</span>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <Weight className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-foreground">{(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg</span>
+            </div>
+            <div className="text-right">
+              <span className="text-lg font-bold text-primary">
+                {formatCurrency(selectedCarga.valor_frete_tonelada)}
+              </span>
+              <span className="text-sm text-muted-foreground">/ton</span>
+            </div>
+          </div>
+
+          {/* Action button */}
+          <button
+            onClick={handleAcceptClick}
+            className="w-full py-2.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm rounded-lg transition-colors"
+          >
+            Ver Detalhes e Aceitar
+          </button>
+        </div>
+      )}
     </div>
   );
 }
