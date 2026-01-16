@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,12 +38,12 @@ interface RemetenteSectionProps {
 export function RemetenteSection({ initialData, onLocationChange }: RemetenteSectionProps) {
   const { filialAtiva, empresa } = useUserContext();
   const [sourceType, setSourceType] = useState<'filial' | 'cnpj'>('filial');
-  const [selectedFilialId, setSelectedFilialId] = useState<string>('');
+  const [selectedFilialId, setSelectedFilialId] = useState<string>(() =>
+    filialAtiva?.id ? String(filialAtiva.id) : ''
+  );
   const [cnpjInput, setCnpjInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const hasAutoLoaded = useRef(false);
   const [filiaisCompletas, setFiliaisCompletas] = useState<FilialCompleta[]>([]);
-  
   const [formData, setFormData] = useState<LocationData>({
     latitude: initialData?.latitude || 0,
     longitude: initialData?.longitude || 0,
@@ -213,21 +213,21 @@ export function RemetenteSection({ initialData, onLocationChange }: RemetenteSec
         .eq('empresa_id', empresa.id)
         .eq('ativa', true)
         .order('nome');
-      
+
       if (!error && data) {
         setFiliaisCompletas(data as FilialCompleta[]);
-        
-        // Auto-select filial ativa after loading list (only once)
-        if (!hasAutoLoaded.current && filialAtiva?.id && sourceType === 'filial') {
-          hasAutoLoaded.current = true;
-          const filialIdStr = String(filialAtiva.id);
-          setSelectedFilialId(filialIdStr);
-          // Don't call loadFilialData here to avoid loops, user can manually select
-        }
       }
     };
     fetchFiliais();
-  }, [empresa?.id, filialAtiva?.id, sourceType]);
+  }, [empresa?.id]);
+
+  // If filialAtiva arrives later, set it once (guarded)
+  useEffect(() => {
+    if (sourceType !== 'filial') return;
+    if (selectedFilialId) return;
+    if (!filialAtiva?.id) return;
+    setSelectedFilialId(String(filialAtiva.id));
+  }, [filialAtiva?.id, selectedFilialId, sourceType]);
 
   return (
     <div className="space-y-4">
