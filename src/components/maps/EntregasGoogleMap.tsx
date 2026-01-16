@@ -55,7 +55,8 @@ function DriverMarker({
   return (
     <OverlayView
       position={{ lat, lng }}
-      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+      mapPaneName={OverlayView.FLOAT_PANE}
+      zIndex={isSelected ? 9999 : 1000}
       getPixelPositionOffset={(width, height) => ({
         x: -(width / 2),
         y: -(height / 2),
