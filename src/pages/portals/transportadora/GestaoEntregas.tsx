@@ -75,6 +75,7 @@ interface EntregaCompleta {
     nome_completo: string;
     telefone: string | null;
     email: string | null;
+    foto_url: string | null;
   } | null;
   veiculo: {
     id: string;
@@ -189,7 +190,7 @@ export default function GestaoEntregas() {
           updated_at,
           peso_alocado_kg,
           valor_frete,
-          motorista:motoristas(id, nome_completo, telefone, email),
+          motorista:motoristas(id, nome_completo, telefone, email, foto_url),
           veiculo:veiculos(id, placa, tipo),
           carga:cargas(
             id,
@@ -313,6 +314,7 @@ export default function GestaoEntregas() {
           codigo: e.carga.codigo,
           descricao: e.carga.descricao,
           motorista: e.motorista?.nome_completo || null,
+          motoristaFotoUrl: e.motorista?.foto_url || null,
           telefone: e.motorista?.telefone || null,
           placa: e.veiculo?.placa || null,
           destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
