@@ -56,7 +56,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -229,6 +229,54 @@ export default function CargasDisponiveis() {
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
+  
+  // Route data for dialog map
+  const [dialogRouteCoords, setDialogRouteCoords] = useState<[number, number][]>([]);
+  const [dialogRouteDistance, setDialogRouteDistance] = useState<number | null>(null);
+  const [dialogRouteDuration, setDialogRouteDuration] = useState<number | null>(null);
+  const [isLoadingDialogRoute, setIsLoadingDialogRoute] = useState(false);
+
+  // Fetch OSRM route when dialog opens
+  useEffect(() => {
+    const fetchDialogRoute = async () => {
+      if (!selectedCarga || !isAcceptDialogOpen) {
+        setDialogRouteCoords([]);
+        setDialogRouteDistance(null);
+        setDialogRouteDuration(null);
+        return;
+      }
+
+      const origemLat = Number(selectedCarga.endereco_origem?.latitude);
+      const origemLng = Number(selectedCarga.endereco_origem?.longitude);
+      const destinoLat = Number(selectedCarga.endereco_destino?.latitude);
+      const destinoLng = Number(selectedCarga.endereco_destino?.longitude);
+
+      if (!origemLat || !origemLng || !destinoLat || !destinoLng) return;
+
+      setIsLoadingDialogRoute(true);
+      try {
+        const response = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${origemLng},${origemLat};${destinoLng},${destinoLat}?overview=full&geometries=geojson`
+        );
+        const data = await response.json();
+        
+        if (data.routes && data.routes[0]) {
+          const coords = data.routes[0].geometry.coordinates.map(
+            (coord: [number, number]) => [coord[1], coord[0]] as [number, number]
+          );
+          setDialogRouteCoords(coords);
+          setDialogRouteDistance(data.routes[0].distance / 1000); // km
+          setDialogRouteDuration(data.routes[0].duration / 60); // minutes
+        }
+      } catch (error) {
+        console.error('Erro ao buscar rota OSRM:', error);
+      } finally {
+        setIsLoadingDialogRoute(false);
+      }
+    };
+
+    fetchDialogRoute();
+  }, [selectedCarga, isAcceptDialogOpen]);
 
   // Fetch cargas publicadas
   const { data: cargas = [], isLoading } = useQuery({
@@ -880,6 +928,18 @@ export default function CargasDisponiveis() {
                               [Number(selectedCarga.endereco_destino.latitude), Number(selectedCarga.endereco_destino.longitude)]
                             )} 
                           />
+                          {/* OSRM Route Polyline */}
+                          {dialogRouteCoords.length > 0 && (
+                            <Polyline
+                              positions={dialogRouteCoords}
+                              pathOptions={{
+                                color: 'hsl(221.2 83.2% 53.3%)',
+                                weight: 4,
+                                opacity: 0.8,
+                                dashArray: '10, 10',
+                              }}
+                            />
+                          )}
                           {/* Origin Marker */}
                           <Marker
                             position={[Number(selectedCarga.endereco_origem.latitude), Number(selectedCarga.endereco_origem.longitude)]}
@@ -906,12 +966,39 @@ export default function CargasDisponiveis() {
                           </Marker>
                         </MapContainer>
                       </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="w-4 h-4 text-green-600" />
-                        <span>{selectedCarga.endereco_origem?.cidade}, {selectedCarga.endereco_origem?.estado}</span>
-                        <ArrowRight className="w-4 h-4" />
-                        <MapPin className="w-4 h-4 text-red-500" />
-                        <span>{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</span>
+                      {/* Route Stats */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="w-4 h-4 text-green-600" />
+                          <span>{selectedCarga.endereco_origem?.cidade}, {selectedCarga.endereco_origem?.estado}</span>
+                          <ArrowRight className="w-4 h-4" />
+                          <MapPin className="w-4 h-4 text-red-500" />
+                          <span>{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isLoadingDialogRoute ? (
+                            <Badge variant="outline" className="gap-1">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Calculando...
+                            </Badge>
+                          ) : (
+                            <>
+                              {dialogRouteDistance !== null && (
+                                <Badge variant="secondary" className="gap-1">
+                                  {dialogRouteDistance.toFixed(0)} km
+                                </Badge>
+                              )}
+                              {dialogRouteDuration !== null && (
+                                <Badge variant="outline" className="gap-1">
+                                  {dialogRouteDuration >= 60 
+                                    ? `${Math.floor(dialogRouteDuration / 60)}h ${Math.round(dialogRouteDuration % 60)}min`
+                                    : `${Math.round(dialogRouteDuration)} min`
+                                  }
+                                </Badge>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
