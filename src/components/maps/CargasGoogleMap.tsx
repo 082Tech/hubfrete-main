@@ -53,89 +53,92 @@ const formatCurrency = (value: number | null) => {
   }).format(value);
 };
 
-// Clean silver map style with blue water
+// Airbnb-style map with soft natural colors
 const mapStyles: google.maps.MapTypeStyle[] = [
   {
-    elementType: 'geometry',
-    stylers: [{ color: '#f5f5f5' }],
+    featureType: 'all',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#6b7280' }],
   },
   {
+    featureType: 'all',
+    elementType: 'labels.text.stroke',
+    stylers: [{ color: '#ffffff' }, { weight: 2 }],
+  },
+  {
+    featureType: 'administrative',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#e5e7eb' }],
+  },
+  {
+    featureType: 'administrative.land_parcel',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'administrative.neighborhood',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'landscape',
+    elementType: 'geometry.fill',
+    stylers: [{ color: '#f9fafb' }],
+  },
+  {
+    featureType: 'landscape.natural',
+    elementType: 'geometry.fill',
+    stylers: [{ color: '#e8f5e9' }],
+  },
+  {
+    featureType: 'poi',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'poi.park',
+    stylers: [{ visibility: 'on' }],
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'geometry.fill',
+    stylers: [{ color: '#c8e6c9' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry.fill',
+    stylers: [{ color: '#ffffff' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#e5e7eb' }],
+  },
+  {
+    featureType: 'road',
     elementType: 'labels.icon',
     stylers: [{ visibility: 'off' }],
   },
   {
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#616161' }],
-  },
-  {
-    elementType: 'labels.text.stroke',
-    stylers: [{ color: '#f5f5f5' }],
-  },
-  {
-    featureType: 'administrative.land_parcel',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#bdbdbd' }],
-  },
-  {
-    featureType: 'poi',
-    elementType: 'geometry',
-    stylers: [{ color: '#eeeeee' }],
-  },
-  {
-    featureType: 'poi',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#757575' }],
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'geometry',
-    stylers: [{ color: '#e5e5e5' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry',
-    stylers: [{ color: '#ffffff' }],
-  },
-  {
-    featureType: 'road.arterial',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#757575' }],
+    featureType: 'road.highway',
+    elementType: 'geometry.fill',
+    stylers: [{ color: '#fef3c7' }],
   },
   {
     featureType: 'road.highway',
-    elementType: 'geometry',
-    stylers: [{ color: '#dadada' }],
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#fcd34d' }],
   },
   {
-    featureType: 'road.highway',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#616161' }],
+    featureType: 'transit',
+    stylers: [{ visibility: 'off' }],
   },
-  {
-    featureType: 'road.local',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#9e9e9e' }],
-  },
-  {
-    featureType: 'transit.line',
-    elementType: 'geometry',
-    stylers: [{ color: '#e5e5e5' }],
-  },
-  {
-    featureType: 'transit.station',
-    elementType: 'geometry',
-    stylers: [{ color: '#eeeeee' }],
-  },
-  // Water - nice blue
   {
     featureType: 'water',
-    elementType: 'geometry',
-    stylers: [{ color: '#a8d4f0' }],
+    elementType: 'geometry.fill',
+    stylers: [{ color: '#bfdbfe' }],
   },
   {
     featureType: 'water',
     elementType: 'labels.text.fill',
-    stylers: [{ color: '#4a90b8' }],
+    stylers: [{ color: '#3b82f6' }],
   },
 ];
 
@@ -164,44 +167,40 @@ export default function CargasGoogleMap({
     return Number.isFinite(n) ? n : null;
   }, []);
 
-  // Create premium Airbnb-style price marker with text embedded in SVG
+  // Airbnb-style price marker: white pill with black text, black on hover
   const createMarkerIcon = useCallback(
     (isHovered: boolean, isSelected: boolean, priceText: string) => {
-      const scale = isHovered || isSelected ? 1.12 : 1;
-      const baseWidth = 68;
-      const baseHeight = 32;
+      const scale = isHovered || isSelected ? 1.1 : 1;
+      const baseWidth = 64;
+      const baseHeight = 28;
       const width = Math.round(baseWidth * scale);
       const height = Math.round(baseHeight * scale);
-      const fontSize = Math.round(12 * scale);
+      const fontSize = Math.round(13 * scale);
       
       const isActive = isSelected || isHovered;
-      const gradStart = isActive ? '#2d2d2d' : '#10b981';
-      const gradEnd = isActive ? '#1a1a1a' : '#059669';
-      const shadowBlur = isActive ? 4 : 2;
-      const shadowY = isActive ? 3 : 2;
-      const shadowOpacity = isActive ? 0.4 : 0.25;
+      const bgColor = isActive ? '#222222' : '#ffffff';
+      const textColor = isActive ? '#ffffff' : '#222222';
+      const borderColor = isActive ? '#222222' : '#dddddd';
+      const shadowOpacity = isActive ? 0.3 : 0.15;
+      const shadowBlur = isActive ? 6 : 4;
       
       const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${baseWidth} ${baseHeight}">
           <defs>
-            <linearGradient id="pg" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="${gradStart}"/>
-              <stop offset="100%" stop-color="${gradEnd}"/>
-            </linearGradient>
             <filter id="sh" x="-30%" y="-30%" width="160%" height="180%">
-              <feDropShadow dx="0" dy="${shadowY}" stdDeviation="${shadowBlur}" flood-color="#000" flood-opacity="${shadowOpacity}"/>
+              <feDropShadow dx="0" dy="2" stdDeviation="${shadowBlur}" flood-color="#000" flood-opacity="${shadowOpacity}"/>
             </filter>
           </defs>
-          <rect x="2" y="2" width="${baseWidth - 4}" height="${baseHeight - 4}" rx="14" 
-            fill="url(#pg)" 
+          <rect x="1" y="1" width="${baseWidth - 2}" height="${baseHeight - 2}" rx="14" 
+            fill="${bgColor}" 
             filter="url(#sh)"
-            stroke="rgba(255,255,255,0.2)" 
+            stroke="${borderColor}" 
             stroke-width="1"/>
           <text x="${baseWidth / 2}" y="${baseHeight / 2 + 1}" 
             text-anchor="middle" 
             dominant-baseline="middle" 
-            fill="#ffffff" 
-            font-family="system-ui, -apple-system, sans-serif" 
+            fill="${textColor}" 
+            font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
             font-size="${fontSize}" 
             font-weight="600">${priceText}</text>
         </svg>
