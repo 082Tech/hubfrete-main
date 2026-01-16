@@ -56,9 +56,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import CargasGoogleMap from '@/components/maps/CargasGoogleMap';
+import RouteGoogleMap from '@/components/maps/RouteGoogleMap';
 
 interface VeiculoRequisitos {
   tipos_veiculo?: string[];
@@ -148,91 +147,7 @@ const tipoCargaLabels: Record<string, string> = {
   container: 'Container',
 };
 
-// Price marker icon for map
-const createPriceIcon = (price: number | null) => {
-  const priceText = price ? `R$${Math.round(price)}` : '---';
-  return L.divIcon({
-    className: 'custom-price-marker',
-    html: `
-      <div style="
-        background: hsl(var(--primary));
-        color: white;
-        padding: 6px 10px;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 12px;
-        white-space: nowrap;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        border: 2px solid white;
-        cursor: pointer;
-        transition: transform 0.2s;
-      ">${priceText}/ton</div>
-    `,
-    iconSize: [80, 30],
-    iconAnchor: [40, 15],
-  });
-};
-
-// Origin marker (green O)
-const createOriginIcon = () => {
-  return L.divIcon({
-    className: 'custom-origin-marker',
-    html: `
-      <div style="
-        background: hsl(142.1 76.2% 36.3%);
-        color: white;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 14px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        border: 2px solid white;
-      ">O</div>
-    `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-  });
-};
-
-// Destination marker (red D)
-const createDestinationIcon = () => {
-  return L.divIcon({
-    className: 'custom-destination-marker',
-    html: `
-      <div style="
-        background: hsl(0 84.2% 60.2%);
-        color: white;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 14px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        border: 2px solid white;
-      ">D</div>
-    `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-  });
-};
-
-// Fit bounds component
-function FitBounds({ bounds }: { bounds: L.LatLngBoundsExpression | null }) {
-  const map = useMap();
-  useEffect(() => {
-    if (bounds) {
-      map.fitBounds(bounds, { padding: [50, 50] });
-    }
-  }, [map, bounds]);
-  return null;
-}
+// Leaflet icons and functions removed - now using Google Maps components
 
 export default function CargasDisponiveis() {
   const { empresa } = useUserContext();
@@ -246,54 +161,6 @@ export default function CargasDisponiveis() {
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
-  
-  // Route data for dialog map
-  const [dialogRouteCoords, setDialogRouteCoords] = useState<[number, number][]>([]);
-  const [dialogRouteDistance, setDialogRouteDistance] = useState<number | null>(null);
-  const [dialogRouteDuration, setDialogRouteDuration] = useState<number | null>(null);
-  const [isLoadingDialogRoute, setIsLoadingDialogRoute] = useState(false);
-
-  // Fetch OSRM route when dialog opens
-  useEffect(() => {
-    const fetchDialogRoute = async () => {
-      if (!selectedCarga || !isAcceptDialogOpen) {
-        setDialogRouteCoords([]);
-        setDialogRouteDistance(null);
-        setDialogRouteDuration(null);
-        return;
-      }
-
-      const origemLat = Number(selectedCarga.endereco_origem?.latitude);
-      const origemLng = Number(selectedCarga.endereco_origem?.longitude);
-      const destinoLat = Number(selectedCarga.endereco_destino?.latitude);
-      const destinoLng = Number(selectedCarga.endereco_destino?.longitude);
-
-      if (!origemLat || !origemLng || !destinoLat || !destinoLng) return;
-
-      setIsLoadingDialogRoute(true);
-      try {
-        const response = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${origemLng},${origemLat};${destinoLng},${destinoLat}?overview=full&geometries=geojson`
-        );
-        const data = await response.json();
-        
-        if (data.routes && data.routes[0]) {
-          const coords = data.routes[0].geometry.coordinates.map(
-            (coord: [number, number]) => [coord[1], coord[0]] as [number, number]
-          );
-          setDialogRouteCoords(coords);
-          setDialogRouteDistance(data.routes[0].distance / 1000); // km
-          setDialogRouteDuration(data.routes[0].duration / 60); // minutes
-        }
-      } catch (error) {
-        console.error('Erro ao buscar rota OSRM:', error);
-      } finally {
-        setIsLoadingDialogRoute(false);
-      }
-    };
-
-    fetchDialogRoute();
-  }, [selectedCarga, isAcceptDialogOpen]);
 
   // Fetch cargas publicadas
   const { data: cargas = [], isLoading } = useQuery({
@@ -470,16 +337,7 @@ export default function CargasDisponiveis() {
     });
   }, [cargas, searchTerm, filterTipo]);
 
-  // Map bounds
-  const mapBounds = useMemo(() => {
-    const coords = filteredCargas
-      .filter(c => c.endereco_origem?.latitude && c.endereco_origem?.longitude)
-      .map(c => [c.endereco_origem!.latitude!, c.endereco_origem!.longitude!] as [number, number]);
-    
-    if (coords.length === 0) return null;
-    if (coords.length === 1) return L.latLngBounds([coords[0], coords[0]]);
-    return L.latLngBounds(coords);
-  }, [filteredCargas]);
+  // Map bounds removed - now handled by Google Maps component
 
   const handleAcceptClick = (carga: Carga) => {
     setSelectedCarga(carga);
@@ -863,60 +721,12 @@ export default function CargasDisponiveis() {
 
             {/* Right - Map */}
             <div className="flex-1 rounded-xl overflow-hidden border border-border">
-              <MapContainer
-                center={[-15.7801, -47.9292]}
-                zoom={4}
-                style={{ height: '100%', width: '100%' }}
-                scrollWheelZoom={true}
-                className='z-0'
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                {mapBounds && <FitBounds bounds={mapBounds} />}
-                {filteredCargas
-                  .filter(c => c.endereco_origem?.latitude && c.endereco_origem?.longitude)
-                  .map((carga) => (
-                    <Marker
-                      key={carga.id}
-                      position={[carga.endereco_origem!.latitude!, carga.endereco_origem!.longitude!]}
-                      icon={createPriceIcon(carga.valor_frete_tonelada)}
-                      eventHandlers={{
-                        mouseover: () => setHoveredCargaId(carga.id),
-                        mouseout: () => setHoveredCargaId(null),
-                        click: () => handleAcceptClick(carga),
-                      }}
-                    >
-                      <Popup>
-                        <div className="p-2 min-w-[200px]">
-                          <p className="font-semibold text-sm">{carga.codigo}</p>
-                          <p className="text-xs text-muted-foreground mb-2">{carga.descricao}</p>
-                          <div className="flex items-center gap-1 text-xs mb-2">
-                            <MapPin className="w-3 h-3 text-chart-1" />
-                            <span>{carga.endereco_origem?.cidade}</span>
-                            <ArrowRight className="w-3 h-3" />
-                            <MapPin className="w-3 h-3 text-chart-2" />
-                            <span>{carga.endereco_destino?.cidade}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs">{carga.peso_kg.toLocaleString('pt-BR')} kg</span>
-                            <span className="font-semibold text-chart-2 text-sm">
-                              {formatCurrency(carga.valor_frete_tonelada)}/ton
-                            </span>
-                          </div>
-                          <Button 
-                            size="sm" 
-                            className="w-full mt-2"
-                            onClick={() => handleAcceptClick(carga)}
-                          >
-                            Aceitar Carga
-                          </Button>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
-              </MapContainer>
+              <CargasGoogleMap
+                cargas={filteredCargas}
+                onCargaClick={handleAcceptClick}
+                hoveredCargaId={hoveredCargaId}
+                setHoveredCargaId={setHoveredCargaId}
+              />
             </div>
           </div>
         )}
@@ -988,63 +798,18 @@ export default function CargasDisponiveis() {
                         Rota
                       </h4>
                       <div className="h-48 rounded-lg overflow-hidden border border-border">
-                        <MapContainer
-                          center={[
-                            (Number(selectedCarga.endereco_origem.latitude) + Number(selectedCarga.endereco_destino.latitude)) / 2,
-                            (Number(selectedCarga.endereco_origem.longitude) + Number(selectedCarga.endereco_destino.longitude)) / 2
-                          ]}
-                          zoom={5}
-                          style={{ height: '100%', width: '100%' }}
-                          scrollWheelZoom={false}
-                          className='z-0'
-                        >
-                          <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                          />
-                          <FitBounds 
-                            bounds={L.latLngBounds(
-                              [Number(selectedCarga.endereco_origem.latitude), Number(selectedCarga.endereco_origem.longitude)],
-                              [Number(selectedCarga.endereco_destino.latitude), Number(selectedCarga.endereco_destino.longitude)]
-                            )} 
-                          />
-                          {/* OSRM Route Polyline */}
-                          {dialogRouteCoords.length > 0 && (
-                            <Polyline
-                              positions={dialogRouteCoords}
-                              pathOptions={{
-                                color: 'hsl(221.2 83.2% 53.3%)',
-                                weight: 4,
-                                opacity: 0.8,
-                                dashArray: '10, 10',
-                              }}
-                            />
-                          )}
-                          {/* Origin Marker */}
-                          <Marker
-                            position={[Number(selectedCarga.endereco_origem.latitude), Number(selectedCarga.endereco_origem.longitude)]}
-                            icon={createOriginIcon()}
-                          >
-                            <Popup>
-                              <div className="text-sm">
-                                <p className="font-semibold">Origem</p>
-                                <p>{selectedCarga.endereco_origem.cidade}, {selectedCarga.endereco_origem.estado}</p>
-                              </div>
-                            </Popup>
-                          </Marker>
-                          {/* Destination Marker */}
-                          <Marker
-                            position={[Number(selectedCarga.endereco_destino.latitude), Number(selectedCarga.endereco_destino.longitude)]}
-                            icon={createDestinationIcon()}
-                          >
-                            <Popup>
-                              <div className="text-sm">
-                                <p className="font-semibold">Destino</p>
-                                <p>{selectedCarga.endereco_destino.cidade}, {selectedCarga.endereco_destino.estado}</p>
-                              </div>
-                            </Popup>
-                          </Marker>
-                        </MapContainer>
+                        <RouteGoogleMap
+                          origem={{
+                            lat: Number(selectedCarga.endereco_origem.latitude),
+                            lng: Number(selectedCarga.endereco_origem.longitude),
+                            label: selectedCarga.endereco_origem.cidade,
+                          }}
+                          destino={{
+                            lat: Number(selectedCarga.endereco_destino.latitude),
+                            lng: Number(selectedCarga.endereco_destino.longitude),
+                            label: selectedCarga.endereco_destino.cidade,
+                          }}
+                        />
                       </div>
                       {/* Route Stats with Full Address */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
@@ -1087,32 +852,7 @@ export default function CargasDisponiveis() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center justify-end mt-2">
-                        <div className="flex items-center gap-2">
-                          {isLoadingDialogRoute ? (
-                            <Badge variant="outline" className="gap-1">
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              Calculando...
-                            </Badge>
-                          ) : (
-                            <>
-                              {dialogRouteDistance !== null && (
-                                <Badge variant="secondary" className="gap-1">
-                                  {dialogRouteDistance.toFixed(0)} km
-                                </Badge>
-                              )}
-                              {dialogRouteDuration !== null && (
-                                <Badge variant="outline" className="gap-1">
-                                  {dialogRouteDuration >= 60 
-                                    ? `${Math.floor(dialogRouteDuration / 60)}h ${Math.round(dialogRouteDuration % 60)}min`
-                                    : `${Math.round(dialogRouteDuration)} min`
-                                  }
-                                </Badge>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      {/* Route badges now displayed inside the map component */}
                     </div>
                   )}
 
