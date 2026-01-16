@@ -37,7 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, Eye, DollarSign } from 'lucide-react';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
-import { OrigemSection } from './OrigemSection';
+import { RemetenteSection } from './RemetenteSection';
 import { DestinoSection } from './DestinoSection';
 import { NecessidadesEspeciais } from './NecessidadesEspeciais';
 import { NotaFiscalUpload } from './NotaFiscalUpload';
@@ -104,9 +104,9 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
   
-  // Vehicle and body type requirements
-  const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([...ALL_VEICULOS]);
-  const [carroceriasSelecionadas, setCarroceriasSelecionadas] = useState<string[]>([...ALL_CARROCERIAS]);
+  // Vehicle and body type requirements - start empty (deselected)
+  const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([]);
+  const [carroceriasSelecionadas, setCarroceriasSelecionadas] = useState<string[]>([]);
   
   // Location data for origin and destination
   const [origemData, setOrigemData] = useState<LocationData>({
@@ -165,12 +165,12 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
   const validateLocations = (): boolean => {
     if (!origemData.cidade || !origemData.logradouro) {
-      toast.error('Verifique os dados de origem');
+      toast.error('Verifique os dados do remetente');
       setActiveTab('origem');
       return false;
     }
     if (!destinoData.cidade || !destinoData.logradouro) {
-      toast.error('Selecione o local de destino no mapa');
+      toast.error('Verifique os dados do destinatário');
       setActiveTab('destino');
       return false;
     }
@@ -308,8 +308,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       form.reset();
       setNecessidadesEspeciais([]);
       setNotaFiscalUrl(null);
-      setVeiculosSelecionados([...ALL_VEICULOS]);
-      setCarroceriasSelecionadas([...ALL_CARROCERIAS]);
+      setVeiculosSelecionados([]);
+      setCarroceriasSelecionadas([]);
       setOrigemData({
         latitude: 0, longitude: 0, cep: '', logradouro: '', numero: '',
         complemento: '', bairro: '', cidade: '', estado: '',
@@ -366,11 +366,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 </TabsTrigger>
                 <TabsTrigger value="origem" className="gap-2">
                   <MapPin className="w-4 h-4" />
-                  <span className="hidden sm:inline">Origem</span>
+                  <span className="hidden sm:inline">Remetente</span>
                 </TabsTrigger>
                 <TabsTrigger value="destino" className="gap-2">
                   <Truck className="w-4 h-4" />
-                  <span className="hidden sm:inline">Destino</span>
+                  <span className="hidden sm:inline">Destinatário</span>
                 </TabsTrigger>
                 <TabsTrigger value="resumo" className="gap-2">
                   <Eye className="w-4 h-4" />
@@ -748,7 +748,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               </TabsContent>
 
               <TabsContent value="origem" className="mt-4">
-                <OrigemSection
+                <RemetenteSection
                   initialData={origemData}
                   onLocationChange={setOrigemData}
                   dialogOpen={open}
