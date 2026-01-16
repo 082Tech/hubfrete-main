@@ -167,33 +167,25 @@ export default function CargasGoogleMap({
     return Number.isFinite(n) ? n : null;
   }, []);
 
-  // Airbnb-style price marker: white pill with black text, black on hover
+  // Airbnb-style price marker: white pill, green on hover
   const createMarkerIcon = useCallback(
     (isHovered: boolean, isSelected: boolean, priceText: string) => {
-      const scale = isHovered || isSelected ? 1.1 : 1;
-      const baseWidth = 64;
+      const scale = isHovered || isSelected ? 1.08 : 1;
+      const baseWidth = 80;
       const baseHeight = 28;
       const width = Math.round(baseWidth * scale);
       const height = Math.round(baseHeight * scale);
-      const fontSize = Math.round(13 * scale);
+      const fontSize = Math.round(12 * scale);
       
       const isActive = isSelected || isHovered;
-      const bgColor = isActive ? '#222222' : '#ffffff';
+      const bgColor = isActive ? '#10b981' : '#ffffff';
       const textColor = isActive ? '#ffffff' : '#222222';
-      const borderColor = isActive ? '#222222' : '#dddddd';
-      const shadowOpacity = isActive ? 0.3 : 0.15;
-      const shadowBlur = isActive ? 6 : 4;
+      const borderColor = isActive ? '#10b981' : '#e5e7eb';
       
       const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${baseWidth} ${baseHeight}">
-          <defs>
-            <filter id="sh" x="-30%" y="-30%" width="160%" height="180%">
-              <feDropShadow dx="0" dy="2" stdDeviation="${shadowBlur}" flood-color="#000" flood-opacity="${shadowOpacity}"/>
-            </filter>
-          </defs>
-          <rect x="1" y="1" width="${baseWidth - 2}" height="${baseHeight - 2}" rx="14" 
+          <rect x="1" y="1" width="${baseWidth - 2}" height="${baseHeight - 2}" rx="${(baseHeight - 2) / 2}" 
             fill="${bgColor}" 
-            filter="url(#sh)"
             stroke="${borderColor}" 
             stroke-width="1"/>
           <text x="${baseWidth / 2}" y="${baseHeight / 2 + 1}" 
@@ -291,8 +283,8 @@ export default function CargasGoogleMap({
           const isHovered = hoveredCargaId === carga.id;
           const isSelected = selectedCarga?.id === carga.id;
           const priceText = carga.valor_frete_tonelada
-            ? `R$${Math.round(carga.valor_frete_tonelada)}`
-            : '---';
+            ? `R$${Math.round(carga.valor_frete_tonelada)}/ton`
+            : 'A combinar';
 
           const lat = toNumber(carga.endereco_origem?.latitude);
           const lng = toNumber(carga.endereco_origem?.longitude);
