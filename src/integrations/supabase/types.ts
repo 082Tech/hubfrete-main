@@ -21,11 +21,18 @@ export type Database = {
           carga_viva: boolean | null
           codigo: string
           comercial: Json | null
+          contato_destino_id: string | null
           created_at: string | null
           data_coleta_ate: string | null
           data_coleta_de: string | null
           data_entrega_limite: string | null
           descricao: string
+          destinatario_cnpj: string | null
+          destinatario_contato_email: string | null
+          destinatario_contato_nome: string | null
+          destinatario_contato_telefone: string | null
+          destinatario_nome_fantasia: string | null
+          destinatario_razao_social: string | null
           documentacao: Json | null
           empilhavel: boolean | null
           empresa_id: number | null
@@ -59,11 +66,18 @@ export type Database = {
           carga_viva?: boolean | null
           codigo: string
           comercial?: Json | null
+          contato_destino_id?: string | null
           created_at?: string | null
           data_coleta_ate?: string | null
           data_coleta_de?: string | null
           data_entrega_limite?: string | null
           descricao: string
+          destinatario_cnpj?: string | null
+          destinatario_contato_email?: string | null
+          destinatario_contato_nome?: string | null
+          destinatario_contato_telefone?: string | null
+          destinatario_nome_fantasia?: string | null
+          destinatario_razao_social?: string | null
           documentacao?: Json | null
           empilhavel?: boolean | null
           empresa_id?: number | null
@@ -97,11 +111,18 @@ export type Database = {
           carga_viva?: boolean | null
           codigo?: string
           comercial?: Json | null
+          contato_destino_id?: string | null
           created_at?: string | null
           data_coleta_ate?: string | null
           data_coleta_de?: string | null
           data_entrega_limite?: string | null
           descricao?: string
+          destinatario_cnpj?: string | null
+          destinatario_contato_email?: string | null
+          destinatario_contato_nome?: string | null
+          destinatario_contato_telefone?: string | null
+          destinatario_nome_fantasia?: string | null
+          destinatario_razao_social?: string | null
           documentacao?: Json | null
           empilhavel?: boolean | null
           empresa_id?: number | null
@@ -130,6 +151,13 @@ export type Database = {
           volume_m3?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cargas_contato_destino_id_fkey"
+            columns: ["contato_destino_id"]
+            isOneToOne: false
+            referencedRelation: "contatos_destino"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cargas_empresa_id_fkey"
             columns: ["empresa_id"]
