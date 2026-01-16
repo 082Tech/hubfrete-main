@@ -151,6 +151,8 @@ export default function CargasGoogleMap({
 
   // Calculate route when a carga is selected
   useEffect(() => {
+    let cancelled = false;
+
     if (!isLoaded || !selectedCarga) {
       setDirections(null);
       setRouteInfo(null);
@@ -176,6 +178,11 @@ export default function CargasGoogleMap({
         travelMode: google.maps.TravelMode.DRIVING,
       },
       (result, status) => {
+        if (cancelled) return;
+
+        // If the user already deselected while the request was in-flight
+        if (!selectedCarga) return;
+
         if (status === google.maps.DirectionsStatus.OK && result) {
           setDirections(result);
           const route = result.routes[0];
@@ -194,6 +201,10 @@ export default function CargasGoogleMap({
         }
       }
     );
+
+    return () => {
+      cancelled = true;
+    };
   }, [isLoaded, selectedCarga, toNumber, map]);
 
   const onUnmount = useCallback(() => {
@@ -368,16 +379,45 @@ export default function CargasGoogleMap({
             </button>
           </div>
 
-          {/* Route */}
-          <div className="flex items-center gap-2 mb-3 text-sm">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-              <span className="text-foreground">{selectedCarga.endereco_origem?.cidade}, {selectedCarga.endereco_origem?.estado}</span>
+          {/* Rota + empresas + endereços */}
+          <div className="space-y-2 mb-3 text-sm">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                <span className="font-medium text-foreground">Remetente</span>
+              </div>
+              <div className="pl-4">
+                <div className="text-foreground">
+                  {selectedCarga.empresa?.nome || '—'}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {selectedCarga.endereco_origem?.logradouro || ''}{selectedCarga.endereco_origem?.numero ? `, ${selectedCarga.endereco_origem?.numero}` : ''}
+                  {selectedCarga.endereco_origem?.bairro ? ` • ${selectedCarga.endereco_origem?.bairro}` : ''}
+                  {(selectedCarga.endereco_origem?.cidade || selectedCarga.endereco_origem?.estado) ? ` • ${selectedCarga.endereco_origem?.cidade || ''}${selectedCarga.endereco_origem?.estado ? `/${selectedCarga.endereco_origem?.estado}` : ''}` : ''}
+                </div>
+              </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
-              <span className="text-foreground">{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</span>
+
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ArrowRight className="w-4 h-4" />
+              <span className="text-xs">rota</span>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
+                <span className="font-medium text-foreground">Destinatário</span>
+              </div>
+              <div className="pl-4">
+                <div className="text-foreground">
+                  {selectedCarga.destinatario_nome_fantasia || selectedCarga.destinatario_razao_social || '—'}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {selectedCarga.endereco_destino?.logradouro || ''}{selectedCarga.endereco_destino?.numero ? `, ${selectedCarga.endereco_destino?.numero}` : ''}
+                  {selectedCarga.endereco_destino?.bairro ? ` • ${selectedCarga.endereco_destino?.bairro}` : ''}
+                  {(selectedCarga.endereco_destino?.cidade || selectedCarga.endereco_destino?.estado) ? ` • ${selectedCarga.endereco_destino?.cidade || ''}${selectedCarga.endereco_destino?.estado ? `/${selectedCarga.endereco_destino?.estado}` : ''}` : ''}
+                </div>
+              </div>
             </div>
           </div>
 
