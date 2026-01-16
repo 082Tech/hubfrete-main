@@ -199,7 +199,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         return;
       }
 
-      // Create the load with filial_id
+      // Create the load with filial_id and destinatario fields
       const { data: carga, error: cargaError } = await supabase
         .from('cargas')
         .insert({
@@ -235,6 +235,12 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
             tipos_veiculo: veiculosSelecionados,
             tipos_carroceria: carroceriasSelecionadas,
           },
+          // Destinatário fields from destinoData
+          destinatario_razao_social: destinoData.razao_social || null,
+          destinatario_nome_fantasia: destinoData.razao_social || null, // Use razao_social as fallback
+          destinatario_cnpj: destinoData.cnpj || null,
+          destinatario_contato_nome: destinoData.contato_nome || null,
+          destinatario_contato_telefone: destinoData.contato_telefone || null,
         })
         .select()
         .single();

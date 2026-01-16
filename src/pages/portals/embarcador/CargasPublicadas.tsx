@@ -76,6 +76,10 @@ interface CargaPublicada {
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
   created_at: string;
+  // Destinatário fields
+  destinatario_razao_social: string | null;
+  destinatario_nome_fantasia: string | null;
+  destinatario_cnpj: string | null;
   endereco_origem: EnderecoData | null;
   endereco_destino: EnderecoData | null;
   entregas: Array<{
@@ -125,6 +129,9 @@ export default function CargasPublicadas() {
           data_coleta_de,
           data_coleta_ate,
           created_at,
+          destinatario_razao_social,
+          destinatario_nome_fantasia,
+          destinatario_cnpj,
           endereco_origem:enderecos_carga!cargas_endereco_origem_fkey (
             id,
             tipo,
@@ -202,8 +209,18 @@ export default function CargasPublicadas() {
       endereco.cep
     ].filter(Boolean).join(', ');
     
+    // For destino, use destinatario_nome_fantasia if available
+    let empresa: string;
+    if (tipo === 'destino' && carga.destinatario_nome_fantasia) {
+      empresa = carga.destinatario_nome_fantasia;
+    } else if (tipo === 'destino' && carga.destinatario_razao_social) {
+      empresa = carga.destinatario_razao_social;
+    } else {
+      empresa = endereco.contato_nome || (tipo === 'origem' ? (filialAtiva?.nome || 'Remetente') : 'Destinatário');
+    }
+    
     return {
-      empresa: endereco.contato_nome || filialAtiva?.nome || 'Remetente',
+      empresa,
       cidade: `${endereco.cidade}/${endereco.estado}`,
       enderecoCompleto
     };
@@ -634,7 +651,7 @@ export default function CargasPublicadas() {
               endereco: `${detailsCarga.endereco_origem.logradouro}${detailsCarga.endereco_origem.numero ? `, ${detailsCarga.endereco_origem.numero}` : ''}`,
             } : null,
             destinatario: detailsCarga.endereco_destino ? {
-              nome: detailsCarga.endereco_destino.contato_nome || detailsCarga.endereco_destino.cidade,
+              nome: detailsCarga.destinatario_nome_fantasia || detailsCarga.destinatario_razao_social || detailsCarga.endereco_destino.contato_nome || detailsCarga.endereco_destino.cidade,
               cidade: detailsCarga.endereco_destino.cidade,
               estado: detailsCarga.endereco_destino.estado,
               endereco: `${detailsCarga.endereco_destino.logradouro}${detailsCarga.endereco_destino.numero ? `, ${detailsCarga.endereco_destino.numero}` : ''}`,

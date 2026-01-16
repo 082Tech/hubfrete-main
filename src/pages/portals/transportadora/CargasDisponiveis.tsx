@@ -84,6 +84,12 @@ interface Carga {
   empilhavel: boolean;
   necessidades_especiais: string[] | null;
   veiculo_requisitos: VeiculoRequisitos | null;
+  // Destinatário fields
+  destinatario_razao_social: string | null;
+  destinatario_nome_fantasia: string | null;
+  destinatario_cnpj: string | null;
+  destinatario_contato_nome: string | null;
+  destinatario_contato_telefone: string | null;
   endereco_origem: {
     cidade: string;
     estado: string;
@@ -314,6 +320,11 @@ export default function CargasDisponiveis() {
           empilhavel,
           necessidades_especiais,
           veiculo_requisitos,
+          destinatario_razao_social,
+          destinatario_nome_fantasia,
+          destinatario_cnpj,
+          destinatario_contato_nome,
+          destinatario_contato_telefone,
           endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude, logradouro, numero, bairro, cep),
           endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude, logradouro, numero, bairro, cep),
           empresa:empresas!cargas_empresa_id_fkey(nome, logo_url),
@@ -666,6 +677,12 @@ export default function CargasDisponiveis() {
                 <MapPin className="w-3.5 h-3.5 text-chart-2 shrink-0" />
                 <span className="font-medium text-foreground">{carga.endereco_destino?.cidade || 'N/A'}, {carga.endereco_destino?.estado || ''}</span>
               </div>
+              {/* Destinatário company name */}
+              {carga.destinatario_nome_fantasia && (
+                <span className="text-xs text-primary ml-5 truncate max-w-[150px] font-medium">
+                  {carga.destinatario_nome_fantasia}
+                </span>
+              )}
               {carga.endereco_destino?.logradouro && (
                 <span className="text-muted-foreground ml-5 truncate max-w-[150px]">
                   {carga.endereco_destino.logradouro}{carga.endereco_destino.numero ? `, ${carga.endereco_destino.numero}` : ''}
@@ -1048,6 +1065,10 @@ export default function CargasDisponiveis() {
                             <MapPin className="w-4 h-4" />
                             Destino
                           </div>
+                          {/* Destinatário Company */}
+                          {selectedCarga.destinatario_nome_fantasia && (
+                            <p className="text-sm font-semibold text-foreground mb-0.5">{selectedCarga.destinatario_nome_fantasia}</p>
+                          )}
                           <p className="text-sm font-medium">{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</p>
                           {selectedCarga.endereco_destino?.logradouro && (
                             <p className="text-xs text-muted-foreground">

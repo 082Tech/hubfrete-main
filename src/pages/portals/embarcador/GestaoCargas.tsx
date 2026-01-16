@@ -145,6 +145,10 @@ interface CargaCompleta {
   temperatura_min: number | null;
   temperatura_max: number | null;
   numero_onu: string | null;
+  // Destinatário fields
+  destinatario_razao_social: string | null;
+  destinatario_nome_fantasia: string | null;
+  destinatario_cnpj: string | null;
   endereco_origem: EnderecoData | null;
   endereco_destino: EnderecoData | null;
   filiais: {
@@ -270,6 +274,9 @@ export default function GestaoCargas() {
             temperatura_min,
             temperatura_max,
             numero_onu,
+            destinatario_razao_social,
+            destinatario_nome_fantasia,
+            destinatario_cnpj,
             filial_id,
             filiais (
               nome,
