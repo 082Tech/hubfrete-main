@@ -1015,7 +1015,7 @@ export default function CargasDisponiveis() {
                   <Separator />
 
                   {/* Driver Selection */}
-                  <div className="space-y-2">
+                  <div className="space-y-2 px-1">
                     <Label>Motorista Disponível</Label>
                     <Select
                       value={selectedMotorista}
