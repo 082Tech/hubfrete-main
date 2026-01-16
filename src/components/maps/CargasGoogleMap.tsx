@@ -17,8 +17,8 @@ interface Carga {
   endereco_origem: {
     cidade: string;
     estado: string;
-    latitude: number | null;
-    longitude: number | null;
+    latitude: number | string | null;
+    longitude: number | string | null;
     logradouro?: string | null;
     numero?: string | null;
     bairro?: string | null;
@@ -26,8 +26,8 @@ interface Carga {
   endereco_destino: {
     cidade: string;
     estado: string;
-    latitude: number | null;
-    longitude: number | null;
+    latitude: number | string | null;
+    longitude: number | string | null;
     logradouro?: string | null;
     numero?: string | null;
     bairro?: string | null;
@@ -141,12 +141,20 @@ export default function CargasGoogleMap({
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
 
+  const toNumber = useCallback((value: number | string | null | undefined) => {
+    if (value === null || value === undefined) return null;
+    const n = typeof value === 'string' ? Number.parseFloat(value) : value;
+    return Number.isFinite(n) ? n : null;
+  }, []);
+
   // Filter cargas with valid coordinates
   const cargasComCoordenadas = useMemo(() => {
-    return cargas.filter(
-      (c) => c.endereco_origem?.latitude && c.endereco_origem?.longitude
-    );
-  }, [cargas]);
+    return cargas.filter((c) => {
+      const lat = toNumber(c.endereco_origem?.latitude);
+      const lng = toNumber(c.endereco_origem?.longitude);
+      return lat !== null && lng !== null;
+    });
+  }, [cargas, toNumber]);
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
@@ -158,15 +166,13 @@ export default function CargasGoogleMap({
 
     const bounds = new google.maps.LatLngBounds();
     cargasComCoordenadas.forEach((carga) => {
-      if (carga.endereco_origem?.latitude && carga.endereco_origem?.longitude) {
-        bounds.extend({
-          lat: carga.endereco_origem.latitude,
-          lng: carga.endereco_origem.longitude,
-        });
-      }
+      const lat = toNumber(carga.endereco_origem?.latitude);
+      const lng = toNumber(carga.endereco_origem?.longitude);
+      if (lat !== null && lng !== null) bounds.extend({ lat, lng });
     });
+
     map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
-  }, [map, cargasComCoordenadas]);
+  }, [map, cargasComCoordenadas, toNumber]);
 
   const onUnmount = useCallback(() => {
     setMap(null);
@@ -204,27 +210,27 @@ export default function CargasGoogleMap({
           ? `R$${Math.round(carga.valor_frete_tonelada)}`
           : '---';
 
+        const lat = toNumber(carga.endereco_origem?.latitude);
+        const lng = toNumber(carga.endereco_origem?.longitude);
+        if (lat === null || lng === null) return null;
+
         return (
           <OverlayView
             key={carga.id}
-            position={{
-              lat: carga.endereco_origem!.latitude!,
-              lng: carga.endereco_origem!.longitude!,
-            }}
+            position={{ lat, lng }}
             mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
           >
             <div
               onClick={() => setSelectedCarga(carga)}
               onMouseEnter={() => setHoveredCargaId(carga.id)}
               onMouseLeave={() => setHoveredCargaId(null)}
-              className={`
-                cursor-pointer px-3 py-1.5 rounded-full font-semibold text-xs whitespace-nowrap
-                shadow-lg border-2 border-white transition-all duration-200
-                ${isHovered 
-                  ? 'bg-foreground text-background scale-110 z-50' 
-                  : 'bg-primary text-primary-foreground'
-                }
-              `}
+              className={
+                `cursor-pointer px-3 py-1.5 rounded-full font-semibold text-xs whitespace-nowrap ` +
+                `shadow-lg border-2 border-background transition-all duration-200 ` +
+                (isHovered
+                  ? 'bg-foreground text-background scale-110 z-50'
+                  : 'bg-primary text-primary-foreground')
+              }
               style={{
                 transform: 'translate(-50%, -50%)',
               }}
@@ -236,43 +242,47 @@ export default function CargasGoogleMap({
       })}
 
       {/* Info Window for selected carga */}
-      {selectedCarga && selectedCarga.endereco_origem?.latitude && (
-        <InfoWindow
-          position={{
-            lat: selectedCarga.endereco_origem.latitude,
-            lng: selectedCarga.endereco_origem.longitude!,
-          }}
-          onCloseClick={() => setSelectedCarga(null)}
-        >
-          <div className="p-2 min-w-[200px]">
-            <p className="font-semibold text-sm">{selectedCarga.codigo}</p>
-            <p className="text-xs text-gray-600 mb-2">{selectedCarga.descricao}</p>
-            <div className="flex items-center gap-1 text-xs mb-2">
-              <MapPin className="w-3 h-3 text-green-600" />
-              <span>{selectedCarga.endereco_origem?.cidade}</span>
-              <ArrowRight className="w-3 h-3" />
-              <MapPin className="w-3 h-3 text-red-600" />
-              <span>{selectedCarga.endereco_destino?.cidade}</span>
+      {(() => {
+        if (!selectedCarga) return null;
+        const lat = toNumber(selectedCarga.endereco_origem?.latitude);
+        const lng = toNumber(selectedCarga.endereco_origem?.longitude);
+        if (lat === null || lng === null) return null;
+
+        return (
+          <InfoWindow
+            position={{ lat, lng }}
+            onCloseClick={() => setSelectedCarga(null)}
+          >
+            <div className="p-2 min-w-[200px]">
+              <p className="font-semibold text-sm">{selectedCarga.codigo}</p>
+              <p className="text-xs text-muted-foreground mb-2">{selectedCarga.descricao}</p>
+              <div className="flex items-center gap-1 text-xs mb-2">
+                <MapPin className="w-3 h-3 text-primary" />
+                <span>{selectedCarga.endereco_origem?.cidade}</span>
+                <ArrowRight className="w-3 h-3" />
+                <MapPin className="w-3 h-3 text-destructive" />
+                <span>{selectedCarga.endereco_destino?.cidade}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs">{selectedCarga.peso_kg.toLocaleString('pt-BR')} kg</span>
+                <span className="font-semibold text-primary text-sm">
+                  {formatCurrency(selectedCarga.valor_frete_tonelada)}/ton
+                </span>
+              </div>
+              <Button
+                size="sm"
+                className="w-full mt-2"
+                onClick={() => {
+                  onCargaClick(selectedCarga);
+                  setSelectedCarga(null);
+                }}
+              >
+                Aceitar Carga
+              </Button>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs">{selectedCarga.peso_kg.toLocaleString('pt-BR')} kg</span>
-              <span className="font-semibold text-green-600 text-sm">
-                {formatCurrency(selectedCarga.valor_frete_tonelada)}/ton
-              </span>
-            </div>
-            <Button
-              size="sm"
-              className="w-full mt-2"
-              onClick={() => {
-                onCargaClick(selectedCarga);
-                setSelectedCarga(null);
-              }}
-            >
-              Aceitar Carga
-            </Button>
-          </div>
-        </InfoWindow>
-      )}
+          </InfoWindow>
+        );
+      })()}
     </GoogleMap>
   );
 }
