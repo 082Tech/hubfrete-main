@@ -375,7 +375,7 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
   }
 
   return (
-    <div className="relative z-0 w-full h-[360px] rounded-lg overflow-hidden border border-border">
+    <div className="relative z-0 w-full h-[500px] rounded-lg overflow-hidden border border-border">
       <MapContainer
         center={center}
         zoom={defaultZoom}
