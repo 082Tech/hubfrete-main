@@ -89,16 +89,27 @@ interface Carga {
     estado: string;
     latitude: number | null;
     longitude: number | null;
+    logradouro: string | null;
+    numero: string | null;
+    bairro: string | null;
+    cep: string | null;
   } | null;
   endereco_destino: {
     cidade: string;
     estado: string;
     latitude: number | null;
     longitude: number | null;
+    logradouro: string | null;
+    numero: string | null;
+    bairro: string | null;
+    cep: string | null;
   } | null;
   empresa: {
     nome: string;
     logo_url: string | null;
+  } | null;
+  filial: {
+    nome: string | null;
   } | null;
 }
 
@@ -303,9 +314,10 @@ export default function CargasDisponiveis() {
           empilhavel,
           necessidades_especiais,
           veiculo_requisitos,
-          endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
-          endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude),
-          empresa:empresas!cargas_empresa_id_fkey(nome, logo_url)
+          endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude, logradouro, numero, bairro, cep),
+          endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude, logradouro, numero, bairro, cep),
+          empresa:empresas!cargas_empresa_id_fkey(nome, logo_url),
+          filial:filiais!cargas_filial_id_fkey(nome)
         `)
         .eq('status', 'publicada')
         .order('created_at', { ascending: false });
@@ -560,120 +572,166 @@ export default function CargasDisponiveis() {
     }).format(value);
   };
 
+  // Helper to format company + filial name
+  const formatEmpresaFilial = (carga: Carga) => {
+    const empresa = carga.empresa?.nome || 'Empresa';
+    const filial = carga.filial?.nome;
+    return filial ? `${empresa} - ${filial}` : empresa;
+  };
+
   // Carga Card component for reuse
-  const CargaCard = ({ carga, isHovered }: { carga: Carga; isHovered?: boolean }) => (
-    <Card
-      className={`border-border hover:shadow-lg transition-all cursor-pointer ${isHovered ? 'ring-2 ring-primary shadow-lg' : ''}`}
-      onMouseEnter={() => setHoveredCargaId(carga.id)}
-      onMouseLeave={() => setHoveredCargaId(null)}
-      onClick={() => handleAcceptClick(carga)}
-    >
-      <CardContent className="p-4 space-y-3">
-        {/* Header */}
-        <div className="flex items-start gap-3">
-          {/* Company Logo */}
-          {carga.empresa?.logo_url && (
-            <div className="shrink-0 w-10 h-10 rounded-md border border-border bg-muted/50 flex items-center justify-center overflow-hidden">
-              <img 
-                src={carga.empresa.logo_url} 
-                alt={carga.empresa.nome || 'Logo'} 
-                className="w-full h-full object-contain"
+  const CargaCard = ({ carga, isHovered }: { carga: Carga; isHovered?: boolean }) => {
+    const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
+    const percentDisponivel = (pesoDisponivel / carga.peso_kg) * 100;
+    
+    return (
+      <Card
+        className={`border-border hover:shadow-lg transition-all cursor-pointer ${isHovered ? 'ring-2 ring-primary shadow-lg' : ''}`}
+        onMouseEnter={() => setHoveredCargaId(carga.id)}
+        onMouseLeave={() => setHoveredCargaId(null)}
+        onClick={() => handleAcceptClick(carga)}
+      >
+        <CardContent className="p-4 space-y-3">
+          {/* Header */}
+          <div className="flex items-start gap-3">
+            {/* Company Logo */}
+            {carga.empresa?.logo_url && (
+              <div className="shrink-0 w-10 h-10 rounded-md border border-border bg-muted/50 flex items-center justify-center overflow-hidden">
+                <img 
+                  src={carga.empresa.logo_url} 
+                  alt={carga.empresa.nome || 'Logo'} 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <Badge variant="secondary" className="text-xs">
+                  {carga.codigo}
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {tipoCargaLabels[carga.tipo] || carga.tipo}
+                </Badge>
+              </div>
+              <p className="font-medium text-sm line-clamp-1">{carga.descricao}</p>
+              {/* Empresa Remetente + Filial */}
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {formatEmpresaFilial(carga)}
+              </p>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              {carga.requer_refrigeracao && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <ThermometerSnowflake className="w-4 h-4 text-blue-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>Refrigerada</TooltipContent>
+                </Tooltip>
+              )}
+              {carga.carga_perigosa && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>Perigosa</TooltipContent>
+                </Tooltip>
+              )}
+              {carga.carga_fragil && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Boxes className="w-4 h-4 text-amber-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>Frágil</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          </div>
+
+          {/* Route with address details on click card */}
+          <div className="flex items-center gap-2 text-xs">
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <MapPin className="w-3.5 h-3.5 text-chart-1 shrink-0" />
+                <span className="font-medium text-foreground">{carga.endereco_origem?.cidade || 'N/A'}, {carga.endereco_origem?.estado || ''}</span>
+              </div>
+              {carga.endereco_origem?.logradouro && (
+                <span className="text-muted-foreground ml-5 truncate max-w-[150px]">
+                  {carga.endereco_origem.logradouro}{carga.endereco_origem.numero ? `, ${carga.endereco_origem.numero}` : ''}
+                </span>
+              )}
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0 mx-1" />
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <MapPin className="w-3.5 h-3.5 text-chart-2 shrink-0" />
+                <span className="font-medium text-foreground">{carga.endereco_destino?.cidade || 'N/A'}, {carga.endereco_destino?.estado || ''}</span>
+              </div>
+              {carga.endereco_destino?.logradouro && (
+                <span className="text-muted-foreground ml-5 truncate max-w-[150px]">
+                  {carga.endereco_destino.logradouro}{carga.endereco_destino.numero ? `, ${carga.endereco_destino.numero}` : ''}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Weight Progress Bar */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Disponível</span>
+              <span className="font-medium text-foreground">
+                {(pesoDisponivel / 1000).toFixed(1)} ton / {(carga.peso_kg / 1000).toFixed(1)} ton
+              </span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all ${
+                  percentDisponivel <= 25 
+                    ? 'bg-red-500' 
+                    : percentDisponivel <= 50 
+                    ? 'bg-amber-500' 
+                    : 'bg-chart-2'
+                }`}
+                style={{ width: `${percentDisponivel}%` }}
               />
             </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <Badge variant="secondary" className="text-xs">
-                {carga.codigo}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                {tipoCargaLabels[carga.tipo] || carga.tipo}
-              </Badge>
-            </div>
-            <p className="font-medium text-sm line-clamp-1">{carga.descricao}</p>
-            {carga.empresa?.nome && (
-              <p className="text-xs text-muted-foreground mt-0.5">{carga.empresa.nome}</p>
-            )}
           </div>
-          <div className="flex gap-1 shrink-0">
-            {carga.requer_refrigeracao && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <ThermometerSnowflake className="w-4 h-4 text-blue-500" />
-                </TooltipTrigger>
-                <TooltipContent>Refrigerada</TooltipContent>
-              </Tooltip>
-            )}
-            {carga.carga_perigosa && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <AlertTriangle className="w-4 h-4 text-orange-500" />
-                </TooltipTrigger>
-                <TooltipContent>Perigosa</TooltipContent>
-              </Tooltip>
-            )}
-            {carga.carga_fragil && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <Boxes className="w-4 h-4 text-amber-500" />
-                </TooltipTrigger>
-                <TooltipContent>Frágil</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-        </div>
 
-        {/* Route */}
-        <div className="flex items-center gap-2 text-xs">
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <MapPin className="w-3.5 h-3.5 text-chart-1" />
-            <span className="truncate max-w-[80px]">{carga.endereco_origem?.cidade || 'N/A'}</span>
-          </div>
-          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <MapPin className="w-3.5 h-3.5 text-chart-2" />
-            <span className="truncate max-w-[80px]">{carga.endereco_destino?.cidade || 'N/A'}</span>
-          </div>
-        </div>
-
-        {/* Available Weight Badge */}
-        {carga.peso_disponivel_kg !== null && carga.peso_disponivel_kg < carga.peso_kg && (
-          <div className="flex items-center gap-2 text-xs">
-            <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-              Fracionada - {((carga.peso_disponivel_kg / carga.peso_kg) * 100).toFixed(0)}% disponível
-            </Badge>
-          </div>
-        )}
-
-        {/* Details Row */}
-        <div className="flex items-center justify-between pt-2 border-t border-border">
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Weight className="w-3.5 h-3.5" />
-              <span className="font-medium text-foreground">
-                {(carga.peso_disponivel_kg ?? carga.peso_kg).toLocaleString('pt-BR')} kg
-              </span>
-              {carga.peso_disponivel_kg !== null && carga.peso_disponivel_kg < carga.peso_kg && (
-                <span className="text-muted-foreground">/ {carga.peso_kg.toLocaleString('pt-BR')} kg</span>
-              )}
-            </span>
-            {carga.data_coleta_de && (
+          {/* Details Row */}
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" />
-                {format(new Date(carga.data_coleta_de), 'dd/MM', { locale: ptBR })}
+                <Weight className="w-3.5 h-3.5" />
+                <span className="font-medium text-foreground">
+                  {pesoDisponivel.toLocaleString('pt-BR')} kg
+                </span>
               </span>
+              {/* Cubagem */}
+              {carga.volume_m3 && carga.volume_m3 > 0 && (
+                <span className="flex items-center gap-1">
+                  <Boxes className="w-3.5 h-3.5" />
+                  <span className="font-medium text-foreground">
+                    {carga.volume_m3.toLocaleString('pt-BR')} m³
+                  </span>
+                </span>
+              )}
+              {carga.data_coleta_de && (
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {format(new Date(carga.data_coleta_de), 'dd/MM', { locale: ptBR })}
+                </span>
+              )}
+            </div>
+            {carga.valor_frete_tonelada && (
+              <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
+                <DollarSign className="w-4 h-4" />
+                {formatCurrency(carga.valor_frete_tonelada)}/ton
+              </div>
             )}
           </div>
-          {carga.valor_frete_tonelada && (
-            <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
-              <DollarSign className="w-4 h-4" />
-              {formatCurrency(carga.valor_frete_tonelada)}/ton
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <PortalLayout expectedUserType="transportadora">
@@ -966,15 +1024,44 @@ export default function CargasDisponiveis() {
                           </Marker>
                         </MapContainer>
                       </div>
-                      {/* Route Stats */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="w-4 h-4 text-green-600" />
-                          <span>{selectedCarga.endereco_origem?.cidade}, {selectedCarga.endereco_origem?.estado}</span>
-                          <ArrowRight className="w-4 h-4" />
-                          <MapPin className="w-4 h-4 text-red-500" />
-                          <span>{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</span>
+                      {/* Route Stats with Full Address */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                        <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-md">
+                          <div className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400 mb-1">
+                            <MapPin className="w-4 h-4" />
+                            Origem
+                          </div>
+                          <p className="text-sm font-medium">{selectedCarga.endereco_origem?.cidade}, {selectedCarga.endereco_origem?.estado}</p>
+                          {selectedCarga.endereco_origem?.logradouro && (
+                            <p className="text-xs text-muted-foreground">
+                              {selectedCarga.endereco_origem.logradouro}
+                              {selectedCarga.endereco_origem.numero ? `, ${selectedCarga.endereco_origem.numero}` : ''}
+                              {selectedCarga.endereco_origem.bairro ? ` - ${selectedCarga.endereco_origem.bairro}` : ''}
+                            </p>
+                          )}
+                          {selectedCarga.endereco_origem?.cep && (
+                            <p className="text-xs text-muted-foreground">CEP: {selectedCarga.endereco_origem.cep}</p>
+                          )}
                         </div>
+                        <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-md">
+                          <div className="flex items-center gap-2 text-sm font-medium text-red-700 dark:text-red-400 mb-1">
+                            <MapPin className="w-4 h-4" />
+                            Destino
+                          </div>
+                          <p className="text-sm font-medium">{selectedCarga.endereco_destino?.cidade}, {selectedCarga.endereco_destino?.estado}</p>
+                          {selectedCarga.endereco_destino?.logradouro && (
+                            <p className="text-xs text-muted-foreground">
+                              {selectedCarga.endereco_destino.logradouro}
+                              {selectedCarga.endereco_destino.numero ? `, ${selectedCarga.endereco_destino.numero}` : ''}
+                              {selectedCarga.endereco_destino.bairro ? ` - ${selectedCarga.endereco_destino.bairro}` : ''}
+                            </p>
+                          )}
+                          {selectedCarga.endereco_destino?.cep && (
+                            <p className="text-xs text-muted-foreground">CEP: {selectedCarga.endereco_destino.cep}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end mt-2">
                         <div className="flex items-center gap-2">
                           {isLoadingDialogRoute ? (
                             <Badge variant="outline" className="gap-1">
