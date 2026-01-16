@@ -53,104 +53,88 @@ const formatCurrency = (value: number | null) => {
   }).format(value);
 };
 
-// Clean map style with natural colors (vegetation green, water blue)
+// Clean silver map style - minimal and elegant
 const mapStyles: google.maps.MapTypeStyle[] = [
-  // Base landscape - subtle gray
   {
-    featureType: 'landscape',
     elementType: 'geometry',
-    stylers: [{ color: '#f0f0f0' }],
-  },
-  // Natural landscape - soft green for vegetation
-  {
-    featureType: 'landscape.natural',
-    elementType: 'geometry',
-    stylers: [{ color: '#e8f4e8' }],
+    stylers: [{ color: '#f5f5f5' }],
   },
   {
-    featureType: 'landscape.natural.landcover',
-    elementType: 'geometry',
-    stylers: [{ color: '#d4ecd4' }],
-  },
-  // Water - nice blue
-  {
-    featureType: 'water',
-    elementType: 'geometry',
-    stylers: [{ color: '#a8d4f0' }],
+    elementType: 'labels.icon',
+    stylers: [{ visibility: 'off' }],
   },
   {
-    featureType: 'water',
     elementType: 'labels.text.fill',
-    stylers: [{ color: '#4a90b8' }],
+    stylers: [{ color: '#616161' }],
   },
-  // Roads
+  {
+    elementType: 'labels.text.stroke',
+    stylers: [{ color: '#f5f5f5' }],
+  },
+  {
+    featureType: 'administrative.land_parcel',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#bdbdbd' }],
+  },
+  {
+    featureType: 'poi',
+    elementType: 'geometry',
+    stylers: [{ color: '#eeeeee' }],
+  },
+  {
+    featureType: 'poi',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#757575' }],
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'geometry',
+    stylers: [{ color: '#e5e5e5' }],
+  },
   {
     featureType: 'road',
     elementType: 'geometry',
     stylers: [{ color: '#ffffff' }],
   },
   {
-    featureType: 'road.highway',
-    elementType: 'geometry.fill',
-    stylers: [{ color: '#ffd966' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#e6b800' }],
-  },
-  {
     featureType: 'road.arterial',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#757575' }],
+  },
+  {
+    featureType: 'road.highway',
     elementType: 'geometry',
-    stylers: [{ color: '#f5f5f5' }],
+    stylers: [{ color: '#dadada' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#616161' }],
   },
   {
     featureType: 'road.local',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#9e9e9e' }],
+  },
+  {
+    featureType: 'transit.line',
     elementType: 'geometry',
-    stylers: [{ color: '#ffffff' }],
+    stylers: [{ color: '#e5e5e5' }],
   },
-  // Parks - green
   {
-    featureType: 'poi.park',
+    featureType: 'transit.station',
     elementType: 'geometry',
-    stylers: [{ color: '#c8e6c8' }],
-  },
-  // Hide POI labels for cleaner look
-  {
-    featureType: 'poi',
-    elementType: 'labels',
-    stylers: [{ visibility: 'off' }],
+    stylers: [{ color: '#eeeeee' }],
   },
   {
-    featureType: 'poi.business',
-    stylers: [{ visibility: 'off' }],
-  },
-  // Transit labels off
-  {
-    featureType: 'transit',
-    elementType: 'labels',
-    stylers: [{ visibility: 'off' }],
-  },
-  // Administrative boundaries
-  {
-    featureType: 'administrative',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#c0c0c0' }],
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#c9c9c9' }],
   },
   {
-    featureType: 'administrative.locality',
+    featureType: 'water',
     elementType: 'labels.text.fill',
-    stylers: [{ color: '#555555' }],
-  },
-  {
-    featureType: 'administrative.province',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#777777' }],
-  },
-  {
-    featureType: 'administrative.country',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#666666' }],
+    stylers: [{ color: '#9e9e9e' }],
   },
 ];
 
@@ -179,25 +163,40 @@ export default function CargasGoogleMap({
     return Number.isFinite(n) ? n : null;
   }, []);
 
-  // Create Airbnb-style price marker icon
+  // Create premium Airbnb-style price marker icon with gradient and shadow
   const createMarkerIcon = useCallback(
     (isHovered: boolean, isSelected: boolean) => {
-      const bgColor = isSelected ? '#1a1a1a' : isHovered ? '#1a1a1a' : '#0d9668';
-      const textColor = '#ffffff';
-      const scale = isHovered || isSelected ? 1.1 : 1;
-      const shadow = isHovered || isSelected ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))';
+      const scale = isHovered || isSelected ? 1.15 : 1;
+      const width = Math.round(72 * scale);
+      const height = Math.round(34 * scale);
       
+      // Premium pill with gradient, subtle border, and elegant shadow
       const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(80 * scale)}" height="${Math.round(32 * scale)}" viewBox="0 0 80 32" style="filter: ${shadow}">
-          <rect x="1" y="1" width="78" height="30" rx="15" fill="${bgColor}" stroke="${textColor}" stroke-width="2"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 72 34">
+          <defs>
+            <linearGradient id="pillGrad${isSelected ? 'S' : isHovered ? 'H' : 'N'}" x1="0%" y1="0%" x2="0%" y2="100%">
+              ${isSelected || isHovered 
+                ? '<stop offset="0%" style="stop-color:#2d2d2d"/><stop offset="100%" style="stop-color:#1a1a1a"/>'
+                : '<stop offset="0%" style="stop-color:#10b981"/><stop offset="100%" style="stop-color:#059669"/>'
+              }
+            </linearGradient>
+            <filter id="shadow${isSelected ? 'S' : isHovered ? 'H' : 'N'}" x="-20%" y="-20%" width="140%" height="160%">
+              <feDropShadow dx="0" dy="${isHovered || isSelected ? '4' : '2'}" stdDeviation="${isHovered || isSelected ? '4' : '2'}" flood-color="#000" flood-opacity="${isHovered || isSelected ? '0.35' : '0.2'}"/>
+            </filter>
+          </defs>
+          <rect x="2" y="2" width="68" height="30" rx="15" 
+            fill="url(#pillGrad${isSelected ? 'S' : isHovered ? 'H' : 'N'})" 
+            filter="url(#shadow${isSelected ? 'S' : isHovered ? 'H' : 'N'})"
+            stroke="rgba(255,255,255,0.25)" 
+            stroke-width="1"/>
         </svg>
       `;
       
       return {
         url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.trim())}`,
-        scaledSize: new google.maps.Size(Math.round(80 * scale), Math.round(32 * scale)),
-        anchor: new google.maps.Point(Math.round(40 * scale), Math.round(16 * scale)),
-        labelOrigin: new google.maps.Point(Math.round(40 * scale), Math.round(16 * scale)),
+        scaledSize: new google.maps.Size(width, height),
+        anchor: new google.maps.Point(width / 2, height / 2),
+        labelOrigin: new google.maps.Point(width / 2, height / 2),
       } as google.maps.Icon;
     },
     []
