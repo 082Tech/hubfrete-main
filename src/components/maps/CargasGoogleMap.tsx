@@ -71,6 +71,7 @@ export default function CargasGoogleMap({
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null);
 
   const toNumber = useCallback((value: number | string | null | undefined) => {
@@ -231,7 +232,13 @@ export default function CargasGoogleMap({
     setSelectedCarga(null);
     setDirections(null);
     setRouteInfo(null);
-  }, []);
+
+    // Hard cleanup: @react-google-maps/api can sometimes leave the polyline behind
+    if (directionsRenderer) {
+      directionsRenderer.setDirections({ routes: [] } as unknown as google.maps.DirectionsResult);
+      directionsRenderer.setMap(null);
+    }
+  }, [directionsRenderer]);
 
   if (loadError) {
     return (
@@ -262,6 +269,10 @@ export default function CargasGoogleMap({
           setSelectedCarga(null);
           setDirections(null);
           setRouteInfo(null);
+          if (directionsRenderer) {
+            directionsRenderer.setDirections({ routes: [] } as unknown as google.maps.DirectionsResult);
+            directionsRenderer.setMap(null);
+          }
         }}
       >
         {/* Directions route - key forces remount on change */}
@@ -269,6 +280,8 @@ export default function CargasGoogleMap({
           <DirectionsRenderer
             key={selectedCarga.id}
             directions={directions}
+            onLoad={(renderer) => setDirectionsRenderer(renderer)}
+            onUnmount={() => setDirectionsRenderer(null)}
             options={{
               suppressMarkers: true,
               polylineOptions: {
@@ -312,12 +325,12 @@ export default function CargasGoogleMap({
           if (destLat === null || destLng === null) return null;
 
           // SVG for red pin with transparent/white center dot
-          const pinSvg = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">
-              <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.268 21.732 0 14 0z" fill="#EA4335"/>
-              <circle cx="14" cy="14" r="5" fill="#FFFFFF"/>
-            </svg>
-          `;
+           const pinSvg = `
+             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">
+               <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.268 21.732 0 14 0z" fill="#EA4335"/>
+               <circle cx="14" cy="14" r="5" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+             </svg>
+           `;
 
           return (
             <MarkerF
