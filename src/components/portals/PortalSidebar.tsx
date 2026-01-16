@@ -181,9 +181,17 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
         {!collapsed && (
           <div className="px-4 py-4 border-b border-sidebar-border bg-sidebar-accent/10">
             <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-sidebar-primary/10 border border-sidebar-primary/20 flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5 text-sidebar-primary" />
-              </div>
+              {empresa?.logo_url ? (
+                <img 
+                  src={empresa.logo_url} 
+                  alt={empresa.nome || 'Logo'} 
+                  className="w-10 h-10 rounded-lg object-contain bg-white border border-sidebar-border shrink-0"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-sidebar-primary/10 border border-sidebar-primary/20 flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5 text-sidebar-primary" />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <Badge variant={config.badgeVariant} className="text-[10px] py-0 px-1.5 h-5 mb-1">
                   <PortalIcon className="w-2.5 h-2.5 mr-1" />
@@ -420,11 +428,19 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
           {!collapsed ? (
             <>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-sidebar-primary font-semibold">
-                    {(profile?.nome_completo || profile?.email || 'U').charAt(0).toUpperCase()}
-                  </span>
-                </div>
+                {empresa?.logo_url ? (
+                  <img 
+                    src={empresa.logo_url} 
+                    alt={empresa.nome || 'Logo'} 
+                    className="w-10 h-10 rounded-full object-contain bg-white border border-sidebar-border shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-sidebar-primary font-semibold">
+                      {(profile?.nome_completo || profile?.email || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm font-medium text-sidebar-foreground truncate">

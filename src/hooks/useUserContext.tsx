@@ -17,6 +17,7 @@ export interface Empresa {
   cnpj_matriz: string | null;
   tipo: 'EMBARCADOR' | 'TRANSPORTADORA';
   classe: string;
+  logo_url: string | null;
 }
 
 export interface CompanyInfo {
@@ -123,7 +124,8 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
                   nome,
                   cnpj_matriz,
                   tipo,
-                  classe
+                  classe,
+                  logo_url
                 )
               )
             )
@@ -150,6 +152,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
                   cnpj_matriz: uf.filiais.empresas.cnpj_matriz,
                   tipo: uf.filiais.empresas.tipo,
                   classe: uf.filiais.empresas.classe,
+                  logo_url: uf.filiais.empresas.logo_url,
                 };
                 empresaId = uf.filiais.empresa_id;
               }
