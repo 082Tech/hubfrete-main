@@ -695,19 +695,25 @@ export default function GestaoEntregas() {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
-                          <TableHead className="font-semibold min-w-[120px] sticky left-0 bg-muted/50 z-10">Código</TableHead>
-                          <TableHead className="font-semibold min-w-[150px]">
+                          <TableHead className="font-semibold min-w-[100px] sticky left-0 bg-muted/50 z-10">Código</TableHead>
+                          <TableHead className="font-semibold min-w-[140px]">
                             <div className="flex items-center gap-1">
                               <Building2 className="w-3 h-3" />
-                              Embarcador
+                              Remetente
                             </div>
                           </TableHead>
-                          <TableHead className="font-semibold min-w-[200px]">Rota</TableHead>
-                          <TableHead className="font-semibold min-w-[90px]">Peso</TableHead>
-                          <TableHead className="font-semibold min-w-[130px]">Motorista</TableHead>
-                          <TableHead className="font-semibold min-w-[90px]">Veículo</TableHead>
-                          <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
-                          <TableHead className="font-semibold min-w-[100px]">
+                          <TableHead className="font-semibold min-w-[140px]">
+                            <div className="flex items-center gap-1">
+                              <Package className="w-3 h-3" />
+                              Destinatário
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-semibold min-w-[180px]">Rota</TableHead>
+                          <TableHead className="font-semibold min-w-[80px]">Peso</TableHead>
+                          <TableHead className="font-semibold min-w-[120px]">Motorista</TableHead>
+                          <TableHead className="font-semibold min-w-[80px]">Veículo</TableHead>
+                          <TableHead className="font-semibold min-w-[110px]">Status</TableHead>
+                          <TableHead className="font-semibold min-w-[90px]">
                             <div className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               Previsão
@@ -736,24 +742,46 @@ export default function GestaoEntregas() {
                               <TableCell>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <span className="text-sm truncate block max-w-[140px]">
+                                    <span className="text-sm truncate block max-w-[130px]">
                                       {entrega.carga.empresa?.nome || '-'}
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    {entrega.carga.empresa?.nome || 'Embarcador não informado'}
+                                    <div className="text-xs">
+                                      <p className="font-medium">{entrega.carga.empresa?.nome || 'Remetente não informado'}</p>
+                                      {entrega.carga.endereco_origem && (
+                                        <p className="text-muted-foreground">{entrega.carga.endereco_origem.logradouro}, {entrega.carga.endereco_origem.cidade}/{entrega.carga.endereco_origem.estado}</p>
+                                      )}
+                                    </div>
                                   </TooltipContent>
                                 </Tooltip>
                               </TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-1.5 text-sm">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-sm truncate block max-w-[130px]">
+                                      {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="text-xs">
+                                      <p className="font-medium">{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
+                                      {entrega.carga.endereco_destino && (
+                                        <p className="text-muted-foreground">{entrega.carga.endereco_destino.logradouro}, {entrega.carga.endereco_destino.cidade}/{entrega.carga.endereco_destino.estado}</p>
+                                      )}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1 text-sm">
                                   <MapPin className="w-3 h-3 text-chart-1 shrink-0" />
-                                  <span className="truncate max-w-[60px]">
+                                  <span className="truncate max-w-[50px]">
                                     {entrega.carga.endereco_origem?.cidade || '-'}
                                   </span>
                                   <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
                                   <MapPin className="w-3 h-3 text-chart-2 shrink-0" />
-                                  <span className="truncate max-w-[60px]">
+                                  <span className="truncate max-w-[50px]">
                                     {entrega.carga.endereco_destino?.cidade || '-'}
                                   </span>
                                 </div>

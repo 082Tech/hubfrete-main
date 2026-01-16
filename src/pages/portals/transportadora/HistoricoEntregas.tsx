@@ -134,17 +134,22 @@ export default function HistoricoEntregas() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold min-w-[120px] sticky left-0 bg-muted/50 z-10">Código</TableHead>
-                    <TableHead className="font-semibold min-w-[180px]">
+                    <TableHead className="font-semibold min-w-[100px] sticky left-0 bg-muted/50 z-10">Código</TableHead>
+                    <TableHead className="font-semibold min-w-[160px]">
                       <div className="flex items-center gap-1">
                         <Building2 className="w-3 h-3" />
-                        Embarcador
+                        Remetente
                       </div>
                     </TableHead>
-                    <TableHead className="font-semibold min-w-[220px]">Rota</TableHead>
-                    <TableHead className="font-semibold min-w-[140px]">Destinatário</TableHead>
-                    <TableHead className="font-semibold min-w-[140px]">Status</TableHead>
-                    <TableHead className="font-semibold min-w-[120px]">
+                    <TableHead className="font-semibold min-w-[160px]">
+                      <div className="flex items-center gap-1">
+                        <Package className="w-3 h-3" />
+                        Destinatário
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold min-w-[180px]">Rota</TableHead>
+                    <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
+                    <TableHead className="font-semibold min-w-[110px]">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         Encerrada em
@@ -177,12 +182,14 @@ export default function HistoricoEntregas() {
                               <span className="font-medium">{e.carga.codigo}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{e.carga.empresa?.nome || '-'}</TableCell>
+                          <TableCell className="truncate max-w-[150px]">
+                            {e.carga.empresa?.nome || '-'}
+                          </TableCell>
+                          <TableCell className="truncate max-w-[150px]">
+                            {e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || '-'}
+                          </TableCell>
                           <TableCell>
                             {origem?.cidade}/{origem?.estado} → {destino?.cidade}/{destino?.estado}
-                          </TableCell>
-                          <TableCell className="truncate max-w-[220px]">
-                            {e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || '-'}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">{e.status || '-'}</Badge>
