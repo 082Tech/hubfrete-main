@@ -54,24 +54,42 @@ function DriverMarker({
     <OverlayView
       position={{ lat, lng }}
       mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+      getPixelPositionOffset={(width, height) => ({
+        x: -(width / 2),
+        y: -(height / 2),
+      })}
     >
       <div 
-        className={`
-          relative cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200
-          ${isSelected ? 'scale-125 z-50' : 'z-10 hover:scale-110'}
-        `}
+        className={`cursor-pointer transition-all duration-200 ${isSelected ? 'z-50' : 'z-10'}`}
+        style={{
+          transform: isSelected ? 'scale(1.25)' : 'scale(1)',
+        }}
         onClick={(e) => {
           e.stopPropagation();
           onClick();
         }}
+        onMouseEnter={(e) => {
+          if (!isSelected) (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.1)';
+        }}
+        onMouseLeave={(e) => {
+          if (!isSelected) (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
+        }}
       >
+        {/* Pulse animation for active deliveries - placed behind */}
+        {entrega.status === 'em_transito' && (
+          <div 
+            className="absolute rounded-full bg-primary/30 animate-ping"
+            style={{ width: 40, height: 40, top: 0, left: 0 }}
+          />
+        )}
+        
         {/* Avatar or Truck icon */}
         <div 
           className={`
-            w-10 h-10 rounded-full flex items-center justify-center shadow-lg border-2
+            relative w-10 h-10 rounded-full flex items-center justify-center shadow-lg border-2 overflow-hidden
             ${isSelected 
               ? 'border-primary bg-primary' 
-              : 'border-background bg-background'
+              : 'border-white bg-white'
             }
           `}
         >
@@ -79,21 +97,19 @@ function DriverMarker({
             <img 
               src={entrega.motoristaFotoUrl} 
               alt={entrega.motorista || 'Motorista'}
-              className="w-full h-full rounded-full object-cover"
+              className="w-full h-full object-cover"
             />
           ) : (
             <Truck className={`w-5 h-5 ${isSelected ? 'text-primary-foreground' : 'text-primary'}`} />
           )}
         </div>
-        
-        {/* Pulse animation for active deliveries */}
-        {entrega.status === 'em_transito' && (
-          <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
-        )}
 
         {/* Label badge */}
         {isSelected && (
-          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-0.5 rounded-full font-medium shadow-md">
+          <div 
+            className="absolute whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-0.5 rounded-full font-medium shadow-md"
+            style={{ top: 46, left: '50%', transform: 'translateX(-50%)' }}
+          >
             {entrega.codigo}
           </div>
         )}
