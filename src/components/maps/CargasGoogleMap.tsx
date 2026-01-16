@@ -1,8 +1,8 @@
-import { GoogleMap, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
+import { GoogleMap, OverlayView, InfoWindow } from '@react-google-maps/api';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { MapPin, ArrowRight, Loader2 } from 'lucide-react';
-import { useGoogleMaps, defaultMapContainerStyle, defaultCenter, defaultOptions } from './GoogleMapsLoader';
+import { useGoogleMaps, defaultMapContainerStyle, defaultCenter } from './GoogleMapsLoader';
 
 interface Carga {
   id: string;
@@ -39,6 +39,84 @@ const formatCurrency = (value: number | null) => {
   }).format(value);
 };
 
+// Clean, modern map style with subtle colors
+const mapStyles: google.maps.MapTypeStyle[] = [
+  {
+    featureType: 'all',
+    elementType: 'geometry',
+    stylers: [{ color: '#f5f5f5' }],
+  },
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#c9e8f5' }],
+  },
+  {
+    featureType: 'water',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#5d99ab' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry',
+    stylers: [{ color: '#ffffff' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry',
+    stylers: [{ color: '#dadada' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#c9c9c9' }],
+  },
+  {
+    featureType: 'road.arterial',
+    elementType: 'geometry',
+    stylers: [{ color: '#ffffff' }],
+  },
+  {
+    featureType: 'road.local',
+    elementType: 'geometry',
+    stylers: [{ color: '#ffffff' }],
+  },
+  {
+    featureType: 'poi',
+    elementType: 'labels',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'geometry',
+    stylers: [{ color: '#e5f2e5' }],
+  },
+  {
+    featureType: 'transit',
+    elementType: 'labels',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'administrative',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#c9c9c9' }],
+  },
+  {
+    featureType: 'administrative.locality',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#666666' }],
+  },
+];
+
+const mapOptions: google.maps.MapOptions = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: true,
+  styles: mapStyles,
+};
+
 export default function CargasGoogleMap({
   cargas,
   onCargaClick,
@@ -56,11 +134,11 @@ export default function CargasGoogleMap({
     );
   }, [cargas]);
 
-  // Fit bounds when map loads or cargas change
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
   }, []);
 
+  // Fit bounds when map loads or cargas change
   useEffect(() => {
     if (!map || cargasComCoordenadas.length === 0) return;
 
@@ -103,8 +181,9 @@ export default function CargasGoogleMap({
       zoom={4}
       onLoad={onLoad}
       onUnmount={onUnmount}
-      options={defaultOptions}
+      options={mapOptions}
     >
+      {/* Price markers using OverlayView */}
       {cargasComCoordenadas.map((carga) => {
         const isHovered = hoveredCargaId === carga.id;
         const priceText = carga.valor_frete_tonelada
@@ -112,48 +191,37 @@ export default function CargasGoogleMap({
           : '---';
 
         return (
-          <Marker
+          <OverlayView
             key={carga.id}
             position={{
               lat: carga.endereco_origem!.latitude!,
               lng: carga.endereco_origem!.longitude!,
             }}
-            label={{
-              text: `${priceText}/ton`,
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '11px',
-            }}
-            icon={{
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 0,
-            }}
-            onClick={() => setSelectedCarga(carga)}
-            onMouseOver={() => setHoveredCargaId(carga.id)}
-            onMouseOut={() => setHoveredCargaId(null)}
-          />
+            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+          >
+            <div
+              onClick={() => setSelectedCarga(carga)}
+              onMouseEnter={() => setHoveredCargaId(carga.id)}
+              onMouseLeave={() => setHoveredCargaId(null)}
+              className={`
+                cursor-pointer px-3 py-1.5 rounded-full font-semibold text-xs whitespace-nowrap
+                shadow-lg border-2 border-white transition-all duration-200
+                ${isHovered 
+                  ? 'bg-foreground text-background scale-110 z-50' 
+                  : 'bg-primary text-primary-foreground'
+                }
+              `}
+              style={{
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              {priceText}/ton
+            </div>
+          </OverlayView>
         );
       })}
 
-      {/* Custom markers with price labels */}
-      {cargasComCoordenadas.map((carga) => {
-        const isHovered = hoveredCargaId === carga.id;
-        const priceText = carga.valor_frete_tonelada
-          ? `R$${Math.round(carga.valor_frete_tonelada)}`
-          : '---';
-
-        return (
-          <PriceMarker
-            key={`price-${carga.id}`}
-            carga={carga}
-            isHovered={isHovered}
-            onClick={() => setSelectedCarga(carga)}
-            onMouseEnter={() => setHoveredCargaId(carga.id)}
-            onMouseLeave={() => setHoveredCargaId(null)}
-          />
-        );
-      })}
-
+      {/* Info Window for selected carga */}
       {selectedCarga && selectedCarga.endereco_origem?.latitude && (
         <InfoWindow
           position={{
@@ -192,55 +260,5 @@ export default function CargasGoogleMap({
         </InfoWindow>
       )}
     </GoogleMap>
-  );
-}
-
-// Custom Price Marker Component using OverlayView
-import { OverlayView } from '@react-google-maps/api';
-
-interface PriceMarkerProps {
-  carga: Carga;
-  isHovered: boolean;
-  onClick: () => void;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-}
-
-function PriceMarker({ carga, isHovered, onClick, onMouseEnter, onMouseLeave }: PriceMarkerProps) {
-  if (!carga.endereco_origem?.latitude || !carga.endereco_origem?.longitude) {
-    return null;
-  }
-
-  const priceText = carga.valor_frete_tonelada
-    ? `R$${Math.round(carga.valor_frete_tonelada)}`
-    : '---';
-
-  return (
-    <OverlayView
-      position={{
-        lat: carga.endereco_origem.latitude,
-        lng: carga.endereco_origem.longitude,
-      }}
-      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-    >
-      <div
-        onClick={onClick}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        className={`
-          cursor-pointer px-3 py-1.5 rounded-full font-semibold text-xs whitespace-nowrap
-          shadow-lg border-2 border-white transition-all duration-200
-          ${isHovered 
-            ? 'bg-foreground text-background scale-110 z-50' 
-            : 'bg-primary text-primary-foreground'
-          }
-        `}
-        style={{
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        {priceText}/ton
-      </div>
-    </OverlayView>
   );
 }
