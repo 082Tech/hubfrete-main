@@ -1,7 +1,7 @@
 import { GoogleMap, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { useState, useCallback, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useGoogleMaps, defaultMapContainerStyle, defaultOptions } from './GoogleMapsLoader';
+import { useGoogleMaps, defaultMapContainerStyle, airbnbMapStyles } from './GoogleMapsLoader';
 import { Badge } from '@/components/ui/badge';
 
 interface RouteGoogleMapProps {
@@ -109,9 +109,12 @@ export default function RouteGoogleMap({
         onLoad={onLoad}
         onUnmount={onUnmount}
         options={{
-          ...defaultOptions,
+          disableDefaultUI: true,
           zoomControl: false,
+          streetViewControl: false,
+          mapTypeControl: false,
           fullscreenControl: false,
+          styles: airbnbMapStyles,
         }}
       >
         {directions ? (
