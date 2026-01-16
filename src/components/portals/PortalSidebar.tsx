@@ -24,6 +24,8 @@ import {
   History,
   Send,
   Route,
+  Pin,
+  Building,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -83,7 +85,7 @@ const cargasSubmenu: MenuGroup = {
 
 // Submenu for Entregas (transportadora only)
 const entregasSubmenu: MenuGroup = {
-  icon: Route,
+  icon: MapPin,
   label: 'Entregas',
   subItems: [
     { icon: Route, label: 'Gestão', href: '/transportadora/entregas' },
@@ -98,7 +100,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: Building2, label: 'Destinatários', href: '/embarcador/destinatarios' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
-    { icon: MapPin, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
+    { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
     { icon: User, label: 'Usuários da Empresa', href: '/embarcador/usuarios', adminOnly: true },
     { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
   ],
@@ -109,7 +111,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
     // Entregas is now a submenu - handled separately
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
-    { icon: MapPin, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true },
+    { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true },
     { icon: Users, label: 'Usuários da Empresa', href: '/transportadora/usuarios', adminOnly: true },
     { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
   ],
