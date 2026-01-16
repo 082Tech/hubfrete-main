@@ -202,6 +202,75 @@ export type Database = {
           },
         ]
       }
+      carrocerias: {
+        Row: {
+          ano: number | null
+          ativo: boolean | null
+          capacidade_kg: number | null
+          capacidade_m3: number | null
+          created_at: string | null
+          empresa_id: number | null
+          foto_url: string | null
+          id: string
+          marca: string | null
+          modelo: string | null
+          motorista_id: string | null
+          placa: string
+          renavam: string | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ano?: number | null
+          ativo?: boolean | null
+          capacidade_kg?: number | null
+          capacidade_m3?: number | null
+          created_at?: string | null
+          empresa_id?: number | null
+          foto_url?: string | null
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          motorista_id?: string | null
+          placa: string
+          renavam?: string | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ano?: number | null
+          ativo?: boolean | null
+          capacidade_kg?: number | null
+          capacidade_m3?: number | null
+          created_at?: string | null
+          empresa_id?: number | null
+          foto_url?: string | null
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          motorista_id?: string | null
+          placa?: string
+          renavam?: string | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carrocerias_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carrocerias_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_invites: {
         Row: {
           accepted_at: string | null
