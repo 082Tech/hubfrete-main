@@ -925,11 +925,11 @@ export default function GestaoCargas() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredCargas.map((carga) => {
-                          const status = carga.status || 'rascunho';
-                          const config = statusCargaConfig[status];
-                          const StatusIcon = config?.icon || Package;
+                      {filteredCargas.map((carga) => {
                           const entrega = carga.entregas;
+                          const entregaStatus = entrega?.status || 'aguardando_coleta';
+                          const config = statusEntregaConfig[entregaStatus];
+                          const StatusIcon = entregaStatus === 'em_transito' ? Truck : entregaStatus === 'em_entrega' ? Navigation : Package;
                           const isSelected = selectedCargaId === carga.id;
                           const remetente = getRemetente(carga);
                           const destinatario = getDestinatario(carga);
@@ -1047,11 +1047,11 @@ export default function GestaoCargas() {
                                 )}
                               </TableCell>
 
-                              {/* Status */}
+                              {/* Status da Entrega */}
                               <TableCell>
-                                <Badge variant="outline" className={config?.color}>
+                                <Badge variant="outline" className={`${config?.color} border`}>
                                   <StatusIcon className="w-3 h-3 mr-1" />
-                                  {config?.label}
+                                  {config?.label || entregaStatus}
                                 </Badge>
                               </TableCell>
 
