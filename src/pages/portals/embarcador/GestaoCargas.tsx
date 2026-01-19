@@ -164,13 +164,9 @@ interface CargaCompleta {
 
 // Status configuration for display
 const statusCargaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
-  'rascunho': { color: 'bg-muted text-muted-foreground border-muted', label: 'Rascunho', icon: Package },
   'publicada': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Publicada', icon: Package },
-  'aceita': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Aceita', icon: Package },
-  'em_coleta': { color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20', label: 'Em Coleta', icon: Truck },
-  'em_transito': { color: 'bg-orange-500/10 text-orange-600 border-orange-500/20', label: 'Em Trânsito', icon: Navigation },
-  'entregue': { color: 'bg-green-500/10 text-green-600 border-green-500/20', label: 'Entregue', icon: CheckCircle },
-  'cancelada': { color: 'bg-red-500/10 text-red-600 border-red-500/20', label: 'Cancelada', icon: AlertCircle },
+  'parcialmente_alocada': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Parcialmente Alocada', icon: Package },
+  'totalmente_alocada': { color: 'bg-green-500/10 text-green-600 border-green-500/20', label: 'Totalmente Alocada', icon: CheckCircle },
 };
 
 const statusEntregaConfig: Record<string, { color: string; label: string }> = {
@@ -565,13 +561,9 @@ export default function GestaoCargas() {
 
   const getProgress = (carga: CargaCompleta): number => {
     switch (carga.status) {
-      case 'rascunho': return 5;
       case 'publicada': return 20;
-      case 'aceita': return 40;
-      case 'em_coleta': return 55;
-      case 'em_transito': return 75;
-      case 'entregue': return 100;
-      case 'cancelada': return 0;
+      case 'parcialmente_alocada': return 60;
+      case 'totalmente_alocada': return 100;
       default: return 0;
     }
   };

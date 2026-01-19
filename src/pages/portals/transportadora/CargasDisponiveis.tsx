@@ -283,7 +283,7 @@ export default function CargasDisponiveis() {
       const novoPesoDisponivel = pesoDisponivel - pesoAlocadoKg;
 
       // Update cargo status and available weight
-      const novoStatus = novoPesoDisponivel <= 0 ? 'aceita' : 'publicada';
+      const novoStatus = novoPesoDisponivel <= 0 ? 'totalmente_alocada' : 'parcialmente_alocada';
       const { error: cargaError } = await supabase
         .from('cargas')
         .update({ 

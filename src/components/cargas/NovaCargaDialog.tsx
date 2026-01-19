@@ -226,7 +226,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           data_coleta_de: values.data_coleta_de,
           data_coleta_ate: values.data_coleta_ate || null,
           data_entrega_limite: values.data_entrega_limite || null,
-          status: 'rascunho',
+          status: 'publicada',
           codigo: '',
           // New fields
           necessidades_especiais: necessidadesEspeciais,

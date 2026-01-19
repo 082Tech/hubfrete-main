@@ -179,7 +179,7 @@ export default function CargasPublicadas() {
           )
         `)
         .eq('filial_id', filialAtiva.id)
-        .in('status', ['publicada', 'em_cotacao', 'aceita'])
+        .in('status', ['publicada', 'parcialmente_alocada'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
