@@ -110,6 +110,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: Truck, label: 'Minha Frota', href: '/transportadora/frota' },
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
     // Entregas is now a submenu - handled separately
+    { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true },
