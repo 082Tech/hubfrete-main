@@ -1217,15 +1217,7 @@ export type Database = {
         | "faturado_14"
         | "faturado_21"
         | "faturado_30"
-      status_carga:
-        | "rascunho"
-        | "publicada"
-        | "em_cotacao"
-        | "aceita"
-        | "em_coleta"
-        | "em_transito"
-        | "entregue"
-        | "cancelada"
+      status_carga: "publicada" | "parcialmente_alocada" | "totalmente_alocada"
       status_entrega:
         | "aguardando_coleta"
         | "em_coleta"
@@ -1422,16 +1414,7 @@ export const Constants = {
         "faturado_21",
         "faturado_30",
       ],
-      status_carga: [
-        "rascunho",
-        "publicada",
-        "em_cotacao",
-        "aceita",
-        "em_coleta",
-        "em_transito",
-        "entregue",
-        "cancelada",
-      ],
+      status_carga: ["publicada", "parcialmente_alocada", "totalmente_alocada"],
       status_entrega: [
         "aguardando_coleta",
         "em_coleta",
