@@ -154,18 +154,21 @@ export default function TodasCargas() {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [highlightedCargaId, setHighlightedCargaId] = useState<string | null>(null);
+  const [highlightedEntregaId, setHighlightedEntregaId] = useState<string | null>(null);
 
-  // Handle URL params for highlighting/expanding specific cargo
+  // Handle URL params for highlighting/expanding specific cargo and entrega
   useEffect(() => {
     const cargaId = searchParams.get('carga');
+    const entregaId = searchParams.get('entrega');
     if (cargaId) {
-      setHighlightedCargaId(cargaId);
       setExpandedRows(new Set([cargaId]));
-      // Clear the URL param after processing
+      if (entregaId) {
+        setHighlightedEntregaId(entregaId);
+      }
+      // Clear the URL params after processing
       setSearchParams({}, { replace: true });
       // Clear highlight after 5 seconds
-      const timer = setTimeout(() => setHighlightedCargaId(null), 5000);
+      const timer = setTimeout(() => setHighlightedEntregaId(null), 5000);
       return () => clearTimeout(timer);
     }
   }, [searchParams, setSearchParams]);
@@ -766,7 +769,6 @@ export default function TodasCargas() {
                     <TableBody>
                       {paginatedCargas.map((carga) => {
                         const isExpanded = expandedRows.has(carga.id);
-                        const isHighlighted = highlightedCargaId === carga.id;
                         const percentual = getPercentualAlocado(carga);
                         const origem = getEnderecoData(carga, 'origem');
                         const destino = getEnderecoData(carga, 'destino');
@@ -777,7 +779,7 @@ export default function TodasCargas() {
                             {/* Main Row */}
                             <TableRow 
                               key={carga.id}
-                              className={`hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''} ${isHighlighted ? 'ring-2 ring-primary ring-inset bg-primary/10 animate-pulse' : ''}`}
+                              className={`hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
                               onClick={() => hasEntregas && toggleRow(carga.id)}
                             >
                               <TableCell className="p-2">
@@ -898,11 +900,12 @@ export default function TodasCargas() {
                             {isExpanded && carga.entregas.map((entrega, idx) => {
                               const config = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando_coleta;
                               const StatusIcon = config.icon;
+                              const isEntregaHighlighted = highlightedEntregaId === entrega.id;
                               
                               return (
                                 <TableRow 
                                   key={`${carga.id}-entrega-${entrega.id}`}
-                                  className="bg-muted/30 hover:bg-muted/50 border-l-2 border-l-primary/50"
+                                  className={`bg-muted/30 hover:bg-muted/50 border-l-2 border-l-primary/50 ${isEntregaHighlighted ? 'ring-2 ring-primary ring-inset bg-primary/20 animate-pulse' : ''}`}
                                 >
                                   <TableCell className="p-2">
                                     <div className="ml-3 w-0.5 h-4 bg-primary/30" />
