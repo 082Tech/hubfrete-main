@@ -205,7 +205,7 @@ export default function CargasDisponiveis() {
           empresa:empresas!cargas_empresa_id_fkey(nome, logo_url),
           filial:filiais!cargas_filial_id_fkey(nome)
         `)
-        .eq('status', 'publicada')
+        .in('status', ['publicada', 'parcialmente_alocada'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
