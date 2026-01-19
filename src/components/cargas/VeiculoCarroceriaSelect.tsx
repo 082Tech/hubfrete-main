@@ -4,11 +4,6 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Truck, Container, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 
 // Tipos de veículos organizados por categoria
 const VEICULOS_CONFIG = {
@@ -166,19 +161,21 @@ export function VeiculoCarroceriaSelect({
   return (
     <div className="space-y-6">
       {/* Veículos */}
-      <Collapsible open={veiculosOpen} onOpenChange={setVeiculosOpen}>
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 p-0 h-auto hover:bg-transparent">
-              <Truck className="w-4 h-4 text-primary" />
-              <Label className="text-sm font-medium cursor-pointer">Tipos de Veículo Aceitos</Label>
-              {veiculosOpen ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </Button>
-          </CollapsibleTrigger>
+          <button
+            type="button"
+            onClick={() => setVeiculosOpen(!veiculosOpen)}
+            className="flex items-center gap-2 p-0 h-auto hover:opacity-80 transition-opacity bg-transparent border-none cursor-pointer"
+          >
+            <Truck className="w-4 h-4 text-primary" />
+            <Label className="text-sm font-medium cursor-pointer">Tipos de Veículo Aceitos</Label>
+            {veiculosOpen ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
           <Button
             type="button"
             variant={todosVeiculosSelecionados ? "default" : "outline"}
@@ -191,48 +188,50 @@ export function VeiculoCarroceriaSelect({
           </Button>
         </div>
 
-        <CollapsibleContent className="mt-3 space-y-4">
-          {Object.entries(VEICULOS_CONFIG).map(([key, category]) => {
-            const categorySelected = isCategoryFullySelected(category.items, safeVeiculos);
-            return (
-              <div key={key} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={categorySelected}
-                    onCheckedChange={() => handleToggleCategory(category.items, safeVeiculos, onVeiculosChange)}
-                  />
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleToggleCategory(category.items, safeVeiculos, onVeiculosChange)}
-                  >
-                    {category.label}
-                  </Label>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-6">
-                  {category.items.map((item) => (
-                    <div
-                      key={item.value}
-                      className={`flex items-center space-x-2 p-2 rounded-md border cursor-pointer transition-colors ${
-                        safeVeiculos.includes(item.value)
-                          ? 'bg-primary/10 border-primary/30'
-                          : 'border-border hover:bg-accent/50'
-                      }`}
-                      onClick={() => handleToggleVeiculo(item.value)}
+        {veiculosOpen && (
+          <div className="space-y-4">
+            {Object.entries(VEICULOS_CONFIG).map(([key, category]) => {
+              const categorySelected = isCategoryFullySelected(category.items, safeVeiculos);
+              return (
+                <div key={key} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={categorySelected}
+                      onCheckedChange={() => handleToggleCategory(category.items, safeVeiculos, onVeiculosChange)}
+                    />
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleToggleCategory(category.items, safeVeiculos, onVeiculosChange)}
                     >
-                      <Checkbox
-                        checked={safeVeiculos.includes(item.value)}
-                        onCheckedChange={() => handleToggleVeiculo(item.value)}
-                        className="pointer-events-none"
-                      />
-                      <Label className="font-normal cursor-pointer text-sm">
-                        {item.label}
-                      </Label>
-                    </div>
-                  ))}
+                      {category.label}
+                    </Label>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-6">
+                    {category.items.map((item) => (
+                      <div
+                        key={item.value}
+                        className={`flex items-center space-x-2 p-2 rounded-md border cursor-pointer transition-colors ${
+                          safeVeiculos.includes(item.value)
+                            ? 'bg-primary/10 border-primary/30'
+                            : 'border-border hover:bg-accent/50'
+                        }`}
+                        onClick={() => handleToggleVeiculo(item.value)}
+                      >
+                        <Checkbox
+                          checked={safeVeiculos.includes(item.value)}
+                          onCheckedChange={() => handleToggleVeiculo(item.value)}
+                          className="pointer-events-none"
+                        />
+                        <Label className="font-normal cursor-pointer text-sm">
+                          {item.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </CollapsibleContent>
+              );
+            })}
+          </div>
+        )}
 
         {!veiculosOpen && safeVeiculos.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -260,22 +259,24 @@ export function VeiculoCarroceriaSelect({
             )}
           </div>
         )}
-      </Collapsible>
+      </div>
 
       {/* Carrocerias */}
-      <Collapsible open={carroceriasOpen} onOpenChange={setCarroceriasOpen}>
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 p-0 h-auto hover:bg-transparent">
-              <Container className="w-4 h-4 text-primary" />
-              <Label className="text-sm font-medium cursor-pointer">Tipos de Carroceria Aceitas</Label>
-              {carroceriasOpen ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </Button>
-          </CollapsibleTrigger>
+          <button
+            type="button"
+            onClick={() => setCarroceriasOpen(!carroceriasOpen)}
+            className="flex items-center gap-2 p-0 h-auto hover:opacity-80 transition-opacity bg-transparent border-none cursor-pointer"
+          >
+            <Container className="w-4 h-4 text-primary" />
+            <Label className="text-sm font-medium cursor-pointer">Tipos de Carroceria Aceitas</Label>
+            {carroceriasOpen ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
           <Button
             type="button"
             variant={todasCarroceriasSelecionadas ? "default" : "outline"}
@@ -288,48 +289,50 @@ export function VeiculoCarroceriaSelect({
           </Button>
         </div>
 
-        <CollapsibleContent className="mt-3 space-y-4">
-          {Object.entries(CARROCERIAS_CONFIG).map(([key, category]) => {
-            const categorySelected = isCategoryFullySelected(category.items, safeCarrocerias);
-            return (
-              <div key={key} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={categorySelected}
-                    onCheckedChange={() => handleToggleCategory(category.items, safeCarrocerias, onCarroceriasChange)}
-                  />
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleToggleCategory(category.items, safeCarrocerias, onCarroceriasChange)}
-                  >
-                    {category.label}
-                  </Label>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-6">
-                  {category.items.map((item) => (
-                    <div
-                      key={item.value}
-                      className={`flex items-center space-x-2 p-2 rounded-md border cursor-pointer transition-colors ${
-                        safeCarrocerias.includes(item.value)
-                          ? 'bg-primary/10 border-primary/30'
-                          : 'border-border hover:bg-accent/50'
-                      }`}
-                      onClick={() => handleToggleCarroceria(item.value)}
+        {carroceriasOpen && (
+          <div className="space-y-4">
+            {Object.entries(CARROCERIAS_CONFIG).map(([key, category]) => {
+              const categorySelected = isCategoryFullySelected(category.items, safeCarrocerias);
+              return (
+                <div key={key} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={categorySelected}
+                      onCheckedChange={() => handleToggleCategory(category.items, safeCarrocerias, onCarroceriasChange)}
+                    />
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleToggleCategory(category.items, safeCarrocerias, onCarroceriasChange)}
                     >
-                      <Checkbox
-                        checked={safeCarrocerias.includes(item.value)}
-                        onCheckedChange={() => handleToggleCarroceria(item.value)}
-                        className="pointer-events-none"
-                      />
-                      <Label className="font-normal cursor-pointer text-sm">
-                        {item.label}
-                      </Label>
-                    </div>
-                  ))}
+                      {category.label}
+                    </Label>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-6">
+                    {category.items.map((item) => (
+                      <div
+                        key={item.value}
+                        className={`flex items-center space-x-2 p-2 rounded-md border cursor-pointer transition-colors ${
+                          safeCarrocerias.includes(item.value)
+                            ? 'bg-primary/10 border-primary/30'
+                            : 'border-border hover:bg-accent/50'
+                        }`}
+                        onClick={() => handleToggleCarroceria(item.value)}
+                      >
+                        <Checkbox
+                          checked={safeCarrocerias.includes(item.value)}
+                          onCheckedChange={() => handleToggleCarroceria(item.value)}
+                          className="pointer-events-none"
+                        />
+                        <Label className="font-normal cursor-pointer text-sm">
+                          {item.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </CollapsibleContent>
+              );
+            })}
+          </div>
+        )}
 
         {!carroceriasOpen && safeCarrocerias.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -357,7 +360,7 @@ export function VeiculoCarroceriaSelect({
             )}
           </div>
         )}
-      </Collapsible>
+      </div>
     </div>
   );
 }
