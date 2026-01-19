@@ -70,6 +70,11 @@ interface Motorista {
     placa: string;
     tipo: string;
   }[];
+  carrocerias: {
+    id: string;
+    placa: string;
+    tipo: string;
+  }[];
 }
 
 interface Veiculo {
@@ -166,7 +171,8 @@ export default function Motoristas() {
           validade_cnh,
           ativo,
           foto_url,
-          veiculos(id, placa, tipo)
+          veiculos(id, placa, tipo),
+          carrocerias(id, placa, tipo)
         `)
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });
@@ -847,23 +853,46 @@ export default function Motoristas() {
                       </div>
                     </div>
 
-                    {motorista.veiculos.length > 0 && (
-                      <div className="pt-3 border-t border-border">
-                        <p className="text-xs font-medium text-muted-foreground mb-2">
-                          Veículos vinculados:
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {motorista.veiculos.map((v) => (
-                            <Badge
-                              key={v.id}
-                              variant="outline"
-                              className="text-xs gap-1"
-                            >
-                              <Truck className="w-3 h-3" />
-                              {v.placa}
-                            </Badge>
-                          ))}
-                        </div>
+                    {(motorista.veiculos.length > 0 || motorista.carrocerias.length > 0) && (
+                      <div className="pt-3 border-t border-border space-y-2">
+                        {motorista.veiculos.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Veículo:
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {motorista.veiculos.map((v) => (
+                                <Badge
+                                  key={v.id}
+                                  variant="outline"
+                                  className="text-xs gap-1"
+                                >
+                                  <Car className="w-3 h-3" />
+                                  {v.placa} - {tipoVeiculoLabels[v.tipo] || v.tipo}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {motorista.carrocerias.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Carroceria:
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {motorista.carrocerias.map((c) => (
+                                <Badge
+                                  key={c.id}
+                                  variant="outline"
+                                  className="text-xs gap-1"
+                                >
+                                  <Container className="w-3 h-3" />
+                                  {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </CardContent>
