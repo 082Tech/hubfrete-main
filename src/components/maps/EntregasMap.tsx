@@ -159,7 +159,8 @@ const statusLabels: Record<string, string> = {
 
 interface EntregaMapData {
   id: string;
-  cargaId: string | null;
+  entregaId?: string;
+  cargaId?: string | null;
   latitude: number | null;
   longitude: number | null;
   status: string | null;
@@ -178,7 +179,9 @@ interface EntregaMapData {
 
 interface EntregasMapProps {
   entregas: EntregaMapData[];
+  selectedEntregaId?: string | null;
   selectedCargaId?: string | null;
+  onSelectEntrega?: (entregaId: string | null) => void;
   onSelectCarga?: (cargaId: string | null) => void;
 }
 
@@ -323,13 +326,26 @@ function RouteDisplay({
   );
 }
 
-export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: EntregasMapProps) {
+export function EntregasMap({ 
+  entregas, 
+  selectedEntregaId, 
+  selectedCargaId,
+  onSelectEntrega,
+  onSelectCarga 
+}: EntregasMapProps) {
   // Entregas with truck location
   const validEntregas = entregas.filter(e => e.latitude && e.longitude);
   
+  // Support both entregaId and cargaId for selection
+  const effectiveSelectedId = selectedEntregaId || selectedCargaId;
+  
   // Find selected entrega (can be any entrega, even without truck location)
-  const selectedEntrega = selectedCargaId 
-    ? entregas.find(e => e.cargaId === selectedCargaId) || null
+  const selectedEntrega = effectiveSelectedId 
+    ? entregas.find(e => 
+        (e.entregaId && e.entregaId === effectiveSelectedId) || 
+        (e.cargaId && e.cargaId === effectiveSelectedId) ||
+        e.id === effectiveSelectedId
+      ) || null
     : null;
   
   // Default center (Brazil)
@@ -352,9 +368,14 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
     : defaultCenter;
 
   const handleMarkerClick = (entrega: EntregaMapData) => {
+    const entregaKey = entrega.entregaId || entrega.cargaId || entrega.id;
+    const isCurrentlySelected = entregaKey === effectiveSelectedId;
+    
+    if (onSelectEntrega) {
+      onSelectEntrega(isCurrentlySelected ? null : (entrega.entregaId || entrega.id));
+    }
     if (onSelectCarga) {
-      // Toggle selection
-      onSelectCarga(selectedCargaId === entrega.cargaId ? null : entrega.cargaId);
+      onSelectCarga(isCurrentlySelected ? null : (entrega.cargaId || null));
     }
   };
 
@@ -428,13 +449,18 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
         
         {/* Driver avatar markers - hide others when one is selected */}
         {validEntregas
-          .filter((entrega) => !selectedCargaId || entrega.cargaId === selectedCargaId)
+          .filter((entrega) => {
+            if (!effectiveSelectedId) return true;
+            const entregaKey = entrega.entregaId || entrega.cargaId || entrega.id;
+            return entregaKey === effectiveSelectedId;
+          })
           .map((entrega) => {
             const isIdle = entrega.isIdleDriver || !entrega.status;
             const status = entrega.status || 'idle';
             const color = isIdle ? '#6b7280' : (statusColors[status] || statusColors['aguardando_coleta']);
             const label = isIdle ? 'Sem Entrega' : (statusLabels[status] || 'Desconhecido');
-            const isSelected = selectedCargaId === entrega.cargaId;
+            const entregaKey = entrega.entregaId || entrega.cargaId || entrega.id;
+            const isSelected = entregaKey === effectiveSelectedId;
             const isOnline = entrega.motoristaOnline === true;
             
             return (
@@ -551,7 +577,7 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
             </div>
           ))}
         </div>
-        {selectedCargaId && (
+        {effectiveSelectedId && (
           <div className="mt-2 pt-2 border-t border-border">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
@@ -586,7 +612,10 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
               size="sm"
               variant="ghost"
               className="ml-2 h-6 w-6 p-0"
-              onClick={() => onSelectCarga?.(null)}
+              onClick={() => {
+                onSelectEntrega?.(null);
+                onSelectCarga?.(null);
+              }}
             >
               ×
             </Button>
