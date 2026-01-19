@@ -399,7 +399,8 @@ export default function Motoristas() {
     createMotorista.mutate(newMotorista);
   };
 
-  const formatCPF = (cpf: string) => {
+  const formatCPF = (cpf: string | null | undefined) => {
+    if (!cpf) return 'Não informado';
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   };
 
