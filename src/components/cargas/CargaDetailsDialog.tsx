@@ -46,6 +46,7 @@ interface CargaDetailsProps {
     peso_kg: number;
     volume_m3: number | null;
     valor_mercadoria: number | null;
+    valor_frete_tonelada?: number | null;
     status: StatusCarga | null;
     data_coleta_de: string | null;
     data_coleta_ate: string | null;
@@ -62,6 +63,10 @@ interface CargaDetailsProps {
     temperatura_min?: number | null;
     temperatura_max?: number | null;
     numero_onu?: string | null;
+    veiculo_requisitos?: {
+      tipos_veiculo?: string[];
+      tipos_carroceria?: string[];
+    } | null;
     remetente?: {
       nome: string | null;
       cidade: string | null;
@@ -397,17 +402,60 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
                 </div>
               )}
 
+              {/* Requisitos de veículos */}
+              {carga.veiculo_requisitos && (
+                (carga.veiculo_requisitos.tipos_veiculo?.length > 0 || carga.veiculo_requisitos.tipos_carroceria?.length > 0) && (
+                  <div className="space-y-2">
+                    {carga.veiculo_requisitos.tipos_veiculo && carga.veiculo_requisitos.tipos_veiculo.length > 0 && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Tipos de Veículo Aceitos:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {carga.veiculo_requisitos.tipos_veiculo.map((tipo) => (
+                            <Badge key={tipo} variant="outline" className="text-xs">
+                              <Truck className="w-3 h-3 mr-1" />
+                              {tipoVeiculoLabels[tipo] || tipo}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {carga.veiculo_requisitos.tipos_carroceria && carga.veiculo_requisitos.tipos_carroceria.length > 0 && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Tipos de Carroceria Aceitas:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {carga.veiculo_requisitos.tipos_carroceria.map((tipo) => (
+                            <Badge key={tipo} variant="outline" className="text-xs">
+                              {tipo.replace(/_/g, ' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
+
+              {/* Valor do Frete por Tonelada */}
+              {carga.valor_frete_tonelada && (
+                <div className="flex items-center gap-2 p-2 rounded bg-primary/5 border border-primary/20">
+                  <span className="text-sm text-muted-foreground">Frete por tonelada:</span>
+                  <span className="font-medium text-primary">
+                    {carga.valor_frete_tonelada.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/ton
+                  </span>
+                </div>
+              )}
+
               {/* Nota fiscal */}
               {carga.nota_fiscal_url && (
-                <div className="flex items-center gap-2 text-green-600">
-                  <FileText className="w-4 h-4" />
+                <div className="flex items-center gap-2 p-2 rounded bg-green-500/10 border border-green-500/20">
+                  <FileText className="w-4 h-4 text-green-600" />
                   <a 
                     href={carga.nota_fiscal_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="hover:underline"
+                    className="text-green-600 hover:underline font-medium"
                   >
-                    Ver nota fiscal
+                    📎 Ver Nota Fiscal Anexada
                   </a>
                 </div>
               )}
