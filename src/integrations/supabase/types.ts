@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      ajudantes: {
+        Row: {
+          ativo: boolean | null
+          comprovante_vinculo_url: string | null
+          cpf: string
+          created_at: string | null
+          id: string
+          motorista_id: string
+          nome: string
+          telefone: string | null
+          tipo_cadastro: Database["public"]["Enums"]["tipo_cadastro_motorista"]
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          comprovante_vinculo_url?: string | null
+          cpf: string
+          created_at?: string | null
+          id?: string
+          motorista_id: string
+          nome: string
+          telefone?: string | null
+          tipo_cadastro?: Database["public"]["Enums"]["tipo_cadastro_motorista"]
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          comprovante_vinculo_url?: string | null
+          cpf?: string
+          created_at?: string | null
+          id?: string
+          motorista_id?: string
+          nome?: string
+          telefone?: string | null
+          tipo_cadastro?: Database["public"]["Enums"]["tipo_cadastro_motorista"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ajudantes_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cargas: {
         Row: {
           carga_fragil: boolean | null
@@ -699,11 +746,64 @@ export type Database = {
           },
         ]
       }
+      motorista_referencias: {
+        Row: {
+          created_at: string | null
+          empresa: string | null
+          id: string
+          motorista_id: string
+          nome: string
+          ordem: number
+          ramo: string | null
+          telefone: string
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          empresa?: string | null
+          id?: string
+          motorista_id: string
+          nome: string
+          ordem?: number
+          ramo?: string | null
+          telefone: string
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          empresa?: string | null
+          id?: string
+          motorista_id?: string
+          nome?: string
+          ordem?: number
+          ramo?: string | null
+          telefone?: string
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motorista_referencias_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motoristas: {
         Row: {
           ativo: boolean | null
           categoria_cnh: string
           cnh: string
+          cnh_digital_url: string | null
+          cnh_tem_qrcode: boolean | null
+          comprovante_endereco_titular_doc_url: string | null
+          comprovante_endereco_titular_nome: string | null
+          comprovante_endereco_url: string | null
+          comprovante_vinculo_url: string | null
           cpf: string
           created_at: string | null
           email: string | null
@@ -712,9 +812,14 @@ export type Database = {
           id: string
           jwt: string | null
           nome_completo: string
+          possui_ajudante: boolean | null
           push_token: string | null
           senha: string | null
           telefone: string | null
+          tipo_cadastro:
+            | Database["public"]["Enums"]["tipo_cadastro_motorista"]
+            | null
+          uf: string | null
           updated_at: string | null
           user_id: string
           validade_cnh: string
@@ -723,6 +828,12 @@ export type Database = {
           ativo?: boolean | null
           categoria_cnh: string
           cnh: string
+          cnh_digital_url?: string | null
+          cnh_tem_qrcode?: boolean | null
+          comprovante_endereco_titular_doc_url?: string | null
+          comprovante_endereco_titular_nome?: string | null
+          comprovante_endereco_url?: string | null
+          comprovante_vinculo_url?: string | null
           cpf: string
           created_at?: string | null
           email?: string | null
@@ -731,9 +842,14 @@ export type Database = {
           id?: string
           jwt?: string | null
           nome_completo: string
+          possui_ajudante?: boolean | null
           push_token?: string | null
           senha?: string | null
           telefone?: string | null
+          tipo_cadastro?:
+            | Database["public"]["Enums"]["tipo_cadastro_motorista"]
+            | null
+          uf?: string | null
           updated_at?: string | null
           user_id: string
           validade_cnh: string
@@ -742,6 +858,12 @@ export type Database = {
           ativo?: boolean | null
           categoria_cnh?: string
           cnh?: string
+          cnh_digital_url?: string | null
+          cnh_tem_qrcode?: boolean | null
+          comprovante_endereco_titular_doc_url?: string | null
+          comprovante_endereco_titular_nome?: string | null
+          comprovante_endereco_url?: string | null
+          comprovante_vinculo_url?: string | null
           cpf?: string
           created_at?: string | null
           email?: string | null
@@ -750,9 +872,14 @@ export type Database = {
           id?: string
           jwt?: string | null
           nome_completo?: string
+          possui_ajudante?: boolean | null
           push_token?: string | null
           senha?: string | null
           telefone?: string | null
+          tipo_cadastro?:
+            | Database["public"]["Enums"]["tipo_cadastro_motorista"]
+            | null
+          uf?: string | null
           updated_at?: string | null
           user_id?: string
           validade_cnh?: string
@@ -955,11 +1082,14 @@ export type Database = {
       veiculos: {
         Row: {
           ano: number | null
+          antt_rntrc: string | null
           ativo: boolean | null
           capacidade_kg: number | null
           capacidade_m3: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
+          comprovante_endereco_proprietario_url: string | null
           created_at: string | null
+          documento_veiculo_url: string | null
           empresa_id: number | null
           foto_url: string | null
           id: string
@@ -967,19 +1097,28 @@ export type Database = {
           modelo: string | null
           motorista_id: string | null
           placa: string
+          proprietario_cpf_cnpj: string | null
+          proprietario_nome: string | null
           rastreador: boolean | null
           renavam: string | null
           seguro_ativo: boolean | null
           tipo: Database["public"]["Enums"]["tipo_veiculo"]
+          tipo_propriedade:
+            | Database["public"]["Enums"]["tipo_propriedade_veiculo"]
+            | null
+          uf: string | null
           updated_at: string | null
         }
         Insert: {
           ano?: number | null
+          antt_rntrc?: string | null
           ativo?: boolean | null
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
+          comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
+          documento_veiculo_url?: string | null
           empresa_id?: number | null
           foto_url?: string | null
           id?: string
@@ -987,19 +1126,28 @@ export type Database = {
           modelo?: string | null
           motorista_id?: string | null
           placa: string
+          proprietario_cpf_cnpj?: string | null
+          proprietario_nome?: string | null
           rastreador?: boolean | null
           renavam?: string | null
           seguro_ativo?: boolean | null
           tipo: Database["public"]["Enums"]["tipo_veiculo"]
+          tipo_propriedade?:
+            | Database["public"]["Enums"]["tipo_propriedade_veiculo"]
+            | null
+          uf?: string | null
           updated_at?: string | null
         }
         Update: {
           ano?: number | null
+          antt_rntrc?: string | null
           ativo?: boolean | null
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria?: Database["public"]["Enums"]["tipo_carroceria"]
+          comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
+          documento_veiculo_url?: string | null
           empresa_id?: number | null
           foto_url?: string | null
           id?: string
@@ -1007,10 +1155,16 @@ export type Database = {
           modelo?: string | null
           motorista_id?: string | null
           placa?: string
+          proprietario_cpf_cnpj?: string | null
+          proprietario_nome?: string | null
           rastreador?: boolean | null
           renavam?: string | null
           seguro_ativo?: boolean | null
           tipo?: Database["public"]["Enums"]["tipo_veiculo"]
+          tipo_propriedade?:
+            | Database["public"]["Enums"]["tipo_propriedade_veiculo"]
+            | null
+          uf?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1081,6 +1235,7 @@ export type Database = {
         | "entregue"
         | "problema"
         | "devolvida"
+      tipo_cadastro_motorista: "autonomo" | "frota"
       tipo_carga:
         | "granel_solido"
         | "granel_liquido"
@@ -1118,6 +1273,7 @@ export type Database = {
       tipo_empresa: "EMBARCADOR" | "TRANSPORTADORA"
       tipo_endereco: "origem" | "destino"
       tipo_frete: "cif" | "fob"
+      tipo_propriedade_veiculo: "pf" | "pj"
       tipo_veiculo:
         | "truck"
         | "toco"
@@ -1286,6 +1442,7 @@ export const Constants = {
         "problema",
         "devolvida",
       ],
+      tipo_cadastro_motorista: ["autonomo", "frota"],
       tipo_carga: [
         "granel_solido",
         "granel_liquido",
@@ -1325,6 +1482,7 @@ export const Constants = {
       tipo_empresa: ["EMBARCADOR", "TRANSPORTADORA"],
       tipo_endereco: ["origem", "destino"],
       tipo_frete: ["cif", "fob"],
+      tipo_propriedade_veiculo: ["pf", "pj"],
       tipo_veiculo: [
         "truck",
         "toco",
