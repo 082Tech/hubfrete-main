@@ -27,6 +27,8 @@ import Configuracoes from "./pages/portals/embarcador/Configuracoes";
 import GerenciarFiliais from "./pages/portals/embarcador/GerenciarFiliais";
 import UsuariosEmpresa from "./pages/portals/embarcador/UsuariosEmpresa";
 import Assistente from "./pages/portals/embarcador/Assistente";
+import ContatosSalvos from "./pages/portals/embarcador/ContatosSalvos";
+import EmbarcadorMensagens from "./pages/portals/embarcador/Mensagens";
 
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraCargas from "./pages/portals/transportadora/CargasDisponiveis";
@@ -38,6 +40,7 @@ import TransportadoraAssistente from "./pages/portals/transportadora/Assistente"
 import TransportadoraConfiguracoes from "./pages/portals/transportadora/Configuracoes";
 import TransportadoraFiliais from "./pages/portals/transportadora/GerenciarFiliais";
 import TransportadoraUsuarios from "./pages/portals/transportadora/UsuariosEmpresa";
+import TransportadoraMensagens from "./pages/portals/transportadora/Mensagens";
 import MotoristaDashboard from "./pages/portals/MotoristaDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -75,6 +78,8 @@ const App = () => {
                 <Route path="/embarcador/cargas/em-rota" element={<CargasEmRota />} />
                 <Route path="/embarcador/relatorios" element={<Relatorios />} />
                 <Route path="/embarcador/assistente" element={<Assistente />} />
+                <Route path="/embarcador/mensagens" element={<EmbarcadorMensagens />} />
+                <Route path="/embarcador/contatos" element={<ContatosSalvos />} />
                 
                 <Route path="/embarcador/filiais" element={<GerenciarFiliais />} />
                 <Route path="/embarcador/usuarios" element={<UsuariosEmpresa />} />
@@ -88,6 +93,7 @@ const App = () => {
                 <Route path="/transportadora/entregas" element={<TransportadoraGestaoEntregas />} />
                 <Route path="/transportadora/entregas/historico" element={<TransportadoraHistoricoEntregas />} />
                 <Route path="/transportadora/assistente" element={<TransportadoraAssistente />} />
+                <Route path="/transportadora/mensagens" element={<TransportadoraMensagens />} />
                 <Route path="/transportadora/filiais" element={<TransportadoraFiliais />} />
                 <Route path="/transportadora/usuarios" element={<TransportadoraUsuarios />} />
                 <Route path="/transportadora/configuracoes" element={<TransportadoraConfiguracoes />} />

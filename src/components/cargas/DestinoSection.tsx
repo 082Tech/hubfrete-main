@@ -521,7 +521,7 @@ export function DestinoSection({ initialData, onLocationChange, dialogOpen = tru
                   type="button"
                   variant="outline"
                   size="default"
-                  onClick={() => setManageDialogOpen(true)}
+                  onClick={() => window.location.href = '/embarcador/contatos'}
                   className="gap-2"
                 >
                   <Settings className="w-4 h-4" />
