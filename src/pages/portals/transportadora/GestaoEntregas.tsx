@@ -118,6 +118,15 @@ interface MotoristaLocalizacao {
   status: boolean | null;
 }
 
+interface MotoristaCompleto {
+  id: string;
+  nome_completo: string;
+  telefone: string | null;
+  email: string | null;
+  foto_url: string | null;
+  ativo: boolean | null;
+}
+
 // Status configuration for display
 const statusEntregaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
   'aguardando_coleta': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando Coleta', icon: Clock },
@@ -142,6 +151,7 @@ export default function GestaoEntregas() {
   const { empresa } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [showOnlyWithDeliveries, setShowOnlyWithDeliveries] = useState(true);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -216,16 +226,46 @@ export default function GestaoEntregas() {
     refetchInterval: 60000, // Refresh every 1 minute
   });
 
-  // Fetch driver locations from localizações table
+  // Fetch all drivers from the company (for "show all drivers" filter)
+  const { data: allMotoristas = [] } = useQuery({
+    queryKey: ['all_motoristas_empresa', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      const { data, error } = await supabase
+        .from('motoristas')
+        .select('id, nome_completo, telefone, email, foto_url, ativo')
+        .eq('empresa_id', empresa.id)
+        .eq('ativo', true);
+
+      if (error) throw error;
+      return (data || []) as MotoristaCompleto[];
+    },
+    enabled: !!empresa?.id && !showOnlyWithDeliveries,
+  });
+
+  // Get all driver emails (either from entregas or all drivers based on filter)
   const motoristaEmails = useMemo(() => {
     const emails = new Set<string>();
+    
+    // Always include drivers from entregas
     entregas.forEach(e => {
       if (e.motorista?.email) {
         emails.add(e.motorista.email);
       }
     });
+    
+    // If showing all drivers, include them too
+    if (!showOnlyWithDeliveries) {
+      allMotoristas.forEach(m => {
+        if (m.email) {
+          emails.add(m.email);
+        }
+      });
+    }
+    
     return Array.from(emails);
-  }, [entregas]);
+  }, [entregas, allMotoristas, showOnlyWithDeliveries]);
 
   const { data: localizacoes = [] } = useQuery({
     queryKey: ['localizacoes_motoristas_transportadora', motoristaEmails],
@@ -289,45 +329,101 @@ export default function GestaoEntregas() {
 
   // Map data for entregas with location
   const mapData = useMemo(() => {
-    return filteredEntregas
-      .map(e => {
-        const origem = e.carga.endereco_origem;
-        const destino = e.carga.endereco_destino;
+    const result: Array<{
+      id: string;
+      cargaId: string | null;
+      latitude: number | null;
+      longitude: number | null;
+      status: string | null;
+      codigo: string | null;
+      descricao: string | null;
+      motorista: string | null;
+      motoristaFotoUrl: string | null;
+      motoristaOnline: boolean | null;
+      telefone: string | null;
+      placa: string | null;
+      destino: string | null;
+      origemCoords: { lat: number; lng: number } | null;
+      destinoCoords: { lat: number; lng: number } | null;
+      isIdleDriver?: boolean;
+    }> = [];
 
-        // Get driver location from localizações table
-        const motoristaEmail = e.motorista?.email;
-        const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
+    // Track drivers that are already included from entregas
+    const includedDriverEmails = new Set<string>();
 
-        // Include if has driver location OR has origin/destination coords
-        const hasLocation = localizacao?.latitude != null && localizacao?.longitude != null;
-        const hasRoute = (origem?.latitude != null && origem?.longitude != null) || (destino?.latitude != null && destino?.longitude != null);
+    // Add drivers from entregas
+    filteredEntregas.forEach(e => {
+      const origem = e.carga.endereco_origem;
+      const destino = e.carga.endereco_destino;
 
-        if (!hasLocation && !hasRoute) return null;
+      const motoristaEmail = e.motorista?.email;
+      const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
 
-        return {
-          id: e.id,
-          cargaId: e.carga.id,
-          latitude: localizacao?.latitude ?? null,
-          longitude: localizacao?.longitude ?? null,
-          status: e.status || null,
-          codigo: e.carga.codigo,
-          descricao: e.carga.descricao,
-          motorista: e.motorista?.nome_completo || null,
-          motoristaFotoUrl: e.motorista?.foto_url || null,
-          motoristaOnline: localizacao?.status ?? null,
-          telefone: e.motorista?.telefone || null,
-          placa: e.veiculo?.placa || null,
-          destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
-          origemCoords: origem?.latitude != null && origem?.longitude != null
-            ? { lat: origem.latitude, lng: origem.longitude }
-            : null,
-          destinoCoords: destino?.latitude != null && destino?.longitude != null
-            ? { lat: destino.latitude, lng: destino.longitude }
-            : null,
-        };
-      })
-      .filter(Boolean) as NonNullable<typeof mapData[number]>[];
-  }, [filteredEntregas, localizacaoMap]);
+      const hasLocation = localizacao?.latitude != null && localizacao?.longitude != null;
+      const hasRoute = (origem?.latitude != null && origem?.longitude != null) || (destino?.latitude != null && destino?.longitude != null);
+
+      if (!hasLocation && !hasRoute) return;
+
+      if (motoristaEmail) {
+        includedDriverEmails.add(motoristaEmail);
+      }
+
+      result.push({
+        id: e.id,
+        cargaId: e.carga.id,
+        latitude: localizacao?.latitude ?? null,
+        longitude: localizacao?.longitude ?? null,
+        status: e.status || null,
+        codigo: e.carga.codigo,
+        descricao: e.carga.descricao,
+        motorista: e.motorista?.nome_completo || null,
+        motoristaFotoUrl: e.motorista?.foto_url || null,
+        motoristaOnline: localizacao?.status ?? null,
+        telefone: e.motorista?.telefone || null,
+        placa: e.veiculo?.placa || null,
+        destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
+        origemCoords: origem?.latitude != null && origem?.longitude != null
+          ? { lat: origem.latitude, lng: origem.longitude }
+          : null,
+        destinoCoords: destino?.latitude != null && destino?.longitude != null
+          ? { lat: destino.latitude, lng: destino.longitude }
+          : null,
+      });
+    });
+
+    // If showing all drivers, add idle drivers (not in active deliveries)
+    if (!showOnlyWithDeliveries) {
+      allMotoristas.forEach(m => {
+        if (m.email && !includedDriverEmails.has(m.email)) {
+          const localizacao = localizacaoMap.get(m.email);
+          const hasLocation = localizacao?.latitude != null && localizacao?.longitude != null;
+
+          if (hasLocation) {
+            result.push({
+              id: `idle-${m.id}`,
+              cargaId: null,
+              latitude: localizacao?.latitude ?? null,
+              longitude: localizacao?.longitude ?? null,
+              status: null,
+              codigo: null,
+              descricao: null,
+              motorista: m.nome_completo,
+              motoristaFotoUrl: m.foto_url,
+              motoristaOnline: localizacao?.status ?? null,
+              telefone: m.telefone,
+              placa: null,
+              destino: null,
+              origemCoords: null,
+              destinoCoords: null,
+              isIdleDriver: true,
+            });
+          }
+        }
+      });
+    }
+
+    return result;
+  }, [filteredEntregas, localizacaoMap, showOnlyWithDeliveries, allMotoristas]);
 
   const handleStatusToggle = (status: string) => {
     setSelectedStatuses(prev =>
@@ -340,6 +436,7 @@ export default function GestaoEntregas() {
   const clearFilters = () => {
     setSelectedStatuses([]);
     setSearchTerm('');
+    setShowOnlyWithDeliveries(true);
   };
 
   const formatDate = (dateString: string | null) => {
@@ -352,6 +449,34 @@ export default function GestaoEntregas() {
   // Filters sidebar content
   const FiltersContent = () => (
     <div className="space-y-6">
+      {/* Driver filter */}
+      <div>
+        <h4 className="font-medium text-sm text-foreground mb-3">Motoristas</h4>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="filter-drivers-with-deliveries"
+              checked={showOnlyWithDeliveries}
+              onCheckedChange={(checked) => setShowOnlyWithDeliveries(checked === true)}
+            />
+            <Label htmlFor="filter-drivers-with-deliveries" className="text-sm font-normal cursor-pointer">
+              Apenas com entregas
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="filter-all-drivers"
+              checked={!showOnlyWithDeliveries}
+              onCheckedChange={(checked) => setShowOnlyWithDeliveries(checked !== true)}
+            />
+            <Label htmlFor="filter-all-drivers" className="text-sm font-normal cursor-pointer">
+              Todos os motoristas
+            </Label>
+          </div>
+        </div>
+      </div>
+
+      {/* Status filter */}
       <div>
         <h4 className="font-medium text-sm text-foreground mb-3">Status da Entrega</h4>
         <div className="space-y-2">
@@ -370,7 +495,7 @@ export default function GestaoEntregas() {
         </div>
       </div>
 
-      {selectedStatuses.length > 0 && (
+      {(selectedStatuses.length > 0 || !showOnlyWithDeliveries) && (
         <Button variant="outline" size="sm" onClick={clearFilters} className="w-full gap-2">
           <X className="w-4 h-4" />
           Limpar filtros
