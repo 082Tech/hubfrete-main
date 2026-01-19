@@ -1100,6 +1100,32 @@ export default function MinhaFrota() {
                         )}
                       </div>
 
+                      {/* Carroceria atrelada ao veículo (mesmo motorista_id) */}
+                      {(() => {
+                        const carroceriaAtrelada = carrocerias.find(
+                          (c) => c.motorista?.id === veiculo.motorista?.id && veiculo.motorista?.id
+                        );
+                        return carroceriaAtrelada ? (
+                          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border border-border">
+                            <Container className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {carroceriaAtrelada.placa}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {tipoCarroceriaLabels[carroceriaAtrelada.tipo] || carroceriaAtrelada.tipo} 
+                                {carroceriaAtrelada.capacidade_kg && ` • ${(carroceriaAtrelada.capacidade_kg / 1000).toLocaleString('pt-BR')}t`}
+                              </p>
+                            </div>
+                          </div>
+                        ) : veiculo.motorista ? (
+                          <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-dashed border-border">
+                            <Container className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+                            <p className="text-xs text-muted-foreground">Sem carroceria atrelada</p>
+                          </div>
+                        ) : null;
+                      })()}
+
                       {veiculo.motorista && (
                         <div className="flex items-center gap-3 pt-3 border-t border-border">
                           <Avatar className="w-10 h-10">
@@ -1316,6 +1342,32 @@ export default function MinhaFrota() {
                           </div>
                         )}
                       </div>
+
+                      {/* Veículo atrelado à carroceria (mesmo motorista_id) */}
+                      {(() => {
+                        const veiculoAtrelado = veiculos.find(
+                          (v) => v.motorista?.id === carroceria.motorista?.id && carroceria.motorista?.id
+                        );
+                        return veiculoAtrelado ? (
+                          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border border-border">
+                            <Car className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {veiculoAtrelado.placa}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {tipoVeiculoLabels[veiculoAtrelado.tipo] || veiculoAtrelado.tipo}
+                                {veiculoAtrelado.marca && ` • ${veiculoAtrelado.marca}`}
+                              </p>
+                            </div>
+                          </div>
+                        ) : carroceria.motorista ? (
+                          <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-dashed border-border">
+                            <Car className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+                            <p className="text-xs text-muted-foreground">Sem veículo atrelado</p>
+                          </div>
+                        ) : null;
+                      })()}
 
                       {carroceria.motorista && (
                         <div className="flex items-center gap-3 pt-3 border-t border-border">
