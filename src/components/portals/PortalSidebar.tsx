@@ -96,7 +96,6 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: Home, label: 'Home', href: '/embarcador' },
     // Cargas is now a submenu - handled separately
-    { icon: Building2, label: 'Destinatários', href: '/embarcador/destinatarios' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
