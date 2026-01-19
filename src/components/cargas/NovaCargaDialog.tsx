@@ -252,8 +252,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         return;
       }
 
-      // Create origin address with coordinates
-      const { error: origemError } = await supabase
+      // Create origin address with coordinates and get the ID
+      const { data: origemEndereco, error: origemError } = await supabase
         .from('enderecos_carga')
         .insert({
           carga_id: carga.id,
@@ -269,17 +269,19 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           contato_telefone: origemData.contato_telefone || null,
           latitude: origemData.latitude || null,
           longitude: origemData.longitude || null,
-        });
+        })
+        .select('id')
+        .single();
 
-      if (origemError) {
+      if (origemError || !origemEndereco) {
         console.error('Erro ao criar endereço de origem:', origemError);
         toast.error('Erro ao criar endereço de origem');
         setIsLoading(false);
         return;
       }
 
-      // Create destination address with coordinates
-      const { error: destinoError } = await supabase
+      // Create destination address with coordinates and get the ID
+      const { data: destinoEndereco, error: destinoError } = await supabase
         .from('enderecos_carga')
         .insert({
           carga_id: carga.id,
@@ -295,11 +297,29 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           contato_telefone: destinoData.contato_telefone || null,
           latitude: destinoData.latitude || null,
           longitude: destinoData.longitude || null,
-        });
+        })
+        .select('id')
+        .single();
 
-      if (destinoError) {
+      if (destinoError || !destinoEndereco) {
         console.error('Erro ao criar endereço de destino:', destinoError);
         toast.error('Erro ao criar endereço de destino');
+        setIsLoading(false);
+        return;
+      }
+
+      // Link the addresses to the cargo
+      const { error: updateCargaError } = await supabase
+        .from('cargas')
+        .update({
+          endereco_origem_id: origemEndereco.id,
+          endereco_destino_id: destinoEndereco.id,
+        })
+        .eq('id', carga.id);
+
+      if (updateCargaError) {
+        console.error('Erro ao vincular endereços à carga:', updateCargaError);
+        toast.error('Erro ao vincular endereços à carga');
         setIsLoading(false);
         return;
       }
