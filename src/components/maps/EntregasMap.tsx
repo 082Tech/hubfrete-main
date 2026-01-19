@@ -4,7 +4,27 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Phone, Truck, MapPin, Navigation, Route, Loader2 } from 'lucide-react';
+import { Phone, Truck, MapPin, Navigation, Route, Loader2, Clock } from 'lucide-react';
+
+// Helper function to format timestamp to readable date/time
+const formatTimestamp = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  
+  if (diffMins < 1) return 'Agora';
+  if (diffMins < 60) return `${diffMins} min atrás`;
+  if (diffHours < 24) return `${diffHours}h atrás`;
+  
+  return date.toLocaleString('pt-BR', { 
+    day: '2-digit', 
+    month: '2-digit',
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+};
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -175,6 +195,7 @@ interface EntregaMapData {
   origemCoords: { lat: number; lng: number } | null;
   destinoCoords: { lat: number; lng: number } | null;
   isIdleDriver?: boolean;
+  lastLocationUpdate?: number | null;
 }
 
 interface EntregasMapProps {
@@ -495,6 +516,11 @@ export function EntregasMap({
                     >
                       {label}
                     </div>
+                    {entrega.lastLocationUpdate && (
+                      <div className="mt-1 text-gray-500 text-center">
+                        Atualizado: {formatTimestamp(entrega.lastLocationUpdate)}
+                      </div>
+                    )}
                   </div>
                 </Tooltip>
                 
@@ -540,6 +566,13 @@ export function EntregasMap({
                         <Phone className="w-3 h-3" />
                         {entrega.telefone}
                       </a>
+                    )}
+                    
+                    {entrega.lastLocationUpdate && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 pt-1 border-t border-border">
+                        <Clock className="w-3 h-3" />
+                        <span>Última atualização: {formatTimestamp(entrega.lastLocationUpdate)}</span>
+                      </div>
                     )}
 
                     {!isSelected && entrega.origemCoords && entrega.destinoCoords && (
