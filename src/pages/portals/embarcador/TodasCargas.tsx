@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -24,8 +24,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import {
   Tooltip,
@@ -40,19 +38,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
 import {
   Package,
   Search,
@@ -77,6 +62,9 @@ import {
   AlertCircle,
   RotateCcw,
   User,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 
 // Types
@@ -165,7 +153,7 @@ export default function TodasCargas() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch ALL cargas (not filtering by status)
+  // Fetch ALL cargas
   const { data: cargas = [], isLoading, refetch } = useQuery({
     queryKey: ['todas-cargas', filialAtiva?.id],
     queryFn: async () => {
@@ -273,7 +261,6 @@ export default function TodasCargas() {
       carga.descricao.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Apply status filter
     switch (filterStatus) {
       case 'awaiting':
         result = result.filter(c => getPercentualAlocado(c) === 0);
@@ -295,7 +282,6 @@ export default function TodasCargas() {
         break;
     }
 
-    // Apply sorting
     result.sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
@@ -318,17 +304,17 @@ export default function TodasCargas() {
     return result;
   }, [cargas, searchTerm, filterStatus, sortField, sortOrder]);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, searchTerm, sortField, sortOrder]);
+
   // Pagination
   const totalPages = Math.ceil(filteredCargas.length / ITEMS_PER_PAGE);
   const paginatedCargas = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredCargas.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredCargas, currentPage]);
-
-  // Reset page when filters change
-  useMemo(() => {
-    setCurrentPage(1);
-  }, [filterStatus, searchTerm, sortField, sortOrder]);
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => {
@@ -386,21 +372,6 @@ export default function TodasCargas() {
     return <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">Aguardando</Badge>;
   };
 
-  const getTipoBadge = (tipo: string) => {
-    const tipoLabels: Record<string, string> = {
-      'granel_solido': 'Granel Sólido',
-      'granel_liquido': 'Granel Líquido',
-      'carga_seca': 'Carga Seca',
-      'refrigerada': 'Refrigerada',
-      'congelada': 'Congelada',
-      'perigosa': 'Perigosa',
-      'viva': 'Viva',
-      'indivisivel': 'Indivisível',
-      'container': 'Container',
-    };
-    return <Badge variant="outline" className="text-xs">{tipoLabels[tipo] || tipo}</Badge>;
-  };
-
   const formatCurrency = (value: number | null) => {
     if (!value) return '-';
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -444,6 +415,95 @@ export default function TodasCargas() {
       : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
   };
 
+  // Render pagination
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages: (number | 'ellipsis')[] = [];
+      
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        if (currentPage > 3) pages.push('ellipsis');
+        
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+        
+        for (let i = start; i <= end; i++) pages.push(i);
+        
+        if (currentPage < totalPages - 2) pages.push('ellipsis');
+        pages.push(totalPages);
+      }
+      
+      return pages;
+    };
+
+    return (
+      <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/30">
+        <div className="text-sm text-muted-foreground">
+          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredCargas.length)} de {filteredCargas.length}
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          {getPageNumbers().map((page, idx) => 
+            page === 'ellipsis' ? (
+              <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+            ) : (
+              <Button
+                key={page}
+                variant={currentPage === page ? 'default' : 'outline'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </Button>
+            )
+          )}
+          
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <PortalLayout expectedUserType="embarcador">
       <TooltipProvider>
@@ -475,8 +535,10 @@ export default function TodasCargas() {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setFilterStatus('all')}>
+            <Card 
+              className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => setFilterStatus('all')}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Package className="w-4 h-4 text-primary" />
@@ -486,8 +548,10 @@ export default function TodasCargas() {
               </CardContent>
             </Card>
 
-            <Card className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'awaiting' ? 'ring-2 ring-yellow-500' : ''}`}
-                  onClick={() => setFilterStatus(filterStatus === 'awaiting' ? 'all' : 'awaiting')}>
+            <Card 
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'awaiting' ? 'ring-2 ring-yellow-500' : ''}`}
+              onClick={() => setFilterStatus(filterStatus === 'awaiting' ? 'all' : 'awaiting')}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Clock className="w-4 h-4 text-yellow-500" />
@@ -497,8 +561,10 @@ export default function TodasCargas() {
               </CardContent>
             </Card>
 
-            <Card className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'partial' ? 'ring-2 ring-blue-500' : ''}`}
-                  onClick={() => setFilterStatus(filterStatus === 'partial' ? 'all' : 'partial')}>
+            <Card 
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'partial' ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => setFilterStatus(filterStatus === 'partial' ? 'all' : 'partial')}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <TrendingUp className="w-4 h-4 text-blue-500" />
@@ -508,8 +574,10 @@ export default function TodasCargas() {
               </CardContent>
             </Card>
 
-            <Card className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'allocated' ? 'ring-2 ring-green-500' : ''}`}
-                  onClick={() => setFilterStatus(filterStatus === 'allocated' ? 'all' : 'allocated')}>
+            <Card 
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'allocated' ? 'ring-2 ring-green-500' : ''}`}
+              onClick={() => setFilterStatus(filterStatus === 'allocated' ? 'all' : 'allocated')}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -519,8 +587,10 @@ export default function TodasCargas() {
               </CardContent>
             </Card>
 
-            <Card className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all_delivered' ? 'ring-2 ring-emerald-500' : ''}`}
-                  onClick={() => setFilterStatus(filterStatus === 'all_delivered' ? 'all' : 'all_delivered')}>
+            <Card 
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all_delivered' ? 'ring-2 ring-emerald-500' : ''}`}
+              onClick={() => setFilterStatus(filterStatus === 'all_delivered' ? 'all' : 'all_delivered')}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -530,8 +600,10 @@ export default function TodasCargas() {
               </CardContent>
             </Card>
 
-            <Card className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'has_problems' ? 'ring-2 ring-red-500' : ''}`}
-                  onClick={() => setFilterStatus(filterStatus === 'has_problems' ? 'all' : 'has_problems')}>
+            <Card 
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'has_problems' ? 'ring-2 ring-red-500' : ''}`}
+              onClick={() => setFilterStatus(filterStatus === 'has_problems' ? 'all' : 'has_problems')}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <AlertCircle className="w-4 h-4 text-red-500" />
@@ -637,40 +709,40 @@ export default function TodasCargas() {
                     <TableHeader>
                       <TableRow className="bg-muted/50">
                         <TableHead className="w-10"></TableHead>
-                        <TableHead className="font-semibold min-w-[120px] cursor-pointer" onClick={() => handleSort('codigo')}>
+                        <TableHead className="font-semibold min-w-[130px] cursor-pointer" onClick={() => handleSort('codigo')}>
                           <div className="flex items-center">
                             Código
                             <SortIcon field="codigo" />
                           </div>
                         </TableHead>
-                        <TableHead className="font-semibold min-w-[180px]">
+                        <TableHead className="font-semibold min-w-[160px]">
                           <div className="flex items-center gap-1">
                             <Building2 className="w-3 h-3" />
                             Remetente
                           </div>
                         </TableHead>
-                        <TableHead className="font-semibold min-w-[180px]">
+                        <TableHead className="font-semibold min-w-[160px]">
                           <div className="flex items-center gap-1">
                             <Building2 className="w-3 h-3" />
                             Destinatário
                           </div>
                         </TableHead>
-                        <TableHead className="font-semibold min-w-[100px] cursor-pointer" onClick={() => handleSort('peso_kg')}>
-                          <div className="flex items-center">
-                            Peso Total
+                        <TableHead className="font-semibold min-w-[90px] cursor-pointer text-center" onClick={() => handleSort('peso_kg')}>
+                          <div className="flex items-center justify-center">
+                            Peso
                             <SortIcon field="peso_kg" />
                           </div>
                         </TableHead>
-                        <TableHead className="font-semibold min-w-[100px]">Disponível</TableHead>
-                        <TableHead className="font-semibold min-w-[140px]">Progresso</TableHead>
-                        <TableHead className="font-semibold min-w-[120px] cursor-pointer" onClick={() => handleSort('valor_mercadoria')}>
+                        <TableHead className="font-semibold min-w-[90px] text-center">Disponível</TableHead>
+                        <TableHead className="font-semibold min-w-[130px]">Progresso</TableHead>
+                        <TableHead className="font-semibold min-w-[110px] cursor-pointer" onClick={() => handleSort('valor_mercadoria')}>
                           <div className="flex items-center">
                             Valor
                             <SortIcon field="valor_mercadoria" />
                           </div>
                         </TableHead>
-                        <TableHead className="font-semibold min-w-[80px]">Entregas</TableHead>
-                        <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
+                        <TableHead className="font-semibold min-w-[90px] text-center">Entregas</TableHead>
+                        <TableHead className="font-semibold min-w-[110px]">Status</TableHead>
                         <TableHead className="font-semibold w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -683,21 +755,30 @@ export default function TodasCargas() {
                         const hasEntregas = carga.entregas.length > 0;
                         
                         return (
-                          <Collapsible key={carga.id} open={isExpanded} onOpenChange={() => hasEntregas && toggleRow(carga.id)}>
+                          <>
+                            {/* Main Row */}
                             <TableRow 
-                              className={`hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-muted/30' : ''}`}
+                              key={carga.id}
+                              className={`hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
+                              onClick={() => hasEntregas && toggleRow(carga.id)}
                             >
                               <TableCell className="p-2">
                                 {hasEntregas && (
-                                  <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                                      {isExpanded ? (
-                                        <ChevronDown className="w-4 h-4" />
-                                      ) : (
-                                        <ChevronRight className="w-4 h-4" />
-                                      )}
-                                    </Button>
-                                  </CollapsibleTrigger>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleRow(carga.id);
+                                    }}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronDown className="w-4 h-4 text-primary" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4" />
+                                    )}
+                                  </Button>
                                 )}
                               </TableCell>
                               <TableCell>
@@ -714,9 +795,9 @@ export default function TodasCargas() {
                                     <div className="cursor-help">
                                       <div className="flex items-center gap-1">
                                         <MapPin className="w-3 h-3 text-green-500 shrink-0" />
-                                        <p className="font-medium text-sm truncate max-w-[140px]">{origem.empresa}</p>
+                                        <p className="font-medium text-sm truncate max-w-[130px]">{origem.empresa}</p>
                                       </div>
-                                      <p className="text-xs text-muted-foreground truncate max-w-[140px]">
+                                      <p className="text-xs text-muted-foreground truncate max-w-[130px]">
                                         {origem.cidade}
                                       </p>
                                     </div>
@@ -733,9 +814,9 @@ export default function TodasCargas() {
                                     <div className="cursor-help">
                                       <div className="flex items-center gap-1">
                                         <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                                        <p className="font-medium text-sm truncate max-w-[140px]">{destino.empresa}</p>
+                                        <p className="font-medium text-sm truncate max-w-[130px]">{destino.empresa}</p>
                                       </div>
-                                      <p className="text-xs text-muted-foreground truncate max-w-[140px]">
+                                      <p className="text-xs text-muted-foreground truncate max-w-[130px]">
                                         {destino.cidade}
                                       </p>
                                     </div>
@@ -746,11 +827,11 @@ export default function TodasCargas() {
                                   </TooltipContent>
                                 </Tooltip>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-center">
                                 <span className="font-medium">{formatWeight(carga.peso_kg)}</span>
                               </TableCell>
-                              <TableCell>
-                                <span className={`font-medium ${getPesoDisponivel(carga) === 0 ? 'text-green-500' : 'text-yellow-500'}`}>
+                              <TableCell className="text-center">
+                                <span className={`font-medium ${getPesoDisponivel(carga) === 0 ? 'text-green-500' : 'text-orange-500'}`}>
                                   {formatWeight(getPesoDisponivel(carga))}
                                 </span>
                               </TableCell>
@@ -767,7 +848,7 @@ export default function TodasCargas() {
                                   {formatCurrency(carga.valor_mercadoria)}
                                 </span>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-center">
                                 <Badge variant="outline" className="text-xs">
                                   {carga.entregas.length} {carga.entregas.length === 1 ? 'entrega' : 'entregas'}
                                 </Badge>
@@ -795,65 +876,86 @@ export default function TodasCargas() {
                               </TableCell>
                             </TableRow>
 
-                            {/* Expandable Row - Entregas */}
-                            <CollapsibleContent asChild>
-                              <TableRow className="bg-muted/20 hover:bg-muted/20">
-                                <TableCell colSpan={11} className="p-0">
-                                  <div className="p-4 pl-12 border-l-4 border-primary/30">
-                                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                                      <Truck className="w-4 h-4 text-primary" />
-                                      Entregas Vinculadas ({carga.entregas.length})
-                                    </h4>
-                                    <div className="space-y-2">
-                                      {carga.entregas.map((entrega) => {
-                                        const config = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando_coleta;
-                                        const StatusIcon = config.icon;
-                                        return (
-                                          <div 
-                                            key={entrega.id} 
-                                            className="flex items-center justify-between p-3 bg-background rounded-lg border"
-                                          >
-                                            <div className="flex items-center gap-4">
-                                              <Badge className={`${config.color} border gap-1`}>
-                                                <StatusIcon className="w-3 h-3" />
-                                                {config.label}
-                                              </Badge>
-                                              <div className="flex items-center gap-2 text-sm">
-                                                <User className="w-3.5 h-3.5 text-muted-foreground" />
-                                                <span>{entrega.motoristas?.nome_completo || 'Sem motorista'}</span>
-                                              </div>
-                                              {entrega.veiculos && (
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                  <Truck className="w-3.5 h-3.5" />
-                                                  <span>{entrega.veiculos.placa}</span>
-                                                </div>
-                                              )}
-                                            </div>
-                                            <div className="flex items-center gap-6 text-sm">
-                                              <div className="flex items-center gap-1">
-                                                <Weight className="w-3.5 h-3.5 text-muted-foreground" />
-                                                <span className="font-medium">{formatWeight(entrega.peso_alocado_kg || 0)}</span>
-                                              </div>
-                                              <div className="flex items-center gap-1">
-                                                <DollarSign className="w-3.5 h-3.5 text-muted-foreground" />
-                                                <span className="font-medium text-green-600">{formatCurrency(entrega.valor_frete)}</span>
-                                              </div>
-                                              {entrega.entregue_em && (
-                                                <div className="flex items-center gap-1 text-muted-foreground">
-                                                  <Calendar className="w-3.5 h-3.5" />
-                                                  <span>{formatDate(entrega.entregue_em)}</span>
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
+                            {/* Expanded Child Rows (Entregas) */}
+                            {isExpanded && carga.entregas.map((entrega, idx) => {
+                              const config = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando_coleta;
+                              const StatusIcon = config.icon;
+                              
+                              return (
+                                <TableRow 
+                                  key={`${carga.id}-entrega-${entrega.id}`}
+                                  className="bg-muted/30 hover:bg-muted/50 border-l-2 border-l-primary/50"
+                                >
+                                  <TableCell className="p-2">
+                                    <div className="ml-3 w-0.5 h-4 bg-primary/30" />
+                                  </TableCell>
+                                  <TableCell colSpan={2}>
+                                    <div className="flex items-center gap-3 pl-2">
+                                      <Badge className={`${config.color} border gap-1 shrink-0`}>
+                                        <StatusIcon className="w-3 h-3" />
+                                        {config.label}
+                                      </Badge>
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                        <span className="text-sm truncate">
+                                          {entrega.motoristas?.nome_completo || 'Sem motorista'}
+                                        </span>
+                                      </div>
                                     </div>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            </CollapsibleContent>
-                          </Collapsible>
+                                  </TableCell>
+                                  <TableCell>
+                                    {entrega.veiculos && (
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <Truck className="w-3.5 h-3.5 text-muted-foreground" />
+                                        <span className="font-mono">{entrega.veiculos.placa}</span>
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell colSpan={2} className="text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Weight className="w-3.5 h-3.5 text-muted-foreground" />
+                                      <span className="font-medium">{formatWeight(entrega.peso_alocado_kg || 0)}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell colSpan={2}>
+                                    <div className="flex items-center gap-1">
+                                      <DollarSign className="w-3.5 h-3.5 text-green-600" />
+                                      <span className="font-medium text-green-600">{formatCurrency(entrega.valor_frete)}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {entrega.entregue_em && (
+                                      <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                                        <Calendar className="w-3 h-3" />
+                                        <span>{formatDate(entrega.entregue_em)}</span>
+                                      </div>
+                                    )}
+                                    {entrega.coletado_em && !entrega.entregue_em && (
+                                      <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                                        <Calendar className="w-3 h-3" />
+                                        <span>Coletado: {formatDate(entrega.coletado_em)}</span>
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell></TableCell>
+                                  <TableCell>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDetailsCarga(carga);
+                                      }}
+                                    >
+                                      <Eye className="w-3.5 h-3.5 mr-1" />
+                                      Detalhes
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </>
                         );
                       })}
                     </TableBody>
@@ -863,52 +965,7 @@ export default function TodasCargas() {
               )}
 
               {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t">
-                  <div className="text-sm text-muted-foreground">
-                    Página {currentPage} de {totalPages}
-                  </div>
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum: number;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-                        return (
-                          <PaginationItem key={pageNum}>
-                            <PaginationLink
-                              onClick={() => setCurrentPage(pageNum)}
-                              isActive={currentPage === pageNum}
-                              className="cursor-pointer"
-                            >
-                              {pageNum}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      })}
-                      <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
+              {renderPagination()}
             </CardContent>
           </Card>
         </div>
