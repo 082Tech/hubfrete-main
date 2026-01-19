@@ -174,7 +174,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
       <aside className={`${collapsed ? 'w-16' : 'w-64'} bg-sidebar border-r border-sidebar-border h-screen fixed left-0 top-0 flex flex-col transition-all duration-300`}>
         {/* Logo & Collapse Button */}
         <div className={`p-4 border-b border-sidebar-border ${collapsed ? 'flex flex-col items-center gap-2' : 'flex items-center justify-between'}`}>
-          <Link to="/" className={`flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
+          <Link to={`/${userType}`} className={`flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
             <div className="p-2 bg-sidebar-primary rounded-lg shrink-0">
               <Truck className="w-5 h-5 text-sidebar-primary-foreground" />
             </div>
