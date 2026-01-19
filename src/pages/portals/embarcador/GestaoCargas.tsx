@@ -1088,7 +1088,7 @@ export default function GestaoCargas() {
                                       className="gap-2 cursor-pointer"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(`/embarcador/cargas?carga=${carga.id}`);
+                                        navigate(`/embarcador/cargas?carga=${carga.id}&entrega=${entrega.id}`);
                                       }}
                                     >
                                       <ExternalLink className="w-4 h-4" /> Ver carga completa
