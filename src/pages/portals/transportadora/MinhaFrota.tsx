@@ -22,6 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 import {
   Truck,
   Plus,
@@ -40,6 +41,8 @@ import {
   Image,
   Container,
   Car,
+  FileText,
+  CheckCircle,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -52,6 +55,37 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useState, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
+import { VeiculoEditDialog, CarroceriaEditDialog } from '@/components/frota';
+
+const ESTADOS_BRASIL = [
+  { value: 'AC', label: 'Acre' },
+  { value: 'AL', label: 'Alagoas' },
+  { value: 'AP', label: 'Amapá' },
+  { value: 'AM', label: 'Amazonas' },
+  { value: 'BA', label: 'Bahia' },
+  { value: 'CE', label: 'Ceará' },
+  { value: 'DF', label: 'Distrito Federal' },
+  { value: 'ES', label: 'Espírito Santo' },
+  { value: 'GO', label: 'Goiás' },
+  { value: 'MA', label: 'Maranhão' },
+  { value: 'MT', label: 'Mato Grosso' },
+  { value: 'MS', label: 'Mato Grosso do Sul' },
+  { value: 'MG', label: 'Minas Gerais' },
+  { value: 'PA', label: 'Pará' },
+  { value: 'PB', label: 'Paraíba' },
+  { value: 'PR', label: 'Paraná' },
+  { value: 'PE', label: 'Pernambuco' },
+  { value: 'PI', label: 'Piauí' },
+  { value: 'RJ', label: 'Rio de Janeiro' },
+  { value: 'RN', label: 'Rio Grande do Norte' },
+  { value: 'RS', label: 'Rio Grande do Sul' },
+  { value: 'RO', label: 'Rondônia' },
+  { value: 'RR', label: 'Roraima' },
+  { value: 'SC', label: 'Santa Catarina' },
+  { value: 'SP', label: 'São Paulo' },
+  { value: 'SE', label: 'Sergipe' },
+  { value: 'TO', label: 'Tocantins' },
+];
 
 interface Veiculo {
   id: string;
@@ -64,6 +98,13 @@ interface Veiculo {
   capacidade_kg: number | null;
   capacidade_m3: number | null;
   renavam: string | null;
+  uf: string | null;
+  antt_rntrc: string | null;
+  documento_veiculo_url: string | null;
+  comprovante_endereco_proprietario_url: string | null;
+  proprietario_nome: string | null;
+  proprietario_cpf_cnpj: string | null;
+  tipo_propriedade: 'pf' | 'pj' | null;
   ativo: boolean;
   seguro_ativo: boolean;
   rastreador: boolean;
@@ -143,7 +184,11 @@ export default function MinhaFrota() {
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
+  const [editingVeiculo, setEditingVeiculo] = useState<Veiculo | null>(null);
+  const [editingCarroceria, setEditingCarroceria] = useState<Carroceria | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const documentoInputRef = useRef<HTMLInputElement>(null);
+  const enderecoProprietarioInputRef = useRef<HTMLInputElement>(null);
   const cardFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   
   const [newVeiculo, setNewVeiculo] = useState({
@@ -153,6 +198,13 @@ export default function MinhaFrota() {
     modelo: '',
     ano: '',
     renavam: '',
+    uf: '',
+    antt_rntrc: '',
+    documento_veiculo_url: null as string | null,
+    comprovante_endereco_proprietario_url: null as string | null,
+    proprietario_nome: '',
+    proprietario_cpf_cnpj: '',
+    tipo_propriedade: 'pf' as 'pf' | 'pj',
   });
 
   const [newCarroceria, setNewCarroceria] = useState({
@@ -185,6 +237,13 @@ export default function MinhaFrota() {
           capacidade_kg,
           capacidade_m3,
           renavam,
+          uf,
+          antt_rntrc,
+          documento_veiculo_url,
+          comprovante_endereco_proprietario_url,
+          proprietario_nome,
+          proprietario_cpf_cnpj,
+          tipo_propriedade,
           ativo,
           seguro_ativo,
           rastreador,
@@ -328,6 +387,40 @@ export default function MinhaFrota() {
     }
   };
 
+  // Handle document upload for new vehicle
+  const handleDocumentUpload = async (
+    file: File,
+    folder: string,
+    fieldName: 'documento_veiculo_url' | 'comprovante_endereco_proprietario_url'
+  ) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Arquivo deve ter no máximo 5MB');
+      return;
+    }
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const filePath = `veiculos/${folder}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('notas-fiscais')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('notas-fiscais')
+        .getPublicUrl(filePath);
+
+      setNewVeiculo(prev => ({ ...prev, [fieldName]: urlData.publicUrl }));
+      toast.success('Arquivo enviado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+      toast.error('Erro ao enviar arquivo');
+    }
+  };
+
   // Mutation para criar veículo
   const createVeiculo = useMutation({
     mutationFn: async (data: typeof newVeiculo) => {
@@ -359,6 +452,13 @@ export default function MinhaFrota() {
         modelo: data.modelo || null,
         ano: data.ano ? parseInt(data.ano) : null,
         renavam: data.renavam || null,
+        uf: data.uf || null,
+        antt_rntrc: data.antt_rntrc || null,
+        documento_veiculo_url: data.documento_veiculo_url,
+        comprovante_endereco_proprietario_url: data.comprovante_endereco_proprietario_url,
+        proprietario_nome: data.proprietario_nome || null,
+        proprietario_cpf_cnpj: data.proprietario_cpf_cnpj || null,
+        tipo_propriedade: data.tipo_propriedade as any,
         empresa_id: empresa?.id,
         ativo: true,
         foto_url: fotoUrl,
@@ -379,6 +479,13 @@ export default function MinhaFrota() {
         modelo: '',
         ano: '',
         renavam: '',
+        uf: '',
+        antt_rntrc: '',
+        documento_veiculo_url: null,
+        comprovante_endereco_proprietario_url: null,
+        proprietario_nome: '',
+        proprietario_cpf_cnpj: '',
+        tipo_propriedade: 'pf',
       });
     },
     onError: (error) => {
@@ -689,6 +796,157 @@ export default function MinhaFrota() {
                           setNewVeiculo({ ...newVeiculo, ano: e.target.value })
                         }
                       />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* ANTT e UF */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                      <FileText className="w-4 h-4" />
+                      ANTT e Documentação
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>ANTT / RNTRC *</Label>
+                        <Input
+                          placeholder="Número do RNTRC"
+                          value={newVeiculo.antt_rntrc}
+                          onChange={(e) =>
+                            setNewVeiculo({ ...newVeiculo, antt_rntrc: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>UF do Veículo</Label>
+                        <Select
+                          value={newVeiculo.uf}
+                          onValueChange={(v) =>
+                            setNewVeiculo({ ...newVeiculo, uf: v })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ESTADOS_BRASIL.map((estado) => (
+                              <SelectItem key={estado.value} value={estado.value}>
+                                {estado.value} - {estado.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Documento do Veículo (CRLV)</Label>
+                      <div className="flex items-center gap-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => documentoInputRef.current?.click()}
+                        >
+                          <Upload className="w-4 h-4" />
+                          {newVeiculo.documento_veiculo_url ? 'Substituir' : 'Enviar Documento'}
+                        </Button>
+                        {newVeiculo.documento_veiculo_url && (
+                          <span className="text-sm text-chart-2 flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4" />
+                            Documento enviado
+                          </span>
+                        )}
+                        <input
+                          ref={documentoInputRef}
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleDocumentUpload(file, 'documento', 'documento_veiculo_url');
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Proprietário */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                      <User className="w-4 h-4" />
+                      Dados do Proprietário
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tipo de Propriedade</Label>
+                      <Select
+                        value={newVeiculo.tipo_propriedade}
+                        onValueChange={(v) =>
+                          setNewVeiculo({ ...newVeiculo, tipo_propriedade: v as 'pf' | 'pj' })
+                        }
+                      >
+                        <SelectTrigger className="w-full max-w-xs">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pf">Pessoa Física</SelectItem>
+                          <SelectItem value="pj">Pessoa Jurídica</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Nome do Proprietário</Label>
+                        <Input
+                          placeholder={newVeiculo.tipo_propriedade === 'pj' ? 'Razão Social' : 'Nome completo'}
+                          value={newVeiculo.proprietario_nome}
+                          onChange={(e) =>
+                            setNewVeiculo({ ...newVeiculo, proprietario_nome: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{newVeiculo.tipo_propriedade === 'pj' ? 'CNPJ' : 'CPF'}</Label>
+                        <Input
+                          placeholder={newVeiculo.tipo_propriedade === 'pj' ? '00.000.000/0000-00' : '000.000.000-00'}
+                          value={newVeiculo.proprietario_cpf_cnpj}
+                          onChange={(e) =>
+                            setNewVeiculo({ ...newVeiculo, proprietario_cpf_cnpj: e.target.value })
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Comprovante de Endereço do Proprietário</Label>
+                      <div className="flex items-center gap-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => enderecoProprietarioInputRef.current?.click()}
+                        >
+                          <Upload className="w-4 h-4" />
+                          {newVeiculo.comprovante_endereco_proprietario_url ? 'Substituir' : 'Enviar Comprovante'}
+                        </Button>
+                        {newVeiculo.comprovante_endereco_proprietario_url && (
+                          <span className="text-sm text-chart-2 flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4" />
+                            Comprovante enviado
+                          </span>
+                        )}
+                        <input
+                          ref={enderecoProprietarioInputRef}
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleDocumentUpload(file, 'proprietario', 'comprovante_endereco_proprietario_url');
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -1071,7 +1329,7 @@ export default function MinhaFrota() {
                               <Upload className="w-4 h-4 mr-2" />
                               {veiculo.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
                               <Edit className="w-4 h-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
@@ -1299,7 +1557,7 @@ export default function MinhaFrota() {
                               <Upload className="w-4 h-4 mr-2" />
                               {carroceria.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingCarroceria(carroceria)}>
                               <Edit className="w-4 h-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
@@ -1392,6 +1650,18 @@ export default function MinhaFrota() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Edit Dialogs */}
+        <VeiculoEditDialog
+          veiculo={editingVeiculo}
+          open={!!editingVeiculo}
+          onOpenChange={(open) => !open && setEditingVeiculo(null)}
+        />
+        <CarroceriaEditDialog
+          carroceria={editingCarroceria}
+          open={!!editingCarroceria}
+          onOpenChange={(open) => !open && setEditingCarroceria(null)}
+        />
       </div>
     </PortalLayout>
   );

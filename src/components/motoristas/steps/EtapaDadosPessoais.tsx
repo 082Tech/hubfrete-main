@@ -82,46 +82,32 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
 
   return (
     <div className="space-y-6">
-      {/* Tipo de Cadastro */}
+      {/* UF do Motorista */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-medium text-primary">
           <User className="w-4 h-4" />
-          Tipo de Cadastro
+          Localização
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Tipo de Motorista *</Label>
-            <Select
-              value={formData.tipo_cadastro}
-              onValueChange={(v) => updateFormData({ tipo_cadastro: v as 'autonomo' | 'frota' })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="autonomo">Autônomo</SelectItem>
-                <SelectItem value="frota">Frota (Empresa)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>UF do Motorista *</Label>
-            <Select
-              value={formData.uf}
-              onValueChange={(v) => updateFormData({ uf: v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {ESTADOS_BRASIL.map((estado) => (
-                  <SelectItem key={estado.value} value={estado.value}>
-                    {estado.value} - {estado.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-2">
+          <Label>UF do Motorista *</Label>
+          <Select
+            value={formData.uf}
+            onValueChange={(v) => updateFormData({ uf: v })}
+          >
+            <SelectTrigger className="w-full max-w-xs">
+              <SelectValue placeholder="Selecione o estado" />
+            </SelectTrigger>
+            <SelectContent>
+              {ESTADOS_BRASIL.map((estado) => (
+                <SelectItem key={estado.value} value={estado.value}>
+                  {estado.value} - {estado.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Utilizado para validação de UF do veículo
+          </p>
         </div>
       </div>
 
@@ -347,51 +333,47 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
         </div>
       </div>
 
-      {/* Comprovante de Vínculo (se frota) */}
-      {formData.tipo_cadastro === 'frota' && (
-        <>
-          <Separator />
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-primary">
-              <Link2 className="w-4 h-4" />
-              Comprovante de Vínculo com a Empresa
-            </div>
-            <div className="space-y-2">
-              <Label>Comprovante de Vínculo *</Label>
-              <div className="flex items-center gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => vinculoInputRef.current?.click()}
-                >
-                  <Upload className="w-4 h-4" />
-                  {formData.comprovante_vinculo_url ? 'Substituir' : 'Enviar Comprovante'}
-                </Button>
-                {formData.comprovante_vinculo_url && (
-                  <span className="text-sm text-chart-2 flex items-center gap-1">
-                    <CheckCircle className="w-4 h-4" />
-                    Arquivo enviado
-                  </span>
-                )}
-                <input
-                  ref={vinculoInputRef}
-                  type="file"
-                  accept="image/*,.pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload(file, 'vinculo', 'comprovante_vinculo_url');
-                  }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Obrigatório para motoristas de frota
-              </p>
-            </div>
+      {/* Comprovante de Vínculo (sempre obrigatório no portal transportadora) */}
+      <Separator />
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-sm font-medium text-primary">
+          <Link2 className="w-4 h-4" />
+          Comprovante de Vínculo com a Empresa
+        </div>
+        <div className="space-y-2">
+          <Label>Comprovante de Vínculo *</Label>
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              onClick={() => vinculoInputRef.current?.click()}
+            >
+              <Upload className="w-4 h-4" />
+              {formData.comprovante_vinculo_url ? 'Substituir' : 'Enviar Comprovante'}
+            </Button>
+            {formData.comprovante_vinculo_url && (
+              <span className="text-sm text-chart-2 flex items-center gap-1">
+                <CheckCircle className="w-4 h-4" />
+                Arquivo enviado
+              </span>
+            )}
+            <input
+              ref={vinculoInputRef}
+              type="file"
+              accept="image/*,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileUpload(file, 'vinculo', 'comprovante_vinculo_url');
+              }}
+            />
           </div>
-        </>
-      )}
+          <p className="text-xs text-muted-foreground">
+            Documento comprovando vínculo do motorista com a transportadora
+          </p>
+        </div>
+      </div>
 
       <Separator />
 
