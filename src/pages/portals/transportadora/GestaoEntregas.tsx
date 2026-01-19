@@ -24,13 +24,11 @@ import {
   Truck,
   CheckCircle,
   AlertCircle,
-  Navigation,
   Phone,
   User,
   RefreshCw,
   X,
   Building2,
-  Wifi,
   WifiOff,
   Radio,
   ArrowRight,
@@ -38,7 +36,6 @@ import {
   Clock,
   MoreHorizontal,
   Eye,
-  Edit,
   FileText,
 } from 'lucide-react';
 import {
@@ -64,6 +61,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
+import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import type { Database } from '@/integrations/supabase/types';
 
 // Lazy load the OpenStreetMap component
@@ -164,6 +162,8 @@ export default function GestaoEntregas() {
   const [showOnlyWithDeliveries, setShowOnlyWithDeliveries] = useState(true);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedEntregaForDetails, setSelectedEntregaForDetails] = useState<EntregaCompleta | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // Monitor internet connection status
@@ -337,11 +337,11 @@ export default function GestaoEntregas() {
     };
   }, [entregas]);
 
-  // Map data for entregas with location
+  // Map data for entregas with location - using entrega.id as the selection key
   const mapData = useMemo(() => {
     const result: Array<{
       id: string;
-      cargaId: string | null;
+      entregaId: string;
       latitude: number | null;
       longitude: number | null;
       status: string | null;
@@ -380,7 +380,7 @@ export default function GestaoEntregas() {
 
       result.push({
         id: e.id,
-        cargaId: e.carga.id,
+        entregaId: e.id,
         latitude: localizacao?.latitude ?? null,
         longitude: localizacao?.longitude ?? null,
         status: e.status || null,
@@ -411,7 +411,7 @@ export default function GestaoEntregas() {
           if (hasLocation) {
             result.push({
               id: `idle-${m.id}`,
-              cargaId: null,
+              entregaId: `idle-${m.id}`,
               latitude: localizacao?.latitude ?? null,
               longitude: localizacao?.longitude ?? null,
               status: null,
@@ -784,8 +784,8 @@ export default function GestaoEntregas() {
               }>
                 <EntregasMapComponent
                   entregas={mapData}
-                  selectedCargaId={selectedEntregaId}
-                  onSelectCarga={setSelectedEntregaId}
+                  selectedEntregaId={selectedEntregaId}
+                  onSelectEntrega={setSelectedEntregaId}
                 />
               </Suspense>
 
@@ -819,8 +819,8 @@ export default function GestaoEntregas() {
               }>
                 <EntregasMapComponent
                   entregas={mapData}
-                  selectedCargaId={selectedEntregaId}
-                  onSelectCarga={setSelectedEntregaId}
+                  selectedEntregaId={selectedEntregaId}
+                  onSelectEntrega={setSelectedEntregaId}
                 />
               </Suspense>
 
@@ -997,17 +997,11 @@ export default function GestaoEntregas() {
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={(e) => {
                                       e.stopPropagation();
-                                      // TODO: Implement view details
+                                      setSelectedEntregaForDetails(entrega);
+                                      setDetailsDialogOpen(true);
                                     }}>
                                       <FileText className="w-4 h-4 mr-2" />
                                       Ver detalhes
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={(e) => {
-                                      e.stopPropagation();
-                                      // TODO: Implement edit
-                                    }}>
-                                      <Edit className="w-4 h-4 mr-2" />
-                                      Editar entrega
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -1103,6 +1097,13 @@ export default function GestaoEntregas() {
           )}
         </div>
       </div>
+
+      {/* Details Dialog */}
+      <EntregaDetailsDialog
+        entrega={selectedEntregaForDetails}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
     </PortalLayout>
   );
 }
