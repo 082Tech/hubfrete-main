@@ -638,7 +638,7 @@ export default function GestaoCargas() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
+              <h1 className="text-xl font-bold text-foreground">Cargas em Rota</h1>
               <p className="text-sm text-muted-foreground">Acompanhe suas entregas em tempo real</p>
             </div>
           </div>
@@ -736,7 +736,7 @@ export default function GestaoCargas() {
         <div className="lg:hidden flex flex-col gap-4 w-full">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Gestão de Entregas</h1>
+              <h1 className="text-2xl font-bold text-foreground">Cargas em Rota</h1>
               <p className="text-muted-foreground">Acompanhe suas entregas em tempo real</p>
             </div>
             <div className="flex items-center gap-3">
