@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -145,6 +146,7 @@ const ITEMS_PER_PAGE = 15;
 
 export default function TodasCargas() {
   const { filialAtiva } = useUserContext();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [detailsCarga, setDetailsCarga] = useState<CargaData | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -152,6 +154,21 @@ export default function TodasCargas() {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [highlightedCargaId, setHighlightedCargaId] = useState<string | null>(null);
+
+  // Handle URL params for highlighting/expanding specific cargo
+  useEffect(() => {
+    const cargaId = searchParams.get('carga');
+    if (cargaId) {
+      setHighlightedCargaId(cargaId);
+      setExpandedRows(new Set([cargaId]));
+      // Clear the URL param after processing
+      setSearchParams({}, { replace: true });
+      // Clear highlight after 5 seconds
+      const timer = setTimeout(() => setHighlightedCargaId(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch ALL cargas
   const { data: cargas = [], isLoading, refetch } = useQuery({
@@ -749,6 +766,7 @@ export default function TodasCargas() {
                     <TableBody>
                       {paginatedCargas.map((carga) => {
                         const isExpanded = expandedRows.has(carga.id);
+                        const isHighlighted = highlightedCargaId === carga.id;
                         const percentual = getPercentualAlocado(carga);
                         const origem = getEnderecoData(carga, 'origem');
                         const destino = getEnderecoData(carga, 'destino');
@@ -759,7 +777,7 @@ export default function TodasCargas() {
                             {/* Main Row */}
                             <TableRow 
                               key={carga.id}
-                              className={`hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
+                              className={`hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''} ${isHighlighted ? 'ring-2 ring-primary ring-inset bg-primary/10 animate-pulse' : ''}`}
                               onClick={() => hasEntregas && toggleRow(carga.id)}
                             >
                               <TableCell className="p-2">
