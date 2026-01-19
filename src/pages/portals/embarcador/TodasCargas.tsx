@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useUserContext } from '@/hooks/useUserContext';
 import { PortalLayout } from '@/components/portals/PortalLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -66,7 +67,18 @@ import {
   ChevronLeft,
   ChevronsLeft,
   ChevronsRight,
+  Trash2,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Types
 interface EnderecoData {
@@ -79,6 +91,7 @@ interface EnderecoData {
   estado: string;
   cep: string;
   contato_nome: string | null;
+  contato_telefone: string | null;
   latitude: number | null;
   longitude: number | null;
 }
@@ -116,6 +129,7 @@ interface CargaData {
   status: string;
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
+  data_entrega_limite: string | null;
   created_at: string;
   destinatario_razao_social: string | null;
   destinatario_nome_fantasia: string | null;
@@ -123,6 +137,23 @@ interface CargaData {
   endereco_origem: EnderecoData | null;
   endereco_destino: EnderecoData | null;
   entregas: EntregaData[];
+  // Additional fields for details
+  volume_m3: number | null;
+  carga_fragil: boolean | null;
+  carga_perigosa: boolean | null;
+  carga_viva: boolean | null;
+  empilhavel: boolean | null;
+  requer_refrigeracao: boolean | null;
+  temperatura_min: number | null;
+  temperatura_max: number | null;
+  numero_onu: string | null;
+  necessidades_especiais: string[] | null;
+  regras_carregamento: string | null;
+  nota_fiscal_url: string | null;
+  veiculo_requisitos: {
+    tipos_veiculo?: string[];
+    tipos_carroceria?: string[];
+  } | null;
 }
 
 // Status config for entregas
@@ -155,6 +186,9 @@ export default function TodasCargas() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [highlightedEntregaId, setHighlightedEntregaId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [cargaToDelete, setCargaToDelete] = useState<CargaData | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
   useEffect(() => {
@@ -194,10 +228,24 @@ export default function TodasCargas() {
           status,
           data_coleta_de,
           data_coleta_ate,
+          data_entrega_limite,
           created_at,
           destinatario_razao_social,
           destinatario_nome_fantasia,
           destinatario_cnpj,
+          volume_m3,
+          carga_fragil,
+          carga_perigosa,
+          carga_viva,
+          empilhavel,
+          requer_refrigeracao,
+          temperatura_min,
+          temperatura_max,
+          numero_onu,
+          necessidades_especiais,
+          regras_carregamento,
+          nota_fiscal_url,
+          veiculo_requisitos,
           endereco_origem:enderecos_carga!cargas_endereco_origem_fkey (
             id,
             tipo,
@@ -208,6 +256,7 @@ export default function TodasCargas() {
             estado,
             cep,
             contato_nome,
+            contato_telefone,
             latitude,
             longitude
           ),
@@ -221,6 +270,7 @@ export default function TodasCargas() {
             estado,
             cep,
             contato_nome,
+            contato_telefone,
             latitude,
             longitude
           ),
@@ -418,6 +468,47 @@ export default function TodasCargas() {
     pesoTotal: cargas.reduce((acc, c) => acc + c.peso_kg, 0),
     valorTotal: cargas.reduce((acc, c) => acc + (c.valor_mercadoria || 0), 0),
   }), [cargas]);
+
+  // Calculate total freight from all deliveries
+  const getTotalFrete = (carga: CargaData) => {
+    return carga.entregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
+  };
+
+  // Handle delete cargo
+  const handleDeleteCarga = async () => {
+    if (!cargaToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      // First delete associated addresses
+      const { error: addressError } = await supabase
+        .from('enderecos_carga')
+        .delete()
+        .eq('carga_id', cargaToDelete.id);
+
+      if (addressError) {
+        console.error('Erro ao excluir endereços:', addressError);
+      }
+
+      // Then delete the cargo
+      const { error } = await supabase
+        .from('cargas')
+        .delete()
+        .eq('id', cargaToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('Carga excluída com sucesso!');
+      refetch();
+    } catch (error) {
+      console.error('Erro ao excluir carga:', error);
+      toast.error('Erro ao excluir carga');
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setCargaToDelete(null);
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -757,8 +848,14 @@ export default function TodasCargas() {
                         <TableHead className="font-semibold min-w-[130px]">Progresso</TableHead>
                         <TableHead className="font-semibold min-w-[110px] cursor-pointer" onClick={() => handleSort('valor_mercadoria')}>
                           <div className="flex items-center">
-                            Valor
+                            Mercadoria
                             <SortIcon field="valor_mercadoria" />
+                          </div>
+                        </TableHead>
+                        <TableHead className="font-semibold min-w-[100px]">
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            Frete
                           </div>
                         </TableHead>
                         <TableHead className="font-semibold min-w-[90px] text-center">Entregas</TableHead>
@@ -868,6 +965,11 @@ export default function TodasCargas() {
                                   {formatCurrency(carga.valor_mercadoria)}
                                 </span>
                               </TableCell>
+                              <TableCell>
+                                <span className="font-medium text-sm text-green-600">
+                                  {getTotalFrete(carga) > 0 ? formatCurrency(getTotalFrete(carga)) : '-'}
+                                </span>
+                              </TableCell>
                               <TableCell className="text-center">
                                 <Badge variant="outline" className="text-xs">
                                   {carga.entregas.length} {carga.entregas.length === 1 ? 'entrega' : 'entregas'}
@@ -891,6 +993,19 @@ export default function TodasCargas() {
                                       <Eye className="w-4 h-4 mr-2" />
                                       Ver detalhes
                                     </DropdownMenuItem>
+                                    {carga.entregas.length === 0 && (
+                                      <DropdownMenuItem 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setCargaToDelete(carga);
+                                          setDeleteDialogOpen(true);
+                                        }}
+                                        className="text-destructive focus:text-destructive"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </TableCell>
@@ -999,24 +1114,43 @@ export default function TodasCargas() {
               descricao: detailsCarga.descricao,
               tipo: detailsCarga.tipo,
               peso_kg: detailsCarga.peso_kg,
-              volume_m3: null,
+              volume_m3: detailsCarga.volume_m3,
               valor_mercadoria: detailsCarga.valor_mercadoria,
+              valor_frete_tonelada: detailsCarga.valor_frete_tonelada,
               status: detailsCarga.status as any,
               data_coleta_de: detailsCarga.data_coleta_de,
               data_coleta_ate: detailsCarga.data_coleta_ate,
-              data_entrega_limite: null,
+              data_entrega_limite: detailsCarga.data_entrega_limite,
               created_at: detailsCarga.created_at,
+              // Características especiais
+              carga_fragil: detailsCarga.carga_fragil,
+              carga_perigosa: detailsCarga.carga_perigosa,
+              carga_viva: detailsCarga.carga_viva,
+              empilhavel: detailsCarga.empilhavel,
+              requer_refrigeracao: detailsCarga.requer_refrigeracao,
+              temperatura_min: detailsCarga.temperatura_min,
+              temperatura_max: detailsCarga.temperatura_max,
+              numero_onu: detailsCarga.numero_onu,
+              // Novos campos
+              necessidades_especiais: detailsCarga.necessidades_especiais,
+              regras_carregamento: detailsCarga.regras_carregamento,
+              nota_fiscal_url: detailsCarga.nota_fiscal_url,
+              veiculo_requisitos: detailsCarga.veiculo_requisitos,
               remetente: detailsCarga.endereco_origem ? {
                 nome: detailsCarga.endereco_origem.contato_nome || detailsCarga.endereco_origem.cidade,
                 cidade: detailsCarga.endereco_origem.cidade,
                 estado: detailsCarga.endereco_origem.estado,
                 endereco: `${detailsCarga.endereco_origem.logradouro}${detailsCarga.endereco_origem.numero ? `, ${detailsCarga.endereco_origem.numero}` : ''}`,
+                contato_nome: detailsCarga.endereco_origem.contato_nome,
+                contato_telefone: detailsCarga.endereco_origem.contato_telefone,
               } : null,
               destinatario: detailsCarga.endereco_destino ? {
                 nome: detailsCarga.destinatario_nome_fantasia || detailsCarga.destinatario_razao_social || detailsCarga.endereco_destino.contato_nome || detailsCarga.endereco_destino.cidade,
                 cidade: detailsCarga.endereco_destino.cidade,
                 estado: detailsCarga.endereco_destino.estado,
                 endereco: `${detailsCarga.endereco_destino.logradouro}${detailsCarga.endereco_destino.numero ? `, ${detailsCarga.endereco_destino.numero}` : ''}`,
+                contato_nome: detailsCarga.endereco_destino.contato_nome,
+                contato_telefone: detailsCarga.endereco_destino.contato_telefone,
               } : null,
               entregas: detailsCarga.entregas?.map(e => ({
                 id: e.id,
@@ -1033,6 +1167,30 @@ export default function TodasCargas() {
             onOpenChange={(open) => !open && setDetailsCarga(null)}
           />
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Carga</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir a carga <strong>{cargaToDelete?.codigo}</strong>?
+                <br />
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteCarga}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Excluindo...' : 'Excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </TooltipProvider>
     </PortalLayout>
   );
