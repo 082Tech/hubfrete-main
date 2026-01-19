@@ -970,7 +970,13 @@ export default function CargasDisponiveis() {
                       value={selectedMotorista}
                       onValueChange={(value) => {
                         setSelectedMotorista(value);
-                        setSelectedVeiculo('');
+                        // Auto-select the first vehicle if available
+                        const motorista = motoristasDisponiveis.find(m => m.id === value);
+                        if (motorista?.veiculos?.length === 1) {
+                          setSelectedVeiculo(motorista.veiculos[0].id);
+                        } else {
+                          setSelectedVeiculo('');
+                        }
                       }}
                     >
                       <SelectTrigger>
@@ -992,9 +998,6 @@ export default function CargasDisponiveis() {
                                 <Badge variant="outline" className="text-xs bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
                                   Disponível
                                 </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  ({motorista.veiculos?.length || 0} veíc. / {motorista.carrocerias?.length || 0} carr.)
-                                </span>
                               </div>
                             </SelectItem>
                           ))
@@ -1008,59 +1011,128 @@ export default function CargasDisponiveis() {
                     )}
                   </div>
 
-                  {/* Vehicle Selection */}
-                  {selectedMotorista && (
-                    <div className="space-y-2">
-                      <Label>Veículo</Label>
-                      <Select value={selectedVeiculo} onValueChange={setSelectedVeiculo}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o veículo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectedMotoristaData?.veiculos?.length === 0 ? (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              Motorista sem veículo cadastrado
+                  {/* Preview do Equipamento Vinculado */}
+                  {selectedMotorista && selectedMotoristaData && (
+                    <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                      <h4 className="font-semibold text-sm flex items-center gap-2 text-primary">
+                        <Truck className="w-4 h-4" />
+                        Equipamento Vinculado ao Motorista
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {/* Veículo */}
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">Veículo (Cavalo)</Label>
+                          {selectedMotoristaData.veiculos?.length === 0 ? (
+                            <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
+                              <p className="text-xs text-destructive flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                Nenhum veículo vinculado
+                              </p>
                             </div>
                           ) : (
-                            selectedMotoristaData?.veiculos?.map((veiculo) => (
-                              <SelectItem key={veiculo.id} value={veiculo.id}>
-                                <div className="flex items-center gap-2">
-                                  <Truck className="w-4 h-4" />
-                                  <span className="font-medium">{veiculo.placa}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}
-                                  </span>
-                                  {veiculo.capacidade_kg && (
-                                    <span className="text-xs text-muted-foreground">
-                                      ({veiculo.capacidade_kg.toLocaleString('pt-BR')} kg)
-                                    </span>
-                                  )}
+                            <Select value={selectedVeiculo} onValueChange={setSelectedVeiculo}>
+                              <SelectTrigger className="bg-background">
+                                <SelectValue placeholder="Selecione o veículo" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {selectedMotoristaData.veiculos?.map((veiculo) => (
+                                  <SelectItem key={veiculo.id} value={veiculo.id}>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">{veiculo.placa}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          
+                          {/* Detalhes do veículo selecionado */}
+                          {selectedVeiculoData && (
+                            <div className="p-2 bg-background rounded-md border space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Placa:</span>
+                                <span className="text-sm font-mono font-semibold">{selectedVeiculoData.placa}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Tipo:</span>
+                                <span className="text-sm">{tipoVeiculoLabels[selectedVeiculoData.tipo] || selectedVeiculoData.tipo}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Carroceria:</span>
+                                <span className="text-sm">{tipoCarroceriaLabels[selectedVeiculoData.carroceria] || selectedVeiculoData.carroceria}</span>
+                              </div>
+                              {selectedVeiculoData.marca && selectedVeiculoData.modelo && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-muted-foreground">Modelo:</span>
+                                  <span className="text-sm">{selectedVeiculoData.marca} {selectedVeiculoData.modelo}</span>
                                 </div>
-                              </SelectItem>
+                              )}
+                              {selectedVeiculoData.capacidade_kg && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-muted-foreground">Capacidade:</span>
+                                  <span className="text-sm font-medium">{selectedVeiculoData.capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Carroceria */}
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">Carroceria (Reboque)</Label>
+                          {selectedMotoristaData.carrocerias?.length === 0 ? (
+                            <div className="p-3 bg-muted/50 rounded-md border">
+                              <p className="text-xs text-muted-foreground">Sem carroceria vinculada</p>
+                            </div>
+                          ) : (
+                            selectedMotoristaData.carrocerias?.map((carroceria) => (
+                              <div key={carroceria.id} className="p-2 bg-background rounded-md border space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-muted-foreground">Placa:</span>
+                                  <span className="text-sm font-mono font-semibold">{carroceria.placa}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-muted-foreground">Tipo:</span>
+                                  <span className="text-sm">{tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}</span>
+                                </div>
+                                {carroceria.capacidade_kg && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-muted-foreground">Capacidade:</span>
+                                    <span className="text-sm font-medium">{carroceria.capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                                  </div>
+                                )}
+                              </div>
                             ))
                           )}
-                        </SelectContent>
-                      </Select>
-                      
-                      {/* Carroceria vinculada */}
-                      {selectedMotoristaData?.carrocerias && selectedMotoristaData.carrocerias.length > 0 && (
-                        <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
-                          <Package className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Carroceria:</span>
-                          {selectedMotoristaData.carrocerias.map((c) => (
-                            <Badge key={c.id} variant="outline" className="text-xs">
-                              {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
-                              {c.capacidade_kg && ` (${(c.capacidade_kg / 1000).toLocaleString('pt-BR')}t)`}
-                            </Badge>
-                          ))}
+                        </div>
+                      </div>
+
+                      {/* Capacidade Total do Conjunto */}
+                      {selectedVeiculoData && (
+                        <div className="pt-2 border-t border-primary/20">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Capacidade Total do Conjunto:</span>
+                            <span className="font-bold text-primary">
+                              {(() => {
+                                const capacidadeVeiculo = selectedVeiculoData.capacidade_kg || 0;
+                                const capacidadeCarrocerias = selectedMotoristaData.carrocerias?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
+                                return (capacidadeVeiculo + capacidadeCarrocerias).toLocaleString('pt-BR');
+                              })()} kg
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* Weight Allocation */}
-                  {selectedVeiculo && (
-                    <div className="space-y-3">
+                  {/* Weight Allocation & Simulation */}
+                  {selectedVeiculo && selectedMotoristaData && (
+                    <div className="space-y-4">
+                      {/* Input de Peso */}
                       <div className="space-y-2">
                         <Label>Peso a Carregar (kg)</Label>
                         <Input
@@ -1069,6 +1141,7 @@ export default function CargasDisponiveis() {
                           onChange={(e) => setPesoAlocado(e.target.value)}
                           placeholder="Informe o peso"
                           max={selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg}
+                          className="text-lg font-medium"
                         />
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>
@@ -1088,17 +1161,79 @@ export default function CargasDisponiveis() {
                         )}
                       </div>
 
-                      {/* Freight Calculation */}
-                      <div className="p-3 bg-chart-2/10 rounded-lg border border-chart-2/20">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Valor do Frete Calculado:</span>
-                          <span className="text-xl font-bold text-chart-2">
-                            {formatCurrency(calculatedFrete)}
-                          </span>
+                      {/* Simulação Visual */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {/* Peso Restante */}
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Weight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                              Após Aceite
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Peso atual disponível:</span>
+                              <span>{(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Peso a alocar:</span>
+                              <span className="text-orange-600 dark:text-orange-400">- {(parseFloat(pesoAlocado) || 0).toLocaleString('pt-BR')} kg</span>
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between text-sm font-semibold">
+                              <span>Restará na carga:</span>
+                              <span className={(() => {
+                                const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - (parseFloat(pesoAlocado) || 0);
+                                return restante <= 0 ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400';
+                              })()}>
+                                {(() => {
+                                  const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - (parseFloat(pesoAlocado) || 0);
+                                  return Math.max(0, restante).toLocaleString('pt-BR');
+                                })()} kg
+                              </span>
+                            </div>
+                            {(() => {
+                              const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - (parseFloat(pesoAlocado) || 0);
+                              if (restante <= 0) {
+                                return (
+                                  <Badge variant="secondary" className="w-full justify-center mt-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                    <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                    Carga será totalmente alocada
+                                  </Badge>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {(parseFloat(pesoAlocado) || 0).toLocaleString('pt-BR')} kg × {formatCurrency(selectedCarga.valor_frete_tonelada)}/ton
-                        </p>
+
+                        {/* Valor do Frete */}
+                        <div className="p-4 bg-chart-2/10 rounded-lg border border-chart-2/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <DollarSign className="w-4 h-4 text-chart-2" />
+                            <span className="text-sm font-medium text-chart-2">
+                              Frete a Receber
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Preço/tonelada:</span>
+                              <span>{formatCurrency(selectedCarga.valor_frete_tonelada)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Peso alocado:</span>
+                              <span>{((parseFloat(pesoAlocado) || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-semibold">Valor total:</span>
+                              <span className="text-2xl font-bold text-chart-2">
+                                {formatCurrency(calculatedFrete)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
