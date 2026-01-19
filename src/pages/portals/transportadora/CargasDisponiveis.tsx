@@ -128,11 +128,19 @@ interface Veiculo {
   modelo: string | null;
 }
 
+interface Carroceria {
+  id: string;
+  placa: string;
+  tipo: string;
+  capacidade_kg: number | null;
+}
+
 interface Motorista {
   id: string;
   nome_completo: string;
   telefone: string | null;
   veiculos: Veiculo[];
+  carrocerias: Carroceria[];
 }
 
 const tipoCargaLabels: Record<string, string> = {
@@ -217,7 +225,8 @@ export default function CargasDisponiveis() {
           id,
           nome_completo,
           telefone,
-          veiculos(id, placa, tipo, carroceria, capacidade_kg, marca, modelo)
+          veiculos(id, placa, tipo, carroceria, capacidade_kg, marca, modelo),
+          carrocerias(id, placa, tipo, capacidade_kg)
         `)
         .eq('empresa_id', empresa.id)
         .eq('ativo', true);
@@ -984,7 +993,7 @@ export default function CargasDisponiveis() {
                                   Disponível
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">
-                                  ({motorista.veiculos?.length || 0} veículos)
+                                  ({motorista.veiculos?.length || 0} veíc. / {motorista.carrocerias?.length || 0} carr.)
                                 </span>
                               </div>
                             </SelectItem>
@@ -1019,7 +1028,7 @@ export default function CargasDisponiveis() {
                                   <Truck className="w-4 h-4" />
                                   <span className="font-medium">{veiculo.placa}</span>
                                   <span className="text-xs text-muted-foreground">
-                                    {tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo} / {tipoCarroceriaLabels[veiculo.carroceria] || veiculo.carroceria}
+                                    {tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}
                                   </span>
                                   {veiculo.capacidade_kg && (
                                     <span className="text-xs text-muted-foreground">
@@ -1032,6 +1041,20 @@ export default function CargasDisponiveis() {
                           )}
                         </SelectContent>
                       </Select>
+                      
+                      {/* Carroceria vinculada */}
+                      {selectedMotoristaData?.carrocerias && selectedMotoristaData.carrocerias.length > 0 && (
+                        <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                          <Package className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Carroceria:</span>
+                          {selectedMotoristaData.carrocerias.map((c) => (
+                            <Badge key={c.id} variant="outline" className="text-xs">
+                              {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
+                              {c.capacidade_kg && ` (${(c.capacidade_kg / 1000).toLocaleString('pt-BR')}t)`}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
