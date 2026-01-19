@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,32 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Pencil, Trash2 } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 
 interface FilialCompleta extends Filial {
   endereco?: string | null;
@@ -83,6 +58,7 @@ interface RemetenteSectionProps {
 export function RemetenteSection({ initialData, onLocationChange }: RemetenteSectionProps) {
   if (import.meta.env.DEV) console.count('render: RemetenteSection');
 
+  const navigate = useNavigate();
   const { filialAtiva, empresa } = useUserContext();
   const [sourceType, setSourceType] = useState<'filial' | 'cnpj'>('filial');
   const [selectedFilialId, setSelectedFilialId] = useState<string>(() =>
@@ -95,10 +71,6 @@ export function RemetenteSection({ initialData, onLocationChange }: RemetenteSec
   // Saved contacts state
   const [contatos, setContatos] = useState<ContatoRemetente[]>([]);
   const [savingContato, setSavingContato] = useState(false);
-  const [manageDialogOpen, setManageDialogOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<ContatoRemetente | null>(null);
-  const [editingContato, setEditingContato] = useState<ContatoRemetente | null>(null);
-  const [editForm, setEditForm] = useState<Partial<ContatoRemetente>>({});
   const [formData, setFormData] = useState<LocationData>({
     latitude: initialData?.latitude || 0,
     longitude: initialData?.longitude || 0,
@@ -424,58 +396,6 @@ export function RemetenteSection({ initialData, onLocationChange }: RemetenteSec
     }
   };
 
-  // Delete contact
-  const handleDeleteContato = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('contatos_destino')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-
-      setContatos(prev => prev.filter(c => c.id !== id));
-      toast.success('Contato removido com sucesso');
-      setDeleteConfirm(null);
-    } catch (err) {
-      console.error('Error deleting contact:', err);
-      toast.error('Erro ao remover contato');
-    }
-  };
-
-  // Update contact
-  const handleUpdateContato = async () => {
-    if (!editingContato) return;
-    try {
-      const { error } = await supabase
-        .from('contatos_destino')
-        .update(editForm)
-        .eq('id', editingContato.id);
-      if (error) throw error;
-
-      // Reload contacts
-      const { data: newContatos } = await supabase
-        .from('contatos_destino')
-        .select('*')
-        .eq('empresa_id', empresa?.id)
-        .order('razao_social');
-
-      if (newContatos) {
-        setContatos(newContatos as ContatoRemetente[]);
-      }
-
-      toast.success('Contato atualizado com sucesso');
-      setEditingContato(null);
-      setEditForm({});
-    } catch (err) {
-      console.error('Error updating contact:', err);
-      toast.error('Erro ao atualizar contato');
-    }
-  };
-
-  const formatCNPJ = (cnpj: string) => {
-    return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
-  };
-
   return (
     <div className="space-y-4">
       {/* Source Type Selection */}
@@ -568,7 +488,7 @@ export function RemetenteSection({ initialData, onLocationChange }: RemetenteSec
                   type="button"
                   variant="outline"
                   size="default"
-                  onClick={() => setManageDialogOpen(true)}
+                  onClick={() => navigate('/embarcador/contatos')}
                   className="gap-2"
                 >
                   <Settings className="w-4 h-4" />
@@ -726,218 +646,6 @@ export function RemetenteSection({ initialData, onLocationChange }: RemetenteSec
           </div>
         </div>
       </div>
-
-      {/* Manage Contacts Dialog */}
-      <Dialog open={manageDialogOpen} onOpenChange={setManageDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Gerenciar Contatos Salvos
-            </DialogTitle>
-            <DialogDescription>
-              Edite ou remova contatos de remetentes e destinatários
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-auto">
-            {contatos.length === 0 ? (
-              <div className="text-center py-12">
-                <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhum contato salvo</h3>
-                <p className="text-muted-foreground">
-                  Contatos são salvos ao buscar por CNPJ e clicar em "Salvar contato"
-                </p>
-              </div>
-            ) : (
-              <div className="rounded-md border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead className="hidden sm:table-cell">Localização</TableHead>
-                      <TableHead className="w-[80px]">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {contatos.map((contato) => (
-                      <TableRow key={contato.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-sm">{contato.nome_fantasia || contato.razao_social}</p>
-                            <p className="text-xs text-muted-foreground">{formatCNPJ(contato.cnpj)}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          <span className="text-sm text-muted-foreground">
-                            {contato.cidade ? `${contato.cidade}/${contato.estado}` : '-'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setEditingContato(contato);
-                                setEditForm({
-                                  contato_nome: contato.contato_nome || '',
-                                  contato_telefone: contato.contato_telefone || '',
-                                  logradouro: contato.logradouro || '',
-                                  numero: contato.numero || '',
-                                  complemento: contato.complemento || '',
-                                  bairro: contato.bairro || '',
-                                  cidade: contato.cidade || '',
-                                  estado: contato.estado || '',
-                                  cep: contato.cep || '',
-                                });
-                              }}
-                              className="h-8 w-8"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteConfirm(contato)}
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja remover <strong>{deleteConfirm?.razao_social}</strong> da sua lista de contatos?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteConfirm && handleDeleteContato(deleteConfirm.id)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Edit Contact Dialog */}
-      <Dialog open={!!editingContato} onOpenChange={() => setEditingContato(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Editar Contato</DialogTitle>
-            <DialogDescription>
-              {editingContato?.razao_social}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Nome do Contato</Label>
-                <Input
-                  value={editForm.contato_nome || ''}
-                  onChange={(e) => setEditForm({ ...editForm, contato_nome: e.target.value })}
-                  placeholder="Nome do responsável"
-                />
-              </div>
-              <div>
-                <Label>Telefone</Label>
-                <Input
-                  value={editForm.contato_telefone || ''}
-                  onChange={(e) => setEditForm({ ...editForm, contato_telefone: e.target.value })}
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
-                <Label>Logradouro</Label>
-                <Input
-                  value={editForm.logradouro || ''}
-                  onChange={(e) => setEditForm({ ...editForm, logradouro: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Número</Label>
-                <Input
-                  value={editForm.numero || ''}
-                  onChange={(e) => setEditForm({ ...editForm, numero: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Bairro</Label>
-                <Input
-                  value={editForm.bairro || ''}
-                  onChange={(e) => setEditForm({ ...editForm, bairro: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Complemento</Label>
-                <Input
-                  value={editForm.complemento || ''}
-                  onChange={(e) => setEditForm({ ...editForm, complemento: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label>Cidade</Label>
-                <Input
-                  value={editForm.cidade || ''}
-                  onChange={(e) => setEditForm({ ...editForm, cidade: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Estado</Label>
-                <Input
-                  value={editForm.estado || ''}
-                  onChange={(e) => setEditForm({ ...editForm, estado: e.target.value })}
-                  maxLength={2}
-                />
-              </div>
-              <div>
-                <Label>CEP</Label>
-                <Input
-                  value={editForm.cep || ''}
-                  onChange={(e) => setEditForm({ ...editForm, cep: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setEditingContato(null)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleUpdateContato}>
-                Salvar Alterações
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
