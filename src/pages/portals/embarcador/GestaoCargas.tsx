@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, Suspense, lazy } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PortalLayout } from '@/components/portals/PortalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ import {
   Wifi,
   WifiOff,
   Radio,
+  ExternalLink,
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
@@ -191,6 +193,7 @@ const allStatusFilters = [
 const finalizedStatuses = ['entregue', 'cancelada', 'problema', 'devolvida'];
 
 export default function GestaoCargas() {
+  const navigate = useNavigate();
   const { filialAtiva, switchingFilial } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -1080,6 +1083,15 @@ export default function GestaoCargas() {
                                       }}
                                     >
                                       <Eye className="w-4 h-4" /> Ver detalhes
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="gap-2 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/embarcador/cargas/todas?carga=${carga.id}`);
+                                      }}
+                                    >
+                                      <ExternalLink className="w-4 h-4" /> Ver carga completa
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       className="gap-2 cursor-pointer"
