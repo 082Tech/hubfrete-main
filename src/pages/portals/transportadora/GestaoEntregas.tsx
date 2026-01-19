@@ -36,7 +36,17 @@ import {
   ArrowRight,
   Route,
   Clock,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  FileText,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Sheet,
   SheetContent,
@@ -844,6 +854,7 @@ export default function GestaoEntregas() {
                               Previsão
                             </div>
                           </TableHead>
+                          <TableHead className="font-semibold w-[50px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -963,6 +974,43 @@ export default function GestaoEntregas() {
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {formatDate(entrega.carga.data_entrega_limite)}
+                              </TableCell>
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedEntregaId(entrega.id);
+                                    }}>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      Ver no mapa
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => {
+                                      e.stopPropagation();
+                                      // TODO: Implement view details
+                                    }}>
+                                      <FileText className="w-4 h-4 mr-2" />
+                                      Ver detalhes
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => {
+                                      e.stopPropagation();
+                                      // TODO: Implement edit
+                                    }}>
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      Editar entrega
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </TableCell>
                             </TableRow>
                           );

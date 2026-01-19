@@ -159,12 +159,12 @@ const statusLabels: Record<string, string> = {
 
 interface EntregaMapData {
   id: string;
-  cargaId: string;
+  cargaId: string | null;
   latitude: number | null;
   longitude: number | null;
   status: string | null;
-  codigo: string;
-  descricao: string;
+  codigo: string | null;
+  descricao: string | null;
   motorista: string | null;
   motoristaFotoUrl?: string | null;
   motoristaOnline?: boolean | null;
@@ -173,6 +173,7 @@ interface EntregaMapData {
   destino: string | null;
   origemCoords: { lat: number; lng: number } | null;
   destinoCoords: { lat: number; lng: number } | null;
+  isIdleDriver?: boolean;
 }
 
 interface EntregasMapProps {
@@ -429,9 +430,10 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
         {validEntregas
           .filter((entrega) => !selectedCargaId || entrega.cargaId === selectedCargaId)
           .map((entrega) => {
-            const status = entrega.status || 'aguardando_coleta';
-            const color = statusColors[status] || statusColors['aguardando_coleta'];
-            const label = statusLabels[status] || 'Desconhecido';
+            const isIdle = entrega.isIdleDriver || !entrega.status;
+            const status = entrega.status || 'idle';
+            const color = isIdle ? '#6b7280' : (statusColors[status] || statusColors['aguardando_coleta']);
+            const label = isIdle ? 'Sem Entrega' : (statusLabels[status] || 'Desconhecido');
             const isSelected = selectedCargaId === entrega.cargaId;
             const isOnline = entrega.motoristaOnline === true;
             
@@ -441,7 +443,7 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
                 position={[entrega.latitude!, entrega.longitude!]}
                 icon={createAvatarIcon(entrega.motoristaFotoUrl || null, isOnline, isSelected)}
                 eventHandlers={{
-                  click: () => handleMarkerClick(entrega),
+                  click: () => !isIdle && handleMarkerClick(entrega),
                 }}
               >
                 {/* Tooltip on hover */}
@@ -452,7 +454,9 @@ export function EntregasMap({ entregas, selectedCargaId, onSelectCarga }: Entreg
                   permanent={false}
                 >
                   <div className="text-xs min-w-[140px]">
-                    <div className="font-bold mb-1">{entrega.codigo}</div>
+                    {entrega.codigo && (
+                      <div className="font-bold mb-1">{entrega.codigo}</div>
+                    )}
                     {entrega.motorista && (
                       <div className="text-gray-600">{entrega.motorista}</div>
                     )}
