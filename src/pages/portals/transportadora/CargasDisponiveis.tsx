@@ -165,7 +165,7 @@ export default function CargasDisponiveis() {
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
   const [selectedMotorista, setSelectedMotorista] = useState<string>('');
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('');
-  const [pesoAlocado, setPesoAlocado] = useState<string>('');
+  // pesoAlocado state removed - now calculated automatically from carroceria
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
@@ -324,7 +324,6 @@ export default function CargasDisponiveis() {
       setSelectedCarga(null);
       setSelectedMotorista('');
       setSelectedVeiculo('');
-      setPesoAlocado('');
     },
     onError: (error) => {
       console.error('Erro ao aceitar carga:', error);
@@ -352,9 +351,6 @@ export default function CargasDisponiveis() {
     setSelectedCarga(carga);
     setSelectedMotorista('');
     setSelectedVeiculo('');
-    // Default to available weight or full weight
-    const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
-    setPesoAlocado(pesoDisponivel.toString());
     setIsAcceptDialogOpen(true);
   };
 
@@ -368,12 +364,27 @@ export default function CargasDisponiveis() {
     return selectedMotoristaData?.veiculos?.find((v) => v.id === selectedVeiculo);
   }, [selectedMotoristaData, selectedVeiculo]);
 
+  // Calculate capacity based on carrocerias linked to driver
+  const capacidadeCarroceria = useMemo(() => {
+    if (!selectedMotoristaData?.carrocerias?.length) return 0;
+    return selectedMotoristaData.carrocerias.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0);
+  }, [selectedMotoristaData]);
+
+  // Calculate allocated weight automatically based on carroceria capacity
+  const pesoAlocadoCalculado = useMemo(() => {
+    if (!selectedCarga || !selectedMotoristaData) return 0;
+    const pesoDisponivel = selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg;
+    // If no carroceria, can't allocate any weight
+    if (capacidadeCarroceria <= 0) return 0;
+    // Allocate the minimum between capacity and available cargo weight
+    return Math.min(capacidadeCarroceria, pesoDisponivel);
+  }, [selectedCarga, selectedMotoristaData, capacidadeCarroceria]);
+
   // Calculate freight based on allocated weight
   const calculatedFrete = useMemo(() => {
-    if (!selectedCarga?.valor_frete_tonelada || !pesoAlocado) return 0;
-    const peso = parseFloat(pesoAlocado) || 0;
-    return (peso / 1000) * selectedCarga.valor_frete_tonelada;
-  }, [selectedCarga, pesoAlocado]);
+    if (!selectedCarga?.valor_frete_tonelada || !pesoAlocadoCalculado) return 0;
+    return (pesoAlocadoCalculado / 1000) * selectedCarga.valor_frete_tonelada;
+  }, [selectedCarga, pesoAlocadoCalculado]);
 
   const handleConfirmAccept = () => {
     if (!selectedCarga || !selectedMotorista || !selectedVeiculo) {
@@ -381,15 +392,8 @@ export default function CargasDisponiveis() {
       return;
     }
 
-    const peso = parseFloat(pesoAlocado) || 0;
-    if (peso <= 0) {
-      toast.error('Peso deve ser maior que zero');
-      return;
-    }
-
-    const pesoDisponivel = selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg;
-    if (peso > pesoDisponivel) {
-      toast.error('Peso alocado maior que o disponível');
+    if (pesoAlocadoCalculado <= 0) {
+      toast.error('Motorista precisa ter carroceria com capacidade cadastrada');
       return;
     }
 
@@ -397,7 +401,7 @@ export default function CargasDisponiveis() {
       cargaId: selectedCarga.id,
       motoristaId: selectedMotorista,
       veiculoId: selectedVeiculo,
-      pesoAlocadoKg: peso,
+      pesoAlocadoKg: pesoAlocadoCalculado,
       valorFrete: calculatedFrete,
     });
   };
@@ -1129,34 +1133,32 @@ export default function CargasDisponiveis() {
                     </div>
                   )}
 
-                  {/* Weight Allocation & Simulation */}
+                  {/* Weight Allocation & Simulation - Automatic based on carroceria */}
                   {selectedVeiculo && selectedMotoristaData && (
                     <div className="space-y-4">
-                      {/* Input de Peso */}
-                      <div className="space-y-2">
-                        <Label>Peso a Carregar (kg)</Label>
-                        <Input
-                          type="number"
-                          value={pesoAlocado}
-                          onChange={(e) => setPesoAlocado(e.target.value)}
-                          placeholder="Informe o peso"
-                          max={selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg}
-                          className="text-lg font-medium"
-                        />
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>
-                            Disponível: {(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg
+                      {/* Peso Calculado Automaticamente */}
+                      <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Weight className="w-5 h-5 text-primary" />
+                            <span className="font-semibold text-foreground">Peso a Carregar</span>
+                          </div>
+                          <span className="text-2xl font-bold text-primary">
+                            {pesoAlocadoCalculado.toLocaleString('pt-BR')} kg
                           </span>
-                          {selectedVeiculoData?.capacidade_kg && (
-                            <span>
-                              Capacidade do veículo: {selectedVeiculoData.capacidade_kg.toLocaleString('pt-BR')} kg
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Baseado na capacidade da carroceria vinculada ({capacidadeCarroceria.toLocaleString('pt-BR')} kg)
+                          {capacidadeCarroceria > (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) && (
+                            <span className="block mt-1 text-primary">
+                              Limitado ao peso disponível da carga
                             </span>
                           )}
-                        </div>
-                        {selectedVeiculoData?.capacidade_kg && parseFloat(pesoAlocado) > selectedVeiculoData.capacidade_kg && (
-                          <p className="text-xs text-destructive flex items-center gap-1">
+                        </p>
+                        {capacidadeCarroceria <= 0 && (
+                          <p className="text-xs text-destructive flex items-center gap-1 mt-2">
                             <AlertTriangle className="w-3.5 h-3.5" />
-                            Peso excede a capacidade do veículo!
+                            Motorista não possui carroceria com capacidade cadastrada
                           </p>
                         )}
                       </div>
@@ -1164,10 +1166,10 @@ export default function CargasDisponiveis() {
                       {/* Simulação Visual */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {/* Peso Restante */}
-                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="p-4 bg-muted/50 rounded-lg border">
                           <div className="flex items-center gap-2 mb-2">
-                            <Weight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                            <Weight className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-foreground">
                               Após Aceite
                             </span>
                           </div>
@@ -1178,26 +1180,26 @@ export default function CargasDisponiveis() {
                             </div>
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Peso a alocar:</span>
-                              <span className="text-orange-600 dark:text-orange-400">- {(parseFloat(pesoAlocado) || 0).toLocaleString('pt-BR')} kg</span>
+                              <span className="text-primary font-medium">- {pesoAlocadoCalculado.toLocaleString('pt-BR')} kg</span>
                             </div>
                             <Separator className="my-2" />
                             <div className="flex justify-between text-sm font-semibold">
                               <span>Restará na carga:</span>
                               <span className={(() => {
-                                const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - (parseFloat(pesoAlocado) || 0);
-                                return restante <= 0 ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400';
+                                const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoAlocadoCalculado;
+                                return restante <= 0 ? 'text-chart-2' : 'text-foreground';
                               })()}>
                                 {(() => {
-                                  const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - (parseFloat(pesoAlocado) || 0);
+                                  const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoAlocadoCalculado;
                                   return Math.max(0, restante).toLocaleString('pt-BR');
                                 })()} kg
                               </span>
                             </div>
                             {(() => {
-                              const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - (parseFloat(pesoAlocado) || 0);
+                              const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoAlocadoCalculado;
                               if (restante <= 0) {
                                 return (
-                                  <Badge variant="secondary" className="w-full justify-center mt-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                  <Badge variant="secondary" className="w-full justify-center mt-2 bg-chart-2/20 text-chart-2">
                                     <CheckCircle className="w-3.5 h-3.5 mr-1" />
                                     Carga será totalmente alocada
                                   </Badge>
@@ -1223,7 +1225,7 @@ export default function CargasDisponiveis() {
                             </div>
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Peso alocado:</span>
-                              <span>{((parseFloat(pesoAlocado) || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
+                              <span>{(pesoAlocadoCalculado / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
                             </div>
                             <Separator className="my-2" />
                             <div className="flex justify-between items-center">
@@ -1250,7 +1252,7 @@ export default function CargasDisponiveis() {
               </Button>
               <Button
                 onClick={handleConfirmAccept}
-                disabled={!selectedMotorista || !selectedVeiculo || !pesoAlocado || acceptCarga.isPending}
+                disabled={!selectedMotorista || !selectedVeiculo || pesoAlocadoCalculado <= 0 || acceptCarga.isPending}
                 className="gap-2"
               >
                 {acceptCarga.isPending ? (
