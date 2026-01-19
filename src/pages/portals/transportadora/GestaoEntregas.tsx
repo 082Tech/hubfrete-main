@@ -356,6 +356,7 @@ export default function GestaoEntregas() {
       origemCoords: { lat: number; lng: number } | null;
       destinoCoords: { lat: number; lng: number } | null;
       isIdleDriver?: boolean;
+      lastLocationUpdate?: number | null;
     }> = [];
 
     // Track drivers that are already included from entregas
@@ -398,6 +399,7 @@ export default function GestaoEntregas() {
         destinoCoords: destino?.latitude != null && destino?.longitude != null
           ? { lat: destino.latitude, lng: destino.longitude }
           : null,
+        lastLocationUpdate: localizacao?.timestamp ?? null,
       });
     });
 
@@ -426,6 +428,7 @@ export default function GestaoEntregas() {
               origemCoords: null,
               destinoCoords: null,
               isIdleDriver: true,
+              lastLocationUpdate: localizacao?.timestamp ?? null,
             });
           }
         }
@@ -455,6 +458,26 @@ export default function GestaoEntregas() {
   };
 
   const formatPeso = (peso: number) => peso.toLocaleString('pt-BR') + ' kg';
+
+  const formatLocationTimestamp = (timestamp: number | null | undefined): string => {
+    if (!timestamp) return '-';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    
+    if (diffMins < 1) return 'Agora';
+    if (diffMins < 60) return `${diffMins} min`;
+    if (diffHours < 24) return `${diffHours}h`;
+    
+    return date.toLocaleString('pt-BR', { 
+      day: '2-digit', 
+      month: '2-digit',
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
 
   // Filters sidebar content
   const FiltersContent = () => (
@@ -854,6 +877,12 @@ export default function GestaoEntregas() {
                               Previsão
                             </div>
                           </TableHead>
+                          <TableHead className="font-semibold min-w-[90px]">
+                            <div className="flex items-center gap-1">
+                              <Radio className="w-3 h-3" />
+                              Localização
+                            </div>
+                          </TableHead>
                           <TableHead className="font-semibold w-[50px]"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -974,6 +1003,36 @@ export default function GestaoEntregas() {
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {formatDate(entrega.carga.data_entrega_limite)}
+                              </TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const motoristaEmail = entrega.motorista?.email;
+                                  const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
+                                  const lastUpdate = localizacao?.timestamp;
+                                  
+                                  if (!lastUpdate) {
+                                    return <span className="text-sm text-muted-foreground">-</span>;
+                                  }
+                                  
+                                  const formattedTime = formatLocationTimestamp(lastUpdate);
+                                  const isRecent = lastUpdate && (Date.now() - lastUpdate) < 5 * 60 * 1000; // 5 minutes
+                                  
+                                  return (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className={`flex items-center gap-1 text-xs ${isRecent ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                          <Radio className={`w-3 h-3 ${isRecent ? 'animate-pulse' : ''}`} />
+                                          <span>{formattedTime}</span>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="text-xs">
+                                          {new Date(lastUpdate).toLocaleString('pt-BR')}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell>
                                 <DropdownMenu>
