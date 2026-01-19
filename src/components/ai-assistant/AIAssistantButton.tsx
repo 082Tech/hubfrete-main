@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AIAssistantChat } from "./AIAssistantChat";
 
@@ -14,7 +14,7 @@ export function AIAssistantButton() {
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-50 bg-primary hover:bg-primary/90"
         size="icon"
       >
-        <Bot className="h-6 w-6" />
+        <Sparkles className="h-6 w-6" />
         <span className="sr-only">Assistente de IA</span>
         
         {/* Pulse animation */}

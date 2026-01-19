@@ -4,7 +4,7 @@ import { ChatInput } from "@/components/ai-assistant/ChatInput";
 import { TypingIndicator } from "@/components/ai-assistant/TypingIndicator";
 import { AnimatedBackground } from "@/components/ai-assistant/AnimatedBackground";
 import { sendMessage, getOrCreateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
-import { MessageSquare, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { PortalLayout } from "@/components/portals/PortalLayout";
 import { Button } from "@/components/ui/button";
@@ -175,7 +175,7 @@ export default function AssistenteTransportadora() {
                 border: '1px solid hsl(var(--ai-accent) / 0.3)'
               }}
             >
-              <MessageSquare className="w-5 h-5 text-primary" />
+              <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <div>
               <h1 
@@ -210,7 +210,7 @@ export default function AssistenteTransportadora() {
                       boxShadow: '0 0 30px hsl(var(--ai-accent) / 0.2)'
                     }}
                   >
-                    <MessageSquare className="w-10 h-10 text-primary" />
+                    <Sparkles className="w-10 h-10 text-primary" />
                   </div>
 
                   <h2 className="text-2xl md:text-3xl font-bold mb-3">
