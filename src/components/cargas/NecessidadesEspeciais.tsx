@@ -55,20 +55,29 @@ export function NecessidadesEspeciais({ value, onChange }: NecessidadesEspeciais
         <Wrench className="w-4 h-4 text-muted-foreground" />
         <Label className="text-sm font-medium">Necessidades Especiais</Label>
       </div>
-      
+
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {OPCOES_NECESSIDADES.map((opcao) => (
-          <div 
-            key={opcao.value} 
-            className="flex items-center space-x-2 p-2 rounded-md border border-border hover:bg-accent/50 cursor-pointer transition-colors"
-            onClick={() => handleToggle(opcao.value)}
+          <div
+            key={opcao.value}
+            className="flex items-center space-x-2 p-2 rounded-md border border-border hover:bg-accent/50 transition-colors"
           >
             <Checkbox
+              id={`opcao-${opcao.value}`}
               checked={value.includes(opcao.value)}
-              onCheckedChange={() => handleToggle(opcao.value)}
-              className="pointer-events-none"
+              onCheckedChange={(checked) => {
+                if (checked === true) {
+                  onChange([...value, opcao.value]);
+                } else {
+                  onChange(value.filter(v => v !== opcao.value));
+                }
+              }}
             />
-            <Label className="font-normal cursor-pointer text-sm">
+
+            <Label
+              htmlFor={`opcao-${opcao.value}`}
+              className="font-normal text-sm cursor-pointer"
+            >
               {opcao.label}
             </Label>
           </div>

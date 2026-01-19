@@ -207,23 +207,16 @@ export function VeiculoCarroceriaSelect({
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-6">
                     {category.items.map((item) => (
-                      <div
-                        key={item.value}
-                        className={`flex items-center space-x-2 p-2 rounded-md border cursor-pointer transition-colors ${
-                          safeVeiculos.includes(item.value)
-                            ? 'bg-primary/10 border-primary/30'
-                            : 'border-border hover:bg-accent/50'
-                        }`}
-                        onClick={() => handleToggleVeiculo(item.value)}
-                      >
+                      <div className="flex items-center gap-2 p-2 rounded-md border">
                         <Checkbox
                           checked={safeVeiculos.includes(item.value)}
-                          onCheckedChange={() => handleToggleVeiculo(item.value)}
-                          className="pointer-events-none"
+                          onCheckedChange={(checked) =>
+                            checked === true
+                              ? onVeiculosChange([...safeVeiculos, item.value])
+                              : onVeiculosChange(safeVeiculos.filter(v => v !== item.value))
+                          }
                         />
-                        <Label className="font-normal cursor-pointer text-sm">
-                          {item.label}
-                        </Label>
+                        <Label className="cursor-pointer">{item.label}</Label>
                       </div>
                     ))}
                   </div>
@@ -242,7 +235,7 @@ export function VeiculoCarroceriaSelect({
               </Badge>
             ) : (
               safeVeiculos.slice(0, 5).map(v => {
-                const item = ALL_VEICULOS.includes(v) 
+                const item = ALL_VEICULOS.includes(v)
                   ? Object.values(VEICULOS_CONFIG).flatMap(c => c.items).find(i => i.value === v)
                   : null;
                 return item ? (
@@ -298,11 +291,28 @@ export function VeiculoCarroceriaSelect({
                   <div className="flex items-center gap-2">
                     <Checkbox
                       checked={categorySelected}
-                      onCheckedChange={() => handleToggleCategory(category.items, safeCarrocerias, onCarroceriasChange)}
+                      onCheckedChange={(checked) => {
+                        const isChecked = checked === true;
+
+                        if (isChecked) {
+                          const next = [...safeCarrocerias];
+                          category.items.forEach(item => {
+                            if (!next.includes(item.value)) {
+                              next.push(item.value);
+                            }
+                          });
+                          onCarroceriasChange(next);
+                        } else {
+                          onCarroceriasChange(
+                            safeCarrocerias.filter(
+                              v => !category.items.some(i => i.value === v)
+                            )
+                          );
+                        }
+                      }}
                     />
-                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleToggleCategory(category.items, safeCarrocerias, onCarroceriasChange)}
-                    >
+
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {category.label}
                     </Label>
                   </div>
@@ -310,19 +320,22 @@ export function VeiculoCarroceriaSelect({
                     {category.items.map((item) => (
                       <div
                         key={item.value}
-                        className={`flex items-center space-x-2 p-2 rounded-md border cursor-pointer transition-colors ${
-                          safeCarrocerias.includes(item.value)
-                            ? 'bg-primary/10 border-primary/30'
-                            : 'border-border hover:bg-accent/50'
-                        }`}
-                        onClick={() => handleToggleCarroceria(item.value)}
+                        className={`flex items-center space-x-2 p-2 rounded-md border transition-colors`}
                       >
                         <Checkbox
                           checked={safeCarrocerias.includes(item.value)}
-                          onCheckedChange={() => handleToggleCarroceria(item.value)}
-                          className="pointer-events-none"
+                          onCheckedChange={(checked) => {
+                            if (checked === true) {
+                              onCarroceriasChange([...safeCarrocerias, item.value]);
+                            } else {
+                              onCarroceriasChange(
+                                safeCarrocerias.filter(v => v !== item.value)
+                              );
+                            }
+                          }}
                         />
-                        <Label className="font-normal cursor-pointer text-sm">
+
+                        <Label className="font-normal text-sm cursor-pointer">
                           {item.label}
                         </Label>
                       </div>

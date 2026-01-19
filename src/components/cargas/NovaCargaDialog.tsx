@@ -65,9 +65,9 @@ const formSchema = z.object({
   peso_kg: z.coerce.number().min(1, 'Peso deve ser maior que 0'),
   volume_m3: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
-  valor_frete_tonelada: z.coerce.number().optional(),
+  valor_frete_tonelada: z.coerce.number().min(0),
   permite_fracionado: z.boolean().default(true),
-  
+
   // Características especiais
   carga_fragil: z.boolean().default(false),
   carga_perigosa: z.boolean().default(false),
@@ -77,12 +77,12 @@ const formSchema = z.object({
   temperatura_min: z.coerce.number().optional(),
   temperatura_max: z.coerce.number().optional(),
   numero_onu: z.string().optional(),
-  
+
   // Datas
   data_coleta_de: z.string().min(1, 'Data de coleta é obrigatória'),
   data_coleta_ate: z.string().optional(),
   data_entrega_limite: z.string().optional(),
-  
+
   // Regras de carregamento
   regras_carregamento: z.string().optional(),
 });
@@ -95,21 +95,19 @@ interface NovaCargaDialogProps {
 }
 
 export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
-  if (import.meta.env.DEV) console.count('render: NovaCargaDialog');
-
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('carga');
   const { filialAtiva } = useUserContext();
-  
+
   // Additional state for new fields
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
-  
+
   // Vehicle and body type requirements - start empty (deselected)
   const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([]);
   const [carroceriasSelecionadas, setCarroceriasSelecionadas] = useState<string[]>([]);
-  
+
   // Location data for origin and destination
   const [origemData, setOrigemData] = useState<LocationData>({
     latitude: 0,
@@ -124,7 +122,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     contato_nome: '',
     contato_telefone: '',
   });
-  
+
   const [destinoData, setDestinoData] = useState<LocationData>({
     latitude: 0,
     longitude: 0,
@@ -158,7 +156,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
   const pesoKg = form.watch('peso_kg');
   const valorFreteTonelada = form.watch('valor_frete_tonelada');
-  
+
   // Calcular preview do frete total
   const freteTotal = pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
 
@@ -181,7 +179,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
   const onSubmit = async (values: FormValues) => {
     if (!validateLocations()) return;
-    
+
     setIsLoading(true);
 
     try {
@@ -388,7 +386,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     <FormItem>
                       <FormLabel>Descrição da Carga *</FormLabel>
                       <FormControl>
-                        <Textarea 
+                        <Textarea
                           placeholder="Descreva a carga (ex: Minério de ferro - Lote A)"
                           {...field}
                         />
@@ -475,7 +473,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     <DollarSign className="w-4 h-4 text-primary" />
                     Valor do Frete
                   </h4>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -484,7 +482,15 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                         <FormItem>
                           <FormLabel>Frete por Tonelada (R$)</FormLabel>
                           <FormControl>
-                            <Input type="number" step="0.01" placeholder="0,00" {...field} />
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={field.value ?? ''}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? 0 : Number(e.target.value))
+                              }
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -493,17 +499,21 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
                     <div className="space-y-2">
                       <Label className="text-sm">Frete Total Estimado</Label>
+
                       <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center">
                         <span className="font-bold text-primary">
-                          {freteTotal > 0 
-                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
-                            : 'R$ 0,00'
-                          }
+                          {freteTotal > 0
+                            ? new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                            }).format(freteTotal)
+                            : 'R$ 0,00'}
                         </span>
                       </div>
+
                       {pesoKg > 0 && valorFreteTonelada > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          {(pesoKg / 1000).toFixed(2)}t × R$ {valorFreteTonelada.toFixed(2)}/ton
+                          {(pesoKg / 1000).toFixed(2)}t x R$ {valorFreteTonelada.toFixed(2)}/ton
                         </p>
                       )}
                     </div>
@@ -737,7 +747,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     <FormItem>
                       <FormLabel>Regras de Carregamento</FormLabel>
                       <FormControl>
-                        <Textarea 
+                        <Textarea
                           placeholder="Instruções especiais para carregamento (ex: Não tomblar, manter na vertical, empilhar máximo 3 caixas...)"
                           className="min-h-[100px]"
                           {...field}
@@ -796,9 +806,9 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
             </Tabs>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setOpen(false)}
                 disabled={isLoading}
               >
