@@ -46,8 +46,8 @@ export default function TransportadoraMensagens() {
   };
 
   return (
-    <PortalLayout expectedUserType="transportadora">
-      <div className="h-[calc(100vh-4rem)] flex">
+    <PortalLayout expectedUserType="transportadora" fullWidth>
+      <div className="h-screen flex">
         {/* Chat List - Hidden on mobile when chat is selected */}
         <div className={cn(
           'w-full md:w-80 lg:w-96 shrink-0 h-full',

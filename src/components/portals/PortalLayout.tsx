@@ -22,9 +22,10 @@ function getRedirectByUserType(tipo: UserType): string {
 interface PortalLayoutProps {
   children: ReactNode;
   expectedUserType: 'embarcador' | 'transportadora' | 'motorista';
+  fullWidth?: boolean;
 }
 
-export function PortalLayout({ children, expectedUserType }: PortalLayoutProps) {
+export function PortalLayout({ children, expectedUserType, fullWidth = false }: PortalLayoutProps) {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { userType, loading: contextLoading } = useUserContext();
@@ -69,7 +70,7 @@ export function PortalLayout({ children, expectedUserType }: PortalLayoutProps) 
         collapsed={collapsed} 
         onToggleCollapse={() => setCollapsed(!collapsed)} 
       />
-      <main className={`transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'} p-8`}>
+      <main className={`transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'} ${fullWidth ? '' : 'p-8'}`}>
         {children}
       </main>
     </div>
