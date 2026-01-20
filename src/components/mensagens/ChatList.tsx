@@ -1,0 +1,90 @@
+import { useState } from 'react';
+import { Search, MessageSquare } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ChatListItem } from './ChatListItem';
+import { Chat } from './types';
+
+interface ChatListProps {
+  chats: Chat[];
+  selectedChatId: string | null;
+  onSelectChat: (chatId: string) => void;
+  isLoading: boolean;
+  userType: 'embarcador' | 'transportadora';
+}
+
+export function ChatList({ chats, selectedChatId, onSelectChat, isLoading, userType }: ChatListProps) {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredChats = chats.filter(chat => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    
+    const codigo = chat.entrega?.carga?.codigo?.toLowerCase() || '';
+    const descricao = chat.entrega?.carga?.descricao?.toLowerCase() || '';
+    const motorista = chat.entrega?.motorista?.nome_completo?.toLowerCase() || '';
+    const embarcador = chat.entrega?.carga?.empresa?.nome?.toLowerCase() || '';
+    const transportadora = chat.entrega?.motorista?.empresa?.nome?.toLowerCase() || '';
+    
+    return codigo.includes(searchLower) || 
+           descricao.includes(searchLower) || 
+           motorista.includes(searchLower) ||
+           embarcador.includes(searchLower) ||
+           transportadora.includes(searchLower);
+  });
+
+  return (
+    <div className="flex flex-col h-full bg-card border-r border-border">
+      {/* Header */}
+      <div className="p-4 border-b border-border">
+        <h2 className="text-lg font-semibold mb-3">Conversas</h2>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar conversa..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
+
+      {/* Chat List */}
+      <ScrollArea className="flex-1">
+        {isLoading ? (
+          <div className="p-4 space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex items-center gap-3 animate-pulse">
+                <div className="h-12 w-12 rounded-full bg-muted" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-muted rounded w-3/4" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredChats.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center">
+            <MessageSquare className="h-12 w-12 text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">
+              {searchTerm ? 'Nenhuma conversa encontrada' : 'Nenhuma conversa ainda'}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {!searchTerm && 'As conversas aparecerão aqui quando houver entregas'}
+            </p>
+          </div>
+        ) : (
+          filteredChats.map(chat => (
+            <ChatListItem
+              key={chat.id}
+              chat={chat}
+              isSelected={chat.id === selectedChatId}
+              onClick={() => onSelectChat(chat.id)}
+              userType={userType}
+            />
+          ))
+        )}
+      </ScrollArea>
+    </div>
+  );
+}
