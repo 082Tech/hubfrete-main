@@ -64,7 +64,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
               motorista_id
             `)
             .eq('id', chat.entrega_id)
-            .single();
+            .maybeSingle();
 
           if (!entrega) return null;
 
@@ -73,7 +73,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
             .from('cargas')
             .select('id, codigo, descricao, empresa_id')
             .eq('id', entrega.carga_id)
-            .single();
+            .maybeSingle();
 
           // Fetch empresa (embarcador)
           let empresa = null;
@@ -82,7 +82,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
               .from('empresas')
               .select('id, nome')
               .eq('id', carga.empresa_id)
-              .single();
+              .maybeSingle();
             empresa = data;
           }
 
@@ -93,7 +93,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
               .from('motoristas')
               .select('id, nome_completo, foto_url, empresa_id')
               .eq('id', entrega.motorista_id)
-              .single();
+              .maybeSingle();
             motorista = data;
 
             // If motorista belongs to transportadora, fetch empresa
@@ -102,7 +102,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
                 .from('empresas')
                 .select('id, nome')
                 .eq('id', motorista.empresa_id)
-                .single();
+                .maybeSingle();
               if (motoristaEmpresa) {
                 motorista = { ...motorista, empresa: motoristaEmpresa };
               }
@@ -124,7 +124,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
             .eq('chat_id', chat.id)
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
           // Count unread messages
           const { count } = await supabase
@@ -211,7 +211,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         .from('usuarios')
         .select('nome')
         .eq('auth_user_id', currentUserId)
-        .single();
+        .maybeSingle();
 
       const { error } = await supabase
         .from('mensagens')
