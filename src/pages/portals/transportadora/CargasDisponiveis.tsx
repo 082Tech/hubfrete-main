@@ -58,6 +58,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import CargasGoogleMap from '@/components/maps/CargasGoogleMap';
 import RouteGoogleMap from '@/components/maps/RouteGoogleMap';
+import { createChatForEntrega } from '@/lib/chatService';
 
 interface VeiculoRequisitos {
   tipos_veiculo?: string[];
@@ -83,6 +84,7 @@ interface Carga {
   empilhavel: boolean;
   necessidades_especiais: string[] | null;
   veiculo_requisitos: VeiculoRequisitos | null;
+  empresa_id: number | null;
   // Destinatário fields
   destinatario_razao_social: string | null;
   destinatario_nome_fantasia: string | null;
@@ -195,6 +197,7 @@ export default function CargasDisponiveis() {
           empilhavel,
           necessidades_especiais,
           veiculo_requisitos,
+          empresa_id,
           destinatario_razao_social,
           destinatario_nome_fantasia,
           destinatario_cnpj,
@@ -271,13 +274,17 @@ export default function CargasDisponiveis() {
       motoristaId, 
       veiculoId, 
       pesoAlocadoKg, 
-      valorFrete 
+      valorFrete,
+      embarcadorEmpresaId,
+      transportadoraEmpresaId,
     }: { 
       cargaId: string; 
       motoristaId: string; 
       veiculoId: string; 
       pesoAlocadoKg: number;
       valorFrete: number;
+      embarcadorEmpresaId: number;
+      transportadoraEmpresaId: number;
     }) => {
       // Get current cargo to update peso_disponivel_kg
       const { data: cargaAtual, error: fetchError } = await supabase
@@ -304,7 +311,7 @@ export default function CargasDisponiveis() {
       if (cargaError) throw cargaError;
 
       // Create delivery record
-      const { error: entregaError } = await supabase
+      const { data: entregaData, error: entregaError } = await supabase
         .from('entregas')
         .insert({
           carga_id: cargaId,
@@ -313,9 +320,20 @@ export default function CargasDisponiveis() {
           peso_alocado_kg: pesoAlocadoKg,
           valor_frete: valorFrete,
           status: 'aguardando_coleta',
-        });
+        })
+        .select('id')
+        .single();
 
       if (entregaError) throw entregaError;
+
+      // Create chat for this delivery with all participants
+      await createChatForEntrega({
+        entregaId: entregaData.id,
+        cargaId,
+        motoristaId,
+        embarcadorEmpresaId,
+        transportadoraEmpresaId,
+      });
     },
     onSuccess: () => {
       toast.success('Carga aceita com sucesso!');
@@ -397,12 +415,19 @@ export default function CargasDisponiveis() {
       return;
     }
 
+    if (!selectedCarga.empresa_id || !empresa?.id) {
+      toast.error('Erro ao identificar empresas');
+      return;
+    }
+
     acceptCarga.mutate({
       cargaId: selectedCarga.id,
       motoristaId: selectedMotorista,
       veiculoId: selectedVeiculo,
       pesoAlocadoKg: pesoAlocadoCalculado,
       valorFrete: calculatedFrete,
+      embarcadorEmpresaId: selectedCarga.empresa_id,
+      transportadoraEmpresaId: empresa.id,
     });
   };
 
