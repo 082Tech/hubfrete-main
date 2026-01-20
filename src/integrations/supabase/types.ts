@@ -643,6 +643,7 @@ export type Database = {
         Row: {
           assinatura_recebedor: string | null
           carga_id: string
+          codigo: string | null
           coletado_em: string | null
           created_at: string | null
           documento_recebedor: string | null
@@ -662,6 +663,7 @@ export type Database = {
         Insert: {
           assinatura_recebedor?: string | null
           carga_id: string
+          codigo?: string | null
           coletado_em?: string | null
           created_at?: string | null
           documento_recebedor?: string | null
@@ -681,6 +683,7 @@ export type Database = {
         Update: {
           assinatura_recebedor?: string | null
           carga_id?: string
+          codigo?: string | null
           coletado_em?: string | null
           created_at?: string | null
           documento_recebedor?: string | null
