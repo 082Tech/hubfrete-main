@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PortalLayout } from '@/components/portals/PortalLayout';
 import { ChatList, ChatArea } from '@/components/mensagens';
 import { useChats } from '@/hooks/useChats';
@@ -7,9 +8,14 @@ import { cn } from '@/lib/utils';
 import { createChatsForExistingEntregas } from '@/lib/chatService';
 
 export default function TransportadoraMensagens() {
+  const [searchParams] = useSearchParams();
   const [empresaId, setEmpresaId] = useState<number | undefined>();
   const [showChatList, setShowChatList] = useState(true);
   const hasCreatedChats = useRef(false);
+  const hasAutoSelected = useRef(false);
+
+  // Get entrega ID from URL params
+  const entregaIdFromUrl = searchParams.get('entrega');
 
   // Get empresa_id for current user
   useEffect(() => {
@@ -44,8 +50,27 @@ export default function TransportadoraMensagens() {
     isSending,
     currentUserId,
     selectChat,
+    selectChatByEntregaId,
     sendMessage,
   } = useChats({ userType: 'transportadora', empresaId });
+
+  // Auto-select chat from URL param
+  useEffect(() => {
+    if (entregaIdFromUrl && chats.length > 0 && !hasAutoSelected.current) {
+      const selected = selectChatByEntregaId(entregaIdFromUrl);
+      if (selected) {
+        hasAutoSelected.current = true;
+        setShowChatList(false); // Show chat area on mobile
+      }
+    }
+  }, [entregaIdFromUrl, chats, selectChatByEntregaId]);
+
+  // Reset auto-select flag when URL changes
+  useEffect(() => {
+    if (!entregaIdFromUrl) {
+      hasAutoSelected.current = false;
+    }
+  }, [entregaIdFromUrl]);
 
   const handleSelectChat = (chatId: string) => {
     selectChat(chatId);

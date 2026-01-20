@@ -1,6 +1,6 @@
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Package, User, Truck } from 'lucide-react';
+import { Package, User, Truck, Building2, MapPin, ArrowRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -22,7 +22,7 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
     if (isYesterday(date)) {
       return 'Ontem';
     }
-    return format(date, 'dd/MM/yy');
+    return format(date, 'dd/MM');
   };
 
   // Determine chat title based on user type
@@ -41,16 +41,19 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
     }
   };
 
-  const getSubtitle = () => {
-    if (!chat.entrega) return '';
-    return `${chat.entrega.carga?.codigo} - ${chat.entrega.carga?.descricao?.substring(0, 30)}...`;
+  const getRoute = () => {
+    if (!chat.entrega?.carga) return null;
+    const origem = chat.entrega.carga.endereco_origem;
+    const destino = chat.entrega.carga.endereco_destino;
+    if (!origem || !destino) return null;
+    return { origem, destino };
   };
 
   const getAvatar = () => {
     if (userType === 'embarcador') {
-      return chat.entrega?.motorista?.foto_url;
+      return chat.entrega?.motorista?.foto_url || chat.entrega?.motorista?.empresa?.logo_url;
     }
-    return undefined;
+    return chat.entrega?.carga?.empresa?.logo_url;
   };
 
   const getInitials = () => {
@@ -65,47 +68,80 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
       }
       return <User className="h-4 w-4" />;
     }
-    return <Package className="h-4 w-4" />;
+    return <Building2 className="h-4 w-4" />;
   };
+
+  const route = getRoute();
 
   return (
     <div
       onClick={onClick}
       className={cn(
-        'flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-border/50',
+        'flex gap-3 p-4 cursor-pointer transition-all border-b border-border/50',
         isSelected 
-          ? 'bg-primary/10 border-l-2 border-l-primary' 
-          : 'hover:bg-muted/50'
+          ? 'bg-primary/5 border-l-4 border-l-primary' 
+          : 'hover:bg-muted/50 border-l-4 border-l-transparent'
       )}
     >
-      <Avatar className="h-12 w-12 shrink-0">
-        <AvatarImage src={getAvatar()} />
-        <AvatarFallback className="bg-primary/10 text-primary">
-          {getInitials()}
-        </AvatarFallback>
-      </Avatar>
+      {/* Avatar with online indicator style */}
+      <div className="relative">
+        <Avatar className={cn(
+          'h-14 w-14 shrink-0 ring-2',
+          isSelected ? 'ring-primary' : 'ring-transparent'
+        )}>
+          <AvatarImage src={getAvatar()} className="object-cover" />
+          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
+            {getInitials()}
+          </AvatarFallback>
+        </Avatar>
+        {/* Unread indicator */}
+        {chat.mensagens_nao_lidas && chat.mensagens_nao_lidas > 0 && (
+          <div className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full flex items-center justify-center">
+            <span className="text-[10px] font-bold text-primary-foreground">
+              {chat.mensagens_nao_lidas > 9 ? '9+' : chat.mensagens_nao_lidas}
+            </span>
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 mb-1">
           <div className="flex items-center gap-2 min-w-0">
-            {getIcon()}
-            <span className="font-medium truncate">{getChatTitle()}</span>
+            <span className="font-semibold truncate text-foreground">{getChatTitle()}</span>
           </div>
           <span className="text-xs text-muted-foreground shrink-0">
             {formatDate(chat.updated_at)}
           </span>
         </div>
         
-        <div className="flex items-center justify-between gap-2 mt-1">
-          <p className="text-sm text-muted-foreground truncate">
-            {chat.ultima_mensagem?.conteudo || getSubtitle()}
-          </p>
-          {chat.mensagens_nao_lidas && chat.mensagens_nao_lidas > 0 && (
-            <Badge variant="default" className="shrink-0 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs">
-              {chat.mensagens_nao_lidas > 9 ? '9+' : chat.mensagens_nao_lidas}
-            </Badge>
-          )}
+        {/* Cargo code */}
+        <div className="flex items-center gap-2 mb-1.5">
+          <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+            {chat.entrega?.carga?.codigo || 'Carga'}
+          </Badge>
+          <span className="text-xs text-muted-foreground truncate">
+            {chat.entrega?.carga?.descricao?.substring(0, 25)}...
+          </span>
         </div>
+
+        {/* Route or last message */}
+        {chat.ultima_mensagem ? (
+          <p className={cn(
+            'text-sm truncate',
+            chat.mensagens_nao_lidas && chat.mensagens_nao_lidas > 0 
+              ? 'text-foreground font-medium' 
+              : 'text-muted-foreground'
+          )}>
+            {chat.ultima_mensagem.conteudo}
+          </p>
+        ) : route ? (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="truncate">{route.origem.cidade}</span>
+            <ArrowRight className="w-3 h-3 shrink-0" />
+            <span className="truncate">{route.destino.cidade}</span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
