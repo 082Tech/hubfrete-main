@@ -318,6 +318,87 @@ export type Database = {
           },
         ]
       }
+      chat_participantes: {
+        Row: {
+          chat_id: string
+          created_at: string
+          empresa_id: number | null
+          id: string
+          motorista_id: string | null
+          tipo_participante: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          empresa_id?: number | null
+          id?: string
+          motorista_id?: string | null
+          tipo_participante: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          empresa_id?: number | null
+          id?: string
+          motorista_id?: string | null
+          tipo_participante?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_participantes_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_participantes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_participantes_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chats: {
+        Row: {
+          created_at: string
+          entrega_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entrega_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entrega_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chats_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: true
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_invites: {
         Row: {
           accepted_at: string | null
@@ -743,6 +824,47 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "motoristas"
             referencedColumns: ["email"]
+          },
+        ]
+      }
+      mensagens: {
+        Row: {
+          chat_id: string
+          conteudo: string
+          created_at: string
+          id: string
+          lida: boolean
+          sender_id: string
+          sender_nome: string
+          sender_tipo: string
+        }
+        Insert: {
+          chat_id: string
+          conteudo: string
+          created_at?: string
+          id?: string
+          lida?: boolean
+          sender_id: string
+          sender_nome: string
+          sender_tipo: string
+        }
+        Update: {
+          chat_id?: string
+          conteudo?: string
+          created_at?: string
+          id?: string
+          lida?: boolean
+          sender_id?: string
+          sender_nome?: string
+          sender_tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1189,6 +1311,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_chat_for_entrega: {
+        Args: { p_entrega_id: string }
+        Returns: string
+      }
       get_user_empresa_id: { Args: { _user_id: string }; Returns: number }
       get_user_empresa_tipo: { Args: { _user_id: string }; Returns: string }
       get_user_filial_ids: { Args: { _user_id: string }; Returns: number[] }
