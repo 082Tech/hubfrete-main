@@ -83,10 +83,10 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
           : 'hover:bg-muted/50 border-l-4 border-l-transparent'
       )}
     >
-      {/* Avatar with online indicator style */}
-      <div className="relative">
+      {/* Avatar with unread badge */}
+      <div className="relative shrink-0">
         <Avatar className={cn(
-          'h-14 w-14 shrink-0 ring-2',
+          'h-14 w-14 ring-2',
           isSelected ? 'ring-primary' : 'ring-transparent'
         )}>
           <AvatarImage src={getAvatar()} className="object-cover" />
@@ -94,13 +94,11 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
             {getInitials()}
           </AvatarFallback>
         </Avatar>
-        {/* Unread indicator */}
-        {chat.mensagens_nao_lidas && chat.mensagens_nao_lidas > 0 && (
-          <div className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full flex items-center justify-center">
-            <span className="text-[10px] font-bold text-primary-foreground">
-              {chat.mensagens_nao_lidas > 9 ? '9+' : chat.mensagens_nao_lidas}
-            </span>
-          </div>
+        {/* Unread badge - top right corner */}
+        {(chat.mensagens_nao_lidas ?? 0) > 0 && (
+          <span className="absolute -top-1 -right-1 h-5 min-w-5 px-1 bg-primary rounded-full flex items-center justify-center text-[10px] font-bold text-primary-foreground">
+            {chat.mensagens_nao_lidas! > 9 ? '9+' : chat.mensagens_nao_lidas}
+          </span>
         )}
       </div>
 
