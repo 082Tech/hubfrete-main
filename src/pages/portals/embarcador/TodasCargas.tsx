@@ -480,23 +480,45 @@ export default function TodasCargas() {
     
     setIsDeleting(true);
     try {
-      // First delete associated addresses
-      const { error: addressError } = await supabase
-        .from('enderecos_carga')
-        .delete()
-        .eq('carga_id', cargaToDelete.id);
+      // Collect address IDs to delete after cargo deletion
+      const addressIdsToDelete: string[] = [];
+      if (cargaToDelete.endereco_origem?.id) {
+        addressIdsToDelete.push(cargaToDelete.endereco_origem.id);
+      }
+      if (cargaToDelete.endereco_destino?.id) {
+        addressIdsToDelete.push(cargaToDelete.endereco_destino.id);
+      }
 
-      if (addressError) {
-        console.error('Erro ao excluir endereços:', addressError);
+      // First, unlink addresses from the cargo (set to null) to avoid FK constraint
+      const { error: unlinkError } = await supabase
+        .from('cargas')
+        .update({ endereco_origem_id: null, endereco_destino_id: null })
+        .eq('id', cargaToDelete.id);
+
+      if (unlinkError) {
+        console.error('Erro ao desvincular endereços:', unlinkError);
+        throw unlinkError;
       }
 
       // Then delete the cargo
-      const { error } = await supabase
+      const { error: deleteCargoError } = await supabase
         .from('cargas')
         .delete()
         .eq('id', cargaToDelete.id);
 
-      if (error) throw error;
+      if (deleteCargoError) throw deleteCargoError;
+
+      // Finally, delete the orphaned addresses
+      if (addressIdsToDelete.length > 0) {
+        const { error: addressError } = await supabase
+          .from('enderecos_carga')
+          .delete()
+          .in('id', addressIdsToDelete);
+
+        if (addressError) {
+          console.error('Erro ao excluir endereços (não crítico):', addressError);
+        }
+      }
 
       toast.success('Carga excluída com sucesso!');
       refetch();
