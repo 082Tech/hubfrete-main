@@ -37,13 +37,25 @@ import {
   MoreHorizontal,
   Eye,
   FileText,
+  Trash2,
 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Sheet,
   SheetContent,
@@ -59,9 +71,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
+import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
 // Lazy load the OpenStreetMap component
@@ -157,6 +170,7 @@ const allStatusFilters = [
 
 export default function GestaoEntregas() {
   const { empresa } = useUserContext();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [showOnlyWithDeliveries, setShowOnlyWithDeliveries] = useState(true);
@@ -165,6 +179,8 @@ export default function GestaoEntregas() {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedEntregaForDetails, setSelectedEntregaForDetails] = useState<EntregaCompleta | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [entregaToDelete, setEntregaToDelete] = useState<EntregaCompleta | null>(null);
 
   // Monitor internet connection status
   useEffect(() => {
@@ -336,6 +352,101 @@ export default function GestaoEntregas() {
       problema: byStatus['problema'] || 0,
     };
   }, [entregas]);
+
+  // Delete entrega mutation with reverse logic
+  const deleteEntrega = useMutation({
+    mutationFn: async (entrega: EntregaCompleta) => {
+      const pesoAlocado = entrega.peso_alocado_kg || 0;
+      const cargaId = entrega.carga.id;
+
+      // 1. Get current cargo data
+      const { data: cargaAtual, error: fetchError } = await supabase
+        .from('cargas')
+        .select('peso_disponivel_kg, peso_kg, status')
+        .eq('id', cargaId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 2. Calculate new available weight and status
+      const pesoDisponivelAtual = cargaAtual.peso_disponivel_kg ?? 0;
+      const novoPesoDisponivel = pesoDisponivelAtual + pesoAlocado;
+      
+      // If restored weight equals total weight, set to 'publicada', otherwise 'parcialmente_alocada'
+      const novoStatus = novoPesoDisponivel >= cargaAtual.peso_kg 
+        ? 'publicada' 
+        : 'parcialmente_alocada';
+
+      // 3. Delete associated chat and participants first
+      const { data: chat } = await supabase
+        .from('chats')
+        .select('id')
+        .eq('entrega_id', entrega.id)
+        .single();
+
+      if (chat) {
+        // Delete chat participants
+        await supabase
+          .from('chat_participantes')
+          .delete()
+          .eq('chat_id', chat.id);
+        
+        // Delete messages
+        await supabase
+          .from('mensagens')
+          .delete()
+          .eq('chat_id', chat.id);
+        
+        // Delete chat
+        await supabase
+          .from('chats')
+          .delete()
+          .eq('id', chat.id);
+      }
+
+      // 4. Delete the entrega
+      const { error: deleteError } = await supabase
+        .from('entregas')
+        .delete()
+        .eq('id', entrega.id);
+
+      if (deleteError) throw deleteError;
+
+      // 5. Update cargo with restored weight and new status
+      const { error: updateError } = await supabase
+        .from('cargas')
+        .update({ 
+          peso_disponivel_kg: Math.min(novoPesoDisponivel, cargaAtual.peso_kg),
+          status: novoStatus
+        })
+        .eq('id', cargaId);
+
+      if (updateError) throw updateError;
+
+      return { pesoRestaurado: pesoAlocado, novoStatus };
+    },
+    onSuccess: (result) => {
+      toast.success(`Entrega excluída. ${result.pesoRestaurado.toLocaleString('pt-BR')} kg liberados na carga.`);
+      queryClient.invalidateQueries({ queryKey: ['gestao_entregas_transportadora'] });
+      setDeleteDialogOpen(false);
+      setEntregaToDelete(null);
+    },
+    onError: (error) => {
+      console.error('Erro ao excluir entrega:', error);
+      toast.error('Erro ao excluir entrega');
+    },
+  });
+
+  const handleDeleteClick = (entrega: EntregaCompleta) => {
+    setEntregaToDelete(entrega);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (entregaToDelete) {
+      deleteEntrega.mutate(entregaToDelete);
+    }
+  };
 
   // Map data for entregas with location - using entrega.id as the selection key
   const mapData = useMemo(() => {
@@ -1062,6 +1173,17 @@ export default function GestaoEntregas() {
                                       <FileText className="w-4 h-4 mr-2" />
                                       Ver detalhes
                                     </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteClick(entrega);
+                                      }}
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Excluir entrega
+                                    </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </TableCell>
@@ -1114,10 +1236,36 @@ export default function GestaoEntregas() {
                             {entrega.carga.empresa?.nome} • {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
                           </p>
                         </div>
-                        <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
-                          <StatusIcon className="w-3 h-3" />
-                          {config?.label || status}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
+                            <StatusIcon className="w-3 h-3" />
+                            {config?.label || status}
+                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedEntregaForDetails(entrega);
+                                setDetailsDialogOpen(true);
+                              }}>
+                                <FileText className="w-4 h-4 mr-2" />
+                                Ver detalhes
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDeleteClick(entrega)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Excluir entrega
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 text-sm mb-3">
@@ -1163,6 +1311,48 @@ export default function GestaoEntregas() {
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir entrega?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {entregaToDelete && (
+                <>
+                  Tem certeza que deseja excluir a entrega da carga <strong>{entregaToDelete.carga.codigo}</strong>?
+                  <br /><br />
+                  Esta ação irá:
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Liberar <strong>{(entregaToDelete.peso_alocado_kg || 0).toLocaleString('pt-BR')} kg</strong> de volta para a carga</li>
+                    <li>Remover a conversa associada a esta entrega</li>
+                    <li>Devolver a carga ao status "Disponível"</li>
+                  </ul>
+                  <br />
+                  Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteEntrega.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete} 
+              disabled={deleteEntrega.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteEntrega.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir entrega'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PortalLayout>
   );
 }
