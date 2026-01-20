@@ -51,7 +51,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
 
       if (error) throw error;
 
-      // For each chat, fetch entrega details
+      // For each chat, fetch entrega details with more info
       const chatsWithDetails = await Promise.all(
         (chatsData || []).map(async (chat) => {
           // Fetch entrega with carga and motorista
@@ -61,26 +61,39 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
               id,
               status,
               carga_id,
-              motorista_id
+              motorista_id,
+              veiculo_id,
+              peso_alocado_kg,
+              valor_frete
             `)
             .eq('id', chat.entrega_id)
             .maybeSingle();
 
           if (!entrega) return null;
 
-          // Fetch carga
+          // Fetch carga with addresses
           const { data: carga } = await supabase
             .from('cargas')
-            .select('id, codigo, descricao, empresa_id')
+            .select(`
+              id, 
+              codigo, 
+              descricao, 
+              empresa_id,
+              peso_kg,
+              tipo,
+              data_entrega_limite,
+              endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro),
+              endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro)
+            `)
             .eq('id', entrega.carga_id)
             .maybeSingle();
 
-          // Fetch empresa (embarcador)
+          // Fetch empresa (embarcador) with logo
           let empresa = null;
           if (carga?.empresa_id) {
             const { data } = await supabase
               .from('empresas')
-              .select('id, nome')
+              .select('id, nome, logo_url')
               .eq('id', carga.empresa_id)
               .maybeSingle();
             empresa = data;
@@ -91,22 +104,33 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
           if (entrega.motorista_id) {
             const { data } = await supabase
               .from('motoristas')
-              .select('id, nome_completo, foto_url, empresa_id')
+              .select('id, nome_completo, foto_url, telefone, empresa_id')
               .eq('id', entrega.motorista_id)
               .maybeSingle();
             motorista = data;
 
-            // If motorista belongs to transportadora, fetch empresa
+            // If motorista belongs to transportadora, fetch empresa with logo
             if (motorista?.empresa_id) {
               const { data: motoristaEmpresa } = await supabase
                 .from('empresas')
-                .select('id, nome')
+                .select('id, nome, logo_url')
                 .eq('id', motorista.empresa_id)
                 .maybeSingle();
               if (motoristaEmpresa) {
                 motorista = { ...motorista, empresa: motoristaEmpresa };
               }
             }
+          }
+
+          // Fetch veiculo
+          let veiculo = null;
+          if (entrega.veiculo_id) {
+            const { data } = await supabase
+              .from('veiculos')
+              .select('placa, tipo')
+              .eq('id', entrega.veiculo_id)
+              .maybeSingle();
+            veiculo = data;
           }
 
           // Filter based on user type
@@ -134,14 +158,29 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
             .eq('lida', false)
             .neq('sender_id', currentUserId);
 
+          // Fetch participants
+          const { data: participantes } = await supabase
+            .from('chat_participantes')
+            .select('*')
+            .eq('chat_id', chat.id);
+
           return {
             ...chat,
             entrega: {
               id: entrega.id,
               status: entrega.status,
-              carga: carga ? { ...carga, empresa } : null,
+              peso_alocado_kg: entrega.peso_alocado_kg,
+              valor_frete: entrega.valor_frete,
+              carga: carga ? { 
+                ...carga, 
+                empresa,
+                endereco_origem: carga.endereco_origem,
+                endereco_destino: carga.endereco_destino,
+              } : null,
               motorista,
+              veiculo,
             },
+            participantes: participantes || [],
             ultima_mensagem: lastMessage,
             mensagens_nao_lidas: count || 0,
           } as Chat;
@@ -151,7 +190,6 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       setChats(chatsWithDetails.filter(Boolean) as Chat[]);
     } catch (error: any) {
       console.error('Error fetching chats:', error);
-      // Only show error if it's not a "no rows" error (which is expected when there are no chats)
       if (error?.code !== 'PGRST116') {
         toast({
           title: 'Erro ao carregar conversas',
@@ -198,6 +236,17 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     if (chat) {
       fetchMessages(chat.id);
     }
+  }, [chats, fetchMessages]);
+
+  // Select chat by entrega ID
+  const selectChatByEntregaId = useCallback((entregaId: string) => {
+    const chat = chats.find(c => c.entrega_id === entregaId);
+    if (chat) {
+      setSelectedChat(chat);
+      fetchMessages(chat.id);
+      return true;
+    }
+    return false;
   }, [chats, fetchMessages]);
 
   // Send a message
@@ -317,6 +366,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     isSending,
     currentUserId,
     selectChat,
+    selectChatByEntregaId,
     sendMessage,
     refetchChats: fetchChats,
   };
