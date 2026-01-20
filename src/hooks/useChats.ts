@@ -31,7 +31,10 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
 
   // Fetch chats based on user type
   const fetchChats = useCallback(async () => {
-    if (!empresaId) return;
+    if (!empresaId) {
+      setIsLoadingChats(false);
+      return;
+    }
     
     setIsLoadingChats(true);
     try {
@@ -146,13 +149,16 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       );
 
       setChats(chatsWithDetails.filter(Boolean) as Chat[]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching chats:', error);
-      toast({
-        title: 'Erro ao carregar conversas',
-        description: 'Não foi possível carregar as conversas.',
-        variant: 'destructive',
-      });
+      // Only show error if it's not a "no rows" error (which is expected when there are no chats)
+      if (error?.code !== 'PGRST116') {
+        toast({
+          title: 'Erro ao carregar conversas',
+          description: 'Não foi possível carregar as conversas.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoadingChats(false);
     }
