@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PortalLayout } from '@/components/portals/PortalLayout';
 import { ChatList, ChatArea } from '@/components/mensagens';
 import { useChats } from '@/hooks/useChats';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { createChatsForExistingEntregas } from '@/lib/chatService';
 
 export default function Mensagens() {
   const [empresaId, setEmpresaId] = useState<number | undefined>();
   const [showChatList, setShowChatList] = useState(true);
+  const hasCreatedChats = useRef(false);
 
   // Get empresa_id for current user
   useEffect(() => {
@@ -18,6 +20,16 @@ export default function Mensagens() {
       const { data } = await supabase.rpc('get_user_empresa_id', { _user_id: user.id });
       if (data) {
         setEmpresaId(data);
+        
+        // Create chats for existing entregas (one-time migration)
+        if (!hasCreatedChats.current) {
+          hasCreatedChats.current = true;
+          createChatsForExistingEntregas().then(count => {
+            if (count > 0) {
+              console.log(`Created ${count} chats for existing deliveries`);
+            }
+          });
+        }
       }
     };
     fetchEmpresaId();
