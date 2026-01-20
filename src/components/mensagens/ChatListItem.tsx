@@ -115,12 +115,12 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
         </div>
         
         {/* Cargo code */}
-        <div className="flex items-center gap-2 mb-1.5">
-          <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+        <div className="flex items-center gap-2 mb-1.5 overflow-hidden">
+          <Badge variant="secondary" className="text-[10px] h-5 px-1.5 shrink-0">
             {chat.entrega?.carga?.codigo || 'Carga'}
           </Badge>
           <span className="text-xs text-muted-foreground truncate">
-            {chat.entrega?.carga?.descricao?.substring(0, 25)}...
+            {chat.entrega?.carga?.descricao || ''}
           </span>
         </div>
 

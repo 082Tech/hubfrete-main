@@ -65,14 +65,29 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
             : 'bg-card border border-border rounded-bl-md'
         )}
       >
-        {!isOwn && (
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-semibold">{message.sender_nome}</span>
-            <span className={cn('text-[10px] font-medium', getSenderBadgeColor())}>
-              {getSenderBadge()}
-            </span>
-          </div>
-        )}
+        {/* Always show sender info at top of bubble */}
+        <div className="flex items-center gap-2 mb-1.5">
+          {isOwn && showAvatar && (
+            <Avatar className="h-5 w-5 shrink-0">
+              <AvatarImage src={message.sender_avatar} />
+              <AvatarFallback className="bg-primary-foreground/20 text-primary-foreground text-[9px]">
+                {getInitials()}
+              </AvatarFallback>
+            </Avatar>
+          )}
+          <span className={cn(
+            'text-xs font-semibold truncate',
+            isOwn ? 'text-primary-foreground' : 'text-foreground'
+          )}>
+            {message.sender_nome}
+          </span>
+          <span className={cn(
+            'text-[10px] font-medium shrink-0',
+            isOwn ? 'text-primary-foreground/70' : getSenderBadgeColor()
+          )}>
+            {getSenderBadge()}
+          </span>
+        </div>
         
         <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.conteudo}</p>
         
