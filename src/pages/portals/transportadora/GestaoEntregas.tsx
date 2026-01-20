@@ -24,7 +24,7 @@ import {
   Truck,
   CheckCircle,
   AlertCircle,
-  Phone,
+  MessageCircle,
   User,
   RefreshCw,
   X,
@@ -39,6 +39,7 @@ import {
   FileText,
   Trash2,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -171,6 +172,7 @@ const allStatusFilters = [
 export default function GestaoEntregas() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [showOnlyWithDeliveries, setShowOnlyWithDeliveries] = useState(true);
@@ -1074,24 +1076,22 @@ export default function GestaoEntregas() {
                                     <span className="text-sm truncate max-w-[80px]">
                                       {entrega.motorista.nome_completo}
                                     </span>
-                                    {entrega.motorista.telefone && (
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6 shrink-0"
-                                            asChild
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <a href={`tel:${entrega.motorista.telefone}`}>
-                                              <Phone className="w-3 h-3" />
-                                            </a>
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>Ligar para motorista</TooltipContent>
-                                      </Tooltip>
-                                    )}
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 shrink-0 text-primary hover:text-primary"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
+                                          }}
+                                        >
+                                          <MessageCircle className="w-3 h-3" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Abrir chat</TooltipContent>
+                                    </Tooltip>
                                   </div>
                                 ) : (
                                   <span className="text-sm text-muted-foreground">-</span>
@@ -1158,6 +1158,13 @@ export default function GestaoEntregas() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
+                                    }}>
+                                      <MessageCircle className="w-4 h-4 mr-2" />
+                                      Abrir chat
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedEntregaId(entrega.id);
@@ -1287,13 +1294,14 @@ export default function GestaoEntregas() {
                               <p className="text-xs text-muted-foreground">{entrega.veiculo.placa}</p>
                             )}
                           </div>
-                          {entrega.motorista.telefone && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" asChild>
-                              <a href={`tel:${entrega.motorista.telefone}`}>
-                                <Phone className="w-4 h-4" />
-                              </a>
-                            </Button>
-                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 shrink-0 text-primary hover:text-primary"
+                            onClick={() => navigate(`/transportadora/mensagens?entrega=${entrega.id}`)}
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </Button>
                         </div>
                       )}
                     </CardContent>
