@@ -1325,6 +1325,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_chat_participant: {
+        Args: { p_chat_id: string; p_user_id: string }
+        Returns: boolean
+      }
       user_belongs_to_empresa: {
         Args: { _empresa_id: number; _user_id: string }
         Returns: boolean
