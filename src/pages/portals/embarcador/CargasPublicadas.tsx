@@ -493,6 +493,12 @@ export default function CargasPublicadas() {
     return carga.entregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
   };
 
+  // Calculate estimated total freight based on valor_frete_tonelada
+  const getFreteEstimado = (carga: CargaData) => {
+    if (!carga.valor_frete_tonelada) return null;
+    return (carga.peso_kg / 1000) * carga.valor_frete_tonelada;
+  };
+
   // Handle delete cargo
   const handleDeleteCarga = async () => {
     if (!cargaToDelete) return;
@@ -992,9 +998,16 @@ export default function CargasPublicadas() {
                                 </span>
                               </TableCell>
                               <TableCell>
-                                <span className="font-medium text-sm text-green-600">
-                                  {getTotalFrete(carga) > 0 ? formatCurrency(getTotalFrete(carga)) : '-'}
-                                </span>
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-sm text-green-600">
+                                    {formatCurrency(getFreteEstimado(carga))}
+                                  </span>
+                                  {getTotalFrete(carga) > 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                      Alocado: {formatCurrency(getTotalFrete(carga))}
+                                    </span>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell className="text-center">
                                 <Badge variant="outline" className="text-xs">
@@ -1019,13 +1032,15 @@ export default function CargasPublicadas() {
                                       <Eye className="w-4 h-4 mr-2" />
                                       Ver detalhes
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditCarga(carga);
-                                    }}>
-                                      <Pencil className="w-4 h-4 mr-2" />
-                                      Editar
-                                    </DropdownMenuItem>
+                                    {carga.entregas.length === 0 && (
+                                      <DropdownMenuItem onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditCarga(carga);
+                                      }}>
+                                        <Pencil className="w-4 h-4 mr-2" />
+                                        Editar
+                                      </DropdownMenuItem>
+                                    )}
                                     {carga.entregas.length === 0 && (
                                       <DropdownMenuItem 
                                         onClick={(e) => {
