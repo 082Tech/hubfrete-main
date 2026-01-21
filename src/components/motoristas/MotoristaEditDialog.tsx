@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Save, User, CreditCard, FileText, Upload, CheckCircle } from 'lucide-react';
+import { Loader2, Save, User, CreditCard, FileText, Upload, CheckCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -36,6 +36,13 @@ interface MotoristaEditDialogProps {
 export function MotoristaEditDialog({ open, onOpenChange, motorista }: MotoristaEditDialogProps) {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // File refs
+  const cnhDigitalRef = useRef<HTMLInputElement>(null);
+  const comprovanteEnderecoRef = useRef<HTMLInputElement>(null);
+  const comprovanteVinculoRef = useRef<HTMLInputElement>(null);
+  const docTitularRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
     nome_completo: '',
     cpf: '',
@@ -47,6 +54,12 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
     categoria_cnh: '',
     validade_cnh: '',
     cnh_tem_qrcode: false,
+    cnh_digital_url: '',
+    comprovante_endereco_url: '',
+    comprovante_endereco_em_nome_proprio: true,
+    comprovante_endereco_titular_nome: '',
+    comprovante_endereco_titular_doc_url: '',
+    comprovante_vinculo_url: '',
     possui_ajudante: false,
     ativo: true,
   });
@@ -64,11 +77,48 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
         categoria_cnh: motorista.categoria_cnh,
         validade_cnh: motorista.validade_cnh,
         cnh_tem_qrcode: motorista.cnh_tem_qrcode || false,
+        cnh_digital_url: motorista.cnh_digital_url || '',
+        comprovante_endereco_url: motorista.comprovante_endereco_url || '',
+        comprovante_endereco_em_nome_proprio: !motorista.comprovante_endereco_titular_nome,
+        comprovante_endereco_titular_nome: motorista.comprovante_endereco_titular_nome || '',
+        comprovante_endereco_titular_doc_url: motorista.comprovante_endereco_titular_doc_url || '',
+        comprovante_vinculo_url: motorista.comprovante_vinculo_url || '',
         possui_ajudante: motorista.possui_ajudante || false,
         ativo: motorista.ativo,
       });
     }
   }, [motorista]);
+
+  const handleFileUpload = async (
+    file: File,
+    field: 'cnh_digital_url' | 'comprovante_endereco_url' | 'comprovante_vinculo_url' | 'comprovante_endereco_titular_doc_url'
+  ) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Máximo 5MB.');
+      return;
+    }
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${motorista?.id}/${field}_${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('motoristas')
+        .upload(fileName, file, { upsert: true });
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('motoristas')
+        .getPublicUrl(data.path);
+
+      setFormData(prev => ({ ...prev, [field]: publicUrlData.publicUrl }));
+      toast.success('Arquivo enviado com sucesso!');
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      toast.error('Erro ao enviar arquivo');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!motorista) return;
@@ -88,6 +138,11 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
           categoria_cnh: formData.categoria_cnh,
           validade_cnh: formData.validade_cnh,
           cnh_tem_qrcode: formData.cnh_tem_qrcode,
+          cnh_digital_url: formData.cnh_digital_url || null,
+          comprovante_endereco_url: formData.comprovante_endereco_url || null,
+          comprovante_endereco_titular_nome: formData.comprovante_endereco_em_nome_proprio ? null : formData.comprovante_endereco_titular_nome,
+          comprovante_endereco_titular_doc_url: formData.comprovante_endereco_em_nome_proprio ? null : formData.comprovante_endereco_titular_doc_url,
+          comprovante_vinculo_url: formData.comprovante_vinculo_url || null,
           possui_ajudante: formData.possui_ajudante,
           ativo: formData.ativo,
         })
@@ -110,7 +165,7 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Motorista</DialogTitle>
           <DialogDescription>
@@ -119,7 +174,7 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
         </DialogHeader>
 
         <Tabs defaultValue="dados" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dados" className="gap-2">
               <User className="w-4 h-4" />
               Dados
@@ -128,8 +183,13 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
               <CreditCard className="w-4 h-4" />
               CNH
             </TabsTrigger>
+            <TabsTrigger value="documentos" className="gap-2">
+              <FileText className="w-4 h-4" />
+              Documentos
+            </TabsTrigger>
           </TabsList>
 
+          {/* TAB: Dados Pessoais */}
           <TabsContent value="dados" className="space-y-4 mt-4">
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div>
@@ -225,6 +285,7 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
             </div>
           </TabsContent>
 
+          {/* TAB: CNH */}
           <TabsContent value="cnh" className="space-y-4 mt-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -267,6 +328,208 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
                 onCheckedChange={(checked) => setFormData({ ...formData, cnh_tem_qrcode: checked })}
               />
               <Label htmlFor="cnh_qrcode">CNH Digital possui QR Code válido</Label>
+            </div>
+
+            {/* CNH Digital Upload */}
+            <div className="space-y-2">
+              <Label>CNH Digital (PDF ou Imagem)</Label>
+              <input
+                ref={cnhDigitalRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file, 'cnh_digital_url');
+                }}
+              />
+              {formData.cnh_digital_url ? (
+                <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-primary" />
+                  <span className="text-sm text-primary flex-1">CNH Digital anexada</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(formData.cnh_digital_url, '_blank')}
+                  >
+                    Ver
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFormData({ ...formData, cnh_digital_url: '' })}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => cnhDigitalRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Anexar CNH Digital
+                </Button>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* TAB: Documentos */}
+          <TabsContent value="documentos" className="space-y-6 mt-4">
+            {/* Comprovante de Endereço */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">Comprovante de Endereço</Label>
+              <input
+                ref={comprovanteEnderecoRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file, 'comprovante_endereco_url');
+                }}
+              />
+              {formData.comprovante_endereco_url ? (
+                <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-primary" />
+                  <span className="text-sm text-primary flex-1">Comprovante anexado</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(formData.comprovante_endereco_url, '_blank')}
+                  >
+                    Ver
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFormData({ ...formData, comprovante_endereco_url: '' })}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => comprovanteEnderecoRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Anexar Comprovante de Endereço
+                </Button>
+              )}
+
+              {/* Titular diferente */}
+              <div className="flex items-center space-x-2 mt-2">
+                <Checkbox
+                  id="nome_proprio"
+                  checked={formData.comprovante_endereco_em_nome_proprio}
+                  onCheckedChange={(checked) => setFormData({ ...formData, comprovante_endereco_em_nome_proprio: !!checked })}
+                />
+                <Label htmlFor="nome_proprio" className="text-sm">Comprovante em nome do motorista</Label>
+              </div>
+
+              {!formData.comprovante_endereco_em_nome_proprio && (
+                <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="space-y-2">
+                    <Label>Nome do Titular</Label>
+                    <Input
+                      value={formData.comprovante_endereco_titular_nome}
+                      onChange={(e) => setFormData({ ...formData, comprovante_endereco_titular_nome: e.target.value })}
+                      placeholder="Nome completo do titular"
+                    />
+                  </div>
+                  <input
+                    ref={docTitularRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file, 'comprovante_endereco_titular_doc_url');
+                    }}
+                  />
+                  {formData.comprovante_endereco_titular_doc_url ? (
+                    <div className="flex items-center gap-2 p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                      <CheckCircle className="w-4 h-4 text-primary" />
+                      <span className="text-sm text-primary flex-1">Documento do titular anexado</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFormData({ ...formData, comprovante_endereco_titular_doc_url: '' })}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => docTitularRef.current?.click()}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Anexar Documento do Titular
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Comprovante de Vínculo */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">Comprovante de Vínculo com a Empresa</Label>
+              <p className="text-sm text-muted-foreground">Opcional - Contrato, declaração ou outro documento</p>
+              <input
+                ref={comprovanteVinculoRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file, 'comprovante_vinculo_url');
+                }}
+              />
+              {formData.comprovante_vinculo_url ? (
+                <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-primary" />
+                  <span className="text-sm text-primary flex-1">Comprovante de vínculo anexado</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(formData.comprovante_vinculo_url, '_blank')}
+                  >
+                    Ver
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFormData({ ...formData, comprovante_vinculo_url: '' })}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => comprovanteVinculoRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Anexar Comprovante de Vínculo
+                </Button>
+              )}
             </div>
           </TabsContent>
         </Tabs>
