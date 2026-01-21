@@ -6,25 +6,18 @@ import {
   CreditCard,
   FileText,
   UserPlus,
-  Car,
-  Container,
   Phone,
-  Building2,
   CheckCircle,
   XCircle,
 } from 'lucide-react';
 
-import { MotoristaFormData, VeiculoSimples, CarroceriaSimples, tipoVeiculoLabels, tipoCarroceriaLabels, ESTADOS_BRASIL } from '../types';
+import { MotoristaFormData, ESTADOS_BRASIL } from '../types';
 
 interface EtapaResumoProps {
   formData: MotoristaFormData;
-  veiculosDisponiveis: VeiculoSimples[];
-  carroceriasDisponiveis: CarroceriaSimples[];
 }
 
-export function EtapaResumo({ formData, veiculosDisponiveis, carroceriasDisponiveis }: EtapaResumoProps) {
-  const selectedVeiculo = veiculosDisponiveis.find(v => v.id === formData.veiculo_id);
-  const selectedCarroceria = carroceriasDisponiveis.find(c => c.id === formData.carroceria_id);
+export function EtapaResumo({ formData }: EtapaResumoProps) {
   const estadoLabel = ESTADOS_BRASIL.find(e => e.value === formData.uf)?.label || formData.uf;
 
   const DocumentStatus = ({ uploaded }: { uploaded: boolean }) => (
@@ -187,111 +180,23 @@ export function EtapaResumo({ formData, veiculosDisponiveis, carroceriasDisponiv
             )}
           </CardContent>
         </Card>
-
-        {/* Veículo */}
-        <Card className="border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Car className="w-4 h-4 text-primary" />
-              Veículo
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {selectedVeiculo ? (
-              <>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Placa:</span>
-                  <span className="font-medium">{selectedVeiculo.placa}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tipo:</span>
-                  <span>{tipoVeiculoLabels[selectedVeiculo.tipo] || selectedVeiculo.tipo}</span>
-                </div>
-                {formData.veiculo_antt_rntrc && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ANTT:</span>
-                    <span>{formData.veiculo_antt_rntrc}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Documento:</span>
-                  <DocumentStatus uploaded={!!formData.veiculo_documento_url} />
-                </div>
-              </>
-            ) : (
-              <p className="text-muted-foreground text-center py-2">
-                Nenhum veículo vinculado
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Carroceria */}
-        <Card className="border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Container className="w-4 h-4 text-primary" />
-              Carroceria
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {selectedCarroceria ? (
-              <>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Placa:</span>
-                  <span className="font-medium">{selectedCarroceria.placa}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tipo:</span>
-                  <span>{tipoCarroceriaLabels[selectedCarroceria.tipo] || selectedCarroceria.tipo}</span>
-                </div>
-                {selectedCarroceria.capacidade_kg && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Capacidade:</span>
-                    <span>{selectedCarroceria.capacidade_kg.toLocaleString()}kg</span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-muted-foreground text-center py-2">
-                Nenhuma carroceria vinculada
-              </p>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       <Separator />
 
-      {/* Referências */}
+      {/* Referências Pessoais */}
       <div className="space-y-4">
         <h3 className="text-sm font-medium flex items-center gap-2">
           <Phone className="w-4 h-4 text-primary" />
-          Referências
+          Referências Pessoais
         </h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Pessoais:</p>
-            {formData.referencias.filter(r => r.tipo === 'pessoal').map((ref, i) => (
-              <div key={i} className="text-sm p-2 bg-muted/50 rounded">
-                <p className="font-medium">{ref.nome || '-'}</p>
-                <p className="text-muted-foreground">{ref.telefone || '-'}</p>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <Building2 className="w-3 h-3" />
-              Comerciais:
-            </p>
-            {formData.referencias.filter(r => r.tipo === 'comercial').map((ref, i) => (
-              <div key={i} className="text-sm p-2 bg-muted/50 rounded">
-                <p className="font-medium">{ref.nome || '-'}</p>
-                <p className="text-muted-foreground">{ref.telefone || '-'}</p>
-                {ref.ramo && <p className="text-xs text-muted-foreground">Ramo: {ref.ramo}</p>}
-              </div>
-            ))}
-          </div>
+          {formData.referencias.filter(r => r.tipo === 'pessoal').map((ref, i) => (
+            <div key={i} className="text-sm p-2 bg-muted/50 rounded">
+              <p className="font-medium">{ref.nome || '-'}</p>
+              <p className="text-muted-foreground">{ref.telefone || '-'}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

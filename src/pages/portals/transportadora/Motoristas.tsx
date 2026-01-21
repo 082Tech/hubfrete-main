@@ -379,8 +379,6 @@ export default function Motoristas() {
         open={isFormDialogOpen}
         onOpenChange={setIsFormDialogOpen}
         empresaId={empresa?.id || 0}
-        veiculosDisponiveis={veiculosDisponiveis}
-        carroceriasDisponiveis={carroceriasDisponiveis}
       />
       
       <MotoristaEditDialog

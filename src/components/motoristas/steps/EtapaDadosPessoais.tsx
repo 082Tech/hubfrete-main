@@ -17,7 +17,6 @@ import {
   FileText,
   Upload,
   Phone,
-  Building2,
   Link2,
   CheckCircle,
 } from 'lucide-react';
@@ -402,37 +401,6 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-primary">
-          <Building2 className="w-4 h-4" />
-          Referências Comerciais (2 contatos)
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Preferência por referência do ramo de transporte; em último caso, comércio local
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          {formData.referencias.filter(r => r.tipo === 'comercial').map((ref) => (
-            <div key={`comercial-${ref.ordem}`} className="space-y-2 p-3 border border-border rounded-lg">
-              <p className="text-sm font-medium">Referência Comercial {ref.ordem}</p>
-              <Input
-                placeholder="Empresa/Nome"
-                value={ref.nome}
-                onChange={(e) => updateReferencia('comercial', ref.ordem, 'nome', e.target.value)}
-              />
-              <Input
-                placeholder="Telefone"
-                value={ref.telefone}
-                onChange={(e) => updateReferencia('comercial', ref.ordem, 'telefone', e.target.value)}
-              />
-              <Input
-                placeholder="Ramo (opcional)"
-                value={ref.ramo || ''}
-                onChange={(e) => updateReferencia('comercial', ref.ordem, 'ramo', e.target.value)}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
