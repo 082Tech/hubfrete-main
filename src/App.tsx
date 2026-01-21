@@ -45,7 +45,14 @@ import TransportadoraRelatorios from "./pages/portals/transportadora/Relatorios"
 import MotoristaDashboard from "./pages/portals/MotoristaDashboard";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Prevent refetch when switching tabs
+      staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
+    },
+  },
+});
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(false);
