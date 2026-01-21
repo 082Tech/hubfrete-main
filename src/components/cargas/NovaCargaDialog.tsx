@@ -117,6 +117,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   // Additional state for new fields
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
+  const [pesoMinimoFracionado, setPesoMinimoFracionado] = useState<number | null>(null);
 
   // Vehicle and body type requirements - start empty (deselected)
   const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([]);
@@ -131,6 +132,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     form.reset();
     setNecessidadesEspeciais([]);
     setNotaFiscalUrl(null);
+    setPesoMinimoFracionado(null);
     setVeiculosSelecionados([]);
     setCarroceriasSelecionadas([]);
     setOrigemData(initialLocationData);
@@ -215,6 +217,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           valor_mercadoria: values.valor_mercadoria || null,
           valor_frete_tonelada: values.valor_frete_tonelada || null,
           permite_fracionado: values.permite_fracionado,
+          peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionado : null,
           carga_fragil: values.carga_fragil,
           carga_perigosa: values.carga_perigosa,
           carga_viva: values.carga_viva,
@@ -548,6 +551,22 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       </FormItem>
                     )}
                   />
+
+                  {form.watch('permite_fracionado') && (
+                    <div className="ml-6 p-3 bg-muted/50 rounded-md border">
+                      <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
+                      <Input
+                        type="number"
+                        placeholder="Ex: 15000 (15 toneladas)"
+                        className="mt-2"
+                        value={pesoMinimoFracionado || ''}
+                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Number(e.target.value) : null)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Deixe vazio para não ter limite mínimo
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
