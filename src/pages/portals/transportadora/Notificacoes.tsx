@@ -14,6 +14,7 @@ import {
   Check,
   CheckCheck,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import { PortalLayout } from '@/components/portals/PortalLayout';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,17 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useNotificacoes, type Notificacao } from '@/hooks/useNotificacoes';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { cn } from '@/lib/utils';
@@ -39,7 +51,15 @@ const tipoConfig: Record<string, { icon: React.ElementType; color: string; label
 
 export default function NotificacoesTransportadora() {
   const navigate = useNavigate();
-  const { notificacoes, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotificacoes();
+  const { 
+    notificacoes, 
+    unreadCount, 
+    isLoading, 
+    markAsRead, 
+    markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications,
+  } = useNotificacoes();
   const push = usePushNotifications();
   const [activeTab, setActiveTab] = useState<'todas' | 'nao_lidas'>('todas');
 
@@ -61,8 +81,8 @@ export default function NotificacoesTransportadora() {
   };
 
   return (
-    <PortalLayout expectedUserType="transportadora">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <PortalLayout expectedUserType="transportadora" fullWidth>
+      <div className="h-full flex flex-col p-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -135,18 +155,48 @@ export default function NotificacoesTransportadora() {
         </Card>
 
         {/* Notifications List */}
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="flex-1 flex flex-col min-h-0">
+          <CardHeader className="pb-3 shrink-0">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">Histórico de Notificações</CardTitle>
-              <Badge variant="secondary">
-                {unreadCount} não lida{unreadCount !== 1 ? 's' : ''}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">
+                  {unreadCount} não lida{unreadCount !== 1 ? 's' : ''}
+                </Badge>
+                {notificacoes.length > 0 && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Limpar todas
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Limpar todas as notificações?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação irá excluir todas as suas notificações permanentemente.
+                          Isso não pode ser desfeito.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => deleteAllNotifications()}
+                        >
+                          Excluir todas
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'todas' | 'nao_lidas')}>
-              <TabsList className="mb-4">
+          <CardContent className="flex-1 min-h-0">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'todas' | 'nao_lidas')} className="h-full flex flex-col">
+              <TabsList className="mb-4 shrink-0">
                 <TabsTrigger value="todas">Todas</TabsTrigger>
                 <TabsTrigger value="nao_lidas">
                   Não lidas
@@ -158,7 +208,7 @@ export default function NotificacoesTransportadora() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value={activeTab} className="mt-0">
+              <TabsContent value={activeTab} className="mt-0 flex-1 min-h-0">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -174,15 +224,15 @@ export default function NotificacoesTransportadora() {
                     </p>
                   </div>
                 ) : (
-                  <ScrollArea className="h-[500px] pr-4">
-                    <div className="space-y-2">
+                  <ScrollArea className="h-full">
+                    <div className="space-y-2 pr-4">
                       {filteredNotificacoes.map((notificacao) => {
                         const { icon: Icon, color, label } = getIcon(notificacao.tipo);
                         return (
                           <div
                             key={notificacao.id}
                             className={cn(
-                              'flex items-start gap-4 p-4 rounded-lg cursor-pointer transition-colors hover:bg-muted/50',
+                              'flex items-start gap-4 p-4 rounded-lg cursor-pointer transition-colors hover:bg-muted/50 group',
                               !notificacao.lida && 'bg-accent/50'
                             )}
                             onClick={() => handleNotificationClick(notificacao)}
@@ -220,6 +270,17 @@ export default function NotificacoesTransportadora() {
                                 </span>
                               </div>
                             </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-destructive/10 hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification(notificacao.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         );
                       })}
