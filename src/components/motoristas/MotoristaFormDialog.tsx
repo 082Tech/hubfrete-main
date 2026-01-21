@@ -202,12 +202,16 @@ export function MotoristaFormDialog({
           <Progress value={progress} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
             {STEPS.map((step) => (
-              <span
+              <button
                 key={step.id}
-                className={currentStep >= step.id ? 'text-primary font-medium' : ''}
+                type="button"
+                onClick={() => setCurrentStep(step.id)}
+                className={`hover:text-primary transition-colors cursor-pointer ${
+                  currentStep >= step.id ? 'text-primary font-medium' : ''
+                }`}
               >
                 {step.title}
-              </span>
+              </button>
             ))}
           </div>
         </div>
