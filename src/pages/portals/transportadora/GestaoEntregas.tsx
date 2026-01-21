@@ -39,6 +39,7 @@ import {
   FileText,
   Trash2,
   Upload,
+  XCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -161,6 +162,7 @@ const statusEntregaConfig: Record<string, { color: string; label: string; icon: 
   'em_transito': { color: 'bg-orange-500/10 text-orange-600 border-orange-500/20', label: 'Em Trânsito', icon: Route },
   'em_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Em Entrega', icon: Truck },
   'problema': { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Problema', icon: AlertCircle },
+  'cancelada': { color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', label: 'Cancelada', icon: XCircle },
 };
 
 // Status filters for active deliveries

@@ -1435,6 +1435,7 @@ export type Database = {
         | "entregue"
         | "problema"
         | "devolvida"
+        | "cancelada"
       tipo_cadastro_motorista: "autonomo" | "frota"
       tipo_carga:
         | "granel_solido"
@@ -1640,6 +1641,7 @@ export const Constants = {
         "entregue",
         "problema",
         "devolvida",
+        "cancelada",
       ],
       tipo_cadastro_motorista: ["autonomo", "frota"],
       tipo_carga: [
