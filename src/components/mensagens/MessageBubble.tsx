@@ -57,9 +57,15 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
         </Avatar>
       )}
 
+      {/* Simular o avatar para adicionar espaço */}
+      {!isOwn && !showAvatar && (
+        <div className="h-8 w-8 shrink-0 mt-1">
+        </div>
+      )}
+
       <div
         className={cn(
-          'max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm',
+          'max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm ',
           isOwn
             ? 'bg-primary text-primary-foreground rounded-br-md'
             : 'bg-card border border-border rounded-bl-md'
@@ -67,14 +73,6 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
       >
         {/* Always show sender info at top of bubble */}
         <div className="flex items-center gap-2 mb-1.5">
-          {isOwn && showAvatar && (
-            <Avatar className="h-5 w-5 shrink-0">
-              <AvatarImage src={message.sender_avatar} />
-              <AvatarFallback className="bg-primary-foreground/20 text-primary-foreground text-[9px]">
-                {getInitials()}
-              </AvatarFallback>
-            </Avatar>
-          )}
           <span className={cn(
             'text-xs font-semibold truncate',
             isOwn ? 'text-primary-foreground' : 'text-foreground'
@@ -88,9 +86,9 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
             {getSenderBadge()}
           </span>
         </div>
-        
+
         <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.conteudo}</p>
-        
+
         <div className={cn(
           'flex items-center gap-1 mt-1.5',
           isOwn ? 'justify-end' : 'justify-start'
@@ -102,15 +100,25 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
             {format(new Date(message.created_at), 'HH:mm')}
           </span>
           {isOwn && (
-            message.lida 
+            message.lida
               ? <CheckCheck className="h-3.5 w-3.5 text-primary-foreground/70" />
               : <Check className="h-3.5 w-3.5 text-primary-foreground/70" />
           )}
         </div>
       </div>
 
+      {isOwn && showAvatar && (
+        <Avatar className="h-8 w-8 shrink-0 mt-1">
+          <AvatarImage src={message.sender_avatar} />
+          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+            {getInitials()}
+          </AvatarFallback>
+        </Avatar>
+      )}
+
+
       {/* Spacer for own messages to align with avatar space */}
-      {isOwn && showAvatar && <div className="w-8 shrink-0" />}
+      {isOwn && !showAvatar && <div className="w-8 shrink-0" />}
     </div>
   );
 }
