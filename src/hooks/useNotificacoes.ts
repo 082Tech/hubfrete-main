@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Notificacao {
@@ -18,6 +18,7 @@ export function useNotificacoes() {
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const hasFetched = useRef(false);
 
   const fetchNotificacoes = useCallback(async () => {
     try {
@@ -82,9 +83,47 @@ export function useNotificacoes() {
     }
   }, []);
 
-  // Initial fetch
+  const deleteNotification = useCallback(async (notificacaoId: string) => {
+    const notificacao = notificacoes.find(n => n.id === notificacaoId);
+    
+    const { error } = await supabase
+      .from('notificacoes')
+      .delete()
+      .eq('id', notificacaoId);
+
+    if (!error) {
+      setNotificacoes(prev => prev.filter(n => n.id !== notificacaoId));
+      if (notificacao && !notificacao.lida) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    }
+    
+    return !error;
+  }, [notificacoes]);
+
+  const deleteAllNotifications = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { error } = await supabase
+      .from('notificacoes')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (!error) {
+      setNotificacoes([]);
+      setUnreadCount(0);
+    }
+    
+    return !error;
+  }, []);
+
+  // Initial fetch - only once
   useEffect(() => {
-    fetchNotificacoes();
+    if (!hasFetched.current) {
+      hasFetched.current = true;
+      fetchNotificacoes();
+    }
   }, [fetchNotificacoes]);
 
   // Real-time subscription
@@ -130,6 +169,8 @@ export function useNotificacoes() {
     isLoading,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications,
     refetch: fetchNotificacoes,
   };
 }
