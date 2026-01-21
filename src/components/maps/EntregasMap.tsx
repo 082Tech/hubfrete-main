@@ -278,7 +278,7 @@ function FitBounds({ entregas, selectedEntrega }: { entregas: EntregaMapData[]; 
 }
 
 // Statuses that indicate the truck has already left the origin
-const hasLeftOriginStatuses = ['coletado', 'em_transito', 'em_entrega', 'entregue', 'devolvida'];
+const showRouteToOriginStatuses = ['aguardando_coleta', 'em_coleta'];
 
 // Route display component with OSRM integration
 // Now only shows truck-to-destination when status indicates origin was already visited
@@ -290,13 +290,15 @@ function RouteDisplay({
   hasTrackingHistory: boolean;
 }) {
   const [truckToDestinationRoute, setTruckToDestinationRoute] = useState<[number, number][]>([]);
-  const [fullSuggestedRoute, setFullSuggestedRoute] = useState<[number, number][]>([]);
+  const [truckToOriginRoute, setTruckToOriginRoute] = useState<[number, number][]>([]);
+  const [fallbackOriginToDestinationRoute, setFallbackOriginToDestinationRoute] = useState<[number, number][]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!selectedEntrega?.destinoCoords) {
       setTruckToDestinationRoute([]);
-      setFullSuggestedRoute([]);
+      setTruckToOriginRoute([]);
+      setFallbackOriginToDestinationRoute([]);
       return;
     }
 
@@ -305,25 +307,39 @@ function RouteDisplay({
       
       try {
         const status = selectedEntrega.status || '';
-        const hasLeftOrigin = hasLeftOriginStatuses.includes(status);
-        
-        // If truck has left origin and has position, show only truck → destination
-        if (hasLeftOrigin && selectedEntrega.latitude && selectedEntrega.longitude) {
+
+        const hasTruckPos = !!(selectedEntrega.latitude && selectedEntrega.longitude);
+
+        // Blue dashed: prefer truck -> destination; fallback to origin -> destination when no truck position
+        if (hasTruckPos) {
           const remainingRoute = await fetchRoute(
-            { lat: selectedEntrega.latitude, lng: selectedEntrega.longitude },
+            { lat: selectedEntrega.latitude!, lng: selectedEntrega.longitude! },
             selectedEntrega.destinoCoords!
           );
           setTruckToDestinationRoute(remainingRoute);
-          setFullSuggestedRoute([]);
-        } 
-        // If still waiting at origin or no truck position, show full suggested route
-        else if (selectedEntrega.origemCoords) {
-          const mainRoute = await fetchRoute(
-            selectedEntrega.origemCoords!,
-            selectedEntrega.destinoCoords!
-          );
-          setFullSuggestedRoute(mainRoute);
+          setFallbackOriginToDestinationRoute([]);
+        } else if (selectedEntrega.origemCoords) {
+          const fallback = await fetchRoute(selectedEntrega.origemCoords!, selectedEntrega.destinoCoords!);
+          setFallbackOriginToDestinationRoute(fallback);
           setTruckToDestinationRoute([]);
+        } else {
+          setTruckToDestinationRoute([]);
+          setFallbackOriginToDestinationRoute([]);
+        }
+
+        // Orange dashed: ONLY when awaiting/collecting (aguardando_coleta/em_coleta) and we have truck pos + origin
+        if (
+          showRouteToOriginStatuses.includes(status) &&
+          hasTruckPos &&
+          selectedEntrega.origemCoords
+        ) {
+          const toOrigin = await fetchRoute(
+            { lat: selectedEntrega.latitude!, lng: selectedEntrega.longitude! },
+            selectedEntrega.origemCoords
+          );
+          setTruckToOriginRoute(toOrigin);
+        } else {
+          setTruckToOriginRoute([]);
         }
       } catch (error) {
         console.error('Error loading routes:', error);
@@ -339,10 +355,10 @@ function RouteDisplay({
 
   return (
     <>
-      {/* Full suggested route: origin to destination (dashed blue) - only when NOT yet collected */}
-      {fullSuggestedRoute.length > 1 && (
+      {/* Fallback suggested route: origin to destination (dashed blue) - only when no truck position */}
+      {fallbackOriginToDestinationRoute.length > 1 && (
         <Polyline
-          positions={fullSuggestedRoute}
+          positions={fallbackOriginToDestinationRoute}
           pathOptions={{
             color: '#3b82f6',
             weight: 4,
@@ -352,7 +368,7 @@ function RouteDisplay({
         />
       )}
       
-      {/* Remaining route: truck to destination (dashed blue) - when already collected */}
+      {/* Suggested route: truck to destination (dashed blue) */}
       {truckToDestinationRoute.length > 1 && (
         <Polyline
           positions={truckToDestinationRoute}
@@ -361,6 +377,19 @@ function RouteDisplay({
             weight: 4,
             opacity: 0.6,
             dashArray: '12, 8',
+          }}
+        />
+      )}
+
+      {/* Distance to origin (dashed orange) - only when awaiting/collecting */}
+      {truckToOriginRoute.length > 1 && (
+        <Polyline
+          positions={truckToOriginRoute}
+          pathOptions={{
+            color: '#f97316',
+            weight: 4,
+            opacity: 0.55,
+            dashArray: '10, 10',
           }}
         />
       )}
@@ -649,14 +678,10 @@ export function EntregasMap({
               </div>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <div className="w-6 h-1 rounded" style={{ backgroundColor: '#f97316' }} />
-              <span className="text-xs">Histórico</span>
+              <div className="w-2 h-2 rounded-full border border-white shadow-sm" style={{ backgroundColor: '#f97316' }} />
+              <span className="text-xs">Pontos do histórico</span>
               <div className="w-6 h-0" style={{ borderTop: '2px dashed #3b82f6' }} />
               <span className="text-xs">Rota sugerida</span>
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="w-2 h-2 rounded-full border border-white shadow-sm" style={{ backgroundColor: '#f97316' }} />
-              <span className="text-xs">Ponto de rastreio</span>
             </div>
           </div>
         )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CircleMarker, Tooltip, Popup, Polyline } from 'react-leaflet';
+import { CircleMarker, Tooltip, Popup } from 'react-leaflet';
 import { supabase } from '@/integrations/supabase/client';
 import { Clock, MapPin, AlertCircle, CheckCircle, Package, Truck, Route } from 'lucide-react';
 
@@ -117,61 +117,8 @@ export function TrackingHistoryMarkers({ entregaId }: TrackingHistoryMarkersProp
 
   if (!entregaId || trackingPoints.length === 0) return null;
 
-  // Helper to calculate distance between two points (in km)
-  const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  // Split path into segments to avoid drawing lines between distant points (GPS jumps)
-  const MAX_DISTANCE_KM = 10; // Max distance between consecutive points before breaking the line
-  const pathSegments: [number, number][][] = [];
-  let currentSegment: [number, number][] = [];
-
-  trackingPoints.forEach((point, index) => {
-    if (index === 0) {
-      currentSegment.push([point.latitude, point.longitude]);
-    } else {
-      const prevPoint = trackingPoints[index - 1];
-      const distance = getDistanceKm(prevPoint.latitude, prevPoint.longitude, point.latitude, point.longitude);
-      
-      if (distance > MAX_DISTANCE_KM) {
-        // Start a new segment (GPS jump detected)
-        if (currentSegment.length > 1) {
-          pathSegments.push(currentSegment);
-        }
-        currentSegment = [[point.latitude, point.longitude]];
-      } else {
-        currentSegment.push([point.latitude, point.longitude]);
-      }
-    }
-  });
-
-  // Don't forget the last segment
-  if (currentSegment.length > 1) {
-    pathSegments.push(currentSegment);
-  }
-
   return (
     <>
-      {/* Lines connecting tracking points (split into segments to avoid GPS jump lines) */}
-      {pathSegments.map((segment, idx) => (
-        <Polyline
-          key={`segment-${idx}`}
-          positions={segment}
-          pathOptions={{
-            color: '#f97316',
-            weight: 4,
-            opacity: 0.8,
-          }}
-        />
-      ))}
 
       {/* Tracking point markers */}
       {trackingPoints.map((point, index) => {

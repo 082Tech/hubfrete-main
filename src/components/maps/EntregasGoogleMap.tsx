@@ -69,7 +69,7 @@ const mapOptions: google.maps.MapOptions = {
 };
 
 // Statuses that indicate the truck has already left the origin
-const hasLeftOriginStatuses = ['coletado', 'em_transito', 'em_entrega', 'entregue', 'devolvida'];
+const showRouteToOriginStatuses = ['aguardando_coleta', 'em_coleta'];
 
 // Driver marker component - shows avatar or truck icon with hover tooltip
 function DriverMarker({ 
@@ -193,6 +193,7 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
   const { isLoaded, loadError } = useGoogleMaps();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const [toOriginDirections, setToOriginDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const selected = useMemo(
@@ -235,32 +236,29 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
 
     if (!isLoaded || !selected?.destinoCoords) {
       setDirections(null);
+      setToOriginDirections(null);
       return;
     }
 
-    const status = selected.status || '';
-    const hasLeftOrigin = hasLeftOriginStatuses.includes(status);
-    
-    // Determine origin based on whether truck has left origin
-    let routeOrigin: { lat: number; lng: number } | null = null;
-    
-    if (hasLeftOrigin && selected.latitude && selected.longitude) {
-      // Already collected: show from truck to destination
-      routeOrigin = { lat: selected.latitude, lng: selected.longitude };
-    } else if (selected.origemCoords) {
-      // Still waiting: show from origin to destination
-      routeOrigin = selected.origemCoords;
-    }
-    
-    if (!routeOrigin) {
+    const statusValue = selected.status || '';
+    const hasTruckPos = !!(selected.latitude && selected.longitude);
+
+    // Blue dashed: prefer truck -> destination; fallback to origin -> destination when no truck position
+    const mainOrigin = hasTruckPos
+      ? { lat: selected.latitude!, lng: selected.longitude! }
+      : selected.origemCoords;
+
+    if (!mainOrigin) {
       setDirections(null);
+      setToOriginDirections(null);
       return;
     }
 
     const service = new google.maps.DirectionsService();
+
     service.route(
       {
-        origin: routeOrigin,
+        origin: mainOrigin,
         destination: selected.destinoCoords,
         travelMode: google.maps.TravelMode.DRIVING,
       },
@@ -269,6 +267,28 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
         if (status === google.maps.DirectionsStatus.OK && result) setDirections(result);
       }
     );
+
+    // Orange dashed: ONLY when awaiting/collecting and we have truck pos + origin
+    if (
+      showRouteToOriginStatuses.includes(statusValue) &&
+      hasTruckPos &&
+      selected.origemCoords
+    ) {
+      service.route(
+        {
+          origin: { lat: selected.latitude!, lng: selected.longitude! },
+          destination: selected.origemCoords,
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (cancelled) return;
+          if (status === google.maps.DirectionsStatus.OK && result) setToOriginDirections(result);
+          else setToOriginDirections(null);
+        }
+      );
+    } else {
+      setToOriginDirections(null);
+    }
 
     return () => {
       cancelled = true;
@@ -310,7 +330,7 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
           <TrackingHistoryGoogleMarkers entregaId={selected.entregaId || selected.id} />
         )}
 
-        {/* Suggested route (dashed) - fallback when no tracking history */}
+        {/* Suggested route (dashed blue) */}
         {selected && directions && (
           <DirectionsRenderer
             key={selected.id}
@@ -330,6 +350,33 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
                     },
                     offset: '0',
                     repeat: '16px',
+                  },
+                ],
+              },
+            }}
+          />
+        )}
+
+        {/* Distance to origin (dashed orange) - only when awaiting/collecting */}
+        {selected && toOriginDirections && (
+          <DirectionsRenderer
+            key={`${selected.id}-to-origin`}
+            directions={toOriginDirections}
+            options={{
+              suppressMarkers: true,
+              polylineOptions: {
+                strokeColor: '#f97316',
+                strokeOpacity: 0.55,
+                strokeWeight: 4,
+                icons: [
+                  {
+                    icon: {
+                      path: 'M 0,-1 0,1',
+                      strokeOpacity: 1,
+                      scale: 3,
+                    },
+                    offset: '0',
+                    repeat: '18px',
                   },
                 ],
               },
