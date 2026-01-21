@@ -489,18 +489,31 @@ export default function TodasCargas() {
         addressIdsToDelete.push(cargaToDelete.endereco_destino.id);
       }
 
-      // First, unlink addresses from the cargo (set to null) to avoid FK constraint
+      // Step 1: Unlink addresses from the cargo (set endereco_origem_id and endereco_destino_id to null)
       const { error: unlinkError } = await supabase
         .from('cargas')
         .update({ endereco_origem_id: null, endereco_destino_id: null })
         .eq('id', cargaToDelete.id);
 
       if (unlinkError) {
-        console.error('Erro ao desvincular endereços:', unlinkError);
+        console.error('Erro ao desvincular endereços da carga:', unlinkError);
         throw unlinkError;
       }
 
-      // Then delete the cargo
+      // Step 2: Clear carga_id in addresses (to avoid FK constraint on enderecos_carga)
+      if (addressIdsToDelete.length > 0) {
+        const { error: clearCargaIdError } = await supabase
+          .from('enderecos_carga')
+          .update({ carga_id: null })
+          .in('id', addressIdsToDelete);
+
+        if (clearCargaIdError) {
+          console.error('Erro ao limpar carga_id dos endereços:', clearCargaIdError);
+          throw clearCargaIdError;
+        }
+      }
+
+      // Step 3: Delete the cargo (entregas will be deleted via CASCADE)
       const { error: deleteCargoError } = await supabase
         .from('cargas')
         .delete()
@@ -508,7 +521,7 @@ export default function TodasCargas() {
 
       if (deleteCargoError) throw deleteCargoError;
 
-      // Finally, delete the orphaned addresses
+      // Step 4: Delete the orphaned addresses
       if (addressIdsToDelete.length > 0) {
         const { error: addressError } = await supabase
           .from('enderecos_carga')
