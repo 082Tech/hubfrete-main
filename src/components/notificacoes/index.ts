@@ -1,0 +1,1 @@
+export { NotificacoesDropdown } from './NotificacoesDropdown';

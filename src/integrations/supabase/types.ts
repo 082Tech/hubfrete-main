@@ -1025,6 +1025,45 @@ export type Database = {
           },
         ]
       }
+      notificacoes: {
+        Row: {
+          created_at: string
+          dados: Json | null
+          empresa_id: number | null
+          id: string
+          lida: boolean
+          link: string | null
+          mensagem: string
+          tipo: Database["public"]["Enums"]["tipo_notificacao"]
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dados?: Json | null
+          empresa_id?: number | null
+          id?: string
+          lida?: boolean
+          link?: string | null
+          mensagem: string
+          tipo: Database["public"]["Enums"]["tipo_notificacao"]
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dados?: Json | null
+          empresa_id?: number | null
+          id?: string
+          lida?: boolean
+          link?: string | null
+          mensagem?: string
+          tipo?: Database["public"]["Enums"]["tipo_notificacao"]
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       super_admins: {
         Row: {
           created_at: string
@@ -1404,6 +1443,14 @@ export type Database = {
       tipo_empresa: "EMBARCADOR" | "TRANSPORTADORA"
       tipo_endereco: "origem" | "destino"
       tipo_frete: "cif" | "fob"
+      tipo_notificacao:
+        | "status_entrega_alterado"
+        | "nova_mensagem"
+        | "motorista_adicionado"
+        | "carga_publicada"
+        | "entrega_aceita"
+        | "entrega_concluida"
+        | "cte_anexado"
       tipo_propriedade_veiculo: "pf" | "pj"
       tipo_veiculo:
         | "truck"
@@ -1604,6 +1651,15 @@ export const Constants = {
       tipo_empresa: ["EMBARCADOR", "TRANSPORTADORA"],
       tipo_endereco: ["origem", "destino"],
       tipo_frete: ["cif", "fob"],
+      tipo_notificacao: [
+        "status_entrega_alterado",
+        "nova_mensagem",
+        "motorista_adicionado",
+        "carga_publicada",
+        "entrega_aceita",
+        "entrega_concluida",
+        "cte_anexado",
+      ],
       tipo_propriedade_veiculo: ["pf", "pj"],
       tipo_veiculo: [
         "truck",
