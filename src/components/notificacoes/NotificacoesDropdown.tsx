@@ -134,7 +134,7 @@ function NotificacoesDropdownComponent({ collapsed = false }: NotificacoesDropdo
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="end" 
-        className="w-80 md:w-96"
+        className="w-80 md:w-96 ml-2"
         sideOffset={8}
       >
         <div className="flex items-center justify-between px-3 py-2 border-b">

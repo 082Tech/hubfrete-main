@@ -82,7 +82,7 @@ export default function NotificacoesTransportadora() {
 
   return (
     <PortalLayout expectedUserType="transportadora" fullWidth>
-      <div className="h-full flex flex-col p-6">
+      <div className="h-full flex flex-col p-6 gap-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -195,8 +195,8 @@ export default function NotificacoesTransportadora() {
             </div>
           </CardHeader>
           <CardContent className="flex-1 min-h-0">
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'todas' | 'nao_lidas')} className="h-full flex flex-col">
-              <TabsList className="mb-4 shrink-0">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'todas' | 'nao_lidas')} className="h-full">
+              <TabsList className="mb-4">
                 <TabsTrigger value="todas">Todas</TabsTrigger>
                 <TabsTrigger value="nao_lidas">
                   Não lidas
