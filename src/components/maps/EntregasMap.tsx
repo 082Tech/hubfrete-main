@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Phone, Truck, MapPin, Navigation, Route, Loader2, Clock } from 'lucide-react';
+import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
 
 // Helper function to format timestamp to readable date/time
 const formatTimestamp = (timestamp: number): string => {
@@ -34,18 +35,25 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// Custom avatar marker with online/offline status
+// Check if location is recent (within 2 minutes)
+const isRecentLocation = (timestamp: number | null | undefined): boolean => {
+  if (!timestamp) return false;
+  const diffMs = Date.now() - timestamp;
+  return diffMs < 2 * 60 * 1000; // 2 minutes
+};
+
+// Custom avatar marker with online/offline status - pulse only when TRULY recent
 const createAvatarIcon = (
   fotoUrl: string | null, 
-  isOnline: boolean, 
+  isRecentUpdate: boolean, 
   isSelected: boolean = false
 ) => {
   const size = isSelected ? 48 : 40;
   const borderWidth = isSelected ? 3 : 2;
-  const borderColor = isSelected ? '#3b82f6' : isOnline ? '#22c55e' : '#9ca3af';
+  const borderColor = isSelected ? '#3b82f6' : isRecentUpdate ? '#22c55e' : '#9ca3af';
   
-  // Pulse animation CSS - only for online
-  const pulseStyle = isOnline ? `
+  // Pulse animation CSS - only when truly recent (not just based on status)
+  const pulseStyle = isRecentUpdate ? `
     <style>
       @keyframes avatar-pulse {
         0%, 100% { transform: scale(1); opacity: 0.6; }
@@ -72,7 +80,7 @@ const createAvatarIcon = (
           height: 100%;
           object-fit: cover;
           border-radius: 50%;
-          ${!isOnline ? 'filter: grayscale(100%); opacity: 0.6;' : ''}
+          ${!isRecentUpdate ? 'filter: grayscale(100%); opacity: 0.6;' : ''}
         "
         referrerpolicy="no-referrer"
       />`
@@ -84,7 +92,7 @@ const createAvatarIcon = (
         justify-content: center;
         background-color: ${isSelected ? '#3b82f6' : '#e5e7eb'};
         border-radius: 50%;
-        ${!isOnline ? 'filter: grayscale(100%); opacity: 0.6;' : ''}
+        ${!isRecentUpdate ? 'filter: grayscale(100%); opacity: 0.6;' : ''}
       ">
         <svg xmlns="http://www.w3.org/2000/svg" width="${size * 0.45}" height="${size * 0.45}" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? 'white' : '#6b7280'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
@@ -431,7 +439,12 @@ export function EntregasMap({
         />
         <FitBounds entregas={validEntregas} selectedEntrega={selectedEntrega} />
         
-        {/* Route display with real roads */}
+        {/* Tracking history points when entrega is selected */}
+        {selectedEntrega && (
+          <TrackingHistoryMarkers entregaId={selectedEntrega.entregaId || selectedEntrega.id} />
+        )}
+        
+        {/* Suggested route (dashed) - only show if no tracking history */}
         <RouteDisplay selectedEntrega={selectedEntrega} />
 
         {/* Origin marker for selected entrega */}
@@ -482,13 +495,13 @@ export function EntregasMap({
             const label = isIdle ? 'Sem Entrega' : (statusLabels[status] || 'Desconhecido');
             const entregaKey = entrega.entregaId || entrega.cargaId || entrega.id;
             const isSelected = entregaKey === effectiveSelectedId;
-            const isOnline = entrega.motoristaOnline === true;
+            const isRecent = isRecentLocation(entrega.lastLocationUpdate);
             
             return (
               <Marker
                 key={entrega.id}
                 position={[entrega.latitude!, entrega.longitude!]}
-                icon={createAvatarIcon(entrega.motoristaFotoUrl || null, isOnline, isSelected)}
+                icon={createAvatarIcon(entrega.motoristaFotoUrl || null, isRecent, isSelected)}
                 eventHandlers={{
                   click: () => !isIdle && handleMarkerClick(entrega),
                 }}
@@ -614,19 +627,23 @@ export function EntregasMap({
           <div className="mt-2 pt-2 border-t border-border">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-green-500 border border-white" />
+                <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: '#22c55e' }} />
                 <span className="text-xs">Origem</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-red-500 border border-white" />
+                <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: '#ef4444' }} />
                 <span className="text-xs">Destino</span>
               </div>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <div className="w-6 h-0.5 bg-orange-500" />
-              <span className="text-xs">Percorrido</span>
-              <div className="w-6 h-0.5 bg-blue-500 border-dashed" style={{ borderTop: '2px dashed #3b82f6', height: 0 }} />
-              <span className="text-xs">Restante</span>
+              <div className="w-6 h-1 rounded" style={{ backgroundColor: '#f97316' }} />
+              <span className="text-xs">Histórico</span>
+              <div className="w-6 h-0" style={{ borderTop: '2px dashed #3b82f6' }} />
+              <span className="text-xs">Rota sugerida</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-2 h-2 rounded-full border border-white shadow-sm" style={{ backgroundColor: '#f97316' }} />
+              <span className="text-xs">Ponto de rastreio</span>
             </div>
           </div>
         )}
@@ -639,7 +656,7 @@ export function EntregasMap({
             <Route className="w-4 h-4 text-primary" />
             <div>
               <p className="text-sm font-medium">{selectedEntrega.codigo}</p>
-              <p className="text-xs text-muted-foreground">Rota real via estradas</p>
+              <p className="text-xs text-muted-foreground">Histórico de rastreamento</p>
             </div>
             <Button
               size="sm"

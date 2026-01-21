@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGoogleMaps, airbnbMapStyles, defaultMapContainerStyle, defaultCenter } from './GoogleMapsLoader';
 import { Loader2, Truck, Clock, Phone, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { TrackingHistoryGoogleMarkers } from './TrackingHistoryGoogleMarkers';
 
 export type EntregaMapItem = {
   id: string;
@@ -49,7 +50,7 @@ function formatLocationTimestamp(timestamp: number | null | undefined): string {
 function isRecentUpdate(timestamp: number | null | undefined): boolean {
   if (!timestamp) return false;
   const diffMs = Date.now() - timestamp;
-  return diffMs < 5 * 60 * 1000; // 5 minutes
+  return diffMs < 2 * 60 * 1000; // 2 minutes - only pulse green when truly recent
 }
 
 interface EntregasGoogleMapProps {
@@ -282,6 +283,12 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
         onUnmount={handleUnmount}
         onClick={() => onSelectCarga(null)}
       >
+        {/* Tracking history points when entrega is selected */}
+        {selected && (
+          <TrackingHistoryGoogleMarkers entregaId={selected.entregaId || selected.id} />
+        )}
+
+        {/* Suggested route (dashed) - fallback when no tracking history */}
         {selected && directions && (
           <DirectionsRenderer
             key={selected.id}
@@ -289,8 +296,8 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
             options={{
               suppressMarkers: true,
               polylineOptions: {
-                strokeColor: '#10b981',
-                strokeOpacity: 0.9,
+                strokeColor: '#3b82f6',
+                strokeOpacity: 0.6,
                 strokeWeight: 4,
                 icons: [
                   {
