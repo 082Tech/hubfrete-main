@@ -41,6 +41,7 @@ import {
   WifiOff,
   Radio,
   ExternalLink,
+  MessageCircle,
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
@@ -557,6 +558,26 @@ export default function GestaoCargas() {
 
   const formatPeso = (peso: number) => peso.toLocaleString('pt-BR') + ' kg';
 
+  const formatLocationTimestamp = (timestamp: number | null | undefined): string => {
+    if (!timestamp) return '-';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    
+    if (diffMins < 1) return 'Agora';
+    if (diffMins < 60) return `${diffMins} min`;
+    if (diffHours < 24) return `${diffHours}h`;
+    
+    return date.toLocaleString('pt-BR', { 
+      day: '2-digit', 
+      month: '2-digit',
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
   const formatValor = (valor: number | null) => {
     if (!valor) return '-';
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -924,6 +945,12 @@ export default function GestaoCargas() {
                               Previsão
                             </div>
                           </TableHead>
+                          <TableHead className="font-semibold min-w-[90px]">
+                            <div className="flex items-center gap-1">
+                              <Radio className="w-3 h-3" />
+                              Localização
+                            </div>
+                          </TableHead>
                           <TableHead className="font-semibold w-10"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1019,17 +1046,29 @@ export default function GestaoCargas() {
                               {/* Motorista */}
                               <TableCell>
                                 {entrega?.motoristas ? (
-                                  <div className="text-sm">
-                                    <div className="flex items-center gap-1">
-                                      <User className="w-3 h-3 text-muted-foreground" />
-                                      <span className="truncate max-w-[90px]">{entrega.motoristas.nome_completo}</span>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                      <User className="w-3 h-3 text-primary" />
                                     </div>
-                                    {entrega.motoristas.telefone && (
-                                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                        <Phone className="w-3 h-3" />
-                                        <span>{entrega.motoristas.telefone}</span>
-                                      </div>
-                                    )}
+                                    <span className="text-sm truncate max-w-[80px]">
+                                      {entrega.motoristas.nome_completo}
+                                    </span>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 shrink-0 text-primary hover:text-primary"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/embarcador/mensagens?entrega=${entrega.id}`);
+                                          }}
+                                        >
+                                          <MessageCircle className="w-3 h-3" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Abrir chat</TooltipContent>
+                                    </Tooltip>
                                   </div>
                                 ) : (
                                   <span className="text-sm text-muted-foreground">-</span>
@@ -1066,6 +1105,38 @@ export default function GestaoCargas() {
                                 </div>
                               </TableCell>
 
+                              {/* Localização */}
+                              <TableCell>
+                                {(() => {
+                                  const motoristaEmail = entrega?.motoristas?.email;
+                                  const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
+                                  const lastUpdate = localizacao?.timestamp;
+                                  
+                                  if (!lastUpdate) {
+                                    return <span className="text-sm text-muted-foreground">-</span>;
+                                  }
+                                  
+                                  const formattedTime = formatLocationTimestamp(lastUpdate);
+                                  const isRecent = lastUpdate && (Date.now() - lastUpdate) < 5 * 60 * 1000; // 5 minutes
+                                  
+                                  return (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className={`flex items-center gap-1 text-xs ${isRecent ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                          <Radio className={`w-3 h-3 ${isRecent ? 'animate-pulse' : ''}`} />
+                                          <span>{formattedTime}</span>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="text-xs">
+                                          {new Date(lastUpdate).toLocaleString('pt-BR')}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  );
+                                })()}
+                              </TableCell>
+
                               {/* Ações */}
                               <TableCell>
                                 <DropdownMenu>
@@ -1075,6 +1146,17 @@ export default function GestaoCargas() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="bg-popover border-border z-50">
+                                    {entrega?.id && (
+                                      <DropdownMenuItem
+                                        className="gap-2 cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/embarcador/mensagens?entrega=${entrega.id}`);
+                                        }}
+                                      >
+                                        <MessageCircle className="w-4 h-4" /> Abrir chat
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem
                                       className="gap-2 cursor-pointer"
                                       onClick={(e) => {
