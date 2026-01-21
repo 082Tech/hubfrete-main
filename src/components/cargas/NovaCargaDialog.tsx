@@ -100,6 +100,20 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const [activeTab, setActiveTab] = useState('carga');
   const { filialAtiva } = useUserContext();
 
+  const initialLocationData: LocationData = {
+    latitude: 0,
+    longitude: 0,
+    cep: '',
+    logradouro: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    estado: '',
+    contato_nome: '',
+    contato_telefone: '',
+  };
+
   // Additional state for new fields
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
@@ -109,33 +123,20 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const [carroceriasSelecionadas, setCarroceriasSelecionadas] = useState<string[]>([]);
 
   // Location data for origin and destination
-  const [origemData, setOrigemData] = useState<LocationData>({
-    latitude: 0,
-    longitude: 0,
-    cep: '',
-    logradouro: '',
-    numero: '',
-    complemento: '',
-    bairro: '',
-    cidade: '',
-    estado: '',
-    contato_nome: '',
-    contato_telefone: '',
-  });
+  const [origemData, setOrigemData] = useState<LocationData>(initialLocationData);
 
-  const [destinoData, setDestinoData] = useState<LocationData>({
-    latitude: 0,
-    longitude: 0,
-    cep: '',
-    logradouro: '',
-    numero: '',
-    complemento: '',
-    bairro: '',
-    cidade: '',
-    estado: '',
-    contato_nome: '',
-    contato_telefone: '',
-  });
+  const [destinoData, setDestinoData] = useState<LocationData>(initialLocationData);
+
+  const resetDialogState = () => {
+    form.reset();
+    setNecessidadesEspeciais([]);
+    setNotaFiscalUrl(null);
+    setVeiculosSelecionados([]);
+    setCarroceriasSelecionadas([]);
+    setOrigemData(initialLocationData);
+    setDestinoData(initialLocationData);
+    setActiveTab('carga');
+  };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -326,23 +327,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       }
 
       toast.success('Carga criada com sucesso!');
-      form.reset();
-      setNecessidadesEspeciais([]);
-      setNotaFiscalUrl(null);
-      setVeiculosSelecionados([]);
-      setCarroceriasSelecionadas([]);
-      setOrigemData({
-        latitude: 0, longitude: 0, cep: '', logradouro: '', numero: '',
-        complemento: '', bairro: '', cidade: '', estado: '',
-        contato_nome: '', contato_telefone: '',
-      });
-      setDestinoData({
-        latitude: 0, longitude: 0, cep: '', logradouro: '', numero: '',
-        complemento: '', bairro: '', cidade: '', estado: '',
-        contato_nome: '', contato_telefone: '',
-      });
+      resetDialogState();
       setOpen(false);
-      setActiveTab('carga');
       onSuccess?.();
     } catch (error) {
       console.error('Erro inesperado:', error);
@@ -352,8 +338,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     }
   };
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) resetDialogState();
+    setOpen(nextOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children || (
           <Button className="gap-2">

@@ -43,7 +43,6 @@ import TransportadoraFiliais from "./pages/portals/transportadora/GerenciarFilia
 import TransportadoraUsuarios from "./pages/portals/transportadora/UsuariosEmpresa";
 import TransportadoraMensagens from "./pages/portals/transportadora/Mensagens";
 import TransportadoraRelatorios from "./pages/portals/transportadora/Relatorios";
-import MotoristaDashboard from "./pages/portals/MotoristaDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -109,9 +108,7 @@ const App = () => {
                 <Route path="/transportadora/usuarios" element={<TransportadoraUsuarios />} />
                 <Route path="/transportadora/configuracoes" element={<TransportadoraConfiguracoes />} />
                 
-                {/* Portal Motorista */}
-                <Route path="/motorista" element={<MotoristaDashboard />} />
-                <Route path="/motorista/*" element={<MotoristaDashboard />} />
+                {/* Portal Motorista: removido do site (apenas app) */}
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

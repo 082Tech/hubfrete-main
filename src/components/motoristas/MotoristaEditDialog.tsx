@@ -42,6 +42,7 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
   const comprovanteEnderecoRef = useRef<HTMLInputElement>(null);
   const comprovanteVinculoRef = useRef<HTMLInputElement>(null);
   const docTitularRef = useRef<HTMLInputElement>(null);
+  const ajudanteVinculoRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     nome_completo: '',
@@ -61,11 +62,18 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
     comprovante_endereco_titular_doc_url: '',
     comprovante_vinculo_url: '',
     possui_ajudante: false,
+    ajudante_id: '' as string,
+    ajudante_nome: '',
+    ajudante_cpf: '',
+    ajudante_telefone: '',
+    ajudante_tipo_cadastro: 'autonomo' as 'autonomo' | 'frota',
+    ajudante_comprovante_vinculo_url: '',
     ativo: true,
   });
 
   useEffect(() => {
     if (motorista) {
+      const ajudante = motorista.ajudantes?.[0] ?? null;
       setFormData({
         nome_completo: motorista.nome_completo,
         cpf: motorista.cpf,
@@ -84,6 +92,12 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
         comprovante_endereco_titular_doc_url: motorista.comprovante_endereco_titular_doc_url || '',
         comprovante_vinculo_url: motorista.comprovante_vinculo_url || '',
         possui_ajudante: motorista.possui_ajudante || false,
+        ajudante_id: ajudante?.id || '',
+        ajudante_nome: ajudante?.nome || '',
+        ajudante_cpf: ajudante?.cpf || '',
+        ajudante_telefone: ajudante?.telefone || '',
+        ajudante_tipo_cadastro: ajudante?.tipo_cadastro || 'autonomo',
+        ajudante_comprovante_vinculo_url: ajudante?.comprovante_vinculo_url || '',
         ativo: motorista.ativo,
       });
     }
@@ -91,7 +105,12 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
 
   const handleFileUpload = async (
     file: File,
-    field: 'cnh_digital_url' | 'comprovante_endereco_url' | 'comprovante_vinculo_url' | 'comprovante_endereco_titular_doc_url'
+    field:
+      | 'cnh_digital_url'
+      | 'comprovante_endereco_url'
+      | 'comprovante_vinculo_url'
+      | 'comprovante_endereco_titular_doc_url'
+      | 'ajudante_comprovante_vinculo_url'
   ) => {
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Arquivo muito grande. Máximo 5MB.');
@@ -149,6 +168,55 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
         .eq('id', motorista.id);
 
       if (error) throw error;
+
+      // Ajudante (mostrar/editar no portal)
+      if (formData.possui_ajudante) {
+        // Campos só aparecem quando possui_ajudante=true, então aqui garantimos dados mínimos
+        if (!formData.ajudante_nome || !formData.ajudante_cpf) {
+          toast.error('Preencha nome e CPF do ajudante');
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (formData.ajudante_id) {
+          const { error: ajudanteUpdateError } = await supabase
+            .from('ajudantes')
+            .update({
+              nome: formData.ajudante_nome,
+              cpf: formData.ajudante_cpf.replace(/\D/g, ''),
+              telefone: formData.ajudante_telefone || null,
+              tipo_cadastro: formData.ajudante_tipo_cadastro,
+              comprovante_vinculo_url: formData.ajudante_comprovante_vinculo_url || null,
+              ativo: true,
+            })
+            .eq('id', formData.ajudante_id);
+          if (ajudanteUpdateError) throw ajudanteUpdateError;
+        } else {
+          const { data: ajudanteInserted, error: ajudanteInsertError } = await supabase
+            .from('ajudantes')
+            .insert({
+              motorista_id: motorista.id,
+              nome: formData.ajudante_nome,
+              cpf: formData.ajudante_cpf.replace(/\D/g, ''),
+              telefone: formData.ajudante_telefone || null,
+              tipo_cadastro: formData.ajudante_tipo_cadastro,
+              comprovante_vinculo_url: formData.ajudante_comprovante_vinculo_url || null,
+              ativo: true,
+            })
+            .select('id')
+            .single();
+          if (ajudanteInsertError) throw ajudanteInsertError;
+
+          setFormData((prev) => ({ ...prev, ajudante_id: ajudanteInserted.id }));
+        }
+      } else if (formData.ajudante_id) {
+        // Se desmarcou "possui ajudante", desativa o ajudante existente (sem deletar)
+        const { error: ajudanteDeactivateError } = await supabase
+          .from('ajudantes')
+          .update({ ativo: false })
+          .eq('id', formData.ajudante_id);
+        if (ajudanteDeactivateError) throw ajudanteDeactivateError;
+      }
 
       toast.success('Motorista atualizado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
@@ -283,6 +351,118 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
               />
               <Label htmlFor="possui_ajudante">Possui Ajudante</Label>
             </div>
+
+            {formData.possui_ajudante && (
+              <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium">Dados do Ajudante</p>
+                    <p className="text-sm text-muted-foreground">
+                      Informe os dados do ajudante vinculado ao motorista
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Nome Completo *</Label>
+                    <Input
+                      value={formData.ajudante_nome}
+                      onChange={(e) => setFormData({ ...formData, ajudante_nome: e.target.value })}
+                      placeholder="Nome do ajudante"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CPF *</Label>
+                    <Input
+                      value={formData.ajudante_cpf}
+                      onChange={(e) => setFormData({ ...formData, ajudante_cpf: e.target.value })}
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Telefone</Label>
+                    <Input
+                      value={formData.ajudante_telefone}
+                      onChange={(e) => setFormData({ ...formData, ajudante_telefone: e.target.value })}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tipo do Ajudante</Label>
+                    <Select
+                      value={formData.ajudante_tipo_cadastro}
+                      onValueChange={(v) =>
+                        setFormData({
+                          ...formData,
+                          ajudante_tipo_cadastro: v as 'autonomo' | 'frota',
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="autonomo">Autônomo</SelectItem>
+                        <SelectItem value="frota">Frota (Empresa)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {formData.ajudante_tipo_cadastro === 'frota' && (
+                  <div className="space-y-2">
+                    <Label>Comprovante de Vínculo do Ajudante</Label>
+                    <p className="text-sm text-muted-foreground">Opcional</p>
+                    <input
+                      ref={ajudanteVinculoRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file, 'ajudante_comprovante_vinculo_url');
+                      }}
+                    />
+                    {formData.ajudante_comprovante_vinculo_url ? (
+                      <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                        <CheckCircle className="w-5 h-5 text-primary" />
+                        <span className="text-sm text-primary flex-1">Comprovante anexado</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(formData.ajudante_comprovante_vinculo_url, '_blank')}
+                        >
+                          Ver
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData({ ...formData, ajudante_comprovante_vinculo_url: '' })}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => ajudanteVinculoRef.current?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Anexar Comprovante do Ajudante
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </TabsContent>
 
           {/* TAB: CNH */}
