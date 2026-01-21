@@ -50,21 +50,12 @@ export function MotoristaFormDialog({
 
   const handleNext = () => {
     if (currentStep === 1) {
-      // Validate step 1
+      // Validate step 1 - only essential fields
       if (!formData.nome_completo || !formData.cpf || !formData.cnh || !formData.categoria_cnh || !formData.validade_cnh || !formData.uf) {
         toast.error('Preencha todos os campos obrigatórios');
         return;
       }
-      // Check personal references only
-      const refPessoais = formData.referencias.filter(r => r.tipo === 'pessoal');
-      if (refPessoais.some(r => !r.nome || !r.telefone)) {
-        toast.error('Preencha todas as referências pessoais');
-        return;
-      }
-      if (formData.tipo_cadastro === 'frota' && !formData.comprovante_vinculo_url) {
-        toast.error('Motorista de frota requer comprovante de vínculo');
-        return;
-      }
+      // References and comprovante_vinculo are optional in web registration
     }
     
     if (currentStep === 2) {
