@@ -38,6 +38,7 @@ import {
   Eye,
   FileText,
   Trash2,
+  Upload,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -75,6 +76,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
+import { AnexarCteDialog } from '@/components/entregas/AnexarCteDialog';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -91,6 +93,7 @@ interface EntregaCompleta {
   updated_at: string | null;
   peso_alocado_kg: number | null;
   valor_frete: number | null;
+  cte_url: string | null;
   motorista: {
     id: string;
     nome_completo: string;
@@ -183,6 +186,8 @@ export default function GestaoEntregas() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entregaToDelete, setEntregaToDelete] = useState<EntregaCompleta | null>(null);
+  const [anexarCteDialogOpen, setAnexarCteDialogOpen] = useState(false);
+  const [entregaForCte, setEntregaForCte] = useState<EntregaCompleta | null>(null);
 
   // Monitor internet connection status
   useEffect(() => {
@@ -227,6 +232,7 @@ export default function GestaoEntregas() {
           updated_at,
           peso_alocado_kg,
           valor_frete,
+          cte_url,
           motorista:motoristas(id, nome_completo, telefone, email, foto_url),
           veiculo:veiculos(id, placa, tipo),
           carga:cargas(
@@ -984,6 +990,12 @@ export default function GestaoEntregas() {
                           <TableHead className="font-semibold min-w-[120px]">Motorista</TableHead>
                           <TableHead className="font-semibold min-w-[80px]">Veículo</TableHead>
                           <TableHead className="font-semibold min-w-[110px]">Status</TableHead>
+                          <TableHead className="font-semibold min-w-[80px]">
+                            <div className="flex items-center gap-1">
+                              <FileText className="w-3 h-3" />
+                              CT-e
+                            </div>
+                          </TableHead>
                           <TableHead className="font-semibold min-w-[90px]">
                             <div className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
@@ -1112,6 +1124,37 @@ export default function GestaoEntregas() {
                                   {config?.label || status}
                                 </Badge>
                               </TableCell>
+                              <TableCell>
+                                {entrega.cte_url ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge 
+                                        className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.open(entrega.cte_url!, '_blank');
+                                        }}
+                                      >
+                                        <FileText className="w-3 h-3" />
+                                        Anexado
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Clique para visualizar</TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <Badge 
+                                    className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEntregaForCte(entrega);
+                                      setAnexarCteDialogOpen(true);
+                                    }}
+                                  >
+                                    <FileText className="w-3 h-3" />
+                                    Pendente
+                                  </Badge>
+                                )}
+                              </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {formatDate(entrega.carga.data_entrega_limite)}
                               </TableCell>
@@ -1179,6 +1222,14 @@ export default function GestaoEntregas() {
                                     }}>
                                       <FileText className="w-4 h-4 mr-2" />
                                       Ver detalhes
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEntregaForCte(entrega);
+                                      setAnexarCteDialogOpen(true);
+                                    }}>
+                                      <Upload className="w-4 h-4 mr-2" />
+                                      {entrega.cte_url ? 'Substituir CT-e' : 'Anexar CT-e'}
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem 
@@ -1361,6 +1412,14 @@ export default function GestaoEntregas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Anexar CT-e Dialog */}
+      <AnexarCteDialog
+        entrega={entregaForCte}
+        open={anexarCteDialogOpen}
+        onOpenChange={setAnexarCteDialogOpen}
+        onSuccess={() => refetch()}
+      />
     </PortalLayout>
   );
 }

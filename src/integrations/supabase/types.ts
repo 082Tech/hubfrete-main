@@ -646,6 +646,7 @@ export type Database = {
           codigo: string | null
           coletado_em: string | null
           created_at: string | null
+          cte_url: string | null
           documento_recebedor: string | null
           entregue_em: string | null
           foto_comprovante_coleta: string | null
@@ -666,6 +667,7 @@ export type Database = {
           codigo?: string | null
           coletado_em?: string | null
           created_at?: string | null
+          cte_url?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
           foto_comprovante_coleta?: string | null
@@ -686,6 +688,7 @@ export type Database = {
           codigo?: string | null
           coletado_em?: string | null
           created_at?: string | null
+          cte_url?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
           foto_comprovante_coleta?: string | null
