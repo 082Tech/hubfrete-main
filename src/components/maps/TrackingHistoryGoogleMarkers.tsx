@@ -14,6 +14,7 @@ interface TrackingPoint {
 
 interface TrackingHistoryGoogleMarkersProps {
   entregaId: string | null;
+  onBoundsReady?: (bounds: google.maps.LatLngBounds | null) => void;
 }
 
 const statusLabels: Record<string, string> = {
@@ -49,7 +50,7 @@ function formatDateTime(dateString: string): string {
   });
 }
 
-export function TrackingHistoryGoogleMarkers({ entregaId }: TrackingHistoryGoogleMarkersProps) {
+export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady }: TrackingHistoryGoogleMarkersProps) {
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
@@ -82,14 +83,26 @@ export function TrackingHistoryGoogleMarkers({ entregaId }: TrackingHistoryGoogl
           }));
         
         setTrackingPoints(validPoints);
+        
+        // Calculate bounds and notify parent
+        if (onBoundsReady && validPoints.length > 0) {
+          const bounds = new google.maps.LatLngBounds();
+          validPoints.forEach(p => {
+            bounds.extend({ lat: p.latitude, lng: p.longitude });
+          });
+          onBoundsReady(bounds);
+        } else if (onBoundsReady) {
+          onBoundsReady(null);
+        }
       } catch (error) {
         console.error('Error fetching tracking history:', error);
         setTrackingPoints([]);
+        onBoundsReady?.(null);
       }
     };
 
     fetchTrackingHistory();
-  }, [entregaId]);
+  }, [entregaId, onBoundsReady]);
 
   if (!entregaId || trackingPoints.length === 0) return null;
 

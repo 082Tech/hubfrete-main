@@ -1,4 +1,6 @@
 import { useJsApiLoader } from '@react-google-maps/api';
+import { ReactNode } from 'react';
+import { Loader2 } from 'lucide-react';
 
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ['places', 'geometry'];
 
@@ -10,6 +12,33 @@ export function useGoogleMaps() {
   });
 
   return { isLoaded, loadError };
+}
+
+interface GoogleMapsLoaderProps {
+  children: ReactNode;
+  fallback?: ReactNode;
+}
+
+export function GoogleMapsLoader({ children, fallback }: GoogleMapsLoaderProps) {
+  const { isLoaded, loadError } = useGoogleMaps();
+
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg">
+        <p className="text-sm text-destructive">Erro ao carregar o mapa</p>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return fallback || (
+      <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 export const defaultMapContainerStyle = {
