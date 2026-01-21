@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
+import { EntregaEditDialog } from '@/components/entregas/EntregaEditDialog';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Table,
@@ -68,6 +69,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Trash2,
+  Pencil,
+  FileText,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -189,6 +192,13 @@ export default function CargasPublicadas() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cargaToDelete, setCargaToDelete] = useState<CargaData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Entrega edit/delete states
+  const [editEntrega, setEditEntrega] = useState<EntregaData | null>(null);
+  const [editEntregaOpen, setEditEntregaOpen] = useState(false);
+  const [deleteEntregaDialogOpen, setDeleteEntregaDialogOpen] = useState(false);
+  const [entregaToDelete, setEntregaToDelete] = useState<{ entrega: EntregaData; carga: CargaData } | null>(null);
+  const [isDeletingEntrega, setIsDeletingEntrega] = useState(false);
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
   useEffect(() => {
@@ -541,6 +551,48 @@ export default function CargasPublicadas() {
       setIsDeleting(false);
       setDeleteDialogOpen(false);
       setCargaToDelete(null);
+    }
+  };
+
+  // Handle delete entrega
+  const handleDeleteEntrega = async () => {
+    if (!entregaToDelete) return;
+    
+    setIsDeletingEntrega(true);
+    try {
+      const { entrega, carga } = entregaToDelete;
+      
+      // Update carga's peso_disponivel_kg (add back the allocated weight)
+      const currentDisponivel = carga.peso_disponivel_kg ?? 0;
+      const newDisponivel = currentDisponivel + (entrega.peso_alocado_kg || 0);
+      
+      // Delete the entrega
+      const { error: deleteError } = await supabase
+        .from('entregas')
+        .delete()
+        .eq('id', entrega.id);
+
+      if (deleteError) throw deleteError;
+
+      // Update cargo's available weight
+      const { error: updateError } = await supabase
+        .from('cargas')
+        .update({ peso_disponivel_kg: newDisponivel })
+        .eq('id', carga.id);
+
+      if (updateError) {
+        console.error('Erro ao atualizar peso disponível:', updateError);
+      }
+
+      toast.success('Entrega excluída com sucesso!');
+      refetch();
+    } catch (error) {
+      console.error('Erro ao excluir entrega:', error);
+      toast.error('Erro ao excluir entrega');
+    } finally {
+      setIsDeletingEntrega(false);
+      setDeleteEntregaDialogOpen(false);
+      setEntregaToDelete(null);
     }
   };
 
@@ -1081,18 +1133,41 @@ export default function CargasPublicadas() {
                                   </TableCell>
                                   <TableCell></TableCell>
                                   <TableCell>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 text-xs"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDetailsCarga(carga);
-                                      }}
-                                    >
-                                      <Eye className="w-3.5 h-3.5 mr-1" />
-                                      Detalhes
-                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                                          <MoreHorizontal className="w-4 h-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDetailsCarga(carga);
+                                        }}>
+                                          <Eye className="w-4 h-4 mr-2" />
+                                          Ver detalhes
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditEntrega(entrega);
+                                          setEditEntregaOpen(true);
+                                        }}>
+                                          <Pencil className="w-4 h-4 mr-2" />
+                                          Editar / Anexar CT-e
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEntregaToDelete({ entrega, carga });
+                                            setDeleteEntregaDialogOpen(true);
+                                          }}
+                                          className="text-destructive focus:text-destructive"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          Excluir entrega
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </TableCell>
                                 </TableRow>
                               );
@@ -1197,6 +1272,45 @@ export default function CargasPublicadas() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Delete Entrega Confirmation Dialog */}
+        <AlertDialog open={deleteEntregaDialogOpen} onOpenChange={setDeleteEntregaDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Entrega</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir esta entrega?
+                {entregaToDelete && (
+                  <>
+                    <br /><br />
+                    <strong>Motorista:</strong> {entregaToDelete.entrega.motoristas?.nome_completo || 'Não atribuído'}<br />
+                    <strong>Peso:</strong> {entregaToDelete.entrega.peso_alocado_kg || 0} kg
+                  </>
+                )}
+                <br /><br />
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingEntrega}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteEntrega}
+                disabled={isDeletingEntrega}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeletingEntrega ? 'Excluindo...' : 'Excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Edit Entrega Dialog */}
+        <EntregaEditDialog
+          entrega={editEntrega}
+          open={editEntregaOpen}
+          onOpenChange={setEditEntregaOpen}
+          onSuccess={refetch}
+        />
       </TooltipProvider>
     </PortalLayout>
   );
