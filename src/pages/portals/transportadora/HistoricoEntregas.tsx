@@ -34,6 +34,7 @@ import {
   Scale,
   Clock,
   Ban,
+  Route,
 } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
@@ -48,8 +49,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { useNavigate } from 'react-router-dom';
+import { GoogleMapsLoader, airbnbMapStyles } from '@/components/maps/GoogleMapsLoader';
+import { GoogleMap } from '@react-google-maps/api';
+import { TrackingHistoryGoogleMarkers } from '@/components/maps/TrackingHistoryGoogleMarkers';
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
@@ -114,6 +124,9 @@ export default function HistoricoEntregas() {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedEntrega, setSelectedEntrega] = useState<EntregaHistorico | null>(null);
+  const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
+  const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
 
   const { data: entregas = [], isLoading } = useQuery({
     queryKey: ['historico_entregas_transportadora', empresa?.id],
@@ -485,11 +498,21 @@ export default function HistoricoEntregas() {
                                     <MessageCircle className="w-4 h-4 mr-2" />
                                     Ver conversa
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleOpenDetails(e)}>
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    Ver detalhes
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
+                                                  <DropdownMenuItem onClick={() => handleOpenDetails(e)}>
+                                                    <Eye className="w-4 h-4 mr-2" />
+                                                    Ver detalhes
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={() => {
+                                                    setTrackingMapEntregaId(e.id);
+                                                    setTrackingMapInfo({
+                                                      motorista: e.motorista?.nome_completo || 'Motorista',
+                                                      placa: e.veiculo?.placa || '-',
+                                                    });
+                                                  }}>
+                                                    <Route className="w-4 h-4 mr-2" />
+                                                    Ver histórico no mapa
+                                                  </DropdownMenuItem>
+                                                </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
                           </TableRow>
@@ -575,6 +598,55 @@ export default function HistoricoEntregas() {
           open={detailsDialogOpen}
           onOpenChange={setDetailsDialogOpen}
         />
+
+        {/* Tracking History Map Dialog */}
+        <Dialog open={!!trackingMapEntregaId} onOpenChange={(open) => {
+          if (!open) {
+            setTrackingMapEntregaId(null);
+            setTrackingMapInfo(null);
+          }
+        }}>
+          <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
+            <DialogHeader className="px-6 py-4 border-b">
+              <DialogTitle className="flex items-center gap-2">
+                <Route className="w-5 h-5 text-primary" />
+                Histórico de Rastreamento
+                {trackingMapInfo && (
+                  <span className="text-muted-foreground font-normal text-sm ml-2">
+                    {trackingMapInfo.motorista} • {trackingMapInfo.placa}
+                  </span>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 relative">
+              <GoogleMapsLoader>
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  center={{ lat: -23.55, lng: -46.63 }}
+                  zoom={10}
+                  options={{
+                    styles: airbnbMapStyles,
+                    disableDefaultUI: false,
+                    zoomControl: true,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: true,
+                  }}
+                  onLoad={(map) => setMapInstance(map)}
+                >
+                  <TrackingHistoryGoogleMarkers 
+                    entregaId={trackingMapEntregaId}
+                    onBoundsReady={(bounds) => {
+                      if (mapInstance && bounds) {
+                        mapInstance.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
+                      }
+                    }}
+                  />
+                </GoogleMap>
+              </GoogleMapsLoader>
+            </div>
+          </DialogContent>
+        </Dialog>
       </TooltipProvider>
     </PortalLayout>
   );
