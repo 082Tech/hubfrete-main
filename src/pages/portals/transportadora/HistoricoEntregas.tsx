@@ -33,6 +33,7 @@ import {
   MessageCircle,
   Scale,
   Clock,
+  Ban,
 } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
@@ -81,7 +82,7 @@ interface EntregaHistorico {
   };
 }
 
-const finalizedStatuses: StatusEntrega[] = ['entregue', 'devolvida', 'problema'];
+const finalizedStatuses: StatusEntrega[] = ['entregue', 'devolvida', 'problema', 'cancelada'];
 
 const statusConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
   'entregue': { 
@@ -98,6 +99,11 @@ const statusConfig: Record<string, { color: string; label: string; icon: React.E
     color: 'bg-destructive/10 text-destructive border-destructive/20', 
     label: 'Problema', 
     icon: AlertTriangle 
+  },
+  'cancelada': { 
+    color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', 
+    label: 'Cancelada', 
+    icon: Ban 
   },
 };
 
