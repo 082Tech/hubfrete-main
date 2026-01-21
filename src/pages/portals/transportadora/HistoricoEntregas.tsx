@@ -387,7 +387,7 @@ export default function HistoricoEntregas() {
                             <TableCell className="sticky left-0 bg-background z-10">
                               <div className="flex items-center gap-2">
                                 <Package className="w-4 h-4 text-muted-foreground" />
-                                <span className="font-medium">{e.carga.codigo}</span>
+                                <span className="font-medium text-nowrap">{e.carga.codigo}</span>
                               </div>
                             </TableCell>
                             <TableCell>

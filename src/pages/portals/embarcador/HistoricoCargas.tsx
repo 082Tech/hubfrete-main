@@ -755,7 +755,7 @@ export default function HistoricoCargas() {
                                   )}
                                 </Button>
                               </TableCell>
-                              <TableCell className="font-mono text-sm font-medium">{carga.codigo}</TableCell>
+                              <TableCell className="font-mono text-sm font-medium text-nowrap">{carga.codigo}</TableCell>
                               <TableCell>
                                 <div className="max-w-[200px] truncate" title={carga.descricao}>
                                   {carga.descricao}

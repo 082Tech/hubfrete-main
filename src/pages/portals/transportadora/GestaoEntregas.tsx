@@ -1025,7 +1025,7 @@ export default function GestaoEntregas() {
                               onClick={() => setSelectedEntregaId(entrega.id)}
                             >
                               <TableCell className="font-medium sticky left-0 bg-background z-10">
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge variant="secondary" className="text-xs text-nowrap">
                                   {entrega.carga.codigo}
                                 </Badge>
                               </TableCell>
