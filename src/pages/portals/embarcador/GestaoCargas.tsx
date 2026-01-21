@@ -978,7 +978,7 @@ export default function GestaoCargas() {
                               {/* Código (sticky) */}
                               <TableCell className="sticky left-0 bg-background z-10">
                                 <div>
-                                  <p className="font-medium text-foreground">{carga.codigo}</p>
+                                  <p className="font-medium text-foreground text-nowrap">{carga.codigo}</p>
                                   <p className="text-xs text-muted-foreground line-clamp-1 max-w-[120px]">{carga.descricao}</p>
                                 </div>
                               </TableCell>

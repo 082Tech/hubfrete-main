@@ -909,7 +909,7 @@ export default function CargasPublicadas() {
                               </TableCell>
                               <TableCell>
                                 <div>
-                                  <p className="font-medium text-primary">{carga.codigo}</p>
+                                  <p className="font-medium text-primary text-nowrap">{carga.codigo}</p>
                                   <p className="text-xs text-muted-foreground truncate max-w-[120px]">
                                     {carga.descricao}
                                   </p>
