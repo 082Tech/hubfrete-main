@@ -28,6 +28,7 @@ import {
   Building,
   MessageSquare,
 } from 'lucide-react';
+import { NotificacoesDropdown } from '@/components/notificacoes';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -614,6 +615,24 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
               })
           )}
         </nav>
+
+        {/* Notifications */}
+        <div className={`px-2 py-2 border-t border-sidebar-border ${collapsed ? 'flex justify-center' : ''}`}>
+          {collapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <NotificacoesDropdown collapsed />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={10}>
+                Notificações
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <NotificacoesDropdown />
+          )}
+        </div>
 
         {/* User */}
         <div className={`p-4 border-t border-sidebar-border ${collapsed ? 'flex flex-col items-center' : ''}`}>
