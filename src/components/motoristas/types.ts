@@ -224,7 +224,5 @@ export const getInitialFormData = (): MotoristaFormData => ({
   referencias: [
     { tipo: 'pessoal', ordem: 1, nome: '', telefone: '' },
     { tipo: 'pessoal', ordem: 2, nome: '', telefone: '' },
-    { tipo: 'comercial', ordem: 1, nome: '', telefone: '', empresa: '', ramo: '' },
-    { tipo: 'comercial', ordem: 2, nome: '', telefone: '', empresa: '', ramo: '' },
   ],
 });

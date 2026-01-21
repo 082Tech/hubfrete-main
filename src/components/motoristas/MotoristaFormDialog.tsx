@@ -8,41 +8,34 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, ChevronRight, Loader2, Save, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 
-import { MotoristaFormData, VeiculoSimples, CarroceriaSimples, getInitialFormData } from './types';
+import { MotoristaFormData, getInitialFormData } from './types';
 import { EtapaDadosPessoais } from './steps/EtapaDadosPessoais';
 import { EtapaAjudante } from './steps/EtapaAjudante';
-import { EtapaVeiculo } from './steps/EtapaVeiculo';
 import { EtapaResumo } from './steps/EtapaResumo';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface MotoristaFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   empresaId: number;
-  veiculosDisponiveis: VeiculoSimples[];
-  carroceriasDisponiveis: CarroceriaSimples[];
   editingMotorista?: any; // For edit mode
 }
 
 const STEPS = [
   { id: 1, title: 'Dados Pessoais', description: 'Informações e documentos do motorista' },
   { id: 2, title: 'Ajudante', description: 'Cadastro de ajudante (opcional)' },
-  { id: 3, title: 'Veículo', description: 'Vinculação de veículo e carroceria' },
-  { id: 4, title: 'Resumo', description: 'Confirme as informações' },
+  { id: 3, title: 'Resumo', description: 'Confirme as informações' },
 ];
 
 export function MotoristaFormDialog({
   open,
   onOpenChange,
   empresaId,
-  veiculosDisponiveis,
-  carroceriasDisponiveis,
   editingMotorista,
 }: MotoristaFormDialogProps) {
   const { session } = useAuth();
@@ -50,17 +43,6 @@ export function MotoristaFormDialog({
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<MotoristaFormData>(getInitialFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [ufWarning, setUfWarning] = useState(false);
-
-  // Check UF mismatch
-  const checkUfMismatch = () => {
-    const selectedVeiculo = veiculosDisponiveis.find(v => v.id === formData.veiculo_id);
-    if (formData.uf && selectedVeiculo?.uf && formData.uf !== selectedVeiculo.uf) {
-      setUfWarning(true);
-    } else {
-      setUfWarning(false);
-    }
-  };
 
   const updateFormData = (updates: Partial<MotoristaFormData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
@@ -73,11 +55,10 @@ export function MotoristaFormDialog({
         toast.error('Preencha todos os campos obrigatórios');
         return;
       }
-      // Check references
+      // Check personal references only
       const refPessoais = formData.referencias.filter(r => r.tipo === 'pessoal');
-      const refComerciais = formData.referencias.filter(r => r.tipo === 'comercial');
-      if (refPessoais.some(r => !r.nome || !r.telefone) || refComerciais.some(r => !r.nome || !r.telefone)) {
-        toast.error('Preencha todas as referências pessoais e comerciais');
+      if (refPessoais.some(r => !r.nome || !r.telefone)) {
+        toast.error('Preencha todas as referências pessoais');
         return;
       }
       if (formData.tipo_cadastro === 'frota' && !formData.comprovante_vinculo_url) {
@@ -98,10 +79,6 @@ export function MotoristaFormDialog({
           return;
         }
       }
-    }
-
-    if (currentStep === 3) {
-      checkUfMismatch();
     }
 
     if (currentStep < STEPS.length) {
@@ -185,35 +162,8 @@ export function MotoristaFormDialog({
         if (ajudanteError) console.error('Erro ao salvar ajudante:', ajudanteError);
       }
 
-      // 4. Link vehicle
-      if (formData.veiculo_id) {
-        const veiculoUpdates: any = { motorista_id: motoristaId };
-        if (formData.veiculo_antt_rntrc) veiculoUpdates.antt_rntrc = formData.veiculo_antt_rntrc;
-        if (formData.veiculo_documento_url) veiculoUpdates.documento_veiculo_url = formData.veiculo_documento_url;
-        if (formData.veiculo_comprovante_endereco_proprietario_url) veiculoUpdates.comprovante_endereco_proprietario_url = formData.veiculo_comprovante_endereco_proprietario_url;
-        if (formData.veiculo_proprietario_nome) veiculoUpdates.proprietario_nome = formData.veiculo_proprietario_nome;
-        if (formData.veiculo_proprietario_cpf_cnpj) veiculoUpdates.proprietario_cpf_cnpj = formData.veiculo_proprietario_cpf_cnpj;
-
-        const { error: veiculoError } = await supabase
-          .from('veiculos')
-          .update(veiculoUpdates)
-          .eq('id', formData.veiculo_id);
-        if (veiculoError) console.error('Erro ao vincular veículo:', veiculoError);
-      }
-
-      // 5. Link carroceria
-      if (formData.carroceria_id) {
-        const { error: carroceriaError } = await supabase
-          .from('carrocerias')
-          .update({ motorista_id: motoristaId })
-          .eq('id', formData.carroceria_id);
-        if (carroceriaError) console.error('Erro ao vincular carroceria:', carroceriaError);
-      }
-
       toast.success('Motorista cadastrado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
-      queryClient.invalidateQueries({ queryKey: ['veiculos_disponiveis'] });
-      queryClient.invalidateQueries({ queryKey: ['carrocerias_disponiveis'] });
       
       // Reset and close
       setFormData(getInitialFormData());
@@ -230,7 +180,6 @@ export function MotoristaFormDialog({
   const handleClose = () => {
     setFormData(getInitialFormData());
     setCurrentStep(1);
-    setUfWarning(false);
     onOpenChange(false);
   };
 
@@ -263,17 +212,6 @@ export function MotoristaFormDialog({
           </div>
         </div>
 
-        {/* UF Warning */}
-        {ufWarning && (
-          <Alert variant="destructive" className="bg-chart-4/10 border-chart-4/30">
-            <AlertTriangle className="h-4 w-4 text-chart-4" />
-            <AlertDescription className="text-chart-4">
-              <strong>Atenção:</strong> UF do motorista ({formData.uf}) é diferente da UF do veículo. 
-              Isso não é recomendado mas pode prosseguir.
-            </AlertDescription>
-          </Alert>
-        )}
-
         {/* Step Content */}
         <div className="flex-1 overflow-y-auto py-4">
           {currentStep === 1 && (
@@ -283,19 +221,7 @@ export function MotoristaFormDialog({
             <EtapaAjudante formData={formData} updateFormData={updateFormData} />
           )}
           {currentStep === 3 && (
-            <EtapaVeiculo
-              formData={formData}
-              updateFormData={updateFormData}
-              veiculosDisponiveis={veiculosDisponiveis}
-              carroceriasDisponiveis={carroceriasDisponiveis}
-            />
-          )}
-          {currentStep === 4 && (
-            <EtapaResumo
-              formData={formData}
-              veiculosDisponiveis={veiculosDisponiveis}
-              carroceriasDisponiveis={carroceriasDisponiveis}
-            />
+            <EtapaResumo formData={formData} />
           )}
         </div>
 
