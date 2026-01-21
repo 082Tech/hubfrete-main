@@ -200,6 +200,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       }
 
       // Create the load with filial_id and destinatario fields
+      // NOTE: codigo is set to null so the database trigger 'generate_carga_codigo' generates it automatically
       const { data: carga, error: cargaError } = await supabase
         .from('cargas')
         .insert({
@@ -225,7 +226,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           data_coleta_ate: values.data_coleta_ate || null,
           data_entrega_limite: values.data_entrega_limite || null,
           status: 'publicada',
-          codigo: '',
+          codigo: null as unknown as string, // Trigger will generate the code
           // New fields
           necessidades_especiais: necessidadesEspeciais,
           regras_carregamento: values.regras_carregamento || null,
