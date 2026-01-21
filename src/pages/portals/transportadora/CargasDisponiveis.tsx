@@ -160,6 +160,15 @@ const tipoCargaLabels: Record<string, string> = {
   container: 'Container',
 };
 
+// Helper function to extract initials from company name
+const getEmpresaInitials = (nome: string | undefined | null): string => {
+  if (!nome) return '?';
+  const words = nome.split(' ').filter(w => w.length > 0 && !['de', 'da', 'do', 'dos', 'das', 'e', 'ltda', 'sa', 's/a', 'eireli', 'me'].includes(w.toLowerCase()));
+  if (words.length === 0) return nome.substring(0, 2).toUpperCase();
+  if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+};
+
 // Leaflet icons and functions removed - now using Google Maps components
 
 export default function CargasDisponiveis() {
@@ -565,16 +574,20 @@ export default function CargasDisponiveis() {
 
           {/* Header */}
           <div className="flex items-start gap-3">
-            {/* Company Logo */}
-            {carga.empresa?.logo_url && (
-              <div className="shrink-0 w-10 h-10 rounded-md border border-border bg-muted/50 flex items-center justify-center overflow-hidden">
+            {/* Company Logo or Initials */}
+            <div className="shrink-0 w-10 h-10 rounded-md border border-border bg-muted/50 flex items-center justify-center overflow-hidden">
+              {carga.empresa?.logo_url ? (
                 <img 
                   src={carga.empresa.logo_url} 
                   alt={carga.empresa.nome || 'Logo'} 
                   className="w-full h-full object-contain"
                 />
-              </div>
-            )}
+              ) : (
+                <span className="text-sm font-semibold text-muted-foreground">
+                  {getEmpresaInitials(carga.empresa?.nome)}
+                </span>
+              )}
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <Badge variant="secondary" className="text-xs">
@@ -851,16 +864,20 @@ export default function CargasDisponiveis() {
                 <div className="space-y-4">
                   {/* Header with Logo and Basic Info */}
                   <div className="flex items-start gap-4 p-4 bg-muted rounded-lg">
-                    {/* Company Logo */}
-                    {selectedCarga.empresa?.logo_url && (
-                      <div className="shrink-0 w-16 h-16 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden">
+                    {/* Company Logo or Initials */}
+                    <div className="shrink-0 w-16 h-16 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden">
+                      {selectedCarga.empresa?.logo_url ? (
                         <img 
                           src={selectedCarga.empresa.logo_url} 
                           alt={selectedCarga.empresa.nome || 'Logo'} 
                           className="w-full h-full object-contain p-1"
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <span className="text-xl font-bold text-muted-foreground">
+                          {getEmpresaInitials(selectedCarga.empresa?.nome)}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex-1 space-y-2">
                       <div className="flex items-start justify-between">
                         <div>
