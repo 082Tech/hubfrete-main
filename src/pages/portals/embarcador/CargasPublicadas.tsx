@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
+import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Table,
@@ -99,18 +100,24 @@ interface EnderecoData {
 
 interface EntregaData {
   id: string;
+  codigo: string | null;
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   status: string;
   coletado_em: string | null;
   entregue_em: string | null;
+  created_at: string | null;
   motorista_id: string | null;
   cte_url: string | null;
   motoristas: {
+    id: string;
     nome_completo: string;
     telefone: string | null;
+    email: string | null;
+    foto_url: string | null;
   } | null;
   veiculos: {
+    id: string;
     placa: string;
     marca: string | null;
     modelo: string | null;
@@ -182,6 +189,7 @@ export default function CargasPublicadas() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [detailsCarga, setDetailsCarga] = useState<CargaData | null>(null);
+  const [detailsEntrega, setDetailsEntrega] = useState<{ entrega: EntregaData; carga: CargaData } | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [sortField, setSortField] = useState<SortField>('created_at');
@@ -278,18 +286,24 @@ export default function CargasPublicadas() {
           ),
           entregas (
             id,
+            codigo,
             peso_alocado_kg,
             valor_frete,
             status,
             coletado_em,
             entregue_em,
+            created_at,
             motorista_id,
             cte_url,
-            motoristas (
+            motoristas:motoristas (
+              id,
               nome_completo,
-              telefone
+              telefone,
+              email,
+              foto_url
             ),
-            veiculos (
+            veiculos:veiculos (
+              id,
               placa,
               marca,
               modelo,
@@ -1036,6 +1050,9 @@ export default function CargasPublicadas() {
                                   </TableCell>
                                   <TableCell colSpan={2}>
                                     <div className="flex items-center gap-3 pl-2">
+                                      <span className="font-medium text-primary text-nowrap text-sm">
+                                        {entrega.codigo || `E${String(idx + 1).padStart(2, '0')}`}
+                                      </span>
                                       <Badge className={`${config.color} border gap-1 shrink-0`}>
                                         <StatusIcon className="w-3 h-3" />
                                         {config.label}
@@ -1106,7 +1123,7 @@ export default function CargasPublicadas() {
                                       <DropdownMenuContent align="end">
                                         <DropdownMenuItem onClick={(e) => {
                                           e.stopPropagation();
-                                          setDetailsCarga(carga);
+                                          setDetailsEntrega({ entrega, carga });
                                         }}>
                                           <Eye className="w-4 h-4 mr-2" />
                                           Ver detalhes
@@ -1191,6 +1208,62 @@ export default function CargasPublicadas() {
             }}
             open={!!detailsCarga}
             onOpenChange={(open) => !open && setDetailsCarga(null)}
+          />
+        )}
+
+        {/* Entrega Details Dialog */}
+        {detailsEntrega && (
+          <EntregaDetailsDialog
+            entrega={{
+              id: detailsEntrega.entrega.id,
+              status: detailsEntrega.entrega.status as any,
+              created_at: detailsEntrega.entrega.created_at,
+              coletado_em: detailsEntrega.entrega.coletado_em,
+              entregue_em: detailsEntrega.entrega.entregue_em,
+              peso_alocado_kg: detailsEntrega.entrega.peso_alocado_kg,
+              valor_frete: detailsEntrega.entrega.valor_frete,
+              motorista: detailsEntrega.entrega.motoristas ? {
+                id: detailsEntrega.entrega.motoristas.id,
+                nome_completo: detailsEntrega.entrega.motoristas.nome_completo,
+                telefone: detailsEntrega.entrega.motoristas.telefone,
+                email: detailsEntrega.entrega.motoristas.email,
+                foto_url: detailsEntrega.entrega.motoristas.foto_url,
+              } : null,
+              veiculo: detailsEntrega.entrega.veiculos ? {
+                id: detailsEntrega.entrega.veiculos.id,
+                placa: detailsEntrega.entrega.veiculos.placa,
+                tipo: detailsEntrega.entrega.veiculos.tipo,
+              } : null,
+              carga: {
+                id: detailsEntrega.carga.id,
+                codigo: detailsEntrega.entrega.codigo || detailsEntrega.carga.codigo,
+                descricao: detailsEntrega.carga.descricao,
+                peso_kg: detailsEntrega.carga.peso_kg,
+                tipo: detailsEntrega.carga.tipo,
+                data_entrega_limite: detailsEntrega.carga.data_entrega_limite,
+                destinatario_nome_fantasia: detailsEntrega.carga.destinatario_nome_fantasia,
+                destinatario_razao_social: detailsEntrega.carga.destinatario_razao_social,
+                endereco_origem: detailsEntrega.carga.endereco_origem ? {
+                  cidade: detailsEntrega.carga.endereco_origem.cidade,
+                  estado: detailsEntrega.carga.endereco_origem.estado,
+                  logradouro: detailsEntrega.carga.endereco_origem.logradouro,
+                  latitude: detailsEntrega.carga.endereco_origem.latitude,
+                  longitude: detailsEntrega.carga.endereco_origem.longitude,
+                } : null,
+                endereco_destino: detailsEntrega.carga.endereco_destino ? {
+                  cidade: detailsEntrega.carga.endereco_destino.cidade,
+                  estado: detailsEntrega.carga.endereco_destino.estado,
+                  logradouro: detailsEntrega.carga.endereco_destino.logradouro,
+                  latitude: detailsEntrega.carga.endereco_destino.latitude,
+                  longitude: detailsEntrega.carga.endereco_destino.longitude,
+                } : null,
+                empresa: {
+                  nome: filialAtiva?.nome || null,
+                },
+              },
+            }}
+            open={!!detailsEntrega}
+            onOpenChange={(open) => !open && setDetailsEntrega(null)}
           />
         )}
 
