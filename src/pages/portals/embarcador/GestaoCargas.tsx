@@ -91,6 +91,7 @@ interface EntregaData {
     nome_completo: string;
     telefone: string | null;
     email: string | null;
+    foto_url: string | null;
   } | null;
   veiculos: {
     placa: string;
@@ -240,7 +241,8 @@ export default function GestaoCargas() {
           motoristas (
             nome_completo,
             telefone,
-            email
+            email,
+            foto_url
           ),
           veiculos (
             placa,
@@ -457,6 +459,8 @@ export default function GestaoCargas() {
           codigo: c.codigo,
           descricao: c.descricao,
           motorista: e?.motoristas?.nome_completo || null,
+          motoristaFotoUrl: e?.motoristas?.foto_url || null,
+          motoristaOnline: localizacao?.status ?? null,
           telefone: e?.motoristas?.telefone || null,
           placa: e?.veiculos?.placa || null,
           destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
@@ -466,6 +470,7 @@ export default function GestaoCargas() {
           destinoCoords: destino?.latitude && destino?.longitude
             ? { lat: destino.latitude, lng: destino.longitude }
             : null,
+          lastLocationUpdate: localizacao?.timestamp ?? null,
         };
       })
       .filter(Boolean) as NonNullable<typeof mapData[number]>[];
