@@ -77,6 +77,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { AnexarCteDialog } from '@/components/entregas/AnexarCteDialog';
+import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -188,6 +189,8 @@ export default function GestaoEntregas() {
   const [entregaToDelete, setEntregaToDelete] = useState<EntregaCompleta | null>(null);
   const [anexarCteDialogOpen, setAnexarCteDialogOpen] = useState(false);
   const [entregaForCte, setEntregaForCte] = useState<EntregaCompleta | null>(null);
+  const [ctePreviewOpen, setCtePreviewOpen] = useState(false);
+  const [ctePreviewUrl, setCtePreviewUrl] = useState<string | null>(null);
 
   // Monitor internet connection status
   useEffect(() => {
@@ -1129,10 +1132,11 @@ export default function GestaoEntregas() {
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Badge 
-                                        className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 cursor-pointer"
+                                        className="bg-primary/10 text-primary border-primary/20 gap-1 cursor-pointer"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          window.open(entrega.cte_url!, '_blank');
+                                          setCtePreviewUrl(entrega.cte_url);
+                                          setCtePreviewOpen(true);
                                         }}
                                       >
                                         <FileText className="w-3 h-3" />
@@ -1143,7 +1147,7 @@ export default function GestaoEntregas() {
                                   </Tooltip>
                                 ) : (
                                   <Badge 
-                                    className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 cursor-pointer"
+                                    className="bg-muted text-muted-foreground border-muted gap-1 cursor-pointer"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setEntregaForCte(entrega);
@@ -1419,6 +1423,14 @@ export default function GestaoEntregas() {
         open={anexarCteDialogOpen}
         onOpenChange={setAnexarCteDialogOpen}
         onSuccess={() => refetch()}
+      />
+
+      {/* CT-e Preview Dialog */}
+      <FilePreviewDialog
+        open={ctePreviewOpen}
+        onOpenChange={setCtePreviewOpen}
+        fileUrl={ctePreviewUrl}
+        title="CT-e"
       />
     </PortalLayout>
   );
