@@ -10,6 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { GoogleMapsLoader, airbnbMapStyles } from '@/components/maps/GoogleMapsLoader';
+import { GoogleMap } from '@react-google-maps/api';
+import { TrackingHistoryGoogleMarkers } from '@/components/maps/TrackingHistoryGoogleMarkers';
 import type { Database } from '@/integrations/supabase/types';
 
 type StatusCarga = Database['public']['Enums']['status_carga'];
@@ -68,6 +77,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   History,
+  Route,
 } from 'lucide-react';
 
 // Types
@@ -175,6 +185,9 @@ export default function HistoricoCargas() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [highlightedEntregaId, setHighlightedEntregaId] = useState<string | null>(null);
+  const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
+  const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
   useEffect(() => {
@@ -826,16 +839,17 @@ export default function HistoricoCargas() {
                                     </div>
                                     <div className="bg-background rounded-lg border overflow-hidden">
                                       <Table>
-                                        <TableHeader>
-                                          <TableRow className="bg-muted/30">
-                                            <TableHead className="text-xs">Motorista</TableHead>
-                                            <TableHead className="text-xs">Veículo</TableHead>
-                                            <TableHead className="text-xs text-right">Peso Alocado</TableHead>
-                                            <TableHead className="text-xs text-right">Valor Frete</TableHead>
-                                            <TableHead className="text-xs">Coletado em</TableHead>
-                                            <TableHead className="text-xs">Entregue em</TableHead>
-                                            <TableHead className="text-xs">Status</TableHead>
-                                          </TableRow>
+                                                        <TableHeader>
+                                                          <TableRow className="bg-muted/30">
+                                                            <TableHead className="text-xs">Motorista</TableHead>
+                                                            <TableHead className="text-xs">Veículo</TableHead>
+                                                            <TableHead className="text-xs text-right">Peso Alocado</TableHead>
+                                                            <TableHead className="text-xs text-right">Valor Frete</TableHead>
+                                                            <TableHead className="text-xs">Coletado em</TableHead>
+                                                            <TableHead className="text-xs">Entregue em</TableHead>
+                                                            <TableHead className="text-xs">Status</TableHead>
+                                                            <TableHead className="text-xs w-10"></TableHead>
+                                                          </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                           {carga.entregas.map((entrega) => {
@@ -882,13 +896,34 @@ export default function HistoricoCargas() {
                                                     {formatDate(entrega.entregue_em)}
                                                   </div>
                                                 </TableCell>
-                                                <TableCell>
-                                                  <Badge className={`${statusConfig.color} text-xs`}>
-                                                    <StatusIcon className="w-3 h-3 mr-1" />
-                                                    {statusConfig.label}
-                                                  </Badge>
-                                                </TableCell>
-                                              </TableRow>
+                                                                <TableCell>
+                                                                  <Badge className={`${statusConfig.color} text-xs`}>
+                                                                    <StatusIcon className="w-3 h-3 mr-1" />
+                                                                    {statusConfig.label}
+                                                                  </Badge>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                  <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                                        <MoreHorizontal className="h-4 w-4" />
+                                                                      </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end">
+                                                                      <DropdownMenuItem onClick={() => {
+                                                                        setTrackingMapEntregaId(entrega.id);
+                                                                        setTrackingMapInfo({
+                                                                          motorista: entrega.motoristas?.nome_completo || 'Motorista',
+                                                                          placa: entrega.veiculos?.placa || '-',
+                                                                        });
+                                                                      }}>
+                                                                        <Route className="w-4 h-4 mr-2" />
+                                                                        Ver histórico no mapa
+                                                                      </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                  </DropdownMenu>
+                                                                </TableCell>
+                                                              </TableRow>
                                             );
                                           })}
                                         </TableBody>
@@ -917,6 +952,55 @@ export default function HistoricoCargas() {
           open={!!detailsCarga}
           onOpenChange={(open) => !open && setDetailsCarga(null)}
         />
+
+        {/* Tracking History Map Dialog */}
+        <Dialog open={!!trackingMapEntregaId} onOpenChange={(open) => {
+          if (!open) {
+            setTrackingMapEntregaId(null);
+            setTrackingMapInfo(null);
+          }
+        }}>
+          <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
+            <DialogHeader className="px-6 py-4 border-b">
+              <DialogTitle className="flex items-center gap-2">
+                <Route className="w-5 h-5 text-primary" />
+                Histórico de Rastreamento
+                {trackingMapInfo && (
+                  <span className="text-muted-foreground font-normal text-sm ml-2">
+                    {trackingMapInfo.motorista} • {trackingMapInfo.placa}
+                  </span>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 relative">
+              <GoogleMapsLoader>
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  center={{ lat: -23.55, lng: -46.63 }}
+                  zoom={10}
+                  options={{
+                    styles: airbnbMapStyles,
+                    disableDefaultUI: false,
+                    zoomControl: true,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: true,
+                  }}
+                  onLoad={(map) => setMapInstance(map)}
+                >
+                  <TrackingHistoryGoogleMarkers 
+                    entregaId={trackingMapEntregaId}
+                    onBoundsReady={(bounds) => {
+                      if (mapInstance && bounds) {
+                        mapInstance.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
+                      }
+                    }}
+                  />
+                </GoogleMap>
+              </GoogleMapsLoader>
+            </div>
+          </DialogContent>
+        </Dialog>
       </TooltipProvider>
     </PortalLayout>
   );
