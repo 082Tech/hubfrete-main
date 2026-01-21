@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Upload, FileText, Trash2, ExternalLink } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, Eye } from 'lucide-react';
+import { FilePreviewDialog } from './FilePreviewDialog';
 
 interface AnexarCteDialogProps {
   entrega: {
@@ -25,6 +26,7 @@ export function AnexarCteDialog({ entrega, open, onOpenChange, onSuccess }: Anex
   const [cteUrl, setCteUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Reset state when dialog opens with new entrega
   useEffect(() => {
@@ -152,18 +154,18 @@ export function AnexarCteDialog({ entrega, open, onOpenChange, onSuccess }: Anex
 
           {/* Current CTE status */}
           {cteUrl && !cteFile && (
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-emerald-500/5 border-emerald-500/20">
+            <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5 border-primary/20">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-emerald-600" />
-                <span className="text-sm font-medium text-emerald-700">CT-e anexado</span>
+                <FileText className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary">CT-e anexado</span>
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => window.open(cteUrl, '_blank')}
+                  onClick={() => setPreviewOpen(true)}
                 >
-                  <ExternalLink className="w-4 h-4 mr-1" />
+                  <Eye className="w-4 h-4 mr-1" />
                   Ver
                 </Button>
                 <Button
@@ -182,6 +184,13 @@ export function AnexarCteDialog({ entrega, open, onOpenChange, onSuccess }: Anex
               </div>
             </div>
           )}
+
+          <FilePreviewDialog
+            open={previewOpen}
+            onOpenChange={setPreviewOpen}
+            fileUrl={cteUrl}
+            title="CT-e"
+          />
 
           {/* File upload */}
           <div className="space-y-2">
