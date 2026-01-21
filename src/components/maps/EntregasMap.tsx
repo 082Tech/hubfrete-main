@@ -277,20 +277,26 @@ function FitBounds({ entregas, selectedEntrega }: { entregas: EntregaMapData[]; 
   return null;
 }
 
+// Statuses that indicate the truck has already left the origin
+const hasLeftOriginStatuses = ['coletado', 'em_transito', 'em_entrega', 'entregue', 'devolvida'];
+
 // Route display component with OSRM integration
+// Now only shows truck-to-destination when status indicates origin was already visited
 function RouteDisplay({ 
-  selectedEntrega 
+  selectedEntrega,
+  hasTrackingHistory 
 }: { 
   selectedEntrega: EntregaMapData | null;
+  hasTrackingHistory: boolean;
 }) {
-  const [fullRoute, setFullRoute] = useState<[number, number][]>([]);
-  const [completedRoute, setCompletedRoute] = useState<[number, number][]>([]);
+  const [truckToDestinationRoute, setTruckToDestinationRoute] = useState<[number, number][]>([]);
+  const [fullSuggestedRoute, setFullSuggestedRoute] = useState<[number, number][]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!selectedEntrega?.origemCoords || !selectedEntrega?.destinoCoords) {
-      setFullRoute([]);
-      setCompletedRoute([]);
+    if (!selectedEntrega?.destinoCoords) {
+      setTruckToDestinationRoute([]);
+      setFullSuggestedRoute([]);
       return;
     }
 
@@ -298,22 +304,26 @@ function RouteDisplay({
       setIsLoading(true);
       
       try {
-        // Fetch full route (origin to destination)
-        const mainRoute = await fetchRoute(
-          selectedEntrega.origemCoords!,
-          selectedEntrega.destinoCoords!
-        );
-        setFullRoute(mainRoute);
+        const status = selectedEntrega.status || '';
+        const hasLeftOrigin = hasLeftOriginStatuses.includes(status);
         
-        // If truck has position, fetch route from origin to truck
-        if (selectedEntrega.latitude && selectedEntrega.longitude) {
-          const truckRoute = await fetchRoute(
-            selectedEntrega.origemCoords!,
-            { lat: selectedEntrega.latitude, lng: selectedEntrega.longitude }
+        // If truck has left origin and has position, show only truck → destination
+        if (hasLeftOrigin && selectedEntrega.latitude && selectedEntrega.longitude) {
+          const remainingRoute = await fetchRoute(
+            { lat: selectedEntrega.latitude, lng: selectedEntrega.longitude },
+            selectedEntrega.destinoCoords!
           );
-          setCompletedRoute(truckRoute);
-        } else {
-          setCompletedRoute([]);
+          setTruckToDestinationRoute(remainingRoute);
+          setFullSuggestedRoute([]);
+        } 
+        // If still waiting at origin or no truck position, show full suggested route
+        else if (selectedEntrega.origemCoords) {
+          const mainRoute = await fetchRoute(
+            selectedEntrega.origemCoords!,
+            selectedEntrega.destinoCoords!
+          );
+          setFullSuggestedRoute(mainRoute);
+          setTruckToDestinationRoute([]);
         }
       } catch (error) {
         console.error('Error loading routes:', error);
@@ -325,29 +335,32 @@ function RouteDisplay({
     loadRoutes();
   }, [selectedEntrega]);
 
-  if (!selectedEntrega || fullRoute.length === 0) return null;
+  if (!selectedEntrega) return null;
 
   return (
     <>
-      {/* Full route from origin to destination (dashed blue) */}
-      <Polyline
-        positions={fullRoute}
-        pathOptions={{
-          color: '#3b82f6',
-          weight: 4,
-          opacity: 0.6,
-          dashArray: '12, 8',
-        }}
-      />
-      
-      {/* Completed portion of route: origin to truck (solid orange) */}
-      {completedRoute.length > 0 && (
+      {/* Full suggested route: origin to destination (dashed blue) - only when NOT yet collected */}
+      {fullSuggestedRoute.length > 1 && (
         <Polyline
-          positions={completedRoute}
+          positions={fullSuggestedRoute}
           pathOptions={{
-            color: '#f97316',
-            weight: 5,
-            opacity: 0.9,
+            color: '#3b82f6',
+            weight: 4,
+            opacity: 0.6,
+            dashArray: '12, 8',
+          }}
+        />
+      )}
+      
+      {/* Remaining route: truck to destination (dashed blue) - when already collected */}
+      {truckToDestinationRoute.length > 1 && (
+        <Polyline
+          positions={truckToDestinationRoute}
+          pathOptions={{
+            color: '#3b82f6',
+            weight: 4,
+            opacity: 0.6,
+            dashArray: '12, 8',
           }}
         />
       )}
@@ -444,8 +457,8 @@ export function EntregasMap({
           <TrackingHistoryMarkers entregaId={selectedEntrega.entregaId || selectedEntrega.id} />
         )}
         
-        {/* Suggested route (dashed) - only show if no tracking history */}
-        <RouteDisplay selectedEntrega={selectedEntrega} />
+        {/* Suggested route: only shows remaining route when already collected */}
+        <RouteDisplay selectedEntrega={selectedEntrega} hasTrackingHistory={false} />
 
         {/* Origin marker for selected entrega */}
         {selectedEntrega?.origemCoords && (

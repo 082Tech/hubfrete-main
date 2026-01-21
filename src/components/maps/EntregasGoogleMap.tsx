@@ -68,6 +68,9 @@ const mapOptions: google.maps.MapOptions = {
   styles: airbnbMapStyles,
 };
 
+// Statuses that indicate the truck has already left the origin
+const hasLeftOriginStatuses = ['coletado', 'em_transito', 'em_entrega', 'entregue', 'devolvida'];
+
 // Driver marker component - shows avatar or truck icon with hover tooltip
 function DriverMarker({ 
   entrega, 
@@ -226,11 +229,30 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
     if (hasAny) map.fitBounds(bounds, { top: 60, right: 40, bottom: 40, left: 40 });
   }, [map, entregas, selected]);
 
-  // Route for selected entrega
+  // Route for selected entrega - show remaining route when already collected
   useEffect(() => {
     let cancelled = false;
 
-    if (!isLoaded || !selected?.origemCoords || !selected?.destinoCoords) {
+    if (!isLoaded || !selected?.destinoCoords) {
+      setDirections(null);
+      return;
+    }
+
+    const status = selected.status || '';
+    const hasLeftOrigin = hasLeftOriginStatuses.includes(status);
+    
+    // Determine origin based on whether truck has left origin
+    let routeOrigin: { lat: number; lng: number } | null = null;
+    
+    if (hasLeftOrigin && selected.latitude && selected.longitude) {
+      // Already collected: show from truck to destination
+      routeOrigin = { lat: selected.latitude, lng: selected.longitude };
+    } else if (selected.origemCoords) {
+      // Still waiting: show from origin to destination
+      routeOrigin = selected.origemCoords;
+    }
+    
+    if (!routeOrigin) {
       setDirections(null);
       return;
     }
@@ -238,7 +260,7 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
     const service = new google.maps.DirectionsService();
     service.route(
       {
-        origin: selected.origemCoords,
+        origin: routeOrigin,
         destination: selected.destinoCoords,
         travelMode: google.maps.TravelMode.DRIVING,
       },
