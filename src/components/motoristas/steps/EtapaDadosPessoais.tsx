@@ -332,7 +332,7 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
         </div>
       </div>
 
-      {/* Comprovante de Vínculo (sempre obrigatório no portal transportadora) */}
+      {/* Comprovante de Vínculo (opcional no portal; obrigatório apenas no app) */}
       <Separator />
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-medium text-primary">
@@ -340,7 +340,7 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
           Comprovante de Vínculo com a Empresa
         </div>
         <div className="space-y-2">
-          <Label>Comprovante de Vínculo *</Label>
+          <Label>Comprovante de Vínculo</Label>
           <div className="flex items-center gap-4">
             <Button
               type="button"
