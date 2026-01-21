@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PortalSidebar } from './PortalSidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
+import { NotificacoesProvider } from '@/contexts/NotificacoesContext';
 
 export type { UserType };
 
@@ -64,15 +65,17 @@ export function PortalLayout({ children, expectedUserType, fullWidth = false }: 
   if (!user || !userType || userType !== expectedUserType) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <PortalSidebar 
-        userType={expectedUserType} 
-        collapsed={collapsed} 
-        onToggleCollapse={() => setCollapsed(!collapsed)} 
-      />
-      <main className={`transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'} ${fullWidth ? '' : 'p-8'}`}>
-        {children}
-      </main>
-    </div>
+    <NotificacoesProvider>
+      <div className="min-h-screen bg-background">
+        <PortalSidebar 
+          userType={expectedUserType} 
+          collapsed={collapsed} 
+          onToggleCollapse={() => setCollapsed(!collapsed)} 
+        />
+        <main className={`transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'} ${fullWidth ? '' : 'p-8'}`}>
+          {children}
+        </main>
+      </div>
+    </NotificacoesProvider>
   );
 }

@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { useNotificacoes, type Notificacao } from '@/hooks/useNotificacoes';
+import { useNotificacoesContext, type Notificacao } from '@/contexts/NotificacoesContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { cn } from '@/lib/utils';
 
@@ -59,7 +59,7 @@ export default function NotificacoesTransportadora() {
     markAllAsRead,
     deleteNotification,
     deleteAllNotifications,
-  } = useNotificacoes();
+  } = useNotificacoesContext();
   const push = usePushNotifications();
   const [activeTab, setActiveTab] = useState<'todas' | 'nao_lidas'>('todas');
 

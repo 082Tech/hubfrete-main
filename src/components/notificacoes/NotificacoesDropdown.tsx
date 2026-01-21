@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { useNotificacoes, type Notificacao } from '@/hooks/useNotificacoes';
+import { useNotificacoesContext, type Notificacao } from '@/contexts/NotificacoesContext';
 import { cn } from '@/lib/utils';
 
 const tipoConfig: Record<string, { icon: React.ElementType; color: string }> = {
@@ -82,7 +82,7 @@ function NotificacoesDropdownComponent({ collapsed = false }: NotificacoesDropdo
     markAllAsRead,
     deleteNotification,
     deleteAllNotifications 
-  } = useNotificacoes();
+  } = useNotificacoesContext();
 
   // Determine the current portal type from the URL
   const getPortalPath = useCallback(() => {
