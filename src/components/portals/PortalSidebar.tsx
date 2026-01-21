@@ -101,6 +101,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     // Cargas is now a submenu - handled separately
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
+    { icon: Bell, label: 'Notificações', href: '/embarcador/notificacoes' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
     { icon: User, label: 'Usuários da Empresa', href: '/embarcador/usuarios', adminOnly: true },
@@ -114,6 +115,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     // Entregas is now a submenu - handled separately
     { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
+    { icon: Bell, label: 'Notificações', href: '/transportadora/notificacoes' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true },
     { icon: Users, label: 'Usuários da Empresa', href: '/transportadora/usuarios', adminOnly: true },

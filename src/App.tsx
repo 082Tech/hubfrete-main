@@ -30,6 +30,7 @@ import UsuariosEmpresa from "./pages/portals/embarcador/UsuariosEmpresa";
 import Assistente from "./pages/portals/embarcador/Assistente";
 import ContatosSalvos from "./pages/portals/embarcador/ContatosSalvos";
 import EmbarcadorMensagens from "./pages/portals/embarcador/Mensagens";
+import EmbarcadorNotificacoes from "./pages/portals/embarcador/Notificacoes";
 
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraCargas from "./pages/portals/transportadora/CargasDisponiveis";
@@ -43,6 +44,7 @@ import TransportadoraFiliais from "./pages/portals/transportadora/GerenciarFilia
 import TransportadoraUsuarios from "./pages/portals/transportadora/UsuariosEmpresa";
 import TransportadoraMensagens from "./pages/portals/transportadora/Mensagens";
 import TransportadoraRelatorios from "./pages/portals/transportadora/Relatorios";
+import TransportadoraNotificacoes from "./pages/portals/transportadora/Notificacoes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -89,6 +91,7 @@ const App = () => {
                 <Route path="/embarcador/assistente" element={<Assistente />} />
                 <Route path="/embarcador/mensagens" element={<EmbarcadorMensagens />} />
                 <Route path="/embarcador/contatos" element={<ContatosSalvos />} />
+                <Route path="/embarcador/notificacoes" element={<EmbarcadorNotificacoes />} />
                 
                 <Route path="/embarcador/filiais" element={<GerenciarFiliais />} />
                 <Route path="/embarcador/usuarios" element={<UsuariosEmpresa />} />
@@ -104,6 +107,7 @@ const App = () => {
                 <Route path="/transportadora/relatorios" element={<TransportadoraRelatorios />} />
                 <Route path="/transportadora/assistente" element={<TransportadoraAssistente />} />
                 <Route path="/transportadora/mensagens" element={<TransportadoraMensagens />} />
+                <Route path="/transportadora/notificacoes" element={<TransportadoraNotificacoes />} />
                 <Route path="/transportadora/filiais" element={<TransportadoraFiliais />} />
                 <Route path="/transportadora/usuarios" element={<TransportadoraUsuarios />} />
                 <Route path="/transportadora/configuracoes" element={<TransportadoraConfiguracoes />} />
