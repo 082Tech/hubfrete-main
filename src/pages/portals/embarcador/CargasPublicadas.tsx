@@ -168,14 +168,14 @@ const statusEntregaConfig: Record<string, { label: string; color: string; icon: 
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
 };
 
-// Filter options
-type FilterStatus = 'all' | 'awaiting' | 'partial' | 'allocated' | 'all_delivered' | 'has_problems';
+// Filter options - only non-finalized states for Publicadas
+type FilterStatus = 'all' | 'awaiting' | 'partial' | 'allocated';
 type SortField = 'created_at' | 'codigo' | 'peso_kg' | 'valor_mercadoria';
 type SortOrder = 'asc' | 'desc';
 
 const ITEMS_PER_PAGE = 15;
 
-export default function TodasCargas() {
+export default function CargasPublicadas() {
   const { filialAtiva } = useUserContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
@@ -324,13 +324,18 @@ export default function TodasCargas() {
     return carga.entregas.some(e => e.status === 'problema' || e.status === 'devolvida');
   };
 
-  // Apply filters
+  // Apply filters - ONLY show non-finalized cargas (Publicadas view)
   const filteredCargas = useMemo(() => {
-    let result = cargas.filter(carga => 
+    // First, filter out all finalized cargas - this page only shows active ones
+    let result = cargas.filter(carga => !allEntregasFinalized(carga));
+    
+    // Apply search
+    result = result.filter(carga => 
       carga.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       carga.descricao.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // Apply status filter
     switch (filterStatus) {
       case 'awaiting':
         result = result.filter(c => getPercentualAlocado(c) === 0);
@@ -343,12 +348,6 @@ export default function TodasCargas() {
         break;
       case 'allocated':
         result = result.filter(c => getPercentualAlocado(c) >= 100);
-        break;
-      case 'all_delivered':
-        result = result.filter(c => allEntregasFinalized(c));
-        break;
-      case 'has_problems':
-        result = result.filter(c => hasProblems(c));
         break;
     }
 
@@ -457,17 +456,17 @@ export default function TodasCargas() {
     return new Date(date).toLocaleDateString('pt-BR');
   };
 
-  // Stats
+  // Stats - only for non-finalized cargas
+  const activeCargas = useMemo(() => cargas.filter(c => !allEntregasFinalized(c)), [cargas]);
+  
   const stats = useMemo(() => ({
-    total: cargas.length,
-    aguardando: cargas.filter(c => getPercentualAlocado(c) === 0).length,
-    parcial: cargas.filter(c => { const p = getPercentualAlocado(c); return p > 0 && p < 100; }).length,
-    alocadas: cargas.filter(c => getPercentualAlocado(c) >= 100).length,
-    concluidas: cargas.filter(c => allEntregasFinalized(c)).length,
-    comProblemas: cargas.filter(c => hasProblems(c)).length,
-    pesoTotal: cargas.reduce((acc, c) => acc + c.peso_kg, 0),
-    valorTotal: cargas.reduce((acc, c) => acc + (c.valor_mercadoria || 0), 0),
-  }), [cargas]);
+    total: activeCargas.length,
+    aguardando: activeCargas.filter(c => getPercentualAlocado(c) === 0).length,
+    parcial: activeCargas.filter(c => { const p = getPercentualAlocado(c); return p > 0 && p < 100; }).length,
+    alocadas: activeCargas.filter(c => getPercentualAlocado(c) >= 100).length,
+    pesoTotal: activeCargas.reduce((acc, c) => acc + c.peso_kg, 0),
+    valorTotal: activeCargas.reduce((acc, c) => acc + (c.valor_mercadoria || 0), 0),
+  }), [activeCargas]);
 
   // Calculate total freight from all deliveries
   const getTotalFrete = (carga: CargaData) => {
@@ -659,10 +658,10 @@ export default function TodasCargas() {
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Package className="w-6 h-6 text-primary" />
-                Todas as Cargas
+                Cargas Publicadas
               </h1>
               <p className="text-sm text-muted-foreground">
-                Visualize e gerencie todas as suas cargas
+                Cargas ativas aguardando ou em processo de alocação
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -680,7 +679,7 @@ export default function TodasCargas() {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <Card 
               className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary' : ''}`}
               onClick={() => setFilterStatus('all')}
@@ -695,77 +694,51 @@ export default function TodasCargas() {
             </Card>
 
             <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'awaiting' ? 'ring-2 ring-yellow-500' : ''}`}
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'awaiting' ? 'ring-2 ring-amber-500' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'awaiting' ? 'all' : 'awaiting')}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Clock className="w-4 h-4 text-yellow-500" />
+                  <Clock className="w-4 h-4 text-amber-500" />
                   <span className="text-xs text-muted-foreground">Aguardando</span>
                 </div>
-                <p className="text-2xl font-bold text-yellow-600">{stats.aguardando}</p>
+                <p className="text-2xl font-bold text-amber-600">{stats.aguardando}</p>
               </CardContent>
             </Card>
 
             <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'partial' ? 'ring-2 ring-blue-500' : ''}`}
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'partial' ? 'ring-2 ring-sky-500' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'partial' ? 'all' : 'partial')}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="w-4 h-4 text-blue-500" />
+                  <TrendingUp className="w-4 h-4 text-sky-500" />
                   <span className="text-xs text-muted-foreground">Parcial</span>
                 </div>
-                <p className="text-2xl font-bold text-blue-600">{stats.parcial}</p>
+                <p className="text-2xl font-bold text-sky-600">{stats.parcial}</p>
               </CardContent>
             </Card>
 
             <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'allocated' ? 'ring-2 ring-green-500' : ''}`}
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'allocated' ? 'ring-2 ring-emerald-500' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'allocated' ? 'all' : 'allocated')}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                   <span className="text-xs text-muted-foreground">Alocadas</span>
                 </div>
-                <p className="text-2xl font-bold text-green-600">{stats.alocadas}</p>
+                <p className="text-2xl font-bold text-emerald-600">{stats.alocadas}</p>
               </CardContent>
             </Card>
 
-            <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all_delivered' ? 'ring-2 ring-emerald-500' : ''}`}
-              onClick={() => setFilterStatus(filterStatus === 'all_delivered' ? 'all' : 'all_delivered')}
-            >
+            <Card className="bg-gradient-to-br from-sky-500/10 to-sky-500/5 border-sky-500/20">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-xs text-muted-foreground">Concluídas</span>
-                </div>
-                <p className="text-2xl font-bold text-emerald-600">{stats.concluidas}</p>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'has_problems' ? 'ring-2 ring-red-500' : ''}`}
-              onClick={() => setFilterStatus(filterStatus === 'has_problems' ? 'all' : 'has_problems')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertCircle className="w-4 h-4 text-red-500" />
-                  <span className="text-xs text-muted-foreground">Problemas</span>
-                </div>
-                <p className="text-2xl font-bold text-red-600">{stats.comProblemas}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Weight className="w-4 h-4 text-blue-500" />
+                  <Weight className="w-4 h-4 text-sky-500" />
                   <span className="text-xs text-muted-foreground">Peso Total</span>
                 </div>
-                <p className="text-xl font-bold text-blue-600">{formatWeight(stats.pesoTotal)}</p>
+                <p className="text-xl font-bold text-sky-600">{formatWeight(stats.pesoTotal)}</p>
               </CardContent>
             </Card>
 
@@ -788,12 +761,10 @@ export default function TodasCargas() {
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="all">Todas Publicadas</SelectItem>
                 <SelectItem value="awaiting">Aguardando Alocação</SelectItem>
                 <SelectItem value="partial">Parcialmente Alocadas</SelectItem>
                 <SelectItem value="allocated">Totalmente Alocadas</SelectItem>
-                <SelectItem value="all_delivered">Todas Entregas Concluídas</SelectItem>
-                <SelectItem value="has_problems">Com Problemas</SelectItem>
               </SelectContent>
             </Select>
 
