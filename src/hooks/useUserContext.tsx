@@ -44,6 +44,7 @@ const UserContext = createContext<UserContextData | undefined>(undefined);
 
 export function UserContextProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
   const [userType, setUserType] = useState<UserType>(null);
   const [cargo, setCargo] = useState<UserCargo>(null);
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
@@ -64,7 +65,8 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadUserContext = useCallback(async () => {
-    if (!user) {
+    // IMPORTANT: depend only on userId so token refreshes don't reset UI state
+    if (!userId) {
       setUserType(null);
       setCargo(null);
       setEmpresa(null);
@@ -82,7 +84,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       const { data: motorista } = await supabase
         .from('motoristas')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (motorista) {
@@ -93,7 +95,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
 
       // Get empresa tipo using database function
       const { data: empresaTipo } = await supabase
-        .rpc('get_user_empresa_tipo', { _user_id: user.id });
+        .rpc('get_user_empresa_tipo', { _user_id: userId });
 
       const type: UserType = empresaTipo === 'EMBARCADOR'
         ? 'embarcador'
@@ -130,7 +132,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
               )
             )
           `)
-          .eq('auth_user_id', user.id)
+          .eq('auth_user_id', userId)
           .maybeSingle();
 
         if (usuarioData) {
@@ -233,7 +235,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     if (!authLoading) {
