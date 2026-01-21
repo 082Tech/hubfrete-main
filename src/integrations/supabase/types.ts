@@ -93,6 +93,7 @@ export type Database = {
           permite_fracionado: boolean | null
           peso_disponivel_kg: number | null
           peso_kg: number
+          peso_minimo_fracionado_kg: number | null
           publicada_em: string | null
           quantidade: number | null
           regras_carregamento: string | null
@@ -138,6 +139,7 @@ export type Database = {
           permite_fracionado?: boolean | null
           peso_disponivel_kg?: number | null
           peso_kg: number
+          peso_minimo_fracionado_kg?: number | null
           publicada_em?: string | null
           quantidade?: number | null
           regras_carregamento?: string | null
@@ -183,6 +185,7 @@ export type Database = {
           permite_fracionado?: boolean | null
           peso_disponivel_kg?: number | null
           peso_kg?: number
+          peso_minimo_fracionado_kg?: number | null
           publicada_em?: string | null
           quantidade?: number | null
           regras_carregamento?: string | null

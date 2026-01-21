@@ -16,12 +16,14 @@ interface RouteGoogleMapProps {
     label?: string;
   };
   onRouteCalculated?: (distance: number, duration: number) => void;
+  showBadgeOutside?: boolean; // New prop to render badge outside the map container
 }
 
 export default function RouteGoogleMap({
   origem,
   destino,
   onRouteCalculated,
+  showBadgeOutside = false,
 }: RouteGoogleMapProps) {
   const { isLoaded, loadError } = useGoogleMaps();
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -100,93 +102,113 @@ export default function RouteGoogleMap({
     );
   }
 
-  return (
-    <div className="relative h-full">
-      <GoogleMap
-        mapContainerStyle={defaultMapContainerStyle}
-        center={{ lat: (origem.lat + destino.lat) / 2, lng: (origem.lng + destino.lng) / 2 }}
-        zoom={6}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
-        options={{
-          disableDefaultUI: true,
-          zoomControl: false,
-          streetViewControl: false,
-          mapTypeControl: false,
-          fullscreenControl: false,
-          styles: airbnbMapStyles,
-        }}
-      >
-        {directions ? (
-          <DirectionsRenderer
-            directions={directions}
-            options={{
-              suppressMarkers: false,
-              polylineOptions: {
-                strokeColor: 'hsl(142.1, 76.2%, 36.3%)',
-                strokeWeight: 5,
-                strokeOpacity: 0.8,
-              },
-            }}
-          />
-        ) : (
+  // Route info badge component
+  const RouteInfoBadge = () => {
+    if (!isLoadingRoute && !routeInfo) return null;
+    
+    return (
+      <div className={showBadgeOutside ? "flex gap-2 justify-center" : "flex gap-2"}>
+        {isLoadingRoute ? (
+          <Badge variant="outline" className="gap-1 bg-background/90 backdrop-blur-sm">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Calculando rota...
+          </Badge>
+        ) : routeInfo && (
           <>
-            {/* Origin Marker */}
-            <Marker
-              position={{ lat: origem.lat, lng: origem.lng }}
-              label={{
-                text: 'O',
-                color: 'white',
-                fontWeight: 'bold',
-              }}
-              icon={{
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 12,
-                fillColor: 'hsl(142.1, 76.2%, 36.3%)',
-                fillOpacity: 1,
-                strokeColor: 'white',
-                strokeWeight: 2,
-              }}
-            />
-            {/* Destination Marker */}
-            <Marker
-              position={{ lat: destino.lat, lng: destino.lng }}
-              label={{
-                text: 'D',
-                color: 'white',
-                fontWeight: 'bold',
-              }}
-              icon={{
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 12,
-                fillColor: 'hsl(0, 84.2%, 60.2%)',
-                fillOpacity: 1,
-                strokeColor: 'white',
-                strokeWeight: 2,
-              }}
-            />
+            <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm">
+              {routeInfo.distance}
+            </Badge>
+            <Badge variant="outline" className="bg-background/90 backdrop-blur-sm">
+              {routeInfo.duration}
+            </Badge>
           </>
         )}
-      </GoogleMap>
+      </div>
+    );
+  };
 
-      {/* Route Info Badge */}
-      {(isLoadingRoute || routeInfo) && (
-        <div className="absolute bottom-2 right-2 flex gap-2">
-          {isLoadingRoute ? (
-            <Badge variant="outline" className="gap-1 bg-background/90 backdrop-blur-sm">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              Calculando rota...
-            </Badge>
-          ) : routeInfo && (
+  return (
+    <div className="flex flex-col h-full">
+      <div className="relative flex-1">
+        <GoogleMap
+          mapContainerStyle={defaultMapContainerStyle}
+          center={{ lat: (origem.lat + destino.lat) / 2, lng: (origem.lng + destino.lng) / 2 }}
+          zoom={6}
+          onLoad={onLoad}
+          onUnmount={onUnmount}
+          options={{
+            disableDefaultUI: true,
+            zoomControl: false,
+            streetViewControl: false,
+            mapTypeControl: false,
+            fullscreenControl: false,
+            styles: airbnbMapStyles,
+          }}
+        >
+          {directions ? (
+            <DirectionsRenderer
+              directions={directions}
+              options={{
+                suppressMarkers: false,
+                polylineOptions: {
+                  strokeColor: 'hsl(142.1, 76.2%, 36.3%)',
+                  strokeWeight: 5,
+                  strokeOpacity: 0.8,
+                },
+              }}
+            />
+          ) : (
             <>
-              <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm">
-                {routeInfo.distance}
-              </Badge>
-              <Badge variant="outline" className="bg-background/90 backdrop-blur-sm">
-                {routeInfo.duration}
-              </Badge>
+              {/* Origin Marker */}
+              <Marker
+                position={{ lat: origem.lat, lng: origem.lng }}
+                label={{
+                  text: 'O',
+                  color: 'white',
+                  fontWeight: 'bold',
+                }}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 12,
+                  fillColor: 'hsl(142.1, 76.2%, 36.3%)',
+                  fillOpacity: 1,
+                  strokeColor: 'white',
+                  strokeWeight: 2,
+                }}
+              />
+              {/* Destination Marker */}
+              <Marker
+                position={{ lat: destino.lat, lng: destino.lng }}
+                label={{
+                  text: 'D',
+                  color: 'white',
+                  fontWeight: 'bold',
+                }}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 12,
+                  fillColor: 'hsl(0, 84.2%, 60.2%)',
+                  fillOpacity: 1,
+                  strokeColor: 'white',
+                  strokeWeight: 2,
+                }}
+              />
             </>
           )}
+        </GoogleMap>
+
+        {/* Route Info Badge - Inside map */}
+        {!showBadgeOutside && (isLoadingRoute || routeInfo) && (
+          <div className="absolute bottom-2 right-2">
+            <RouteInfoBadge />
+          </div>
+        )}
+      </div>
+
+      {/* Route Info Badge - Outside map */}
+      {showBadgeOutside && (isLoadingRoute || routeInfo) && (
+        <div className="py-2">
+          <RouteInfoBadge />
         </div>
       )}
     </div>
