@@ -29,33 +29,18 @@ export function TruckIcon({
         height: size,
       }}
     >
-      {/* Pulse animation when online */}
+      {/* Subtle pulse animation when online */}
       {isOnline && (
         <div
-          className="absolute rounded-full animate-ping"
+          className="absolute rounded-full"
           style={{
-            width: size * 0.6,
-            height: size * 0.6,
+            width: size * 0.55,
+            height: size * 0.55,
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(34, 197, 94, 0.4)',
-            animationDuration: '1.5s',
-          }}
-        />
-      )}
-      
-      {/* Selection ring */}
-      {isSelected && (
-        <div
-          className="absolute rounded-full border-2 border-blue-500"
-          style={{
-            width: size * 0.85,
-            height: size * 0.85,
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            boxShadow: '0 0 8px rgba(59, 130, 246, 0.5)',
+            backgroundColor: 'rgba(34, 197, 94, 0.35)',
+            animation: 'subtlePulse 2s ease-out infinite',
           }}
         />
       )}
@@ -118,47 +103,33 @@ export function TruckIcon({
 export function getTruckIconHtml(
   heading: number = 0,
   isOnline: boolean = false,
-  isSelected: boolean = false,
+  _isSelected: boolean = false, // No longer used - keeping for compatibility
   size: number = 48
 ): string {
   const pulseHtml = isOnline ? `
     <div style="
       position: absolute;
-      width: ${size * 0.6}px;
-      height: ${size * 0.6}px;
+      width: ${size * 0.55}px;
+      height: ${size * 0.55}px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background-color: rgba(34, 197, 94, 0.4);
+      background-color: rgba(34, 197, 94, 0.35);
       border-radius: 50%;
-      animation: pulse 1.5s ease-out infinite;
-    "></div>
-  ` : '';
-
-  const selectionRingHtml = isSelected ? `
-    <div style="
-      position: absolute;
-      width: ${size * 0.85}px;
-      height: ${size * 0.85}px;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      border: 2px solid #3b82f6;
-      border-radius: 50%;
-      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+      animation: subtlePulse 2s ease-out infinite;
     "></div>
   ` : '';
 
   return `
     <style>
-      @keyframes pulse {
-        0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-        100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+      @keyframes subtlePulse {
+        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+        50% { transform: translate(-50%, -50%) scale(1.25); opacity: 0.4; }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
       }
     </style>
     <div style="position: relative; width: ${size}px; height: ${size}px;">
       ${pulseHtml}
-      ${selectionRingHtml}
       <div style="
         width: ${size}px;
         height: ${size}px;

@@ -123,20 +123,6 @@ function DriverMarker({
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
       >
-        {/* Pulse animation when ONLINE and recent update */}
-        {isOnline && isRecent && (
-          <div
-            className="absolute rounded-full animate-ping"
-            style={{ 
-              width: truckSize, 
-              height: truckSize, 
-              top: 0, 
-              left: 0,
-              backgroundColor: 'hsl(var(--primary) / 0.4)'
-            }}
-          />
-        )}
-
         {/* 3D Truck Icon - always shown */}
         <div
           style={{
@@ -148,47 +134,37 @@ function DriverMarker({
             __html: getTruckIconHtml(
               heading, 
               isOnline && isRecent, 
-              isSelected, 
+              false, 
               truckSize
             ) 
           }}
         />
 
-        {/* Label badge when selected */}
-        {isSelected && entrega.codigo && (
+        {/* Hover tooltip with all info */}
+        {isHovered && (
           <div
-            className="absolute whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-0.5 rounded-full font-medium shadow-md"
-            style={{ top: 52, left: '50%', transform: 'translateX(-50%)' }}
-          >
-            {entrega.codigo}
-          </div>
-        )}
-
-        {/* Hover tooltip with driver avatar */}
-        {isHovered && !isSelected && (
-          <div
-            className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl p-3 min-w-[200px]"
+            className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl p-3 min-w-[240px] max-w-[300px]"
             style={{ bottom: 56, left: '50%', transform: 'translateX(-50%)' }}
           >
-            <div className="flex items-start gap-2">
-              {/* Driver avatar */}
+            {/* Header with avatar and name */}
+            <div className="flex items-start gap-2 mb-2">
               {entrega.motoristaFotoUrl ? (
                 <img
                   src={entrega.motoristaFotoUrl}
                   alt={entrega.motorista || 'Motorista'}
-                  className="w-9 h-9 rounded-full object-cover border-2 border-primary/20 flex-shrink-0"
+                  className="w-10 h-10 rounded-full object-cover border-2 border-primary/20 flex-shrink-0"
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0 border-2 border-border">
-                  <span className="text-xs font-semibold text-muted-foreground">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0 border-2 border-border">
+                  <span className="text-sm font-semibold text-muted-foreground">
                     {(entrega.motorista || 'M').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                   </span>
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-foreground truncate">
+                <div className="text-sm font-semibold text-foreground truncate">
                   {entrega.motorista || 'Motorista'}
                 </div>
                 {entrega.placa && (
@@ -199,11 +175,40 @@ function DriverMarker({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border">
-              <Clock className={`w-3 h-3 ${isRecent ? 'text-primary' : 'text-muted-foreground'}`} />
-              <span className={`text-xs ${isRecent ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                {formatLocationTimestamp(entrega.lastLocationUpdate)}
-              </span>
+
+            {/* Cargo/Delivery code */}
+            {entrega.codigo && (
+              <div className="text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
+                Carga: <span className="font-medium text-foreground">{entrega.codigo}</span>
+              </div>
+            )}
+
+            {/* Destination */}
+            {entrega.destino && (
+              <div className="flex items-start gap-1.5 text-xs text-muted-foreground mb-2">
+                <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                <span className="line-clamp-2">{entrega.destino}</span>
+              </div>
+            )}
+
+            {/* Status and last update */}
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex items-center gap-1">
+                <Clock className={`w-3 h-3 ${isRecent ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className={`text-xs ${isRecent ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                  {formatLocationTimestamp(entrega.lastLocationUpdate)}
+                </span>
+              </div>
+              {entrega.telefone && (
+                <a
+                  href={`tel:${entrega.telefone}`}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Phone className="w-3 h-3" />
+                  Ligar
+                </a>
+              )}
             </div>
           </div>
         )}
@@ -420,67 +425,7 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
           />
         ))}
 
-        {/* Info Window when selected */}
-        {selected && selected.latitude && selected.longitude && (
-          <InfoWindow
-            position={{ lat: selected.latitude, lng: selected.longitude }}
-            onCloseClick={() => onSelectCarga(null)}
-            options={{ pixelOffset: new google.maps.Size(0, -30) }}
-          >
-            <div className="p-2 min-w-[220px] max-w-[280px]">
-              <div className="flex items-center gap-2 mb-2">
-                {selected.motoristaFotoUrl ? (
-                  <img
-                    src={selected.motoristaFotoUrl}
-                    alt={selected.motorista || ''}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Truck className="w-5 h-5 text-primary" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{selected.motorista || 'Motorista'}</p>
-                  {selected.placa && (
-                    <p className="text-xs text-muted-foreground">{selected.placa}</p>
-                  )}
-                </div>
-              </div>
-
-              {selected.codigo && (
-                <div className="text-xs text-muted-foreground mb-2">
-                  Carga: <span className="font-medium text-foreground">{selected.codigo}</span>
-                </div>
-              )}
-
-              {selected.destino && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                  <MapPin className="w-3 h-3" />
-                  <span className="truncate">{selected.destino}</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <div className="flex items-center gap-1">
-                  <Clock className={`w-3 h-3 ${isRecentUpdate(selected.lastLocationUpdate) ? 'text-green-500' : 'text-muted-foreground'}`} />
-                  <span className={`text-xs ${isRecentUpdate(selected.lastLocationUpdate) ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
-                    {formatLocationTimestamp(selected.lastLocationUpdate)}
-                  </span>
-                </div>
-                {selected.telefone && (
-                  <a
-                    href={`tel:${selected.telefone}`}
-                    className="flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    <Phone className="w-3 h-3" />
-                    Ligar
-                  </a>
-                )}
-              </div>
-            </div>
-          </InfoWindow>
-        )}
+        {/* No InfoWindow on click - all info shown in hover tooltip */}
 
         {/* Destination marker (default red pin) */}
         {selected?.destinoCoords && (
