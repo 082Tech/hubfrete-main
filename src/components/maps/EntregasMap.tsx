@@ -45,12 +45,11 @@ const isRecentLocation = (timestamp: number | null | undefined): boolean => {
 // Import 3D truck icon generator from shared component
 import { getTruckIconHtml } from './TruckIcon';
 
-// Create 3D truck icon with rotation based on heading - always shows truck with avatar badge
+// Create 3D truck icon with rotation based on heading
 const createTruckIcon = (
   heading: number = 0,
   isOnline: boolean = false,
-  isSelected: boolean = false,
-  avatarUrl?: string | null
+  isSelected: boolean = false
 ) => {
   const size = isSelected ? 56 : 48;
   
@@ -72,7 +71,8 @@ const createTruckIcon = (
     "></div>
   ` : '';
 
-  const grayFilter = !isOnline ? 'filter: grayscale(100%); opacity: 0.6;' : '';
+  // Less aggressive grayscale for offline - still visible but dimmed
+  const grayFilter = !isOnline ? 'filter: grayscale(80%); opacity: 0.75;' : '';
 
   return new L.DivIcon({
     className: 'truck-marker',
@@ -84,7 +84,7 @@ const createTruckIcon = (
       ">
         ${pulseStyle}
         <div style="${grayFilter}">
-          ${getTruckIconHtml(heading, isOnline, isSelected, size, avatarUrl)}
+          ${getTruckIconHtml(heading, isOnline, isSelected, size)}
         </div>
       </div>
     `,
@@ -505,7 +505,7 @@ export function EntregasMap({
               <Marker
                 key={entrega.id}
                 position={[entrega.latitude!, entrega.longitude!]}
-                icon={createTruckIcon(entrega.heading ?? 0, isRecent, isSelected, entrega.motoristaFotoUrl)}
+                icon={createTruckIcon(entrega.heading ?? 0, isRecent, isSelected)}
                 eventHandlers={{
                   click: () => !isIdle && handleMarkerClick(entrega),
                 }}
@@ -517,15 +517,35 @@ export function EntregasMap({
                   opacity={0.95}
                   permanent={false}
                 >
-                  <div className="text-xs min-w-[140px]">
+                  <div className="text-xs min-w-[160px]">
+                    <div className="flex items-start gap-2 mb-2">
+                      {/* Driver avatar in tooltip */}
+                      {entrega.motoristaFotoUrl ? (
+                        <img
+                          src={entrega.motoristaFotoUrl}
+                          alt={entrega.motorista || 'Motorista'}
+                          className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 border border-gray-300">
+                          <span className="text-[10px] font-semibold text-gray-500">
+                            {(entrega.motorista || 'M').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        {entrega.motorista && (
+                          <div className="font-medium text-gray-800 truncate">{entrega.motorista}</div>
+                        )}
+                        {entrega.placa && (
+                          <div className="text-gray-500">{entrega.placa}</div>
+                        )}
+                      </div>
+                    </div>
                     {entrega.codigo && (
                       <div className="font-bold mb-1">{entrega.codigo}</div>
-                    )}
-                    {entrega.motorista && (
-                      <div className="text-gray-600">{entrega.motorista}</div>
-                    )}
-                    {entrega.placa && (
-                      <div className="text-gray-500">{entrega.placa}</div>
                     )}
                     <div 
                       className="mt-1 px-1.5 py-0.5 rounded text-white text-center"
@@ -535,7 +555,7 @@ export function EntregasMap({
                     </div>
                     {entrega.lastLocationUpdate && (
                       <div className="mt-1 text-gray-500 text-center">
-                        Atualizado: {formatTimestamp(entrega.lastLocationUpdate)}
+                        {formatTimestamp(entrega.lastLocationUpdate)}
                       </div>
                     )}
                   </div>
@@ -543,16 +563,44 @@ export function EntregasMap({
                 
                 {/* Popup on click - more details */}
                 <Popup>
-                  <div className="min-w-[200px] p-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-foreground">{entrega.codigo}</span>
-                      <span 
-                        className="text-xs px-2 py-0.5 rounded-full text-white"
-                        style={{ backgroundColor: color }}
-                      >
-                        {label}
-                      </span>
+                  <div className="min-w-[220px] p-1">
+                    {/* Header with avatar */}
+                    <div className="flex items-start gap-3 mb-3 pb-2 border-b border-gray-200">
+                      {entrega.motoristaFotoUrl ? (
+                        <img
+                          src={entrega.motoristaFotoUrl}
+                          alt={entrega.motorista || 'Motorista'}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-primary/20 flex-shrink-0"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 border-2 border-gray-200">
+                          <span className="text-sm font-semibold text-gray-500">
+                            {(entrega.motorista || 'M').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-foreground truncate">{entrega.motorista || 'Motorista'}</div>
+                        {entrega.placa && (
+                          <div className="text-sm text-muted-foreground">{entrega.placa}</div>
+                        )}
+                        <span 
+                          className="inline-block text-xs px-2 py-0.5 rounded-full text-white mt-1"
+                          style={{ backgroundColor: color }}
+                        >
+                          {label}
+                        </span>
+                      </div>
                     </div>
+                    
+                    {entrega.codigo && (
+                      <div className="text-sm mb-2">
+                        <span className="text-muted-foreground">Código:</span>{' '}
+                        <span className="font-medium text-foreground">{entrega.codigo}</span>
+                      </div>
+                    )}
                     
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                       {entrega.descricao}
@@ -562,16 +610,6 @@ export function EntregasMap({
                       <div className="flex items-center gap-2 text-sm mb-2">
                         <MapPin className="w-3 h-3 text-primary shrink-0" />
                         <span className="text-foreground">{entrega.destino}</span>
-                      </div>
-                    )}
-                    
-                    {entrega.motorista && (
-                      <div className="flex items-center gap-2 text-sm mb-2">
-                        <Truck className="w-3 h-3 text-muted-foreground shrink-0" />
-                        <span className="text-foreground">{entrega.motorista}</span>
-                        {entrega.placa && (
-                          <span className="text-muted-foreground">({entrega.placa})</span>
-                        )}
                       </div>
                     )}
                     

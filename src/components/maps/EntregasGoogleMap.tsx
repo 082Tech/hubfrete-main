@@ -137,20 +137,19 @@ function DriverMarker({
           />
         )}
 
-        {/* 3D Truck Icon - always shown, with avatar badge */}
+        {/* 3D Truck Icon - always shown */}
         <div
           style={{
             width: truckSize,
             height: truckSize,
-            filter: !(isOnline && isRecent) ? 'grayscale(100%) opacity(0.6)' : 'none',
+            filter: !(isOnline && isRecent) ? 'grayscale(80%) opacity(0.75)' : 'none',
           }}
           dangerouslySetInnerHTML={{ 
             __html: getTruckIconHtml(
               heading, 
               isOnline && isRecent, 
               isSelected, 
-              truckSize,
-              entrega.motoristaFotoUrl
+              truckSize
             ) 
           }}
         />
@@ -159,30 +158,50 @@ function DriverMarker({
         {isSelected && entrega.codigo && (
           <div
             className="absolute whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-0.5 rounded-full font-medium shadow-md"
-            style={{ top: 46, left: '50%', transform: 'translateX(-50%)' }}
+            style={{ top: 52, left: '50%', transform: 'translateX(-50%)' }}
           >
             {entrega.codigo}
           </div>
         )}
 
-        {/* Hover tooltip */}
+        {/* Hover tooltip with driver avatar */}
         {isHovered && !isSelected && (
           <div
-            className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl p-3 min-w-[180px]"
-            style={{ bottom: 50, left: '50%', transform: 'translateX(-50%)' }}
+            className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl p-3 min-w-[200px]"
+            style={{ bottom: 56, left: '50%', transform: 'translateX(-50%)' }}
           >
-            <div className="text-sm font-medium text-foreground truncate">
-              {entrega.motorista || 'Motorista'}
-            </div>
-            {entrega.placa && (
-              <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                <Truck className="w-3 h-3" />
-                {entrega.placa}
+            <div className="flex items-start gap-2">
+              {/* Driver avatar */}
+              {entrega.motoristaFotoUrl ? (
+                <img
+                  src={entrega.motoristaFotoUrl}
+                  alt={entrega.motorista || 'Motorista'}
+                  className="w-9 h-9 rounded-full object-cover border-2 border-primary/20 flex-shrink-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0 border-2 border-border">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {(entrega.motorista || 'M').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-foreground truncate">
+                  {entrega.motorista || 'Motorista'}
+                </div>
+                {entrega.placa && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Truck className="w-3 h-3" />
+                    {entrega.placa}
+                  </div>
+                )}
               </div>
-            )}
-            <div className="flex items-center gap-1 mt-2">
-              <Clock className={`w-3 h-3 ${isRecent ? 'text-green-500' : 'text-muted-foreground'}`} />
-              <span className={`text-xs ${isRecent ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
+            </div>
+            <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border">
+              <Clock className={`w-3 h-3 ${isRecent ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span className={`text-xs ${isRecent ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                 {formatLocationTimestamp(entrega.lastLocationUpdate)}
               </span>
             </div>
