@@ -20,10 +20,6 @@ export function TruckIcon({
   className = ''
 }: TruckIconProps) {
   const rotation = heading ?? 0;
-  const primaryColor = isSelected ? '#3b82f6' : isOnline ? '#22c55e' : '#6b7280';
-  const cabColor = isSelected ? '#60a5fa' : isOnline ? '#4ade80' : '#9ca3af';
-  const strokeColor = isSelected ? '#1d4ed8' : isOnline ? '#16a34a' : '#4b5563';
-  const shadowColor = isSelected ? 'rgba(59, 130, 246, 0.4)' : isOnline ? 'rgba(34, 197, 94, 0.3)' : 'rgba(0, 0, 0, 0.2)';
   
   return (
     <div 
@@ -33,6 +29,37 @@ export function TruckIcon({
         height: size,
       }}
     >
+      {/* Pulse animation when online */}
+      {isOnline && (
+        <div
+          className="absolute rounded-full animate-ping"
+          style={{
+            width: size * 0.6,
+            height: size * 0.6,
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(34, 197, 94, 0.4)',
+            animationDuration: '1.5s',
+          }}
+        />
+      )}
+      
+      {/* Selection ring */}
+      {isSelected && (
+        <div
+          className="absolute rounded-full border-2 border-blue-500"
+          style={{
+            width: size * 0.85,
+            height: size * 0.85,
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            boxShadow: '0 0 8px rgba(59, 130, 246, 0.5)',
+          }}
+        />
+      )}
+      
       {/* Rotatable truck container */}
       <div
         style={{
@@ -44,83 +71,40 @@ export function TruckIcon({
         }}
       >
         <svg
-          viewBox="0 0 48 48"
+          viewBox="0 0 80 80"
           width={size}
           height={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Shadow for 3D effect */}
-          <ellipse
-            cx="24"
-            cy="40"
-            rx="14"
-            ry="5"
-            fill={shadowColor}
-          />
+          <defs>
+            <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="black" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="black" stopOpacity="0" />
+            </radialGradient>
+          </defs>
           
-          {/* Truck body - trailer/cargo area */}
-          <rect
-            x="12"
-            y="18"
-            width="24"
-            height="20"
-            rx="3"
-            fill={primaryColor}
-            stroke={strokeColor}
-            strokeWidth="2"
-          />
+          {/* Shadow */}
+          <ellipse cx="40" cy="42" rx="22" ry="32" fill="url(#shadowGrad)" />
           
-          {/* Cargo horizontal lines for detail */}
-          <line x1="16" y1="24" x2="32" y2="24" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
-          <line x1="16" y1="30" x2="32" y2="30" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
+          {/* Wheels - front */}
+          <rect x="22" y="15" width="4" height="8" rx="2" fill="#222" />
+          <rect x="54" y="15" width="4" height="8" rx="2" fill="#222" />
           
-          {/* Cab (front of truck - pointing up/north) - more rounded */}
-          <rect
-            x="15"
-            y="6"
-            width="18"
-            height="14"
-            rx="4"
-            fill={cabColor}
-            stroke={strokeColor}
-            strokeWidth="2"
-          />
+          {/* Wheels - rear */}
+          <rect x="22" y="45" width="4" height="8" rx="2" fill="#222" />
+          <rect x="54" y="45" width="4" height="8" rx="2" fill="#222" />
           
-          {/* Windshield - curved appearance */}
-          <rect
-            x="18"
-            y="8"
-            width="12"
-            height="6"
-            rx="2"
-            fill="rgba(255,255,255,0.7)"
-          />
+          {/* Truck body - cargo/cab */}
+          <rect x="25" y="10" width="30" height="40" rx="2" fill="#FFFFFF" stroke="#D1D1D1" strokeWidth="0.5" />
           
-          {/* Windshield reflection */}
-          <rect
-            x="19"
-            y="9"
-            width="4"
-            height="4"
-            rx="1"
-            fill="rgba(255,255,255,0.4)"
-          />
+          {/* Cargo area detail */}
+          <rect x="28" y="13" width="24" height="34" rx="1" fill="#F9F9F9" />
           
-          {/* Side mirrors */}
-          <ellipse cx="10" cy="12" rx="3" ry="2" fill={cabColor} stroke={strokeColor} strokeWidth="1" />
-          <ellipse cx="38" cy="12" rx="3" ry="2" fill={cabColor} stroke={strokeColor} strokeWidth="1" />
+          {/* Front bumper/cab */}
+          <rect x="27" y="51" width="26" height="15" rx="3" fill="#FFFFFF" stroke="#D1D1D1" strokeWidth="0.5" />
           
-          {/* Front wheels */}
-          <ellipse cx="16" cy="18" rx="3" ry="2" fill="#1f2937" stroke="#374151" strokeWidth="1" />
-          <ellipse cx="32" cy="18" rx="3" ry="2" fill="#1f2937" stroke="#374151" strokeWidth="1" />
-          
-          {/* Rear wheels (dual) */}
-          <ellipse cx="15" cy="36" rx="3.5" ry="2.5" fill="#1f2937" stroke="#374151" strokeWidth="1" />
-          <ellipse cx="33" cy="36" rx="3.5" ry="2.5" fill="#1f2937" stroke="#374151" strokeWidth="1" />
-          
-          {/* Wheel shine */}
-          <ellipse cx="15" cy="35" rx="1" ry="0.5" fill="rgba(255,255,255,0.3)" />
-          <ellipse cx="33" cy="35" rx="1" ry="0.5" fill="rgba(255,255,255,0.3)" />
+          {/* Windshield */}
+          <path d="M29 54 Q40 51 51 54 L50 59 Q40 57 30 59 Z" fill="#333" />
         </svg>
       </div>
     </div>
@@ -137,13 +121,44 @@ export function getTruckIconHtml(
   isSelected: boolean = false,
   size: number = 48
 ): string {
-  const primaryColor = isSelected ? '#3b82f6' : isOnline ? '#22c55e' : '#6b7280';
-  const shadowColor = isSelected ? 'rgba(59, 130, 246, 0.4)' : isOnline ? 'rgba(34, 197, 94, 0.3)' : 'rgba(0, 0, 0, 0.2)';
-  const cabColor = isSelected ? '#60a5fa' : isOnline ? '#4ade80' : '#9ca3af';
-  const strokeColor = isSelected ? '#1d4ed8' : isOnline ? '#16a34a' : '#4b5563';
+  const pulseHtml = isOnline ? `
+    <div style="
+      position: absolute;
+      width: ${size * 0.6}px;
+      height: ${size * 0.6}px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(34, 197, 94, 0.4);
+      border-radius: 50%;
+      animation: pulse 1.5s ease-out infinite;
+    "></div>
+  ` : '';
+
+  const selectionRingHtml = isSelected ? `
+    <div style="
+      position: absolute;
+      width: ${size * 0.85}px;
+      height: ${size * 0.85}px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid #3b82f6;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+    "></div>
+  ` : '';
 
   return `
+    <style>
+      @keyframes pulse {
+        0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+      }
+    </style>
     <div style="position: relative; width: ${size}px; height: ${size}px;">
+      ${pulseHtml}
+      ${selectionRingHtml}
       <div style="
         width: ${size}px;
         height: ${size}px;
@@ -151,22 +166,22 @@ export function getTruckIconHtml(
         transition: transform 0.5s ease-out;
         will-change: transform;
       ">
-        <svg viewBox="0 0 48 48" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="24" cy="40" rx="14" ry="5" fill="${shadowColor}" />
-          <rect x="12" y="18" width="24" height="20" rx="3" fill="${primaryColor}" stroke="${strokeColor}" stroke-width="2" />
-          <line x1="16" y1="24" x2="32" y2="24" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" />
-          <line x1="16" y1="30" x2="32" y2="30" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" />
-          <rect x="15" y="6" width="18" height="14" rx="4" fill="${cabColor}" stroke="${strokeColor}" stroke-width="2" />
-          <rect x="18" y="8" width="12" height="6" rx="2" fill="rgba(255,255,255,0.7)" />
-          <rect x="19" y="9" width="4" height="4" rx="1" fill="rgba(255,255,255,0.4)" />
-          <ellipse cx="10" cy="12" rx="3" ry="2" fill="${cabColor}" stroke="${strokeColor}" stroke-width="1" />
-          <ellipse cx="38" cy="12" rx="3" ry="2" fill="${cabColor}" stroke="${strokeColor}" stroke-width="1" />
-          <ellipse cx="16" cy="18" rx="3" ry="2" fill="#1f2937" stroke="#374151" stroke-width="1" />
-          <ellipse cx="32" cy="18" rx="3" ry="2" fill="#1f2937" stroke="#374151" stroke-width="1" />
-          <ellipse cx="15" cy="36" rx="3.5" ry="2.5" fill="#1f2937" stroke="#374151" stroke-width="1" />
-          <ellipse cx="33" cy="36" rx="3.5" ry="2.5" fill="#1f2937" stroke="#374151" stroke-width="1" />
-          <ellipse cx="15" cy="35" rx="1" ry="0.5" fill="rgba(255,255,255,0.3)" />
-          <ellipse cx="33" cy="35" rx="1" ry="0.5" fill="rgba(255,255,255,0.3)" />
+        <svg viewBox="0 0 80 80" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="black" stop-opacity="0.3" />
+              <stop offset="100%" stop-color="black" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+          <ellipse cx="40" cy="42" rx="22" ry="32" fill="url(#shadowGrad)" />
+          <rect x="22" y="15" width="4" height="8" rx="2" fill="#222" />
+          <rect x="54" y="15" width="4" height="8" rx="2" fill="#222" />
+          <rect x="22" y="45" width="4" height="8" rx="2" fill="#222" />
+          <rect x="54" y="45" width="4" height="8" rx="2" fill="#222" />
+          <rect x="25" y="10" width="30" height="40" rx="2" fill="#FFFFFF" stroke="#D1D1D1" stroke-width="0.5" />
+          <rect x="28" y="13" width="24" height="34" rx="1" fill="#F9F9F9" />
+          <rect x="27" y="51" width="26" height="15" rx="3" fill="#FFFFFF" stroke="#D1D1D1" stroke-width="0.5" />
+          <path d="M29 54 Q40 51 51 54 L50 59 Q40 57 30 59 Z" fill="#333" />
         </svg>
       </div>
     </div>
