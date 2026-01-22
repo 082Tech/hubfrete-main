@@ -53,6 +53,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useState, useMemo, useEffect } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -174,15 +175,23 @@ const getEmpresaInitials = (nome: string | undefined | null): string => {
 export default function CargasDisponiveis() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState<string>('all');
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
   const [selectedMotorista, setSelectedMotorista] = useState<string>('');
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('');
-  const [pesoAlocadoInput, setPesoAlocadoInput] = useState<number>(0); // User input for weight
+  const [pesoAlocadoInput, setPesoAlocadoInput] = useState<number>(0);
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
+  const [viewMode, setViewMode] = useState<'list' | 'map' | undefined>(undefined);
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
+
+  // Set default view mode based on device
+  useEffect(() => {
+    if (viewMode === undefined) {
+      setViewMode(isMobile ? 'list' : 'map');
+    }
+  }, [isMobile, viewMode]);
 
   // Fetch cargas publicadas
   const { data: cargas = [], isLoading } = useQuery({
@@ -822,13 +831,23 @@ export default function CargasDisponiveis() {
           </Card>
         ) : viewMode === 'list' ? (
           /* List View */
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20 md:pb-0">
             {filteredCargas.map((carga) => (
               <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} />
             ))}
           </div>
+        ) : isMobile ? (
+          /* Mobile Map View - Full screen Airbnb style */
+          <div className="relative h-[calc(100vh-220px)] -mx-4 -mb-4">
+            <CargasGoogleMap
+              cargas={filteredCargas}
+              onCargaClick={handleAcceptClick}
+              hoveredCargaId={hoveredCargaId}
+              setHoveredCargaId={setHoveredCargaId}
+            />
+          </div>
         ) : (
-          /* Split View - List + Map (Airbnb style) */
+          /* Desktop Split View - List + Map (Airbnb style) */
           <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px]">
             {/* Left - Scrollable List */}
             <div className="w-1/2 lg:w-2/5 overflow-y-auto px-1 py-1 space-y-3">

@@ -42,6 +42,7 @@ import {
   Radio,
   ExternalLink,
   MessageCircle,
+  ArrowRight,
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
@@ -660,10 +661,11 @@ export default function GestaoCargas() {
   );
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex gap-6">
+    <div className="p-4 md:p-8 pb-20 md:pb-8">
+      {/* Desktop Layout - Sidebar + Content */}
+      <div className="hidden lg:flex gap-6">
         {/* Desktop Sidebar: Filters + Stats + Search */}
-        <aside className="hidden lg:flex flex-col w-72 shrink-0 gap-4">
+        <aside className="flex flex-col w-72 shrink-0 gap-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -698,30 +700,30 @@ export default function GestaoCargas() {
 
           {/* Stats Cards - 3 status cards */}
           <div className="grid grid-cols-3 gap-2">
-            <Card className="border-border bg-gray-500/5">
+            <Card className="border-border bg-muted/50">
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Package className="w-4 h-4 text-gray-600" />
+                  <Package className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <p className="text-xl font-bold text-gray-600">{stats.aguardando_coleta}</p>
+                <p className="text-xl font-bold text-muted-foreground">{stats.aguardando_coleta}</p>
                 <p className="text-[10px] text-muted-foreground leading-tight">Aguardando Coleta</p>
               </CardContent>
             </Card>
-            <Card className="border-border bg-orange-500/5">
+            <Card className="border-border bg-chart-4/5">
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Truck className="w-4 h-4 text-orange-600" />
+                  <Truck className="w-4 h-4 text-chart-4" />
                 </div>
-                <p className="text-xl font-bold text-orange-600">{stats.em_transito}</p>
+                <p className="text-xl font-bold text-chart-4">{stats.em_transito}</p>
                 <p className="text-[10px] text-muted-foreground leading-tight">Em Trânsito</p>
               </CardContent>
             </Card>
-            <Card className="border-border bg-purple-500/5">
+            <Card className="border-border bg-chart-5/5">
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Navigation className="w-4 h-4 text-purple-600" />
+                  <Navigation className="w-4 h-4 text-chart-5" />
                 </div>
-                <p className="text-xl font-bold text-purple-600">{stats.em_entrega}</p>
+                <p className="text-xl font-bold text-chart-5">{stats.em_entrega}</p>
                 <p className="text-[10px] text-muted-foreground leading-tight">Em Entrega</p>
               </CardContent>
             </Card>
@@ -761,106 +763,7 @@ export default function GestaoCargas() {
           )}
         </aside>
 
-        {/* Mobile Header */}
-        <div className="lg:hidden flex flex-col gap-4 w-full">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Cargas em Rota</h1>
-              <p className="text-muted-foreground">Acompanhe suas entregas em tempo real</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <LiveIndicator />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => refetch()}
-                disabled={isLoading || switchingFilial}
-              >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </div>
-
-          {/* Mobile Stats - 3 cards */}
-          <div className="grid grid-cols-3 gap-2">
-            <Card className="border-border bg-gray-500/5">
-              <CardContent className="p-2 text-center">
-                <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <Package className="w-3 h-3 text-gray-600" />
-                </div>
-                <p className="text-lg font-bold text-gray-600">{stats.aguardando_coleta}</p>
-                <p className="text-[8px] text-muted-foreground leading-tight">Aguard. Coleta</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-orange-500/5">
-              <CardContent className="p-2 text-center">
-                <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <Truck className="w-3 h-3 text-orange-600" />
-                </div>
-                <p className="text-lg font-bold text-orange-600">{stats.em_transito}</p>
-                <p className="text-[8px] text-muted-foreground leading-tight">Em Trânsito</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-purple-500/5">
-              <CardContent className="p-2 text-center">
-                <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <Navigation className="w-3 h-3 text-purple-600" />
-                </div>
-                <p className="text-lg font-bold text-purple-600">{stats.em_entrega}</p>
-                <p className="text-[8px] text-muted-foreground leading-tight">Em Entrega</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex gap-3 w-full">
-            <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="shrink-0">
-                  <Filter className="w-4 h-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80">
-                <SheetHeader>
-                  <SheetTitle>Filtros</SheetTitle>
-                </SheetHeader>
-                <div className="mt-6">
-                  <FiltersContent />
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {selectedStatuses.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {selectedStatuses.map(status => {
-                const config = statusEntregaConfig[status];
-                return (
-                  <Badge
-                    key={status}
-                    variant="outline"
-                    className={`${config?.color || ''} cursor-pointer`}
-                    onClick={() => handleStatusToggle(status)}
-                  >
-                    {config?.label || status}
-                    <X className="w-3 h-3 ml-1" />
-                  </Badge>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Main Content - Map and Table */}
+        {/* Desktop Main Content */}
         <div className="flex-1 space-y-4 min-w-0">
           {isLoading || switchingFilial ? (
             <div className="flex items-center justify-center h-64">
@@ -1229,6 +1132,160 @@ export default function GestaoCargas() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden space-y-4">
+        {/* Mobile Header */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Cargas em Rota</h1>
+              <p className="text-sm text-muted-foreground">Acompanhe suas entregas</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <LiveIndicator />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isLoading || switchingFilial}
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Mobile Stats */}
+          <div className="grid grid-cols-3 gap-2">
+            <Card className="border-border bg-muted/50">
+              <CardContent className="p-2 text-center">
+                <Package className="w-3 h-3 mx-auto text-muted-foreground mb-0.5" />
+                <p className="text-lg font-bold text-muted-foreground">{stats.aguardando_coleta}</p>
+                <p className="text-[8px] text-muted-foreground">Aguardando</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-chart-4/5">
+              <CardContent className="p-2 text-center">
+                <Truck className="w-3 h-3 mx-auto text-chart-4 mb-0.5" />
+                <p className="text-lg font-bold text-chart-4">{stats.em_transito}</p>
+                <p className="text-[8px] text-muted-foreground">Trânsito</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-chart-5/5">
+              <CardContent className="p-2 text-center">
+                <Navigation className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
+                <p className="text-lg font-bold text-chart-5">{stats.em_entrega}</p>
+                <p className="text-[8px] text-muted-foreground">Entrega</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Mobile Search + Filter */}
+          <div className="flex gap-2">
+            <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0">
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80">
+                <SheetHeader>
+                  <SheetTitle>Filtros</SheetTitle>
+                </SheetHeader>
+                <div className="mt-6">
+                  <FiltersContent />
+                </div>
+              </SheetContent>
+            </Sheet>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Map */}
+        {isLoading || switchingFilial ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Suspense fallback={
+              <div className="w-full h-[300px] flex items-center justify-center bg-muted/30 rounded-lg">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            }>
+              <div className="h-[300px] rounded-lg overflow-hidden border border-border">
+                <EntregasMap
+                  entregas={mapData}
+                  selectedCargaId={selectedCargaId}
+                  onSelectCarga={setSelectedCargaId}
+                />
+              </div>
+            </Suspense>
+
+            {/* Mobile Cards List */}
+            {filteredCargas.length === 0 ? (
+              <Card className="border-border">
+                <CardContent className="p-6 text-center">
+                  <Package className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                  <h3 className="font-medium text-foreground mb-1">Nenhuma carga encontrada</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedStatuses.length > 0 ? 'Ajuste os filtros' : 'Nenhuma entrega ativa'}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {filteredCargas.map((carga) => {
+                  const entrega = carga.entregas;
+                  const entregaStatus = entrega?.status || 'aguardando_coleta';
+                  const config = statusEntregaConfig[entregaStatus];
+                  const remetente = getRemetente(carga);
+                  const destinatario = getDestinatario(carga);
+
+                  return (
+                    <Card 
+                      key={carga.id} 
+                      className={`border-border cursor-pointer transition-all ${selectedCargaId === carga.id ? 'ring-2 ring-primary' : ''}`}
+                      onClick={() => setSelectedCargaId(selectedCargaId === carga.id ? null : carga.id)}
+                    >
+                      <CardContent className="p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="secondary" className="text-xs">{carga.codigo}</Badge>
+                          <Badge variant="outline" className={`${config?.color} border text-xs`}>
+                            {config?.label || entregaStatus}
+                          </Badge>
+                        </div>
+                        <p className="text-sm font-medium line-clamp-1">{carga.descricao}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <MapPin className="w-3 h-3 text-chart-1" />
+                          <span className="truncate">{remetente.cidade}</span>
+                          <ArrowRight className="w-3 h-3" />
+                          <MapPin className="w-3 h-3 text-chart-2" />
+                          <span className="truncate">{destinatario?.cidade || '-'}</span>
+                        </div>
+                        {entrega?.motoristas && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <User className="w-3 h-3 text-primary" />
+                            <span className="truncate">{entrega.motoristas.nome_completo}</span>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Details Dialog */}

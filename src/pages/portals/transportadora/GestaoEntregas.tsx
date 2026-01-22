@@ -693,8 +693,9 @@ export default function GestaoEntregas() {
   );
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex gap-6">
+    <div className="p-4 md:p-8 pb-20 md:pb-8">
+      {/* Desktop Layout - Sidebar + Content */}
+      <div className="hidden lg:flex gap-6">
         {/* Desktop Sidebar: Filters + Stats + Search */}
         <aside className="hidden lg:flex flex-col w-72 shrink-0 gap-4">
           {/* Header */}
@@ -803,116 +804,8 @@ export default function GestaoEntregas() {
           )}
         </aside>
 
-        {/* Mobile Header */}
-        <div className="lg:hidden flex flex-col gap-4 w-full">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Gestão de Entregas</h1>
-              <p className="text-muted-foreground">Rastreie suas entregas em tempo real</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <LiveIndicator />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => refetch()}
-                disabled={isLoading || isFetching}
-              >
-                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </div>
-
-          {/* Mobile Stats */}
-          <div className="grid grid-cols-4 gap-2">
-            <Card className="border-border bg-amber-500/5">
-              <CardContent className="p-2 text-center">
-                <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <Clock className="w-3 h-3 text-amber-600" />
-                </div>
-                <p className="text-lg font-bold text-amber-600">{stats.aguardando_coleta}</p>
-                <p className="text-[8px] text-muted-foreground leading-tight">Aguardando</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-orange-500/5">
-              <CardContent className="p-2 text-center">
-                <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <Route className="w-3 h-3 text-orange-600" />
-                </div>
-                <p className="text-lg font-bold text-orange-600">{stats.em_transito}</p>
-                <p className="text-[8px] text-muted-foreground leading-tight">Em Trânsito</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-purple-500/5">
-              <CardContent className="p-2 text-center">
-                <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <Truck className="w-3 h-3 text-purple-600" />
-                </div>
-                <p className="text-lg font-bold text-purple-600">{stats.em_entrega}</p>
-                <p className="text-[8px] text-muted-foreground leading-tight">Em Entrega</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-destructive/5">
-              <CardContent className="p-2 text-center">
-                <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <AlertCircle className="w-3 h-3 text-destructive" />
-                </div>
-                <p className="text-lg font-bold text-destructive">{stats.problema}</p>
-                <p className="text-[8px] text-muted-foreground leading-tight">Problemas</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex gap-3 w-full">
-            <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="shrink-0">
-                  <Filter className="w-4 h-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80">
-                <SheetHeader>
-                  <SheetTitle>Filtros</SheetTitle>
-                </SheetHeader>
-                <div className="mt-6">
-                  <FiltersContent />
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {selectedStatuses.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {selectedStatuses.map(status => {
-                const config = statusEntregaConfig[status];
-                return (
-                  <Badge
-                    key={status}
-                    variant="outline"
-                    className={`${config?.color || ''} cursor-pointer`}
-                    onClick={() => handleStatusToggle(status)}
-                  >
-                    {config?.label || status}
-                    <X className="w-3 h-3 ml-1" />
-                  </Badge>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Main Content - Map and Table */}
-        <div className="flex-1 space-y-4 min-w-0 hidden lg:block">
+        {/* Desktop Main Content */}
+        <div className="flex-1 space-y-4 min-w-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -1262,111 +1155,169 @@ export default function GestaoEntregas() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Mobile Content - Cards only */}
-        <div className="lg:hidden flex-1 space-y-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      {/* Mobile Layout */}
+      <div className="lg:hidden space-y-4">
+        {/* Mobile Header */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
+              <p className="text-sm text-muted-foreground">Rastreie suas entregas</p>
             </div>
-          ) : filteredEntregas.length === 0 ? (
-            <Card className="border-border">
-              <CardContent className="p-8 text-center">
-                <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-medium text-foreground mb-1">Nenhuma entrega em andamento</h3>
-                <p className="text-sm text-muted-foreground">
-                  {searchTerm ? 'Nenhuma entrega corresponde à busca.' : 'Aceite cargas para começar.'}
-                </p>
+            <div className="flex items-center gap-2">
+              <LiveIndicator />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isLoading || isFetching}
+              >
+                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Mobile Stats */}
+          <div className="grid grid-cols-4 gap-2">
+            <Card className="border-border bg-chart-3/5">
+              <CardContent className="p-2 text-center">
+                <Clock className="w-3 h-3 mx-auto text-chart-3 mb-0.5" />
+                <p className="text-lg font-bold text-chart-3">{stats.aguardando_coleta}</p>
+                <p className="text-[8px] text-muted-foreground">Aguardando</p>
               </CardContent>
             </Card>
-          ) : (
-            <div className="space-y-3">
-              {filteredEntregas.map((entrega) => {
-                const status = entrega.status || 'aguardando_coleta';
-                const config = statusEntregaConfig[status];
-                const StatusIcon = config?.icon || Package;
+            <Card className="border-border bg-chart-4/5">
+              <CardContent className="p-2 text-center">
+                <Route className="w-3 h-3 mx-auto text-chart-4 mb-0.5" />
+                <p className="text-lg font-bold text-chart-4">{stats.em_transito}</p>
+                <p className="text-[8px] text-muted-foreground">Trânsito</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-chart-5/5">
+              <CardContent className="p-2 text-center">
+                <Truck className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
+                <p className="text-lg font-bold text-chart-5">{stats.em_entrega}</p>
+                <p className="text-[8px] text-muted-foreground">Entrega</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-destructive/5">
+              <CardContent className="p-2 text-center">
+                <AlertCircle className="w-3 h-3 mx-auto text-destructive mb-0.5" />
+                <p className="text-lg font-bold text-destructive">{stats.problema}</p>
+                <p className="text-[8px] text-muted-foreground">Problemas</p>
+              </CardContent>
+            </Card>
+          </div>
 
-                return (
-                  <Card key={entrega.id} className="border-border">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <Badge variant="secondary" className="text-xs mb-1">
-                            {entrega.carga.codigo}
-                          </Badge>
-                          <p className="font-medium text-foreground">{entrega.carga.descricao}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {entrega.carga.empresa?.nome} • {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
+          {/* Mobile Search + Filter */}
+          <div className="flex gap-2">
+            <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0">
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80">
+                <SheetHeader>
+                  <SheetTitle>Filtros</SheetTitle>
+                </SheetHeader>
+                <div className="mt-6">
+                  <FiltersContent />
+                </div>
+              </SheetContent>
+            </Sheet>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Map */}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Suspense fallback={
+              <div className="w-full h-[250px] flex items-center justify-center bg-muted/30 rounded-lg">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            }>
+              <div className="h-[250px] rounded-lg overflow-hidden border border-border">
+                <EntregasMapComponent
+                  entregas={mapData}
+                  selectedEntregaId={selectedEntregaId}
+                  onSelectEntrega={setSelectedEntregaId}
+                />
+              </div>
+            </Suspense>
+
+            {/* Mobile Cards List */}
+            {filteredEntregas.length === 0 ? (
+              <Card className="border-border">
+                <CardContent className="p-6 text-center">
+                  <Truck className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                  <h3 className="font-medium text-foreground mb-1">Nenhuma entrega</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {searchTerm ? 'Nenhuma corresponde à busca.' : 'Aceite cargas para começar.'}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {filteredEntregas.map((entrega) => {
+                  const status = entrega.status || 'aguardando_coleta';
+                  const config = statusEntregaConfig[status];
+                  const StatusIcon = config?.icon || Package;
+
+                  return (
+                    <Card 
+                      key={entrega.id} 
+                      className={`border-border cursor-pointer transition-all ${selectedEntregaId === entrega.id ? 'ring-2 ring-primary' : ''}`}
+                      onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
+                    >
+                      <CardContent className="p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="secondary" className="text-xs">{entrega.carga.codigo}</Badge>
+                          <Badge variant="outline" className={`${config?.color} border text-xs gap-1`}>
                             <StatusIcon className="w-3 h-3" />
                             {config?.label || status}
                           </Badge>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem onClick={() => {
-                                setSelectedEntregaForDetails(entrega);
-                                setDetailsDialogOpen(true);
-                              }}>
-                                <FileText className="w-4 h-4 mr-2" />
-                                Ver detalhes
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => handleDeleteClick(entrega)}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Excluir entrega
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-sm mb-3">
-                        <MapPin className="w-4 h-4 text-chart-1 shrink-0" />
-                        <span className="truncate">{entrega.carga.endereco_origem?.cidade}</span>
-                        <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <MapPin className="w-4 h-4 text-chart-2 shrink-0" />
-                        <span className="truncate">{entrega.carga.endereco_destino?.cidade}</span>
-                      </div>
-
-                      {entrega.motorista && (
-                        <div className="flex items-center gap-2 pt-3 border-t border-border">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <User className="w-4 h-4 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{entrega.motorista.nome_completo}</p>
+                        <p className="text-sm font-medium line-clamp-1">{entrega.carga.descricao}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <MapPin className="w-3 h-3 text-chart-1" />
+                          <span className="truncate">{entrega.carga.endereco_origem?.cidade}</span>
+                          <ArrowRight className="w-3 h-3" />
+                          <MapPin className="w-3 h-3 text-chart-2" />
+                          <span className="truncate">{entrega.carga.endereco_destino?.cidade}</span>
+                        </div>
+                        {entrega.motorista && (
+                          <div className="flex items-center gap-2 text-xs pt-2 border-t border-border">
+                            <User className="w-3 h-3 text-primary" />
+                            <span className="truncate">{entrega.motorista.nome_completo}</span>
                             {entrega.veiculo && (
-                              <p className="text-xs text-muted-foreground">{entrega.veiculo.placa}</p>
+                              <span className="text-muted-foreground">• {entrega.veiculo.placa}</span>
                             )}
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 shrink-0 text-primary hover:text-primary"
-                            onClick={() => navigate(`/transportadora/mensagens?entrega=${entrega.id}`)}
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Details Dialog */}
