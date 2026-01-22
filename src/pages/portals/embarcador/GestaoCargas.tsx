@@ -698,32 +698,32 @@ export default function GestaoCargas() {
             />
           </div>
 
-          {/* Stats Cards - 3 status cards */}
+          {/* Stats Cards - 3 status cards with colors */}
           <div className="grid grid-cols-3 gap-2">
-            <Card className="border-border bg-muted/50">
+            <Card className="border-border bg-amber-500/10">
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Package className="w-4 h-4 text-muted-foreground" />
+                  <Package className="w-4 h-4 text-amber-600" />
                 </div>
-                <p className="text-xl font-bold text-muted-foreground">{stats.aguardando_coleta}</p>
+                <p className="text-xl font-bold text-amber-600">{stats.aguardando_coleta}</p>
                 <p className="text-[10px] text-muted-foreground leading-tight">Aguardando Coleta</p>
               </CardContent>
             </Card>
-            <Card className="border-border bg-chart-4/5">
+            <Card className="border-border bg-orange-500/10">
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Truck className="w-4 h-4 text-chart-4" />
+                  <Truck className="w-4 h-4 text-orange-600" />
                 </div>
-                <p className="text-xl font-bold text-chart-4">{stats.em_transito}</p>
+                <p className="text-xl font-bold text-orange-600">{stats.em_transito}</p>
                 <p className="text-[10px] text-muted-foreground leading-tight">Em Trânsito</p>
               </CardContent>
             </Card>
-            <Card className="border-border bg-chart-5/5">
+            <Card className="border-border bg-purple-500/10">
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Navigation className="w-4 h-4 text-chart-5" />
+                  <Navigation className="w-4 h-4 text-purple-600" />
                 </div>
-                <p className="text-xl font-bold text-chart-5">{stats.em_entrega}</p>
+                <p className="text-xl font-bold text-purple-600">{stats.em_entrega}</p>
                 <p className="text-[10px] text-muted-foreground leading-tight">Em Entrega</p>
               </CardContent>
             </Card>
@@ -1158,24 +1158,24 @@ export default function GestaoCargas() {
 
           {/* Mobile Stats */}
           <div className="grid grid-cols-3 gap-2">
-            <Card className="border-border bg-muted/50">
+            <Card className="border-border bg-amber-500/10">
               <CardContent className="p-2 text-center">
-                <Package className="w-3 h-3 mx-auto text-muted-foreground mb-0.5" />
-                <p className="text-lg font-bold text-muted-foreground">{stats.aguardando_coleta}</p>
+                <Package className="w-3 h-3 mx-auto text-amber-600 mb-0.5" />
+                <p className="text-lg font-bold text-amber-600">{stats.aguardando_coleta}</p>
                 <p className="text-[8px] text-muted-foreground">Aguardando</p>
               </CardContent>
             </Card>
-            <Card className="border-border bg-chart-4/5">
+            <Card className="border-border bg-orange-500/10">
               <CardContent className="p-2 text-center">
-                <Truck className="w-3 h-3 mx-auto text-chart-4 mb-0.5" />
-                <p className="text-lg font-bold text-chart-4">{stats.em_transito}</p>
+                <Truck className="w-3 h-3 mx-auto text-orange-600 mb-0.5" />
+                <p className="text-lg font-bold text-orange-600">{stats.em_transito}</p>
                 <p className="text-[8px] text-muted-foreground">Trânsito</p>
               </CardContent>
             </Card>
-            <Card className="border-border bg-chart-5/5">
+            <Card className="border-border bg-purple-500/10">
               <CardContent className="p-2 text-center">
-                <Navigation className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
-                <p className="text-lg font-bold text-chart-5">{stats.em_entrega}</p>
+                <Navigation className="w-3 h-3 mx-auto text-purple-600 mb-0.5" />
+                <p className="text-lg font-bold text-purple-600">{stats.em_entrega}</p>
                 <p className="text-[8px] text-muted-foreground">Entrega</p>
               </CardContent>
             </Card>

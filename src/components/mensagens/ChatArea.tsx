@@ -56,8 +56,11 @@ export function ChatArea({
   // Auto scroll to bottom when chat changes (opening a new conversation)
   useEffect(() => {
     if (chat?.id) {
-      // Small delay to ensure content is rendered
-      setTimeout(scrollToBottom, 100);
+      // Small delay to ensure content is rendered, then scroll to bottom
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 150);
+      return () => clearTimeout(timer);
     }
   }, [chat?.id]);
 
