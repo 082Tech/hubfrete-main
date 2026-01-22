@@ -54,11 +54,14 @@ export default function Mensagens() {
     messages,
     isLoadingChats,
     isLoadingMessages,
+    isLoadingMore,
+    hasMoreMessages,
     isSending,
     currentUserId,
     selectChat,
     selectChatByEntregaId,
     sendMessage,
+    loadMoreMessages,
   } = useChats({ userType: 'embarcador', empresaId });
 
   // Auto-select chat from URL param
@@ -115,10 +118,13 @@ export default function Mensagens() {
             chat={selectedChat}
             messages={messages}
             isLoading={isLoadingMessages}
+            isLoadingMore={isLoadingMore}
+            hasMoreMessages={hasMoreMessages}
             isSending={isSending}
             currentUserId={currentUserId}
             userType="embarcador"
             onSendMessage={sendMessage}
+            onLoadMore={loadMoreMessages}
             onBack={handleBack}
             showBackButton={!showChatList}
           />

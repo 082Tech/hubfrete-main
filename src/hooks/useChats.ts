@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Chat, Mensagem } from '@/components/mensagens/types';
 import { useToast } from '@/hooks/use-toast';
@@ -8,14 +8,19 @@ interface UseChatsOptions {
   empresaId?: number;
 }
 
+const MESSAGES_PER_PAGE = 20;
+
 export function useChats({ userType, empresaId }: UseChatsOptions) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Mensagem[]>([]);
   const [isLoadingChats, setIsLoadingChats] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const messagesOffsetRef = useRef(0);
   const { toast } = useToast();
 
   // Get current user
@@ -141,7 +146,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
             return null;
           }
 
-          // Fetch last message
+          // Fetch last message only (for chat list preview)
           const { data: lastMessage } = await supabase
             .from('mensagens')
             .select('*')
@@ -202,18 +207,28 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     }
   }, [empresaId, userType, currentUserId, toast]);
 
-  // Fetch messages for selected chat
+  // Fetch initial messages for selected chat (last N messages)
   const fetchMessages = useCallback(async (chatId: string) => {
     setIsLoadingMessages(true);
+    setHasMoreMessages(true);
+    messagesOffsetRef.current = 0;
+    
     try {
+      // Fetch last N messages (most recent first for pagination, then reverse for display)
       const { data, error } = await supabase
         .from('mensagens')
         .select('*')
         .eq('chat_id', chatId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .range(0, MESSAGES_PER_PAGE - 1);
 
       if (error) throw error;
-      setMessages((data || []) as Mensagem[]);
+      
+      // Reverse to get chronological order for display
+      const reversedMessages = (data || []).reverse();
+      setMessages(reversedMessages as Mensagem[]);
+      messagesOffsetRef.current = data?.length || 0;
+      setHasMoreMessages((data?.length || 0) >= MESSAGES_PER_PAGE);
 
       // Mark messages as read
       await supabase
@@ -228,6 +243,37 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       setIsLoadingMessages(false);
     }
   }, [currentUserId]);
+
+  // Load more messages (older messages) when scrolling up
+  const loadMoreMessages = useCallback(async () => {
+    if (!selectedChat || isLoadingMore || !hasMoreMessages) return;
+    
+    setIsLoadingMore(true);
+    try {
+      const { data, error } = await supabase
+        .from('mensagens')
+        .select('*')
+        .eq('chat_id', selectedChat.id)
+        .order('created_at', { ascending: false })
+        .range(messagesOffsetRef.current, messagesOffsetRef.current + MESSAGES_PER_PAGE - 1);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // Reverse to get chronological order, prepend to existing messages
+        const olderMessages = data.reverse() as Mensagem[];
+        setMessages(prev => [...olderMessages, ...prev]);
+        messagesOffsetRef.current += data.length;
+        setHasMoreMessages(data.length >= MESSAGES_PER_PAGE);
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [selectedChat, isLoadingMore, hasMoreMessages]);
 
   // Select a chat
   const selectChat = useCallback((chatId: string) => {
@@ -363,11 +409,14 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     messages,
     isLoadingChats,
     isLoadingMessages,
+    isLoadingMore,
+    hasMoreMessages,
     isSending,
     currentUserId,
     selectChat,
     selectChatByEntregaId,
     sendMessage,
+    loadMoreMessages,
     refetchChats: fetchChats,
   };
 }
