@@ -14,7 +14,8 @@ import {
   Shield,
   MapPin,
   Send,
-  Loader2
+  Loader2,
+  Clock
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -52,6 +53,7 @@ interface UsuarioComFiliais {
   cargo: UserRole | null;
   auth_user_id: string | null;
   filiais: { id: number; nome: string | null }[];
+  isPending?: boolean;
 }
 
 const roleLabels: Record<UserRole, string> = {
@@ -140,7 +142,24 @@ export default function UsuariosEmpresa() {
     enabled: !!empresa?.id,
   });
 
-  const filteredUsuarios = usuarios.filter(usuario => 
+  // Combine usuarios with pending invites for display
+  const pendingInviteUsers: UsuarioComFiliais[] = invites
+    .filter(inv => inv.status === 'pending')
+    .map((inv, idx) => ({
+      id: -(idx + 1), // Negative ID to avoid collision
+      nome: inv.email.split('@')[0], // Use email prefix as name
+      email: inv.email,
+      cargo: inv.role as UserRole,
+      auth_user_id: null,
+      filiais: inv.filial_id 
+        ? contextFiliais.filter(f => f.id === inv.filial_id).map(f => ({ id: f.id, nome: f.nome || 'Sem nome' }))
+        : contextFiliais.map(f => ({ id: f.id, nome: f.nome || 'Sem nome' })),
+      isPending: true,
+    }));
+
+  const allUsuarios = [...usuarios, ...pendingInviteUsers];
+
+  const filteredUsuarios = allUsuarios.filter(usuario => 
     (usuario.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
     (usuario.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
     (usuario.cargo && roleLabels[usuario.cargo]?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -350,7 +369,13 @@ export default function UsuariosEmpresa() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-foreground">{usuario.nome || 'Sem nome'}</h3>
-                            {usuario.cargo && (
+                            {usuario.isPending && (
+                              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1">
+                                <Clock className="w-3 h-3" />
+                                Convite Pendente
+                              </Badge>
+                            )}
+                            {usuario.cargo && !usuario.isPending && (
                               <Badge variant="outline" className={roleColors[usuario.cargo]}>
                                 {roleLabels[usuario.cargo]}
                               </Badge>
@@ -371,37 +396,39 @@ export default function UsuariosEmpresa() {
                         </div>
                       </div>
                       
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="shrink-0">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
-                            className="gap-2"
-                            onClick={() => setEditingUser(usuario)}
-                          >
-                            <Edit className="w-4 h-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="gap-2"
-                            onClick={() => setEditingUser(usuario)}
-                          >
-                            <Shield className="w-4 h-4" />
-                            Alterar Permissões
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="gap-2 text-destructive focus:text-destructive"
-                            onClick={() => setDeletingUserId(usuario.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {!usuario.isPending && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="shrink-0">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              className="gap-2"
+                              onClick={() => setEditingUser(usuario)}
+                            >
+                              <Edit className="w-4 h-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="gap-2"
+                              onClick={() => setEditingUser(usuario)}
+                            >
+                              <Shield className="w-4 h-4" />
+                              Alterar Permissões
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="gap-2 text-destructive focus:text-destructive"
+                              onClick={() => setDeletingUserId(usuario.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
