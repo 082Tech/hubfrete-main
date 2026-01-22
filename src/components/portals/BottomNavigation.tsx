@@ -20,6 +20,7 @@ interface NavItem {
 const embarcadorNavItems: NavItem[] = [
   { icon: Home, label: 'Home', href: '/embarcador' },
   { icon: Package, label: 'Cargas', href: '/embarcador/cargas' },
+  { icon: Route, label: 'Entregas', href: '/embarcador/gestao-cargas' },
   { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
 ];
 
