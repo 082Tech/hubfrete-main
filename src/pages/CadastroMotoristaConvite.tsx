@@ -59,8 +59,23 @@ export default function CadastroMotoristaConvite() {
   // Validate link on mount
   useEffect(() => {
     async function validateLink() {
-      if (!linkId) {
+      // Clean the linkId - mobile browsers/apps may add extra characters
+      const cleanLinkId = linkId?.trim().replace(/[^a-zA-Z0-9-]/g, '');
+      
+      console.log('Original linkId:', linkId);
+      console.log('Cleaned linkId:', cleanLinkId);
+      
+      if (!cleanLinkId) {
         setErrorMessage('Link inválido');
+        setPageState('error');
+        return;
+      }
+
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(cleanLinkId)) {
+        console.error('Invalid UUID format:', cleanLinkId);
+        setErrorMessage('Formato de link inválido');
         setPageState('error');
         return;
       }
@@ -69,7 +84,7 @@ export default function CadastroMotoristaConvite() {
         const { data: link, error } = await supabase
           .from('driver_invite_links')
           .select('*')
-          .eq('id', linkId)
+          .eq('id', cleanLinkId)
           .single();
 
         if (error || !link) {
