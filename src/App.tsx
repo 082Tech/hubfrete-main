@@ -81,7 +81,8 @@ const App = () => {
                 <Route path="/admin/torre-controle" element={<TorreControle />} />
                 <Route path="/admin/usuarios" element={<Usuarios />} />
                 <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
-                <Route path="/cadastro/motorista/convite/:linkId" element={<CadastroMotoristaConvite />} />
+                 <Route path="/cadastro/motorista/convite" element={<CadastroMotoristaConvite />} />
+                 <Route path="/cadastro/motorista/convite/:linkId" element={<CadastroMotoristaConvite />} />
                 <Route path="/cadastro/embarcador" element={<CadastroEmbarcador />} />
                 <Route path="/cadastro/transportadora" element={<CadastroTransportadora />} />
                 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,7 @@ const STEPS = [
 export default function CadastroMotoristaConvite() {
   const { linkId } = useParams<{ linkId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const safeDecodeURIComponent = (value: string) => {
     try {
@@ -88,7 +89,15 @@ export default function CadastroMotoristaConvite() {
   // Validate link on mount
   useEffect(() => {
     async function validateLink() {
-      const raw = linkId ?? '';
+      // Support both patterns:
+      // 1) /cadastro/motorista/convite/:linkId
+      // 2) /cadastro/motorista/convite?linkId=... (or ?id=...)
+      const rawFromQuery =
+        searchParams.get('linkId') ??
+        searchParams.get('id') ??
+        searchParams.get('token') ??
+        '';
+      const raw = linkId ?? rawFromQuery;
       const { decoded, uuid } = extractUuidFromPossiblyDirtyText(raw);
 
       console.log('Original linkId:', raw);
@@ -154,7 +163,7 @@ export default function CadastroMotoristaConvite() {
     }
 
     validateLink();
-  }, [linkId]);
+  }, [linkId, searchParams]);
 
   const handlePasswordSubmit = () => {
     if (!linkData) return;
