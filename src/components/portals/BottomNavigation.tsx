@@ -15,11 +15,12 @@ interface NavItem {
   icon: React.ElementType;
   label: string;
   href: string;
+  excludePatterns?: string[];
 }
 
 const embarcadorNavItems: NavItem[] = [
   { icon: Home, label: 'Home', href: '/embarcador' },
-  { icon: Package, label: 'Cargas', href: '/embarcador/cargas' },
+  { icon: Package, label: 'Cargas', href: '/embarcador/cargas', excludePatterns: ['/embarcador/cargas/em-rota'] },
   { icon: Route, label: 'Entregas', href: '/embarcador/cargas/em-rota' },
   { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
 ];
@@ -63,10 +64,19 @@ export function BottomNavigation({ userType, onMenuClick }: BottomNavigationProp
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  const isActive = (href: string) => {
+  const isActive = (item: NavItem) => {
+    const { href, excludePatterns } = item;
+    
+    // Exact match for home
     if (href === `/${userType}`) {
       return location.pathname === href;
     }
+    
+    // Check if current path matches but is excluded by another nav item
+    if (excludePatterns?.some(pattern => location.pathname.startsWith(pattern))) {
+      return false;
+    }
+    
     return location.pathname.startsWith(href);
   };
 
@@ -79,7 +89,7 @@ export function BottomNavigation({ userType, onMenuClick }: BottomNavigationProp
     >
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
-          const active = isActive(item.href);
+          const active = isActive(item);
           return (
             <Link
               key={item.href}
