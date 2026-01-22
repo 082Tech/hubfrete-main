@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PortalLayout } from '@/components/portals/PortalLayout';
+// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { ChatList, ChatArea } from '@/components/mensagens';
 import { useChats } from '@/hooks/useChats';
 import { supabase } from '@/integrations/supabase/client';
@@ -83,8 +83,8 @@ export default function Mensagens() {
   };
 
   return (
-    <PortalLayout expectedUserType="embarcador" fullWidth>
-      <div className="h-screen flex">
+    <div className="h-screen">
+      <div className="h-full flex">
         {/* Chat List - Hidden on mobile when chat is selected */}
         <div className={cn(
           'w-full md:w-80 lg:w-96 shrink-0 h-full',
@@ -117,6 +117,6 @@ export default function Mensagens() {
           />
         </div>
       </div>
-    </PortalLayout>
+    </div>
   );
 }

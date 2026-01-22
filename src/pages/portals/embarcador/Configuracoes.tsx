@@ -1,4 +1,4 @@
-import { PortalLayout } from '@/components/portals/PortalLayout';
+// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -194,7 +194,7 @@ export default function Configuracoes() {
 
   if (loading) {
     return (
-      <PortalLayout expectedUserType="embarcador">
+      <div className="p-4 md:p-8">
         <div className="flex gap-6">
           <div className="w-64 space-y-2">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -207,7 +207,7 @@ export default function Configuracoes() {
             <Skeleton className="h-48 w-full" />
           </div>
         </div>
-      </PortalLayout>
+      </div>
     );
   }
 
@@ -655,7 +655,7 @@ export default function Configuracoes() {
   };
 
   return (
-    <PortalLayout expectedUserType="embarcador">
+    <div className="p-4 md:p-8">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -706,6 +706,6 @@ export default function Configuracoes() {
           </div>
         </div>
       </div>
-    </PortalLayout>
+    </div>
   );
 }

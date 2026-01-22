@@ -1,4 +1,4 @@
-import { PortalLayout } from '@/components/portals/PortalLayout';
+// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -371,16 +371,14 @@ export default function GerenciarFiliais() {
 
   if (contextLoading || loading) {
     return (
-      <PortalLayout expectedUserType="embarcador">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        </div>
-      </PortalLayout>
+      <div className="p-4 md:p-8 flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
   return (
-    <PortalLayout expectedUserType="embarcador">
+    <div className="p-4 md:p-8">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -624,6 +622,6 @@ export default function GerenciarFiliais() {
           </DialogContent>
         </Dialog>
       </div>
-    </PortalLayout>
+    </div>
   );
 }

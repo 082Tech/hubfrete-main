@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PortalLayout } from '@/components/portals/PortalLayout';
+// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -146,7 +146,7 @@ export default function ContatosSalvos() {
   });
 
   return (
-    <PortalLayout expectedUserType="embarcador">
+    <div className="p-4 md:p-8">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -465,6 +465,6 @@ export default function ContatosSalvos() {
           </div>
         </DialogContent>
       </Dialog>
-    </PortalLayout>
+    </div>
   );
 }

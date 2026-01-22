@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { UserContextProvider } from "@/hooks/useUserContext";
 import { SplashScreen } from "@/components/SplashScreen";
+import { PortalLayoutWrapper } from "@/components/portals/PortalLayoutWrapper";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -82,35 +83,38 @@ const App = () => {
                 <Route path="/cadastro/embarcador" element={<CadastroEmbarcador />} />
                 <Route path="/cadastro/transportadora" element={<CadastroTransportadora />} />
                 
-                {/* Portal Embarcador */}
-                <Route path="/embarcador" element={<EmbarcadorDashboard />} />
-                <Route path="/embarcador/cargas" element={<CargasPublicadas />} />
-                <Route path="/embarcador/cargas/em-rota" element={<CargasEmRota />} />
-                <Route path="/embarcador/cargas/historico" element={<HistoricoCargas />} />
-                <Route path="/embarcador/relatorios" element={<Relatorios />} />
-                <Route path="/embarcador/assistente" element={<Assistente />} />
-                <Route path="/embarcador/mensagens" element={<EmbarcadorMensagens />} />
-                <Route path="/embarcador/contatos" element={<ContatosSalvos />} />
-                <Route path="/embarcador/notificacoes" element={<EmbarcadorNotificacoes />} />
+                {/* Portal Embarcador - Nested routes with shared layout */}
+                <Route path="/embarcador" element={<PortalLayoutWrapper expectedUserType="embarcador" />}>
+                  <Route index element={<EmbarcadorDashboard />} />
+                  <Route path="cargas" element={<CargasPublicadas />} />
+                  <Route path="cargas/em-rota" element={<CargasEmRota />} />
+                  <Route path="cargas/historico" element={<HistoricoCargas />} />
+                  <Route path="relatorios" element={<Relatorios />} />
+                  <Route path="assistente" element={<Assistente />} />
+                  <Route path="mensagens" element={<EmbarcadorMensagens />} />
+                  <Route path="contatos" element={<ContatosSalvos />} />
+                  <Route path="notificacoes" element={<EmbarcadorNotificacoes />} />
+                  <Route path="filiais" element={<GerenciarFiliais />} />
+                  <Route path="usuarios" element={<UsuariosEmpresa />} />
+                  <Route path="configuracoes" element={<Configuracoes />} />
+                </Route>
                 
-                <Route path="/embarcador/filiais" element={<GerenciarFiliais />} />
-                <Route path="/embarcador/usuarios" element={<UsuariosEmpresa />} />
-                <Route path="/embarcador/configuracoes" element={<Configuracoes />} />
-                
-                {/* Portal Transportadora */}
-                <Route path="/transportadora" element={<TransportadoraDashboard />} />
-                <Route path="/transportadora/cargas" element={<TransportadoraCargas />} />
-                <Route path="/transportadora/frota" element={<TransportadoraFrota />} />
-                <Route path="/transportadora/motoristas" element={<TransportadoraMotoristas />} />
-                <Route path="/transportadora/entregas" element={<TransportadoraGestaoEntregas />} />
-                <Route path="/transportadora/entregas/historico" element={<TransportadoraHistoricoEntregas />} />
-                <Route path="/transportadora/relatorios" element={<TransportadoraRelatorios />} />
-                <Route path="/transportadora/assistente" element={<TransportadoraAssistente />} />
-                <Route path="/transportadora/mensagens" element={<TransportadoraMensagens />} />
-                <Route path="/transportadora/notificacoes" element={<TransportadoraNotificacoes />} />
-                <Route path="/transportadora/filiais" element={<TransportadoraFiliais />} />
-                <Route path="/transportadora/usuarios" element={<TransportadoraUsuarios />} />
-                <Route path="/transportadora/configuracoes" element={<TransportadoraConfiguracoes />} />
+                {/* Portal Transportadora - Nested routes with shared layout */}
+                <Route path="/transportadora" element={<PortalLayoutWrapper expectedUserType="transportadora" />}>
+                  <Route index element={<TransportadoraDashboard />} />
+                  <Route path="cargas" element={<TransportadoraCargas />} />
+                  <Route path="frota" element={<TransportadoraFrota />} />
+                  <Route path="motoristas" element={<TransportadoraMotoristas />} />
+                  <Route path="entregas" element={<TransportadoraGestaoEntregas />} />
+                  <Route path="entregas/historico" element={<TransportadoraHistoricoEntregas />} />
+                  <Route path="relatorios" element={<TransportadoraRelatorios />} />
+                  <Route path="assistente" element={<TransportadoraAssistente />} />
+                  <Route path="mensagens" element={<TransportadoraMensagens />} />
+                  <Route path="notificacoes" element={<TransportadoraNotificacoes />} />
+                  <Route path="filiais" element={<TransportadoraFiliais />} />
+                  <Route path="usuarios" element={<TransportadoraUsuarios />} />
+                  <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />
+                </Route>
                 
                 {/* Portal Motorista: removido do site (apenas app) */}
                 
