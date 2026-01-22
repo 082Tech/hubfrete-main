@@ -8,7 +8,6 @@ import {
   Route,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { NotificacoesDropdown } from '@/components/notificacoes';
 
 type UserType = 'embarcador' | 'transportadora';
 
@@ -96,11 +95,6 @@ export function BottomNavigation({ userType, onMenuClick }: BottomNavigationProp
             </Link>
           );
         })}
-        
-        {/* Notifications - icon only */}
-        <div className="flex flex-col items-center justify-center flex-1 h-full">
-          <NotificacoesDropdown />
-        </div>
 
         {/* Menu button */}
         <button

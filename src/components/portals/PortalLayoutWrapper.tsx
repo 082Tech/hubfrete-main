@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { NotificacoesProvider } from '@/contexts/NotificacoesContext';
+import { NotificationToast } from '@/components/notificacoes';
 
 export type { UserType };
 
@@ -70,6 +71,9 @@ export function PortalLayoutWrapper({ expectedUserType }: PortalLayoutWrapperPro
   return (
     <NotificacoesProvider>
       <div className="min-h-screen bg-background">
+        {/* Global notification toast */}
+        <NotificationToast />
+        
         {/* Desktop: Show sidebar */}
         {!isMobile && (
           <PortalSidebar 
