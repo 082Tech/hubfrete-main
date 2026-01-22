@@ -72,32 +72,8 @@ const mapOptions: google.maps.MapOptions = {
 // Statuses that indicate the truck has already left the origin
 const showRouteToOriginStatuses = ['aguardando_coleta', 'em_coleta'];
 
-// Generate 3D truck SVG for Google Maps overlay
-function getTruckSvg(heading: number, isOnline: boolean, isSelected: boolean): string {
-  const primaryColor = isSelected ? '#3b82f6' : isOnline ? '#22c55e' : '#6b7280';
-  const shadowColor = isSelected ? 'rgba(59, 130, 246, 0.4)' : isOnline ? 'rgba(34, 197, 94, 0.3)' : 'rgba(0, 0, 0, 0.2)';
-  const cabColor = isSelected ? '#60a5fa' : isOnline ? '#4ade80' : '#9ca3af';
-  const strokeColor = isSelected ? '#1d4ed8' : isOnline ? '#16a34a' : '#4b5563';
-
-  return `
-    <svg viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="20" cy="32" rx="10" ry="4" fill="${shadowColor}" />
-      <rect x="12" y="14" width="16" height="18" rx="2" fill="${primaryColor}" stroke="${strokeColor}" stroke-width="1.5" />
-      <line x1="15" y1="18" x2="25" y2="18" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
-      <line x1="15" y1="22" x2="25" y2="22" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
-      <line x1="15" y1="26" x2="25" y2="26" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
-      <rect x="14" y="6" width="12" height="10" rx="2" fill="${cabColor}" stroke="${strokeColor}" stroke-width="1.5" />
-      <rect x="16" y="7" width="8" height="4" rx="1" fill="rgba(255,255,255,0.6)" />
-      <rect x="10" y="10" width="3" height="2" rx="0.5" fill="${primaryColor}" />
-      <rect x="27" y="10" width="3" height="2" rx="0.5" fill="${primaryColor}" />
-      <circle cx="15" cy="30" r="2.5" fill="#1f2937" stroke="#374151" stroke-width="1" />
-      <circle cx="25" cy="30" r="2.5" fill="#1f2937" stroke="#374151" stroke-width="1" />
-      <circle cx="15" cy="14" r="2" fill="#1f2937" stroke="#374151" stroke-width="1" />
-      <circle cx="25" cy="14" r="2" fill="#1f2937" stroke="#374151" stroke-width="1" />
-      <polygon points="20,2 17,6 23,6" fill="white" stroke="${primaryColor}" stroke-width="0.5" />
-    </svg>
-  `;
-}
+// Import truck icon HTML generator
+import { getTruckIconHtml } from './TruckIcon';
 
 // Driver marker component - shows 3D truck icon with rotation based on heading
 function DriverMarker({ 
@@ -120,7 +96,7 @@ function DriverMarker({
   const isOnline = entrega.motoristaOnline ?? false;
   const isRecent = isRecentUpdate(entrega.lastLocationUpdate);
   const heading = entrega.heading ?? 0;
-  const hasHeading = entrega.heading != null;
+  const truckSize = 48;
 
   if (lat == null || lng == null) return null;
 
@@ -129,15 +105,15 @@ function DriverMarker({
       position={{ lat, lng }}
       mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
       getPixelPositionOffset={() => ({
-        x: -20,
-        y: -20,
+        x: -truckSize / 2,
+        y: -truckSize / 2,
       })}
     >
       <div
         className={`relative cursor-pointer transition-all duration-200 ${isSelected ? 'z-50' : 'z-10'}`}
         style={{
-          width: 40,
-          height: 40,
+          width: truckSize,
+          height: truckSize,
           transform: isSelected ? 'scale(1.25)' : isHovered ? 'scale(1.1)' : 'scale(1)',
         }}
         onClick={(e) => {
@@ -150,50 +126,34 @@ function DriverMarker({
         {/* Pulse animation when ONLINE and recent update */}
         {isOnline && isRecent && (
           <div
-            className="absolute rounded-full bg-green-500/40 animate-ping"
-            style={{ width: 40, height: 40, top: 0, left: 0 }}
+            className="absolute rounded-full animate-ping"
+            style={{ 
+              width: truckSize, 
+              height: truckSize, 
+              top: 0, 
+              left: 0,
+              backgroundColor: 'hsl(var(--primary) / 0.4)'
+            }}
           />
         )}
 
-        {/* 3D Truck Icon with rotation OR Avatar fallback */}
-        {hasHeading ? (
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              transform: `rotate(${heading}deg)`,
-              transition: 'transform 0.5s ease-out',
-              willChange: 'transform',
-              filter: !(isOnline && isRecent) ? 'grayscale(100%) opacity(0.6)' : 'none',
-            }}
-            dangerouslySetInnerHTML={{ __html: getTruckSvg(0, isOnline && isRecent, isSelected) }}
-          />
-        ) : (
-          <div
-            className={
-              `w-10 h-10 rounded-full shadow-lg border-[3px] overflow-hidden ` +
-              (isSelected 
-                ? 'border-primary bg-primary' 
-                : isOnline && isRecent 
-                  ? 'border-green-500 bg-background' 
-                  : 'border-border bg-background')
-            }
-          >
-            {entrega.motoristaFotoUrl ? (
-              <img
-                src={entrega.motoristaFotoUrl}
-                alt={entrega.motorista || 'Motorista'}
-                className={'w-full h-full object-cover ' + (!(isOnline && isRecent) ? 'grayscale opacity-60' : '')}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className={'w-full h-full flex items-center justify-center ' + (!(isOnline && isRecent) ? 'grayscale opacity-60' : '')}>
-                <Truck className={`w-5 h-5 ${isSelected ? 'text-primary-foreground' : 'text-primary'}`} />
-              </div>
-            )}
-          </div>
-        )}
+        {/* 3D Truck Icon - always shown, with avatar badge */}
+        <div
+          style={{
+            width: truckSize,
+            height: truckSize,
+            filter: !(isOnline && isRecent) ? 'grayscale(100%) opacity(0.6)' : 'none',
+          }}
+          dangerouslySetInnerHTML={{ 
+            __html: getTruckIconHtml(
+              heading, 
+              isOnline && isRecent, 
+              isSelected, 
+              truckSize,
+              entrega.motoristaFotoUrl
+            ) 
+          }}
+        />
 
         {/* Label badge when selected */}
         {isSelected && entrega.codigo && (
