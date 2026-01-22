@@ -1,9 +1,20 @@
 import { useState } from 'react';
-import { Search, MessageSquare } from 'lucide-react';
+import { Search, MessageSquare, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChatListItem } from './ChatListItem';
 import { Chat } from './types';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+
+// Finalized delivery statuses
+const FINALIZED_STATUSES = ['entregue', 'devolvida', 'cancelada', 'problema'];
 
 interface ChatListProps {
   chats: Chat[];
@@ -15,8 +26,21 @@ interface ChatListProps {
 
 export function ChatList({ chats, selectedChatId, onSelectChat, isLoading, userType }: ChatListProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showFinalized, setShowFinalized] = useState(false);
+
+  // Count finalized chats
+  const finalizedCount = chats.filter(chat => 
+    chat.entrega?.status && FINALIZED_STATUSES.includes(chat.entrega.status)
+  ).length;
+
+  const activeCount = chats.length - finalizedCount;
 
   const filteredChats = chats.filter(chat => {
+    // First filter by finalized status
+    const isFinalized = chat.entrega?.status && FINALIZED_STATUSES.includes(chat.entrega.status);
+    if (!showFinalized && isFinalized) return false;
+    
+    // Then filter by search term
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     
@@ -36,8 +60,43 @@ export function ChatList({ chats, selectedChatId, onSelectChat, isLoading, userT
   return (
     <div className="flex flex-col h-full bg-card border-r border-border">
       {/* Header */}
-      <div className="p-4 border-b border-border">
-        <h2 className="text-lg font-semibold mb-3">Conversas</h2>
+      <div className="p-4 border-b border-border shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Conversas</h2>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                <Filter className="h-3.5 w-3.5" />
+                <span className="text-xs">Filtro</span>
+                {showFinalized && (
+                  <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                    Todas
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuCheckboxItem
+                checked={!showFinalized}
+                onCheckedChange={() => setShowFinalized(false)}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span>Entregas ativas</span>
+                  <Badge variant="secondary" className="text-xs ml-2">{activeCount}</Badge>
+                </div>
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showFinalized}
+                onCheckedChange={() => setShowFinalized(true)}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span>Todas as conversas</span>
+                  <Badge variant="secondary" className="text-xs ml-2">{chats.length}</Badge>
+                </div>
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -67,10 +126,18 @@ export function ChatList({ chats, selectedChatId, onSelectChat, isLoading, userT
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <MessageSquare className="h-12 w-12 text-muted-foreground mb-3" />
             <p className="text-muted-foreground">
-              {searchTerm ? 'Nenhuma conversa encontrada' : 'Nenhuma conversa ainda'}
+              {searchTerm ? 'Nenhuma conversa encontrada' : showFinalized ? 'Nenhuma conversa ainda' : 'Nenhuma entrega ativa'}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              {!searchTerm && 'As conversas aparecerão aqui quando houver entregas'}
+              {!searchTerm && !showFinalized && finalizedCount > 0 && (
+                <button 
+                  onClick={() => setShowFinalized(true)}
+                  className="text-primary hover:underline"
+                >
+                  Ver {finalizedCount} conversa{finalizedCount > 1 ? 's' : ''} finalizada{finalizedCount > 1 ? 's' : ''}
+                </button>
+              )}
+              {!searchTerm && showFinalized && 'As conversas aparecerão aqui quando houver entregas'}
             </p>
           </div>
         ) : (
