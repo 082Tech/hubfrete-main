@@ -43,6 +43,7 @@ import {
   Car,
   FileText,
   CheckCircle,
+  ImageOff,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -384,6 +385,60 @@ export default function MinhaFrota() {
       toast.error('Erro ao fazer upload da foto');
     } finally {
       setUploadingPhoto(null);
+    }
+  };
+
+  // Handle photo removal for vehicle
+  const handleRemoveVehiclePhoto = async (veiculoId: string, fotoUrl: string | null) => {
+    if (!fotoUrl) return;
+    
+    try {
+      // Extract file path from URL
+      const urlParts = fotoUrl.split('/fotos-frota/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1];
+        await supabase.storage.from('fotos-frota').remove([filePath]);
+      }
+
+      const { error } = await supabase
+        .from('veiculos')
+        .update({ foto_url: null })
+        .eq('id', veiculoId);
+
+      if (error) throw error;
+
+      toast.success('Foto removida com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['veiculos_transportadora'] });
+    } catch (error) {
+      console.error('Erro ao remover foto:', error);
+      toast.error('Erro ao remover foto');
+    }
+  };
+
+  // Handle photo removal for carroceria
+  const handleRemoveCarroceriaPhoto = async (carroceriaId: string, fotoUrl: string | null) => {
+    if (!fotoUrl) return;
+    
+    try {
+      // Extract file path from URL
+      const urlParts = fotoUrl.split('/fotos-frota/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1];
+        await supabase.storage.from('fotos-frota').remove([filePath]);
+      }
+
+      const { error } = await supabase
+        .from('carrocerias')
+        .update({ foto_url: null })
+        .eq('id', carroceriaId);
+
+      if (error) throw error;
+
+      toast.success('Foto removida com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
+    } catch (error) {
+      console.error('Erro ao remover foto:', error);
+      toast.error('Erro ao remover foto');
     }
   };
 
@@ -1329,6 +1384,12 @@ export default function MinhaFrota() {
                               <Upload className="w-4 h-4 mr-2" />
                               {veiculo.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
                             </DropdownMenuItem>
+                            {veiculo.foto_url && (
+                              <DropdownMenuItem onClick={() => handleRemoveVehiclePhoto(veiculo.id, veiculo.foto_url)}>
+                                <ImageOff className="w-4 h-4 mr-2" />
+                                Remover Foto
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
                               <Edit className="w-4 h-4 mr-2" />
                               Editar
@@ -1557,6 +1618,12 @@ export default function MinhaFrota() {
                               <Upload className="w-4 h-4 mr-2" />
                               {carroceria.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
                             </DropdownMenuItem>
+                            {carroceria.foto_url && (
+                              <DropdownMenuItem onClick={() => handleRemoveCarroceriaPhoto(carroceria.id, carroceria.foto_url)}>
+                                <ImageOff className="w-4 h-4 mr-2" />
+                                Remover Foto
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => setEditingCarroceria(carroceria)}>
                               <Edit className="w-4 h-4 mr-2" />
                               Editar
