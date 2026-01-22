@@ -21,6 +21,7 @@ import {
   Car,
   Container,
   Link2,
+  Share2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -39,6 +40,7 @@ import { format, isValid, parseISO } from 'date-fns';
 import { MotoristaFormDialog } from '@/components/motoristas/MotoristaFormDialog';
 import { MotoristaEditDialog } from '@/components/motoristas/MotoristaEditDialog';
 import { MotoristaVinculosDialog } from '@/components/motoristas/MotoristaVinculosDialog';
+import { DriverInviteLinksDialog } from '@/components/motoristas/DriverInviteLinksDialog';
 import { 
   MotoristaCompleto, 
   VeiculoSimples, 
@@ -54,6 +56,7 @@ export default function Motoristas() {
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isVinculosDialogOpen, setIsVinculosDialogOpen] = useState(false);
+  const [isInviteLinksDialogOpen, setIsInviteLinksDialogOpen] = useState(false);
   const [selectedMotorista, setSelectedMotorista] = useState<MotoristaCompleto | null>(null);
 
   // Fetch motoristas
@@ -212,10 +215,16 @@ export default function Motoristas() {
             <h1 className="text-3xl font-bold text-foreground">Motoristas</h1>
             <p className="text-muted-foreground">Gerencie os motoristas da sua transportadora</p>
           </div>
-          <Button className="gap-2" onClick={() => setIsFormDialogOpen(true)}>
-            <Plus className="w-4 h-4" />
-            Novo Motorista
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setIsInviteLinksDialogOpen(true)}>
+              <Share2 className="w-4 h-4" />
+              Link de Convite
+            </Button>
+            <Button className="gap-2" onClick={() => setIsFormDialogOpen(true)}>
+              <Plus className="w-4 h-4" />
+              Novo Motorista
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -393,6 +402,12 @@ export default function Motoristas() {
         motorista={selectedMotorista}
         veiculosDisponiveis={veiculosDisponiveis}
         carroceriasDisponiveis={carroceriasDisponiveis}
+      />
+
+      <DriverInviteLinksDialog
+        open={isInviteLinksDialogOpen}
+        onOpenChange={setIsInviteLinksDialogOpen}
+        empresaId={empresa?.id || 0}
       />
     </div>
   );

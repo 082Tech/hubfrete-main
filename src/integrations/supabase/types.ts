@@ -532,6 +532,48 @@ export type Database = {
           },
         ]
       }
+      driver_invite_links: {
+        Row: {
+          ativo: boolean
+          codigo_acesso: string
+          created_at: string
+          created_by: string
+          empresa_id: number
+          expira_em: string
+          id: string
+          max_usos: number
+          nome_link: string | null
+          updated_at: string
+          usos_realizados: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_acesso: string
+          created_at?: string
+          created_by: string
+          empresa_id: number
+          expira_em: string
+          id?: string
+          max_usos?: number
+          nome_link?: string | null
+          updated_at?: string
+          usos_realizados?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo_acesso?: string
+          created_at?: string
+          created_by?: string
+          empresa_id?: number
+          expira_em?: string
+          id?: string
+          max_usos?: number
+          nome_link?: string | null
+          updated_at?: string
+          usos_realizados?: number
+        }
+        Relationships: []
+      }
       empresas: {
         Row: {
           classe: Database["public"]["Enums"]["classe_empresa"]

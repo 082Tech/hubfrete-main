@@ -18,6 +18,7 @@ import Dashboard from "./pages/Dashboard";
 import TorreControle from "./pages/admin/TorreControle";
 import Usuarios from "./pages/admin/Usuarios";
 import CadastroMotorista from "./pages/CadastroMotorista";
+import CadastroMotoristaConvite from "./pages/CadastroMotoristaConvite";
 import CadastroEmbarcador from "./pages/CadastroEmbarcador";
 import CadastroTransportadora from "./pages/CadastroTransportadora";
 import EmbarcadorDashboard from "./pages/portals/EmbarcadorDashboard";
@@ -80,6 +81,7 @@ const App = () => {
                 <Route path="/admin/torre-controle" element={<TorreControle />} />
                 <Route path="/admin/usuarios" element={<Usuarios />} />
                 <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
+                <Route path="/cadastro/motorista/convite/:linkId" element={<CadastroMotoristaConvite />} />
                 <Route path="/cadastro/embarcador" element={<CadastroEmbarcador />} />
                 <Route path="/cadastro/transportadora" element={<CadastroTransportadora />} />
                 
