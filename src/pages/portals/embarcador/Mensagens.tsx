@@ -83,11 +83,11 @@ export default function Mensagens() {
   };
 
   return (
-    <div className="h-screen">
-      <div className="h-full flex">
+    <div className="fixed inset-0 md:relative md:h-screen flex flex-col overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Chat List - Hidden on mobile when chat is selected */}
         <div className={cn(
-          'w-full md:w-80 lg:w-96 shrink-0 h-full',
+          'w-full md:w-80 lg:w-96 shrink-0 h-full overflow-hidden',
           !showChatList && 'hidden md:block'
         )}>
           <ChatList
@@ -101,7 +101,7 @@ export default function Mensagens() {
 
         {/* Chat Area - Hidden on mobile when chat list is shown */}
         <div className={cn(
-          'flex-1 h-full',
+          'flex-1 h-full overflow-hidden',
           showChatList && 'hidden md:flex'
         )}>
           <ChatArea
