@@ -76,7 +76,7 @@ export function MacBookSlideshow() {
                 <img 
                   src={showcaseScreens[currentIndex].image}
                   alt={showcaseScreens[currentIndex].title}
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-full object-contain object-left-top"
                 />
               </motion.div>
             </AnimatePresence>
