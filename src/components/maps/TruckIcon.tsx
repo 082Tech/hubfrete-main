@@ -5,22 +5,26 @@ interface TruckIconProps {
   isOnline?: boolean;
   isSelected?: boolean;
   size?: number;
+  avatarUrl?: string | null;
   className?: string;
 }
 
 /**
  * Top-down 3D-style truck icon that can rotate based on heading.
- * Similar to Uber's vehicle icons.
+ * Similar to Uber's vehicle icons. Avatar shown as small badge on top-right.
  */
 export function TruckIcon({ 
   heading = 0, 
   isOnline = false, 
   isSelected = false,
-  size = 40,
+  size = 48,
+  avatarUrl,
   className = ''
 }: TruckIconProps) {
   const rotation = heading ?? 0;
   const primaryColor = isSelected ? '#3b82f6' : isOnline ? '#22c55e' : '#6b7280';
+  const cabColor = isSelected ? '#60a5fa' : isOnline ? '#4ade80' : '#9ca3af';
+  const strokeColor = isSelected ? '#1d4ed8' : isOnline ? '#16a34a' : '#4b5563';
   const shadowColor = isSelected ? 'rgba(59, 130, 246, 0.4)' : isOnline ? 'rgba(34, 197, 94, 0.3)' : 'rgba(0, 0, 0, 0.2)';
   
   return (
@@ -29,138 +33,193 @@ export function TruckIcon({
       style={{ 
         width: size, 
         height: size,
-        transform: `rotate(${rotation}deg)`,
-        transition: 'transform 0.5s ease-out',
-        willChange: 'transform'
       }}
     >
-      <svg
-        viewBox="0 0 40 40"
-        width={size}
-        height={size}
-        xmlns="http://www.w3.org/2000/svg"
+      {/* Rotatable truck container */}
+      <div
+        style={{
+          width: size,
+          height: size,
+          transform: `rotate(${rotation}deg)`,
+          transition: 'transform 0.5s ease-out',
+          willChange: 'transform',
+        }}
       >
-        {/* Shadow for 3D effect */}
-        <ellipse
-          cx="20"
-          cy="32"
-          rx="10"
-          ry="4"
-          fill={shadowColor}
-        />
-        
-        {/* Truck body - trailer/cargo area */}
-        <rect
-          x="12"
-          y="14"
-          width="16"
-          height="18"
-          rx="2"
-          fill={primaryColor}
-          stroke={isSelected ? '#1d4ed8' : isOnline ? '#16a34a' : '#4b5563'}
-          strokeWidth="1.5"
-        />
-        
-        {/* Cargo lines for detail */}
-        <line x1="15" y1="18" x2="25" y2="18" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-        <line x1="15" y1="22" x2="25" y2="22" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-        <line x1="15" y1="26" x2="25" y2="26" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-        
-        {/* Cab (front of truck - pointing up/north) */}
-        <rect
-          x="14"
-          y="6"
-          width="12"
-          height="10"
-          rx="2"
-          fill={isSelected ? '#60a5fa' : isOnline ? '#4ade80' : '#9ca3af'}
-          stroke={isSelected ? '#1d4ed8' : isOnline ? '#16a34a' : '#4b5563'}
-          strokeWidth="1.5"
-        />
-        
-        {/* Windshield */}
-        <rect
-          x="16"
-          y="7"
-          width="8"
-          height="4"
-          rx="1"
-          fill="rgba(255,255,255,0.6)"
-        />
-        
-        {/* Side mirrors */}
-        <rect x="10" y="10" width="3" height="2" rx="0.5" fill={primaryColor} />
-        <rect x="27" y="10" width="3" height="2" rx="0.5" fill={primaryColor} />
-        
-        {/* Wheels */}
-        <circle cx="15" cy="30" r="2.5" fill="#1f2937" stroke="#374151" strokeWidth="1" />
-        <circle cx="25" cy="30" r="2.5" fill="#1f2937" stroke="#374151" strokeWidth="1" />
-        <circle cx="15" cy="14" r="2" fill="#1f2937" stroke="#374151" strokeWidth="1" />
-        <circle cx="25" cy="14" r="2" fill="#1f2937" stroke="#374151" strokeWidth="1" />
-        
-        {/* Direction indicator arrow at top */}
-        <polygon
-          points="20,2 17,6 23,6"
-          fill="white"
-          stroke={primaryColor}
-          strokeWidth="0.5"
-        />
-      </svg>
+        <svg
+          viewBox="0 0 48 48"
+          width={size}
+          height={size}
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Shadow for 3D effect */}
+          <ellipse
+            cx="24"
+            cy="40"
+            rx="14"
+            ry="5"
+            fill={shadowColor}
+          />
+          
+          {/* Truck body - trailer/cargo area */}
+          <rect
+            x="12"
+            y="18"
+            width="24"
+            height="20"
+            rx="3"
+            fill={primaryColor}
+            stroke={strokeColor}
+            strokeWidth="2"
+          />
+          
+          {/* Cargo horizontal lines for detail */}
+          <line x1="16" y1="24" x2="32" y2="24" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
+          <line x1="16" y1="30" x2="32" y2="30" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
+          
+          {/* Cab (front of truck - pointing up/north) - more rounded */}
+          <rect
+            x="15"
+            y="6"
+            width="18"
+            height="14"
+            rx="4"
+            fill={cabColor}
+            stroke={strokeColor}
+            strokeWidth="2"
+          />
+          
+          {/* Windshield - curved appearance */}
+          <rect
+            x="18"
+            y="8"
+            width="12"
+            height="6"
+            rx="2"
+            fill="rgba(255,255,255,0.7)"
+          />
+          
+          {/* Windshield reflection */}
+          <rect
+            x="19"
+            y="9"
+            width="4"
+            height="4"
+            rx="1"
+            fill="rgba(255,255,255,0.4)"
+          />
+          
+          {/* Side mirrors */}
+          <ellipse cx="10" cy="12" rx="3" ry="2" fill={cabColor} stroke={strokeColor} strokeWidth="1" />
+          <ellipse cx="38" cy="12" rx="3" ry="2" fill={cabColor} stroke={strokeColor} strokeWidth="1" />
+          
+          {/* Front wheels */}
+          <ellipse cx="16" cy="18" rx="3" ry="2" fill="#1f2937" stroke="#374151" strokeWidth="1" />
+          <ellipse cx="32" cy="18" rx="3" ry="2" fill="#1f2937" stroke="#374151" strokeWidth="1" />
+          
+          {/* Rear wheels (dual) */}
+          <ellipse cx="15" cy="36" rx="3.5" ry="2.5" fill="#1f2937" stroke="#374151" strokeWidth="1" />
+          <ellipse cx="33" cy="36" rx="3.5" ry="2.5" fill="#1f2937" stroke="#374151" strokeWidth="1" />
+          
+          {/* Wheel shine */}
+          <ellipse cx="15" cy="35" rx="1" ry="0.5" fill="rgba(255,255,255,0.3)" />
+          <ellipse cx="33" cy="35" rx="1" ry="0.5" fill="rgba(255,255,255,0.3)" />
+        </svg>
+      </div>
+
+      {/* Avatar badge - top right, counter-rotated to stay upright */}
+      {avatarUrl && (
+        <div
+          className="absolute border-2 border-background rounded-full overflow-hidden shadow-md"
+          style={{
+            width: size * 0.38,
+            height: size * 0.38,
+            top: -2,
+            right: -2,
+            transform: `rotate(${-rotation}deg)`,
+            transition: 'transform 0.5s ease-out',
+          }}
+        >
+          <img
+            src={avatarUrl}
+            alt="Motorista"
+            className="w-full h-full object-cover"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 /**
- * Generate SVG HTML string for use with Leaflet DivIcon
+ * Generate SVG HTML string for use with Leaflet DivIcon or Google Maps OverlayView
  */
-export function getTruckIconSvg(
+export function getTruckIconHtml(
   heading: number = 0,
   isOnline: boolean = false,
   isSelected: boolean = false,
-  size: number = 40
+  size: number = 48,
+  avatarUrl?: string | null
 ): string {
   const primaryColor = isSelected ? '#3b82f6' : isOnline ? '#22c55e' : '#6b7280';
   const shadowColor = isSelected ? 'rgba(59, 130, 246, 0.4)' : isOnline ? 'rgba(34, 197, 94, 0.3)' : 'rgba(0, 0, 0, 0.2)';
   const cabColor = isSelected ? '#60a5fa' : isOnline ? '#4ade80' : '#9ca3af';
   const strokeColor = isSelected ? '#1d4ed8' : isOnline ? '#16a34a' : '#4b5563';
+  const avatarSize = Math.round(size * 0.38);
+
+  const avatarHtml = avatarUrl ? `
+    <div style="
+      position: absolute;
+      width: ${avatarSize}px;
+      height: ${avatarSize}px;
+      top: -2px;
+      right: -2px;
+      border: 2px solid white;
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transform: rotate(${-heading}deg);
+      transition: transform 0.5s ease-out;
+    ">
+      <img 
+        src="${avatarUrl}" 
+        alt="Motorista" 
+        style="width: 100%; height: 100%; object-fit: cover;"
+        loading="lazy"
+        referrerpolicy="no-referrer"
+      />
+    </div>
+  ` : '';
 
   return `
-    <svg
-      viewBox="0 0 40 40"
-      width="${size}"
-      height="${size}"
-      xmlns="http://www.w3.org/2000/svg"
-      style="transform: rotate(${heading}deg); transition: transform 0.5s ease-out;"
-    >
-      <!-- Shadow for 3D effect -->
-      <ellipse cx="20" cy="32" rx="10" ry="4" fill="${shadowColor}" />
-      
-      <!-- Truck body - trailer/cargo area -->
-      <rect x="12" y="14" width="16" height="18" rx="2" fill="${primaryColor}" stroke="${strokeColor}" stroke-width="1.5" />
-      
-      <!-- Cargo lines for detail -->
-      <line x1="15" y1="18" x2="25" y2="18" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
-      <line x1="15" y1="22" x2="25" y2="22" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
-      <line x1="15" y1="26" x2="25" y2="26" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
-      
-      <!-- Cab (front of truck - pointing up/north) -->
-      <rect x="14" y="6" width="12" height="10" rx="2" fill="${cabColor}" stroke="${strokeColor}" stroke-width="1.5" />
-      
-      <!-- Windshield -->
-      <rect x="16" y="7" width="8" height="4" rx="1" fill="rgba(255,255,255,0.6)" />
-      
-      <!-- Side mirrors -->
-      <rect x="10" y="10" width="3" height="2" rx="0.5" fill="${primaryColor}" />
-      <rect x="27" y="10" width="3" height="2" rx="0.5" fill="${primaryColor}" />
-      
-      <!-- Wheels -->
-      <circle cx="15" cy="30" r="2.5" fill="#1f2937" stroke="#374151" stroke-width="1" />
-      <circle cx="25" cy="30" r="2.5" fill="#1f2937" stroke="#374151" stroke-width="1" />
-      <circle cx="15" cy="14" r="2" fill="#1f2937" stroke="#374151" stroke-width="1" />
-      <circle cx="25" cy="14" r="2" fill="#1f2937" stroke="#374151" stroke-width="1" />
-      
-      <!-- Direction indicator arrow at top -->
-      <polygon points="20,2 17,6 23,6" fill="white" stroke="${primaryColor}" stroke-width="0.5" />
-    </svg>
+    <div style="position: relative; width: ${size}px; height: ${size}px;">
+      <div style="
+        width: ${size}px;
+        height: ${size}px;
+        transform: rotate(${heading}deg);
+        transition: transform 0.5s ease-out;
+        will-change: transform;
+      ">
+        <svg viewBox="0 0 48 48" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="24" cy="40" rx="14" ry="5" fill="${shadowColor}" />
+          <rect x="12" y="18" width="24" height="20" rx="3" fill="${primaryColor}" stroke="${strokeColor}" stroke-width="2" />
+          <line x1="16" y1="24" x2="32" y2="24" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" />
+          <line x1="16" y1="30" x2="32" y2="30" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" />
+          <rect x="15" y="6" width="18" height="14" rx="4" fill="${cabColor}" stroke="${strokeColor}" stroke-width="2" />
+          <rect x="18" y="8" width="12" height="6" rx="2" fill="rgba(255,255,255,0.7)" />
+          <rect x="19" y="9" width="4" height="4" rx="1" fill="rgba(255,255,255,0.4)" />
+          <ellipse cx="10" cy="12" rx="3" ry="2" fill="${cabColor}" stroke="${strokeColor}" stroke-width="1" />
+          <ellipse cx="38" cy="12" rx="3" ry="2" fill="${cabColor}" stroke="${strokeColor}" stroke-width="1" />
+          <ellipse cx="16" cy="18" rx="3" ry="2" fill="#1f2937" stroke="#374151" stroke-width="1" />
+          <ellipse cx="32" cy="18" rx="3" ry="2" fill="#1f2937" stroke="#374151" stroke-width="1" />
+          <ellipse cx="15" cy="36" rx="3.5" ry="2.5" fill="#1f2937" stroke="#374151" stroke-width="1" />
+          <ellipse cx="33" cy="36" rx="3.5" ry="2.5" fill="#1f2937" stroke="#374151" stroke-width="1" />
+          <ellipse cx="15" cy="35" rx="1" ry="0.5" fill="rgba(255,255,255,0.3)" />
+          <ellipse cx="33" cy="35" rx="1" ry="0.5" fill="rgba(255,255,255,0.3)" />
+        </svg>
+      </div>
+      ${avatarHtml}
+    </div>
   `;
 }
