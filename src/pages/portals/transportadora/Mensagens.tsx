@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-
 import { ChatList, ChatArea } from '@/components/mensagens';
 import { useChats } from '@/hooks/useChats';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { createChatsForExistingEntregas } from '@/lib/chatService';
+import { useChatView } from '@/contexts/ChatViewContext';
 
 export default function TransportadoraMensagens() {
   const [searchParams] = useSearchParams();
@@ -13,9 +13,16 @@ export default function TransportadoraMensagens() {
   const [showChatList, setShowChatList] = useState(true);
   const hasCreatedChats = useRef(false);
   const hasAutoSelected = useRef(false);
+  const { setIsInChatView } = useChatView();
 
   // Get entrega ID from URL params
   const entregaIdFromUrl = searchParams.get('entrega');
+
+  // Update chat view state when showing/hiding chat
+  useEffect(() => {
+    setIsInChatView(!showChatList);
+    return () => setIsInChatView(false);
+  }, [showChatList, setIsInChatView]);
 
   // Get empresa_id for current user
   useEffect(() => {

@@ -35,9 +35,10 @@ const transportadoraNavItems: NavItem[] = [
 interface BottomNavigationProps {
   userType: UserType;
   onMenuClick: () => void;
+  hidden?: boolean;
 }
 
-export function BottomNavigation({ userType, onMenuClick }: BottomNavigationProps) {
+export function BottomNavigation({ userType, onMenuClick, hidden }: BottomNavigationProps) {
   const location = useLocation();
   const navItems = userType === 'embarcador' ? embarcadorNavItems : transportadoraNavItems;
   const [isVisible, setIsVisible] = useState(true);
@@ -79,6 +80,9 @@ export function BottomNavigation({ userType, onMenuClick }: BottomNavigationProp
     
     return location.pathname.startsWith(href);
   };
+
+  // Hide completely when hidden prop is true
+  if (hidden) return null;
 
   return (
     <nav 
