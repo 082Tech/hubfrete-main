@@ -224,16 +224,12 @@ function DriverMarker({
               </div>
             )}
 
-            {/* Phone */}
+            {/* Phone (not clickable) */}
             {entrega.telefone && (
-              <a
-                href={`tel:${entrega.telefone}`}
-                className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium mb-3"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
                 <Phone className="w-3.5 h-3.5" />
                 {entrega.telefone}
-              </a>
+              </div>
             )}
 
             {/* Last update footer */}
