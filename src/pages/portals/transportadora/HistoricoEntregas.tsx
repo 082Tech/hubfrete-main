@@ -34,6 +34,7 @@ import {
   Clock,
   Ban,
   Route,
+  FileText,
 } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
@@ -55,6 +56,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
+import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { useNavigate } from 'react-router-dom';
 import { GoogleMapsLoader, airbnbMapStyles } from '@/components/maps/GoogleMapsLoader';
 import { GoogleMap } from '@react-google-maps/api';
@@ -69,6 +71,7 @@ interface EntregaHistorico {
   entregue_em: string | null;
   peso_alocado_kg: number | null;
   valor_frete: number | null;
+  cte_url: string | null;
   motorista: {
     id: string;
     nome_completo: string;
@@ -126,6 +129,8 @@ export default function HistoricoEntregas() {
   const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
   const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+  const [ctePreviewUrl, setCtePreviewUrl] = useState<string | null>(null);
+  const [ctePreviewOpen, setCtePreviewOpen] = useState(false);
 
   const { data: entregas = [], isLoading } = useQuery({
     queryKey: ['historico_entregas_transportadora', empresa?.id],
@@ -152,6 +157,7 @@ export default function HistoricoEntregas() {
           entregue_em,
           peso_alocado_kg,
           valor_frete,
+          cte_url,
           motorista:motoristas(id, nome_completo, telefone),
           veiculo:veiculos(placa, tipo),
           carga:cargas(
@@ -355,6 +361,12 @@ export default function HistoricoEntregas() {
                         </div>
                       </TableHead>
                       <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
+                      <TableHead className="font-semibold min-w-[80px]">
+                        <div className="flex items-center gap-1">
+                          <FileText className="w-3 h-3" />
+                          CT-e
+                        </div>
+                      </TableHead>
                       <TableHead className="font-semibold min-w-[110px]">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
@@ -367,13 +379,13 @@ export default function HistoricoEntregas() {
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
+                        <TableCell colSpan={10} className="py-10 text-center text-muted-foreground">
                           Carregando...
                         </TableCell>
                       </TableRow>
                     ) : filtered.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
+                        <TableCell colSpan={10} className="py-10 text-center text-muted-foreground">
                           <div className="flex flex-col items-center gap-2">
                             <Package className="w-10 h-10 text-muted-foreground/50" />
                             <p>Nenhum registro encontrado.</p>
@@ -478,6 +490,25 @@ export default function HistoricoEntregas() {
                                 {config?.label || status}
                               </Badge>
                             </TableCell>
+                            <TableCell>
+                              {e.cte_url ? (
+                                <Badge 
+                                  className="bg-green-500/10 text-green-600 border-green-500/20 cursor-pointer gap-1"
+                                  onClick={() => {
+                                    setCtePreviewUrl(e.cte_url);
+                                    setCtePreviewOpen(true);
+                                  }}
+                                >
+                                  <FileText className="w-3 h-3" />
+                                  CT-e
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1">
+                                  <FileText className="w-3 h-3" />
+                                  Sem CT-e
+                                </Badge>
+                              )}
+                            </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {new Date(e.entregue_em || e.updated_at || Date.now()).toLocaleDateString('pt-BR', {
                                 day: '2-digit',
@@ -497,21 +528,30 @@ export default function HistoricoEntregas() {
                                     <MessageCircle className="w-4 h-4 mr-2" />
                                     Ver conversa
                                   </DropdownMenuItem>
-                                                  <DropdownMenuItem onClick={() => handleOpenDetails(e)}>
-                                                    <Eye className="w-4 h-4 mr-2" />
-                                                    Ver detalhes
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuItem onClick={() => {
-                                                    setTrackingMapEntregaId(e.id);
-                                                    setTrackingMapInfo({
-                                                      motorista: e.motorista?.nome_completo || 'Motorista',
-                                                      placa: e.veiculo?.placa || '-',
-                                                    });
-                                                  }}>
-                                                    <Route className="w-4 h-4 mr-2" />
-                                                    Ver histórico no mapa
-                                                  </DropdownMenuItem>
-                                                </DropdownMenuContent>
+                                  <DropdownMenuItem onClick={() => handleOpenDetails(e)}>
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Ver detalhes
+                                  </DropdownMenuItem>
+                                  {e.cte_url && (
+                                    <DropdownMenuItem onClick={() => {
+                                      setCtePreviewUrl(e.cte_url);
+                                      setCtePreviewOpen(true);
+                                    }}>
+                                      <FileText className="w-4 h-4 mr-2" />
+                                      Ver CT-e
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem onClick={() => {
+                                    setTrackingMapEntregaId(e.id);
+                                    setTrackingMapInfo({
+                                      motorista: e.motorista?.nome_completo || 'Motorista',
+                                      placa: e.veiculo?.placa || '-',
+                                    });
+                                  }}>
+                                    <Route className="w-4 h-4 mr-2" />
+                                    Ver histórico no mapa
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
                           </TableRow>
@@ -646,6 +686,14 @@ export default function HistoricoEntregas() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* CT-e Preview Dialog */}
+        <FilePreviewDialog
+          open={ctePreviewOpen}
+          onOpenChange={setCtePreviewOpen}
+          fileUrl={ctePreviewUrl}
+          title="CT-e"
+        />
       </TooltipProvider>
     </div>
   );
