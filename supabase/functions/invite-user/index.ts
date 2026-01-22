@@ -163,7 +163,7 @@ serve(async (req: Request): Promise<Response> => {
       .from("company_invites")
       .select("id, status")
       .eq("email", email.toLowerCase().trim())
-      .eq("company_id", company_id)
+      .eq("company_id", empresaId)
       .eq("status", "pending")
       .maybeSingle();
 
