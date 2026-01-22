@@ -42,6 +42,35 @@ const STEPS = [
 export default function CadastroMotoristaConvite() {
   const { linkId } = useParams<{ linkId: string }>();
   const navigate = useNavigate();
+
+  const safeDecodeURIComponent = (value: string) => {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  };
+
+  const extractUuidFromPossiblyDirtyText = (value: string) => {
+    // Common issues on mobile/WhatsApp:
+    // - zero-width chars
+    // - unicode dashes (– — − etc.)
+    // - percent-encoded values
+    const decoded = safeDecodeURIComponent(value)
+      .trim()
+      .normalize('NFKC')
+      // zero-width / BOM
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      // unicode hyphens/dashes -> ASCII '-'
+      .replace(/[\u2010-\u2015\u2212\uFE63\uFF0D]/g, '-');
+
+    const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+    const match = decoded.match(uuidRegex);
+    return {
+      decoded,
+      uuid: match?.[0] ?? null,
+    };
+  };
   
   const [pageState, setPageState] = useState<'loading' | 'password' | 'form' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
@@ -59,23 +88,15 @@ export default function CadastroMotoristaConvite() {
   // Validate link on mount
   useEffect(() => {
     async function validateLink() {
-      // Clean the linkId - mobile browsers/apps may add extra characters
-      const cleanLinkId = linkId?.trim().replace(/[^a-zA-Z0-9-]/g, '');
-      
-      console.log('Original linkId:', linkId);
-      console.log('Cleaned linkId:', cleanLinkId);
-      
-      if (!cleanLinkId) {
-        setErrorMessage('Link inválido');
-        setPageState('error');
-        return;
-      }
+      const raw = linkId ?? '';
+      const { decoded, uuid } = extractUuidFromPossiblyDirtyText(raw);
 
-      // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(cleanLinkId)) {
-        console.error('Invalid UUID format:', cleanLinkId);
-        setErrorMessage('Formato de link inválido');
+      console.log('Original linkId:', raw);
+      console.log('Decoded/normalized linkId:', decoded);
+      console.log('Extracted UUID:', uuid);
+
+      if (!uuid) {
+        setErrorMessage('Link inválido');
         setPageState('error');
         return;
       }
@@ -84,7 +105,7 @@ export default function CadastroMotoristaConvite() {
         const { data: link, error } = await supabase
           .from('driver_invite_links')
           .select('*')
-          .eq('id', cleanLinkId)
+          .eq('id', uuid)
           .single();
 
         if (error || !link) {
