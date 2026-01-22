@@ -1,4 +1,3 @@
-// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +7,10 @@ import {
   Users, 
   Search,
   Mail,
-  Phone,
   Edit,
   Trash2,
   MoreVertical,
   UserCheck,
-  UserX,
   Shield,
   MapPin,
   Send,
@@ -27,10 +24,22 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { InviteUserDialog } from '@/components/users/InviteUserDialog';
+import { EditUserDialog } from '@/components/users/EditUserDialog';
+import { ManageInvitesCard } from '@/components/users/ManageInvitesCard';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
 
@@ -60,7 +69,8 @@ export default function UsuariosEmpresa() {
   const { empresa, filiais: contextFiliais } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-
+  const [editingUser, setEditingUser] = useState<UsuarioComFiliais | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
 
   // Fetch usuarios from the company
   const { data: usuarios = [], isLoading: loadingUsuarios, refetch: refetchUsuarios } = useQuery({
@@ -68,7 +78,6 @@ export default function UsuariosEmpresa() {
     queryFn: async () => {
       if (!empresa?.id) return [];
 
-      // First get all usuarios_filiais for this empresa
       const { data: usuariosFiliais, error: ufError } = await supabase
         .from('usuarios_filiais')
         .select(`
@@ -81,12 +90,10 @@ export default function UsuariosEmpresa() {
 
       if (ufError) throw ufError;
 
-      // Get unique usuario_ids
       const usuarioIds = [...new Set(usuariosFiliais?.map(uf => uf.usuario_id).filter(Boolean))];
       
       if (usuarioIds.length === 0) return [];
 
-      // Fetch usuarios data
       const { data: usuariosData, error: uError } = await supabase
         .from('usuarios')
         .select('id, nome, email, cargo, auth_user_id')
@@ -94,7 +101,6 @@ export default function UsuariosEmpresa() {
 
       if (uError) throw uError;
 
-      // Combine data
       const result: UsuarioComFiliais[] = (usuariosData || []).map(u => {
         const userFiliais = usuariosFiliais
           ?.filter(uf => uf.usuario_id === u.id)
@@ -103,7 +109,6 @@ export default function UsuariosEmpresa() {
             nome: (uf.filiais as any)?.nome || null,
           })) || [];
 
-        // Get cargo from usuarios_filiais if not set on usuario
         const cargoFromFilial = usuariosFiliais?.find(uf => uf.usuario_id === u.id)?.cargo_na_filial;
 
         return {
@@ -126,11 +131,11 @@ export default function UsuariosEmpresa() {
       const { data, error } = await supabase
         .from('company_invites')
         .select('*')
-        .eq('company_id', String(empresa.id))
+        .eq('company_id', empresa.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data.map(inv => ({ ...inv, id: String(inv.id) }));
     },
     enabled: !!empresa?.id,
   });
@@ -141,19 +146,14 @@ export default function UsuariosEmpresa() {
     (usuario.cargo && roleLabels[usuario.cargo]?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleToggleStatus = (userId: number) => {
-    toast.info('Funcionalidade em desenvolvimento');
-  };
-
-  const handleDelete = async (userId: number) => {
-    if (!confirm('Tem certeza que deseja remover este usuário?')) return;
+  const handleDelete = async () => {
+    if (!deletingUserId) return;
     
     try {
-      // Remove from usuarios_filiais first
       const { error: ufError } = await supabase
         .from('usuarios_filiais')
         .delete()
-        .eq('usuario_id', userId);
+        .eq('usuario_id', deletingUserId);
 
       if (ufError) throw ufError;
 
@@ -162,6 +162,8 @@ export default function UsuariosEmpresa() {
     } catch (error) {
       console.error('Erro ao remover usuário:', error);
       toast.error('Erro ao remover usuário');
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -209,27 +211,42 @@ export default function UsuariosEmpresa() {
           />
         )}
 
+        {/* Edit Dialog */}
+        <EditUserDialog
+          open={!!editingUser}
+          onOpenChange={(open) => !open && setEditingUser(null)}
+          usuario={editingUser}
+          filiais={contextFiliais.map(f => ({ id: f.id, nome: f.nome || 'Sem nome' }))}
+          onSuccess={() => {
+            refetchUsuarios();
+            setEditingUser(null);
+          }}
+        />
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deletingUserId} onOpenChange={(open) => !open && setDeletingUserId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover Usuário</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja remover este usuário da empresa? 
+                Ele perderá acesso a todas as filiais associadas.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Remover
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Pending Invites */}
-        {invites.filter(i => i.status === 'pending').length > 0 && (
-          <Card className="border-amber-500/30 bg-amber-500/5">
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
-                <Mail className="w-4 h-4 text-amber-600" />
-                Convites Pendentes
-              </h3>
-              <div className="space-y-2">
-                {invites.filter(i => i.status === 'pending').map((invite) => (
-                  <div key={invite.id} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{invite.email}</span>
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-                      Aguardando
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <ManageInvitesCard 
+          invites={invites} 
+          onRefresh={refetchInvites} 
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -361,18 +378,24 @@ export default function UsuariosEmpresa() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2">
+                          <DropdownMenuItem 
+                            className="gap-2"
+                            onClick={() => setEditingUser(usuario)}
+                          >
                             <Edit className="w-4 h-4" />
                             Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
+                          <DropdownMenuItem 
+                            className="gap-2"
+                            onClick={() => setEditingUser(usuario)}
+                          >
                             <Shield className="w-4 h-4" />
                             Alterar Permissões
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             className="gap-2 text-destructive focus:text-destructive"
-                            onClick={() => handleDelete(usuario.id)}
+                            onClick={() => setDeletingUserId(usuario.id)}
                           >
                             <Trash2 className="w-4 h-4" />
                             Excluir

@@ -1,6 +1,11 @@
 // Types for Motorista CRUD
 
 export interface MotoristaFormData {
+  // Credenciais de Acesso (para app mobile)
+  auth_email: string;
+  auth_password: string;
+  auth_password_confirm: string;
+  
   // Etapa 1: Dados Pessoais
   nome_completo: string;
   cpf: string;
@@ -192,6 +197,9 @@ export const tipoCarroceriaLabels: Record<string, string> = {
 };
 
 export const getInitialFormData = (): MotoristaFormData => ({
+  auth_email: '',
+  auth_password: '',
+  auth_password_confirm: '',
   nome_completo: '',
   cpf: '',
   email: '',
