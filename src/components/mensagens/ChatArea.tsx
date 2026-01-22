@@ -274,14 +274,21 @@ export function ChatArea({
         )}
       </ScrollArea>
 
-      {/* Finalized Message Banner - iFood style */}
+      {/* Finalized Message Card - iFood style (inside chat area) */}
       {isDeliveryFinalized && finalizedInfo && (
-        <div className={cn('p-4 border-t border-border', finalizedInfo.bgColor)}>
-          <div className="flex items-center justify-center gap-3">
-            <finalizedInfo.icon className={cn('h-5 w-5', finalizedInfo.color)} />
-            <div className="text-center">
-              <p className={cn('font-medium', finalizedInfo.color)}>{finalizedInfo.title}</p>
-              <p className="text-xs text-muted-foreground">{finalizedInfo.subtitle}</p>
+        <div className="p-4 md:p-6 shrink-0">
+          <div className="bg-card border border-border rounded-2xl shadow-sm p-4 md:p-6 max-w-sm mx-auto">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className={cn('p-3 rounded-full', finalizedInfo.bgColor)}>
+                <finalizedInfo.icon className={cn('h-6 w-6', finalizedInfo.color)} />
+              </div>
+              <div>
+                <p className={cn('font-semibold text-base', finalizedInfo.color)}>{finalizedInfo.title}</p>
+                <p className="text-sm text-muted-foreground mt-1">{finalizedInfo.subtitle}</p>
+              </div>
+              <p className="text-xs text-muted-foreground/70 mt-2">
+                Esta conversa foi encerrada automaticamente.
+              </p>
             </div>
           </div>
         </div>
