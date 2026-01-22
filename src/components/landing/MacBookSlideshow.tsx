@@ -1,115 +1,33 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, TrendingUp, Truck, MapPin, Package } from 'lucide-react';
 
-// Showcase screen data with visual mockups
+// Showcase screens with real screenshots
 const showcaseScreens = [
   { 
     id: 1, 
     title: 'Cargas Disponíveis',
     subtitle: 'Visualize e aceite cargas publicadas',
-    icon: Package,
-    color: 'from-primary/20 to-primary/5',
-    accent: 'bg-primary'
+    image: '/image.png'
   },
   { 
     id: 2, 
     title: 'Cargas Publicadas',
     subtitle: 'Gerencie suas cargas ativas',
-    icon: TrendingUp,
-    color: 'from-emerald-500/20 to-emerald-500/5',
-    accent: 'bg-emerald-500'
+    image: '/image-2.png'
   },
   { 
     id: 3, 
     title: 'Relatórios',
     subtitle: 'Analise o desempenho das operações',
-    icon: TrendingUp,
-    color: 'from-amber-500/20 to-amber-500/5',
-    accent: 'bg-amber-500'
+    image: '/image-3.png'
   },
   { 
     id: 4, 
-    title: 'Cargas em Rota',
+    title: 'Gestão de Entregas',
     subtitle: 'Acompanhe entregas em tempo real',
-    icon: Truck,
-    color: 'from-sky-500/20 to-sky-500/5',
-    accent: 'bg-sky-500'
+    image: '/image-4.png'
   },
 ];
-
-// Visual mockup component
-function ScreenMockup({ screen }: { screen: typeof showcaseScreens[0] }) {
-  const Icon = screen.icon;
-  
-  return (
-    <div className={`w-full h-full bg-gradient-to-br ${screen.color} flex flex-col`}>
-      {/* Sidebar mockup */}
-      <div className="flex h-full">
-        <div className="w-14 lg:w-16 bg-card/80 border-r border-border/30 flex flex-col items-center py-4 gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-            <div className="w-4 h-4 rounded bg-primary" />
-          </div>
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className={`w-6 h-6 rounded ${i === 1 ? 'bg-primary/30' : 'bg-muted/50'}`} />
-          ))}
-        </div>
-        
-        {/* Main content area */}
-        <div className="flex-1 p-4 lg:p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4 lg:mb-6">
-            <div>
-              <div className="h-4 lg:h-5 w-32 lg:w-48 bg-foreground/80 rounded mb-2" />
-              <div className="h-2.5 lg:h-3 w-48 lg:w-64 bg-muted-foreground/30 rounded" />
-            </div>
-            <div className="flex gap-2">
-              <div className="h-8 w-20 rounded-lg bg-muted/60" />
-              <div className={`h-8 w-24 rounded-lg ${screen.accent}`} />
-            </div>
-          </div>
-          
-          {/* Stats cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 mb-4 lg:mb-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="p-2.5 lg:p-4 rounded-lg bg-card/90 border border-border/40">
-                <div className="h-2 w-12 bg-muted-foreground/30 rounded mb-2" />
-                <div className={`h-4 lg:h-6 w-10 lg:w-14 rounded ${i === 0 ? screen.accent : 'bg-foreground/70'}`} />
-              </div>
-            ))}
-          </div>
-          
-          {/* Main content - table/list mockup */}
-          <div className="rounded-xl bg-card/90 border border-border/40 p-3 lg:p-4">
-            <div className="flex gap-4 lg:gap-6 mb-3 lg:mb-4 border-b border-border/30 pb-2 lg:pb-3">
-              {['Código', 'Origem', 'Destino', 'Status'].map((col, i) => (
-                <div key={col} className={`h-2.5 rounded bg-muted-foreground/40 ${i === 0 ? 'w-16' : i === 3 ? 'w-12' : 'w-20'}`} />
-              ))}
-            </div>
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex items-center gap-4 lg:gap-6 py-2 lg:py-3 border-b border-border/20 last:border-0">
-                <div className={`h-2.5 w-20 lg:w-24 rounded ${screen.accent}/60`} />
-                <div className="h-2.5 w-16 lg:w-24 rounded bg-muted-foreground/30" />
-                <div className="h-2.5 w-16 lg:w-24 rounded bg-muted-foreground/30" />
-                <div className={`h-5 lg:h-6 w-16 lg:w-20 rounded-full ${i === 0 ? screen.accent : 'bg-muted/60'}`} />
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Right panel - map mockup */}
-        <div className="hidden lg:block w-1/3 bg-muted/30 border-l border-border/30 p-4">
-          <div className="h-full rounded-xl bg-gradient-to-b from-sky-100/50 to-emerald-100/50 dark:from-sky-900/20 dark:to-emerald-900/20 flex items-center justify-center">
-            <div className="text-center">
-              <MapPin className="w-8 h-8 text-primary mx-auto mb-2" />
-              <div className="h-2 w-24 bg-muted-foreground/20 rounded mx-auto" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function MacBookSlideshow() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -145,7 +63,7 @@ export function MacBookSlideshow() {
           </div>
           
           {/* Screen content area */}
-          <div className="relative rounded-lg overflow-hidden bg-background aspect-[16/10]">
+          <div className="relative rounded-lg overflow-hidden bg-neutral-900 aspect-[16/10]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentIndex}
@@ -155,12 +73,16 @@ export function MacBookSlideshow() {
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.6, ease: 'easeInOut' }}
               >
-                <ScreenMockup screen={showcaseScreens[currentIndex]} />
+                <img 
+                  src={showcaseScreens[currentIndex].image}
+                  alt={showcaseScreens[currentIndex].title}
+                  className="w-full h-full object-cover object-top"
+                />
               </motion.div>
             </AnimatePresence>
             
             {/* Subtle screen reflection */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
           </div>
         </div>
         
