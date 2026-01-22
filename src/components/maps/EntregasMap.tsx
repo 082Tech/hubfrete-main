@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Phone, Truck, MapPin, Navigation, Route, Loader2, Clock } from 'lucide-react';
+import { Phone, Truck, MapPin, Navigation, Route, Loader2, Clock, Package } from 'lucide-react';
 import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
 
 // Helper function to format timestamp to readable date/time
@@ -510,142 +510,95 @@ export function EntregasMap({
                   click: () => !isIdle && handleMarkerClick(entrega),
                 }}
               >
-                {/* Tooltip on hover */}
+                {/* Detailed tooltip on hover - no popup on click */}
                 <Tooltip 
                   direction="top" 
-                  offset={[0, -12]} 
-                  opacity={0.95}
+                  offset={[0, -20]} 
+                  opacity={1}
                   permanent={false}
+                  className="!bg-white !border !border-gray-200 !rounded-xl !shadow-2xl !p-0"
                 >
-                  <div className="text-xs min-w-[160px]">
-                    <div className="flex items-start gap-2 mb-2">
-                      {/* Driver avatar in tooltip */}
+                  <div className="p-4 min-w-[260px] max-w-[300px]">
+                    {/* Header with avatar and name */}
+                    <div className="flex items-start gap-3 mb-3">
                       {entrega.motoristaFotoUrl ? (
                         <img
                           src={entrega.motoristaFotoUrl}
                           alt={entrega.motorista || 'Motorista'}
-                          className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                          className="w-11 h-11 rounded-full object-cover border-2 border-gray-100 flex-shrink-0"
                           loading="lazy"
                           referrerPolicy="no-referrer"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 border border-gray-300">
-                          <span className="text-[10px] font-semibold text-gray-500">
+                        <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 border-2 border-gray-200">
+                          <span className="text-sm font-bold text-gray-500">
                             {(entrega.motorista || 'M').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                           </span>
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        {entrega.motorista && (
-                          <div className="font-medium text-gray-800 truncate">{entrega.motorista}</div>
-                        )}
-                        {entrega.placa && (
-                          <div className="text-gray-500">{entrega.placa}</div>
-                        )}
-                      </div>
-                    </div>
-                    {entrega.codigo && (
-                      <div className="font-bold mb-1">{entrega.codigo}</div>
-                    )}
-                    <div 
-                      className="mt-1 px-1.5 py-0.5 rounded text-white text-center"
-                      style={{ backgroundColor: color }}
-                    >
-                      {label}
-                    </div>
-                    {entrega.lastLocationUpdate && (
-                      <div className="mt-1 text-gray-500 text-center">
-                        {formatTimestamp(entrega.lastLocationUpdate)}
-                      </div>
-                    )}
-                  </div>
-                </Tooltip>
-                
-                {/* Popup on click - more details */}
-                <Popup>
-                  <div className="min-w-[220px] p-1">
-                    {/* Header with avatar */}
-                    <div className="flex items-start gap-3 mb-3 pb-2 border-b border-gray-200">
-                      {entrega.motoristaFotoUrl ? (
-                        <img
-                          src={entrega.motoristaFotoUrl}
-                          alt={entrega.motorista || 'Motorista'}
-                          className="w-10 h-10 rounded-full object-cover border-2 border-primary/20 flex-shrink-0"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 border-2 border-gray-200">
-                          <span className="text-sm font-semibold text-gray-500">
-                            {(entrega.motorista || 'M').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
-                          </span>
+                        <div className="text-sm font-bold text-gray-900 truncate">
+                          {entrega.motorista || 'Motorista'}
                         </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-foreground truncate">{entrega.motorista || 'Motorista'}</div>
                         {entrega.placa && (
-                          <div className="text-sm text-muted-foreground">{entrega.placa}</div>
+                          <div className="text-xs text-gray-500 font-medium mt-0.5">
+                            {entrega.placa}
+                          </div>
                         )}
+                        {/* Status badge */}
                         <span 
-                          className="inline-block text-xs px-2 py-0.5 rounded-full text-white mt-1"
+                          className="inline-block text-[10px] px-2 py-0.5 rounded-full text-white mt-1.5 font-medium"
                           style={{ backgroundColor: color }}
                         >
                           {label}
                         </span>
                       </div>
                     </div>
-                    
-                    {entrega.codigo && (
-                      <div className="text-sm mb-2">
-                        <span className="text-muted-foreground">Código:</span>{' '}
-                        <span className="font-medium text-foreground">{entrega.codigo}</span>
-                      </div>
-                    )}
-                    
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {entrega.descricao}
-                    </p>
-                    
+
+                    {/* Cargo info section */}
+                    <div className="space-y-2 mb-3 pb-3 border-b border-gray-200">
+                      {/* Cargo code */}
+                      {entrega.codigo && (
+                        <div className="text-xs">
+                          <span className="text-gray-500">Código: </span>
+                          <span className="font-semibold text-gray-900">{entrega.codigo}</span>
+                        </div>
+                      )}
+                      
+                      {/* Cargo description */}
+                      {entrega.descricao && (
+                        <div className="flex items-start gap-1.5 text-xs">
+                          <Package className="w-3 h-3 mt-0.5 flex-shrink-0 text-gray-400" />
+                          <span className="text-gray-800 line-clamp-2">{entrega.descricao}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Destination */}
                     {entrega.destino && (
-                      <div className="flex items-center gap-2 text-sm mb-2">
-                        <MapPin className="w-3 h-3 text-primary shrink-0" />
-                        <span className="text-foreground">{entrega.destino}</span>
-                      </div>
-                    )}
-                    
-                    {entrega.telefone && (
-                      <a 
-                        href={`tel:${entrega.telefone}`}
-                        className="flex items-center gap-2 text-sm text-primary hover:underline mb-2"
-                      >
-                        <Phone className="w-3 h-3" />
-                        {entrega.telefone}
-                      </a>
-                    )}
-                    
-                    {entrega.lastLocationUpdate && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 pt-1 border-t border-border">
-                        <Clock className="w-3 h-3" />
-                        <span>Última atualização: {formatTimestamp(entrega.lastLocationUpdate)}</span>
+                      <div className="flex items-start gap-1.5 text-xs text-gray-500 mb-3">
+                        <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-blue-500" />
+                        <span className="text-gray-800 line-clamp-2">{entrega.destino}</span>
                       </div>
                     )}
 
-                    {!isSelected && entrega.origemCoords && entrega.destinoCoords && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full mt-2 gap-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMarkerClick(entrega);
-                        }}
-                      >
-                        <Route className="w-3 h-3" />
-                        Ver rota
-                      </Button>
+                    {/* Phone (not clickable) */}
+                    {entrega.telefone && (
+                      <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-3">
+                        <Phone className="w-3.5 h-3.5 text-gray-400" />
+                        {entrega.telefone}
+                      </div>
                     )}
+
+                    {/* Last update footer */}
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-gray-200">
+                      <Clock className={`w-3.5 h-3.5 ${isRecent ? 'text-green-500' : 'text-gray-400'}`} />
+                      <span className={`text-xs ${isRecent ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
+                        Última atualização: {formatTimestamp(entrega.lastLocationUpdate || Date.now())}
+                      </span>
+                    </div>
                   </div>
-                </Popup>
+                </Tooltip>
               </Marker>
             );
           })}
