@@ -141,7 +141,7 @@ export function MobileMenuSheet({ open, onOpenChange, userType }: MobileMenuShee
         </SheetHeader>
 
         {/* Company Info */}
-        <div className="p-4 bg-muted/30 shrink-0">
+        <div className="px-4 py-0 bg-muted/30 shrink-0">
           <div className="flex items-center gap-3">
             {empresa?.logo_url ? (
               <img
