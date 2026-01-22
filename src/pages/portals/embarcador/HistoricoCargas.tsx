@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { PortalLayout } from '@/components/portals/PortalLayout';
+// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -567,7 +567,7 @@ export default function HistoricoCargas() {
   };
 
   return (
-    <PortalLayout expectedUserType="embarcador">
+    <div className="p-4 md:p-8">
       <TooltipProvider>
         <div className="space-y-6 p-1">
           {/* Header */}
@@ -1002,6 +1002,6 @@ export default function HistoricoCargas() {
           </DialogContent>
         </Dialog>
       </TooltipProvider>
-    </PortalLayout>
+    </div>
   );
 }

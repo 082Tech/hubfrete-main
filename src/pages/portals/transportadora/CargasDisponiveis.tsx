@@ -1,4 +1,4 @@
-import { PortalLayout } from '@/components/portals/PortalLayout';
+// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -732,7 +732,7 @@ export default function CargasDisponiveis() {
   };
 
   return (
-    <PortalLayout expectedUserType="transportadora">
+    <div className="p-4 md:p-8">
       <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -1426,6 +1426,6 @@ export default function CargasDisponiveis() {
           </DialogContent>
         </Dialog>
       </div>
-    </PortalLayout>
+    </div>
   );
 }

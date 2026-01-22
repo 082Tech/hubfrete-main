@@ -1,4 +1,4 @@
-import { PortalLayout } from '@/components/portals/PortalLayout';
+// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -400,7 +400,7 @@ export default function Relatorios() {
   };
 
   return (
-    <PortalLayout expectedUserType="embarcador">
+    <div className="p-4 md:p-8">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -887,6 +887,6 @@ export default function Relatorios() {
           </>
         )}
       </div>
-    </PortalLayout>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { PortalLayout } from '@/components/portals/PortalLayout';
+// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -172,7 +172,7 @@ export default function EmbarcadorDashboard() {
   };
 
   return (
-    <PortalLayout expectedUserType="embarcador">
+    <div className="p-4 md:p-8">
       <div className="space-y-6">
         {/* Welcome Header */}
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
@@ -421,6 +421,6 @@ export default function EmbarcadorDashboard() {
           </a>
         </Card>
       </div>
-    </PortalLayout>
+    </div>
   );
 }

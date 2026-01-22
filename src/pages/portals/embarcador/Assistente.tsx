@@ -6,7 +6,7 @@ import { AnimatedBackground } from "@/components/ai-assistant/AnimatedBackground
 import { sendMessage, getOrCreateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
 import { Sparkles, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { PortalLayout } from "@/components/portals/PortalLayout";
+// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Button } from "@/components/ui/button";
 import { useUserContext } from "@/hooks/useUserContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -76,9 +76,9 @@ export default function Assistente() {
   };
 
   return (
-    <PortalLayout expectedUserType="embarcador">
+    <>
       {/* Full height container without scroll */}
-      <div className="relative h-[100dvh] -m-8 overflow-hidden flex">
+      <div className="relative h-[100dvh] overflow-hidden flex">
         {/* Animated Background */}
         <AnimatedBackground />
         
@@ -288,6 +288,6 @@ export default function Assistente() {
           </div>
         </div>
       </div>
-    </PortalLayout>
+    </>
   );
 }

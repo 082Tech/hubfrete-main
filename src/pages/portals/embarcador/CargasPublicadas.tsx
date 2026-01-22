@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useUserContext } from '@/hooks/useUserContext';
-import { PortalLayout } from '@/components/portals/PortalLayout';
+// Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -676,7 +676,7 @@ export default function CargasPublicadas() {
   };
 
   return (
-    <PortalLayout expectedUserType="embarcador">
+    <div className="p-4 md:p-8">
       <TooltipProvider>
         <div className="space-y-6 p-1">
           {/* Header */}
@@ -1326,6 +1326,6 @@ export default function CargasPublicadas() {
           </AlertDialogContent>
         </AlertDialog>
       </TooltipProvider>
-    </PortalLayout>
+    </div>
   );
 }
