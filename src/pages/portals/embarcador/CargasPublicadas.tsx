@@ -476,6 +476,17 @@ export default function CargasPublicadas() {
     return new Date(date).toLocaleDateString('pt-BR');
   };
 
+  // Calculate total freight from all deliveries
+  const getTotalFrete = (carga: CargaData) => {
+    return carga.entregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
+  };
+
+  // Calculate estimated total freight based on valor_frete_tonelada
+  const getFreteEstimado = (carga: CargaData) => {
+    if (!carga.valor_frete_tonelada) return null;
+    return (carga.peso_kg / 1000) * carga.valor_frete_tonelada;
+  };
+
   // Stats - only for non-finalized cargas
   const activeCargas = useMemo(() => cargas.filter(c => !allEntregasFinalized(c)), [cargas]);
   
@@ -496,18 +507,7 @@ export default function CargasPublicadas() {
       freteEstimadoTotal,
       freteAlocadoTotal,
     };
-  }, [activeCargas]);
-
-  // Calculate total freight from all deliveries
-  const getTotalFrete = (carga: CargaData) => {
-    return carga.entregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
-  };
-
-  // Calculate estimated total freight based on valor_frete_tonelada
-  const getFreteEstimado = (carga: CargaData) => {
-    if (!carga.valor_frete_tonelada) return null;
-    return (carga.peso_kg / 1000) * carga.valor_frete_tonelada;
-  };
+  }, [activeCargas, getTotalFrete]);
 
   // Handle delete cargo
   const handleDeleteCarga = async () => {
