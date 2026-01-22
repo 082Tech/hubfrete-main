@@ -7,7 +7,6 @@ import {
   Clock, 
   CheckCircle,
   ArrowUpRight,
-  Loader2,
   DollarSign,
   MapPin,
   MessageCircle,
@@ -26,6 +25,7 @@ import { useUserContext } from '@/hooks/useUserContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { Input } from '@/components/ui/input';
 import { startOfMonth, endOfMonth, parseISO, subDays } from 'date-fns';
 import { useMemo, useState } from 'react';
@@ -203,10 +203,9 @@ export default function EmbarcadorDashboard() {
           <div className="lg:col-span-2 space-y-6">
             {/* Stats Cards */}
             {isLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
+              <DashboardSkeleton />
             ) : (
+              <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatsCard
                   title="Cargas Ativas"
@@ -235,10 +234,8 @@ export default function EmbarcadorDashboard() {
                   color="chart2"
                 />
               </div>
-            )}
 
-            {/* Summary Cards */}
-            {!isLoading && (
+              {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/embarcador/cargas')}>
                   <CardContent className="p-5 flex items-center gap-4">
@@ -267,6 +264,7 @@ export default function EmbarcadorDashboard() {
                   </CardContent>
                 </Card>
               </div>
+            </>
             )}
 
             {/* Quick Actions */}
