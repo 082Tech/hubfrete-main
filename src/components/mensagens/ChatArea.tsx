@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Package, ChevronRight, ArrowLeft, Info, CheckCircle2, Ban, AlertTriangle, RotateCcw } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { Send, Package, ChevronRight, ArrowLeft, CheckCircle2, Ban, AlertTriangle, RotateCcw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,10 +19,13 @@ interface ChatAreaProps {
   chat: Chat | null;
   messages: Mensagem[];
   isLoading: boolean;
+  isLoadingMore?: boolean;
+  hasMoreMessages?: boolean;
   isSending: boolean;
   currentUserId: string;
   userType: 'embarcador' | 'transportadora';
   onSendMessage: (content: string) => void;
+  onLoadMore?: () => void;
   onBack?: () => void;
   showBackButton?: boolean;
 }
@@ -31,10 +34,13 @@ export function ChatArea({
   chat, 
   messages, 
   isLoading, 
+  isLoadingMore = false,
+  hasMoreMessages = false,
   isSending,
   currentUserId,
   userType,
   onSendMessage,
+  onLoadMore,
   onBack,
   showBackButton 
 }: ChatAreaProps) {
@@ -42,34 +48,92 @@ export function ChatArea({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const prevMessagesLengthRef = useRef(0);
+  const isInitialLoadRef = useRef(true);
+  const prevScrollHeightRef = useRef(0);
+
+  // Get scroll container
+  const getScrollContainer = useCallback(() => {
+    if (!scrollRef.current) return null;
+    return scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+  }, []);
 
   // Scroll to bottom function
-  const scrollToBottom = () => {
-    if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
+  const scrollToBottom = useCallback(() => {
+    const scrollContainer = getScrollContainer();
+    if (scrollContainer) {
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
-  };
+  }, [getScrollContainer]);
 
-  // Auto scroll to bottom when chat changes (opening a new conversation)
+  // Handle scroll for loading more messages
+  const handleScroll = useCallback(() => {
+    if (!onLoadMore || isLoadingMore || !hasMoreMessages) return;
+    
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+
+    // Load more when scrolled near top (threshold: 100px from top)
+    if (scrollContainer.scrollTop < 100) {
+      prevScrollHeightRef.current = scrollContainer.scrollHeight;
+      onLoadMore();
+    }
+  }, [onLoadMore, isLoadingMore, hasMoreMessages, getScrollContainer]);
+
+  // Attach scroll listener
+  useEffect(() => {
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [handleScroll, getScrollContainer, chat?.id]);
+
+  // Maintain scroll position when loading older messages
+  useEffect(() => {
+    if (isLoadingMore) return;
+    
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer || prevScrollHeightRef.current === 0) return;
+
+    // Calculate new scroll position to maintain view
+    const newScrollHeight = scrollContainer.scrollHeight;
+    const scrollDiff = newScrollHeight - prevScrollHeightRef.current;
+    if (scrollDiff > 0) {
+      scrollContainer.scrollTop = scrollDiff;
+    }
+    prevScrollHeightRef.current = 0;
+  }, [messages.length, isLoadingMore, getScrollContainer]);
+
+  // Scroll to bottom when chat changes (initial load)
   useEffect(() => {
     if (chat?.id) {
-      // Small delay to ensure content is rendered, then scroll to bottom
-      const timer = setTimeout(() => {
-        scrollToBottom();
-      }, 150);
-      return () => clearTimeout(timer);
+      isInitialLoadRef.current = true;
+      prevMessagesLengthRef.current = 0;
     }
   }, [chat?.id]);
 
-  // Auto scroll to bottom when new messages arrive
+  // Scroll to bottom after initial messages load
   useEffect(() => {
-    if (messages.length > 0) {
+    if (!isLoading && messages.length > 0 && isInitialLoadRef.current) {
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+          isInitialLoadRef.current = false;
+          prevMessagesLengthRef.current = messages.length;
+        });
+      });
+    }
+  }, [isLoading, messages.length, scrollToBottom]);
+
+  // Scroll to bottom when new messages arrive (not when loading older)
+  useEffect(() => {
+    if (!isInitialLoadRef.current && messages.length > prevMessagesLengthRef.current) {
       scrollToBottom();
     }
-  }, [messages.length]);
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages.length, scrollToBottom]);
 
   const handleSend = () => {
     if (!newMessage.trim() || isSending) return;
@@ -265,6 +329,27 @@ export function ChatArea({
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Load more indicator */}
+            {hasMoreMessages && (
+              <div className="flex justify-center py-2">
+                {isLoadingMore ? (
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Carregando mensagens...</span>
+                  </div>
+                ) : (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={onLoadMore}
+                    className="text-muted-foreground text-xs"
+                  >
+                    Carregar mensagens anteriores
+                  </Button>
+                )}
+              </div>
+            )}
+
             {Object.entries(groupedMessages).map(([date, msgs]) => (
               <div key={date}>
                 <div className="flex items-center justify-center my-4">
