@@ -48,6 +48,7 @@ import {
   Ban,
   Layers,
   Info,
+  Route,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -185,6 +186,7 @@ export default function CargasDisponiveis() {
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map' | undefined>(undefined);
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
+  const [distancias, setDistancias] = useState<Map<string, { distance: string; duration: string }>>(new Map());
 
   // Set default view mode based on device
   useEffect(() => {
@@ -239,6 +241,51 @@ export default function CargasDisponiveis() {
       return (data || []) as Carga[];
     },
   });
+
+  // Calculate distances for all cargas using OSRM
+  useEffect(() => {
+    const fetchDistances = async () => {
+      const cargasSemDistancia = cargas.filter(c => !distancias.has(c.id));
+      
+      for (const carga of cargasSemDistancia) {
+        const origem = carga.endereco_origem;
+        const destino = carga.endereco_destino;
+        
+        if (!origem?.latitude || !origem?.longitude || !destino?.latitude || !destino?.longitude) {
+          continue;
+        }
+
+        try {
+          const response = await fetch(
+            `https://router.project-osrm.org/route/v1/driving/${origem.longitude},${origem.latitude};${destino.longitude},${destino.latitude}?overview=false`
+          );
+          const data = await response.json();
+          
+          if (data.routes && data.routes.length > 0) {
+            const route = data.routes[0];
+            const distanceKm = (route.distance / 1000).toFixed(0);
+            const durationHours = Math.floor(route.duration / 3600);
+            const durationMinutes = Math.round((route.duration % 3600) / 60);
+            
+            setDistancias(prev => {
+              const updated = new Map(prev);
+              updated.set(carga.id, {
+                distance: `${distanceKm} km`,
+                duration: durationHours > 0 ? `${durationHours}h ${durationMinutes}min` : `${durationMinutes}min`
+              });
+              return updated;
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching route for carga', carga.id, error);
+        }
+      }
+    };
+
+    if (cargas.length > 0) {
+      fetchDistances();
+    }
+  }, [cargas]);
 
   // Fetch motoristas da transportadora com status de disponibilidade
   const { data: motoristas = [] } = useQuery({
@@ -683,6 +730,19 @@ export default function CargasDisponiveis() {
               )}
             </div>
           </div>
+
+          {/* Distance Badge */}
+          {distancias.has(carga.id) && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="gap-1">
+                <Route className="w-3 h-3" />
+                {distancias.get(carga.id)?.distance}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                ~{distancias.get(carga.id)?.duration}
+              </span>
+            </div>
+          )}
 
           {/* Weight Progress Bar - Green primary when full, decreasing with availability */}
           <div className="space-y-1.5">
