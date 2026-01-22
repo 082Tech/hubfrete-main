@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Send, Package, ChevronRight, ArrowLeft, Info } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Send, Package, ChevronRight, ArrowLeft, Info, CheckCircle2, Ban, AlertTriangle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,6 +11,9 @@ import { Chat, Mensagem } from './types';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+
+// Finalized delivery statuses
+const FINALIZED_STATUSES = ['entregue', 'devolvida', 'cancelada', 'problema'];
 
 interface ChatAreaProps {
   chat: Chat | null;
@@ -100,10 +103,57 @@ export function ChatArea({
       entregue: { label: 'Entregue', color: 'bg-green-500/10 text-green-600' },
       problema: { label: 'Problema', color: 'bg-destructive/10 text-destructive' },
       devolvida: { label: 'Devolvida', color: 'bg-amber-500/10 text-amber-600' },
+      cancelada: { label: 'Cancelada', color: 'bg-muted text-muted-foreground' },
     };
     const status = statusMap[chat.entrega.status];
     if (!status) return null;
     return <Badge className={cn('text-xs', status.color)}>{status.label}</Badge>;
+  };
+
+  // Check if delivery is finalized
+  const isDeliveryFinalized = useMemo(() => {
+    return chat?.entrega?.status && FINALIZED_STATUSES.includes(chat.entrega.status);
+  }, [chat?.entrega?.status]);
+
+  // Get finalized message based on status
+  const getFinalizedMessage = () => {
+    const status = chat?.entrega?.status;
+    switch (status) {
+      case 'entregue':
+        return { 
+          icon: CheckCircle2, 
+          title: 'Entrega concluída!', 
+          subtitle: 'Esta entrega foi finalizada com sucesso.',
+          color: 'text-green-600',
+          bgColor: 'bg-green-500/10',
+        };
+      case 'devolvida':
+        return { 
+          icon: RotateCcw, 
+          title: 'Entrega devolvida', 
+          subtitle: 'Esta entrega foi devolvida.',
+          color: 'text-amber-600',
+          bgColor: 'bg-amber-500/10',
+        };
+      case 'cancelada':
+        return { 
+          icon: Ban, 
+          title: 'Entrega cancelada', 
+          subtitle: 'Esta entrega foi cancelada.',
+          color: 'text-muted-foreground',
+          bgColor: 'bg-muted',
+        };
+      case 'problema':
+        return { 
+          icon: AlertTriangle, 
+          title: 'Entrega com problema', 
+          subtitle: 'Esta entrega foi finalizada com problema.',
+          color: 'text-destructive',
+          bgColor: 'bg-destructive/10',
+        };
+      default:
+        return null;
+    }
   };
 
   // Group messages by date
@@ -130,11 +180,13 @@ export function ChatArea({
     );
   }
 
+  const finalizedInfo = getFinalizedMessage();
+
   return (
-    <div className="flex-1 flex flex-col bg-background h-full">
+    <div className="flex-1 flex flex-col bg-background h-full min-h-0 w-full overflow-hidden">
       {/* Clickable Header */}
       <div 
-        className="flex items-center gap-3 p-4 border-b border-border bg-card cursor-pointer hover:bg-muted/30 transition-colors"
+        className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border-b border-border bg-card cursor-pointer hover:bg-muted/30 transition-colors shrink-0"
         onClick={() => setDetailsOpen(true)}
       >
         {showBackButton && (
@@ -151,28 +203,28 @@ export function ChatArea({
           </Button>
         )}
         
-        <Avatar className="h-12 w-12 shrink-0 ring-2 ring-primary/10">
+        <Avatar className="h-10 w-10 md:h-12 md:w-12 shrink-0 ring-2 ring-primary/10">
           <AvatarImage src={getChatAvatar()} />
-          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm md:text-base">
             {getChatTitle().substring(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold truncate">{getChatTitle()}</h3>
+            <h3 className="font-semibold truncate text-sm md:text-base">{getChatTitle()}</h3>
             {getStatusBadge()}
           </div>
-          <p className="text-sm text-muted-foreground truncate">
+          <p className="text-xs md:text-sm text-muted-foreground truncate">
             {chat.entrega?.carga?.codigo} • Toque para ver detalhes
           </p>
         </div>
         
-        <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+        <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground shrink-0" />
       </div>
 
       {/* Messages Area with custom background */}
-      <ScrollArea className="flex-1 p-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5Qzk0OTQiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAzMHYySDI0di0yaDEyek0zNiAyNnYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] bg-muted/10" ref={scrollRef}>
+      <ScrollArea className="flex-1 min-h-0 p-3 md:p-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5Qzk0OTQiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAzMHYySDI0di0yaDEyek0zNiAyNnYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] bg-muted/10" ref={scrollRef}>
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
@@ -222,30 +274,45 @@ export function ChatArea({
         )}
       </ScrollArea>
 
-      {/* Input Area - Modern Style */}
-      <div className="p-4 border-t border-border bg-card">
-        <div className="flex items-end gap-3">
-          <div className="flex-1 relative">
-            <Textarea
-              ref={textareaRef}
-              placeholder="Digite sua mensagem..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="min-h-[48px] max-h-32 resize-none pr-4 rounded-2xl bg-muted/50 border-0 focus-visible:ring-1"
-              rows={1}
-            />
+      {/* Finalized Message Banner - iFood style */}
+      {isDeliveryFinalized && finalizedInfo && (
+        <div className={cn('p-4 border-t border-border', finalizedInfo.bgColor)}>
+          <div className="flex items-center justify-center gap-3">
+            <finalizedInfo.icon className={cn('h-5 w-5', finalizedInfo.color)} />
+            <div className="text-center">
+              <p className={cn('font-medium', finalizedInfo.color)}>{finalizedInfo.title}</p>
+              <p className="text-xs text-muted-foreground">{finalizedInfo.subtitle}</p>
+            </div>
           </div>
-          <Button 
-            onClick={handleSend} 
-            disabled={!newMessage.trim() || isSending}
-            size="icon"
-            className="shrink-0 h-12 w-12 rounded-full shadow-md"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
         </div>
-      </div>
+      )}
+
+      {/* Input Area - Modern Style - Hidden when finalized */}
+      {!isDeliveryFinalized && (
+        <div className="p-3 md:p-4 border-t border-border bg-card shrink-0">
+          <div className="flex items-end gap-2 md:gap-3">
+            <div className="flex-1 relative min-w-0">
+              <Textarea
+                ref={textareaRef}
+                placeholder="Digite sua mensagem..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="min-h-[44px] md:min-h-[48px] max-h-32 resize-none pr-4 rounded-2xl bg-muted/50 border-0 focus-visible:ring-1 text-sm md:text-base"
+                rows={1}
+              />
+            </div>
+            <Button 
+              onClick={handleSend} 
+              disabled={!newMessage.trim() || isSending}
+              size="icon"
+              className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full shadow-md"
+            >
+              <Send className="h-4 w-4 md:h-5 md:w-5" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Details Sheet */}
       <ChatDetailsSheet
