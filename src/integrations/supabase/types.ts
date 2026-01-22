@@ -96,6 +96,7 @@ export type Database = {
           peso_minimo_fracionado_kg: number | null
           publicada_em: string | null
           quantidade: number | null
+          quantidade_paletes: number | null
           regras_carregamento: string | null
           requer_refrigeracao: boolean | null
           status: Database["public"]["Enums"]["status_carga"] | null
@@ -142,6 +143,7 @@ export type Database = {
           peso_minimo_fracionado_kg?: number | null
           publicada_em?: string | null
           quantidade?: number | null
+          quantidade_paletes?: number | null
           regras_carregamento?: string | null
           requer_refrigeracao?: boolean | null
           status?: Database["public"]["Enums"]["status_carga"] | null
@@ -188,6 +190,7 @@ export type Database = {
           peso_minimo_fracionado_kg?: number | null
           publicada_em?: string | null
           quantidade?: number | null
+          quantidade_paletes?: number | null
           regras_carregamento?: string | null
           requer_refrigeracao?: boolean | null
           status?: Database["public"]["Enums"]["status_carga"] | null

@@ -64,6 +64,7 @@ const formSchema = z.object({
   tipo: z.enum(['granel_solido', 'granel_liquido', 'carga_seca', 'refrigerada', 'congelada', 'perigosa', 'viva', 'indivisivel', 'container'] as const),
   peso_kg: z.coerce.number().min(1, 'Peso deve ser maior que 0'),
   volume_m3: z.coerce.number().optional(),
+  quantidade_paletes: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
   valor_frete_tonelada: z.coerce.number().min(0),
   permite_fracionado: z.boolean().default(true),
@@ -214,6 +215,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           peso_kg: values.peso_kg,
           peso_disponivel_kg: values.peso_kg, // Inicialmente todo peso está disponível
           volume_m3: values.volume_m3 || null,
+          quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
           valor_frete_tonelada: values.valor_frete_tonelada || null,
           permite_fracionado: values.permite_fracionado,
@@ -452,7 +454,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
                     name="volume_m3"
@@ -461,6 +463,25 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                         <FormLabel>Volume (m³)</FormLabel>
                         <FormControl>
                           <Input type="number" step="0.01" placeholder="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="quantidade_paletes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Qtd. Paletes</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="0" 
+                            value={field.value ?? ''} 
+                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
