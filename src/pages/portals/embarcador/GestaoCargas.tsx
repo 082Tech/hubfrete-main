@@ -110,6 +110,7 @@ interface MotoristaLocalizacao {
   longitude: number | null;
   timestamp: number | null;
   status: boolean | null;
+  heading: number | null;
 }
 
 interface EnderecoData {
@@ -389,11 +390,11 @@ export default function GestaoCargas() {
 
       const { data, error } = await supabase
         .from('localizações')
-        .select('email_motorista, latitude, longitude, timestamp, status')
+        .select('email_motorista, latitude, longitude, timestamp, status, heading')
         .in('email_motorista', motoristaEmails);
 
       if (error) throw error;
-      return (data || []) as MotoristaLocalizacao[];
+      return (data || []) as unknown as MotoristaLocalizacao[];
     },
     enabled: motoristaEmails.length > 0,
     refetchInterval: 60000, // Refresh every 1 minutes
@@ -472,6 +473,7 @@ export default function GestaoCargas() {
             ? { lat: destino.latitude, lng: destino.longitude }
             : null,
           lastLocationUpdate: localizacao?.timestamp ?? null,
+          heading: localizacao?.heading ?? null,
         };
       })
       .filter(Boolean) as NonNullable<typeof mapData[number]>[];

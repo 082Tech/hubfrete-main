@@ -42,12 +42,103 @@ const isRecentLocation = (timestamp: number | null | undefined): boolean => {
   return diffMs < 2 * 60 * 1000; // 2 minutes
 };
 
-// Custom avatar marker with online/offline status - pulse only when TRULY recent
+// Generate 3D truck SVG for Leaflet
+function getTruckSvgHtml(
+  heading: number,
+  isOnline: boolean,
+  isSelected: boolean,
+  size: number = 40
+): string {
+  const primaryColor = isSelected ? '#3b82f6' : isOnline ? '#22c55e' : '#6b7280';
+  const shadowColor = isSelected ? 'rgba(59, 130, 246, 0.4)' : isOnline ? 'rgba(34, 197, 94, 0.3)' : 'rgba(0, 0, 0, 0.2)';
+  const cabColor = isSelected ? '#60a5fa' : isOnline ? '#4ade80' : '#9ca3af';
+  const strokeColor = isSelected ? '#1d4ed8' : isOnline ? '#16a34a' : '#4b5563';
+  const grayFilter = !isOnline ? 'filter: grayscale(100%); opacity: 0.6;' : '';
+
+  return `
+    <svg viewBox="0 0 40 40" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="${grayFilter}">
+      <ellipse cx="20" cy="32" rx="10" ry="4" fill="${shadowColor}" />
+      <rect x="12" y="14" width="16" height="18" rx="2" fill="${primaryColor}" stroke="${strokeColor}" stroke-width="1.5" />
+      <line x1="15" y1="18" x2="25" y2="18" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
+      <line x1="15" y1="22" x2="25" y2="22" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
+      <line x1="15" y1="26" x2="25" y2="26" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
+      <rect x="14" y="6" width="12" height="10" rx="2" fill="${cabColor}" stroke="${strokeColor}" stroke-width="1.5" />
+      <rect x="16" y="7" width="8" height="4" rx="1" fill="rgba(255,255,255,0.6)" />
+      <rect x="10" y="10" width="3" height="2" rx="0.5" fill="${primaryColor}" />
+      <rect x="27" y="10" width="3" height="2" rx="0.5" fill="${primaryColor}" />
+      <circle cx="15" cy="30" r="2.5" fill="#1f2937" stroke="#374151" stroke-width="1" />
+      <circle cx="25" cy="30" r="2.5" fill="#1f2937" stroke="#374151" stroke-width="1" />
+      <circle cx="15" cy="14" r="2" fill="#1f2937" stroke="#374151" stroke-width="1" />
+      <circle cx="25" cy="14" r="2" fill="#1f2937" stroke="#374151" stroke-width="1" />
+      <polygon points="20,2 17,6 23,6" fill="white" stroke="${primaryColor}" stroke-width="0.5" />
+    </svg>
+  `;
+}
+
+// Create 3D truck icon with rotation based on heading
+const createTruckIcon = (
+  heading: number = 0,
+  isOnline: boolean = false,
+  isSelected: boolean = false
+) => {
+  const size = isSelected ? 48 : 40;
+  
+  // Pulse animation for online drivers
+  const pulseStyle = isOnline ? `
+    <style>
+      @keyframes truck-pulse {
+        0%, 100% { transform: scale(1); opacity: 0.6; }
+        50% { transform: scale(1.4); opacity: 0; }
+      }
+    </style>
+    <div style="
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background-color: #22c55e;
+      opacity: 0.4;
+      animation: truck-pulse 2s ease-in-out infinite;
+    "></div>
+  ` : '';
+
+  return new L.DivIcon({
+    className: 'truck-marker',
+    html: `
+      <div style="
+        position: relative;
+        width: ${size}px;
+        height: ${size}px;
+      ">
+        ${pulseStyle}
+        <div style="
+          width: ${size}px;
+          height: ${size}px;
+          transform: rotate(${heading}deg);
+          transition: transform 0.5s ease-out;
+          will-change: transform;
+        ">
+          ${getTruckSvgHtml(0, isOnline, isSelected, size)}
+        </div>
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+};
+
+// Custom avatar marker with online/offline status - fallback when no heading
 const createAvatarIcon = (
   fotoUrl: string | null, 
   isRecentUpdate: boolean, 
-  isSelected: boolean = false
+  isSelected: boolean = false,
+  heading?: number | null
 ) => {
+  // If we have heading, use 3D truck icon instead
+  if (heading != null) {
+    return createTruckIcon(heading, isRecentUpdate, isSelected);
+  }
+
   const size = isSelected ? 48 : 40;
   const borderWidth = isSelected ? 3 : 2;
   const borderColor = isSelected ? '#3b82f6' : isRecentUpdate ? '#22c55e' : '#9ca3af';
@@ -204,6 +295,7 @@ interface EntregaMapData {
   destinoCoords: { lat: number; lng: number } | null;
   isIdleDriver?: boolean;
   lastLocationUpdate?: number | null;
+  heading?: number | null; // Compass heading in degrees (0-360)
 }
 
 interface EntregasMapProps {
@@ -543,7 +635,7 @@ export function EntregasMap({
               <Marker
                 key={entrega.id}
                 position={[entrega.latitude!, entrega.longitude!]}
-                icon={createAvatarIcon(entrega.motoristaFotoUrl || null, isRecent, isSelected)}
+                icon={createAvatarIcon(entrega.motoristaFotoUrl || null, isRecent, isSelected, entrega.heading)}
                 eventHandlers={{
                   click: () => !isIdle && handleMarkerClick(entrega),
                 }}

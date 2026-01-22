@@ -801,6 +801,7 @@ export type Database = {
       localizações: {
         Row: {
           email_motorista: string | null
+          heading: number | null
           historico_url: string | null
           id: number
           latitude: number | null
@@ -812,6 +813,7 @@ export type Database = {
         }
         Insert: {
           email_motorista?: string | null
+          heading?: number | null
           historico_url?: string | null
           id?: number
           latitude?: number | null
@@ -823,6 +825,7 @@ export type Database = {
         }
         Update: {
           email_motorista?: string | null
+          heading?: number | null
           historico_url?: string | null
           id?: number
           latitude?: number | null

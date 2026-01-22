@@ -142,6 +142,7 @@ interface MotoristaLocalizacao {
   longitude: number | null;
   timestamp: number | null;
   status: boolean | null;
+  heading: number | null;
 }
 
 interface MotoristaCompleto {
@@ -312,11 +313,11 @@ export default function GestaoEntregas() {
 
       const { data, error } = await supabase
         .from('localizações')
-        .select('email_motorista, latitude, longitude, timestamp, status')
+        .select('email_motorista, latitude, longitude, timestamp, status, heading')
         .in('email_motorista', motoristaEmails);
 
       if (error) throw error;
-      return (data || []) as MotoristaLocalizacao[];
+      return (data || []) as unknown as MotoristaLocalizacao[];
     },
     enabled: motoristaEmails.length > 0,
     refetchInterval: 60000, // Refresh every 1 minute
@@ -480,6 +481,7 @@ export default function GestaoEntregas() {
       destinoCoords: { lat: number; lng: number } | null;
       isIdleDriver?: boolean;
       lastLocationUpdate?: number | null;
+      heading?: number | null;
     }> = [];
 
     // Track drivers that are already included from entregas
@@ -523,6 +525,7 @@ export default function GestaoEntregas() {
           ? { lat: destino.latitude, lng: destino.longitude }
           : null,
         lastLocationUpdate: localizacao?.timestamp ?? null,
+        heading: localizacao?.heading ?? null,
       });
     });
 
@@ -552,6 +555,7 @@ export default function GestaoEntregas() {
               destinoCoords: null,
               isIdleDriver: true,
               lastLocationUpdate: localizacao?.timestamp ?? null,
+              heading: localizacao?.heading ?? null,
             });
           }
         }
