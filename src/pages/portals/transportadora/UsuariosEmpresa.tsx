@@ -131,7 +131,7 @@ export default function UsuariosEmpresa() {
       const { data, error } = await supabase
         .from('company_invites')
         .select('*')
-        .eq('company_id', empresa.id)
+        .eq('company_id', empresa.id as unknown as number)
         .order('created_at', { ascending: false });
       
       if (error) throw error;

@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 import { MotoristaFormData, getInitialFormData } from './types';
 import { EtapaDadosPessoais } from './steps/EtapaDadosPessoais';
+import { EtapaCredenciais } from './steps/EtapaCredenciais';
 import { EtapaAjudante } from './steps/EtapaAjudante';
 import { EtapaResumo } from './steps/EtapaResumo';
 
@@ -28,8 +29,9 @@ interface MotoristaFormDialogProps {
 
 const STEPS = [
   { id: 1, title: 'Dados Pessoais', description: 'Informações e documentos do motorista' },
-  { id: 2, title: 'Ajudante', description: 'Cadastro de ajudante (opcional)' },
-  { id: 3, title: 'Resumo', description: 'Confirme as informações' },
+  { id: 2, title: 'Credenciais', description: 'Acesso ao aplicativo mobile' },
+  { id: 3, title: 'Ajudante', description: 'Cadastro de ajudante (opcional)' },
+  { id: 4, title: 'Resumo', description: 'Confirme as informações' },
 ];
 
 export function MotoristaFormDialog({
@@ -59,6 +61,22 @@ export function MotoristaFormDialog({
     }
     
     if (currentStep === 2) {
+      // Validate credentials
+      if (!formData.auth_email || !formData.auth_password) {
+        toast.error('E-mail e senha são obrigatórios para acesso ao app');
+        return;
+      }
+      if (formData.auth_password !== formData.auth_password_confirm) {
+        toast.error('As senhas não coincidem');
+        return;
+      }
+      if (formData.auth_password.length < 6) {
+        toast.error('A senha deve ter no mínimo 6 caracteres');
+        return;
+      }
+    }
+    
+    if (currentStep === 3) {
       // Validate ajudante if exists
       if (formData.possui_ajudante) {
         if (!formData.ajudante_nome || !formData.ajudante_cpf) {
@@ -86,13 +104,13 @@ export function MotoristaFormDialog({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // 1. Create motorista
-      const { data: motoristaData, error: motoristaError } = await supabase
-        .from('motoristas')
-        .insert({
-          nome_completo: formData.nome_completo,
+      // Use Edge Function to create driver with authentication
+      const response = await supabase.functions.invoke('create-driver-auth', {
+        body: {
+          email: formData.auth_email,
+          password: formData.auth_password,
+          nome: formData.nome_completo,
           cpf: formData.cpf.replace(/\D/g, ''),
-          email: formData.email || null,
           telefone: formData.telefone || null,
           uf: formData.uf,
           tipo_cadastro: formData.tipo_cadastro,
@@ -107,21 +125,20 @@ export function MotoristaFormDialog({
           comprovante_vinculo_url: formData.comprovante_vinculo_url,
           possui_ajudante: formData.possui_ajudante,
           empresa_id: empresaId,
-          user_id: session?.user?.id || crypto.randomUUID(),
-          ativo: true,
-        })
-        .select('id')
-        .single();
+        },
+      });
 
-      if (motoristaError) throw motoristaError;
+      if (response.error) {
+        throw new Error(response.error.message || 'Erro ao criar motorista');
+      }
 
-      const motoristaId = motoristaData.id;
+      const { motorista_id } = response.data;
 
       // 2. Create references
       const refsToInsert = formData.referencias
         .filter(r => r.nome && r.telefone)
         .map(r => ({
-          motorista_id: motoristaId,
+          motorista_id,
           tipo: r.tipo,
           ordem: r.ordem,
           nome: r.nome,
@@ -142,7 +159,7 @@ export function MotoristaFormDialog({
         const { error: ajudanteError } = await supabase
           .from('ajudantes')
           .insert({
-            motorista_id: motoristaId,
+            motorista_id,
             nome: formData.ajudante_nome,
             cpf: formData.ajudante_cpf.replace(/\D/g, ''),
             telefone: formData.ajudante_telefone || null,
@@ -153,7 +170,7 @@ export function MotoristaFormDialog({
         if (ajudanteError) console.error('Erro ao salvar ajudante:', ajudanteError);
       }
 
-      toast.success('Motorista cadastrado com sucesso!');
+      toast.success('Motorista cadastrado com sucesso! Credenciais: ' + formData.auth_email);
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
       
       // Reset and close
@@ -213,9 +230,12 @@ export function MotoristaFormDialog({
             <EtapaDadosPessoais formData={formData} updateFormData={updateFormData} />
           )}
           {currentStep === 2 && (
-            <EtapaAjudante formData={formData} updateFormData={updateFormData} />
+            <EtapaCredenciais formData={formData} updateFormData={updateFormData} />
           )}
           {currentStep === 3 && (
+            <EtapaAjudante formData={formData} updateFormData={updateFormData} />
+          )}
+          {currentStep === 4 && (
             <EtapaResumo formData={formData} />
           )}
         </div>
