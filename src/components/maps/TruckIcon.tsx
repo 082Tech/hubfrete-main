@@ -5,20 +5,18 @@ interface TruckIconProps {
   isOnline?: boolean;
   isSelected?: boolean;
   size?: number;
-  avatarUrl?: string | null;
   className?: string;
 }
 
 /**
  * Top-down 3D-style truck icon that can rotate based on heading.
- * Similar to Uber's vehicle icons. Avatar shown as small badge on top-right.
+ * Similar to Uber's vehicle icons.
  */
 export function TruckIcon({ 
   heading = 0, 
   isOnline = false, 
   isSelected = false,
   size = 48,
-  avatarUrl,
   className = ''
 }: TruckIconProps) {
   const rotation = heading ?? 0;
@@ -125,72 +123,24 @@ export function TruckIcon({
           <ellipse cx="33" cy="35" rx="1" ry="0.5" fill="rgba(255,255,255,0.3)" />
         </svg>
       </div>
-
-      {/* Avatar badge - top right, counter-rotated to stay upright */}
-      {avatarUrl && (
-        <div
-          className="absolute border-2 border-background rounded-full overflow-hidden shadow-md"
-          style={{
-            width: size * 0.38,
-            height: size * 0.38,
-            top: -2,
-            right: -2,
-            transform: `rotate(${-rotation}deg)`,
-            transition: 'transform 0.5s ease-out',
-          }}
-        >
-          <img
-            src={avatarUrl}
-            alt="Motorista"
-            className="w-full h-full object-cover"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
-        </div>
-      )}
     </div>
   );
 }
 
 /**
  * Generate SVG HTML string for use with Leaflet DivIcon or Google Maps OverlayView
+ * No avatar badge - avatar is shown in tooltip/popup instead
  */
 export function getTruckIconHtml(
   heading: number = 0,
   isOnline: boolean = false,
   isSelected: boolean = false,
-  size: number = 48,
-  avatarUrl?: string | null
+  size: number = 48
 ): string {
   const primaryColor = isSelected ? '#3b82f6' : isOnline ? '#22c55e' : '#6b7280';
   const shadowColor = isSelected ? 'rgba(59, 130, 246, 0.4)' : isOnline ? 'rgba(34, 197, 94, 0.3)' : 'rgba(0, 0, 0, 0.2)';
   const cabColor = isSelected ? '#60a5fa' : isOnline ? '#4ade80' : '#9ca3af';
   const strokeColor = isSelected ? '#1d4ed8' : isOnline ? '#16a34a' : '#4b5563';
-  const avatarSize = Math.round(size * 0.38);
-
-  const avatarHtml = avatarUrl ? `
-    <div style="
-      position: absolute;
-      width: ${avatarSize}px;
-      height: ${avatarSize}px;
-      top: -2px;
-      right: -2px;
-      border: 2px solid white;
-      border-radius: 50%;
-      overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      transform: rotate(${-heading}deg);
-      transition: transform 0.5s ease-out;
-    ">
-      <img 
-        src="${avatarUrl}" 
-        alt="Motorista" 
-        style="width: 100%; height: 100%; object-fit: cover;"
-        loading="lazy"
-        referrerpolicy="no-referrer"
-      />
-    </div>
-  ` : '';
 
   return `
     <div style="position: relative; width: ${size}px; height: ${size}px;">
@@ -219,7 +169,6 @@ export function getTruckIconHtml(
           <ellipse cx="33" cy="35" rx="1" ry="0.5" fill="rgba(255,255,255,0.3)" />
         </svg>
       </div>
-      ${avatarHtml}
     </div>
   `;
 }
