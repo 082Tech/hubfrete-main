@@ -381,11 +381,17 @@ export default function CargasDisponiveis() {
 
   const filteredCargas = useMemo(() => {
     return cargas.filter((carga) => {
+      const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
-        carga.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        carga.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        carga.endereco_origem?.cidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        carga.endereco_destino?.cidade?.toLowerCase().includes(searchTerm.toLowerCase());
+        carga.codigo.toLowerCase().includes(searchLower) ||
+        carga.descricao.toLowerCase().includes(searchLower) ||
+        carga.endereco_origem?.cidade?.toLowerCase().includes(searchLower) ||
+        carga.endereco_destino?.cidade?.toLowerCase().includes(searchLower) ||
+        // Search by sender (embarcador/remetente)
+        carga.empresa?.nome?.toLowerCase().includes(searchLower) ||
+        // Search by recipient (destinatário)
+        carga.destinatario_razao_social?.toLowerCase().includes(searchLower) ||
+        carga.destinatario_nome_fantasia?.toLowerCase().includes(searchLower);
 
       const matchesTipo = filterTipo === 'all' || carga.tipo === filterTipo;
 
@@ -543,12 +549,19 @@ export default function CargasDisponiveis() {
     hopper: 'Hopper',
   };
 
-  const formatCurrency = (value: number | null) => {
-    if (!value) return '-';
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return '-';
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
+  };
+
+  // Calculate total freight for a cargo
+  const calcularFreteTotal = (carga: Carga) => {
+    if (!carga.valor_frete_tonelada) return null;
+    const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
+    return (pesoDisponivel / 1000) * carga.valor_frete_tonelada;
   };
 
   // Helper to format company + filial name
@@ -710,9 +723,14 @@ export default function CargasDisponiveis() {
               )}
             </div>
             {carga.valor_frete_tonelada && (
-              <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
-                <DollarSign className="w-4 h-4" />
-                {formatCurrency(carga.valor_frete_tonelada)}/ton
+              <div className="flex flex-col items-end gap-0.5">
+                <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
+                  <DollarSign className="w-4 h-4" />
+                  {formatCurrency(calcularFreteTotal(carga))}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  ({formatCurrency(carga.valor_frete_tonelada)}/ton)
+                </span>
               </div>
             )}
           </div>
@@ -786,7 +804,7 @@ export default function CargasDisponiveis() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por código, descrição, origem ou destino..."
+                  placeholder="Buscar por código, descrição, cidade, embarcador ou destinatário..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -950,6 +968,7 @@ export default function CargasDisponiveis() {
                             lng: Number(selectedCarga.endereco_destino.longitude),
                             label: selectedCarga.endereco_destino.cidade,
                           }}
+                          showBadgeOutside={true}
                         />
                       </div>
                       {/* Route Stats with Full Address */}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,10 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Save, Car, Container, Link2, Unlink } from 'lucide-react';
+import { Loader2, Save, Car, Container, Link2, Unlink, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 import { MotoristaCompleto, VeiculoSimples, CarroceriaSimples, tipoVeiculoLabels, tipoCarroceriaLabels } from './types';
 
@@ -43,6 +43,27 @@ export function MotoristaVinculosDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedVeiculoId, setSelectedVeiculoId] = useState('');
   const [selectedCarroceriaId, setSelectedCarroceriaId] = useState('');
+
+  // Fetch active deliveries for this driver
+  const { data: entregasAtivas = [] } = useQuery({
+    queryKey: ['entregas_ativas_motorista', motorista?.id],
+    queryFn: async () => {
+      if (!motorista?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('entregas')
+        .select('id, veiculo_id')
+        .eq('motorista_id', motorista.id)
+        .in('status', ['aguardando_coleta', 'em_coleta', 'coletado', 'em_transito', 'em_entrega']);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!motorista?.id && open,
+  });
+
+  // Check if driver has active deliveries
+  const hasActiveDeliveries = entregasAtivas.length > 0;
 
   // Get vehicles and carrocerias that are available (not assigned) or assigned to this driver
   const availableVeiculos = veiculosDisponiveis.filter(
@@ -77,6 +98,13 @@ export function MotoristaVinculosDialog({
   };
 
   const handleUnlinkVeiculo = async (veiculoId: string) => {
+    // Check if driver has active deliveries using this vehicle
+    const vehicleInUse = entregasAtivas.some(e => e.veiculo_id === veiculoId);
+    if (vehicleInUse) {
+      toast.error('Não é possível desvincular: veículo em uso em entrega ativa');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { error } = await supabase
@@ -122,6 +150,12 @@ export function MotoristaVinculosDialog({
   };
 
   const handleUnlinkCarroceria = async (carroceriaId: string) => {
+    // Check if driver has any active deliveries
+    if (hasActiveDeliveries) {
+      toast.error('Não é possível desvincular: motorista possui entregas ativas');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { error } = await supabase
@@ -159,6 +193,21 @@ export function MotoristaVinculosDialog({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Warning if driver has active deliveries */}
+          {hasActiveDeliveries && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  Este motorista possui {entregasAtivas.length} entrega{entregasAtivas.length > 1 ? 's' : ''} ativa{entregasAtivas.length > 1 ? 's' : ''}
+                </span>
+              </div>
+              <p className="text-xs text-amber-600 dark:text-amber-500 mt-1 ml-6">
+                Não é possível desvincular veículos ou carrocerias enquanto houver entregas em andamento.
+              </p>
+            </div>
+          )}
+
           {/* Veículos */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
@@ -169,28 +218,36 @@ export function MotoristaVinculosDialog({
             {/* Current vehicles */}
             <div className="space-y-2">
               {motorista.veiculos.length > 0 ? (
-                motorista.veiculos.map((v) => (
-                  <div
-                    key={v.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{v.placa}</Badge>
-                      <span className="text-sm">
-                        {tipoVeiculoLabels[v.tipo] || v.tipo}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleUnlinkVeiculo(v.id)}
-                      disabled={isSubmitting}
-                    >
-                      <Unlink className="w-4 h-4 mr-1" />
-                      Desvincular
-                    </Button>
-                  </div>
-                ))
+                  motorista.veiculos.map((v) => {
+                    const vehicleInUse = entregasAtivas.some(e => e.veiculo_id === v.id);
+                    return (
+                      <div
+                        key={v.id}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{v.placa}</Badge>
+                          <span className="text-sm">
+                            {tipoVeiculoLabels[v.tipo] || v.tipo}
+                          </span>
+                          {vehicleInUse && (
+                            <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                              Em uso
+                            </Badge>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleUnlinkVeiculo(v.id)}
+                          disabled={isSubmitting || vehicleInUse}
+                        >
+                          <Unlink className="w-4 h-4 mr-1" />
+                          Desvincular
+                        </Button>
+                      </div>
+                    );
+                  })
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-2">
                   Nenhum veículo vinculado
@@ -250,12 +307,17 @@ export function MotoristaVinculosDialog({
                       <span className="text-sm">
                         {tipoCarroceriaLabels[c.tipo] || c.tipo}
                       </span>
+                      {hasActiveDeliveries && (
+                        <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                          Em uso
+                        </Badge>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleUnlinkCarroceria(c.id)}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || hasActiveDeliveries}
                     >
                       <Unlink className="w-4 h-4 mr-1" />
                       Desvincular
