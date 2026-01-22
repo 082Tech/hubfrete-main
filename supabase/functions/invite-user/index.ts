@@ -37,7 +37,8 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
     // Create client with user's token to verify identity
-    const supabaseClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!, {
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
@@ -59,36 +60,112 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Verify the user has permission to invite (owns the company)
-    const companyTable = company_type === "embarcador" ? "embarcadores" : "transportadoras";
-    const { data: company, error: companyError } = await supabaseAdmin
-      .from(companyTable)
-      .select("id, user_id")
-      .eq("id", company_id)
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ error: "Formato de email inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const empresaId = parseInt(company_id, 10);
+    if (isNaN(empresaId)) {
+      return new Response(
+        JSON.stringify({ error: "ID da empresa inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify the empresa exists and matches the type
+    const { data: empresa, error: empresaError } = await supabaseAdmin
+      .from("empresas")
+      .select("id, tipo, nome")
+      .eq("id", empresaId)
       .single();
 
-    if (companyError || !company) {
+    if (empresaError || !empresa) {
+      console.error("Empresa not found:", empresaError);
       return new Response(
         JSON.stringify({ error: "Empresa não encontrada" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (company.user_id !== user.id) {
+    // Verify company type matches
+    const expectedTipo = company_type === "embarcador" ? "EMBARCADOR" : "TRANSPORTADORA";
+    if (empresa.tipo !== expectedTipo) {
+      return new Response(
+        JSON.stringify({ error: "Tipo de empresa não corresponde" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify the inviting user belongs to this company and has permission
+    const { data: inviterUsuario } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, cargo, auth_user_id")
+      .eq("auth_user_id", user.id)
+      .single();
+
+    if (!inviterUsuario) {
+      return new Response(
+        JSON.stringify({ error: "Usuário não encontrado no sistema" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if inviter belongs to a filial of this empresa
+    const { data: inviterFiliais } = await supabaseAdmin
+      .from("usuarios_filiais")
+      .select(`
+        cargo_na_filial,
+        filiais!inner(empresa_id)
+      `)
+      .eq("usuario_id", inviterUsuario.id)
+      .eq("filiais.empresa_id", empresaId);
+
+    if (!inviterFiliais || inviterFiliais.length === 0) {
       return new Response(
         JSON.stringify({ error: "Sem permissão para convidar usuários para esta empresa" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if invite already exists
+    // Only ADMINs can invite
+    const isAdmin = inviterFiliais.some((uf: any) => uf.cargo_na_filial === "ADMIN");
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Apenas administradores podem convidar usuários" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // If filial_id is provided, verify it belongs to this empresa
+    if (filial_id) {
+      const { data: filial, error: filialError } = await supabaseAdmin
+        .from("filiais")
+        .select("id, empresa_id")
+        .eq("id", filial_id)
+        .eq("empresa_id", empresaId)
+        .single();
+
+      if (filialError || !filial) {
+        return new Response(
+          JSON.stringify({ error: "Filial não encontrada ou não pertence a esta empresa" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Check if invite already exists and is pending
     const { data: existingInvite } = await supabaseAdmin
       .from("company_invites")
       .select("id, status")
-      .eq("email", email)
+      .eq("email", email.toLowerCase().trim())
       .eq("company_id", company_id)
       .eq("status", "pending")
-      .single();
+      .maybeSingle();
 
     if (existingInvite) {
       return new Response(
@@ -97,11 +174,38 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check if user is already part of the company
+    const { data: existingUser } = await supabaseAdmin
+      .from("usuarios")
+      .select("id, email")
+      .eq("email", email.toLowerCase().trim())
+      .maybeSingle();
+
+    if (existingUser) {
+      // Check if they're already in this empresa
+      const { data: existingAssoc } = await supabaseAdmin
+        .from("usuarios_filiais")
+        .select(`
+          id,
+          filiais!inner(empresa_id)
+        `)
+        .eq("usuario_id", existingUser.id)
+        .eq("filiais.empresa_id", empresaId)
+        .maybeSingle();
+
+      if (existingAssoc) {
+        return new Response(
+          JSON.stringify({ error: "Este usuário já faz parte da empresa" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Create invite record
     const { data: invite, error: inviteError } = await supabaseAdmin
       .from("company_invites")
       .insert({
-        email,
+        email: email.toLowerCase().trim(),
         invited_by: user.id,
         company_type,
         company_id,
@@ -119,21 +223,36 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Get origin for redirect URL
+    const origin = req.headers.get("origin") || "https://hub-frete.lovable.app";
+
     // Send invite using Supabase Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      data: {
-        invited_by: user.id,
-        company_type,
-        company_id,
-        invite_id: invite.id,
-      },
-      redirectTo: `${req.headers.get("origin") || supabaseUrl}/login?invite=${invite.token}`,
-    });
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      email.toLowerCase().trim(),
+      {
+        data: {
+          invited_by: user.id,
+          company_type,
+          company_id: empresaId,
+          invite_id: invite.id,
+          invite_token: invite.token,
+        },
+        redirectTo: `${origin}/login?invite=${invite.token}`,
+      }
+    );
 
     if (authError) {
       console.error("Error sending invite email:", authError);
       // Delete the invite record if email failed
       await supabaseAdmin.from("company_invites").delete().eq("id", invite.id);
+      
+      // Check for specific error cases
+      if (authError.message?.includes("already been registered")) {
+        return new Response(
+          JSON.stringify({ error: "Este email já está registrado. O usuário pode fazer login normalmente." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       
       return new Response(
         JSON.stringify({ error: `Erro ao enviar convite: ${authError.message}` }),
@@ -141,7 +260,12 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Invite sent successfully:", { email, invite_id: invite.id });
+    console.log("Invite sent successfully:", { 
+      email, 
+      invite_id: invite.id, 
+      empresa: empresa.nome,
+      role 
+    });
 
     return new Response(
       JSON.stringify({ 

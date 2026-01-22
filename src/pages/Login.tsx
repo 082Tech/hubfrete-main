@@ -1,20 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Truck, Mail, Lock, Loader2, CheckCircle, KeyRound, ShieldCheck } from 'lucide-react';
+import { Truck, Mail, Lock, Loader2, CheckCircle, KeyRound, ShieldCheck, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
-type LoginStep = 'credentials' | 'mfa' | 'success';
+type LoginStep = 'credentials' | 'mfa' | 'accepting_invite' | 'success';
 
 export default function Login({ setShowSplash }: { setShowSplash: (show: boolean) => void }) {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { signIn, user, loading: authLoading, getRedirectPath } = useAuth();
   
   const [step, setStep] = useState<LoginStep>('credentials');
@@ -23,9 +23,50 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
   const [loading, setLoading] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [inviteInfo, setInviteInfo] = useState<{ empresaNome?: string } | null>(null);
 
   // Check for invite token in URL
   const inviteToken = searchParams.get('invite');
+
+  // Process invite acceptance
+  const processInvite = useCallback(async () => {
+    if (!inviteToken) return false;
+
+    try {
+      setStep('accepting_invite');
+      
+      const response = await supabase.functions.invoke('accept-invite', {
+        body: { invite_token: inviteToken },
+      });
+
+      if (response.error) {
+        console.error('Error accepting invite:', response.error);
+        toast.error(response.error.message || 'Erro ao processar convite');
+        return false;
+      }
+
+      if (response.data?.error) {
+        toast.error(response.data.error);
+        return false;
+      }
+
+      if (response.data?.success) {
+        setInviteInfo({ empresaNome: response.data.empresa_nome });
+        toast.success(`Bem-vindo à ${response.data.empresa_nome || 'empresa'}!`);
+        
+        // Clear the invite token from URL
+        setSearchParams({});
+        
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error processing invite:', error);
+      toast.error('Erro ao processar convite');
+      return false;
+    }
+  }, [inviteToken, setSearchParams]);
 
   // NOTE: We intentionally do NOT auto-redirect here when user is already logged in
   // The redirect should only happen after explicit login action via handleLogin
@@ -37,7 +78,7 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
       
       if (error) {
         console.error('MFA check error:', error);
-        proceedToApp();
+        await handlePostAuth();
         return;
       }
 
@@ -53,11 +94,25 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
         }
       }
 
-      proceedToApp();
+      await handlePostAuth();
     } catch (error) {
       console.error('MFA requirement check failed:', error);
-      proceedToApp();
+      await handlePostAuth();
     }
+  };
+
+  // Handle post-authentication flow (invite processing + redirect)
+  const handlePostAuth = async () => {
+    // Process invite if present
+    if (inviteToken) {
+      const inviteProcessed = await processInvite();
+      if (!inviteProcessed) {
+        // If invite processing failed, still continue but log it
+        console.warn('Invite processing failed, continuing to app');
+      }
+    }
+
+    await proceedToApp();
   };
 
   const proceedToApp = async () => {
@@ -136,8 +191,7 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
         return;
       }
 
-      // Check MFA requirement will be triggered by useEffect when user state changes
-      // But we can also check immediately after login
+      // Check MFA requirement after login
       await checkMfaRequirement();
       
     } catch (error) {
@@ -182,7 +236,7 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
       }
 
       toast.success('Verificação concluída!');
-      proceedToApp();
+      await handlePostAuth();
       
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro na verificação';
@@ -327,12 +381,24 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
     </div>
   );
 
+  const renderAcceptingInviteStep = () => (
+    <div className="flex flex-col items-center gap-4 py-8">
+      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+        <UserPlus className="w-8 h-8 text-primary" />
+      </div>
+      <p className="text-muted-foreground">Processando seu convite...</p>
+      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+    </div>
+  );
+
   const getStepTitle = () => {
     switch (step) {
       case 'credentials':
         return 'Entrar na Plataforma';
       case 'mfa':
         return 'Verificação em 2 Etapas';
+      case 'accepting_invite':
+        return 'Aceitando Convite';
       case 'success':
         return 'Acesso Autorizado!';
     }
@@ -346,8 +412,12 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
           : 'Entre com suas credenciais de usuário';
       case 'mfa':
         return 'Confirme sua identidade para continuar';
+      case 'accepting_invite':
+        return 'Vinculando sua conta à empresa...';
       case 'success':
-        return 'Redirecionando para o dashboard...';
+        return inviteInfo?.empresaNome 
+          ? `Bem-vindo à ${inviteInfo.empresaNome}!`
+          : 'Redirecionando para o dashboard...';
     }
   };
 
@@ -377,6 +447,7 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
           <CardContent>
             {step === 'credentials' && renderCredentialsStep()}
             {step === 'mfa' && renderMfaStep()}
+            {step === 'accepting_invite' && renderAcceptingInviteStep()}
             {step === 'success' && renderSuccessStep()}
           </CardContent>
         </Card>
