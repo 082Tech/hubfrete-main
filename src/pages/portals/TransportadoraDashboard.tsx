@@ -9,7 +9,6 @@ import {
   Package, 
   MapPin,
   ArrowUpRight,
-  Loader2,
   Route,
   Clock,
   MessageCircle,
@@ -27,6 +26,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 
 export default function TransportadoraDashboard() {
   const { empresa, filialAtiva } = useUserContext();
@@ -176,10 +176,9 @@ export default function TransportadoraDashboard() {
           <div className="lg:col-span-2 space-y-6">
             {/* Stats Cards */}
             {isLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
+              <DashboardSkeleton />
             ) : (
+              <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatsCard
                   title="Veículos Ativos"
@@ -209,10 +208,8 @@ export default function TransportadoraDashboard() {
                   color="chart4"
                 />
               </div>
-            )}
 
-            {/* Summary Cards */}
-            {!isLoading && (
+              {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/transportadora/frota')}>
                   <CardContent className="p-5 flex items-center gap-4">
@@ -240,6 +237,7 @@ export default function TransportadoraDashboard() {
                   </CardContent>
                 </Card>
               </div>
+            </>
             )}
 
             {/* Quick Actions */}
