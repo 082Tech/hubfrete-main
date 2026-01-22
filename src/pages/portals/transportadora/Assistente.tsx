@@ -6,7 +6,7 @@ import { AnimatedBackground } from "@/components/ai-assistant/AnimatedBackground
 import { sendMessage, getOrCreateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
 import { Sparkles, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { PortalLayout } from "@/components/portals/PortalLayout";
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -73,7 +73,7 @@ export default function AssistenteTransportadora() {
   };
 
   return (
-    <PortalLayout expectedUserType="transportadora">
+    <>
       <div className="relative h-[100dvh] -m-8 overflow-hidden flex">
         <AnimatedBackground />
         
@@ -277,6 +277,6 @@ export default function AssistenteTransportadora() {
           </div>
         </div>
       </div>
-    </PortalLayout>
+    </>
   );
 }

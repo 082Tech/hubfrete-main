@@ -16,7 +16,7 @@ import {
   Loader2,
   Trash2,
 } from 'lucide-react';
-import { PortalLayout } from '@/components/portals/PortalLayout';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,8 +81,8 @@ export default function NotificacoesTransportadora() {
   };
 
   return (
-    <PortalLayout expectedUserType="transportadora" fullWidth>
-      <div className="h-full flex flex-col p-6 gap-6">
+    <div className="p-4 md:p-8">
+      <div className="h-full flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -292,6 +292,6 @@ export default function NotificacoesTransportadora() {
           </CardContent>
         </Card>
       </div>
-    </PortalLayout>
+    </div>
   );
 }

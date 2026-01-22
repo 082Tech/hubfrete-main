@@ -1,11 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   Home,
   Package,
   MessageSquare,
   Menu,
-  Truck,
-  Users,
   Route,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -40,6 +39,29 @@ interface BottomNavigationProps {
 export function BottomNavigation({ userType, onMenuClick }: BottomNavigationProps) {
   const location = useLocation();
   const navItems = userType === 'embarcador' ? embarcadorNavItems : transportadoraNavItems;
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY < 10) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        // Scrolling down
+        setIsVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   const isActive = (href: string) => {
     if (href === `/${userType}`) {
@@ -49,7 +71,12 @@ export function BottomNavigation({ userType, onMenuClick }: BottomNavigationProp
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border md:hidden">
+    <nav 
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border md:hidden transition-transform duration-300",
+        !isVisible && "translate-y-full"
+      )}
+    >
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const active = isActive(item.href);
@@ -70,10 +97,9 @@ export function BottomNavigation({ userType, onMenuClick }: BottomNavigationProp
           );
         })}
         
-        {/* Notifications inline for mobile */}
-        <div className="flex flex-col items-center justify-center flex-1 h-full gap-1">
+        {/* Notifications - icon only */}
+        <div className="flex flex-col items-center justify-center flex-1 h-full">
           <NotificacoesDropdown />
-          <span className="text-[10px] font-medium text-muted-foreground">Alertas</span>
         </div>
 
         {/* Menu button */}

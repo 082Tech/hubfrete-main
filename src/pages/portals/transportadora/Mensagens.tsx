@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PortalLayout } from '@/components/portals/PortalLayout';
+
 import { ChatList, ChatArea } from '@/components/mensagens';
 import { useChats } from '@/hooks/useChats';
 import { supabase } from '@/integrations/supabase/client';
@@ -83,7 +83,7 @@ export default function TransportadoraMensagens() {
   };
 
   return (
-    <PortalLayout expectedUserType="transportadora" fullWidth>
+    <>
       <div className="h-screen flex">
         {/* Chat List - Hidden on mobile when chat is selected */}
         <div className={cn(
@@ -117,6 +117,6 @@ export default function TransportadoraMensagens() {
           />
         </div>
       </div>
-    </PortalLayout>
+    </>
   );
 }

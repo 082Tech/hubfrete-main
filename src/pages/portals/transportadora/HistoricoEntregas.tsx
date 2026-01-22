@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { PortalLayout } from '@/components/portals/PortalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -222,7 +221,7 @@ export default function HistoricoEntregas() {
   };
 
   return (
-    <PortalLayout expectedUserType="transportadora">
+    <div className="p-4 md:p-8">
       <TooltipProvider>
         <div className="space-y-6">
           {/* Header */}
@@ -648,6 +647,6 @@ export default function HistoricoEntregas() {
           </DialogContent>
         </Dialog>
       </TooltipProvider>
-    </PortalLayout>
+    </div>
   );
 }
