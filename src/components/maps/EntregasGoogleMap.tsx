@@ -1,7 +1,7 @@
-import { GoogleMap, MarkerF, DirectionsRenderer, OverlayView, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, DirectionsRenderer, OverlayView } from '@react-google-maps/api';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGoogleMaps, airbnbMapStyles, defaultMapContainerStyle, defaultCenter } from './GoogleMapsLoader';
-import { Loader2, Truck, Clock, Phone, MapPin } from 'lucide-react';
+import { Loader2, Truck, Clock, Phone, MapPin, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { TrackingHistoryGoogleMarkers } from './TrackingHistoryGoogleMarkers';
 
@@ -75,21 +75,32 @@ const showRouteToOriginStatuses = ['aguardando_coleta', 'em_coleta'];
 // Import truck icon HTML generator
 import { getTruckIconHtml } from './TruckIcon';
 
+// Status labels for display
+const statusLabels: Record<string, { label: string; color: string }> = {
+  aguardando_coleta: { label: 'Aguardando Coleta', color: 'bg-amber-500' },
+  em_coleta: { label: 'Em Coleta', color: 'bg-amber-500' },
+  coletado: { label: 'Coletado', color: 'bg-blue-500' },
+  em_transito: { label: 'Em Trânsito', color: 'bg-orange-500' },
+  em_entrega: { label: 'Em Entrega', color: 'bg-purple-500' },
+  entregue: { label: 'Entregue', color: 'bg-green-500' },
+  problema: { label: 'Problema', color: 'bg-red-500' },
+  devolvida: { label: 'Devolvida', color: 'bg-gray-500' },
+  cancelada: { label: 'Cancelada', color: 'bg-gray-500' },
+};
+
 // Driver marker component - shows 3D truck icon with rotation based on heading
 function DriverMarker({ 
   entrega, 
-  isSelected,
   isHovered,
-  onClick,
   onHover,
   onLeave,
+  onSelect,
 }: { 
   entrega: EntregaMapItem; 
-  isSelected: boolean;
   isHovered: boolean;
-  onClick: () => void;
   onHover: () => void;
   onLeave: () => void;
+  onSelect: () => void;
 }) {
   const lat = entrega.latitude ?? entrega.origemCoords?.lat ?? null;
   const lng = entrega.longitude ?? entrega.origemCoords?.lng ?? null;
@@ -110,15 +121,15 @@ function DriverMarker({
       })}
     >
       <div
-        className={`relative cursor-pointer transition-all duration-200 ${isSelected ? 'z-50' : 'z-10'}`}
+        className={`relative cursor-pointer transition-all duration-200 ${isHovered ? 'z-50' : 'z-10'}`}
         style={{
           width: truckSize,
           height: truckSize,
-          transform: isSelected ? 'scale(1.25)' : isHovered ? 'scale(1.1)' : 'scale(1)',
+          transform: isHovered ? 'scale(1.1)' : 'scale(1)',
         }}
         onClick={(e) => {
           e.stopPropagation();
-          onClick();
+          onSelect();
         }}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
@@ -140,75 +151,97 @@ function DriverMarker({
           }}
         />
 
-        {/* Hover tooltip with all info */}
+        {/* Detailed hover tooltip */}
         {isHovered && (
           <div
-            className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl p-3 min-w-[240px] max-w-[300px]"
+            className="absolute z-50 bg-popover border border-border rounded-xl shadow-2xl p-4 min-w-[280px] max-w-[320px]"
             style={{ bottom: 56, left: '50%', transform: 'translateX(-50%)' }}
           >
+            {/* Close button hint */}
+            <div className="absolute top-2 right-2 text-muted-foreground/50 text-xs">×</div>
+            
             {/* Header with avatar and name */}
-            <div className="flex items-start gap-2 mb-2">
+            <div className="flex items-start gap-3 mb-3">
               {entrega.motoristaFotoUrl ? (
                 <img
                   src={entrega.motoristaFotoUrl}
                   alt={entrega.motorista || 'Motorista'}
-                  className="w-10 h-10 rounded-full object-cover border-2 border-primary/20 flex-shrink-0"
+                  className="w-12 h-12 rounded-full object-cover border-2 border-primary/20 flex-shrink-0"
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0 border-2 border-border">
-                  <span className="text-sm font-semibold text-muted-foreground">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0 border-2 border-border">
+                  <span className="text-base font-bold text-muted-foreground">
                     {(entrega.motorista || 'M').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                   </span>
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-foreground truncate">
+                <div className="text-sm font-bold text-foreground truncate">
                   {entrega.motorista || 'Motorista'}
                 </div>
                 {entrega.placa && (
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <Truck className="w-3 h-3" />
+                  <div className="text-xs text-muted-foreground font-medium mt-0.5">
                     {entrega.placa}
                   </div>
+                )}
+                {/* Status badge */}
+                {entrega.status && statusLabels[entrega.status] && (
+                  <Badge 
+                    className={`mt-1.5 text-[10px] px-2 py-0.5 ${statusLabels[entrega.status].color} text-white border-0`}
+                  >
+                    {statusLabels[entrega.status].label}
+                  </Badge>
                 )}
               </div>
             </div>
 
-            {/* Cargo/Delivery code */}
-            {entrega.codigo && (
-              <div className="text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
-                Carga: <span className="font-medium text-foreground">{entrega.codigo}</span>
-              </div>
-            )}
+            {/* Cargo info section */}
+            <div className="space-y-2 mb-3 pb-3 border-b border-border">
+              {/* Cargo code */}
+              {entrega.codigo && (
+                <div className="text-xs">
+                  <span className="text-muted-foreground">Código: </span>
+                  <span className="font-semibold text-foreground">{entrega.codigo}</span>
+                </div>
+              )}
+              
+              {/* Cargo description */}
+              {entrega.descricao && (
+                <div className="flex items-start gap-1.5 text-xs">
+                  <Package className="w-3 h-3 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                  <span className="text-foreground line-clamp-2">{entrega.descricao}</span>
+                </div>
+              )}
+            </div>
 
             {/* Destination */}
             {entrega.destino && (
-              <div className="flex items-start gap-1.5 text-xs text-muted-foreground mb-2">
-                <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                <span className="line-clamp-2">{entrega.destino}</span>
+              <div className="flex items-start gap-1.5 text-xs text-muted-foreground mb-3">
+                <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-primary" />
+                <span className="line-clamp-2 text-foreground">{entrega.destino}</span>
               </div>
             )}
 
-            {/* Status and last update */}
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              <div className="flex items-center gap-1">
-                <Clock className={`w-3 h-3 ${isRecent ? 'text-primary' : 'text-muted-foreground'}`} />
-                <span className={`text-xs ${isRecent ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                  {formatLocationTimestamp(entrega.lastLocationUpdate)}
-                </span>
-              </div>
-              {entrega.telefone && (
-                <a
-                  href={`tel:${entrega.telefone}`}
-                  className="flex items-center gap-1 text-xs text-primary hover:underline font-medium"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Phone className="w-3 h-3" />
-                  Ligar
-                </a>
-              )}
+            {/* Phone */}
+            {entrega.telefone && (
+              <a
+                href={`tel:${entrega.telefone}`}
+                className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium mb-3"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Phone className="w-3.5 h-3.5" />
+                {entrega.telefone}
+              </a>
+            )}
+
+            {/* Last update footer */}
+            <div className="flex items-center gap-1.5 pt-2 border-t border-border">
+              <Clock className={`w-3.5 h-3.5 ${isRecent ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span className={`text-xs ${isRecent ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                Última atualização: {formatLocationTimestamp(entrega.lastLocationUpdate)}
+              </span>
             </div>
           </div>
         )}
@@ -412,16 +445,15 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
           />
         )}
 
-        {/* Driver markers with avatar/truck */}
+        {/* Driver markers - hover only */}
         {entregas.map((e) => (
           <DriverMarker
             key={e.id}
             entrega={e}
-            isSelected={e.id === selectedCargaId}
             isHovered={e.id === hoveredId}
-            onClick={() => onSelectCarga(e.id)}
             onHover={() => setHoveredId(e.id)}
             onLeave={() => setHoveredId(null)}
+            onSelect={() => onSelectCarga(e.id)}
           />
         ))}
 
