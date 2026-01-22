@@ -102,10 +102,10 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
         )}
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 overflow-hidden">
         <div className="flex items-center justify-between gap-2 mb-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-semibold truncate text-foreground">{getChatTitle()}</span>
+          <div className="flex-1 min-w-0">
+            <span className="font-semibold text-foreground block truncate">{getChatTitle()}</span>
           </div>
           <span className="text-xs text-muted-foreground shrink-0">
             {formatDate(chat.updated_at)}
@@ -113,11 +113,11 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
         </div>
         
         {/* Cargo code */}
-        <div className="flex items-center gap-2 mb-1.5 overflow-hidden">
+        <div className="flex items-center gap-2 mb-1.5 min-w-0">
           <Badge variant="secondary" className="text-[10px] h-5 px-1.5 shrink-0">
             {chat.entrega?.carga?.codigo || 'Carga'}
           </Badge>
-          <span className="text-xs text-muted-foreground truncate">
+          <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">
             {chat.entrega?.carga?.descricao || ''}
           </span>
         </div>
@@ -125,15 +125,16 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
         {/* Route or last message */}
         {chat.ultima_mensagem ? (
           <p className={cn(
-            'text-sm truncate',
+            'text-sm truncate block',
             chat.mensagens_nao_lidas && chat.mensagens_nao_lidas > 0 
               ? 'text-foreground font-medium' 
               : 'text-muted-foreground'
           )}>
+            <span className="font-medium">{chat.ultima_mensagem.sender_nome}:</span>{' '}
             {chat.ultima_mensagem.conteudo}
           </p>
         ) : route ? (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{route.origem.cidade}</span>
             <ArrowRight className="w-3 h-3 shrink-0" />
