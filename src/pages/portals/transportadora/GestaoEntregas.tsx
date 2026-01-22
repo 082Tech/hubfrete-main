@@ -39,6 +39,7 @@ import {
   Trash2,
   Upload,
   XCircle,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -47,6 +48,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
@@ -449,6 +454,44 @@ export default function GestaoEntregas() {
       toast.error('Erro ao excluir entrega');
     },
   });
+
+  // Update status mutation
+  const updateStatus = useMutation({
+    mutationFn: async ({ entregaId, newStatus }: { entregaId: string; newStatus: StatusEntrega }) => {
+      const updateData: { status: StatusEntrega; coletado_em?: string | null; entregue_em?: string | null } = {
+        status: newStatus,
+      };
+
+      // Set timestamp for specific status transitions
+      if (newStatus === 'coletado' || newStatus === 'em_transito') {
+        updateData.coletado_em = new Date().toISOString();
+      }
+      if (newStatus === 'entregue') {
+        updateData.entregue_em = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from('entregas')
+        .update(updateData)
+        .eq('id', entregaId);
+
+      if (error) throw error;
+      return { newStatus };
+    },
+    onSuccess: (result) => {
+      const config = statusEntregaConfig[result.newStatus];
+      toast.success(`Status alterado para "${config?.label || result.newStatus}"`);
+      queryClient.invalidateQueries({ queryKey: ['gestao_entregas_transportadora'] });
+    },
+    onError: (error) => {
+      console.error('Erro ao alterar status:', error);
+      toast.error('Erro ao alterar status da entrega');
+    },
+  });
+
+  const handleStatusChange = (entregaId: string, newStatus: StatusEntrega) => {
+    updateStatus.mutate({ entregaId, newStatus });
+  };
 
   const handleDeleteClick = (entrega: EntregaCompleta) => {
     setEntregaToDelete(entrega);
@@ -1102,7 +1145,7 @@ export default function GestaoEntregas() {
                                       <MoreHorizontal className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuContent align="end" className="w-52">
                                     <DropdownMenuItem onClick={(e) => {
                                       e.stopPropagation();
                                       navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
@@ -1133,6 +1176,38 @@ export default function GestaoEntregas() {
                                       <Upload className="w-4 h-4 mr-2" />
                                       {entrega.cte_url ? 'Substituir CT-e' : 'Anexar CT-e'}
                                     </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuSub>
+                                      <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                                        <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                        Alterar status
+                                      </DropdownMenuSubTrigger>
+                                      <DropdownMenuPortal>
+                                        <DropdownMenuSubContent className="w-48">
+                                          {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
+                                            const isCurrentStatus = entrega.status === statusKey;
+                                            const StatusIconComponent = statusConfig.icon;
+                                            return (
+                                              <DropdownMenuItem
+                                                key={statusKey}
+                                                disabled={isCurrentStatus}
+                                                className={isCurrentStatus ? 'opacity-50' : ''}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleStatusChange(entrega.id, statusKey as StatusEntrega);
+                                                }}
+                                              >
+                                                <StatusIconComponent className="w-4 h-4 mr-2" />
+                                                {statusConfig.label}
+                                                {isCurrentStatus && (
+                                                  <CheckCircle className="w-3 h-3 ml-auto text-primary" />
+                                                )}
+                                              </DropdownMenuItem>
+                                            );
+                                          })}
+                                        </DropdownMenuSubContent>
+                                      </DropdownMenuPortal>
+                                    </DropdownMenuSub>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem 
                                       className="text-destructive focus:text-destructive"
@@ -1286,19 +1361,102 @@ export default function GestaoEntregas() {
                   return (
                     <Card 
                       key={entrega.id} 
-                      className={`border-border cursor-pointer transition-all ${selectedEntregaId === entrega.id ? 'ring-2 ring-primary' : ''}`}
-                      onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
+                      className={`border-border transition-all ${selectedEntregaId === entrega.id ? 'ring-2 ring-primary' : ''}`}
                     >
                       <CardContent className="p-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <Badge variant="secondary" className="text-xs">{entrega.carga.codigo}</Badge>
-                          <Badge variant="outline" className={`${config?.color} border text-xs gap-1`}>
-                            <StatusIcon className="w-3 h-3" />
-                            {config?.label || status}
+                          <Badge 
+                            variant="secondary" 
+                            className="text-xs cursor-pointer"
+                            onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
+                          >
+                            {entrega.carga.codigo}
                           </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className={`${config?.color} border text-xs gap-1`}>
+                              <StatusIcon className="w-3 h-3" />
+                              {config?.label || status}
+                            </Badge>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuItem onClick={() => navigate(`/transportadora/mensagens?entrega=${entrega.id}`)}>
+                                  <MessageCircle className="w-4 h-4 mr-2" />
+                                  Abrir chat
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSelectedEntregaId(entrega.id)}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Ver no mapa
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedEntregaForDetails(entrega);
+                                  setDetailsDialogOpen(true);
+                                }}>
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Ver detalhes
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  setEntregaForCte(entrega);
+                                  setAnexarCteDialogOpen(true);
+                                }}>
+                                  <Upload className="w-4 h-4 mr-2" />
+                                  {entrega.cte_url ? 'Substituir CT-e' : 'Anexar CT-e'}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger>
+                                    <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                    Alterar status
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuPortal>
+                                    <DropdownMenuSubContent className="w-48">
+                                      {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
+                                        const isCurrentStatus = entrega.status === statusKey;
+                                        const StatusIconComponent = statusConfig.icon;
+                                        return (
+                                          <DropdownMenuItem
+                                            key={statusKey}
+                                            disabled={isCurrentStatus}
+                                            className={isCurrentStatus ? 'opacity-50' : ''}
+                                            onClick={() => handleStatusChange(entrega.id, statusKey as StatusEntrega)}
+                                          >
+                                            <StatusIconComponent className="w-4 h-4 mr-2" />
+                                            {statusConfig.label}
+                                            {isCurrentStatus && (
+                                              <CheckCircle className="w-3 h-3 ml-auto text-primary" />
+                                            )}
+                                          </DropdownMenuItem>
+                                        );
+                                      })}
+                                    </DropdownMenuSubContent>
+                                  </DropdownMenuPortal>
+                                </DropdownMenuSub>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => handleDeleteClick(entrega)}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Excluir entrega
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
-                        <p className="text-sm font-medium line-clamp-1">{entrega.carga.descricao}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <p 
+                          className="text-sm font-medium line-clamp-1 cursor-pointer"
+                          onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
+                        >
+                          {entrega.carga.descricao}
+                        </p>
+                        <div 
+                          className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer"
+                          onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
+                        >
                           <MapPin className="w-3 h-3 text-chart-1" />
                           <span className="truncate">{entrega.carga.endereco_origem?.cidade}</span>
                           <ArrowRight className="w-3 h-3" />
@@ -1306,7 +1464,10 @@ export default function GestaoEntregas() {
                           <span className="truncate">{entrega.carga.endereco_destino?.cidade}</span>
                         </div>
                         {entrega.motorista && (
-                          <div className="flex items-center gap-2 text-xs pt-2 border-t border-border">
+                          <div 
+                            className="flex items-center gap-2 text-xs pt-2 border-t border-border cursor-pointer"
+                            onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
+                          >
                             <User className="w-3 h-3 text-primary" />
                             <span className="truncate">{entrega.motorista.nome_completo}</span>
                             {entrega.veiculo && (
