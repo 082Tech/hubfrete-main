@@ -52,7 +52,7 @@ export function ModernNavbar() {
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 400 }}
             />
-            <h1 className='font-bold'><span className='text-black'>Hub</span><span className='text-primary'>Frete</span></h1>
+            <h1 className='font-bold'><span className={`${theme === 'dark' ? 'text-white' : 'text-black'}`}>Hub</span><span className='text-primary'>Frete</span></h1>
           </Link>
 
           {/* Desktop Navigation */}

@@ -63,7 +63,7 @@ export function MacBookSlideshow() {
           </div>
           
           {/* Screen content area */}
-          <div className="relative rounded-lg overflow-hidden bg-neutral-900 aspect-[16/10]">
+          <div className="relative rounded-lg overflow-hidden bg-neutral-900 aspect-[16/8]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentIndex}
