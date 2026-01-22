@@ -321,13 +321,13 @@ export default function MinhaFrota() {
       const filePath = `veiculos/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('notas-fiscais')
+        .from('fotos-frota')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('notas-fiscais')
+        .from('fotos-frota')
         .getPublicUrl(filePath);
 
       const { error: updateError } = await supabase
@@ -361,13 +361,13 @@ export default function MinhaFrota() {
       const filePath = `carrocerias/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('notas-fiscais')
+        .from('fotos-frota')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('notas-fiscais')
+        .from('fotos-frota')
         .getPublicUrl(filePath);
 
       const { error: updateError } = await supabase
@@ -432,13 +432,13 @@ export default function MinhaFrota() {
         const filePath = `veiculos/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('notas-fiscais')
+          .from('fotos-frota')
           .upload(filePath, selectedPhoto);
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('notas-fiscais')
+          .from('fotos-frota')
           .getPublicUrl(filePath);
 
         fotoUrl = urlData.publicUrl;
@@ -505,13 +505,13 @@ export default function MinhaFrota() {
         const filePath = `carrocerias/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('notas-fiscais')
+          .from('fotos-frota')
           .upload(filePath, selectedPhoto);
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('notas-fiscais')
+          .from('fotos-frota')
           .getPublicUrl(filePath);
 
         fotoUrl = urlData.publicUrl;
