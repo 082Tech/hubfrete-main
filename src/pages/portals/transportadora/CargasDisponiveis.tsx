@@ -897,7 +897,7 @@ export default function CargasDisponiveis() {
 
             {selectedCarga && (
               <ScrollArea className="max-h-[60vh] pr-4">
-                <div className="space-y-4">
+                <div className="space-y-4 mb-4">
                   {/* Header with Logo and Basic Info */}
                   <div className="flex items-start gap-4 p-4 bg-muted rounded-lg">
                     {/* Company Logo or Initials */}
@@ -967,7 +967,6 @@ export default function CargasDisponiveis() {
                             lng: Number(selectedCarga.endereco_destino.longitude),
                             label: selectedCarga.endereco_destino.cidade,
                           }}
-                          showBadgeOutside={true}
                         />
                       </div>
                       {/* Route Stats with Full Address */}

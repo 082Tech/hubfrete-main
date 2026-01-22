@@ -107,7 +107,7 @@ export default function RouteGoogleMap({
     if (!isLoadingRoute && !routeInfo) return null;
     
     return (
-      <div className={showBadgeOutside ? "flex gap-2 justify-center" : "flex gap-2"}>
+      <div className={showBadgeOutside ? "flex gap-2 justify-end" : "flex gap-2"}>
         {isLoadingRoute ? (
           <Badge variant="outline" className="gap-1 bg-background/90 backdrop-blur-sm">
             <Loader2 className="w-3 h-3 animate-spin" />
@@ -115,7 +115,7 @@ export default function RouteGoogleMap({
           </Badge>
         ) : routeInfo && (
           <>
-            <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm">
+            <Badge variant="default" className="backdrop-blur-sm">
               {routeInfo.distance}
             </Badge>
             <Badge variant="outline" className="bg-background/90 backdrop-blur-sm">
@@ -204,13 +204,6 @@ export default function RouteGoogleMap({
           </div>
         )}
       </div>
-
-      {/* Route Info Badge - Outside map */}
-      {showBadgeOutside && (isLoadingRoute || routeInfo) && (
-        <div className="py-2">
-          <RouteInfoBadge />
-        </div>
-      )}
     </div>
   );
 }
