@@ -234,7 +234,7 @@ export function ChatArea({
               </div>
             ))}
           </div>
-        ) : messages.length === 0 ? (
+        ) : messages.length === 0 && !isDeliveryFinalized ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             <div className="bg-muted/50 p-6 rounded-full mb-4">
               <Package className="h-10 w-10 text-muted-foreground" />
@@ -270,29 +270,26 @@ export function ChatArea({
                 </div>
               </div>
             ))}
+
+            {/* Finalized Message Card - inside messages area like iFood */}
+            {isDeliveryFinalized && finalizedInfo && (
+              <div className="flex justify-center py-6">
+                <div className="bg-card border border-border rounded-2xl shadow-sm p-5 max-w-xs w-full">
+                  <div className="flex flex-col items-center text-center gap-3">
+                    <div className={cn('p-3 rounded-full', finalizedInfo.bgColor)}>
+                      <finalizedInfo.icon className={cn('h-6 w-6', finalizedInfo.color)} />
+                    </div>
+                    <div>
+                      <p className={cn('font-semibold text-base', finalizedInfo.color)}>{finalizedInfo.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{finalizedInfo.subtitle}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </ScrollArea>
-
-      {/* Finalized Message Card - iFood style (inside chat area) */}
-      {isDeliveryFinalized && finalizedInfo && (
-        <div className="p-4 md:p-6 shrink-0">
-          <div className="bg-card border border-border rounded-2xl shadow-sm p-4 md:p-6 max-w-sm mx-auto">
-            <div className="flex flex-col items-center text-center gap-3">
-              <div className={cn('p-3 rounded-full', finalizedInfo.bgColor)}>
-                <finalizedInfo.icon className={cn('h-6 w-6', finalizedInfo.color)} />
-              </div>
-              <div>
-                <p className={cn('font-semibold text-base', finalizedInfo.color)}>{finalizedInfo.title}</p>
-                <p className="text-sm text-muted-foreground mt-1">{finalizedInfo.subtitle}</p>
-              </div>
-              <p className="text-xs text-muted-foreground/70 mt-2">
-                Esta conversa foi encerrada automaticamente.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Input Area - Modern Style - Hidden when finalized */}
       {!isDeliveryFinalized && (

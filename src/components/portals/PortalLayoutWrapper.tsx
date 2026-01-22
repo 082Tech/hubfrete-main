@@ -8,6 +8,7 @@ import { useUserContext, type UserType } from '@/hooks/useUserContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { NotificacoesProvider } from '@/contexts/NotificacoesContext';
 import { NotificationToast } from '@/components/notificacoes';
+import { ChatViewProvider, useChatView } from '@/contexts/ChatViewContext';
 
 export type { UserType };
 
@@ -28,7 +29,7 @@ interface PortalLayoutWrapperProps {
   expectedUserType: 'embarcador' | 'transportadora';
 }
 
-export function PortalLayoutWrapper({ expectedUserType }: PortalLayoutWrapperProps) {
+function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { userType, loading: contextLoading } = useUserContext();
@@ -38,6 +39,8 @@ export function PortalLayoutWrapper({ expectedUserType }: PortalLayoutWrapperPro
     const saved = localStorage.getItem('hubfrete_sidebar_collapsed');
     return saved === 'true';
   });
+
+  const { isInChatView } = useChatView();
 
   const isLoading = authLoading || contextLoading;
 
@@ -69,48 +72,57 @@ export function PortalLayoutWrapper({ expectedUserType }: PortalLayoutWrapperPro
   if (!user || !userType || userType !== expectedUserType) return null;
 
   return (
-    <NotificacoesProvider>
-      <div className="min-h-screen bg-background">
-        {/* Global notification toast */}
-        <NotificationToast />
-        
-        {/* Desktop: Show sidebar */}
-        {!isMobile && (
-          <PortalSidebar 
-            userType={expectedUserType} 
-            collapsed={collapsed} 
-            onToggleCollapse={() => setCollapsed(!collapsed)} 
-          />
-        )}
-        
-        {/* Main content */}
-        <main 
-          className={`transition-all duration-300 ${
-            isMobile 
-              ? 'pb-20' // Add padding for bottom nav
-              : collapsed 
-                ? 'ml-16' 
-                : 'ml-64'
-          }`}
-        >
-          <Outlet />
-        </main>
+    <div className="min-h-screen bg-background">
+      {/* Global notification toast */}
+      <NotificationToast />
+      
+      {/* Desktop: Show sidebar */}
+      {!isMobile && (
+        <PortalSidebar 
+          userType={expectedUserType} 
+          collapsed={collapsed} 
+          onToggleCollapse={() => setCollapsed(!collapsed)} 
+        />
+      )}
+      
+      {/* Main content */}
+      <main 
+        className={`transition-all duration-300 ${
+          isMobile 
+            ? isInChatView ? '' : 'pb-20' // Remove padding when in chat view
+            : collapsed 
+              ? 'ml-16' 
+              : 'ml-64'
+        }`}
+      >
+        <Outlet />
+      </main>
 
-        {/* Mobile: Show bottom navigation */}
-        {isMobile && (
-          <>
-            <BottomNavigation 
-              userType={expectedUserType} 
-              onMenuClick={() => setMobileMenuOpen(true)} 
-            />
-            <MobileMenuSheet
-              open={mobileMenuOpen}
-              onOpenChange={setMobileMenuOpen}
-              userType={expectedUserType}
-            />
-          </>
-        )}
-      </div>
+      {/* Mobile: Show bottom navigation - hidden when in chat view */}
+      {isMobile && (
+        <>
+          <BottomNavigation 
+            userType={expectedUserType} 
+            onMenuClick={() => setMobileMenuOpen(true)}
+            hidden={isInChatView}
+          />
+          <MobileMenuSheet
+            open={mobileMenuOpen}
+            onOpenChange={setMobileMenuOpen}
+            userType={expectedUserType}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+export function PortalLayoutWrapper({ expectedUserType }: PortalLayoutWrapperProps) {
+  return (
+    <NotificacoesProvider>
+      <ChatViewProvider>
+        <PortalLayoutContent expectedUserType={expectedUserType} />
+      </ChatViewProvider>
     </NotificacoesProvider>
   );
 }
