@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, Suspense, lazy } from 'react';
-import { PortalLayout } from '@/components/portals/PortalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -694,7 +693,7 @@ export default function GestaoEntregas() {
   );
 
   return (
-    <PortalLayout expectedUserType="transportadora">
+    <div className="p-4 md:p-8">
       <div className="flex gap-6">
         {/* Desktop Sidebar: Filters + Stats + Search */}
         <aside className="hidden lg:flex flex-col w-72 shrink-0 gap-4">
@@ -1434,6 +1433,6 @@ export default function GestaoEntregas() {
         fileUrl={ctePreviewUrl}
         title="CT-e"
       />
-    </PortalLayout>
+    </div>
   );
 }
