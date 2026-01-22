@@ -65,11 +65,22 @@ export default function CadastroMotoristaConvite() {
       // unicode hyphens/dashes -> ASCII '-'
       .replace(/[\u2010-\u2015\u2212\uFE63\uFF0D]/g, '-');
 
-    const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-    const match = decoded.match(uuidRegex);
+    // Accept both:
+    // - standard UUID with hyphens
+    // - 32 hex chars (UUID without hyphens) — common when some apps “clean up” text
+    const uuidHyphenRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+    const uuidNoHyphenRegex = /[0-9a-f]{32}/i;
+
+    const hyphenMatch = decoded.match(uuidHyphenRegex);
+    const noHyphenMatch = hyphenMatch ? null : decoded.match(uuidNoHyphenRegex);
+
+    const toHyphenatedUuid = (hex32: string) =>
+      `${hex32.slice(0, 8)}-${hex32.slice(8, 12)}-${hex32.slice(12, 16)}-${hex32.slice(16, 20)}-${hex32.slice(20)}`;
+
+    const uuid = hyphenMatch?.[0] ?? (noHyphenMatch ? toHyphenatedUuid(noHyphenMatch[0]) : null);
     return {
       decoded,
-      uuid: match?.[0] ?? null,
+      uuid,
     };
   };
   
