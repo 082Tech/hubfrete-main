@@ -479,14 +479,24 @@ export default function CargasPublicadas() {
   // Stats - only for non-finalized cargas
   const activeCargas = useMemo(() => cargas.filter(c => !allEntregasFinalized(c)), [cargas]);
   
-  const stats = useMemo(() => ({
-    total: activeCargas.length,
-    aguardando: activeCargas.filter(c => getPercentualAlocado(c) === 0).length,
-    parcial: activeCargas.filter(c => { const p = getPercentualAlocado(c); return p > 0 && p < 100; }).length,
-    alocadas: activeCargas.filter(c => getPercentualAlocado(c) >= 100).length,
-    pesoTotal: activeCargas.reduce((acc, c) => acc + c.peso_kg, 0),
-    valorTotal: activeCargas.reduce((acc, c) => acc + (c.valor_mercadoria || 0), 0),
-  }), [activeCargas]);
+  const stats = useMemo(() => {
+    const freteEstimadoTotal = activeCargas.reduce((acc, c) => {
+      if (!c.valor_frete_tonelada) return acc;
+      return acc + (c.peso_kg / 1000) * c.valor_frete_tonelada;
+    }, 0);
+    const freteAlocadoTotal = activeCargas.reduce((acc, c) => acc + getTotalFrete(c), 0);
+    
+    return {
+      total: activeCargas.length,
+      aguardando: activeCargas.filter(c => getPercentualAlocado(c) === 0).length,
+      parcial: activeCargas.filter(c => { const p = getPercentualAlocado(c); return p > 0 && p < 100; }).length,
+      alocadas: activeCargas.filter(c => getPercentualAlocado(c) >= 100).length,
+      pesoTotal: activeCargas.reduce((acc, c) => acc + c.peso_kg, 0),
+      valorTotal: activeCargas.reduce((acc, c) => acc + (c.valor_mercadoria || 0), 0),
+      freteEstimadoTotal,
+      freteAlocadoTotal,
+    };
+  }, [activeCargas]);
 
   // Calculate total freight from all deliveries
   const getTotalFrete = (carga: CargaData) => {
@@ -705,7 +715,7 @@ export default function CargasPublicadas() {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <Card 
               className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary' : ''}`}
               onClick={() => setFilterStatus('all')}
@@ -775,6 +785,21 @@ export default function CargasPublicadas() {
                   <span className="text-xs text-muted-foreground">Mercadoria</span>
                 </div>
                 <p className="text-lg font-bold text-amber-600">{formatCurrency(stats.valorTotal)}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Truck className="w-4 h-4 text-green-600" />
+                  <span className="text-xs text-muted-foreground">Frete Total</span>
+                </div>
+                <p className="text-lg font-bold text-green-600">{formatCurrency(stats.freteEstimadoTotal)}</p>
+                {stats.freteAlocadoTotal > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Alocado: {formatCurrency(stats.freteAlocadoTotal)}
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -1059,106 +1084,118 @@ export default function CargasPublicadas() {
                               </TableCell>
                             </TableRow>
 
-                            {/* Expanded Child Rows (Entregas) */}
-                            {isExpanded && carga.entregas.map((entrega, idx) => {
-                              const config = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando_coleta;
-                              const StatusIcon = config.icon;
-                              const isEntregaHighlighted = highlightedEntregaId === entrega.id;
-                              
-                              return (
-                                <TableRow 
-                                  key={`${carga.id}-entrega-${entrega.id}`}
-                                  className={`bg-muted/30 hover:bg-muted/50 border-l-2 border-l-primary/50 ${isEntregaHighlighted ? 'ring-2 ring-primary ring-inset bg-primary/20 animate-pulse' : ''}`}
-                                >
-                                  <TableCell className="p-2">
-                                    <div className="ml-3 w-0.5 h-4 bg-primary/30" />
-                                  </TableCell>
-                                  <TableCell colSpan={2}>
-                                    <div className="flex items-center gap-3 pl-2">
-                                      <span className="font-medium text-primary text-nowrap text-sm">
-                                        {entrega.codigo || `E${String(idx + 1).padStart(2, '0')}`}
-                                      </span>
-                                      <Badge className={`${config.color} border gap-1 shrink-0`}>
-                                        <StatusIcon className="w-3 h-3" />
-                                        {config.label}
-                                      </Badge>
-                                      <div className="flex items-center gap-2 min-w-0">
-                                        <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                        <span className="text-sm truncate">
-                                          {entrega.motoristas?.nome_completo || 'Sem motorista'}
-                                        </span>
-                                      </div>
+                            {/* Expanded Row - Entregas com subtabela */}
+                            {isExpanded && carga.entregas.length > 0 && (
+                              <TableRow className="bg-muted/20 hover:bg-muted/20">
+                                <TableCell colSpan={12} className="p-0">
+                                  <div className="px-8 py-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <Truck className="w-4 h-4 text-primary" />
+                                      <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
                                     </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    {entrega.veiculos && (
-                                      <div className="flex items-center gap-2 text-sm">
-                                        <Truck className="w-3.5 h-3.5 text-muted-foreground" />
-                                        <span className="font-mono">{entrega.veiculos.placa}</span>
-                                      </div>
-                                    )}
-                                  </TableCell>
-                                  <TableCell colSpan={2} className="text-center">
-                                    <div className="flex items-center justify-center gap-1">
-                                      <Weight className="w-3.5 h-3.5 text-muted-foreground" />
-                                      <span className="font-medium">{formatWeight(entrega.peso_alocado_kg || 0)}</span>
+                                    <div className="bg-background rounded-lg border overflow-hidden">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow className="bg-muted/30">
+                                            <TableHead className="text-xs">Código</TableHead>
+                                            <TableHead className="text-xs">Motorista</TableHead>
+                                            <TableHead className="text-xs">Veículo</TableHead>
+                                            <TableHead className="text-xs text-right">Peso Alocado</TableHead>
+                                            <TableHead className="text-xs text-right">Valor Frete</TableHead>
+                                            <TableHead className="text-xs">CT-e</TableHead>
+                                            <TableHead className="text-xs">Coletado em</TableHead>
+                                            <TableHead className="text-xs">Status</TableHead>
+                                            <TableHead className="text-xs w-10"></TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {carga.entregas.map((entrega, idx) => {
+                                            const statusConfig = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando_coleta;
+                                            const StatusIcon = statusConfig.icon;
+                                            const isHighlighted = highlightedEntregaId === entrega.id;
+                                            
+                                            return (
+                                              <TableRow 
+                                                key={entrega.id} 
+                                                className={`${isHighlighted ? 'bg-primary/10 animate-pulse' : ''}`}
+                                              >
+                                                <TableCell className="font-mono text-sm font-medium text-primary text-nowrap">
+                                                  {entrega.codigo || `${carga.codigo}-E${String(idx + 1).padStart(2, '0')}`}
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex items-center gap-2">
+                                                    <User className="w-3 h-3 text-muted-foreground" />
+                                                    <span className="text-sm">
+                                                      {entrega.motoristas?.nome_completo || '-'}
+                                                    </span>
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex items-center gap-2">
+                                                    <Truck className="w-3 h-3 text-muted-foreground" />
+                                                    <span className="text-sm font-mono">
+                                                      {entrega.veiculos?.placa || '-'}
+                                                    </span>
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell className="text-right text-sm font-medium">
+                                                  {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
+                                                </TableCell>
+                                                <TableCell className="text-right text-sm font-medium text-green-600">
+                                                  {formatCurrency(entrega.valor_frete)}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {entrega.cte_url ? (
+                                                    <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 text-xs">
+                                                      <FileText className="w-3 h-3" />
+                                                      CT-e
+                                                    </Badge>
+                                                  ) : (
+                                                    <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 text-xs">
+                                                      <FileText className="w-3 h-3" />
+                                                      Pendente
+                                                    </Badge>
+                                                  )}
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex items-center gap-1 text-sm">
+                                                    <Calendar className="w-3 h-3 text-muted-foreground" />
+                                                    {formatDate(entrega.coletado_em)}
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <Badge className={`${statusConfig.color} text-xs`}>
+                                                    <StatusIcon className="w-3 h-3 mr-1" />
+                                                    {statusConfig.label}
+                                                  </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                      </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                      <DropdownMenuItem onClick={() => {
+                                                        setDetailsEntrega({ entrega, carga });
+                                                      }}>
+                                                        <Eye className="w-4 h-4 mr-2" />
+                                                        Ver detalhes
+                                                      </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                  </DropdownMenu>
+                                                </TableCell>
+                                              </TableRow>
+                                            );
+                                          })}
+                                        </TableBody>
+                                      </Table>
                                     </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-1">
-                                      <DollarSign className="w-3.5 h-3.5 text-green-600" />
-                                      <span className="font-medium text-green-600">{formatCurrency(entrega.valor_frete)}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    {entrega.cte_url ? (
-                                      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1">
-                                        <FileText className="w-3 h-3" />
-                                        CT-e
-                                      </Badge>
-                                    ) : (
-                                      <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1">
-                                        <FileText className="w-3 h-3" />
-                                        Sem CT-e
-                                      </Badge>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    {entrega.entregue_em && (
-                                      <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                                        <Calendar className="w-3 h-3" />
-                                        <span>{formatDate(entrega.entregue_em)}</span>
-                                      </div>
-                                    )}
-                                    {entrega.coletado_em && !entrega.entregue_em && (
-                                      <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                                        <Calendar className="w-3 h-3" />
-                                        <span>Coletado: {formatDate(entrega.coletado_em)}</span>
-                                      </div>
-                                    )}
-                                  </TableCell>
-                                  <TableCell></TableCell>
-                                  <TableCell>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                                          <MoreHorizontal className="w-4 h-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={(e) => {
-                                          e.stopPropagation();
-                                          setDetailsEntrega({ entrega, carga });
-                                        }}>
-                                          <Eye className="w-4 h-4 mr-2" />
-                                          Ver detalhes
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
                           </>
                         );
                       })}
