@@ -43,12 +43,30 @@ export function ChatArea({
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Scroll to bottom function
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  };
+
+  // Auto scroll to bottom when chat changes (opening a new conversation)
+  useEffect(() => {
+    if (chat?.id) {
+      // Small delay to ensure content is rendered
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [chat?.id]);
+
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (messages.length > 0) {
+      scrollToBottom();
     }
-  }, [messages]);
+  }, [messages.length]);
 
   const handleSend = () => {
     if (!newMessage.trim() || isSending) return;
