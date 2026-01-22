@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
   Home,
   Package,
   Truck,
@@ -26,10 +33,14 @@ import {
   MapPin,
   User,
   ChevronRight,
+  ChevronDown,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MenuItem {
   icon: React.ElementType;
@@ -83,7 +94,7 @@ export function MobileMenuSheet({ open, onOpenChange, userType }: MobileMenuShee
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
-  const { empresa, filialAtiva, cargo } = useUserContext();
+  const { empresa, filiais, filialAtiva, setFilialAtiva, cargo, switchingFilial } = useUserContext();
   
   const menuItems = userType === 'embarcador' ? embarcadorMenuItems : transportadoraMenuItems;
   const filteredItems = menuItems.filter(item => !item.adminOnly || cargo === 'ADMIN');
@@ -104,8 +115,8 @@ export function MobileMenuSheet({ open, onOpenChange, userType }: MobileMenuShee
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0">
-        <SheetHeader className="p-4 border-b border-border">
+      <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0 flex flex-col h-full">
+        <SheetHeader className="p-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
             {profile?.avatar_url ? (
               <img
@@ -130,7 +141,7 @@ export function MobileMenuSheet({ open, onOpenChange, userType }: MobileMenuShee
         </SheetHeader>
 
         {/* Company Info */}
-        <div className="p-4 bg-muted/30">
+        <div className="p-4 bg-muted/30 shrink-0">
           <div className="flex items-center gap-3">
             {empresa?.logo_url ? (
               <img
@@ -159,13 +170,86 @@ export function MobileMenuSheet({ open, onOpenChange, userType }: MobileMenuShee
               )}
             </div>
           </div>
+
+          {/* Branch Selector */}
+          {filiais.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                Filial Ativa
+              </p>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-between h-9 px-3 text-xs"
+                    disabled={switchingFilial}
+                  >
+                    <span className="flex items-center gap-2">
+                      {switchingFilial ? (
+                        <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                      ) : (
+                        <MapPin className="w-3.5 h-3.5 text-primary" />
+                      )}
+                      <span className="font-medium truncate">
+                        {switchingFilial ? 'Carregando...' : (filialAtiva?.nome || 'Selecionar filial')}
+                      </span>
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <div className="px-3 py-2 border-b border-border">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                      Selecionar Filial
+                    </p>
+                  </div>
+                  {filiais.map((filial) => (
+                    <DropdownMenuItem
+                      key={filial.id}
+                      onClick={() => setFilialAtiva(filial)}
+                      className={`flex items-center gap-2 py-2.5 cursor-pointer ${filialAtiva?.id === filial.id ? 'bg-accent' : ''}`}
+                    >
+                      <MapPin className={`w-3.5 h-3.5 ${filialAtiva?.id === filial.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium truncate ${filialAtiva?.id === filial.id ? 'text-primary' : ''}`}>
+                          {filial.nome || 'Filial'}
+                        </p>
+                        {filial.cnpj && (
+                          <p className="text-[10px] text-muted-foreground">{filial.cnpj}</p>
+                        )}
+                      </div>
+                      {filialAtiva?.id === filial.id && (
+                        <Check className="w-4 h-4 text-primary shrink-0" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                  {cargo === 'ADMIN' && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="gap-2 text-muted-foreground text-xs"
+                        onClick={() => {
+                          navigate(`/${userType}/filiais`);
+                          onOpenChange(false);
+                        }}
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                        Gerenciar filiais
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
 
-        <Separator />
+        <Separator className="shrink-0" />
 
-        {/* Menu Items */}
-        <div className="flex-1 overflow-y-auto p-2">
-          <nav className="space-y-1">
+        {/* Menu Items - Scrollable */}
+        <ScrollArea className="flex-1">
+          <nav className="p-2 space-y-1">
             {filteredItems.map((item) => {
               const isActive = location.pathname === item.href;
               return (
@@ -186,10 +270,10 @@ export function MobileMenuSheet({ open, onOpenChange, userType }: MobileMenuShee
               );
             })}
           </nav>
-        </div>
+        </ScrollArea>
 
-        {/* Logout */}
-        <div className="p-4 border-t border-border">
+        {/* Logout - Fixed at bottom */}
+        <div className="p-4 border-t border-border shrink-0 bg-background">
           <Button
             variant="outline"
             className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
