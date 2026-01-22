@@ -299,18 +299,18 @@ export default function CargasDisponiveis() {
 
   // Mutation para aceitar carga
   const acceptCarga = useMutation({
-    mutationFn: async ({ 
-      cargaId, 
-      motoristaId, 
-      veiculoId, 
-      pesoAlocadoKg, 
+    mutationFn: async ({
+      cargaId,
+      motoristaId,
+      veiculoId,
+      pesoAlocadoKg,
       valorFrete,
       embarcadorEmpresaId,
       transportadoraEmpresaId,
-    }: { 
-      cargaId: string; 
-      motoristaId: string; 
-      veiculoId: string; 
+    }: {
+      cargaId: string;
+      motoristaId: string;
+      veiculoId: string;
       pesoAlocadoKg: number;
       valorFrete: number;
       embarcadorEmpresaId: number;
@@ -332,7 +332,7 @@ export default function CargasDisponiveis() {
       const novoStatus = novoPesoDisponivel <= 0 ? 'totalmente_alocada' : 'parcialmente_alocada';
       const { error: cargaError } = await supabase
         .from('cargas')
-        .update({ 
+        .update({
           status: novoStatus,
           peso_disponivel_kg: Math.max(0, novoPesoDisponivel)
         })
@@ -575,7 +575,7 @@ export default function CargasDisponiveis() {
   const CargaCard = ({ carga, isHovered }: { carga: Carga; isHovered?: boolean }) => {
     const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
     const percentDisponivel = (pesoDisponivel / carga.peso_kg) * 100;
-    
+
     return (
       <Card
         className={`border-border hover:shadow-lg transition-all cursor-pointer ${isHovered ? 'ring-2 ring-primary shadow-lg' : ''}`}
@@ -599,9 +599,9 @@ export default function CargasDisponiveis() {
             {/* Company Logo or Initials */}
             <div className="shrink-0 w-10 h-10 rounded-md border border-border bg-muted/50 flex items-center justify-center overflow-hidden">
               {carga.empresa?.logo_url ? (
-                <img 
-                  src={carga.empresa.logo_url} 
-                  alt={carga.empresa.nome || 'Logo'} 
+                <img
+                  src={carga.empresa.logo_url}
+                  alt={carga.empresa.nome || 'Logo'}
                   className="w-full h-full object-contain"
                 />
               ) : (
@@ -693,9 +693,9 @@ export default function CargasDisponiveis() {
               </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full rounded-full transition-all bg-primary"
-                style={{ 
+                style={{
                   width: `${percentDisponivel}%`,
                   opacity: percentDisponivel >= 75 ? 1 : percentDisponivel >= 50 ? 0.8 : percentDisponivel >= 25 ? 0.6 : 0.4
                 }}
@@ -725,7 +725,6 @@ export default function CargasDisponiveis() {
             {carga.valor_frete_tonelada && (
               <div className="flex flex-col items-end gap-0.5">
                 <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
-                  <DollarSign className="w-4 h-4" />
                   {formatCurrency(calcularFreteTotal(carga))}
                 </div>
                 <span className="text-xs text-muted-foreground">
@@ -904,9 +903,9 @@ export default function CargasDisponiveis() {
                     {/* Company Logo or Initials */}
                     <div className="shrink-0 w-16 h-16 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden">
                       {selectedCarga.empresa?.logo_url ? (
-                        <img 
-                          src={selectedCarga.empresa.logo_url} 
-                          alt={selectedCarga.empresa.nome || 'Logo'} 
+                        <img
+                          src={selectedCarga.empresa.logo_url}
+                          alt={selectedCarga.empresa.nome || 'Logo'}
                           className="w-full h-full object-contain p-1"
                         />
                       ) : (
@@ -928,7 +927,7 @@ export default function CargasDisponiveis() {
                         </div>
                         <Badge variant="outline">{tipoCargaLabels[selectedCarga.tipo] || selectedCarga.tipo}</Badge>
                       </div>
-                      
+
                       <div className="flex items-center gap-4 text-sm">
                         <span className="flex items-center gap-1">
                           <Weight className="w-4 h-4" />
@@ -1145,7 +1144,7 @@ export default function CargasDisponiveis() {
                             const emUso = pesoEmUsoPorMotorista.get(motorista.id) || 0;
                             const disponivel = Math.max(0, capacidadeTotal - emUso);
                             const temCapacidade = disponivel > 0;
-                            
+
                             return (
                               <SelectItem key={motorista.id} value={motorista.id} disabled={!temCapacidade && capacidadeTotal > 0}>
                                 <div className="flex items-center gap-2">
@@ -1180,7 +1179,7 @@ export default function CargasDisponiveis() {
                         <Truck className="w-4 h-4" />
                         Equipamento Vinculado ao Motorista
                       </h4>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {/* Veículo */}
                         <div className="space-y-2">
@@ -1211,7 +1210,7 @@ export default function CargasDisponiveis() {
                               </SelectContent>
                             </Select>
                           )}
-                          
+
                           {/* Detalhes do veículo selecionado */}
                           {selectedVeiculoData && (
                             <div className="p-2 bg-background rounded-md border space-y-1">
@@ -1300,7 +1299,7 @@ export default function CargasDisponiveis() {
                           <Weight className="w-5 h-5 text-primary" />
                           <span className="font-semibold text-foreground">Peso a Carregar (kg)</span>
                         </div>
-                        
+
                         {/* Capacity Info */}
                         <div className="text-xs text-muted-foreground space-y-1">
                           <div className="flex justify-between">
