@@ -136,24 +136,13 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>E-mail</Label>
-            <Input
-              type="email"
-              placeholder="email@exemplo.com"
-              value={formData.email}
-              onChange={(e) => updateFormData({ email: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Telefone</Label>
-            <Input
-              placeholder="(00) 00000-0000"
-              value={formData.telefone}
-              onChange={(e) => updateFormData({ telefone: e.target.value })}
-            />
-          </div>
+        <div className="space-y-2">
+          <Label>Telefone</Label>
+          <Input
+            placeholder="(00) 00000-0000"
+            value={formData.telefone}
+            onChange={(e) => updateFormData({ telefone: e.target.value })}
+          />
         </div>
       </div>
 
