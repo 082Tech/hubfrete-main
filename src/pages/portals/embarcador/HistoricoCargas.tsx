@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
+import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Dialog,
@@ -78,6 +79,7 @@ import {
   ChevronsRight,
   History,
   Route,
+  FileText,
 } from 'lucide-react';
 
 // Types
@@ -104,6 +106,7 @@ interface EntregaData {
   coletado_em: string | null;
   entregue_em: string | null;
   motorista_id: string | null;
+  cte_url: string | null;
   motoristas: {
     nome_completo: string;
     telefone: string | null;
@@ -188,6 +191,8 @@ export default function HistoricoCargas() {
   const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
   const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+  const [ctePreviewUrl, setCtePreviewUrl] = useState<string | null>(null);
+  const [ctePreviewOpen, setCtePreviewOpen] = useState(false);
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
   useEffect(() => {
@@ -279,6 +284,7 @@ export default function HistoricoCargas() {
             coletado_em,
             entregue_em,
             motorista_id,
+            cte_url,
             motoristas (
               nome_completo,
               telefone
@@ -848,6 +854,7 @@ export default function HistoricoCargas() {
                                                             <TableHead className="text-xs">Coletado em</TableHead>
                                                             <TableHead className="text-xs">Entregue em</TableHead>
                                                             <TableHead className="text-xs">Status</TableHead>
+                                                            <TableHead className="text-xs">CT-e</TableHead>
                                                             <TableHead className="text-xs w-10"></TableHead>
                                                           </TableRow>
                                         </TableHeader>
@@ -903,6 +910,26 @@ export default function HistoricoCargas() {
                                                                   </Badge>
                                                                 </TableCell>
                                                                 <TableCell>
+                                                                  {entrega.cte_url ? (
+                                                                    <Badge 
+                                                                      className="bg-green-500/10 text-green-600 border-green-500/20 cursor-pointer gap-1 text-xs"
+                                                                      onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setCtePreviewUrl(entrega.cte_url);
+                                                                        setCtePreviewOpen(true);
+                                                                      }}
+                                                                    >
+                                                                      <FileText className="w-3 h-3" />
+                                                                      CT-e
+                                                                    </Badge>
+                                                                  ) : (
+                                                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 text-xs">
+                                                                      <FileText className="w-3 h-3" />
+                                                                      Sem CT-e
+                                                                    </Badge>
+                                                                  )}
+                                                                </TableCell>
+                                                                <TableCell>
                                                                   <DropdownMenu>
                                                                     <DropdownMenuTrigger asChild>
                                                                       <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -951,6 +978,14 @@ export default function HistoricoCargas() {
           carga={detailsCarga}
           open={!!detailsCarga}
           onOpenChange={(open) => !open && setDetailsCarga(null)}
+        />
+
+        {/* CT-e Preview Dialog */}
+        <FilePreviewDialog
+          open={ctePreviewOpen}
+          onOpenChange={setCtePreviewOpen}
+          fileUrl={ctePreviewUrl}
+          title="Visualizar CT-e"
         />
 
         {/* Tracking History Map Dialog */}
