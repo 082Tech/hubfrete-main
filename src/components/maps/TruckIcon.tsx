@@ -104,13 +104,13 @@ export function getTruckIconHtml(
   heading: number = 0,
   isOnline: boolean = false,
   _isSelected: boolean = false, // No longer used - keeping for compatibility
-  size: number = 48
+  size: number = 56
 ): string {
   const pulseHtml = isOnline ? `
     <div style="
       position: absolute;
-      width: ${size * 0.55}px;
-      height: ${size * 0.55}px;
+      width: ${size * 0.6}px;
+      height: ${size * 0.6}px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -120,6 +120,7 @@ export function getTruckIconHtml(
     "></div>
   ` : '';
 
+  // Use a larger viewBox for better quality rendering
   return `
     <style>
       @keyframes subtlePulse {
@@ -137,22 +138,27 @@ export function getTruckIconHtml(
         transition: transform 0.5s ease-out;
         will-change: transform;
       ">
-        <svg viewBox="0 0 80 80" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 80 80" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="shape-rendering: geometricPrecision;">
           <defs>
             <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stop-color="black" stop-opacity="0.3" />
               <stop offset="100%" stop-color="black" stop-opacity="0" />
             </radialGradient>
+            <filter id="truckShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.3"/>
+            </filter>
           </defs>
           <ellipse cx="40" cy="42" rx="22" ry="32" fill="url(#shadowGrad)" />
-          <rect x="22" y="15" width="4" height="8" rx="2" fill="#222" />
-          <rect x="54" y="15" width="4" height="8" rx="2" fill="#222" />
-          <rect x="22" y="45" width="4" height="8" rx="2" fill="#222" />
-          <rect x="54" y="45" width="4" height="8" rx="2" fill="#222" />
-          <rect x="25" y="10" width="30" height="40" rx="2" fill="#FFFFFF" stroke="#D1D1D1" stroke-width="0.5" />
-          <rect x="28" y="13" width="24" height="34" rx="1" fill="#F9F9F9" />
-          <rect x="27" y="51" width="26" height="15" rx="3" fill="#FFFFFF" stroke="#D1D1D1" stroke-width="0.5" />
-          <path d="M29 54 Q40 51 51 54 L50 59 Q40 57 30 59 Z" fill="#333" />
+          <rect x="22" y="15" width="4" height="8" rx="2" fill="#1a1a1a" />
+          <rect x="54" y="15" width="4" height="8" rx="2" fill="#1a1a1a" />
+          <rect x="22" y="45" width="4" height="8" rx="2" fill="#1a1a1a" />
+          <rect x="54" y="45" width="4" height="8" rx="2" fill="#1a1a1a" />
+          <g filter="url(#truckShadow)">
+            <rect x="25" y="10" width="30" height="40" rx="2" fill="#FFFFFF" stroke="#c4c4c4" stroke-width="0.75" />
+            <rect x="28" y="13" width="24" height="34" rx="1" fill="#f5f5f5" />
+            <rect x="27" y="51" width="26" height="15" rx="3" fill="#FFFFFF" stroke="#c4c4c4" stroke-width="0.75" />
+            <path d="M29 54 Q40 51 51 54 L50 59 Q40 57 30 59 Z" fill="#2a2a2a" />
+          </g>
         </svg>
       </div>
     </div>
