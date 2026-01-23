@@ -1,8 +1,9 @@
 import { GoogleMap, MarkerF, DirectionsRenderer, OverlayView } from '@react-google-maps/api';
 import React, { useCallback, useEffect, useMemo, useState, useRef, memo } from 'react';
 import { useGoogleMaps, airbnbMapStyles, defaultCenter } from './GoogleMapsLoader';
-import { Loader2, Clock, Phone, MapPin, Package } from 'lucide-react';
+import { Loader2, Clock, Phone, MapPin, Package, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { TrackingHistoryGoogleMarkers } from './TrackingHistoryGoogleMarkers';
 
 export type EntregaMapItem = {
@@ -110,7 +111,7 @@ const DriverMarker = memo(function DriverMarker({
   const isOnline = entrega.motoristaOnline ?? false;
   const isRecent = isRecentUpdate(entrega.lastLocationUpdate);
   const heading = entrega.heading ?? 0;
-  const truckSize = 48;
+  const truckSize = 56; // Larger size for better quality
 
   if (lat == null || lng == null) return null;
 
@@ -154,11 +155,16 @@ const DriverMarker = memo(function DriverMarker({
           }}
         />
 
-        {/* Detailed hover tooltip */}
+        {/* Detailed hover tooltip - higher quality rendering */}
         {isHovered && (
           <div
-            className="absolute z-50 bg-popover border border-border rounded-xl shadow-2xl p-4 min-w-[280px] max-w-[320px]"
-            style={{ bottom: 56, left: '50%', transform: 'translateX(-50%)' }}
+            className="absolute z-50 bg-popover border border-border rounded-xl shadow-2xl p-4 min-w-[280px] max-w-[320px] backdrop-blur-sm"
+            style={{ 
+              bottom: 64, 
+              left: '50%', 
+              transform: 'translateX(-50%)',
+              imageRendering: 'crisp-edges',
+            }}
           >
             {/* Close button hint */}
             <div className="absolute top-2 right-2 text-muted-foreground/50 text-xs">×</div>
@@ -453,7 +459,29 @@ export function EntregasGoogleMap({
   }
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-border">
+    <div className="relative w-full h-[500px] rounded-lg overflow-hidden border border-border">
+      {/* Deselect card - top right corner */}
+      {effectiveSelectedId && selected && (
+        <div className="absolute top-3 right-3 z-20 bg-popover/95 backdrop-blur-sm border border-border rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 max-w-[280px]">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-foreground truncate">
+              {selected.codigo || 'Carga selecionada'}
+            </p>
+            <p className="text-[10px] text-muted-foreground truncate">
+              {selected.motorista || selected.descricao || 'Ver rota no mapa'}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 flex-shrink-0 hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => handleSelect(null)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       <GoogleMap
         mapContainerStyle={{ width: '100%', height: '100%' }}
         center={defaultCenter}
@@ -524,28 +552,17 @@ export function EntregasGoogleMap({
           />
         )}
 
-        {/* Driver markers - show only selected when there's a selection, otherwise all */}
-        {entregas
-          .filter((e) => {
-            // If no selection, show all markers
-            if (!effectiveSelectedId) return true;
-            // If selected, check all possible ID matches
-            return (
-              e.id === effectiveSelectedId ||
-              e.cargaId === effectiveSelectedId ||
-              e.entregaId === effectiveSelectedId
-            );
-          })
-          .map((e) => (
-            <DriverMarker
-              key={e.id}
-              entrega={e}
-              isHovered={e.id === hoveredId}
-              onHover={() => setHoveredId(e.id)}
-              onLeave={() => setHoveredId(null)}
-              onSelect={() => handleMarkerSelect(e)}
-            />
-          ))}
+        {/* Driver markers - ALWAYS show all trucks on the map */}
+        {entregas.map((e) => (
+          <DriverMarker
+            key={e.id}
+            entrega={e}
+            isHovered={e.id === hoveredId}
+            onHover={() => setHoveredId(e.id)}
+            onLeave={() => setHoveredId(null)}
+            onSelect={() => handleMarkerSelect(e)}
+          />
+        ))}
 
         {/* Origin marker */}
         {selected?.origemCoords && (
