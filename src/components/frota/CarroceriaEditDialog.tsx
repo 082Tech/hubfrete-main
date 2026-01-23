@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -164,10 +165,11 @@ export function CarroceriaEditDialog({ carroceria, open, onOpenChange }: Carroce
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Placa *</Label>
-                <Input
+                <MaskedInput
+                  mask="plate"
                   placeholder="ABC-1234"
                   value={formData.placa}
-                  onChange={(e) => setFormData({ ...formData, placa: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, placa: value })}
                 />
               </div>
               <div className="space-y-2">
@@ -216,10 +218,11 @@ export function CarroceriaEditDialog({ carroceria, open, onOpenChange }: Carroce
             </div>
             <div className="space-y-2">
               <Label>Renavam</Label>
-              <Input
+              <MaskedInput
+                mask="renavam"
                 placeholder="00000000000"
                 value={formData.renavam}
-                onChange={(e) => setFormData({ ...formData, renavam: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, renavam: value })}
               />
             </div>
           </div>

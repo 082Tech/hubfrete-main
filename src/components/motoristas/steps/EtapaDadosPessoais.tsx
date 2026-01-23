@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -129,19 +130,21 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
           </div>
           <div className="space-y-2">
             <Label>CPF *</Label>
-            <Input
+            <MaskedInput
+              mask="cpf"
               placeholder="000.000.000-00"
               value={formData.cpf}
-              onChange={(e) => updateFormData({ cpf: e.target.value })}
+              onChange={(value) => updateFormData({ cpf: value })}
             />
           </div>
         </div>
         <div className="space-y-2">
           <Label>Telefone</Label>
-          <Input
+          <MaskedInput
+            mask="phone"
             placeholder="(00) 00000-0000"
             value={formData.telefone}
-            onChange={(e) => updateFormData({ telefone: e.target.value })}
+            onChange={(value) => updateFormData({ telefone: value })}
           />
         </div>
       </div>
@@ -157,10 +160,11 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Número CNH *</Label>
-            <Input
+            <MaskedInput
+              mask="cnh"
               placeholder="00000000000"
               value={formData.cnh}
-              onChange={(e) => updateFormData({ cnh: e.target.value })}
+              onChange={(value) => updateFormData({ cnh: value })}
             />
           </div>
           <div className="space-y-2">
@@ -380,10 +384,11 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
                 value={ref.nome}
                 onChange={(e) => updateReferencia('pessoal', ref.ordem, 'nome', e.target.value)}
               />
-              <Input
+              <MaskedInput
+                mask="phone"
                 placeholder="Telefone"
                 value={ref.telefone}
-                onChange={(e) => updateReferencia('pessoal', ref.ordem, 'telefone', e.target.value)}
+                onChange={(value) => updateReferencia('pessoal', ref.ordem, 'telefone', value)}
               />
             </div>
           ))}

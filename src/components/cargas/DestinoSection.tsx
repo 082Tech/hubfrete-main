@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Search, Building2, BookmarkPlus, Users, Home, Factory, Settings, Pencil, Trash2 } from 'lucide-react';
 import { useCnpjLookup } from '@/hooks/useCnpjLookup';
@@ -540,10 +541,11 @@ export function DestinoSection({ initialData, onLocationChange, dialogOpen = tru
                     <Building2 className="w-4 h-4" />
                     Buscar por CNPJ
                   </Label>
-                  <Input
+                  <MaskedInput
+                    mask="cnpj"
                     placeholder="00.000.000/0000-00"
                     value={cnpjInput}
-                    onChange={(e) => setCnpjInput(e.target.value)}
+                    onChange={(value) => setCnpjInput(value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCnpjSearch())}
                   />
                 </div>

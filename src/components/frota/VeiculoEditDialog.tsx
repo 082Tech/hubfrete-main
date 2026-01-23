@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -266,10 +267,11 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Placa *</Label>
-                <Input
+                <MaskedInput
+                  mask="plate"
                   placeholder="ABC-1234"
                   value={formData.placa}
-                  onChange={(e) => setFormData({ ...formData, placa: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, placa: value })}
                 />
               </div>
               <div className="space-y-2">
@@ -319,10 +321,11 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Renavam</Label>
-                <Input
+                <MaskedInput
+                  mask="renavam"
                   placeholder="00000000000"
                   value={formData.renavam}
-                  onChange={(e) => setFormData({ ...formData, renavam: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, renavam: value })}
                 />
               </div>
               <div className="space-y-2">
@@ -376,10 +379,11 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
             </div>
             <div className="space-y-2">
               <Label>ANTT / RNTRC *</Label>
-              <Input
+              <MaskedInput
+                mask="rntrc"
                 placeholder="Número do RNTRC"
                 value={formData.antt_rntrc}
-                onChange={(e) => setFormData({ ...formData, antt_rntrc: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, antt_rntrc: value })}
               />
               <p className="text-xs text-muted-foreground">
                 Número do Registro Nacional de Transportadores Rodoviários de Cargas
@@ -452,10 +456,11 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
               </div>
               <div className="space-y-2">
                 <Label>{formData.tipo_propriedade === 'pj' ? 'CNPJ' : 'CPF'}</Label>
-                <Input
+                <MaskedInput
+                  mask={formData.tipo_propriedade === 'pj' ? 'cnpj' : 'cpf'}
                   placeholder={formData.tipo_propriedade === 'pj' ? '00.000.000/0000-00' : '000.000.000-00'}
                   value={formData.proprietario_cpf_cnpj}
-                  onChange={(e) => setFormData({ ...formData, proprietario_cpf_cnpj: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, proprietario_cpf_cnpj: value })}
                 />
               </div>
             </div>

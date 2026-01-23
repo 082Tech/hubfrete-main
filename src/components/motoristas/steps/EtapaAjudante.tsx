@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -118,19 +119,21 @@ export function EtapaAjudante({ formData, updateFormData }: EtapaAjudanteProps) 
               </div>
               <div className="space-y-2">
                 <Label>CPF *</Label>
-                <Input
+                <MaskedInput
+                  mask="cpf"
                   placeholder="000.000.000-00"
                   value={formData.ajudante_cpf}
-                  onChange={(e) => updateFormData({ ajudante_cpf: e.target.value })}
+                  onChange={(value) => updateFormData({ ajudante_cpf: value })}
                 />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Telefone</Label>
-              <Input
+              <MaskedInput
+                mask="phone"
                 placeholder="(00) 00000-0000"
                 value={formData.ajudante_telefone}
-                onChange={(e) => updateFormData({ ajudante_telefone: e.target.value })}
+                onChange={(value) => updateFormData({ ajudante_telefone: value })}
               />
             </div>
           </div>
