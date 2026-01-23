@@ -1,5 +1,5 @@
 import { GoogleMap, MarkerF, DirectionsRenderer, OverlayView } from '@react-google-maps/api';
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef, memo } from 'react';
 import { useGoogleMaps, airbnbMapStyles, defaultCenter } from './GoogleMapsLoader';
 import { Loader2, Clock, Phone, MapPin, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -91,7 +91,8 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 };
 
 // Driver marker component - shows 3D truck icon with rotation based on heading
-function DriverMarker({ 
+// Memoized to prevent unnecessary re-renders during Realtime updates
+const DriverMarker = memo(function DriverMarker({ 
   entrega, 
   isHovered,
   onHover,
@@ -246,7 +247,18 @@ function DriverMarker({
       </div>
     </OverlayView>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison - only re-render if something visual changed
+  return (
+    prevProps.entrega.latitude === nextProps.entrega.latitude &&
+    prevProps.entrega.longitude === nextProps.entrega.longitude &&
+    prevProps.entrega.heading === nextProps.entrega.heading &&
+    prevProps.entrega.motoristaOnline === nextProps.entrega.motoristaOnline &&
+    prevProps.entrega.lastLocationUpdate === nextProps.entrega.lastLocationUpdate &&
+    prevProps.entrega.status === nextProps.entrega.status &&
+    prevProps.isHovered === nextProps.isHovered
+  );
+});
 
 export function EntregasGoogleMap({ 
   entregas, 
@@ -517,9 +529,12 @@ export function EntregasGoogleMap({
           .filter((e) => {
             // If no selection, show all markers
             if (!effectiveSelectedId) return true;
-            // If selected, only show the selected entrega's driver
-            const entregaKey = e.cargaId || e.entregaId || e.id;
-            return entregaKey === effectiveSelectedId;
+            // If selected, check all possible ID matches
+            return (
+              e.id === effectiveSelectedId ||
+              e.cargaId === effectiveSelectedId ||
+              e.entregaId === effectiveSelectedId
+            );
           })
           .map((e) => (
             <DriverMarker

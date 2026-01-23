@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface MotoristaLocalizacao {
@@ -17,17 +17,21 @@ interface UseRealtimeLocalizacoesOptions {
 
 /**
  * Hook that provides real-time driver location updates via Supabase Realtime.
- * Replaces polling with a persistent WebSocket connection.
+ * Uses a persistent WebSocket connection - no polling needed.
  */
 export function useRealtimeLocalizacoes({ emails, enabled = true }: UseRealtimeLocalizacoesOptions) {
   const [localizacoes, setLocalizacoes] = useState<MotoristaLocalizacao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  
+  // Stabilize emails reference - only change when actual values change
+  const emailsKey = useMemo(() => [...emails].sort().join(','), [emails]);
+  const stableEmails = useMemo(() => emails, [emailsKey]);
 
   // Initial fetch of locations
   const fetchLocalizacoes = useCallback(async () => {
-    if (emails.length === 0) {
+    if (stableEmails.length === 0) {
       setLocalizacoes([]);
       setIsLoading(false);
       return;
@@ -37,7 +41,7 @@ export function useRealtimeLocalizacoes({ emails, enabled = true }: UseRealtimeL
       const { data, error } = await supabase
         .from('localizações')
         .select('email_motorista, latitude, longitude, timestamp, status, heading')
-        .in('email_motorista', emails);
+        .in('email_motorista', stableEmails);
 
       if (error) throw error;
       setLocalizacoes((data || []) as unknown as MotoristaLocalizacao[]);
@@ -46,11 +50,11 @@ export function useRealtimeLocalizacoes({ emails, enabled = true }: UseRealtimeL
     } finally {
       setIsLoading(false);
     }
-  }, [emails]);
+  }, [stableEmails]);
 
-  // Set up Realtime subscription
+  // Set up Realtime subscription - uses emailsKey to prevent unnecessary reconnects
   useEffect(() => {
-    if (!enabled || emails.length === 0) {
+    if (!enabled || stableEmails.length === 0) {
       setLocalizacoes([]);
       setIsLoading(false);
       return;
@@ -65,8 +69,9 @@ export function useRealtimeLocalizacoes({ emails, enabled = true }: UseRealtimeL
     }
 
     // Create new Realtime channel for location updates
+    // Using emailsKey in channel name to ensure unique channel per email set
     const channel = supabase
-      .channel('localizacoes-realtime')
+      .channel(`localizacoes-realtime-${emailsKey.slice(0, 50)}`)
       .on(
         'postgres_changes',
         {
@@ -78,7 +83,7 @@ export function useRealtimeLocalizacoes({ emails, enabled = true }: UseRealtimeL
           const record = payload.new as MotoristaLocalizacao;
           
           // Only process if it's one of the emails we're tracking
-          if (!record?.email_motorista || !emails.includes(record.email_motorista)) {
+          if (!record?.email_motorista || !stableEmails.includes(record.email_motorista)) {
             return;
           }
 
@@ -125,15 +130,18 @@ export function useRealtimeLocalizacoes({ emails, enabled = true }: UseRealtimeL
       }
       setIsConnected(false);
     };
-  }, [emails, enabled, fetchLocalizacoes]);
+  }, [emailsKey, enabled, stableEmails, fetchLocalizacoes]);
 
-  // Create a Map for quick lookup by email
-  const localizacaoMap = new Map<string, MotoristaLocalizacao>();
-  localizacoes.forEach(loc => {
-    if (loc.email_motorista) {
-      localizacaoMap.set(loc.email_motorista, loc);
-    }
-  });
+  // Create a stable Map for quick lookup by email
+  const localizacaoMap = useMemo(() => {
+    const map = new Map<string, MotoristaLocalizacao>();
+    localizacoes.forEach(loc => {
+      if (loc.email_motorista) {
+        map.set(loc.email_motorista, loc);
+      }
+    });
+    return map;
+  }, [localizacoes]);
 
   return {
     localizacoes,
