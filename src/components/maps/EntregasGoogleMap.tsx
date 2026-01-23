@@ -1,29 +1,15 @@
-import {
-  GoogleMap,
-  MarkerF,
-  DirectionsRenderer,
-  OverlayView,
-} from '@react-google-maps/api';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-  memo,
-} from 'react';
-import {
-  useGoogleMaps,
-  airbnbMapStyles,
-  defaultCenter,
-} from './GoogleMapsLoader';
-import { Loader2, Clock, Phone, MapPin, Package, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { GoogleMap, DirectionsRenderer } from '@react-google-maps/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+
+import { useGoogleMaps, airbnbMapStyles, defaultCenter } from './GoogleMapsLoader';
+import { useMapRoutes } from './hooks/useMapRoutes';
+import { useMapFitBounds } from './hooks/useMapFitBounds';
+
+import { DriverMarker } from './components/DriverMarker';
+import { RouteMarker } from './components/RouteMarker';
+import { SelectionPanel } from './components/SelectionPanel';
 import { TrackingHistoryGoogleMarkers } from './TrackingHistoryGoogleMarkers';
-import { TruckIcon } from './TruckIcon';
-import { SelectedEntregaPanel } from './SelectedEntregaPanel';
-import { DriverHoverCard } from './DriveHoveredCard';
 
 /* ===================== TYPES ===================== */
 
@@ -54,54 +40,7 @@ interface EntregasGoogleMapProps {
   selectedEntregaId?: string | null;
   onSelectCarga?: (id: string | null) => void;
   onSelectEntrega?: (id: string | null) => void;
-}
-
-/* ===================== HELPERS ===================== */
-
-function formatLocationTimestamp(ts?: number | null) {
-  if (!ts) return '-';
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Agora';
-  if (mins < 60) return `${mins} min atrás`;
-  return new Date(ts).toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function focusMapOnTruck(
-  map: google.maps.Map | null,
-  lat: number,
-  lng: number
-) {
-  if (!map) return;
-
-  map.panTo({ lat, lng });
-  map.setZoom(Math.max(map.getZoom() ?? 12, 14));
-}
-
-function isRecentUpdate(ts?: number | null) {
-  if (!ts) return false;
-  return Date.now() - ts < 2 * 60 * 1000;
-}
-
-function fitMapToRoute(
-  map: google.maps.Map | null,
-  route: google.maps.DirectionsResult
-) {
-  if (!map) return;
-
-  const bounds = new google.maps.LatLngBounds();
-
-  route.routes[0].overview_path.forEach((p) => bounds.extend(p));
-
-  map.fitBounds(bounds, {
-    top: 80,
-    right: 80,
-    bottom: 80,
-    left: 80,
-  });
+  height?: number | string;
 }
 
 /* ===================== MAP OPTIONS ===================== */
@@ -112,116 +51,30 @@ const mapOptions: google.maps.MapOptions = {
   mapTypeControl: false,
   fullscreenControl: true,
   styles: airbnbMapStyles,
+  gestureHandling: 'greedy',
 };
 
-const showRouteToOriginStatuses = ['aguardando_coleta', 'em_coleta'];
-
-const statusLabels: Record<string, { label: string; color: string }> = {
-  aguardando_coleta: { label: 'Aguardando Coleta', color: 'bg-amber-500' },
-  em_coleta: { label: 'Em Coleta', color: 'bg-amber-500' },
-  coletado: { label: 'Coletado', color: 'bg-blue-500' },
-  em_transito: { label: 'Em Trânsito', color: 'bg-orange-500' },
-  em_entrega: { label: 'Em Entrega', color: 'bg-purple-500' },
-  entregue: { label: 'Entregue', color: 'bg-green-500' },
-  problema: { label: 'Problema', color: 'bg-red-500' },
+const ROUTE_STYLES = {
+  toOrigin: {
+    strokeColor: '#f97316', // orange
+    strokeOpacity: 0.8,
+    strokeWeight: 5,
+  },
+  toDestination: {
+    strokeColor: '#3b82f6', // blue
+    strokeOpacity: 0.9,
+    strokeWeight: 5,
+    icons: [
+      {
+        icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 },
+        offset: '0',
+        repeat: '16px',
+      },
+    ],
+  },
 };
 
-/* ===================== DRIVER MARKER ===================== */
-
-const DriverMarker = memo(
-  ({
-    entrega,
-    isHovered,
-    isSelected,
-    onHover,
-    onLeave,
-    onSelect,
-  }: {
-    entrega: EntregaMapItem;
-    isHovered: boolean;
-    isSelected: boolean;
-    onHover: () => void;
-    onLeave: () => void;
-    onSelect: () => void;
-  }) => {
-    const lat =
-      entrega.latitude != null
-        ? entrega.latitude
-        : entrega.origemCoords?.lat ?? null;
-
-    const lng =
-      entrega.longitude != null
-        ? entrega.longitude
-        : entrega.origemCoords?.lng ?? null;
-
-    if (lat == null || lng == null) return null;
-
-    const isRecent = isRecentUpdate(entrega.lastLocationUpdate);
-    const isOnline = entrega.motoristaOnline && isRecent;
-    const size = 56;
-
-    return (
-      <OverlayView
-        position={{ lat, lng }}
-        mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-        getPixelPositionOffset={() => ({
-          x: -size / 2,
-          y: -size / 2,
-        })}
-      >
-        <div
-          className={`relative cursor-pointer transition-all duration-200
-          ${isSelected ? 'z-50 scale-125' : 'z-10'}
-          ${isHovered && !isSelected ? 'scale-110' : ''}
-        `}
-          style={{ width: size, height: size }}
-          onMouseEnter={onHover}
-          onMouseLeave={onLeave}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect();
-          }}
-        >
-          <TruckIcon
-            size={size}
-            heading={entrega.heading ?? 0}
-            isOnline={isOnline}
-          />
-
-          {isHovered && (
-            <div className="absolute bottom-[68px] left-1/2 -translate-x-1/2">
-              <DriverHoverCard entrega={entrega} formattedTimestamp={formatLocationTimestamp(entrega.lastLocationUpdate)} />
-            </div>
-          )}
-        </div>
-      </OverlayView>
-    );
-  }
-);
-
-/* ===================== OD MARKERS ===================== */
-
-function OriginMarker({ position }: { position: google.maps.LatLngLiteral }) {
-  return (
-    <OverlayView position={position} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
-      <div className="w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
-        O
-      </div>
-    </OverlayView>
-  );
-}
-
-function DestinationMarker({ position }: { position: google.maps.LatLngLiteral }) {
-  return (
-    <OverlayView position={position} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
-      <div className="w-6 h-6 rounded-full bg-green-600 text-white text-xs flex items-center justify-center font-bold">
-        D
-      </div>
-    </OverlayView>
-  );
-}
-
-/* ===================== MAIN MAP ===================== */
+/* ===================== MAIN COMPONENT ===================== */
 
 export function EntregasGoogleMap({
   entregas,
@@ -229,31 +82,28 @@ export function EntregasGoogleMap({
   selectedEntregaId,
   onSelectCarga,
   onSelectEntrega,
+  height = 500,
 }: EntregasGoogleMapProps) {
   const { isLoaded, loadError } = useGoogleMaps();
-
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [routeToOrigin, setRouteToOrigin] =
-    useState<google.maps.DirectionsResult | null>(null);
-
-  const [routeToDestination, setRouteToDestination] =
-    useState<google.maps.DirectionsResult | null>(null);
-
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
+  // Compute selected item
   const effectiveSelectedId = selectedCargaId || selectedEntregaId;
 
-  const selected = useMemo(
-    () =>
+  const selected = useMemo(() => {
+    if (!effectiveSelectedId) return null;
+    return (
       entregas.find(
         (e) =>
           e.id === effectiveSelectedId ||
           e.cargaId === effectiveSelectedId ||
           e.entregaId === effectiveSelectedId
-      ) ?? null,
-    [entregas, effectiveSelectedId]
-  );
+      ) ?? null
+    );
+  }, [entregas, effectiveSelectedId]);
 
+  // Filter visible markers
   const visibleEntregas = useMemo(() => {
     if (!selected) return entregas;
     return entregas.filter(
@@ -264,176 +114,143 @@ export function EntregasGoogleMap({
     );
   }, [entregas, selected]);
 
-  /* ===== CLEAR ROUTES ON DESELECT ===== */
+  // Map bounds management
+  const { fitToRoute, panTo, setUserInteracted, resetInteraction } = useMapFitBounds(map);
 
-  const clearRoutes = () => {
-    setRouteToOrigin(null);
-    setRouteToDestination(null);
-  };
+  // Routing
+  const truckPosition = useMemo(() => {
+    if (!selected || selected.latitude == null || selected.longitude == null) return null;
+    return { lat: selected.latitude, lng: selected.longitude };
+  }, [selected]);
 
+  const { routeToOrigin, routeToDestination, clearRoutes } = useMapRoutes({
+    origin: selected?.origemCoords ?? null,
+    destination: selected?.destinoCoords ?? null,
+    truckPosition,
+    status: selected?.status ?? null,
+    isLoaded,
+  });
+
+  // Pan to selected truck when selection changes
+  useEffect(() => {
+    if (selected && truckPosition) {
+      resetInteraction();
+      panTo(truckPosition, 14);
+    }
+  }, [selected?.id]);
+
+  // Fit to route when available
+  useEffect(() => {
+    if (routeToOrigin) fitToRoute(routeToOrigin);
+    else if (routeToDestination) fitToRoute(routeToDestination);
+  }, [routeToOrigin, routeToDestination, fitToRoute]);
+
+  // Selection handler
   const handleSelect = useCallback(
     (id: string | null) => {
       if (!id) clearRoutes();
       onSelectCarga?.(id);
       onSelectEntrega?.(id);
     },
-    [onSelectCarga, onSelectEntrega]
+    [onSelectCarga, onSelectEntrega, clearRoutes]
   );
 
-  /* ===== ROUTES ===== */
+  // Map interaction handlers
+  const handleMapDrag = useCallback(() => {
+    setUserInteracted();
+  }, [setUserInteracted]);
 
-  useEffect(() => {
-    clearRoutes();
+  /* ===================== RENDER ===================== */
 
-    if (!isLoaded || !selected) return;
-
-    if (selected.latitude != null && selected.longitude != null) {
-      focusMapOnTruck(map, selected.latitude, selected.longitude);
-    }
-
-    const service = new google.maps.DirectionsService();
-
-    const hasTruckPos =
-      selected.latitude != null && selected.longitude != null;
-
-    const truckPosition = hasTruckPos
-      ? { lat: selected.latitude!, lng: selected.longitude! }
-      : null;
-
-    const shouldGoToOrigin =
-      showRouteToOriginStatuses.includes(selected.status ?? '');
-
-    /**
-     * 1️⃣ ORIGEM → CAMINHÃO (quando aguardando coleta)
-     */
-    if (shouldGoToOrigin && selected.origemCoords && truckPosition) {
-      service.route(
-        {
-          origin: selected.origemCoords,
-          destination: truckPosition,
-          travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (res, status) => {
-          if (status === google.maps.DirectionsStatus.OK && res) {
-            setRouteToOrigin(res);
-            fitMapToRoute(map, res);
-          }
-        }
-      );
-    }
-
-    /**
-     * 2️⃣ CAMINHÃO → DESTINO (quando não está mais em coleta)
-     */
-    if (!shouldGoToOrigin && truckPosition && selected.destinoCoords) {
-      service.route(
-        {
-          origin: truckPosition,
-          destination: selected.destinoCoords,
-          travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (res, status) => {
-          if (status === google.maps.DirectionsStatus.OK && res) {
-            setRouteToDestination(res);
-            fitMapToRoute(map, res);
-          }
-        }
-      );
-    }
-  }, [isLoaded, selected]);
-
-
-  /* ===== RENDER ===== */
-
-  if (loadError)
-    return <div className="h-[500px] flex items-center justify-center">Erro</div>;
-
-  if (!isLoaded)
+  if (loadError) {
     return (
-      <div className="h-[500px] flex items-center justify-center">
-        <Loader2 className="animate-spin" />
+      <div className="h-[500px] flex items-center justify-center bg-muted/50 rounded-xl">
+        <p className="text-destructive">Erro ao carregar o mapa</p>
       </div>
     );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="h-[500px] flex items-center justify-center bg-muted/50 rounded-xl">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
-    <GoogleMap
-      mapContainerStyle={{ width: '100%', height: 500 }}
-      center={defaultCenter}
-      zoom={5}
-      options={mapOptions}
-      onLoad={setMap}
-      onClick={() => handleSelect(null)}
-    >
-      {selected && (
-        <TrackingHistoryGoogleMarkers
-          entregaId={selected.entregaId || selected.id}
-        />
-      )}
+    <div className="relative rounded-xl overflow-hidden shadow-lg">
+      <GoogleMap
+        mapContainerStyle={{ width: '100%', height }}
+        center={defaultCenter}
+        zoom={5}
+        options={mapOptions}
+        onLoad={setMap}
+        onDragStart={handleMapDrag}
+        onZoomChanged={handleMapDrag}
+        onClick={() => handleSelect(null)}
+      >
+        {/* Tracking History (when selected) */}
+        {selected && (
+          <TrackingHistoryGoogleMarkers entregaId={selected.entregaId || selected.id} />
+        )}
 
-      {selected?.origemCoords && (
-        <OriginMarker position={selected.origemCoords} />
-      )}
+        {/* Origin Marker */}
+        {selected?.origemCoords && (
+          <RouteMarker position={selected.origemCoords} type="origin" label="Origem" />
+        )}
 
-      {selected?.destinoCoords && (
-        <DestinationMarker position={selected.destinoCoords} />
-      )}
+        {/* Destination Marker */}
+        {selected?.destinoCoords && (
+          <RouteMarker position={selected.destinoCoords} type="destination" label="Destino" />
+        )}
 
-      {selected && (
-        <SelectedEntregaPanel
-          entrega={selected}
-          onClose={() => handleSelect(null)}
-        />
-      )}
-
-      {routeToOrigin && (
-        <DirectionsRenderer
-          directions={routeToOrigin}
-          options={{
-            suppressMarkers: true,
-            polylineOptions: {
-              strokeColor: '#ef4444', // vermelho (origem)
-              strokeOpacity: 0.9,
-              strokeWeight: 4,
-            },
-          }}
-        />
-      )}
-
-      {routeToDestination && (
-        <DirectionsRenderer
-          directions={routeToDestination}
-          options={{
-            suppressMarkers: true,
-            polylineOptions: {
-              strokeColor: '#22c55e', // verde (destino)
-              strokeOpacity: 0.9,
-              strokeWeight: 4,
-            },
-          }}
-        />
-      )}
-
-      {visibleEntregas.map((e) => {
-        const isSelected =
-          selected &&
-          (e.id === selected.id ||
-            e.cargaId === selected.id ||
-            e.entregaId === selected.id);
-
-        return (
-          <DriverMarker
-            key={`${e.id}-${e.lastLocationUpdate}`}
-            entrega={e}
-            isHovered={hoveredId === e.id}
-            isSelected={isSelected}
-            onHover={() => setHoveredId(e.id)}
-            onLeave={() => setHoveredId(null)}
-            onSelect={() =>
-              handleSelect(e.cargaId || e.entregaId || e.id)
-            }
+        {/* Route to Origin (orange solid) */}
+        {routeToOrigin && (
+          <DirectionsRenderer
+            directions={routeToOrigin}
+            options={{
+              suppressMarkers: true,
+              polylineOptions: ROUTE_STYLES.toOrigin,
+            }}
           />
-        );
-      })}
-    </GoogleMap>
+        )}
+
+        {/* Route to Destination (blue dashed) */}
+        {routeToDestination && (
+          <DirectionsRenderer
+            directions={routeToDestination}
+            options={{
+              suppressMarkers: true,
+              polylineOptions: ROUTE_STYLES.toDestination,
+            }}
+          />
+        )}
+
+        {/* Driver Markers */}
+        {visibleEntregas.map((entrega) => {
+          const isSelected =
+            selected &&
+            (entrega.id === selected.id ||
+              entrega.cargaId === selected.id ||
+              entrega.entregaId === selected.id);
+
+          return (
+            <DriverMarker
+              key={`${entrega.id}-${entrega.lastLocationUpdate}`}
+              entrega={entrega}
+              isHovered={hoveredId === entrega.id}
+              isSelected={Boolean(isSelected)}
+              onHover={() => setHoveredId(entrega.id)}
+              onLeave={() => setHoveredId(null)}
+              onSelect={() => handleSelect(entrega.cargaId || entrega.entregaId || entrega.id)}
+            />
+          );
+        })}
+      </GoogleMap>
+
+      {/* Selection Panel (outside map for better styling) */}
+      {selected && <SelectionPanel entrega={selected} onClose={() => handleSelect(null)} />}
+    </div>
   );
 }
