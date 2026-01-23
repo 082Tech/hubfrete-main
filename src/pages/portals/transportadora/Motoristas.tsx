@@ -135,12 +135,12 @@ export default function Motoristas() {
 
   const deleteMotorista = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from('veiculos').update({ motorista_id: null }).eq('motorista_id', id);
-      await supabase.from('carrocerias').update({ motorista_id: null }).eq('motorista_id', id);
-      await supabase.from('ajudantes').delete().eq('motorista_id', id);
-      await supabase.from('motorista_referencias').delete().eq('motorista_id', id);
-      const { error } = await supabase.from('motoristas').delete().eq('id', id);
+      // Use Edge Function to delete motorista and auth user
+      const { data, error } = await supabase.functions.invoke('delete-driver-auth', {
+        body: { motorista_id: id },
+      });
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Erro ao excluir motorista');
     },
     onSuccess: () => {
       toast.success('Motorista removido!');
