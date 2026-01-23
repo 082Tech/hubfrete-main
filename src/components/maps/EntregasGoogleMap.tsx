@@ -17,6 +17,7 @@ export type EntregaMapItem = {
   id: string;
   cargaId?: string;
   entregaId?: string | null;
+  motoristaId?: string | null; // Added for grouping
   latitude: number | null;
   longitude: number | null;
   status: string | null;
@@ -32,6 +33,12 @@ export type EntregaMapItem = {
   destinoCoords: { lat: number; lng: number } | null;
   lastLocationUpdate?: number | null;
   heading?: number | null;
+};
+
+// Represents a unique driver on the map (may have multiple deliveries)
+type DriverMapItem = EntregaMapItem & {
+  deliveryCount: number;
+  deliveryIds: string[];
 };
 
 interface EntregasGoogleMapProps {
@@ -103,16 +110,53 @@ export function EntregasGoogleMap({
     );
   }, [entregas, effectiveSelectedId]);
 
-  // Filter visible markers
-  const visibleEntregas = useMemo(() => {
-    if (!selected) return entregas;
-    return entregas.filter(
-      (e) =>
-        e.id === selected.id ||
-        e.cargaId === selected.id ||
-        e.entregaId === selected.id
-    );
-  }, [entregas, selected]);
+  // Group entregas by driver - only one truck per driver on the map
+  const uniqueDrivers = useMemo((): DriverMapItem[] => {
+    const driverMap = new Map<string, DriverMapItem>();
+
+    entregas.forEach((entrega) => {
+      // Use motoristaId if available, otherwise fallback to motorista name or a unique key
+      const driverKey = entrega.motoristaId || entrega.motorista || entrega.id;
+
+      if (!driverMap.has(driverKey)) {
+        driverMap.set(driverKey, {
+          ...entrega,
+          deliveryCount: 1,
+          deliveryIds: [entrega.entregaId || entrega.id],
+        });
+      } else {
+        const existing = driverMap.get(driverKey)!;
+        existing.deliveryCount += 1;
+        existing.deliveryIds.push(entrega.entregaId || entrega.id);
+        
+        // Update position to latest if this entrega has more recent location
+        if (
+          entrega.lastLocationUpdate &&
+          (!existing.lastLocationUpdate || entrega.lastLocationUpdate > existing.lastLocationUpdate)
+        ) {
+          existing.latitude = entrega.latitude;
+          existing.longitude = entrega.longitude;
+          existing.heading = entrega.heading;
+          existing.lastLocationUpdate = entrega.lastLocationUpdate;
+          existing.motoristaOnline = entrega.motoristaOnline;
+        }
+      }
+    });
+
+    return Array.from(driverMap.values());
+  }, [entregas]);
+
+  // Filter visible drivers - show all when nothing selected, or just the selected driver
+  const visibleDrivers = useMemo((): DriverMapItem[] => {
+    if (!selected) return uniqueDrivers;
+    
+    // Find the driver that owns the selected entrega
+    const selectedDriverKey = selected.motoristaId || selected.motorista || selected.id;
+    return uniqueDrivers.filter((d) => {
+      const driverKey = d.motoristaId || d.motorista || d.id;
+      return driverKey === selectedDriverKey;
+    });
+  }, [uniqueDrivers, selected]);
 
   // Map bounds management
   const { fitToRoute, panTo, setUserInteracted, resetInteraction } = useMapFitBounds(map);
@@ -227,23 +271,36 @@ export function EntregasGoogleMap({
           />
         )}
 
-        {/* Driver Markers */}
-        {visibleEntregas.map((entrega) => {
-          const isSelected =
+        {/* Driver Markers - One per driver */}
+        {visibleDrivers.map((driver) => {
+          // Check if this driver owns the selected entrega
+          const isSelected = Boolean(
             selected &&
-            (entrega.id === selected.id ||
-              entrega.cargaId === selected.id ||
-              entrega.entregaId === selected.id);
+            driver.deliveryIds.includes(selected.entregaId || selected.id)
+          );
+
+          const driverKey = driver.motoristaId || driver.motorista || driver.id;
 
           return (
             <DriverMarker
-              key={`${entrega.id}-${entrega.lastLocationUpdate}`}
-              entrega={entrega}
-              isHovered={hoveredId === entrega.id}
-              isSelected={Boolean(isSelected)}
-              onHover={() => setHoveredId(entrega.id)}
+              key={`driver-${driverKey}-${driver.lastLocationUpdate}`}
+              entrega={driver}
+              isHovered={hoveredId === driverKey}
+              isSelected={isSelected}
+              onHover={() => setHoveredId(driverKey)}
               onLeave={() => setHoveredId(null)}
-              onSelect={() => handleSelect(entrega.cargaId || entrega.entregaId || entrega.id)}
+              onSelect={() => {
+                // If clicking on already selected driver's truck, keep selection
+                // Otherwise select the first delivery of this driver
+                if (!isSelected) {
+                  const firstDeliveryId = driver.deliveryIds[0];
+                  // Find the actual entrega to get the cargaId
+                  const firstEntrega = entregas.find(
+                    (e) => (e.entregaId || e.id) === firstDeliveryId
+                  );
+                  handleSelect(firstEntrega?.cargaId || firstEntrega?.entregaId || firstDeliveryId);
+                }
+              }}
             />
           );
         })}
