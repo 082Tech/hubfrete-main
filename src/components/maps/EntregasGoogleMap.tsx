@@ -8,7 +8,7 @@ import { TrackingHistoryGoogleMarkers } from './TrackingHistoryGoogleMarkers';
 export type EntregaMapItem = {
   id: string;
   cargaId?: string;
-  entregaId?: string;
+  entregaId?: string | null;
   latitude: number | null;
   longitude: number | null;
   status: string | null;
@@ -512,17 +512,25 @@ export function EntregasGoogleMap({
           />
         )}
 
-        {/* Driver markers - hover only */}
-        {entregas.map((e) => (
-          <DriverMarker
-            key={e.id}
-            entrega={e}
-            isHovered={e.id === hoveredId}
-            onHover={() => setHoveredId(e.id)}
-            onLeave={() => setHoveredId(null)}
-            onSelect={() => handleMarkerSelect(e)}
-          />
-        ))}
+        {/* Driver markers - show only selected when there's a selection, otherwise all */}
+        {entregas
+          .filter((e) => {
+            // If no selection, show all markers
+            if (!effectiveSelectedId) return true;
+            // If selected, only show the selected entrega's driver
+            const entregaKey = e.cargaId || e.entregaId || e.id;
+            return entregaKey === effectiveSelectedId;
+          })
+          .map((e) => (
+            <DriverMarker
+              key={e.id}
+              entrega={e}
+              isHovered={e.id === hoveredId}
+              onHover={() => setHoveredId(e.id)}
+              onLeave={() => setHoveredId(null)}
+              onSelect={() => handleMarkerSelect(e)}
+            />
+          ))}
 
         {/* Origin marker */}
         {selected?.origemCoords && (
