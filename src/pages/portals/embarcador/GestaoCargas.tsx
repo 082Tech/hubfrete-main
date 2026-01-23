@@ -74,8 +74,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
 import type { Database } from '@/integrations/supabase/types';
 
-// Lazy load the map component
-const EntregasMap = lazy(() => import('@/components/maps/EntregasMap').then(m => ({ default: m.EntregasMap })));
+// Lazy load the Google Maps component
+const EntregasGoogleMap = lazy(() => import('@/components/maps/EntregasGoogleMap').then(m => ({ default: m.EntregasGoogleMap })));
 
 type StatusCarga = Database['public']['Enums']['status_carga'];
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
@@ -761,7 +761,7 @@ export default function GestaoCargas() {
                   </CardContent>
                 </Card>
               }>
-                <EntregasMap
+                <EntregasGoogleMap
                   entregas={mapData}
                   selectedCargaId={selectedCargaId}
                   onSelectCarga={setSelectedCargaId}
@@ -796,7 +796,7 @@ export default function GestaoCargas() {
                   </CardContent>
                 </Card>
               }>
-                <EntregasMap
+                <EntregasGoogleMap
                   entregas={mapData}
                   selectedCargaId={selectedCargaId}
                   onSelectCarga={setSelectedCargaId}
@@ -1204,7 +1204,7 @@ export default function GestaoCargas() {
               </div>
             }>
               <div className="h-[300px] rounded-lg overflow-hidden border border-border">
-                <EntregasMap
+                <EntregasGoogleMap
                   entregas={mapData}
                   selectedCargaId={selectedCargaId}
                   onSelectCarga={setSelectedCargaId}

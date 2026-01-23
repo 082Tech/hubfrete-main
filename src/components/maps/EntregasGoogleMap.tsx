@@ -1,7 +1,7 @@
 import { GoogleMap, MarkerF, DirectionsRenderer, OverlayView } from '@react-google-maps/api';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useGoogleMaps, airbnbMapStyles, defaultMapContainerStyle, defaultCenter } from './GoogleMapsLoader';
-import { Loader2, Truck, Clock, Phone, MapPin, Package } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useGoogleMaps, airbnbMapStyles, defaultCenter } from './GoogleMapsLoader';
+import { Loader2, Clock, Phone, MapPin, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { TrackingHistoryGoogleMarkers } from './TrackingHistoryGoogleMarkers';
 
@@ -56,8 +56,10 @@ function isRecentUpdate(timestamp: number | null | undefined): boolean {
 
 interface EntregasGoogleMapProps {
   entregas: EntregaMapItem[];
-  selectedCargaId: string | null;
-  onSelectCarga: (id: string | null) => void;
+  selectedCargaId?: string | null;
+  selectedEntregaId?: string | null;
+  onSelectCarga?: (id: string | null) => void;
+  onSelectEntrega?: (id: string | null) => void;
 }
 
 const mapOptions: google.maps.MapOptions = {
@@ -246,46 +248,116 @@ function DriverMarker({
   );
 }
 
-export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: EntregasGoogleMapProps) {
+export function EntregasGoogleMap({ 
+  entregas, 
+  selectedCargaId, 
+  selectedEntregaId,
+  onSelectCarga,
+  onSelectEntrega 
+}: EntregasGoogleMapProps) {
   const { isLoaded, loadError } = useGoogleMaps();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [toOriginDirections, setToOriginDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  
+  // Track user interaction to prevent auto-centering on realtime updates
+  const [userInteracted, setUserInteracted] = useState(false);
+  const initialBoundsFitRef = useRef(false);
+  const previousSelectedRef = useRef<string | null>(null);
+
+  // Support both carga and entrega selection modes
+  const effectiveSelectedId = selectedCargaId || selectedEntregaId;
 
   const selected = useMemo(
-    () => entregas.find((e) => e.id === selectedCargaId) ?? null,
-    [entregas, selectedCargaId]
+    () => entregas.find((e) => 
+      e.id === effectiveSelectedId || 
+      e.cargaId === effectiveSelectedId || 
+      e.entregaId === effectiveSelectedId
+    ) ?? null,
+    [entregas, effectiveSelectedId]
   );
 
-  // Fit bounds to markers (or selected route)
+  // Reset user interaction when selection changes
+  useEffect(() => {
+    if (effectiveSelectedId !== previousSelectedRef.current) {
+      previousSelectedRef.current = effectiveSelectedId ?? null;
+      if (effectiveSelectedId) {
+        setUserInteracted(false);
+      }
+    }
+  }, [effectiveSelectedId]);
+
+  // Handle user interaction detection
+  const handleDragStart = useCallback(() => {
+    setUserInteracted(true);
+  }, []);
+
+  const handleZoomChanged = useCallback(() => {
+    // Only mark as user interaction after initial fit
+    if (initialBoundsFitRef.current) {
+      setUserInteracted(true);
+    }
+  }, []);
+
+  // Handle selection for both modes
+  const handleSelect = useCallback((id: string | null) => {
+    if (onSelectCarga) onSelectCarga(id);
+    if (onSelectEntrega) onSelectEntrega(id);
+  }, [onSelectCarga, onSelectEntrega]);
+
+  const handleMarkerSelect = useCallback((e: EntregaMapItem) => {
+    // Use the most specific ID available for selection
+    const selectId = e.cargaId || e.entregaId || e.id;
+    handleSelect(selectId);
+  }, [handleSelect]);
+
+  const handleLoad = useCallback((m: google.maps.Map) => setMap(m), []);
+  const handleUnmount = useCallback(() => setMap(null), []);
+
+  // Fit bounds - only on initial load or selection change, NOT on realtime updates
   useEffect(() => {
     if (!map) return;
+
+    // If user interacted with the map, don't auto-fit (unless there's a new selection)
+    if (userInteracted && !effectiveSelectedId) return;
+
+    // If we already did initial fit and there's no selection change, don't re-fit
+    if (initialBoundsFitRef.current && !effectiveSelectedId) return;
 
     if (selected?.origemCoords && selected?.destinoCoords) {
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(selected.origemCoords);
       bounds.extend(selected.destinoCoords);
+      if (selected.latitude != null && selected.longitude != null) {
+        bounds.extend({ lat: selected.latitude, lng: selected.longitude });
+      }
       map.fitBounds(bounds, { top: 60, right: 40, bottom: 40, left: 40 });
+      initialBoundsFitRef.current = true;
       return;
     }
 
-    if (entregas.length === 0) return;
-    const bounds = new google.maps.LatLngBounds();
-    let hasAny = false;
+    // Initial bounds fit for all markers
+    if (!initialBoundsFitRef.current && entregas.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      let hasAny = false;
 
-    entregas.forEach((e) => {
-      if (e.latitude != null && e.longitude != null) {
-        bounds.extend({ lat: e.latitude, lng: e.longitude });
-        hasAny = true;
-      } else if (e.origemCoords) {
-        bounds.extend(e.origemCoords);
-        hasAny = true;
+      entregas.forEach((e) => {
+        if (e.latitude != null && e.longitude != null) {
+          bounds.extend({ lat: e.latitude, lng: e.longitude });
+          hasAny = true;
+        } else if (e.origemCoords) {
+          bounds.extend(e.origemCoords);
+          hasAny = true;
+        }
+      });
+
+      if (hasAny) {
+        map.fitBounds(bounds, { top: 60, right: 40, bottom: 40, left: 40 });
+        initialBoundsFitRef.current = true;
       }
-    });
-
-    if (hasAny) map.fitBounds(bounds, { top: 60, right: 40, bottom: 40, left: 40 });
-  }, [map, entregas, selected]);
+    }
+  }, [map, selected, effectiveSelectedId, userInteracted]);
 
   // Route for selected entrega - show remaining route when already collected
   useEffect(() => {
@@ -352,12 +424,9 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
     };
   }, [isLoaded, selected]);
 
-  const handleLoad = useCallback((m: google.maps.Map) => setMap(m), []);
-  const handleUnmount = useCallback(() => setMap(null), []);
-
   if (loadError) {
     return (
-      <div className="flex items-center justify-center h-[400px] bg-muted">
+      <div className="flex items-center justify-center h-[500px] bg-muted rounded-lg border border-border">
         <p className="text-muted-foreground">Erro ao carregar o mapa</p>
       </div>
     );
@@ -365,22 +434,24 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
 
   if (!isLoaded) {
     return (
-      <div className="flex items-center justify-center h-[400px] bg-muted/30">
+      <div className="flex items-center justify-center h-[500px] bg-muted/30 rounded-lg border border-border">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="w-full h-[400px] rounded-lg overflow-hidden">
+    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-border">
       <GoogleMap
-        mapContainerStyle={defaultMapContainerStyle}
+        mapContainerStyle={{ width: '100%', height: '100%' }}
         center={defaultCenter}
         zoom={5}
         options={mapOptions}
         onLoad={handleLoad}
         onUnmount={handleUnmount}
-        onClick={() => onSelectCarga(null)}
+        onDragStart={handleDragStart}
+        onZoomChanged={handleZoomChanged}
+        onClick={() => handleSelect(null)}
       >
         {/* Tracking history points when entrega is selected */}
         {selected && (
@@ -449,18 +520,53 @@ export function EntregasGoogleMap({ entregas, selectedCargaId, onSelectCarga }: 
             isHovered={e.id === hoveredId}
             onHover={() => setHoveredId(e.id)}
             onLeave={() => setHoveredId(null)}
-            onSelect={() => onSelectCarga(e.id)}
+            onSelect={() => handleMarkerSelect(e)}
           />
         ))}
 
-        {/* No InfoWindow on click - all info shown in hover tooltip */}
+        {/* Origin marker */}
+        {selected?.origemCoords && (
+          <MarkerF
+            key={`orig-${selected.id}`}
+            position={selected.origemCoords}
+            zIndex={998}
+            icon={{
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 12,
+              fillColor: '#22c55e',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3,
+            }}
+            label={{
+              text: 'O',
+              color: '#ffffff',
+              fontWeight: 'bold',
+              fontSize: '11px',
+            }}
+          />
+        )}
 
-        {/* Destination marker (default red pin) */}
+        {/* Destination marker */}
         {selected?.destinoCoords && (
           <MarkerF
             key={`dest-${selected.id}`}
             position={selected.destinoCoords}
             zIndex={999}
+            icon={{
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 12,
+              fillColor: '#ef4444',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3,
+            }}
+            label={{
+              text: 'D',
+              color: '#ffffff',
+              fontWeight: 'bold',
+              fontSize: '11px',
+            }}
           />
         )}
       </GoogleMap>

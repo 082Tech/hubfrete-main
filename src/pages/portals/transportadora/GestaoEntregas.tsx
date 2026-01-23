@@ -87,8 +87,8 @@ import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
-// Lazy load the OpenStreetMap component
-const EntregasMapComponent = lazy(() => import('@/components/maps/EntregasMap').then(m => ({ default: m.EntregasMap })));
+// Lazy load the Google Maps component
+const EntregasGoogleMap = lazy(() => import('@/components/maps/EntregasGoogleMap').then(m => ({ default: m.EntregasGoogleMap })));
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
 interface EntregaCompleta {
@@ -847,7 +847,7 @@ export default function GestaoEntregas() {
                   </CardContent>
                 </Card>
               }>
-                <EntregasMapComponent
+                <EntregasGoogleMap
                   entregas={mapData}
                   selectedEntregaId={selectedEntregaId}
                   onSelectEntrega={setSelectedEntregaId}
@@ -882,7 +882,7 @@ export default function GestaoEntregas() {
                   </CardContent>
                 </Card>
               }>
-                <EntregasMapComponent
+                <EntregasGoogleMap
                   entregas={mapData}
                   selectedEntregaId={selectedEntregaId}
                   onSelectEntrega={setSelectedEntregaId}
@@ -1311,7 +1311,7 @@ export default function GestaoEntregas() {
               </div>
             }>
               <div className="h-[250px] rounded-lg overflow-hidden border border-border">
-                <EntregasMapComponent
+                <EntregasGoogleMap
                   entregas={mapData}
                   selectedEntregaId={selectedEntregaId}
                   onSelectEntrega={setSelectedEntregaId}
