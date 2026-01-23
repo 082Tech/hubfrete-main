@@ -135,7 +135,14 @@ export function MotoristaFormDialog({
       });
 
       if (response.error) {
-        throw new Error(response.error.message || 'Erro ao criar motorista');
+        // Check for specific error message from edge function
+        const errorBody = response.error.message || 'Erro ao criar motorista';
+        throw new Error(errorBody);
+      }
+
+      // Check if edge function returned an error in the data
+      if (response.data?.error) {
+        throw new Error(response.data.error);
       }
 
       // Edge function handles referencias and ajudante creation
@@ -149,7 +156,8 @@ export function MotoristaFormDialog({
       onOpenChange(false);
     } catch (error) {
       console.error('Erro ao cadastrar motorista:', error);
-      toast.error('Erro ao cadastrar motorista');
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao cadastrar motorista';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
