@@ -434,6 +434,7 @@ export default function GestaoCargas() {
         return {
           id: e?.id || c.id,
           cargaId: c.id,
+          entregaId: e?.id || null, // Needed for tracking history
           latitude: localizacao?.latitude || null,
           longitude: localizacao?.longitude || null,
           status: e?.status || null,
