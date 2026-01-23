@@ -20,15 +20,25 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [currentUserName, setCurrentUserName] = useState<string>('');
   const messagesOffsetRef = useRef(0);
   const { toast } = useToast();
 
-  // Get current user
+  // Get current user and cache their name
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
+        
+        // Cache user name for optimistic updates
+        const { data: userData } = await supabase
+          .from('usuarios')
+          .select('nome')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+        
+        setCurrentUserName(userData?.nome || 'Usuário');
       }
     };
     getUser();
@@ -295,39 +305,88 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     return false;
   }, [chats, fetchMessages]);
 
-  // Send a message
+  // Send a message with optimistic update (no fetch after insert!)
   const sendMessage = useCallback(async (content: string) => {
     if (!selectedChat || !currentUserId) return;
 
     setIsSending(true);
-    try {
-      // Get user info for sender name
-      const { data: userData } = await supabase
-        .from('usuarios')
-        .select('nome')
-        .eq('auth_user_id', currentUserId)
-        .maybeSingle();
+    
+    // Create optimistic message for instant feedback
+    const optimisticMessage: Mensagem = {
+      id: `temp-${Date.now()}`,
+      chat_id: selectedChat.id,
+      sender_id: currentUserId,
+      sender_nome: currentUserName,
+      sender_tipo: userType,
+      conteudo: content,
+      created_at: new Date().toISOString(),
+      lida: true,
+    };
 
-      const { error } = await supabase
+    // Add optimistic message immediately
+    setMessages(prev => [...prev, optimisticMessage]);
+
+    // Update chat list optimistically (move to top, update last message)
+    setChats(prev => {
+      const updated = prev.map(chat => {
+        if (chat.id === selectedChat.id) {
+          return {
+            ...chat,
+            ultima_mensagem: optimisticMessage,
+            updated_at: optimisticMessage.created_at,
+          };
+        }
+        return chat;
+      });
+      // Sort by updated_at to move active chat to top
+      return updated.sort((a, b) => 
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+    });
+
+    try {
+      const { data, error } = await supabase
         .from('mensagens')
         .insert({
           chat_id: selectedChat.id,
           sender_id: currentUserId,
-          sender_nome: userData?.nome || 'Usuário',
+          sender_nome: currentUserName,
           sender_tipo: userType,
           conteudo: content,
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      // Refresh messages
-      await fetchMessages(selectedChat.id);
-      
-      // Update chat list to reflect new message
-      fetchChats();
+      // Replace optimistic message with real one (Realtime might do this too, but we handle it)
+      if (data) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === optimisticMessage.id ? (data as Mensagem) : msg
+        ));
+        
+        // Update chat list with real message
+        setChats(prev => prev.map(chat => {
+          if (chat.id === selectedChat.id) {
+            return {
+              ...chat,
+              ultima_mensagem: data as Mensagem,
+              updated_at: data.created_at,
+            };
+          }
+          return chat;
+        }));
+        
+        // Increment offset since we added a new message
+        messagesOffsetRef.current += 1;
+      }
 
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      
       toast({
         title: 'Erro ao enviar mensagem',
         description: 'Não foi possível enviar a mensagem.',
@@ -336,7 +395,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     } finally {
       setIsSending(false);
     }
-  }, [selectedChat, currentUserId, userType, fetchMessages, fetchChats, toast]);
+  }, [selectedChat, currentUserId, currentUserName, userType, toast]);
 
   // Initial fetch
   useEffect(() => {
@@ -345,7 +404,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     }
   }, [fetchChats, empresaId, currentUserId]);
 
-  // Real-time subscription for new messages
+  // Real-time subscription for new messages in selected chat
   useEffect(() => {
     if (!selectedChat) return;
 
@@ -361,7 +420,31 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         },
         (payload) => {
           const newMessage = payload.new as Mensagem;
-          setMessages(prev => [...prev, newMessage]);
+          
+          // Avoid duplicating: check if message already exists (real or optimistic)
+          setMessages(prev => {
+            // Check if it's the same message by ID
+            if (prev.some(m => m.id === newMessage.id)) {
+              return prev;
+            }
+            
+            // Check if it's replacing an optimistic message (same content + sender)
+            const optimisticIndex = prev.findIndex(m => 
+              m.id.toString().startsWith('temp-') && 
+              m.conteudo === newMessage.conteudo && 
+              m.sender_id === newMessage.sender_id
+            );
+            
+            if (optimisticIndex !== -1) {
+              // Replace optimistic with real message
+              const updated = [...prev];
+              updated[optimisticIndex] = newMessage;
+              return updated;
+            }
+            
+            // It's a new message from another user, add it
+            return [...prev, newMessage];
+          });
           
           // Mark as read if not from current user
           if (newMessage.sender_id !== currentUserId) {
@@ -379,20 +462,77 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     };
   }, [selectedChat, currentUserId]);
 
-  // Real-time subscription for chat updates
+  // Real-time subscription for all messages (to update chat list)
+  useEffect(() => {
+    if (!empresaId || !currentUserId) return;
+
+    const channel = supabase
+      .channel('all-messages-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'mensagens',
+        },
+        (payload) => {
+          const newMessage = payload.new as Mensagem;
+          
+          // Update chat list with new message (only if not from current user to avoid double update)
+          if (newMessage.sender_id !== currentUserId) {
+            setChats(prev => {
+              const chatExists = prev.some(c => c.id === newMessage.chat_id);
+              if (!chatExists) {
+                // New chat we don't have yet, refetch
+                fetchChats();
+                return prev;
+              }
+              
+              const updated = prev.map(chat => {
+                if (chat.id === newMessage.chat_id) {
+                  return {
+                    ...chat,
+                    ultima_mensagem: newMessage,
+                    updated_at: newMessage.created_at,
+                    // Increment unread if chat is not selected
+                    mensagens_nao_lidas: selectedChat?.id !== chat.id 
+                      ? (chat.mensagens_nao_lidas || 0) + 1 
+                      : chat.mensagens_nao_lidas,
+                  };
+                }
+                return chat;
+              });
+              
+              // Sort by updated_at
+              return updated.sort((a, b) => 
+                new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+              );
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [empresaId, currentUserId, selectedChat, fetchChats]);
+
+  // Real-time subscription for new chats
   useEffect(() => {
     if (!empresaId) return;
 
     const channel = supabase
-      .channel('chats-updates')
+      .channel('new-chats')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'chats',
         },
         () => {
+          // Only refetch for new chats, not for every update
           fetchChats();
         }
       )
