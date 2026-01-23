@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   User,
   CreditCard,
@@ -20,6 +21,8 @@ import {
   Phone,
   Link2,
   CheckCircle,
+  Camera,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +35,7 @@ interface EtapaDadosPessoaisProps {
 }
 
 export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPessoaisProps) {
+  const fotoInputRef = useRef<HTMLInputElement>(null);
   const cnhInputRef = useRef<HTMLInputElement>(null);
   const enderecoInputRef = useRef<HTMLInputElement>(null);
   const titularDocInputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +74,35 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
     }
   };
 
+  const handleFotoUpload = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Foto deve ter no máximo 5MB');
+      return;
+    }
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `foto_${Date.now()}.${fileExt}`;
+      const filePath = `motoristas/fotos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('fotos-frota')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('fotos-frota')
+        .getPublicUrl(filePath);
+
+      updateFormData({ foto_url: urlData.publicUrl });
+      toast.success('Foto enviada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao fazer upload da foto:', error);
+      toast.error('Erro ao enviar foto');
+    }
+  };
+
   const updateReferencia = (tipo: 'pessoal' | 'comercial', ordem: number, field: string, value: string) => {
     const newRefs = formData.referencias.map(r => {
       if (r.tipo === tipo && r.ordem === ordem) {
@@ -82,6 +115,61 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
 
   return (
     <div className="space-y-6">
+      {/* Foto do Motorista */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-sm font-medium text-primary">
+          <Camera className="w-4 h-4" />
+          Foto do Motorista (opcional)
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="relative">
+            <Avatar className="w-24 h-24 border-2 border-dashed border-border">
+              <AvatarImage src={formData.foto_url || undefined} alt="Foto do motorista" />
+              <AvatarFallback className="bg-muted text-muted-foreground">
+                <User className="w-10 h-10" />
+              </AvatarFallback>
+            </Avatar>
+            {formData.foto_url && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                onClick={() => updateFormData({ foto_url: null })}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              onClick={() => fotoInputRef.current?.click()}
+            >
+              <Upload className="w-4 h-4" />
+              {formData.foto_url ? 'Alterar Foto' : 'Enviar Foto'}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              JPG, PNG ou WebP. Máximo 5MB.
+            </p>
+            <input
+              ref={fotoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFotoUpload(file);
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
       {/* UF do Motorista */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-medium text-primary">

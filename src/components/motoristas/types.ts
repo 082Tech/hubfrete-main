@@ -13,6 +13,7 @@ export interface MotoristaFormData {
   telefone: string;
   uf: string;
   tipo_cadastro: 'autonomo' | 'frota';
+  foto_url: string | null;
   
   // CNH
   cnh: string;
@@ -206,6 +207,7 @@ export const getInitialFormData = (): MotoristaFormData => ({
   telefone: '',
   uf: '',
   tipo_cadastro: 'frota',
+  foto_url: null,
   cnh: '',
   categoria_cnh: '',
   validade_cnh: '',
