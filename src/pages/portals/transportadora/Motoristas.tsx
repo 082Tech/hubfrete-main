@@ -57,6 +57,7 @@ export default function Motoristas() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isVinculosDialogOpen, setIsVinculosDialogOpen] = useState(false);
   const [isInviteLinksDialogOpen, setIsInviteLinksDialogOpen] = useState(false);
+  const [deletingMotoristaId, setDeletingMotoristaId] = useState<string | null>(null);
   const [selectedMotorista, setSelectedMotorista] = useState<MotoristaCompleto | null>(null);
 
   // Fetch motoristas
@@ -135,6 +136,7 @@ export default function Motoristas() {
 
   const deleteMotorista = useMutation({
     mutationFn: async (id: string) => {
+      setDeletingMotoristaId(id);
       // Use Edge Function to delete motorista and auth user
       const { data, error } = await supabase.functions.invoke('delete-driver-auth', {
         body: { motorista_id: id },
@@ -147,8 +149,12 @@ export default function Motoristas() {
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
       queryClient.invalidateQueries({ queryKey: ['veiculos_disponiveis'] });
       queryClient.invalidateQueries({ queryKey: ['carrocerias_disponiveis'] });
+      setDeletingMotoristaId(null);
     },
-    onError: () => toast.error('Erro ao remover motorista'),
+    onError: () => {
+      toast.error('Erro ao remover motorista');
+      setDeletingMotoristaId(null);
+    },
   });
 
   const filteredMotoristas = useMemo(() => {
@@ -286,8 +292,17 @@ export default function Motoristas() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredMotoristas.map((motorista) => {
               const cnhStatus = getCNHStatus(motorista.validade_cnh);
+              const isDeleting = deletingMotoristaId === motorista.id;
               return (
-                <Card key={motorista.id} className={`border-border transition-all ${!motorista.ativo ? 'opacity-60' : 'hover:shadow-md'}`}>
+                <Card key={motorista.id} className={`border-border transition-all relative ${!motorista.ativo ? 'opacity-60' : 'hover:shadow-md'} ${isDeleting ? 'pointer-events-none' : ''}`}>
+                  {isDeleting && (
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-8 h-8 animate-spin text-destructive" />
+                        <span className="text-sm text-muted-foreground">Removendo...</span>
+                      </div>
+                    </div>
+                  )}
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
