@@ -104,8 +104,12 @@ export function getTruckIconHtml(
   heading: number = 0,
   isOnline: boolean = false,
   _isSelected: boolean = false, // No longer used - keeping for compatibility
-  size: number = 56
+  size: number = 56,
+  uniqueId?: string
 ): string {
+  // Generate a unique ID to avoid SVG gradient/filter conflicts when multiple trucks exist
+  const uid = uniqueId || Math.random().toString(36).substr(2, 9);
+  
   const pulseHtml = isOnline ? `
     <div style="
       position: absolute;
@@ -116,14 +120,14 @@ export function getTruckIconHtml(
       transform: translate(-50%, -50%);
       background-color: rgba(34, 197, 94, 0.35);
       border-radius: 50%;
-      animation: subtlePulse 2s ease-out infinite;
+      animation: subtlePulse-${uid} 2s ease-out infinite;
     "></div>
   ` : '';
 
   // Use a larger viewBox for better quality rendering
   return `
     <style>
-      @keyframes subtlePulse {
+      @keyframes subtlePulse-${uid} {
         0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
         50% { transform: translate(-50%, -50%) scale(1.25); opacity: 0.4; }
         100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
@@ -140,20 +144,20 @@ export function getTruckIconHtml(
       ">
         <svg viewBox="0 0 80 80" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="shape-rendering: geometricPrecision;">
           <defs>
-            <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+            <radialGradient id="shadowGrad-${uid}" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stop-color="black" stop-opacity="0.3" />
               <stop offset="100%" stop-color="black" stop-opacity="0" />
             </radialGradient>
-            <filter id="truckShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <filter id="truckShadow-${uid}" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.3"/>
             </filter>
           </defs>
-          <ellipse cx="40" cy="42" rx="22" ry="32" fill="url(#shadowGrad)" />
+          <ellipse cx="40" cy="42" rx="22" ry="32" fill="url(#shadowGrad-${uid})" />
           <rect x="22" y="15" width="4" height="8" rx="2" fill="#1a1a1a" />
           <rect x="54" y="15" width="4" height="8" rx="2" fill="#1a1a1a" />
           <rect x="22" y="45" width="4" height="8" rx="2" fill="#1a1a1a" />
           <rect x="54" y="45" width="4" height="8" rx="2" fill="#1a1a1a" />
-          <g filter="url(#truckShadow)">
+          <g filter="url(#truckShadow-${uid})">
             <rect x="25" y="10" width="30" height="40" rx="2" fill="#FFFFFF" stroke="#c4c4c4" stroke-width="0.75" />
             <rect x="28" y="13" width="24" height="34" rx="1" fill="#f5f5f5" />
             <rect x="27" y="51" width="26" height="15" rx="3" fill="#FFFFFF" stroke="#c4c4c4" stroke-width="0.75" />
