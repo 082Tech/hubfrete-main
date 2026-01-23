@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
 // Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -383,33 +384,11 @@ export default function GestaoCargas() {
     return Array.from(emails);
   }, [cargas]);
 
-  const { data: localizacoes = [] } = useQuery({
-    queryKey: ['localizacoes_motoristas', motoristaEmails],
-    queryFn: async () => {
-      if (motoristaEmails.length === 0) return [];
-
-      const { data, error } = await supabase
-        .from('localizações')
-        .select('email_motorista, latitude, longitude, timestamp, status, heading')
-        .in('email_motorista', motoristaEmails);
-
-      if (error) throw error;
-      return (data || []) as unknown as MotoristaLocalizacao[];
-    },
+  // Real-time driver locations (no polling!)
+  const { localizacaoMap, isConnected: isRealtimeConnected } = useRealtimeLocalizacoes({
+    emails: motoristaEmails,
     enabled: motoristaEmails.length > 0,
-    refetchInterval: 60000, // Refresh every 1 minutes
   });
-
-  // Create a map of email to location for quick lookup
-  const localizacaoMap = useMemo(() => {
-    const map = new Map<string, MotoristaLocalizacao>();
-    localizacoes.forEach(loc => {
-      if (loc.email_motorista) {
-        map.set(loc.email_motorista, loc);
-      }
-    });
-    return map;
-  }, [localizacoes]);
 
   // Filter cargas based on entrega status
   const filteredCargas = useMemo(() => {
