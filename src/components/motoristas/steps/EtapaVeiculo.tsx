@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -194,10 +195,11 @@ export function EtapaVeiculo({
                 </div>
                 <div className="space-y-2">
                   <Label>CPF/CNPJ do Proprietário</Label>
-                  <Input
+                  <MaskedInput
+                    mask="cpfCnpj"
                     placeholder="000.000.000-00"
                     value={formData.veiculo_proprietario_cpf_cnpj}
-                    onChange={(e) => updateFormData({ veiculo_proprietario_cpf_cnpj: e.target.value })}
+                    onChange={(value) => updateFormData({ veiculo_proprietario_cpf_cnpj: value })}
                   />
                 </div>
               </div>

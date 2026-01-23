@@ -2,6 +2,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Badge } from '@/components/ui/badge';
 import { 
   MapPin, 
@@ -289,11 +290,12 @@ export default function GerenciarFiliais() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="cnpj">CNPJ</Label>
-        <Input 
+        <MaskedInput 
           id="cnpj" 
+          mask="cnpj"
           placeholder="00.000.000/0000-00"
           value={formData.cnpj}
-          onChange={(e) => handleFormChange('cnpj', e.target.value)}
+          onChange={(value) => handleFormChange('cnpj', value)}
         />
       </div>
       <div className="grid grid-cols-2 gap-4">

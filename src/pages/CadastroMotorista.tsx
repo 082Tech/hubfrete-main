@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Truck, ArrowLeft, User, Phone, Mail, FileText, MapPin } from 'lucide-react';
@@ -96,12 +97,12 @@ export default function CadastroMotorista() {
                     <FileText className="w-4 h-4" />
                     CPF
                   </Label>
-                  <Input
+                  <MaskedInput
                     id="cpf"
-                    name="cpf"
+                    mask="cpf"
                     placeholder="000.000.000-00"
                     value={formData.cpf}
-                    onChange={handleChange}
+                    onChange={(value) => setFormData(prev => ({ ...prev, cpf: value }))}
                     required
                   />
                 </div>
@@ -127,24 +128,24 @@ export default function CadastroMotorista() {
                     <Phone className="w-4 h-4" />
                     Telefone / WhatsApp
                   </Label>
-                  <Input
+                  <MaskedInput
                     id="telefone"
-                    name="telefone"
+                    mask="phone"
                     placeholder="(00) 00000-0000"
                     value={formData.telefone}
-                    onChange={handleChange}
+                    onChange={(value) => setFormData(prev => ({ ...prev, telefone: value }))}
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="cnh">Número da CNH</Label>
-                  <Input
+                  <MaskedInput
                     id="cnh"
-                    name="cnh"
+                    mask="cnh"
                     placeholder="00000000000"
                     value={formData.cnh}
-                    onChange={handleChange}
+                    onChange={(value) => setFormData(prev => ({ ...prev, cnh: value }))}
                     required
                   />
                 </div>

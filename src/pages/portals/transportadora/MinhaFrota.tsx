@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import {
   Dialog,
   DialogContent,
@@ -779,21 +780,23 @@ export default function MinhaFrota() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Placa *</Label>
-                      <Input
+                      <MaskedInput
+                        mask="plate"
                         placeholder="ABC-1234"
                         value={newVeiculo.placa}
-                        onChange={(e) =>
-                          setNewVeiculo({ ...newVeiculo, placa: e.target.value })
+                        onChange={(value) =>
+                          setNewVeiculo({ ...newVeiculo, placa: value })
                         }
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Renavam</Label>
-                      <Input
+                      <MaskedInput
+                        mask="renavam"
                         placeholder="00000000000"
                         value={newVeiculo.renavam}
-                        onChange={(e) =>
-                          setNewVeiculo({ ...newVeiculo, renavam: e.target.value })
+                        onChange={(value) =>
+                          setNewVeiculo({ ...newVeiculo, renavam: value })
                         }
                       />
                     </div>
@@ -964,11 +967,12 @@ export default function MinhaFrota() {
                       </div>
                       <div className="space-y-2">
                         <Label>{newVeiculo.tipo_propriedade === 'pj' ? 'CNPJ' : 'CPF'}</Label>
-                        <Input
+                        <MaskedInput
+                          mask={newVeiculo.tipo_propriedade === 'pj' ? 'cnpj' : 'cpf'}
                           placeholder={newVeiculo.tipo_propriedade === 'pj' ? '00.000.000/0000-00' : '000.000.000-00'}
                           value={newVeiculo.proprietario_cpf_cnpj}
-                          onChange={(e) =>
-                            setNewVeiculo({ ...newVeiculo, proprietario_cpf_cnpj: e.target.value })
+                          onChange={(value) =>
+                            setNewVeiculo({ ...newVeiculo, proprietario_cpf_cnpj: value })
                           }
                         />
                       </div>
@@ -1087,21 +1091,23 @@ export default function MinhaFrota() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Placa *</Label>
-                      <Input
+                      <MaskedInput
+                        mask="plate"
                         placeholder="ABC-1234"
                         value={newCarroceria.placa}
-                        onChange={(e) =>
-                          setNewCarroceria({ ...newCarroceria, placa: e.target.value })
+                        onChange={(value) =>
+                          setNewCarroceria({ ...newCarroceria, placa: value })
                         }
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Renavam</Label>
-                      <Input
+                      <MaskedInput
+                        mask="renavam"
                         placeholder="00000000000"
                         value={newCarroceria.renavam}
-                        onChange={(e) =>
-                          setNewCarroceria({ ...newCarroceria, renavam: e.target.value })
+                        onChange={(value) =>
+                          setNewCarroceria({ ...newCarroceria, renavam: value })
                         }
                       />
                     </div>

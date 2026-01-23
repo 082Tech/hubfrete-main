@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Truck, ArrowLeft, Building2, Phone, Mail, FileText, MapPin, User, Users } from 'lucide-react';
@@ -110,12 +111,12 @@ export default function CadastroTransportadora() {
                     <FileText className="w-4 h-4" />
                     CNPJ
                   </Label>
-                  <Input
+                  <MaskedInput
                     id="cnpj"
-                    name="cnpj"
+                    mask="cnpj"
                     placeholder="00.000.000/0000-00"
                     value={formData.cnpj}
-                    onChange={handleChange}
+                    onChange={(value) => setFormData(prev => ({ ...prev, cnpj: value }))}
                     required
                   />
                 </div>
@@ -156,12 +157,12 @@ export default function CadastroTransportadora() {
                     <Phone className="w-4 h-4" />
                     Telefone Comercial
                   </Label>
-                  <Input
+                  <MaskedInput
                     id="telefone"
-                    name="telefone"
-                    placeholder="(00) 0000-0000"
+                    mask="phone"
+                    placeholder="(00) 00000-0000"
                     value={formData.telefone}
-                    onChange={handleChange}
+                    onChange={(value) => setFormData(prev => ({ ...prev, telefone: value }))}
                     required
                   />
                 </div>

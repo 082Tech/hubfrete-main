@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -282,9 +283,10 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
               </div>
               <div className="space-y-2">
                 <Label>CPF *</Label>
-                <Input
+                <MaskedInput
+                  mask="cpf"
                   value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, cpf: value })}
                 />
               </div>
             </div>
@@ -300,9 +302,10 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
               </div>
               <div className="space-y-2">
                 <Label>Telefone</Label>
-                <Input
+                <MaskedInput
+                  mask="phone"
                   value={formData.telefone}
-                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, telefone: value })}
                 />
               </div>
             </div>
@@ -374,9 +377,10 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
                   </div>
                   <div className="space-y-2">
                     <Label>CPF *</Label>
-                    <Input
+                    <MaskedInput
+                      mask="cpf"
                       value={formData.ajudante_cpf}
-                      onChange={(e) => setFormData({ ...formData, ajudante_cpf: e.target.value })}
+                      onChange={(value) => setFormData({ ...formData, ajudante_cpf: value })}
                       placeholder="000.000.000-00"
                     />
                   </div>
@@ -385,9 +389,10 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Telefone</Label>
-                    <Input
+                    <MaskedInput
+                      mask="phone"
                       value={formData.ajudante_telefone}
-                      onChange={(e) => setFormData({ ...formData, ajudante_telefone: e.target.value })}
+                      onChange={(value) => setFormData({ ...formData, ajudante_telefone: value })}
                       placeholder="(00) 00000-0000"
                     />
                   </div>
