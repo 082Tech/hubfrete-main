@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 import { MotoristaFormData, getInitialFormData } from './types';
 import { EtapaDadosPessoais } from './steps/EtapaDadosPessoais';
@@ -134,12 +135,24 @@ export function MotoristaFormDialog({
         },
       });
 
-      // Edge function returns error in data even on non-2xx status
-      const errorFromData = response.data?.error;
-      
-      if (response.error || errorFromData) {
-        const errorMessage = errorFromData || 'Erro ao criar motorista';
-        throw new Error(errorMessage);
+      // When the Edge Function returns non-2xx, Supabase SDK provides a FunctionsHttpError.
+      // The useful message is in the JSON body (e.g. { error: "Este email já está cadastrado no sistema" }).
+      if (response.error) {
+        if (response.error instanceof FunctionsHttpError) {
+          try {
+            const body = await response.error.context.json();
+            if (body?.error) throw new Error(String(body.error));
+          } catch {
+            // ignore JSON parse failures and fallback below
+          }
+        }
+
+        throw new Error(response.error.message || 'Erro ao criar motorista');
+      }
+
+      // Some implementations may return error within a 200 response
+      if ((response.data as any)?.error) {
+        throw new Error(String((response.data as any).error));
       }
 
       // Edge function handles referencias and ajudante creation
