@@ -20,6 +20,8 @@ export function TruckIcon({
   className = ''
 }: TruckIconProps) {
   const rotation = heading ?? 0;
+  // Use a stable unique ID based on a ref to avoid SVG gradient conflicts
+  const uniqueId = React.useId();
   
   return (
     <div 
@@ -60,16 +62,17 @@ export function TruckIcon({
           width={size}
           height={size}
           xmlns="http://www.w3.org/2000/svg"
+          style={{ shapeRendering: 'geometricPrecision' }}
         >
           <defs>
-            <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+            <radialGradient id={`shadowGrad-${uniqueId}`} cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="black" stopOpacity="0.3" />
               <stop offset="100%" stopColor="black" stopOpacity="0" />
             </radialGradient>
           </defs>
           
           {/* Shadow */}
-          <ellipse cx="40" cy="42" rx="22" ry="32" fill="url(#shadowGrad)" />
+          <ellipse cx="40" cy="42" rx="22" ry="32" fill={`url(#shadowGrad-${uniqueId})`} />
           
           {/* Wheels - front */}
           <rect x="22" y="15" width="4" height="8" rx="2" fill="#222" />
