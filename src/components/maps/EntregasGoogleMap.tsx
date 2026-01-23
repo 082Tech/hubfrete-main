@@ -382,7 +382,14 @@ export function EntregasGoogleMap({
   useEffect(() => {
     let cancelled = false;
 
-    if (!isLoaded || !selected?.destinoCoords) {
+    // IMPORTANT: Clear routes when nothing is selected
+    if (!selected) {
+      setDirections(null);
+      setToOriginDirections(null);
+      return;
+    }
+
+    if (!isLoaded || !selected.destinoCoords) {
       setDirections(null);
       setToOriginDirections(null);
       return;
