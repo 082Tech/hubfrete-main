@@ -5,6 +5,7 @@ interface GlobeInstance {
   controls: () => {
     autoRotate: boolean;
     autoRotateSpeed: number;
+    enableZoom: boolean;
   };
 }
 
@@ -28,8 +29,10 @@ export function LogisticsGlobe() {
       .then(setCountries);
 
     if (globeEl.current) {
-      globeEl.current.controls().autoRotate = true;
-      globeEl.current.controls().autoRotateSpeed = 0.5;
+      const controls = globeEl.current.controls();
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.5;
+      controls.enableZoom = false; // Disable zoom
     }
   }, []);
 
@@ -65,8 +68,10 @@ export function LogisticsGlobe() {
 
   const handleGlobeReady = useCallback(() => {
     if (globeEl.current) {
-      globeEl.current.controls().autoRotate = true;
-      globeEl.current.controls().autoRotateSpeed = 0.5;
+      const controls = globeEl.current.controls();
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.5;
+      controls.enableZoom = false; // Disable zoom
     }
   }, []);
 
