@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { OverlayView } from '@react-google-maps/api';
 import { TruckIcon } from '../TruckIcon';
 import { DriverHoverCard } from '../DriveHoveredCard';
@@ -42,37 +42,49 @@ function DriverMarkerComponent({
   onLeave,
   onSelect,
 }: DriverMarkerProps) {
-  // Use truck position, fallback to origin
-  const lat = entrega.latitude ?? entrega.origemCoords?.lat ?? null;
-  const lng = entrega.longitude ?? entrega.origemCoords?.lng ?? null;
+  // Stable position calculation
+  const position = useMemo(() => {
+    const lat = entrega.latitude ?? entrega.origemCoords?.lat ?? null;
+    const lng = entrega.longitude ?? entrega.origemCoords?.lng ?? null;
+    if (lat == null || lng == null) return null;
+    return { lat, lng };
+  }, [entrega.latitude, entrega.longitude, entrega.origemCoords?.lat, entrega.origemCoords?.lng]);
 
-  if (lat == null || lng == null) return null;
+  // Stable offset function
+  const getPixelOffset = useCallback(() => ({
+    x: -TRUCK_SIZE / 2,
+    y: -TRUCK_SIZE / 2,
+  }), []);
 
+  // Stable click handler
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelect();
+  }, [onSelect]);
+
+  // Computed values
   const isRecent = isRecentUpdate(entrega.lastLocationUpdate);
   const isOnline = Boolean(entrega.motoristaOnline && isRecent);
+  const formattedTime = formatTimestamp(entrega.lastLocationUpdate);
+
+  if (!position) return null;
 
   return (
     <OverlayView
-      position={{ lat, lng }}
+      position={position}
       mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-      getPixelPositionOffset={() => ({
-        x: -TRUCK_SIZE / 2,
-        y: -TRUCK_SIZE / 2,
-      })}
+      getPixelPositionOffset={getPixelOffset}
     >
       <div
         className={cn(
-          'relative cursor-pointer transition-all duration-200 ease-out',
+          'relative cursor-pointer transition-transform duration-150 ease-out will-change-transform',
           isSelected && 'z-50 scale-125',
           isHovered && !isSelected && 'z-40 scale-110'
         )}
         style={{ width: TRUCK_SIZE, height: TRUCK_SIZE }}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect();
-        }}
+        onClick={handleClick}
       >
         <TruckIcon
           size={TRUCK_SIZE}
@@ -82,10 +94,10 @@ function DriverMarkerComponent({
 
         {/* Hover Card */}
         {isHovered && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 animate-fade-in">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 animate-fade-in pointer-events-none">
             <DriverHoverCard
               entrega={entrega}
-              formattedTimestamp={formatTimestamp(entrega.lastLocationUpdate)}
+              formattedTimestamp={formattedTime}
             />
           </div>
         )}
@@ -94,16 +106,22 @@ function DriverMarkerComponent({
   );
 }
 
-// Memoize with custom comparison to prevent unnecessary re-renders
+// Strict memoization to prevent re-renders during Realtime updates
 export const DriverMarker = memo(DriverMarkerComponent, (prev, next) => {
+  // Only re-render if these specific values change
+  if (prev.isHovered !== next.isHovered) return false;
+  if (prev.isSelected !== next.isSelected) return false;
+  
+  const prevE = prev.entrega;
+  const nextE = next.entrega;
+  
   return (
-    prev.entrega.id === next.entrega.id &&
-    prev.entrega.latitude === next.entrega.latitude &&
-    prev.entrega.longitude === next.entrega.longitude &&
-    prev.entrega.heading === next.entrega.heading &&
-    prev.entrega.lastLocationUpdate === next.entrega.lastLocationUpdate &&
-    prev.entrega.motoristaOnline === next.entrega.motoristaOnline &&
-    prev.isHovered === next.isHovered &&
-    prev.isSelected === next.isSelected
+    prevE.id === nextE.id &&
+    prevE.latitude === nextE.latitude &&
+    prevE.longitude === nextE.longitude &&
+    prevE.heading === nextE.heading &&
+    prevE.motoristaOnline === nextE.motoristaOnline &&
+    // Use 30s threshold for timestamp comparison to reduce re-renders
+    Math.abs((prevE.lastLocationUpdate ?? 0) - (nextE.lastLocationUpdate ?? 0)) < 30000
   );
 });
