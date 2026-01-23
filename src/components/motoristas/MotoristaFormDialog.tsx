@@ -109,7 +109,7 @@ export function MotoristaFormDialog({
         body: {
           email: formData.auth_email,
           password: formData.auth_password,
-          nome: formData.nome_completo,
+          nome_completo: formData.nome_completo,
           cpf: formData.cpf.replace(/\D/g, ''),
           telefone: formData.telefone || null,
           uf: formData.uf,
@@ -125,6 +125,12 @@ export function MotoristaFormDialog({
           comprovante_vinculo_url: formData.comprovante_vinculo_url,
           possui_ajudante: formData.possui_ajudante,
           empresa_id: empresaId,
+          ajudante_nome: formData.ajudante_nome,
+          ajudante_cpf: formData.ajudante_cpf,
+          ajudante_telefone: formData.ajudante_telefone,
+          ajudante_tipo_cadastro: formData.ajudante_tipo_cadastro,
+          ajudante_comprovante_vinculo_url: formData.ajudante_comprovante_vinculo_url,
+          referencias: formData.referencias.filter(r => r.nome && r.telefone),
         },
       });
 
@@ -132,43 +138,7 @@ export function MotoristaFormDialog({
         throw new Error(response.error.message || 'Erro ao criar motorista');
       }
 
-      const { motorista_id } = response.data;
-
-      // 2. Create references
-      const refsToInsert = formData.referencias
-        .filter(r => r.nome && r.telefone)
-        .map(r => ({
-          motorista_id,
-          tipo: r.tipo,
-          ordem: r.ordem,
-          nome: r.nome,
-          telefone: r.telefone,
-          empresa: r.empresa || null,
-          ramo: r.ramo || null,
-        }));
-
-      if (refsToInsert.length > 0) {
-        const { error: refsError } = await supabase
-          .from('motorista_referencias')
-          .insert(refsToInsert);
-        if (refsError) console.error('Erro ao salvar referências:', refsError);
-      }
-
-      // 3. Create ajudante if exists
-      if (formData.possui_ajudante && formData.ajudante_nome) {
-        const { error: ajudanteError } = await supabase
-          .from('ajudantes')
-          .insert({
-            motorista_id,
-            nome: formData.ajudante_nome,
-            cpf: formData.ajudante_cpf.replace(/\D/g, ''),
-            telefone: formData.ajudante_telefone || null,
-            tipo_cadastro: formData.ajudante_tipo_cadastro,
-            comprovante_vinculo_url: formData.ajudante_comprovante_vinculo_url,
-            ativo: true,
-          });
-        if (ajudanteError) console.error('Erro ao salvar ajudante:', ajudanteError);
-      }
+      // Edge function handles referencias and ajudante creation
 
       toast.success('Motorista cadastrado com sucesso! Credenciais: ' + formData.auth_email);
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
