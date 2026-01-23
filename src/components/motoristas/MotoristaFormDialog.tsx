@@ -135,12 +135,30 @@ export function MotoristaFormDialog({
       });
 
       if (response.error) {
-        // Check for specific error message from edge function
-        const errorBody = response.error.message || 'Erro ao criar motorista';
-        throw new Error(errorBody);
+        // Extract error message from edge function response
+        // The error body is in response.error.context or response.data
+        let errorMessage = 'Erro ao criar motorista';
+        
+        // Try to get error from the response data (edge function returns JSON)
+        if (response.data?.error) {
+          errorMessage = response.data.error;
+        } else if (response.error.context?.body) {
+          // Try parsing the context body if available
+          try {
+            const bodyText = typeof response.error.context.body === 'string' 
+              ? response.error.context.body 
+              : JSON.stringify(response.error.context.body);
+            const parsed = JSON.parse(bodyText);
+            if (parsed.error) errorMessage = parsed.error;
+          } catch {
+            // Fallback to generic message
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      // Check if edge function returned an error in the data
+      // Check if edge function returned an error in the data (for non-error status codes)
       if (response.data?.error) {
         throw new Error(response.data.error);
       }
