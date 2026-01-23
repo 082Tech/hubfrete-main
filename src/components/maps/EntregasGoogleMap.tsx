@@ -75,8 +75,8 @@ const mapOptions: google.maps.MapOptions = {
 // Statuses that indicate the truck has already left the origin
 const showRouteToOriginStatuses = ['aguardando_coleta', 'em_coleta'];
 
-// Import truck icon HTML generator
-import { getTruckIconHtml } from './TruckIcon';
+// Import truck icon React component
+import { TruckIcon } from './TruckIcon';
 
 // Status labels for display
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -138,23 +138,20 @@ const DriverMarker = memo(function DriverMarker({
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
       >
-        {/* 3D Truck Icon - always shown */}
+        {/* 3D Truck Icon - React component */}
         <div
           style={{
             width: truckSize,
             height: truckSize,
             filter: !(isOnline && isRecent) ? 'grayscale(80%) opacity(0.75)' : 'none',
           }}
-          dangerouslySetInnerHTML={{ 
-            __html: getTruckIconHtml(
-              heading, 
-              isOnline && isRecent, 
-              false, 
-              truckSize,
-              entrega.id // Pass unique ID to avoid SVG conflicts
-            ) 
-          }}
-        />
+        >
+          <TruckIcon
+            heading={heading}
+            isOnline={isOnline && isRecent}
+            size={truckSize}
+          />
+        </div>
 
         {/* Detailed hover tooltip - higher quality rendering */}
         {isHovered && (

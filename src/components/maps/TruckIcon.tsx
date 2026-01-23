@@ -103,62 +103,56 @@ export function TruckIcon({
 export function getTruckIconHtml(
   heading: number = 0,
   isOnline: boolean = false,
-  _isSelected: boolean = false,
-  size: number = 56,
-  uniqueId?: string
+  _isSelected: boolean = false, // No longer used - keeping for compatibility
+  size: number = 48
 ): string {
-  const uid = uniqueId || Math.random().toString(36).substr(2, 9);
-  
-  // Green pulse ring when online
-  const pulseStyle = isOnline ? `
-    <style>
-      @keyframes pulse-${uid} {
-        0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
-        50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.3; }
-      }
-    </style>
+  const pulseHtml = isOnline ? `
     <div style="
       position: absolute;
-      width: ${size * 0.7}px;
-      height: ${size * 0.7}px;
+      width: ${size * 0.55}px;
+      height: ${size * 0.55}px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background-color: rgba(34, 197, 94, 0.4);
+      background-color: rgba(34, 197, 94, 0.35);
       border-radius: 50%;
-      animation: pulse-${uid} 2s ease-in-out infinite;
-      pointer-events: none;
+      animation: subtlePulse 2s ease-out infinite;
     "></div>
   ` : '';
 
   return `
-    ${pulseStyle}
+    <style>
+      @keyframes subtlePulse {
+        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+        50% { transform: translate(-50%, -50%) scale(1.25); opacity: 0.4; }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+      }
+    </style>
     <div style="position: relative; width: ${size}px; height: ${size}px;">
+      ${pulseHtml}
       <div style="
         width: ${size}px;
         height: ${size}px;
         transform: rotate(${heading}deg);
         transition: transform 0.5s ease-out;
+        will-change: transform;
       ">
         <svg viewBox="0 0 80 80" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-          <!-- Shadow ellipse -->
-          <ellipse cx="40" cy="44" rx="20" ry="28" fill="rgba(0,0,0,0.15)" />
-          
-          <!-- Wheels -->
-          <rect x="23" y="16" width="4" height="8" rx="2" fill="#333" />
-          <rect x="53" y="16" width="4" height="8" rx="2" fill="#333" />
-          <rect x="23" y="46" width="4" height="8" rx="2" fill="#333" />
-          <rect x="53" y="46" width="4" height="8" rx="2" fill="#333" />
-          
-          <!-- Truck body (cargo area) -->
-          <rect x="26" y="12" width="28" height="38" rx="2" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1" />
-          <rect x="29" y="15" width="22" height="32" rx="1" fill="#F5F5F5" />
-          
-          <!-- Truck cab -->
-          <rect x="28" y="51" width="24" height="14" rx="3" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1" />
-          
-          <!-- Windshield -->
-          <path d="M30 54 Q40 51 50 54 L49 58 Q40 56 31 58 Z" fill="#333" />
+          <defs>
+            <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="black" stop-opacity="0.3" />
+              <stop offset="100%" stop-color="black" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+          <ellipse cx="40" cy="42" rx="22" ry="32" fill="url(#shadowGrad)" />
+          <rect x="22" y="15" width="4" height="8" rx="2" fill="#222" />
+          <rect x="54" y="15" width="4" height="8" rx="2" fill="#222" />
+          <rect x="22" y="45" width="4" height="8" rx="2" fill="#222" />
+          <rect x="54" y="45" width="4" height="8" rx="2" fill="#222" />
+          <rect x="25" y="10" width="30" height="40" rx="2" fill="#FFFFFF" stroke="#D1D1D1" stroke-width="0.5" />
+          <rect x="28" y="13" width="24" height="34" rx="1" fill="#F9F9F9" />
+          <rect x="27" y="51" width="26" height="15" rx="3" fill="#FFFFFF" stroke="#D1D1D1" stroke-width="0.5" />
+          <path d="M29 54 Q40 51 51 54 L50 59 Q40 57 30 59 Z" fill="#333" />
         </svg>
       </div>
     </div>
