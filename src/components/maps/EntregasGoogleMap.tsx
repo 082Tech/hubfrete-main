@@ -150,7 +150,8 @@ const DriverMarker = memo(function DriverMarker({
               heading, 
               isOnline && isRecent, 
               false, 
-              truckSize
+              truckSize,
+              entrega.id // Pass unique ID to avoid SVG conflicts
             ) 
           }}
         />
