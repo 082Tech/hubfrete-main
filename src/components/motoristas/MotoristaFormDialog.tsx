@@ -115,6 +115,7 @@ export function MotoristaFormDialog({
           telefone: formData.telefone || null,
           uf: formData.uf,
           tipo_cadastro: formData.tipo_cadastro,
+          foto_url: formData.foto_url,
           cnh: formData.cnh,
           categoria_cnh: formData.categoria_cnh,
           validade_cnh: formData.validade_cnh,

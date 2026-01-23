@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Save, User, CreditCard, FileText, Upload, CheckCircle, Trash2 } from 'lucide-react';
+import { Loader2, Save, User, CreditCard, FileText, Upload, CheckCircle, Trash2, Camera, X } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -39,6 +40,7 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // File refs
+  const fotoRef = useRef<HTMLInputElement>(null);
   const cnhDigitalRef = useRef<HTMLInputElement>(null);
   const comprovanteEnderecoRef = useRef<HTMLInputElement>(null);
   const comprovanteVinculoRef = useRef<HTMLInputElement>(null);
@@ -52,6 +54,7 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
     telefone: '',
     uf: '',
     tipo_cadastro: 'frota' as 'autonomo' | 'frota',
+    foto_url: '',
     cnh: '',
     categoria_cnh: '',
     validade_cnh: '',
@@ -82,6 +85,7 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
         telefone: motorista.telefone || '',
         uf: motorista.uf || '',
         tipo_cadastro: motorista.tipo_cadastro || 'frota',
+        foto_url: motorista.foto_url || '',
         cnh: motorista.cnh,
         categoria_cnh: motorista.categoria_cnh,
         validade_cnh: motorista.validade_cnh,
@@ -140,6 +144,34 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
     }
   };
 
+  const handleFotoUpload = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Foto deve ter no máximo 5MB.');
+      return;
+    }
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `motoristas/fotos/${motorista?.id}_${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('fotos-frota')
+        .upload(fileName, file, { upsert: true });
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('fotos-frota')
+        .getPublicUrl(data.path);
+
+      setFormData(prev => ({ ...prev, foto_url: publicUrlData.publicUrl }));
+      toast.success('Foto enviada com sucesso!');
+    } catch (error) {
+      console.error('Erro no upload da foto:', error);
+      toast.error('Erro ao enviar foto');
+    }
+  };
+
   const handleSubmit = async () => {
     if (!motorista) return;
 
@@ -154,6 +186,7 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
           telefone: formData.telefone || null,
           uf: formData.uf || null,
           tipo_cadastro: formData.tipo_cadastro,
+          foto_url: formData.foto_url || null,
           cnh: formData.cnh,
           categoria_cnh: formData.categoria_cnh,
           validade_cnh: formData.validade_cnh,
@@ -260,6 +293,55 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
 
           {/* TAB: Dados Pessoais */}
           <TabsContent value="dados" className="space-y-4 mt-4">
+            {/* Foto do Motorista */}
+            <div className="flex items-center gap-6 p-4 bg-muted/30 rounded-lg">
+              <div className="relative">
+                <Avatar className="w-20 h-20 border-2 border-dashed border-border">
+                  <AvatarImage src={formData.foto_url || undefined} alt={formData.nome_completo} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                    {formData.nome_completo.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || <User className="w-8 h-8" />}
+                  </AvatarFallback>
+                </Avatar>
+                {formData.foto_url && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                    onClick={() => setFormData({ ...formData, foto_url: '' })}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Foto do Motorista</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => fotoRef.current?.click()}
+                >
+                  <Camera className="w-4 h-4" />
+                  {formData.foto_url ? 'Alterar Foto' : 'Enviar Foto'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  JPG, PNG ou WebP. Máximo 5MB.
+                </p>
+                <input
+                  ref={fotoRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFotoUpload(file);
+                  }}
+                />
+              </div>
+            </div>
+
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div>
                 <p className="font-medium">Status do Motorista</p>

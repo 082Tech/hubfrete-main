@@ -13,6 +13,7 @@ interface CreateDriverRequest {
   telefone?: string;
   uf: string;
   tipo_cadastro: string;
+  foto_url?: string;
   cnh: string;
   categoria_cnh: string;
   validade_cnh: string;
@@ -87,6 +88,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       telefone,
       uf,
       tipo_cadastro,
+      foto_url,
       cnh,
       categoria_cnh,
       validade_cnh,
@@ -243,6 +245,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           telefone: telefone || null,
           uf,
           tipo_cadastro,
+          foto_url: foto_url || null,
           cnh,
           categoria_cnh,
           validade_cnh,
