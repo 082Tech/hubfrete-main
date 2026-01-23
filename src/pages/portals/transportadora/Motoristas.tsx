@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   User,
   Plus,
@@ -306,9 +307,12 @@ export default function Motoristas() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="w-6 h-6 text-primary" />
-                        </div>
+                        <Avatar className="w-12 h-12">
+                          <AvatarImage src={motorista.foto_url || undefined} alt={motorista.nome_completo} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {motorista.nome_completo.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
                           <CardTitle className="text-lg font-semibold">{motorista.nome_completo}</CardTitle>
                           <p className="text-sm text-muted-foreground">CPF: {formatCPF(motorista.cpf)}</p>

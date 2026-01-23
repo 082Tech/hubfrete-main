@@ -1454,6 +1454,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      insert_user_to_auth: {
+        Args: { email: string; password: string }
+        Returns: string
+      }
       is_chat_participant: {
         Args: { p_chat_id: string; p_user_id: string }
         Returns: boolean
