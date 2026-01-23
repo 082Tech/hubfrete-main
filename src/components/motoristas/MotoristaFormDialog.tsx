@@ -60,7 +60,7 @@ export function MotoristaFormDialog({
       }
       // References and comprovante_vinculo are optional in web registration
     }
-    
+
     if (currentStep === 2) {
       // Validate credentials
       if (!formData.auth_email || !formData.auth_password) {
@@ -76,7 +76,7 @@ export function MotoristaFormDialog({
         return;
       }
     }
-    
+
     if (currentStep === 3) {
       // Validate ajudante if exists
       if (formData.possui_ajudante) {
@@ -137,29 +137,77 @@ export function MotoristaFormDialog({
 
       // When the Edge Function returns non-2xx, Supabase SDK provides a FunctionsHttpError.
       // The useful message is in the JSON body (e.g. { error: "Este email já está cadastrado no sistema" }).
-      if (response.error) {
-        if (response.error instanceof FunctionsHttpError) {
+      if (response.error instanceof FunctionsHttpError) {
+        const context = response.error.context;
+
+        if (context) {
+          const text = await context.text();
+
+          // tenta interpretar como JSON
+          let parsed: any = null;
           try {
-            const body = await response.error.context.json();
-            if (body?.error) throw new Error(String(body.error));
+            parsed = JSON.parse(text);
           } catch {
-            // ignore JSON parse failures and fallback below
+            parsed = null;
+          }
+
+          // 1️⃣ JSON com erro
+          if (parsed) {
+            if (typeof parsed.error === 'string') {
+              throw new Error(parsed.error);
+            }
+
+            if (typeof parsed.error === 'object') {
+              throw new Error(
+                parsed.error.message ||
+                parsed.error.cpf ||
+                parsed.error.email ||
+                Object.values(parsed.error)[0] ||
+                'Erro ao criar motorista'
+              );
+            }
+
+            if (typeof parsed.message === 'string') {
+              throw new Error(parsed.message);
+            }
+          }
+
+          // 2️⃣ não era JSON → usa texto cru
+          if (text) {
+            throw new Error(text);
           }
         }
 
-        throw new Error(response.error.message || 'Erro ao criar motorista');
+        throw new Error('Erro retornado pela função');
       }
 
-      // Some implementations may return error within a 200 response
-      if ((response.data as any)?.error) {
-        throw new Error(String((response.data as any).error));
+      /* ================================
+         Caso 3: Edge retornou 200 com erro
+      ================================ */
+
+      const dataError = (response.data as any)?.error;
+
+      if (dataError) {
+        if (typeof dataError === 'string') {
+          throw new Error(dataError);
+        }
+
+        if (typeof dataError === 'object') {
+          throw new Error(
+            dataError.message ||
+            dataError.cpf ||
+            dataError.email ||
+            Object.values(dataError)[0] ||
+            'Erro ao criar motorista'
+          );
+        }
       }
 
       // Edge function handles referencias and ajudante creation
 
       toast.success('Motorista cadastrado com sucesso! Credenciais: ' + formData.auth_email);
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
-      
+
       // Reset and close
       setFormData(getInitialFormData());
       setCurrentStep(1);
@@ -202,9 +250,8 @@ export function MotoristaFormDialog({
                 key={step.id}
                 type="button"
                 onClick={() => setCurrentStep(step.id)}
-                className={`hover:text-primary transition-colors cursor-pointer ${
-                  currentStep >= step.id ? 'text-primary font-medium' : ''
-                }`}
+                className={`hover:text-primary transition-colors cursor-pointer ${currentStep >= step.id ? 'text-primary font-medium' : ''
+                  }`}
               >
                 {step.title}
               </button>
