@@ -1,5 +1,6 @@
 import { ModernNavbar } from '@/components/landing/ModernNavbar';
 import { ModernHero } from '@/components/landing/ModernHero';
+import { ModernGlobeSection } from '@/components/landing/ModernGlobeSection';
 import { ModernFeatures } from '@/components/landing/ModernFeatures';
 import { ModernHowItWorks } from '@/components/landing/ModernHowItWorks';
 import { ModernBenefits } from '@/components/landing/ModernBenefits';
@@ -11,6 +12,7 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       <ModernNavbar />
       <ModernHero />
+      <ModernGlobeSection />
       <ModernFeatures />
       <ModernHowItWorks />
       <ModernBenefits />
