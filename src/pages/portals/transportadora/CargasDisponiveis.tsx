@@ -53,7 +53,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -189,6 +189,7 @@ export default function CargasDisponiveis() {
   const [viewMode, setViewMode] = useState<'list' | 'map' | undefined>(undefined);
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
   const [distancias, setDistancias] = useState<Map<string, { distance: string; duration: string }>>(new Map());
+  const equipmentSectionRef = useRef<HTMLDivElement>(null);
 
   // Set default view mode based on device
   useEffect(() => {
@@ -1308,6 +1309,10 @@ export default function CargasDisponiveis() {
                           setSelectedVeiculo('');
                         }
                         setPesoAlocadoInput(0);
+                        // Scroll to equipment section after driver selection
+                        setTimeout(() => {
+                          equipmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
                       }}
                     >
                       <SelectTrigger>
@@ -1364,7 +1369,7 @@ export default function CargasDisponiveis() {
 
                   {/* Preview do Equipamento Vinculado */}
                   {selectedMotorista && selectedMotoristaData && (
-                    <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                    <div ref={equipmentSectionRef} className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
                       <h4 className="font-semibold text-sm flex items-center gap-2 text-primary">
                         <Truck className="w-4 h-4" />
                         Equipamento Vinculado ao Motorista
