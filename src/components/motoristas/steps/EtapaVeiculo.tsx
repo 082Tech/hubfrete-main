@@ -4,6 +4,7 @@ import { MaskedInput } from '@/components/ui/masked-input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -11,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Car, Container, Upload, CheckCircle, FileText, User } from 'lucide-react';
+import { Car, Container, Upload, CheckCircle, FileText, User, Weight } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -38,6 +39,9 @@ export function EtapaVeiculo({
 
   const selectedVeiculo = veiculosDisponiveis.find(v => v.id === formData.veiculo_id);
   const selectedCarroceria = carroceriasDisponiveis.find(c => c.id === formData.carroceria_id);
+
+  // Verifica se o veículo selecionado tem carroceria integrada
+  const veiculoTemCarroceriaIntegrada = selectedVeiculo?.carroceria_integrada ?? false;
 
   const handleFileUpload = async (
     file: File,
@@ -87,7 +91,6 @@ export function EtapaVeiculo({
             value={formData.veiculo_id}
             onValueChange={(v) => {
               updateFormData({ veiculo_id: v });
-              // Auto-fill UF if vehicle has one
               const veiculo = veiculosDisponiveis.find(ve => ve.id === v);
               if (veiculo?.uf) {
                 updateFormData({ veiculo_uf: veiculo.uf });
@@ -104,6 +107,7 @@ export function EtapaVeiculo({
                   {v.placa} - {tipoVeiculoLabels[v.tipo] || v.tipo}
                   {v.marca && ` (${v.marca})`}
                   {v.uf && ` - ${v.uf}`}
+                  {v.carroceria_integrada && ' ✓ Integrada'}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -112,6 +116,32 @@ export function EtapaVeiculo({
             Apenas veículos sem motorista atribuído
           </p>
         </div>
+
+        {/* Info do veículo selecionado com carroceria integrada */}
+        {selectedVeiculo?.carroceria_integrada && (
+          <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Weight className="w-4 h-4 text-primary" />
+              <Badge className="bg-primary/10 text-primary border-primary/20">
+                Carroceria Integrada
+              </Badge>
+            </div>
+            <p className="text-sm">
+              <strong>Veículo:</strong> {selectedVeiculo.placa} - {tipoVeiculoLabels[selectedVeiculo.tipo] || selectedVeiculo.tipo}
+              {selectedVeiculo.marca && ` ${selectedVeiculo.marca}`}
+              {selectedVeiculo.modelo && ` ${selectedVeiculo.modelo}`}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              <strong>Carroceria:</strong> {tipoCarroceriaLabels[selectedVeiculo.carroceria] || selectedVeiculo.carroceria}
+              {' • Capacidade: '}
+              {selectedVeiculo.capacidade_kg ? `${(selectedVeiculo.capacidade_kg / 1000).toLocaleString('pt-BR')}t` : 'Não informada'}
+              {selectedVeiculo.capacidade_m3 && ` / ${selectedVeiculo.capacidade_m3}m³`}
+            </p>
+            <p className="text-xs text-primary mt-2">
+              Este veículo não precisa de carroceria separada.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Documentos do Veículo PF */}
@@ -125,8 +155,7 @@ export function EtapaVeiculo({
               Documentação do Veículo (PF)
             </div>
 
-            {/* Veículo selecionado info */}
-            {selectedVeiculo && (
+            {selectedVeiculo && !selectedVeiculo.carroceria_integrada && (
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-sm">
                   <strong>Veículo:</strong> {selectedVeiculo.placa} - {tipoVeiculoLabels[selectedVeiculo.tipo] || selectedVeiculo.tipo}
@@ -240,55 +269,57 @@ export function EtapaVeiculo({
 
       <Separator />
 
-      {/* Seleção de Carroceria */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-primary">
-          <Container className="w-4 h-4" />
-          Carroceria (Implemento)
-        </div>
-        
-        <div className="space-y-2">
-          <Label>Selecione a Carroceria</Label>
-          <Select
-            value={formData.carroceria_id}
-            onValueChange={(v) => updateFormData({ carroceria_id: v })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione uma carroceria disponível" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Nenhuma carroceria</SelectItem>
-              {carroceriasSemMotorista.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
-                  {c.marca && ` (${c.marca})`}
-                  {c.capacidade_kg && ` - ${c.capacidade_kg.toLocaleString()}kg`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            Apenas carrocerias sem motorista atribuído
-          </p>
-        </div>
-
-        {/* Carroceria selecionada info */}
-        {selectedCarroceria && (
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm">
-              <strong>Carroceria:</strong> {selectedCarroceria.placa} - {tipoCarroceriaLabels[selectedCarroceria.tipo] || selectedCarroceria.tipo}
-              {selectedCarroceria.marca && ` ${selectedCarroceria.marca}`}
-              {selectedCarroceria.modelo && ` ${selectedCarroceria.modelo}`}
-            </p>
-            {(selectedCarroceria.capacidade_kg || selectedCarroceria.capacidade_m3) && (
-              <p className="text-sm text-muted-foreground">
-                Capacidade: {selectedCarroceria.capacidade_kg?.toLocaleString()}kg 
-                {selectedCarroceria.capacidade_m3 && ` / ${selectedCarroceria.capacidade_m3}m³`}
-              </p>
-            )}
+      {/* Seleção de Carroceria - apenas se veículo NÃO tem carroceria integrada */}
+      {!veiculoTemCarroceriaIntegrada && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-primary">
+            <Container className="w-4 h-4" />
+            Carroceria (Implemento)
           </div>
-        )}
-      </div>
+          
+          <div className="space-y-2">
+            <Label>Selecione a Carroceria</Label>
+            <Select
+              value={formData.carroceria_id}
+              onValueChange={(v) => updateFormData({ carroceria_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma carroceria disponível" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhuma carroceria</SelectItem>
+                {carroceriasSemMotorista.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
+                    {c.marca && ` (${c.marca})`}
+                    {c.capacidade_kg && ` - ${c.capacidade_kg.toLocaleString()}kg`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Apenas carrocerias sem motorista atribuído
+            </p>
+          </div>
+
+          {/* Carroceria selecionada info */}
+          {selectedCarroceria && (
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm">
+                <strong>Carroceria:</strong> {selectedCarroceria.placa} - {tipoCarroceriaLabels[selectedCarroceria.tipo] || selectedCarroceria.tipo}
+                {selectedCarroceria.marca && ` ${selectedCarroceria.marca}`}
+                {selectedCarroceria.modelo && ` ${selectedCarroceria.modelo}`}
+              </p>
+              {(selectedCarroceria.capacidade_kg || selectedCarroceria.capacidade_m3) && (
+                <p className="text-sm text-muted-foreground">
+                  Capacidade: {selectedCarroceria.capacidade_kg?.toLocaleString()}kg 
+                  {selectedCarroceria.capacidade_m3 && ` / ${selectedCarroceria.capacidade_m3}m³`}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {!formData.veiculo_id && !formData.carroceria_id && (
         <div className="flex flex-col items-center justify-center py-8 text-center">

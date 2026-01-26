@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { MaskedInput } from '@/components/ui/masked-input';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -111,12 +112,16 @@ interface Veiculo {
   seguro_ativo: boolean;
   rastreador: boolean;
   foto_url: string | null;
+  carroceria_integrada: boolean;
   motorista: {
     id: string;
     nome_completo: string;
     foto_url: string | null;
   } | null;
 }
+
+// Tipos de veículo que tipicamente têm carroceria integrada
+const VEICULOS_COM_CARROCERIA_INTEGRADA = ['vuc', 'tres_quartos', 'toco', 'truck', 'bitruck'];
 
 interface Carroceria {
   id: string;
@@ -207,6 +212,10 @@ export default function MinhaFrota() {
     proprietario_nome: '',
     proprietario_cpf_cnpj: '',
     tipo_propriedade: 'pf' as 'pf' | 'pj',
+    carroceria_integrada: false,
+    carroceria: 'apenas_cavalo' as string,
+    capacidade_kg: '',
+    capacidade_m3: '',
   });
 
   const [newCarroceria, setNewCarroceria] = useState({
@@ -250,6 +259,7 @@ export default function MinhaFrota() {
           seguro_ativo,
           rastreador,
           foto_url,
+          carroceria_integrada,
           motorista:motoristas(id, nome_completo, foto_url)
         `)
         .eq('empresa_id', empresa.id)
@@ -503,7 +513,7 @@ export default function MinhaFrota() {
       const { error } = await supabase.from('veiculos').insert({
         placa: data.placa.toUpperCase(),
         tipo: data.tipo as any,
-        carroceria: 'apenas_cavalo' as any, // Veículos agora são apenas cavalos
+        carroceria: data.carroceria_integrada ? (data.carroceria as any) : ('apenas_cavalo' as any),
         marca: data.marca || null,
         modelo: data.modelo || null,
         ano: data.ano ? parseInt(data.ano) : null,
@@ -518,6 +528,9 @@ export default function MinhaFrota() {
         empresa_id: empresa?.id,
         ativo: true,
         foto_url: fotoUrl,
+        carroceria_integrada: data.carroceria_integrada,
+        capacidade_kg: data.carroceria_integrada && data.capacidade_kg ? parseFloat(data.capacidade_kg) : null,
+        capacidade_m3: data.carroceria_integrada && data.capacidade_m3 ? parseFloat(data.capacidade_m3) : null,
       });
 
       if (error) throw error;
@@ -542,6 +555,10 @@ export default function MinhaFrota() {
         proprietario_nome: '',
         proprietario_cpf_cnpj: '',
         tipo_propriedade: 'pf',
+        carroceria_integrada: false,
+        carroceria: 'apenas_cavalo',
+        capacidade_kg: '',
+        capacidade_m3: '',
       });
     },
     onError: (error) => {
@@ -806,9 +823,16 @@ export default function MinhaFrota() {
                     <Label>Tipo de Veículo *</Label>
                     <Select
                       value={newVeiculo.tipo}
-                      onValueChange={(v) =>
-                        setNewVeiculo({ ...newVeiculo, tipo: v })
-                      }
+                      onValueChange={(v) => {
+                        // Auto-set carroceria_integrada based on vehicle type
+                        const hasIntegrated = VEICULOS_COM_CARROCERIA_INTEGRADA.includes(v);
+                        setNewVeiculo({ 
+                          ...newVeiculo, 
+                          tipo: v,
+                          carroceria_integrada: hasIntegrated,
+                          carroceria: hasIntegrated ? newVeiculo.carroceria : 'apenas_cavalo',
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o tipo" />
@@ -822,6 +846,72 @@ export default function MinhaFrota() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Carroceria Integrada Switch */}
+                  <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/30">
+                    <div className="space-y-0.5">
+                      <Label>Carroceria Integrada</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Marque se o veículo já possui carroceria própria (ex: Toco, Truck com baú)
+                      </p>
+                    </div>
+                    <Switch
+                      checked={newVeiculo.carroceria_integrada}
+                      onCheckedChange={(checked) => setNewVeiculo({ 
+                        ...newVeiculo, 
+                        carroceria_integrada: checked,
+                        carroceria: checked ? (newVeiculo.carroceria === 'apenas_cavalo' ? 'fechada_bau' : newVeiculo.carroceria) : 'apenas_cavalo',
+                        capacidade_kg: checked ? newVeiculo.capacidade_kg : '',
+                        capacidade_m3: checked ? newVeiculo.capacidade_m3 : '',
+                      })}
+                    />
+                  </div>
+
+                  {/* Campos de carroceria integrada */}
+                  {newVeiculo.carroceria_integrada && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Tipo de Carroceria *</Label>
+                        <Select
+                          value={newVeiculo.carroceria}
+                          onValueChange={(v) => setNewVeiculo({ ...newVeiculo, carroceria: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(tipoCarroceriaLabels)
+                              .filter(([value]) => value !== 'apenas_cavalo')
+                              .map(([value, label]) => (
+                                <SelectItem key={value} value={value}>
+                                  {label}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Capacidade (kg) *</Label>
+                          <Input
+                            type="number"
+                            placeholder="Ex: 8000"
+                            value={newVeiculo.capacidade_kg}
+                            onChange={(e) => setNewVeiculo({ ...newVeiculo, capacidade_kg: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Capacidade (m³)</Label>
+                          <Input
+                            type="number"
+                            placeholder="Ex: 45"
+                            value={newVeiculo.capacidade_m3}
+                            onChange={(e) => setNewVeiculo({ ...newVeiculo, capacidade_m3: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
@@ -1416,6 +1506,15 @@ export default function MinhaFrota() {
                         <Badge variant="secondary">
                           {tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}
                         </Badge>
+                        {veiculo.carroceria_integrada ? (
+                          <Badge className="bg-primary/10 text-primary border-primary/20">
+                            {tipoCarroceriaLabels[veiculo.carroceria] || veiculo.carroceria}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            Apenas Cavalo
+                          </Badge>
+                        )}
                         {veiculo.ativo ? (
                           <Badge className="bg-chart-2/10 text-chart-2 border-chart-2/20">
                             Ativo
@@ -1425,31 +1524,45 @@ export default function MinhaFrota() {
                         )}
                       </div>
 
-                      {/* Carroceria atrelada ao veículo (mesmo motorista_id) */}
-                      {(() => {
-                        const carroceriaAtrelada = carrocerias.find(
-                          (c) => c.motorista?.id === veiculo.motorista?.id && veiculo.motorista?.id
-                        );
-                        return carroceriaAtrelada ? (
-                          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border border-border">
-                            <Container className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">
-                                {carroceriaAtrelada.placa}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {tipoCarroceriaLabels[carroceriaAtrelada.tipo] || carroceriaAtrelada.tipo} 
-                                {carroceriaAtrelada.capacidade_kg && ` • ${(carroceriaAtrelada.capacidade_kg / 1000).toLocaleString('pt-BR')}t`}
-                              </p>
+                      {/* Capacidade integrada ou carroceria separada */}
+                      {veiculo.carroceria_integrada ? (
+                        <div className="flex items-center gap-2 p-2 bg-primary/5 rounded-lg border border-primary/20">
+                          <Weight className="w-4 h-4 text-primary flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">Carroceria Integrada</p>
+                            <p className="text-xs text-muted-foreground">
+                              {veiculo.capacidade_kg ? `${(veiculo.capacidade_kg / 1000).toLocaleString('pt-BR')}t` : 'Capacidade não informada'}
+                              {veiculo.capacidade_m3 && ` • ${veiculo.capacidade_m3}m³`}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        // Carroceria atrelada ao veículo (mesmo motorista_id)
+                        (() => {
+                          const carroceriaAtrelada = carrocerias.find(
+                            (c) => c.motorista?.id === veiculo.motorista?.id && veiculo.motorista?.id
+                          );
+                          return carroceriaAtrelada ? (
+                            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border border-border">
+                              <Container className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">
+                                  {carroceriaAtrelada.placa}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {tipoCarroceriaLabels[carroceriaAtrelada.tipo] || carroceriaAtrelada.tipo} 
+                                  {carroceriaAtrelada.capacidade_kg && ` • ${(carroceriaAtrelada.capacidade_kg / 1000).toLocaleString('pt-BR')}t`}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        ) : veiculo.motorista ? (
-                          <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-dashed border-border">
-                            <Container className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
-                            <p className="text-xs text-muted-foreground">Sem carroceria atrelada</p>
-                          </div>
-                        ) : null;
-                      })()}
+                          ) : veiculo.motorista ? (
+                            <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-dashed border-border">
+                              <Container className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+                              <p className="text-xs text-muted-foreground">Sem carroceria atrelada</p>
+                            </div>
+                          ) : null;
+                        })()
+                      )}
 
                       {veiculo.motorista && (
                         <div className="flex items-center gap-3 pt-3 border-t border-border">

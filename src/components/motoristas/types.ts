@@ -94,6 +94,7 @@ export interface VeiculoSimples {
   id: string;
   placa: string;
   tipo: string;
+  carroceria: string;
   marca: string | null;
   modelo: string | null;
   uf: string | null;
@@ -103,7 +104,16 @@ export interface VeiculoSimples {
   proprietario_nome: string | null;
   proprietario_cpf_cnpj: string | null;
   motorista_id: string | null;
+  carroceria_integrada: boolean;
+  capacidade_kg: number | null;
+  capacidade_m3: number | null;
 }
+
+// Tipos de veículo que tipicamente têm carroceria integrada
+export const VEICULOS_COM_CARROCERIA_INTEGRADA = ['vuc', 'tres_quartos', 'toco', 'truck', 'bitruck'];
+
+// Tipos de veículo que tipicamente precisam carroceria separada
+export const VEICULOS_SEM_CARROCERIA_INTEGRADA = ['carreta', 'carreta_ls', 'bitrem', 'rodotrem', 'vanderleia'];
 
 export interface CarroceriaSimples {
   id: string;

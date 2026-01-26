@@ -86,6 +86,7 @@ interface Veiculo {
   id: string;
   placa: string;
   tipo: string;
+  carroceria: string;
   marca: string | null;
   modelo: string | null;
   ano: number | null;
@@ -102,7 +103,37 @@ interface Veiculo {
   rastreador: boolean;
   capacidade_kg: number | null;
   capacidade_m3: number | null;
+  carroceria_integrada: boolean;
 }
+
+// Tipos de veículo que tipicamente têm carroceria integrada
+const VEICULOS_COM_CARROCERIA_INTEGRADA = ['vuc', 'tres_quartos', 'toco', 'truck', 'bitruck'];
+
+const tipoCarroceriaLabels: Record<string, string> = {
+  aberta: 'Aberta',
+  fechada_bau: 'Baú',
+  graneleira: 'Graneleira',
+  tanque: 'Tanque',
+  sider: 'Sider',
+  frigorifico: 'Frigorífico',
+  cegonha: 'Cegonha',
+  prancha: 'Prancha',
+  container: 'Container',
+  graneleiro: 'Graneleiro',
+  grade_baixa: 'Grade Baixa',
+  cacamba: 'Caçamba',
+  plataforma: 'Plataforma',
+  bau: 'Baú',
+  bau_frigorifico: 'Baú Frigorífico',
+  bau_refrigerado: 'Baú Refrigerado',
+  silo: 'Silo',
+  gaiola: 'Gaiola',
+  bug_porta_container: 'Bug Porta Container',
+  munk: 'Munk',
+  apenas_cavalo: 'Apenas Cavalo',
+  cavaqueira: 'Cavaqueira',
+  hopper: 'Hopper',
+};
 
 interface VeiculoEditDialogProps {
   veiculo: Veiculo | null;
@@ -118,6 +149,7 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
   const [formData, setFormData] = useState({
     placa: '',
     tipo: '',
+    carroceria: 'apenas_cavalo',
     marca: '',
     modelo: '',
     ano: '',
@@ -134,6 +166,7 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
     rastreador: false,
     capacidade_kg: '',
     capacidade_m3: '',
+    carroceria_integrada: false,
   });
 
   useEffect(() => {
@@ -141,6 +174,7 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
       setFormData({
         placa: veiculo.placa || '',
         tipo: veiculo.tipo || '',
+        carroceria: veiculo.carroceria || 'apenas_cavalo',
         marca: veiculo.marca || '',
         modelo: veiculo.modelo || '',
         ano: veiculo.ano?.toString() || '',
@@ -157,6 +191,7 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
         rastreador: veiculo.rastreador ?? false,
         capacidade_kg: veiculo.capacidade_kg?.toString() || '',
         capacidade_m3: veiculo.capacidade_m3?.toString() || '',
+        carroceria_integrada: veiculo.carroceria_integrada ?? false,
       });
     }
   }, [veiculo]);
@@ -203,6 +238,7 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
         .update({
           placa: formData.placa.toUpperCase(),
           tipo: formData.tipo as any,
+          carroceria: formData.carroceria_integrada ? (formData.carroceria as any) : ('apenas_cavalo' as any),
           marca: formData.marca || null,
           modelo: formData.modelo || null,
           ano: formData.ano ? parseInt(formData.ano) : null,
@@ -217,8 +253,9 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
           ativo: formData.ativo,
           seguro_ativo: formData.seguro_ativo,
           rastreador: formData.rastreador,
-          capacidade_kg: formData.capacidade_kg ? parseFloat(formData.capacidade_kg) : null,
-          capacidade_m3: formData.capacidade_m3 ? parseFloat(formData.capacidade_m3) : null,
+          carroceria_integrada: formData.carroceria_integrada,
+          capacidade_kg: formData.carroceria_integrada && formData.capacidade_kg ? parseFloat(formData.capacidade_kg) : null,
+          capacidade_m3: formData.carroceria_integrada && formData.capacidade_m3 ? parseFloat(formData.capacidade_m3) : null,
         })
         .eq('id', veiculo.id);
 
@@ -278,7 +315,16 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
                 <Label>Tipo de Veículo *</Label>
                 <Select
                   value={formData.tipo}
-                  onValueChange={(v) => setFormData({ ...formData, tipo: v })}
+                  onValueChange={(v) => {
+                    // Auto-set carroceria_integrada based on vehicle type
+                    const hasIntegrated = VEICULOS_COM_CARROCERIA_INTEGRADA.includes(v);
+                    setFormData({ 
+                      ...formData, 
+                      tipo: v,
+                      carroceria_integrada: hasIntegrated,
+                      carroceria: hasIntegrated ? (formData.carroceria === 'apenas_cavalo' ? 'fechada_bau' : formData.carroceria) : 'apenas_cavalo',
+                    });
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
@@ -291,6 +337,73 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
                 </Select>
               </div>
             </div>
+
+            {/* Carroceria Integrada Switch */}
+            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/30">
+              <div className="space-y-0.5">
+                <Label>Carroceria Integrada</Label>
+                <p className="text-xs text-muted-foreground">
+                  Marque se o veículo já possui carroceria própria (ex: Toco, Truck com baú)
+                </p>
+              </div>
+              <Switch
+                checked={formData.carroceria_integrada}
+                onCheckedChange={(checked) => setFormData({ 
+                  ...formData, 
+                  carroceria_integrada: checked,
+                  carroceria: checked ? (formData.carroceria === 'apenas_cavalo' ? 'fechada_bau' : formData.carroceria) : 'apenas_cavalo',
+                  capacidade_kg: checked ? formData.capacidade_kg : '',
+                  capacidade_m3: checked ? formData.capacidade_m3 : '',
+                })}
+              />
+            </div>
+
+            {/* Campos de carroceria integrada */}
+            {formData.carroceria_integrada && (
+              <>
+                <div className="space-y-2">
+                  <Label>Tipo de Carroceria *</Label>
+                  <Select
+                    value={formData.carroceria}
+                    onValueChange={(v) => setFormData({ ...formData, carroceria: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(tipoCarroceriaLabels)
+                        .filter(([value]) => value !== 'apenas_cavalo')
+                        .map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Capacidade (kg) *</Label>
+                    <Input
+                      type="number"
+                      placeholder="Ex: 8000"
+                      value={formData.capacidade_kg}
+                      onChange={(e) => setFormData({ ...formData, capacidade_kg: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Capacidade (m³)</Label>
+                    <Input
+                      type="number"
+                      placeholder="Ex: 45"
+                      value={formData.capacidade_m3}
+                      onChange={(e) => setFormData({ ...formData, capacidade_m3: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Marca</Label>
@@ -345,26 +458,6 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Capacidade (kg)</Label>
-                <Input
-                  type="number"
-                  placeholder="30000"
-                  value={formData.capacidade_kg}
-                  onChange={(e) => setFormData({ ...formData, capacidade_kg: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Capacidade (m³)</Label>
-                <Input
-                  type="number"
-                  placeholder="100"
-                  value={formData.capacidade_m3}
-                  onChange={(e) => setFormData({ ...formData, capacidade_m3: e.target.value })}
-                />
               </div>
             </div>
           </div>
