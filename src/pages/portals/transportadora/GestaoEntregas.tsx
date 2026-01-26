@@ -1188,7 +1188,7 @@ export default function GestaoEntregas() {
                                                   }}
                                                 >
                                                   <TableCell>
-                                                    <Badge variant="secondary" className="text-xs font-mono">
+                                                    <Badge variant="secondary" className="text-xs font-mono text-nowrap">
                                                       {entrega.codigo || entrega.id.slice(0, 8).toUpperCase()}
                                                     </Badge>
                                                   </TableCell>
