@@ -1318,9 +1318,19 @@ export default function CargasDisponiveis() {
                           <div className="p-4 text-center text-sm text-muted-foreground">
                             Nenhum motorista cadastrado
                           </div>
+                        ) : motoristas.filter(m => m.veiculos?.length > 0).length === 0 ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            Nenhum motorista com veículo vinculado
+                          </div>
                         ) : (
-                          motoristas.map((motorista) => {
-                            const capacidadeTotal = motorista.carrocerias?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
+                          motoristas.filter(m => m.veiculos?.length > 0).map((motorista) => {
+                            // Capacidade de veículos com carroceria integrada
+                            const capacidadeVeiculosIntegrados = (motorista.veiculos as any[])
+                              ?.filter((v) => v.carroceria_integrada)
+                              ?.reduce((acc: number, v: any) => acc + (v.capacidade_kg || 0), 0) || 0;
+                            // Capacidade de carrocerias separadas
+                            const capacidadeCarrocerias = motorista.carrocerias?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
+                            const capacidadeTotal = capacidadeVeiculosIntegrados + capacidadeCarrocerias;
                             const emUso = pesoEmUsoPorMotorista.get(motorista.id) || 0;
                             const disponivel = Math.max(0, capacidadeTotal - emUso);
                             const temCapacidade = disponivel > 0;
@@ -1331,8 +1341,8 @@ export default function CargasDisponiveis() {
                                   <User className="w-4 h-4" />
                                   <span>{motorista.nome_completo}</span>
                                   {capacidadeTotal === 0 ? (
-                                    <Badge variant="outline" className="text-xs text-muted-foreground">
-                                      Sem carroceria
+                                    <Badge variant="outline" className="text-xs text-destructive">
+                                      Sem capacidade
                                     </Badge>
                                   ) : temCapacidade ? (
                                     <Badge variant="outline" className="text-xs bg-primary/10 text-primary">
@@ -1425,11 +1435,22 @@ export default function CargasDisponiveis() {
                         {/* Carroceria */}
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">Carroceria (Reboque)</Label>
-                          {selectedMotoristaData.carrocerias?.length === 0 ? (
-                            <div className="p-3 bg-muted/50 rounded-md border">
-                              <p className="text-xs text-muted-foreground">Sem carroceria vinculada</p>
-                            </div>
-                          ) : (
+                      {/* Se veículo tem carroceria integrada, mostrar isso */}
+                      {(selectedVeiculoData as any)?.carroceria_integrada ? (
+                        <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
+                          <p className="text-xs text-primary font-medium">Carroceria integrada ao veículo</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Capacidade: {(selectedVeiculoData as any)?.capacidade_kg?.toLocaleString('pt-BR') || 0} kg
+                          </p>
+                        </div>
+                      ) : selectedMotoristaData.carrocerias?.length === 0 ? (
+                        <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
+                          <p className="text-xs text-destructive flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            Nenhuma carroceria vinculada
+                          </p>
+                        </div>
+                      ) : (
                             selectedMotoristaData.carrocerias?.map((carroceria) => (
                               <div key={carroceria.id} className="p-2 bg-background rounded-md border space-y-1">
                                 <div className="flex items-center justify-between">
