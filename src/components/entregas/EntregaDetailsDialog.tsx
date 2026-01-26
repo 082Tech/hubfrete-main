@@ -37,6 +37,10 @@ interface EntregaDetailsProps {
     entregue_em: string | null;
     peso_alocado_kg: number | null;
     valor_frete: number | null;
+    cte_url?: string | null;
+    numero_cte?: string | null;
+    notas_fiscais_urls?: string[] | null;
+    manifesto_url?: string | null;
     motorista: {
       id: string;
       nome_completo: string;
@@ -281,6 +285,38 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
               )}
             </CardContent>
           </Card>
+
+          {/* Documentos */}
+          {(entrega.numero_cte || entrega.cte_url || (entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0) || entrega.manifesto_url) && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Documentos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                {entrega.numero_cte && (
+                  <div>
+                    <p className="text-muted-foreground">Nº CT-e</p>
+                    <p className="font-medium font-mono">{entrega.numero_cte}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-muted-foreground">CT-e</p>
+                  <p className="font-medium">{entrega.cte_url ? '✓ Anexado' : '✗ Pendente'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Notas Fiscais</p>
+                  <p className="font-medium">{entrega.notas_fiscais_urls?.length || 0} anexada(s)</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Manifesto</p>
+                  <p className="font-medium">{entrega.manifesto_url ? '✓ Anexado' : '✗ Pendente'}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Motorista e Veículo */}
           <div className="grid md:grid-cols-2 gap-4">

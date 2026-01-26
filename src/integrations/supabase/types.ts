@@ -863,8 +863,11 @@ export type Database = {
           foto_comprovante_coleta: string | null
           foto_comprovante_entrega: string | null
           id: string
+          manifesto_url: string | null
           motorista_id: string | null
           nome_recebedor: string | null
+          notas_fiscais_urls: string[] | null
+          numero_cte: string | null
           observacoes: string | null
           peso_alocado_kg: number | null
           status: Database["public"]["Enums"]["status_entrega"] | null
@@ -886,8 +889,11 @@ export type Database = {
           foto_comprovante_coleta?: string | null
           foto_comprovante_entrega?: string | null
           id?: string
+          manifesto_url?: string | null
           motorista_id?: string | null
           nome_recebedor?: string | null
+          notas_fiscais_urls?: string[] | null
+          numero_cte?: string | null
           observacoes?: string | null
           peso_alocado_kg?: number | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
@@ -909,8 +915,11 @@ export type Database = {
           foto_comprovante_coleta?: string | null
           foto_comprovante_entrega?: string | null
           id?: string
+          manifesto_url?: string | null
           motorista_id?: string | null
           nome_recebedor?: string | null
+          notas_fiscais_urls?: string[] | null
+          numero_cte?: string | null
           observacoes?: string | null
           peso_alocado_kg?: number | null
           status?: Database["public"]["Enums"]["status_entrega"] | null

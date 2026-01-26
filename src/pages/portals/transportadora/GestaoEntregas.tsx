@@ -84,7 +84,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
-import { AnexarCteDialog } from '@/components/entregas/AnexarCteDialog';
+import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
@@ -104,6 +104,9 @@ interface EntregaCompleta {
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   cte_url: string | null;
+  numero_cte: string | null;
+  notas_fiscais_urls: string[] | null;
+  manifesto_url: string | null;
   motorista: {
     id: string;
     nome_completo: string;
@@ -257,6 +260,9 @@ export default function GestaoEntregas() {
           peso_alocado_kg,
           valor_frete,
           cte_url,
+          numero_cte,
+          notas_fiscais_urls,
+          manifesto_url,
           motorista:motoristas(id, nome_completo, telefone, email, foto_url),
           veiculo:veiculos(id, placa, tipo),
           carga:cargas(
@@ -1198,7 +1204,8 @@ export default function GestaoEntregas() {
                                               <TableHead className="text-xs min-w-[180px]">Rota</TableHead>
                                               <TableHead className="text-xs min-w-[80px] text-right">Peso</TableHead>
                                               <TableHead className="text-xs min-w-[110px]">Status</TableHead>
-                                              <TableHead className="text-xs min-w-[80px]">CT-e</TableHead>
+                                              <TableHead className="text-xs min-w-[100px]">Nº CT-e</TableHead>
+                                              <TableHead className="text-xs min-w-[80px]">Docs</TableHead>
                                               <TableHead className="text-xs min-w-[90px]">Previsão</TableHead>
                                               <TableHead className="text-xs w-10">Chat</TableHead>
                                               <TableHead className="text-xs w-10"></TableHead>
@@ -1272,31 +1279,45 @@ export default function GestaoEntregas() {
                                                     </Badge>
                                                   </TableCell>
                                                   <TableCell>
-                                                    {entrega.cte_url ? (
-                                                      <Badge 
-                                                        className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 cursor-pointer text-xs"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setCtePreviewUrl(entrega.cte_url);
-                                                          setCtePreviewOpen(true);
-                                                        }}
-                                                      >
-                                                        <FileText className="w-3 h-3" />
-                                                        CT-e
-                                                      </Badge>
+                                                    {entrega.numero_cte ? (
+                                                      <span className="text-sm font-mono text-foreground">{entrega.numero_cte}</span>
                                                     ) : (
-                                                      <Badge 
-                                                        className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 cursor-pointer text-xs"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setEntregaForCte(entrega);
-                                                          setAnexarCteDialogOpen(true);
-                                                        }}
-                                                      >
-                                                        <FileText className="w-3 h-3" />
-                                                        Pendente
-                                                      </Badge>
+                                                      <span className="text-sm text-muted-foreground">-</span>
                                                     )}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Badge 
+                                                          className={`gap-1 cursor-pointer text-xs ${
+                                                            entrega.cte_url || (entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0)
+                                                              ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                                                              : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                                                          }`}
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEntregaForCte(entrega);
+                                                            setAnexarCteDialogOpen(true);
+                                                          }}
+                                                        >
+                                                          <FileText className="w-3 h-3" />
+                                                          {(() => {
+                                                            const docsCount = 
+                                                              (entrega.cte_url ? 1 : 0) + 
+                                                              (entrega.notas_fiscais_urls?.length || 0) +
+                                                              (entrega.manifesto_url ? 1 : 0);
+                                                            return docsCount > 0 ? docsCount : 'Anexar';
+                                                          })()}
+                                                        </Badge>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
+                                                        <div className="text-xs space-y-0.5">
+                                                          <p>CT-e: {entrega.cte_url ? '✓' : '✗'}</p>
+                                                          <p>NFs: {entrega.notas_fiscais_urls?.length || 0}</p>
+                                                          <p>Manifesto: {entrega.manifesto_url ? '✓' : '✗'}</p>
+                                                        </div>
+                                                      </TooltipContent>
+                                                    </Tooltip>
                                                   </TableCell>
                                                   <TableCell className="text-sm text-muted-foreground">
                                                     {formatDate(entrega.carga.data_entrega_limite)}
@@ -1360,7 +1381,7 @@ export default function GestaoEntregas() {
                                                           setAnexarCteDialogOpen(true);
                                                         }}>
                                                           <Upload className="w-4 h-4 mr-2" />
-                                                          {entrega.cte_url ? 'Substituir CT-e' : 'Anexar CT-e'}
+                                                          Gerenciar Documentos
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuSub>
@@ -1600,7 +1621,7 @@ export default function GestaoEntregas() {
                                   setAnexarCteDialogOpen(true);
                                 }}>
                                   <Upload className="w-4 h-4 mr-2" />
-                                  {entrega.cte_url ? 'Substituir CT-e' : 'Anexar CT-e'}
+                                  Gerenciar Documentos
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuSub>
@@ -1796,8 +1817,8 @@ export default function GestaoEntregas() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Anexar CT-e Dialog */}
-      <AnexarCteDialog
+      {/* Anexar Documentos Dialog */}
+      <AnexarDocumentosDialog
         entrega={entregaForCte}
         open={anexarCteDialogOpen}
         onOpenChange={setAnexarCteDialogOpen}
