@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useTableSort } from '@/hooks/useTableSort';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import type { Database } from '@/integrations/supabase/types';
 import { 
   Building2, 
@@ -22,7 +24,6 @@ import {
   Search, 
   Truck, 
   CheckCircle, 
-  XCircle, 
   AlertTriangle,
   MapPin,
   ArrowRight,
@@ -213,10 +214,40 @@ export default function HistoricoEntregas() {
         destinatario.includes(q) ||
         (e.carga.empresa?.nome || '').toLowerCase().includes(q) ||
         (e.motorista?.nome_completo || '').toLowerCase().includes(q) ||
-        (e.veiculo?.placa || '').toLowerCase().includes(q)
+        (e.veiculo?.placa || '').toLowerCase().includes(q) ||
+        // Busca por número de CT-e
+        (e.numero_cte || '').toLowerCase().includes(q)
       );
     });
   }, [entregas, searchTerm, selectedStatus]);
+
+  // Custom sort functions for nested/computed fields
+  const sortFunctions = useMemo(() => ({
+    codigo: (a: EntregaHistorico, b: EntregaHistorico) => 
+      (a.codigo || a.carga.codigo).localeCompare(b.codigo || b.carga.codigo, 'pt-BR'),
+    remetente: (a: EntregaHistorico, b: EntregaHistorico) => 
+      (a.carga.empresa?.nome || '').localeCompare(b.carga.empresa?.nome || '', 'pt-BR'),
+    destinatario: (a: EntregaHistorico, b: EntregaHistorico) => 
+      (a.carga.destinatario_nome_fantasia || a.carga.destinatario_razao_social || '')
+        .localeCompare(b.carga.destinatario_nome_fantasia || b.carga.destinatario_razao_social || '', 'pt-BR'),
+    peso: (a: EntregaHistorico, b: EntregaHistorico) => 
+      (a.peso_alocado_kg || a.carga.peso_kg) - (b.peso_alocado_kg || b.carga.peso_kg),
+    motorista: (a: EntregaHistorico, b: EntregaHistorico) => 
+      (a.motorista?.nome_completo || '').localeCompare(b.motorista?.nome_completo || '', 'pt-BR'),
+    status: (a: EntregaHistorico, b: EntregaHistorico) => 
+      (a.status || '').localeCompare(b.status || '', 'pt-BR'),
+    numero_cte: (a: EntregaHistorico, b: EntregaHistorico) => 
+      (a.numero_cte || '').localeCompare(b.numero_cte || '', 'pt-BR'),
+    encerrada_em: (a: EntregaHistorico, b: EntregaHistorico) => 
+      new Date(a.entregue_em || a.updated_at || 0).getTime() - new Date(b.entregue_em || b.updated_at || 0).getTime(),
+  }), []);
+
+  const { sortedData, requestSort, getSortDirection } = useTableSort({
+    data: filtered,
+    defaultSort: { key: 'encerrada_em', direction: 'desc' },
+    persistKey: 'historico-entregas-transportadora',
+    sortFunctions,
+  });
 
   const formatPeso = (peso: number | null) => {
     if (!peso) return '-';
@@ -241,7 +272,7 @@ export default function HistoricoEntregas() {
             </div>
             <Badge variant="outline" className="w-fit">
               <Clock className="w-3 h-3 mr-1" />
-              {filtered.length} registros
+              {sortedData.length} registros
             </Badge>
           </div>
 
@@ -337,39 +368,68 @@ export default function HistoricoEntregas() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold min-w-[100px] sticky left-0 bg-muted/50 z-10">Código</TableHead>
-                      <TableHead className="font-semibold min-w-[160px]">
-                        <div className="flex items-center gap-1">
-                          <Building2 className="w-3 h-3" />
-                          Remetente
-                        </div>
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[160px]">
-                        <div className="flex items-center gap-1">
-                          <Package className="w-3 h-3" />
-                          Destinatário
-                        </div>
-                      </TableHead>
+                      <SortableTableHead 
+                        sortKey="codigo" 
+                        sortDirection={getSortDirection('codigo')} 
+                        onSort={requestSort}
+                        className="font-semibold min-w-[100px] sticky left-0 bg-muted/50 z-10"
+                      >
+                        Código
+                      </SortableTableHead>
+                      <SortableTableHead 
+                        sortKey="remetente" 
+                        sortDirection={getSortDirection('remetente')} 
+                        onSort={requestSort}
+                        className="font-semibold min-w-[160px]"
+                      >
+                        <Building2 className="w-3 h-3" />
+                        Remetente
+                      </SortableTableHead>
+                      <SortableTableHead 
+                        sortKey="destinatario" 
+                        sortDirection={getSortDirection('destinatario')} 
+                        onSort={requestSort}
+                        className="font-semibold min-w-[160px]"
+                      >
+                        <Package className="w-3 h-3" />
+                        Destinatário
+                      </SortableTableHead>
                       <TableHead className="font-semibold min-w-[180px]">Rota</TableHead>
-                      <TableHead className="font-semibold min-w-[80px]">
-                        <div className="flex items-center gap-1">
-                          <Scale className="w-3 h-3" />
-                          Peso
-                        </div>
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[130px]">
-                        <div className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          Motorista
-                        </div>
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
-                      <TableHead className="font-semibold min-w-[100px]">
-                        <div className="flex items-center gap-1">
-                          <FileText className="w-3 h-3" />
-                          CT-e
-                        </div>
-                      </TableHead>
+                      <SortableTableHead 
+                        sortKey="peso" 
+                        sortDirection={getSortDirection('peso')} 
+                        onSort={requestSort}
+                        className="font-semibold min-w-[80px]"
+                      >
+                        <Scale className="w-3 h-3" />
+                        Peso
+                      </SortableTableHead>
+                      <SortableTableHead 
+                        sortKey="motorista" 
+                        sortDirection={getSortDirection('motorista')} 
+                        onSort={requestSort}
+                        className="font-semibold min-w-[130px]"
+                      >
+                        <User className="w-3 h-3" />
+                        Motorista
+                      </SortableTableHead>
+                      <SortableTableHead 
+                        sortKey="status" 
+                        sortDirection={getSortDirection('status')} 
+                        onSort={requestSort}
+                        className="font-semibold min-w-[120px]"
+                      >
+                        Status
+                      </SortableTableHead>
+                      <SortableTableHead 
+                        sortKey="numero_cte" 
+                        sortDirection={getSortDirection('numero_cte')} 
+                        onSort={requestSort}
+                        className="font-semibold min-w-[100px]"
+                      >
+                        <FileText className="w-3 h-3" />
+                        CT-e
+                      </SortableTableHead>
                       <TableHead className="font-semibold min-w-[80px]">
                         <div className="flex items-center gap-1">
                           <FileText className="w-3 h-3" />
@@ -382,12 +442,15 @@ export default function HistoricoEntregas() {
                           Manifesto
                         </div>
                       </TableHead>
-                      <TableHead className="font-semibold min-w-[110px]">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          Encerrada em
-                        </div>
-                      </TableHead>
+                      <SortableTableHead 
+                        sortKey="encerrada_em" 
+                        sortDirection={getSortDirection('encerrada_em')} 
+                        onSort={requestSort}
+                        className="font-semibold min-w-[110px]"
+                      >
+                        <Calendar className="w-3 h-3" />
+                        Encerrada em
+                      </SortableTableHead>
                       <TableHead className="font-semibold w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -398,7 +461,7 @@ export default function HistoricoEntregas() {
                           Carregando...
                         </TableCell>
                       </TableRow>
-                    ) : filtered.length === 0 ? (
+                    ) : sortedData.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={12} className="py-10 text-center text-muted-foreground">
                           <div className="flex flex-col items-center gap-2">
@@ -420,7 +483,7 @@ export default function HistoricoEntregas() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filtered.map((e) => {
+                      sortedData.map((e) => {
                         const origem = e.carga.endereco_origem;
                         const destino = e.carga.endereco_destino;
                         const status = e.status || 'entregue';

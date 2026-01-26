@@ -463,17 +463,42 @@ export default function CargasDisponiveis() {
 
   const filteredCargas = useMemo(() => {
     return cargas.filter((carga) => {
-      const searchLower = searchTerm.toLowerCase();
+      const searchLower = searchTerm.toLowerCase().trim();
+      
+      // Se não há termo de busca, passa
+      if (!searchLower) {
+        const matchesTipo = filterTipo === 'all' || carga.tipo === filterTipo;
+        
+        let matchesTipoVeiculo = true;
+        if (filterTiposVeiculo.length > 0) {
+          const requisitos = carga.veiculo_requisitos as VeiculoRequisitos | null;
+          if (requisitos?.tipos_veiculo && requisitos.tipos_veiculo.length > 0) {
+            matchesTipoVeiculo = filterTiposVeiculo.some(tipo => 
+              requisitos.tipos_veiculo!.includes(tipo)
+            );
+          }
+        }
+        
+        return matchesTipo && matchesTipoVeiculo;
+      }
+      
       const matchesSearch =
+        // Código e descrição da carga
         carga.codigo.toLowerCase().includes(searchLower) ||
         carga.descricao.toLowerCase().includes(searchLower) ||
+        // Cidades de origem/destino
         carga.endereco_origem?.cidade?.toLowerCase().includes(searchLower) ||
         carga.endereco_destino?.cidade?.toLowerCase().includes(searchLower) ||
-        // Search by sender (embarcador/remetente)
+        // Estados
+        carga.endereco_origem?.estado?.toLowerCase().includes(searchLower) ||
+        carga.endereco_destino?.estado?.toLowerCase().includes(searchLower) ||
+        // Remetente (embarcador)
         carga.empresa?.nome?.toLowerCase().includes(searchLower) ||
-        // Search by recipient (destinatário)
+        // Destinatário
         carga.destinatario_razao_social?.toLowerCase().includes(searchLower) ||
-        carga.destinatario_nome_fantasia?.toLowerCase().includes(searchLower);
+        carga.destinatario_nome_fantasia?.toLowerCase().includes(searchLower) ||
+        // CNPJ do destinatário (para busca por nota fiscal associada ao CNPJ)
+        carga.destinatario_cnpj?.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
 
       const matchesTipo = filterTipo === 'all' || carga.tipo === filterTipo;
 
