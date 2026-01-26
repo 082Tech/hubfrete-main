@@ -853,6 +853,7 @@ export type Database = {
         Row: {
           assinatura_recebedor: string | null
           carga_id: string
+          carroceria_id: string | null
           codigo: string | null
           coletado_em: string | null
           created_at: string | null
@@ -879,6 +880,7 @@ export type Database = {
         Insert: {
           assinatura_recebedor?: string | null
           carga_id: string
+          carroceria_id?: string | null
           codigo?: string | null
           coletado_em?: string | null
           created_at?: string | null
@@ -905,6 +907,7 @@ export type Database = {
         Update: {
           assinatura_recebedor?: string | null
           carga_id?: string
+          carroceria_id?: string | null
           codigo?: string | null
           coletado_em?: string | null
           created_at?: string | null
@@ -934,6 +937,13 @@ export type Database = {
             columns: ["carga_id"]
             isOneToOne: false
             referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_carroceria_id_fkey"
+            columns: ["carroceria_id"]
+            isOneToOne: false
+            referencedRelation: "carrocerias"
             referencedColumns: ["id"]
           },
           {
@@ -1862,6 +1872,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_carga_tx: {
+        Args: {
+          p_carga_id: string
+          p_carroceria_id: string
+          p_motorista_id: string
+          p_peso_kg: number
+          p_veiculo_id: string
+        }
+        Returns: Json
+      }
       create_chat_for_entrega: {
         Args: { p_entrega_id: string }
         Returns: string

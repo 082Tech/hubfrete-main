@@ -422,7 +422,7 @@ export default function CargasDisponiveis() {
 
       if (cargaError) throw cargaError;
 
-      // Create delivery record
+      // Create delivery record with simplified status enum
       const { data: entregaData, error: entregaError } = await supabase
         .from('entregas')
         .insert({
@@ -431,7 +431,7 @@ export default function CargasDisponiveis() {
           veiculo_id: veiculoId,
           peso_alocado_kg: pesoAlocadoKg,
           valor_frete: valorFrete,
-          status: 'aguardando',
+          status: 'aguardando' as const,
         })
         .select('id')
         .single();
