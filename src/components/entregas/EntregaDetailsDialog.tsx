@@ -14,7 +14,6 @@ import {
   Calendar, 
   Truck, 
   User, 
-  Phone, 
   Building2,
   Weight,
   Route,
@@ -317,14 +316,9 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                         )}
                       </div>
                     </div>
-                    {entrega.motorista.telefone && (
-                      <Button variant="outline" size="sm" className="w-full gap-2" asChild>
-                        <a href={`tel:${entrega.motorista.telefone}`}>
-                          <Phone className="w-3 h-3" />
-                          {entrega.motorista.telefone}
-                        </a>
-                      </Button>
-                    )}
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Use o chat para entrar em contato
+                    </p>
                   </>
                 ) : (
                   <p className="text-muted-foreground">Não atribuído</p>

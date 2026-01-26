@@ -426,7 +426,6 @@ export default function GestaoCargas() {
           motorista: e.motoristas?.nome_completo || null,
           motoristaFotoUrl: e.motoristas?.foto_url || null,
           motoristaOnline: localizacao?.status ?? null,
-          telefone: e.motoristas?.telefone || null,
           placa: e.veiculos?.placa || null,
           destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
           origemCoords: origem?.latitude && origem?.longitude

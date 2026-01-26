@@ -26,7 +26,6 @@ export type EntregaMapItem = {
   motorista: string | null;
   motoristaFotoUrl: string | null;
   motoristaOnline?: boolean | null;
-  telefone: string | null;
   placa: string | null;
   destino: string | null;
   origemCoords: { lat: number; lng: number } | null;
