@@ -306,7 +306,10 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
   }, [chats, fetchMessages]);
 
   // Send a message with optimistic update (no fetch after insert!)
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (
+    content: string,
+    attachment?: { url: string; nome: string; tipo: string; tamanho: number }
+  ) => {
     if (!selectedChat || !currentUserId) return;
 
     setIsSending(true);
@@ -321,6 +324,10 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       conteudo: content,
       created_at: new Date().toISOString(),
       lida: true,
+      anexo_url: attachment?.url,
+      anexo_nome: attachment?.nome,
+      anexo_tipo: attachment?.tipo,
+      anexo_tamanho: attachment?.tamanho,
     };
 
     // Add optimistic message immediately
@@ -345,15 +352,34 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     });
 
     try {
+      const insertData: {
+        chat_id: string;
+        sender_id: string;
+        sender_nome: string;
+        sender_tipo: string;
+        conteudo: string;
+        anexo_url?: string;
+        anexo_nome?: string;
+        anexo_tipo?: string;
+        anexo_tamanho?: number;
+      } = {
+        chat_id: selectedChat.id,
+        sender_id: currentUserId,
+        sender_nome: currentUserName,
+        sender_tipo: userType,
+        conteudo: content,
+      };
+
+      if (attachment) {
+        insertData.anexo_url = attachment.url;
+        insertData.anexo_nome = attachment.nome;
+        insertData.anexo_tipo = attachment.tipo;
+        insertData.anexo_tamanho = attachment.tamanho;
+      }
+
       const { data, error } = await supabase
         .from('mensagens')
-        .insert({
-          chat_id: selectedChat.id,
-          sender_id: currentUserId,
-          sender_nome: currentUserName,
-          sender_tipo: userType,
-          conteudo: content,
-        })
+        .insert(insertData)
         .select()
         .single();
 
