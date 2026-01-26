@@ -527,8 +527,45 @@ export default function GestaoEntregas() {
     },
   });
 
+  // Bulk update status mutation for all driver deliveries
+  const updateBulkStatus = useMutation({
+    mutationFn: async ({ entregaIds, newStatus }: { entregaIds: string[]; newStatus: StatusEntrega }) => {
+      const updateData: { status: StatusEntrega; coletado_em?: string | null; entregue_em?: string | null } = {
+        status: newStatus,
+      };
+
+      if (newStatus === 'coletado' || newStatus === 'em_transito') {
+        updateData.coletado_em = new Date().toISOString();
+      }
+      if (newStatus === 'entregue') {
+        updateData.entregue_em = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from('entregas')
+        .update(updateData)
+        .in('id', entregaIds);
+
+      if (error) throw error;
+      return { newStatus, count: entregaIds.length };
+    },
+    onSuccess: (result) => {
+      const config = statusEntregaConfig[result.newStatus];
+      toast.success(`${result.count} entregas alteradas para "${config?.label || result.newStatus}"`);
+      queryClient.invalidateQueries({ queryKey: ['gestao_entregas_transportadora'] });
+    },
+    onError: (error) => {
+      console.error('Erro ao alterar status em massa:', error);
+      toast.error('Erro ao alterar status das entregas');
+    },
+  });
+
   const handleStatusChange = (entregaId: string, newStatus: StatusEntrega) => {
     updateStatus.mutate({ entregaId, newStatus });
+  };
+
+  const handleBulkStatusChange = (entregaIds: string[], newStatus: StatusEntrega) => {
+    updateBulkStatus.mutate({ entregaIds, newStatus });
   };
 
   const handleDeleteClick = (entrega: EntregaCompleta) => {
@@ -1063,24 +1100,46 @@ export default function GestaoEntregas() {
                                   )}
                                 </TableCell>
                                 <TableCell>
-                                  {driverGroup.motorista && (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-7 w-7"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/transportadora/mensagens?entrega=${driverGroup.entregas[0].id}`);
-                                          }}
-                                        >
-                                          <MessageCircle className="w-4 h-4 text-primary" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Abrir chat</TooltipContent>
-                                    </Tooltip>
-                                  )}
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <MoreHorizontal className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56">
+                                      <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                                          <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                          Alterar status de todas
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal>
+                                          <DropdownMenuSubContent className="w-48">
+                                            {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
+                                              const StatusIconComponent = statusConfig.icon;
+                                              return (
+                                                <DropdownMenuItem
+                                                  key={statusKey}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const entregaIds = driverGroup.entregas.map(e => e.id);
+                                                    handleBulkStatusChange(entregaIds, statusKey as StatusEntrega);
+                                                  }}
+                                                >
+                                                  <StatusIconComponent className="w-4 h-4 mr-2" />
+                                                  {statusConfig.label}
+                                                </DropdownMenuItem>
+                                              );
+                                            })}
+                                          </DropdownMenuSubContent>
+                                        </DropdownMenuPortal>
+                                      </DropdownMenuSub>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </TableCell>
                               </TableRow>
 
@@ -1105,6 +1164,7 @@ export default function GestaoEntregas() {
                                               <TableHead className="text-xs min-w-[110px]">Status</TableHead>
                                               <TableHead className="text-xs min-w-[80px]">CT-e</TableHead>
                                               <TableHead className="text-xs min-w-[90px]">Previsão</TableHead>
+                                              <TableHead className="text-xs w-10">Chat</TableHead>
                                               <TableHead className="text-xs w-10"></TableHead>
                                             </TableRow>
                                           </TableHeader>
@@ -1204,6 +1264,24 @@ export default function GestaoEntregas() {
                                                   </TableCell>
                                                   <TableCell className="text-sm text-muted-foreground">
                                                     {formatDate(entrega.carga.data_entrega_limite)}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="icon"
+                                                          className="h-7 w-7"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
+                                                          }}
+                                                        >
+                                                          <MessageCircle className="w-4 h-4 text-primary" />
+                                                        </Button>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>Abrir chat</TooltipContent>
+                                                    </Tooltip>
                                                   </TableCell>
                                                   <TableCell>
                                                     <DropdownMenu>
