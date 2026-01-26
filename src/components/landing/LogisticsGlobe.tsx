@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Globe from 'react-globe.gl';
+import { Globe as GlobeIcon, Truck, MapPin } from 'lucide-react';
 
 interface GlobeInstance {
   controls: () => {
@@ -13,28 +14,95 @@ interface GeoJSONData {
   features: object[];
 }
 
+// Check if WebGL is available
+function isWebGLAvailable(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    return gl !== null && gl !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+// Fallback component when WebGL is not available
+function GlobeFallback() {
+  return (
+    <div className="relative w-full h-[400px] md:h-[500px] flex items-center justify-center">
+      {/* Animated background */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="relative w-[300px] h-[300px] md:w-[400px] md:h-[400px]">
+          {/* Outer ring */}
+          <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-pulse" />
+          
+          {/* Middle ring with rotation */}
+          <div 
+            className="absolute inset-4 rounded-full border border-primary/30"
+            style={{ animation: 'spin 20s linear infinite' }}
+          />
+          
+          {/* Inner glow */}
+          <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/10 to-primary/5" />
+          
+          {/* Center icon */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative">
+              <GlobeIcon className="w-24 h-24 md:w-32 md:h-32 text-primary/40" />
+              
+              {/* Animated dots representing routes */}
+              <div className="absolute -top-4 -right-4 w-3 h-3 rounded-full bg-primary animate-ping" />
+              <div className="absolute -bottom-2 -left-6 w-2 h-2 rounded-full bg-primary/60 animate-ping" style={{ animationDelay: '0.5s' }} />
+              <div className="absolute top-1/2 -right-8 w-2 h-2 rounded-full bg-primary/40 animate-ping" style={{ animationDelay: '1s' }} />
+            </div>
+          </div>
+          
+          {/* Route indicators */}
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-primary/60">
+            <MapPin className="w-3 h-3" />
+            <span>São Paulo</span>
+          </div>
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-primary/60">
+            <Truck className="w-3 h-3" />
+            <span>Brasil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function LogisticsGlobe() {
   const globeEl = useRef<GlobeInstance | null>(null);
   const [countries, setCountries] = useState<GeoJSONData>({ features: [] });
   const [dimensions, setDimensions] = useState({ width: 500, height: 500 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const [webGLSupported, setWebGLSupported] = useState<boolean | null>(null);
+  const [hasError, setHasError] = useState(false);
 
   // Primary green from design system (HSL 161 93% 30% converted to hex)
   const PRIMARY_GREEN = '#059669';
   const GLOW_GREEN = '#10b981';
 
+  // Check WebGL support on mount
   useEffect(() => {
+    setWebGLSupported(isWebGLAvailable());
+  }, []);
+
+  useEffect(() => {
+    if (!webGLSupported) return;
+    
     fetch('https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson')
       .then(res => res.json())
-      .then(setCountries);
+      .then(setCountries)
+      .catch(() => setHasError(true));
 
     if (globeEl.current) {
       const controls = globeEl.current.controls();
       controls.autoRotate = true;
       controls.autoRotateSpeed = 0.5;
-      controls.enableZoom = false; // Disable zoom
+      controls.enableZoom = false;
     }
-  }, []);
+  }, [webGLSupported]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -71,9 +139,23 @@ export function LogisticsGlobe() {
       const controls = globeEl.current.controls();
       controls.autoRotate = true;
       controls.autoRotateSpeed = 0.5;
-      controls.enableZoom = false; // Disable zoom
+      controls.enableZoom = false;
     }
   }, []);
+
+  // Show loading state while checking WebGL
+  if (webGLSupported === null) {
+    return (
+      <div className="w-full h-[400px] md:h-[500px] flex items-center justify-center">
+        <div className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full bg-primary/5 animate-pulse" />
+      </div>
+    );
+  }
+
+  // Show fallback if WebGL is not supported or there was an error
+  if (!webGLSupported || hasError) {
+    return <GlobeFallback />;
+  }
 
   return (
     <div 
