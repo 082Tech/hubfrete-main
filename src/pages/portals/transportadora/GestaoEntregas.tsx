@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,8 @@ import {
   Upload,
   XCircle,
   ArrowRightLeft,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -190,6 +192,7 @@ export default function GestaoEntregas() {
   const [showOnlyWithDeliveries, setShowOnlyWithDeliveries] = useState(true);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
+  const [expandedDrivers, setExpandedDrivers] = useState<Set<string>>(new Set());
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedEntregaForDetails, setSelectedEntregaForDetails] = useState<EntregaCompleta | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -333,6 +336,62 @@ export default function GestaoEntregas() {
       return matchesSearch && matchesStatus;
     });
   }, [entregas, searchTerm, selectedStatuses]);
+
+  // Group entregas by driver
+  interface DriverGroup {
+    motoristaId: string;
+    motorista: EntregaCompleta['motorista'];
+    veiculo: EntregaCompleta['veiculo'];
+    entregas: EntregaCompleta[];
+    totalPeso: number;
+    latestUpdate: string | null;
+  }
+
+  const entregasGroupedByDriver = useMemo(() => {
+    const driverMap = new Map<string, DriverGroup>();
+    
+    filteredEntregas.forEach((entrega) => {
+      const driverId = entrega.motorista?.id || 'sem-motorista';
+      
+      if (!driverMap.has(driverId)) {
+        driverMap.set(driverId, {
+          motoristaId: driverId,
+          motorista: entrega.motorista,
+          veiculo: entrega.veiculo,
+          entregas: [entrega],
+          totalPeso: entrega.peso_alocado_kg || entrega.carga.peso_kg,
+          latestUpdate: entrega.updated_at,
+        });
+      } else {
+        const group = driverMap.get(driverId)!;
+        group.entregas.push(entrega);
+        group.totalPeso += entrega.peso_alocado_kg || entrega.carga.peso_kg;
+        // Keep track of the latest update
+        if (entrega.updated_at && (!group.latestUpdate || entrega.updated_at > group.latestUpdate)) {
+          group.latestUpdate = entrega.updated_at;
+        }
+      }
+    });
+    
+    // Sort groups by latest update (most recent first)
+    return Array.from(driverMap.values()).sort((a, b) => {
+      if (!a.latestUpdate) return 1;
+      if (!b.latestUpdate) return -1;
+      return new Date(b.latestUpdate).getTime() - new Date(a.latestUpdate).getTime();
+    });
+  }, [filteredEntregas]);
+
+  const toggleDriverExpanded = (motoristaId: string) => {
+    setExpandedDrivers(prev => {
+      const next = new Set(prev);
+      if (next.has(motoristaId)) {
+        next.delete(motoristaId);
+      } else {
+        next.add(motoristaId);
+      }
+      return next;
+    });
+  };
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -895,37 +954,17 @@ export default function GestaoEntregas() {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
-                          <TableHead className="font-semibold min-w-[100px] sticky left-0 bg-muted/50 z-10">Código</TableHead>
-                          <TableHead className="font-semibold min-w-[140px]">
+                          <TableHead className="w-10"></TableHead>
+                          <TableHead className="font-semibold min-w-[160px]">
                             <div className="flex items-center gap-1">
-                              <Building2 className="w-3 h-3" />
-                              Remetente
+                              <User className="w-3 h-3" />
+                              Motorista
                             </div>
                           </TableHead>
-                          <TableHead className="font-semibold min-w-[140px]">
-                            <div className="flex items-center gap-1">
-                              <Package className="w-3 h-3" />
-                              Destinatário
-                            </div>
-                          </TableHead>
-                          <TableHead className="font-semibold min-w-[180px]">Rota</TableHead>
-                          <TableHead className="font-semibold min-w-[80px]">Peso</TableHead>
-                          <TableHead className="font-semibold min-w-[120px]">Motorista</TableHead>
-                          <TableHead className="font-semibold min-w-[80px]">Veículo</TableHead>
-                          <TableHead className="font-semibold min-w-[110px]">Status</TableHead>
-                          <TableHead className="font-semibold min-w-[80px]">
-                            <div className="flex items-center gap-1">
-                              <FileText className="w-3 h-3" />
-                              CT-e
-                            </div>
-                          </TableHead>
-                          <TableHead className="font-semibold min-w-[90px]">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              Previsão
-                            </div>
-                          </TableHead>
-                          <TableHead className="font-semibold min-w-[90px]">
+                          <TableHead className="font-semibold min-w-[100px]">Veículo</TableHead>
+                          <TableHead className="font-semibold min-w-[100px] text-center">Entregas</TableHead>
+                          <TableHead className="font-semibold min-w-[100px] text-center">Peso Total</TableHead>
+                          <TableHead className="font-semibold min-w-[120px]">
                             <div className="flex items-center gap-1">
                               <Radio className="w-3 h-3" />
                               Localização
@@ -935,172 +974,82 @@ export default function GestaoEntregas() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredEntregas.map((entrega) => {
-                          const status = entrega.status || 'aguardando_coleta';
-                          const config = statusEntregaConfig[status];
-                          const StatusIcon = config?.icon || Package;
-                          const isSelected = selectedEntregaId === entrega.id;
+                        {entregasGroupedByDriver.map((driverGroup) => {
+                          const isExpanded = expandedDrivers.has(driverGroup.motoristaId);
+                          const motoristaEmail = driverGroup.motorista?.email;
+                          const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
+                          const lastUpdate = localizacao?.timestamp;
+                          const isRecent = lastUpdate && (Date.now() - lastUpdate) < 5 * 60 * 1000;
 
                           return (
-                            <TableRow
-                              key={entrega.id}
-                              className={`cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-muted/50'}`}
-                              onClick={() => setSelectedEntregaId(entrega.id)}
-                            >
-                              <TableCell className="font-medium sticky left-0 bg-background z-10">
-                                <Badge variant="secondary" className="text-xs text-nowrap">
-                                  {entrega.carga.codigo}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="text-sm truncate block max-w-[130px]">
-                                      {entrega.carga.empresa?.nome || '-'}
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <div className="text-xs">
-                                      <p className="font-medium">{entrega.carga.empresa?.nome || 'Remetente não informado'}</p>
-                                      {entrega.carga.endereco_origem && (
-                                        <p className="text-muted-foreground">{entrega.carga.endereco_origem.logradouro}, {entrega.carga.endereco_origem.cidade}/{entrega.carga.endereco_origem.estado}</p>
-                                      )}
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TableCell>
-                              <TableCell>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="text-sm truncate block max-w-[130px]">
-                                      {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <div className="text-xs">
-                                      <p className="font-medium">{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
-                                      {entrega.carga.endereco_destino && (
-                                        <p className="text-muted-foreground">{entrega.carga.endereco_destino.logradouro}, {entrega.carga.endereco_destino.cidade}/{entrega.carga.endereco_destino.estado}</p>
-                                      )}
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1 text-sm">
-                                  <MapPin className="w-3 h-3 text-chart-1 shrink-0" />
-                                  <span className="truncate max-w-[50px]">
-                                    {entrega.carga.endereco_origem?.cidade || '-'}
-                                  </span>
-                                  <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                                  <MapPin className="w-3 h-3 text-chart-2 shrink-0" />
-                                  <span className="truncate max-w-[50px]">
-                                    {entrega.carga.endereco_destino?.cidade || '-'}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-sm">
-                                {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
-                              </TableCell>
-                              <TableCell>
-                                {entrega.motorista ? (
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                      <User className="w-3 h-3 text-primary" />
-                                    </div>
-                                    <span className="text-sm truncate max-w-[80px]">
-                                      {entrega.motorista.nome_completo}
-                                    </span>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6 shrink-0 text-primary hover:text-primary"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
-                                          }}
-                                        >
-                                          <MessageCircle className="w-3 h-3" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Abrir chat</TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {entrega.veiculo ? (
-                                  <Badge variant="outline" className="text-xs">
-                                    {entrega.veiculo.placa}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
-                                  <StatusIcon className="w-3 h-3" />
-                                  {config?.label || status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {entrega.cte_url ? (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge 
-                                        className="bg-primary/10 text-primary border-primary/20 gap-1 cursor-pointer"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setCtePreviewUrl(entrega.cte_url);
-                                          setCtePreviewOpen(true);
-                                        }}
-                                      >
-                                        <FileText className="w-3 h-3" />
-                                        Anexado
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Clique para visualizar</TooltipContent>
-                                  </Tooltip>
-                                ) : (
-                                  <Badge 
-                                    className="bg-muted text-muted-foreground border-muted gap-1 cursor-pointer"
+                            <React.Fragment key={driverGroup.motoristaId}>
+                              {/* Driver Row */}
+                              <TableRow
+                                className={`cursor-pointer hover:bg-muted/50 ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
+                                onClick={() => toggleDriverExpanded(driverGroup.motoristaId)}
+                              >
+                                <TableCell className="p-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setEntregaForCte(entrega);
-                                      setAnexarCteDialogOpen(true);
+                                      toggleDriverExpanded(driverGroup.motoristaId);
                                     }}
                                   >
-                                    <FileText className="w-3 h-3" />
-                                    Pendente
+                                    {isExpanded ? (
+                                      <ChevronDown className="w-4 h-4 text-primary" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                </TableCell>
+                                <TableCell>
+                                  {driverGroup.motorista ? (
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                                        {driverGroup.motorista.foto_url ? (
+                                          <img src={driverGroup.motorista.foto_url} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                          <User className="w-4 h-4 text-primary" />
+                                        )}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="font-medium text-sm truncate">{driverGroup.motorista.nome_completo}</p>
+                                        {driverGroup.motorista.telefone && (
+                                          <p className="text-xs text-muted-foreground">{driverGroup.motorista.telefone}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">Sem motorista</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {driverGroup.veiculo ? (
+                                    <Badge variant="outline" className="text-xs">
+                                      {driverGroup.veiculo.placa}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge className="bg-primary/10 text-primary border-primary/20">
+                                    {driverGroup.entregas.length} {driverGroup.entregas.length === 1 ? 'entrega' : 'entregas'}
                                   </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground">
-                                {formatDate(entrega.carga.data_entrega_limite)}
-                              </TableCell>
-                              <TableCell>
-                                {(() => {
-                                  const motoristaEmail = entrega.motorista?.email;
-                                  const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
-                                  const lastUpdate = localizacao?.timestamp;
-                                  
-                                  if (!lastUpdate) {
-                                    return <span className="text-sm text-muted-foreground">-</span>;
-                                  }
-                                  
-                                  const formattedTime = formatLocationTimestamp(lastUpdate);
-                                  const isRecent = lastUpdate && (Date.now() - lastUpdate) < 5 * 60 * 1000; // 5 minutes
-                                  
-                                  return (
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <span className="font-medium text-sm">{formatPeso(driverGroup.totalPeso)}</span>
+                                </TableCell>
+                                <TableCell>
+                                  {lastUpdate ? (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <div className={`flex items-center gap-1 text-xs ${isRecent ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                        <div className={`flex items-center gap-1 text-xs ${isRecent ? 'text-emerald-600' : 'text-muted-foreground'}`}>
                                           <Radio className={`w-3 h-3 ${isRecent ? 'animate-pulse' : ''}`} />
-                                          <span>{formattedTime}</span>
+                                          <span>{formatLocationTimestamp(lastUpdate)}</span>
                                         </div>
                                       </TooltipTrigger>
                                       <TooltipContent>
@@ -1109,99 +1058,253 @@ export default function GestaoEntregas() {
                                         </p>
                                       </TooltipContent>
                                     </Tooltip>
-                                  );
-                                })()}
-                              </TableCell>
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <MoreHorizontal className="w-4 h-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-52">
-                                    <DropdownMenuItem onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
-                                    }}>
-                                      <MessageCircle className="w-4 h-4 mr-2" />
-                                      Abrir chat
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedEntregaId(entrega.id);
-                                    }}>
-                                      <Eye className="w-4 h-4 mr-2" />
-                                      Ver no mapa
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedEntregaForDetails(entrega);
-                                      setDetailsDialogOpen(true);
-                                    }}>
-                                      <FileText className="w-4 h-4 mr-2" />
-                                      Ver detalhes
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEntregaForCte(entrega);
-                                      setAnexarCteDialogOpen(true);
-                                    }}>
-                                      <Upload className="w-4 h-4 mr-2" />
-                                      {entrega.cte_url ? 'Substituir CT-e' : 'Anexar CT-e'}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuSub>
-                                      <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
-                                        <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                        Alterar status
-                                      </DropdownMenuSubTrigger>
-                                      <DropdownMenuPortal>
-                                        <DropdownMenuSubContent className="w-48">
-                                          {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
-                                            const isCurrentStatus = entrega.status === statusKey;
-                                            const StatusIconComponent = statusConfig.icon;
-                                            return (
-                                              <DropdownMenuItem
-                                                key={statusKey}
-                                                disabled={isCurrentStatus}
-                                                className={isCurrentStatus ? 'opacity-50' : ''}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleStatusChange(entrega.id, statusKey as StatusEntrega);
-                                                }}
-                                              >
-                                                <StatusIconComponent className="w-4 h-4 mr-2" />
-                                                {statusConfig.label}
-                                                {isCurrentStatus && (
-                                                  <CheckCircle className="w-3 h-3 ml-auto text-primary" />
-                                                )}
-                                              </DropdownMenuItem>
-                                            );
-                                          })}
-                                        </DropdownMenuSubContent>
-                                      </DropdownMenuPortal>
-                                    </DropdownMenuSub>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      className="text-destructive focus:text-destructive"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteClick(entrega);
-                                      }}
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-2" />
-                                      Excluir entrega
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {driverGroup.motorista && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/transportadora/mensagens?entrega=${driverGroup.entregas[0].id}`);
+                                          }}
+                                        >
+                                          <MessageCircle className="w-4 h-4 text-primary" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Abrir chat</TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+
+                              {/* Expanded Deliveries */}
+                              {isExpanded && (
+                                <TableRow className="bg-muted/20 hover:bg-muted/20">
+                                  <TableCell colSpan={7} className="p-0">
+                                    <div className="px-8 py-4">
+                                      <div className="flex items-center gap-2 mb-3">
+                                        <Truck className="w-4 h-4 text-primary" />
+                                        <span className="text-sm font-medium">Entregas de {driverGroup.motorista?.nome_completo || 'Motorista'}</span>
+                                      </div>
+                                      <div className="bg-background rounded-lg border overflow-hidden">
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow className="bg-muted/30">
+                                              <TableHead className="text-xs min-w-[100px]">Código</TableHead>
+                                              <TableHead className="text-xs min-w-[140px]">Remetente</TableHead>
+                                              <TableHead className="text-xs min-w-[140px]">Destinatário</TableHead>
+                                              <TableHead className="text-xs min-w-[180px]">Rota</TableHead>
+                                              <TableHead className="text-xs min-w-[80px] text-right">Peso</TableHead>
+                                              <TableHead className="text-xs min-w-[110px]">Status</TableHead>
+                                              <TableHead className="text-xs min-w-[80px]">CT-e</TableHead>
+                                              <TableHead className="text-xs min-w-[90px]">Previsão</TableHead>
+                                              <TableHead className="text-xs w-10"></TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {driverGroup.entregas.map((entrega) => {
+                                              const status = entrega.status || 'aguardando_coleta';
+                                              const config = statusEntregaConfig[status];
+                                              const StatusIcon = config?.icon || Package;
+                                              const isSelected = selectedEntregaId === entrega.id;
+
+                                              return (
+                                                <TableRow
+                                                  key={entrega.id}
+                                                  className={`cursor-pointer ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedEntregaId(entrega.id);
+                                                  }}
+                                                >
+                                                  <TableCell>
+                                                    <Badge variant="secondary" className="text-xs font-mono">
+                                                      {entrega.carga.codigo}
+                                                    </Badge>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <span className="text-sm truncate block max-w-[130px]">
+                                                          {entrega.carga.empresa?.nome || '-'}
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
+                                                        <p className="font-medium">{entrega.carga.empresa?.nome || 'Remetente não informado'}</p>
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <span className="text-sm truncate block max-w-[130px]">
+                                                          {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
+                                                        <p className="font-medium">{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <div className="flex items-center gap-1 text-sm">
+                                                      <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
+                                                      <span className="truncate max-w-[50px]">
+                                                        {entrega.carga.endereco_origem?.cidade || '-'}
+                                                      </span>
+                                                      <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                                                      <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
+                                                      <span className="truncate max-w-[50px]">
+                                                        {entrega.carga.endereco_destino?.cidade || '-'}
+                                                      </span>
+                                                    </div>
+                                                  </TableCell>
+                                                  <TableCell className="text-right text-sm font-medium">
+                                                    {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
+                                                      <StatusIcon className="w-3 h-3" />
+                                                      {config?.label || status}
+                                                    </Badge>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {entrega.cte_url ? (
+                                                      <Badge 
+                                                        className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 cursor-pointer text-xs"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setCtePreviewUrl(entrega.cte_url);
+                                                          setCtePreviewOpen(true);
+                                                        }}
+                                                      >
+                                                        <FileText className="w-3 h-3" />
+                                                        CT-e
+                                                      </Badge>
+                                                    ) : (
+                                                      <Badge 
+                                                        className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 cursor-pointer text-xs"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setEntregaForCte(entrega);
+                                                          setAnexarCteDialogOpen(true);
+                                                        }}
+                                                      >
+                                                        <FileText className="w-3 h-3" />
+                                                        Pendente
+                                                      </Badge>
+                                                    )}
+                                                  </TableCell>
+                                                  <TableCell className="text-sm text-muted-foreground">
+                                                    {formatDate(entrega.carga.data_entrega_limite)}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <DropdownMenu>
+                                                      <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="icon"
+                                                          className="h-7 w-7"
+                                                          onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                          <MoreHorizontal className="w-4 h-4" />
+                                                        </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end" className="w-52">
+                                                        <DropdownMenuItem onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
+                                                        }}>
+                                                          <MessageCircle className="w-4 h-4 mr-2" />
+                                                          Abrir chat
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setSelectedEntregaId(entrega.id);
+                                                        }}>
+                                                          <Eye className="w-4 h-4 mr-2" />
+                                                          Ver no mapa
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setSelectedEntregaForDetails(entrega);
+                                                          setDetailsDialogOpen(true);
+                                                        }}>
+                                                          <FileText className="w-4 h-4 mr-2" />
+                                                          Ver detalhes
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setEntregaForCte(entrega);
+                                                          setAnexarCteDialogOpen(true);
+                                                        }}>
+                                                          <Upload className="w-4 h-4 mr-2" />
+                                                          {entrega.cte_url ? 'Substituir CT-e' : 'Anexar CT-e'}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuSub>
+                                                          <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                                                            <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                                            Alterar status
+                                                          </DropdownMenuSubTrigger>
+                                                          <DropdownMenuPortal>
+                                                            <DropdownMenuSubContent className="w-48">
+                                                              {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
+                                                                const isCurrentStatus = entrega.status === statusKey;
+                                                                const StatusIconComponent = statusConfig.icon;
+                                                                return (
+                                                                  <DropdownMenuItem
+                                                                    key={statusKey}
+                                                                    disabled={isCurrentStatus}
+                                                                    className={isCurrentStatus ? 'opacity-50' : ''}
+                                                                    onClick={(e) => {
+                                                                      e.stopPropagation();
+                                                                      handleStatusChange(entrega.id, statusKey as StatusEntrega);
+                                                                    }}
+                                                                  >
+                                                                    <StatusIconComponent className="w-4 h-4 mr-2" />
+                                                                    {statusConfig.label}
+                                                                    {isCurrentStatus && (
+                                                                      <CheckCircle className="w-3 h-3 ml-auto text-primary" />
+                                                                    )}
+                                                                  </DropdownMenuItem>
+                                                                );
+                                                              })}
+                                                            </DropdownMenuSubContent>
+                                                          </DropdownMenuPortal>
+                                                        </DropdownMenuSub>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem 
+                                                          className="text-destructive focus:text-destructive"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteClick(entrega);
+                                                          }}
+                                                        >
+                                                          <Trash2 className="w-4 h-4 mr-2" />
+                                                          Excluir entrega
+                                                        </DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                  </TableCell>
+                                                </TableRow>
+                                              );
+                                            })}
+                                          </TableBody>
+                                        </Table>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </React.Fragment>
                           );
                         })}
                       </TableBody>
