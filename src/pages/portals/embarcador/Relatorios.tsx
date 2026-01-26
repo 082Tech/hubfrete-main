@@ -145,7 +145,7 @@ export default function Relatorios() {
     enabled: !!empresa?.id,
   });
 
-  // Fetch entregas
+  // Fetch entregas with valor_frete
   const { data: entregas = [], isLoading: loadingEntregas } = useQuery({
     queryKey: ['relatorios_entregas', empresa?.id, filialAtiva?.id],
     queryFn: async () => {
@@ -159,9 +159,12 @@ export default function Relatorios() {
           created_at,
           entregue_em,
           coletado_em,
+          valor_frete,
+          peso_alocado_kg,
           cargas!inner (
             empresa_id,
-            filial_id
+            filial_id,
+            endereco_destino_id
           )
         `)
         .eq('cargas.empresa_id', empresa.id);
@@ -175,6 +178,28 @@ export default function Relatorios() {
       return data || [];
     },
     enabled: !!empresa?.id,
+  });
+
+  // Fetch endereços de destino para Top Rotas
+  const { data: enderecosDestino = [] } = useQuery({
+    queryKey: ['relatorios_enderecos_destino', empresa?.id, filialAtiva?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      // Get cargas IDs first
+      const cargaIds = cargas.map(c => c.id);
+      if (cargaIds.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('enderecos_carga')
+        .select('id, cidade, estado, carga_id')
+        .eq('tipo', 'destino')
+        .in('carga_id', cargaIds);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!empresa?.id && cargas.length > 0,
   });
 
   const isLoading = loadingCargas || loadingEntregas;
@@ -197,9 +222,20 @@ export default function Relatorios() {
   // KPIs
   const kpis = useMemo(() => {
     const totalCargas = filteredCargas.length;
-    const valorTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0);
+    const valorMercadoriaTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0);
     const pesoTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.peso_kg) || 0), 0);
     const volumeTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.volume_m3) || 0), 0);
+    
+    // Frete total das entregas
+    const freteTotal = filteredEntregas.reduce((acc, e) => acc + (Number(e.valor_frete) || 0), 0);
+    const entregasComFrete = filteredEntregas.filter(e => Number(e.valor_frete) > 0).length;
+    const ticketMedio = entregasComFrete > 0 ? freteTotal / entregasComFrete : 0;
+    
+    // Custo do frete em relação ao valor da mercadoria
+    const custoFretePercentual = valorMercadoriaTotal > 0 
+      ? (freteTotal / valorMercadoriaTotal) * 100 
+      : 0;
+    
     const entregues = filteredEntregas.filter(e => e.status === 'entregue').length;
     const emTransito = filteredEntregas.filter(e => e.status === 'em_transito').length;
     const aguardandoColeta = filteredEntregas.filter(e => 
@@ -220,23 +256,38 @@ export default function Relatorios() {
     });
     const prevValor = prevCargas.reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0);
     
+    const prevEntregas = entregas.filter(e => {
+      const createdAt = parseISO(e.created_at);
+      return createdAt >= prevStart && createdAt < dateRange.start;
+    });
+    const prevFrete = prevEntregas.reduce((acc, e) => acc + (Number(e.valor_frete) || 0), 0);
+    
     const cargasChange = prevCargas.length > 0 
       ? Math.round(((totalCargas - prevCargas.length) / prevCargas.length) * 100)
       : totalCargas > 0 ? 100 : 0;
     
     const valorChange = prevValor > 0 
-      ? Math.round(((valorTotal - prevValor) / prevValor) * 100)
-      : valorTotal > 0 ? 100 : 0;
+      ? Math.round(((valorMercadoriaTotal - prevValor) / prevValor) * 100)
+      : valorMercadoriaTotal > 0 ? 100 : 0;
+
+    const freteChange = prevFrete > 0 
+      ? Math.round(((freteTotal - prevFrete) / prevFrete) * 100)
+      : freteTotal > 0 ? 100 : 0;
 
     // Average per day
     const mediaCargasDia = totalCargas / Math.max(periodDays, 1);
-    const mediaValorDia = valorTotal / Math.max(periodDays, 1);
+    const mediaValorDia = valorMercadoriaTotal / Math.max(periodDays, 1);
+    const mediaFreteDia = freteTotal / Math.max(periodDays, 1);
 
     return {
       totalCargas,
       cargasChange,
-      valorTotal,
+      valorMercadoriaTotal,
       valorChange,
+      freteTotal,
+      freteChange,
+      ticketMedio,
+      custoFretePercentual,
       pesoTotal,
       volumeTotal,
       taxaConclusao,
@@ -246,8 +297,39 @@ export default function Relatorios() {
       problemas,
       mediaCargasDia,
       mediaValorDia,
+      mediaFreteDia,
+      totalEntregas: filteredEntregas.length,
     };
-  }, [filteredCargas, filteredEntregas, cargas, dateRange]);
+  }, [filteredCargas, filteredEntregas, cargas, entregas, dateRange]);
+
+  // Top Destinos
+  const topDestinosData = useMemo(() => {
+    const destinoCounts: Record<string, { count: number; frete: number }> = {};
+    
+    filteredEntregas.forEach(e => {
+      const carga = e.cargas as any;
+      const enderecoId = carga?.endereco_destino_id;
+      const endereco = enderecosDestino.find(ed => ed.id === enderecoId);
+      
+      if (endereco?.cidade && endereco?.estado) {
+        const key = `${endereco.cidade}/${endereco.estado}`;
+        if (!destinoCounts[key]) {
+          destinoCounts[key] = { count: 0, frete: 0 };
+        }
+        destinoCounts[key].count += 1;
+        destinoCounts[key].frete += Number(e.valor_frete) || 0;
+      }
+    });
+
+    return Object.entries(destinoCounts)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5)
+      .map(([destino, data]) => ({
+        destino,
+        entregas: data.count,
+        frete: data.frete,
+      }));
+  }, [filteredEntregas, enderecosDestino]);
 
   // Chart: Weekly/Daily activity
   const activityChartData = useMemo(() => {
@@ -435,6 +517,7 @@ export default function Relatorios() {
         ) : (
           <>
             {/* Main KPIs Row */}
+            {/* Main KPIs Row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="border-border bg-gradient-to-br from-primary/5 to-transparent">
                 <CardContent className="p-5">
@@ -450,7 +533,7 @@ export default function Relatorios() {
                       <div className="p-2 bg-primary/10 rounded-lg">
                         <Package className="w-5 h-5 text-primary" />
                       </div>
-                      <div className={`flex items-center text-xs ${kpis.cargasChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`flex items-center text-xs ${kpis.cargasChange >= 0 ? 'text-chart-2' : 'text-destructive'}`}>
                         {kpis.cargasChange >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
                         {kpis.cargasChange >= 0 ? '+' : ''}{kpis.cargasChange}%
                       </div>
@@ -463,19 +546,19 @@ export default function Relatorios() {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Valor Total</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.valorTotal)}</p>
+                      <p className="text-sm text-muted-foreground">Frete Total</p>
+                      <p className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.freteTotal)}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        ~{formatCurrency(kpis.mediaValorDia)}/dia
+                        ~{formatCurrency(kpis.mediaFreteDia)}/dia
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <div className="p-2 bg-chart-2/10 rounded-lg">
                         <DollarSign className="w-5 h-5 text-chart-2" />
                       </div>
-                      <div className={`flex items-center text-xs ${kpis.valorChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {kpis.valorChange >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                        {kpis.valorChange >= 0 ? '+' : ''}{kpis.valorChange}%
+                      <div className={`flex items-center text-xs ${kpis.freteChange >= 0 ? 'text-chart-2' : 'text-destructive'}`}>
+                        {kpis.freteChange >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                        {kpis.freteChange >= 0 ? '+' : ''}{kpis.freteChange}%
                       </div>
                     </div>
                   </div>
@@ -486,14 +569,14 @@ export default function Relatorios() {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Peso Total</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">{formatWeight(kpis.pesoTotal)}</p>
+                      <p className="text-sm text-muted-foreground">Ticket Médio</p>
+                      <p className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.ticketMedio)}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {kpis.volumeTotal.toFixed(1)} m³ volume
+                        por entrega
                       </p>
                     </div>
                     <div className="p-2 bg-chart-4/10 rounded-lg">
-                      <Weight className="w-5 h-5 text-chart-4" />
+                      <BarChart3 className="w-5 h-5 text-chart-4" />
                     </div>
                   </div>
                 </CardContent>
@@ -515,12 +598,71 @@ export default function Relatorios() {
               </Card>
             </div>
 
-            {/* Secondary KPIs */}
+            {/* Secondary KPIs - Frete & Mercadoria */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <Card className="border-border">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 bg-chart-2/10 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-chart-2" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{formatCurrency(kpis.valorMercadoriaTotal)}</p>
+                    <p className="text-xs text-muted-foreground">Valor Mercadoria</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 bg-chart-3/10 rounded-lg">
+                    <Activity className="w-5 h-5 text-chart-3" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{kpis.custoFretePercentual.toFixed(1)}%</p>
+                    <p className="text-xs text-muted-foreground">Frete vs Mercad.</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 bg-chart-4/10 rounded-lg">
+                    <Weight className="w-5 h-5 text-chart-4" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{formatWeight(kpis.pesoTotal)}</p>
+                    <p className="text-xs text-muted-foreground">Peso Total</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 bg-chart-5/10 rounded-lg">
+                    <Package className="w-5 h-5 text-chart-5" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{kpis.volumeTotal.toFixed(1)} m³</p>
+                    <p className="text-xs text-muted-foreground">Volume Total</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Truck className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{kpis.totalEntregas}</p>
+                    <p className="text-xs text-muted-foreground">Total Entregas</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Status KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="border-border">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-green-500/10 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  <div className="p-2 bg-chart-2/10 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-chart-2" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-foreground">{kpis.entregues}</p>
@@ -530,8 +672,8 @@ export default function Relatorios() {
               </Card>
               <Card className="border-border">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-blue-500/10 rounded-lg">
-                    <Truck className="w-5 h-5 text-blue-500" />
+                  <div className="p-2 bg-chart-1/10 rounded-lg">
+                    <Truck className="w-5 h-5 text-chart-1" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-foreground">{kpis.emTransito}</p>
@@ -541,8 +683,8 @@ export default function Relatorios() {
               </Card>
               <Card className="border-border">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-amber-500/10 rounded-lg">
-                    <Clock className="w-5 h-5 text-amber-500" />
+                  <div className="p-2 bg-chart-4/10 rounded-lg">
+                    <Clock className="w-5 h-5 text-chart-4" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-foreground">{kpis.aguardandoColeta}</p>
@@ -552,8 +694,8 @@ export default function Relatorios() {
               </Card>
               <Card className="border-border">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-red-500/10 rounded-lg">
-                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                  <div className="p-2 bg-destructive/10 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-destructive" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-foreground">{kpis.problemas}</p>
@@ -826,64 +968,100 @@ export default function Relatorios() {
               </Card>
             </div>
 
-            {/* Value Trend */}
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-chart-2" />
-                  Evolução Mensal
-                </CardTitle>
-                <CardDescription>Valor e volume de cargas ao longo do tempo</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  {monthlyValueData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={monthlyValueData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis 
-                          dataKey="mes" 
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          axisLine={{ stroke: 'hsl(var(--border))' }}
-                        />
-                        <YAxis 
-                          yAxisId="left"
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          axisLine={{ stroke: 'hsl(var(--border))' }}
-                          tickFormatter={(value) => formatCurrency(value)}
-                        />
-                        <YAxis 
-                          yAxisId="right"
-                          orientation="right"
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          axisLine={{ stroke: 'hsl(var(--border))' }}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--popover))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            color: 'hsl(var(--foreground))'
-                          }}
-                          formatter={(value: number, name: string) => {
-                            if (name === 'Valor') return [formatCurrency(value), 'Valor'];
-                            if (name === 'Peso') return [formatWeight(value), 'Peso'];
-                            return [value, 'Cargas'];
-                          }}
-                        />
-                        <Legend />
-                        <Bar yAxisId="right" dataKey="cargas" fill="hsl(var(--chart-1))" name="Cargas" radius={[4, 4, 0, 0]} />
-                        <Line yAxisId="left" type="monotone" dataKey="valor" stroke="hsl(var(--chart-2))" strokeWidth={3} name="Valor" dot={{ fill: 'hsl(var(--chart-2))', strokeWidth: 2 }} />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <p className="text-muted-foreground">Sem dados disponíveis</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Top Destinos + Value Trend */}
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* Top Destinos */}
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-chart-3" />
+                    Top Destinos
+                  </CardTitle>
+                  <CardDescription>Principais rotas por entregas</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {topDestinosData.length > 0 ? (
+                      topDestinosData.map((item, index) => (
+                        <div key={item.destino} className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full shrink-0">
+                              {index + 1}º
+                            </span>
+                            <span className="text-sm truncate">{item.destino}</span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-xs text-muted-foreground">{item.entregas} entregas</span>
+                            <span className="text-sm font-medium text-chart-2">{formatCurrency(item.frete)}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-8">Sem dados de destino</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Value Trend */}
+              <Card className="border-border lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-chart-2" />
+                    Evolução Mensal
+                  </CardTitle>
+                  <CardDescription>Valor e volume de cargas ao longo do tempo</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    {monthlyValueData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={monthlyValueData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis 
+                            dataKey="mes" 
+                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                          />
+                          <YAxis 
+                            yAxisId="left"
+                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                            tickFormatter={(value) => formatCurrency(value)}
+                          />
+                          <YAxis 
+                            yAxisId="right"
+                            orientation="right"
+                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--popover))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              color: 'hsl(var(--foreground))'
+                            }}
+                            formatter={(value: number, name: string) => {
+                              if (name === 'Valor') return [formatCurrency(value), 'Valor'];
+                              if (name === 'Peso') return [formatWeight(value), 'Peso'];
+                              return [value, 'Cargas'];
+                            }}
+                          />
+                          <Legend />
+                          <Bar yAxisId="right" dataKey="cargas" fill="hsl(var(--chart-1))" name="Cargas" radius={[4, 4, 0, 0]} />
+                          <Line yAxisId="left" type="monotone" dataKey="valor" stroke="hsl(var(--chart-2))" strokeWidth={3} name="Valor" dot={{ fill: 'hsl(var(--chart-2))', strokeWidth: 2 }} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground">Sem dados disponíveis</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </>
         )}
       </div>
