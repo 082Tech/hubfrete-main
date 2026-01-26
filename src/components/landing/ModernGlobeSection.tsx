@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Truck, Package, MapPin, ArrowRight } from 'lucide-react';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, Component, ReactNode } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Lazy load the globe component for better performance
@@ -20,6 +20,48 @@ function GlobeSkeleton() {
       <Skeleton className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full" />
     </div>
   );
+}
+
+// Simple fallback for when globe fails
+function GlobeErrorFallback() {
+  return (
+    <div className="w-full h-[400px] md:h-[500px] flex items-center justify-center">
+      <div className="relative w-[300px] h-[300px] md:w-[400px] md:h-[400px]">
+        <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-pulse" />
+        <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/10 to-primary/5" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <MapPin className="w-24 h-24 md:w-32 md:h-32 text-primary/40" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Error Boundary to catch WebGL crashes
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class GlobeErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.warn('Globe WebGL error caught:', error.message);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <GlobeErrorFallback />;
+    }
+    return this.props.children;
+  }
 }
 
 export function ModernGlobeSection() {
@@ -91,7 +133,7 @@ export function ModernGlobeSection() {
             </motion.a>
           </motion.div>
 
-          {/* Right side - Globe */}
+          {/* Right side - Globe with Error Boundary */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -99,9 +141,11 @@ export function ModernGlobeSection() {
             transition={{ duration: 1 }}
             className="order-1 lg:order-2"
           >
-            <Suspense fallback={<GlobeSkeleton />}>
-              <LogisticsGlobe />
-            </Suspense>
+            <GlobeErrorBoundary>
+              <Suspense fallback={<GlobeSkeleton />}>
+                <LogisticsGlobe />
+              </Suspense>
+            </GlobeErrorBoundary>
           </motion.div>
         </div>
       </div>
