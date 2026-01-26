@@ -73,6 +73,9 @@ interface EntregaHistorico {
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   cte_url: string | null;
+  numero_cte: string | null;
+  notas_fiscais_urls: string[] | null;
+  manifesto_url: string | null;
   motorista: {
     id: string;
     nome_completo: string;
@@ -155,6 +158,9 @@ export default function HistoricoEntregas() {
           peso_alocado_kg,
           valor_frete,
           cte_url,
+          numero_cte,
+          notas_fiscais_urls,
+          manifesto_url,
           motorista:motoristas(id, nome_completo, telefone),
           veiculo:veiculos(placa, tipo),
           carga:cargas(
@@ -358,10 +364,22 @@ export default function HistoricoEntregas() {
                         </div>
                       </TableHead>
                       <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
-                      <TableHead className="font-semibold min-w-[80px]">
+                      <TableHead className="font-semibold min-w-[100px]">
                         <div className="flex items-center gap-1">
                           <FileText className="w-3 h-3" />
                           CT-e
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold min-w-[80px]">
+                        <div className="flex items-center gap-1">
+                          <FileText className="w-3 h-3" />
+                          NF-es
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold min-w-[90px]">
+                        <div className="flex items-center gap-1">
+                          <FileText className="w-3 h-3" />
+                          Manifesto
                         </div>
                       </TableHead>
                       <TableHead className="font-semibold min-w-[110px]">
@@ -376,13 +394,13 @@ export default function HistoricoEntregas() {
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="py-10 text-center text-muted-foreground">
+                        <TableCell colSpan={12} className="py-10 text-center text-muted-foreground">
                           Carregando...
                         </TableCell>
                       </TableRow>
                     ) : filtered.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="py-10 text-center text-muted-foreground">
+                        <TableCell colSpan={12} className="py-10 text-center text-muted-foreground">
                           <div className="flex flex-col items-center gap-2">
                             <Package className="w-10 h-10 text-muted-foreground/50" />
                             <p>Nenhum registro encontrado.</p>
@@ -487,6 +505,7 @@ export default function HistoricoEntregas() {
                                 {config?.label || status}
                               </Badge>
                             </TableCell>
+                            {/* CT-e Column */}
                             <TableCell>
                               {e.cte_url ? (
                                 <Badge 
@@ -497,12 +516,46 @@ export default function HistoricoEntregas() {
                                   }}
                                 >
                                   <FileText className="w-3 h-3" />
-                                  CT-e
+                                  {e.numero_cte || 'Ver'}
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1">
+                                <Badge variant="outline" className="bg-muted text-muted-foreground gap-1">
                                   <FileText className="w-3 h-3" />
-                                  Sem CT-e
+                                  -
+                                </Badge>
+                              )}
+                            </TableCell>
+                            {/* NF-es Column */}
+                            <TableCell>
+                              {e.notas_fiscais_urls && e.notas_fiscais_urls.length > 0 ? (
+                                <Badge className="bg-green-500/10 text-green-600 border-green-500/20 gap-1">
+                                  <FileText className="w-3 h-3" />
+                                  {e.notas_fiscais_urls.length}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-muted text-muted-foreground gap-1">
+                                  <FileText className="w-3 h-3" />
+                                  0
+                                </Badge>
+                              )}
+                            </TableCell>
+                            {/* Manifesto Column */}
+                            <TableCell>
+                              {e.manifesto_url ? (
+                                <Badge 
+                                  className="bg-green-500/10 text-green-600 border-green-500/20 cursor-pointer gap-1"
+                                  onClick={() => {
+                                    setCtePreviewUrl(e.manifesto_url);
+                                    setCtePreviewOpen(true);
+                                  }}
+                                >
+                                  <FileText className="w-3 h-3" />
+                                  Ver
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-muted text-muted-foreground gap-1">
+                                  <FileText className="w-3 h-3" />
+                                  -
                                 </Badge>
                               )}
                             </TableCell>
