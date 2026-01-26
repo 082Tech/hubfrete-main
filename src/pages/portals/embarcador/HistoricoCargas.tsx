@@ -160,18 +160,16 @@ interface CargaData {
 
 // Status config for entregas
 const statusEntregaConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  aguardando_coleta: { label: 'Aguardando Coleta', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
-  em_coleta: { label: 'Em Coleta', color: 'bg-sky-100 text-sky-700 border-sky-200', icon: Truck },
-  coletado: { label: 'Coletado', color: 'bg-cyan-100 text-cyan-700 border-cyan-200', icon: Package },
-  em_transito: { label: 'Em Trânsito', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: Truck },
-  em_entrega: { label: 'Em Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
+  aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
+  saiu_para_coleta: { label: 'Saiu para Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
+  saiu_para_entrega: { label: 'Saiu para Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Truck },
   entregue: { label: 'Entregue', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
-  devolvida: { label: 'Devolvida', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: RotateCcw },
+  cancelada: { label: 'Cancelada', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: RotateCcw },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
 };
 
 // Filter options for Histórico - only finalized states
-type FilterStatus = 'all' | 'entregue' | 'devolvida' | 'problema';
+type FilterStatus = 'all' | 'entregue' | 'cancelada' | 'problema';
 type SortField = 'created_at' | 'codigo' | 'peso_kg' | 'valor_mercadoria';
 type SortOrder = 'asc' | 'desc';
 
@@ -313,19 +311,19 @@ export default function HistoricoCargas() {
   // Helper functions
   const allEntregasFinalized = (carga: CargaData) => {
     if (carga.entregas.length === 0) return false;
-    return carga.entregas.every(e => ['entregue', 'devolvida', 'problema'].includes(e.status));
+    return carga.entregas.every(e => ['entregue', 'cancelada', 'problema'].includes(e.status));
   };
 
   const hasProblems = (carga: CargaData) => {
-    return carga.entregas.some(e => e.status === 'problema' || e.status === 'devolvida');
+    return carga.entregas.some(e => e.status === 'problema' || e.status === 'cancelada');
   };
 
   const allDelivered = (carga: CargaData) => {
     return carga.entregas.length > 0 && carga.entregas.every(e => e.status === 'entregue');
   };
 
-  const hasDevolvida = (carga: CargaData) => {
-    return carga.entregas.some(e => e.status === 'devolvida');
+  const hasCancelada = (carga: CargaData) => {
+    return carga.entregas.some(e => e.status === 'cancelada');
   };
 
   const hasProblema = (carga: CargaData) => {
@@ -348,8 +346,8 @@ export default function HistoricoCargas() {
       case 'entregue':
         result = result.filter(c => allDelivered(c));
         break;
-      case 'devolvida':
-        result = result.filter(c => hasDevolvida(c));
+      case 'cancelada':
+        result = result.filter(c => hasCancelada(c));
         break;
       case 'problema':
         result = result.filter(c => hasProblema(c));
@@ -430,8 +428,8 @@ export default function HistoricoCargas() {
     if (hasProblema(carga)) {
       return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Com Problemas</Badge>;
     }
-    if (hasDevolvida(carga)) {
-      return <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20">Com Devoluções</Badge>;
+    if (hasCancelada(carga)) {
+      return <Badge className="bg-gray-500/10 text-gray-600 border-gray-500/20">Cancelada</Badge>;
     }
     return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Concluída</Badge>;
   };
@@ -457,7 +455,7 @@ export default function HistoricoCargas() {
   const stats = useMemo(() => ({
     total: finalizedCargas.length,
     entregues: finalizedCargas.filter(c => allDelivered(c)).length,
-    devolvidas: finalizedCargas.filter(c => hasDevolvida(c)).length,
+    canceladas: finalizedCargas.filter(c => hasCancelada(c)).length,
     comProblemas: finalizedCargas.filter(c => hasProblema(c)).length,
     pesoTotal: finalizedCargas.reduce((acc, c) => acc + c.peso_kg, 0),
     valorTotal: finalizedCargas.reduce((acc, c) => acc + (c.valor_mercadoria || 0), 0),
@@ -629,15 +627,15 @@ export default function HistoricoCargas() {
             </Card>
 
             <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'devolvida' ? 'ring-2 ring-orange-500' : ''}`}
-              onClick={() => setFilterStatus(filterStatus === 'devolvida' ? 'all' : 'devolvida')}
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'cancelada' ? 'ring-2 ring-gray-500' : ''}`}
+              onClick={() => setFilterStatus(filterStatus === 'cancelada' ? 'all' : 'cancelada')}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <RotateCcw className="w-4 h-4 text-orange-500" />
-                  <span className="text-xs text-muted-foreground">Devolvidas</span>
+                  <RotateCcw className="w-4 h-4 text-gray-500" />
+                  <span className="text-xs text-muted-foreground">Canceladas</span>
                 </div>
-                <p className="text-2xl font-bold text-orange-600">{stats.devolvidas}</p>
+                <p className="text-2xl font-bold text-gray-600">{stats.canceladas}</p>
               </CardContent>
             </Card>
 

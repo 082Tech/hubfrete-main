@@ -17,43 +17,36 @@ interface TrackingHistoryMarkersProps {
 }
 
 const statusLabels: Record<string, string> = {
-  'aguardando_coleta': 'Aguardando Coleta',
-  'em_coleta': 'Em Coleta',
-  'coletado': 'Coletado',
-  'em_transito': 'Em Trânsito',
-  'em_entrega': 'Em Entrega',
+  'aguardando': 'Aguardando',
+  'saiu_para_coleta': 'Saiu para Coleta',
+  'saiu_para_entrega': 'Saiu para Entrega',
   'entregue': 'Entregue',
   'problema': 'Problema',
-  'devolvida': 'Devolvida',
+  'cancelada': 'Cancelada',
 };
 
 const statusColors: Record<string, string> = {
-  'aguardando_coleta': '#6b7280',
-  'em_coleta': '#3b82f6',
-  'coletado': '#06b6d4',
-  'em_transito': '#f97316',
-  'em_entrega': '#a855f7',
+  'aguardando': '#6b7280',
+  'saiu_para_coleta': '#3b82f6',
+  'saiu_para_entrega': '#a855f7',
   'entregue': '#22c55e',
   'problema': '#ef4444',
-  'devolvida': '#ef4444',
+  'cancelada': '#6b7280',
 };
 
 const StatusIcon = ({ status }: { status: string }) => {
   const iconClass = "w-3 h-3";
   switch (status) {
-    case 'aguardando_coleta':
+    case 'aguardando':
       return <Clock className={iconClass} />;
-    case 'em_coleta':
-    case 'coletado':
+    case 'saiu_para_coleta':
       return <Package className={iconClass} />;
-    case 'em_transito':
-      return <Route className={iconClass} />;
-    case 'em_entrega':
+    case 'saiu_para_entrega':
       return <Truck className={iconClass} />;
     case 'entregue':
       return <CheckCircle className={iconClass} />;
     case 'problema':
-    case 'devolvida':
+    case 'cancelada':
       return <AlertCircle className={iconClass} />;
     default:
       return <MapPin className={iconClass} />;

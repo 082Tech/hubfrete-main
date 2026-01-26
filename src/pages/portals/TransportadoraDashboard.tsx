@@ -98,7 +98,7 @@ export default function TransportadoraDashboard() {
           veiculo:veiculos(placa)
         `)
         .in('motorista_id', motoristaIds)
-        .in('status', ['aguardando_coleta', 'em_coleta', 'coletado', 'em_transito', 'em_entrega'])
+        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
         .order('created_at', { ascending: false })
         .limit(5);
 

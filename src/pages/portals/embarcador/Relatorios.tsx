@@ -235,12 +235,12 @@ export default function Relatorios() {
       : 0;
     
     const entregues = filteredEntregas.filter(e => e.status === 'entregue').length;
-    const emTransito = filteredEntregas.filter(e => e.status === 'em_transito').length;
+    const emTransito = filteredEntregas.filter(e => e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega').length;
     const aguardandoColeta = filteredEntregas.filter(e => 
-      e.status === 'aguardando_coleta' || e.status === 'em_coleta'
+      e.status === 'aguardando'
     ).length;
     const problemas = filteredEntregas.filter(e => e.status === 'problema').length;
-    const devoluidas = filteredEntregas.filter(e => e.status === 'devolvida').length;
+    const canceladas = filteredEntregas.filter(e => e.status === 'cancelada').length;
     
     const taxaConclusao = filteredEntregas.length > 0 
       ? Math.round((entregues / filteredEntregas.length) * 100) 
@@ -272,7 +272,7 @@ export default function Relatorios() {
       ? Math.round((entreguesNoPrazo / entreguesComData.length) * 100) 
       : 100;
     const inFullDelivery = filteredEntregas.length > 0 
-      ? Math.round(((filteredEntregas.length - devoluidas) / filteredEntregas.length) * 100)
+      ? Math.round(((filteredEntregas.length - canceladas) / filteredEntregas.length) * 100)
       : 100;
     const otifScore = Math.round((onTimeDelivery * inFullDelivery) / 100);
     const leadTimeAvg = entreguesComData.length > 0 ? totalLeadTime / entreguesComData.length : 0;
@@ -325,7 +325,7 @@ export default function Relatorios() {
       emTransito,
       aguardandoColeta,
       problemas,
-      devoluidas,
+      canceladas,
       mediaCargasDia,
       mediaValorDia,
       mediaFreteDia,
@@ -497,14 +497,14 @@ export default function Relatorios() {
         }
       });
       
-      const devolvidas = entregas.filter(e => {
+      const canceladas = entregas.filter(e => {
         const date = parseISO(e.created_at);
-        return date >= weekStart && date < weekEnd && e.status === 'devolvida';
+        return date >= weekStart && date < weekEnd && e.status === 'cancelada';
       }).length;
       
-      const totalWeek = weekEntregas.length + devolvidas;
+      const totalWeek = weekEntregas.length + canceladas;
       const onTimePercent = weekEntregas.length > 0 ? Math.round((onTime / weekEntregas.length) * 100) : 100;
-      const inFullPercent = totalWeek > 0 ? Math.round(((totalWeek - devolvidas) / totalWeek) * 100) : 100;
+      const inFullPercent = totalWeek > 0 ? Math.round(((totalWeek - canceladas) / totalWeek) * 100) : 100;
 
       weeks.push({
         periodo: `Sem ${4 - i}`,
@@ -584,8 +584,8 @@ export default function Relatorios() {
     taxaConclusao: kpis.taxaConclusao,
     entreguesNoPrazo: kpis.entreguesNoPrazo,
     entreguesAtrasados: kpis.entreguesAtrasados,
-    devolucoesCount: kpis.devoluidas,
-    devolucoesPercentual: kpis.totalEntregas > 0 ? (kpis.devoluidas / kpis.totalEntregas) * 100 : 0,
+    devolucoesCount: kpis.canceladas,
+    devolucoesPercentual: kpis.totalEntregas > 0 ? (kpis.canceladas / kpis.totalEntregas) * 100 : 0,
     ocorrenciasCount: kpis.problemas,
     ocorrenciasPercentual: kpis.totalEntregas > 0 ? (kpis.problemas / kpis.totalEntregas) * 100 : 0,
   };

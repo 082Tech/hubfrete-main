@@ -165,11 +165,9 @@ interface MotoristaCompleto {
 
 // Status configuration for display
 const statusEntregaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
-  'aguardando_coleta': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando Coleta', icon: Clock },
-  'em_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Em Coleta', icon: Package },
-  'coletado': { color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20', label: 'Coletado', icon: CheckCircle },
-  'em_transito': { color: 'bg-orange-500/10 text-orange-600 border-orange-500/20', label: 'Em Trânsito', icon: Route },
-  'em_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Em Entrega', icon: Truck },
+  'aguardando': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando', icon: Clock },
+  'saiu_para_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Saiu para Coleta', icon: Package },
+  'saiu_para_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Saiu para Entrega', icon: Truck },
   'entregue': { color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', label: 'Entregue', icon: CheckCircle },
   'problema': { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Problema', icon: AlertCircle },
   'cancelada': { color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', label: 'Cancelada', icon: XCircle },
@@ -177,11 +175,9 @@ const statusEntregaConfig: Record<string, { color: string; label: string; icon: 
 
 // Status filters for active deliveries
 const allStatusFilters = [
-  { value: 'aguardando_coleta', label: 'Aguardando Coleta' },
-  { value: 'em_coleta', label: 'Em Coleta' },
-  { value: 'coletado', label: 'Coletado' },
-  { value: 'em_transito', label: 'Em Trânsito' },
-  { value: 'em_entrega', label: 'Em Entrega' },
+  { value: 'aguardando', label: 'Aguardando' },
+  { value: 'saiu_para_coleta', label: 'Saiu para Coleta' },
+  { value: 'saiu_para_entrega', label: 'Saiu para Entrega' },
   { value: 'problema', label: 'Problema' },
 ];
 
@@ -278,7 +274,7 @@ export default function GestaoEntregas() {
           )
         `)
         .in('motorista_id', motoristaIds)
-        .in('status', ['aguardando_coleta', 'em_coleta', 'coletado', 'em_transito', 'em_entrega', 'problema'])
+        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega', 'problema'])
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -416,9 +412,9 @@ export default function GestaoEntregas() {
 
     return {
       total: entregas.length,
-      aguardando_coleta: (byStatus['aguardando_coleta'] || 0) + (byStatus['em_coleta'] || 0) + (byStatus['coletado'] || 0),
-      em_transito: byStatus['em_transito'] || 0,
-      em_entrega: byStatus['em_entrega'] || 0,
+      aguardando: byStatus['aguardando'] || 0,
+      saiu_para_coleta: byStatus['saiu_para_coleta'] || 0,
+      saiu_para_entrega: byStatus['saiu_para_entrega'] || 0,
       problema: byStatus['problema'] || 0,
     };
   }, [entregas]);
@@ -515,7 +511,7 @@ export default function GestaoEntregas() {
       };
 
       // Set timestamp for specific status transitions
-      if (newStatus === 'coletado' || newStatus === 'em_transito') {
+      if (newStatus === 'saiu_para_coleta') {
         updateData.coletado_em = new Date().toISOString();
       }
       if (newStatus === 'entregue') {
@@ -548,7 +544,7 @@ export default function GestaoEntregas() {
         status: newStatus,
       };
 
-      if (newStatus === 'coletado' || newStatus === 'em_transito') {
+      if (newStatus === 'saiu_para_coleta') {
         updateData.coletado_em = new Date().toISOString();
       }
       if (newStatus === 'entregue') {
@@ -899,17 +895,17 @@ export default function GestaoEntregas() {
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Clock className="w-4 h-4 text-amber-600" />
                 </div>
-                <p className="text-xl font-bold text-amber-600">{stats.aguardando_coleta}</p>
+                <p className="text-xl font-bold text-amber-600">{stats.aguardando}</p>
                 <p className="text-[10px] text-muted-foreground leading-tight">Aguardando</p>
               </CardContent>
             </Card>
-            <Card className="border-border bg-orange-500/5">
+            <Card className="border-border bg-blue-500/5">
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Route className="w-4 h-4 text-orange-600" />
+                  <Package className="w-4 h-4 text-blue-600" />
                 </div>
-                <p className="text-xl font-bold text-orange-600">{stats.em_transito}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Em Trânsito</p>
+                <p className="text-xl font-bold text-blue-600">{stats.saiu_para_coleta}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Coleta</p>
               </CardContent>
             </Card>
             <Card className="border-border bg-purple-500/5">
@@ -917,8 +913,8 @@ export default function GestaoEntregas() {
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Truck className="w-4 h-4 text-purple-600" />
                 </div>
-                <p className="text-xl font-bold text-purple-600">{stats.em_entrega}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Em Entrega</p>
+                <p className="text-xl font-bold text-purple-600">{stats.saiu_para_entrega}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Entrega</p>
               </CardContent>
             </Card>
             <Card className="border-border bg-destructive/5">
@@ -1463,21 +1459,21 @@ export default function GestaoEntregas() {
             <Card className="border-border bg-chart-3/5">
               <CardContent className="p-2 text-center">
                 <Clock className="w-3 h-3 mx-auto text-chart-3 mb-0.5" />
-                <p className="text-lg font-bold text-chart-3">{stats.aguardando_coleta}</p>
+                <p className="text-lg font-bold text-chart-3">{stats.aguardando}</p>
                 <p className="text-[8px] text-muted-foreground">Aguardando</p>
               </CardContent>
             </Card>
-            <Card className="border-border bg-chart-4/5">
+            <Card className="border-border bg-chart-1/5">
               <CardContent className="p-2 text-center">
-                <Route className="w-3 h-3 mx-auto text-chart-4 mb-0.5" />
-                <p className="text-lg font-bold text-chart-4">{stats.em_transito}</p>
-                <p className="text-[8px] text-muted-foreground">Trânsito</p>
+                <Package className="w-3 h-3 mx-auto text-chart-1 mb-0.5" />
+                <p className="text-lg font-bold text-chart-1">{stats.saiu_para_coleta}</p>
+                <p className="text-[8px] text-muted-foreground">Coleta</p>
               </CardContent>
             </Card>
             <Card className="border-border bg-chart-5/5">
               <CardContent className="p-2 text-center">
                 <Truck className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
-                <p className="text-lg font-bold text-chart-5">{stats.em_entrega}</p>
+                <p className="text-lg font-bold text-chart-5">{stats.saiu_para_entrega}</p>
                 <p className="text-[8px] text-muted-foreground">Entrega</p>
               </CardContent>
             </Card>
@@ -1722,7 +1718,7 @@ export default function GestaoEntregas() {
                       </p>
                     )}
                     
-                    {(pendingStatusChange.newStatus === 'coletado' || pendingStatusChange.newStatus === 'em_transito') && (
+                    {pendingStatusChange.newStatus === 'saiu_para_coleta' && (
                       <p className="mt-3 text-sm">
                         A data/hora de coleta será registrada automaticamente.
                       </p>

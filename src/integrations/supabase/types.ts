@@ -1895,14 +1895,11 @@ export type Database = {
         | "faturado_30"
       status_carga: "publicada" | "parcialmente_alocada" | "totalmente_alocada"
       status_entrega:
-        | "aguardando_coleta"
-        | "em_coleta"
-        | "coletado"
-        | "em_transito"
-        | "em_entrega"
+        | "aguardando"
+        | "saiu_para_coleta"
+        | "saiu_para_entrega"
         | "entregue"
         | "problema"
-        | "devolvida"
         | "cancelada"
       tipo_cadastro_motorista: "autonomo" | "frota"
       tipo_carga:
@@ -2101,14 +2098,11 @@ export const Constants = {
       ],
       status_carga: ["publicada", "parcialmente_alocada", "totalmente_alocada"],
       status_entrega: [
-        "aguardando_coleta",
-        "em_coleta",
-        "coletado",
-        "em_transito",
-        "em_entrega",
+        "aguardando",
+        "saiu_para_coleta",
+        "saiu_para_entrega",
         "entregue",
         "problema",
-        "devolvida",
         "cancelada",
       ],
       tipo_cadastro_motorista: ["autonomo", "frota"],

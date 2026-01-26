@@ -18,25 +18,21 @@ interface TrackingHistoryGoogleMarkersProps {
 }
 
 const statusLabels: Record<string, string> = {
-  'aguardando_coleta': 'Aguardando Coleta',
-  'em_coleta': 'Em Coleta',
-  'coletado': 'Coletado',
-  'em_transito': 'Em Trânsito',
-  'em_entrega': 'Em Entrega',
+  'aguardando': 'Aguardando',
+  'saiu_para_coleta': 'Saiu para Coleta',
+  'saiu_para_entrega': 'Saiu para Entrega',
   'entregue': 'Entregue',
   'problema': 'Problema',
-  'devolvida': 'Devolvida',
+  'cancelada': 'Cancelada',
 };
 
 const statusColors: Record<string, string> = {
-  'aguardando_coleta': '#6b7280',
-  'em_coleta': '#3b82f6',
-  'coletado': '#06b6d4',
-  'em_transito': '#f97316',
-  'em_entrega': '#a855f7',
+  'aguardando': '#6b7280',
+  'saiu_para_coleta': '#3b82f6',
+  'saiu_para_entrega': '#a855f7',
   'entregue': '#22c55e',
   'problema': '#ef4444',
-  'devolvida': '#ef4444',
+  'cancelada': '#6b7280',
 };
 
 function formatDateTime(dateString: string): string {

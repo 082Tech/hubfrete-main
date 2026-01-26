@@ -54,7 +54,7 @@ export function MotoristaVinculosDialog({
         .from('entregas')
         .select('id, veiculo_id')
         .eq('motorista_id', motorista.id)
-        .in('status', ['aguardando_coleta', 'em_coleta', 'coletado', 'em_transito', 'em_entrega']);
+        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega']);
 
       if (error) throw error;
       return data || [];
