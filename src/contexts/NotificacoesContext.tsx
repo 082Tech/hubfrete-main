@@ -144,9 +144,11 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
 
   // Real-time subscription
   useEffect(() => {
+    let isMounted = true;
+    
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user || !isMounted) return;
 
       // Clean up previous channel if exists
       if (channelRef.current) {
@@ -164,6 +166,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
             filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
+            if (!isMounted) return;
             const newNotification = {
               ...payload.new,
               tipo: payload.new.tipo as string,
@@ -174,6 +177,54 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
             setUnreadCount(prev => prev + 1);
           }
         )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notificacoes',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            if (!isMounted) return;
+            const updatedNotification = {
+              ...payload.new,
+              tipo: payload.new.tipo as string,
+              dados: (payload.new.dados || {}) as Record<string, unknown>,
+            } as Notificacao;
+            
+            setNotificacoes(prev => 
+              prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
+            );
+            
+            // Recalculate unread count
+            setNotificacoes(prev => {
+              setUnreadCount(prev.filter(n => !n.lida).length);
+              return prev;
+            });
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'notificacoes',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            if (!isMounted) return;
+            const deletedId = (payload.old as { id: string }).id;
+            
+            setNotificacoes(prev => {
+              const deleted = prev.find(n => n.id === deletedId);
+              if (deleted && !deleted.lida) {
+                setUnreadCount(c => Math.max(0, c - 1));
+              }
+              return prev.filter(n => n.id !== deletedId);
+            });
+          }
+        )
         .subscribe();
 
       channelRef.current = channel;
@@ -182,6 +233,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
     setupSubscription();
 
     return () => {
+      isMounted = false;
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }
