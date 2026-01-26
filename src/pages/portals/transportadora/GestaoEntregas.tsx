@@ -204,6 +204,17 @@ export default function GestaoEntregas() {
   const [entregaForCte, setEntregaForCte] = useState<EntregaCompleta | null>(null);
   const [ctePreviewOpen, setCtePreviewOpen] = useState(false);
   const [ctePreviewUrl, setCtePreviewUrl] = useState<string | null>(null);
+  
+  // Status change confirmation dialog state
+  const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    type: 'single' | 'bulk';
+    entregaId?: string;
+    entregaIds?: string[];
+    newStatus: StatusEntrega;
+    motoristaName?: string;
+    count?: number;
+  } | null>(null);
 
   // Monitor internet connection status
   useEffect(() => {
@@ -563,12 +574,38 @@ export default function GestaoEntregas() {
     },
   });
 
-  const handleStatusChange = (entregaId: string, newStatus: StatusEntrega) => {
-    updateStatus.mutate({ entregaId, newStatus });
+  const handleStatusChange = (entregaId: string, newStatus: StatusEntrega, entregaCodigo?: string) => {
+    setPendingStatusChange({
+      type: 'single',
+      entregaId,
+      newStatus,
+      count: 1,
+    });
+    setStatusChangeDialogOpen(true);
   };
 
-  const handleBulkStatusChange = (entregaIds: string[], newStatus: StatusEntrega) => {
-    updateBulkStatus.mutate({ entregaIds, newStatus });
+  const handleBulkStatusChange = (entregaIds: string[], newStatus: StatusEntrega, motoristaName?: string) => {
+    setPendingStatusChange({
+      type: 'bulk',
+      entregaIds,
+      newStatus,
+      motoristaName,
+      count: entregaIds.length,
+    });
+    setStatusChangeDialogOpen(true);
+  };
+
+  const confirmStatusChange = () => {
+    if (!pendingStatusChange) return;
+    
+    if (pendingStatusChange.type === 'single' && pendingStatusChange.entregaId) {
+      updateStatus.mutate({ entregaId: pendingStatusChange.entregaId, newStatus: pendingStatusChange.newStatus });
+    } else if (pendingStatusChange.type === 'bulk' && pendingStatusChange.entregaIds) {
+      updateBulkStatus.mutate({ entregaIds: pendingStatusChange.entregaIds, newStatus: pendingStatusChange.newStatus });
+    }
+    
+    setStatusChangeDialogOpen(false);
+    setPendingStatusChange(null);
   };
 
   const handleDeleteClick = (entrega: EntregaCompleta) => {
@@ -1127,10 +1164,10 @@ export default function GestaoEntregas() {
                                               return (
                                                 <DropdownMenuItem
                                                   key={statusKey}
-                                                  onClick={(e) => {
+                                                onClick={(e) => {
                                                     e.stopPropagation();
                                                     const entregaIds = driverGroup.entregas.map(e => e.id);
-                                                    handleBulkStatusChange(entregaIds, statusKey as StatusEntrega);
+                                                    handleBulkStatusChange(entregaIds, statusKey as StatusEntrega, driverGroup.motorista?.nome_completo);
                                                   }}
                                                 >
                                                   <StatusIconComponent className="w-4 h-4 mr-2" />
@@ -1654,6 +1691,72 @@ export default function GestaoEntregas() {
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
       />
+
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={statusChangeDialogOpen} onOpenChange={setStatusChangeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar alteração de status</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                {pendingStatusChange && (
+                  <>
+                    {pendingStatusChange.type === 'single' ? (
+                      <p>
+                        Deseja alterar o status desta entrega para{' '}
+                        <strong className="text-foreground">
+                          "{statusEntregaConfig[pendingStatusChange.newStatus]?.label || pendingStatusChange.newStatus}"
+                        </strong>?
+                      </p>
+                    ) : (
+                      <p>
+                        Deseja alterar o status de{' '}
+                        <strong className="text-foreground">{pendingStatusChange.count} entregas</strong>
+                        {pendingStatusChange.motoristaName && (
+                          <> do motorista <strong className="text-foreground">{pendingStatusChange.motoristaName}</strong></>
+                        )}{' '}
+                        para{' '}
+                        <strong className="text-foreground">
+                          "{statusEntregaConfig[pendingStatusChange.newStatus]?.label || pendingStatusChange.newStatus}"
+                        </strong>?
+                      </p>
+                    )}
+                    
+                    {(pendingStatusChange.newStatus === 'coletado' || pendingStatusChange.newStatus === 'em_transito') && (
+                      <p className="mt-3 text-sm">
+                        A data/hora de coleta será registrada automaticamente.
+                      </p>
+                    )}
+                    {pendingStatusChange.newStatus === 'entregue' && (
+                      <p className="mt-3 text-sm">
+                        A data/hora de entrega será registrada automaticamente.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updateStatus.isPending || updateBulkStatus.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmStatusChange} 
+              disabled={updateStatus.isPending || updateBulkStatus.isPending}
+            >
+              {(updateStatus.isPending || updateBulkStatus.isPending) ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Alterando...
+                </>
+              ) : (
+                'Confirmar'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
