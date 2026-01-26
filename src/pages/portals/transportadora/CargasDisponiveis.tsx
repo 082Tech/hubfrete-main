@@ -179,6 +179,8 @@ export default function CargasDisponiveis() {
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState<string>('all');
+  const [filterTiposVeiculo, setFilterTiposVeiculo] = useState<string[]>([]);
+  const [tiposVeiculoInitialized, setTiposVeiculoInitialized] = useState(false);
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
   const [selectedMotorista, setSelectedMotorista] = useState<string>('');
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('');
@@ -287,6 +289,38 @@ export default function CargasDisponiveis() {
     }
   }, [cargas]);
 
+  // Fetch veículos da frota para determinar tipos disponíveis
+  const { data: veiculosFrota = [] } = useQuery({
+    queryKey: ['veiculos_frota', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+
+      const { data, error } = await supabase
+        .from('veiculos')
+        .select('id, tipo')
+        .eq('empresa_id', empresa.id)
+        .eq('ativo', true);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Tipos de veículo únicos da frota
+  const tiposVeiculoFrota: string[] = useMemo(() => {
+    const tipos = new Set(veiculosFrota.map(v => v.tipo));
+    return Array.from(tipos) as string[];
+  }, [veiculosFrota]);
+
+  // Auto-selecionar filtros baseado na frota ao carregar
+  useEffect(() => {
+    if (!tiposVeiculoInitialized && tiposVeiculoFrota.length > 0) {
+      setFilterTiposVeiculo(tiposVeiculoFrota);
+      setTiposVeiculoInitialized(true);
+    }
+  }, [tiposVeiculoFrota, tiposVeiculoInitialized]);
+
   // Fetch motoristas da transportadora com status de disponibilidade
   const { data: motoristas = [] } = useQuery({
     queryKey: ['motoristas_transportadora', empresa?.id],
@@ -299,7 +333,7 @@ export default function CargasDisponiveis() {
           id,
           nome_completo,
           telefone,
-          veiculos(id, placa, tipo, carroceria, capacidade_kg, marca, modelo),
+          veiculos(id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada),
           carrocerias(id, placa, tipo, capacidade_kg)
         `)
         .eq('empresa_id', empresa.id)
@@ -442,9 +476,22 @@ export default function CargasDisponiveis() {
 
       const matchesTipo = filterTipo === 'all' || carga.tipo === filterTipo;
 
-      return matchesSearch && matchesTipo;
+      // Filtro por tipo de veículo - verifica se a carga aceita pelo menos um dos veículos selecionados
+      let matchesTipoVeiculo = true;
+      if (filterTiposVeiculo.length > 0) {
+        const requisitos = carga.veiculo_requisitos as VeiculoRequisitos | null;
+        if (requisitos?.tipos_veiculo && requisitos.tipos_veiculo.length > 0) {
+          // A carga tem requisitos específicos - verificar se algum dos filtros selecionados é aceito
+          matchesTipoVeiculo = filterTiposVeiculo.some(tipo => 
+            requisitos.tipos_veiculo!.includes(tipo)
+          );
+        }
+        // Se a carga não tem requisitos de tipo de veículo, ela é compatível com todos
+      }
+
+      return matchesSearch && matchesTipo && matchesTipoVeiculo;
     });
-  }, [cargas, searchTerm, filterTipo]);
+  }, [cargas, searchTerm, filterTipo, filterTiposVeiculo]);
 
   // Map bounds removed - now handled by Google Maps component
 
@@ -678,6 +725,14 @@ export default function CargasDisponiveis() {
                 <Badge variant="outline" className="text-xs">
                   {tipoCargaLabels[carga.tipo] || carga.tipo}
                 </Badge>
+                {/* Badge de tipo de veículo requerido */}
+                {(carga.veiculo_requisitos as VeiculoRequisitos | null)?.tipos_veiculo && 
+                 (carga.veiculo_requisitos as VeiculoRequisitos).tipos_veiculo!.length > 0 && (
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <Truck className="w-3 h-3" />
+                    {(carga.veiculo_requisitos as VeiculoRequisitos).tipos_veiculo!.map(t => tipoVeiculoLabels[t] || t).join(', ')}
+                  </Badge>
+                )}
               </div>
               <p className="font-medium text-sm line-clamp-1">{carga.descricao}</p>
             </div>
@@ -872,30 +927,86 @@ export default function CargasDisponiveis() {
         {/* Filters */}
         <Card className="border-border">
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por código, descrição, cidade, embarcador ou destinatário..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por código, descrição, cidade, embarcador ou destinatário..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={filterTipo} onValueChange={setFilterTipo}>
+                  <SelectTrigger className="w-full md:w-[200px]">
+                    <Filter className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Tipo de carga" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os tipos</SelectItem>
+                    {Object.entries(tipoCargaLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={filterTipo} onValueChange={setFilterTipo}>
-                <SelectTrigger className="w-full md:w-[200px]">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Tipo de carga" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-                  {Object.entries(tipoCargaLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              
+              {/* Filtro de Tipo de Veículo */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Truck className="w-4 h-4" />
+                  <span>Minha frota:</span>
+                  {tiposVeiculoFrota.length === 0 && (
+                    <span className="text-xs italic">Nenhum veículo cadastrado</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(Object.entries(tipoVeiculoLabels) as [string, string][]).map(([value, label]) => {
+                    const isInFleet = tiposVeiculoFrota.includes(value);
+                    const isSelected = filterTiposVeiculo.includes(value);
+                    
+                    return (
+                      <Badge
+                        key={value}
+                        variant={isSelected ? 'default' : 'outline'}
+                        className={`cursor-pointer transition-colors ${
+                          isInFleet 
+                            ? isSelected 
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'hover:bg-muted'
+                            : 'opacity-50 cursor-not-allowed'
+                        }`}
+                        onClick={() => {
+                          if (!isInFleet) return;
+                          if (isSelected) {
+                            setFilterTiposVeiculo(prev => prev.filter(t => t !== value));
+                          } else {
+                            setFilterTiposVeiculo(prev => [...prev, value]);
+                          }
+                        }}
+                      >
+                        {label}
+                        {isInFleet && (
+                          <CheckCircle className={`w-3 h-3 ml-1 ${isSelected ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                        )}
+                      </Badge>
+                    );
+                  })}
+                </div>
+                {filterTiposVeiculo.length < tiposVeiculoFrota.length && (
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-auto p-0 text-xs"
+                    onClick={() => setFilterTiposVeiculo(tiposVeiculoFrota)}
+                  >
+                    Selecionar todos da minha frota
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
