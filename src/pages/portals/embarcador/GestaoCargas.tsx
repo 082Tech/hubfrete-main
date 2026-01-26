@@ -159,27 +159,23 @@ interface CargaCompleta {
 
 // Status configuration for display
 const statusEntregaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
-  'aguardando_coleta': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando Coleta', icon: Package },
-  'em_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Em Coleta', icon: Package },
-  'coletado': { color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20', label: 'Coletado', icon: CheckCircle },
-  'em_transito': { color: 'bg-orange-500/10 text-orange-600 border-orange-500/20', label: 'Em Trânsito', icon: Truck },
-  'em_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Em Entrega', icon: Navigation },
+  'aguardando': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando', icon: Package },
+  'saiu_para_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Saiu para Coleta', icon: Package },
+  'saiu_para_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Saiu para Entrega', icon: Truck },
   'entregue': { color: 'bg-green-500/10 text-green-600 border-green-500/20', label: 'Entregue', icon: CheckCircle },
   'problema': { color: 'bg-red-500/10 text-red-600 border-red-500/20', label: 'Problema', icon: AlertCircle },
-  'devolvida': { color: 'bg-red-500/10 text-red-600 border-red-500/20', label: 'Devolvida', icon: AlertCircle },
+  'cancelada': { color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', label: 'Cancelada', icon: AlertCircle },
 };
 
 // Status filters for active deliveries
 const allStatusFilters = [
-  { value: 'aguardando_coleta', label: 'Aguardando Coleta' },
-  { value: 'em_coleta', label: 'Em Coleta' },
-  { value: 'coletado', label: 'Coletado' },
-  { value: 'em_transito', label: 'Em Trânsito' },
-  { value: 'em_entrega', label: 'Em Entrega' },
+  { value: 'aguardando', label: 'Aguardando' },
+  { value: 'saiu_para_coleta', label: 'Saiu para Coleta' },
+  { value: 'saiu_para_entrega', label: 'Saiu para Entrega' },
 ];
 
 // Statuses that should not appear in delivery management (finalized)
-const activeStatuses: StatusEntrega[] = ['aguardando_coleta', 'em_coleta', 'coletado', 'em_transito', 'em_entrega'];
+const activeStatuses: StatusEntrega[] = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'];
 
 export default function GestaoCargas() {
   const navigate = useNavigate();
@@ -378,11 +374,11 @@ export default function GestaoCargas() {
       c.entregas.forEach(e => {
         totalEntregas++;
         totalFrete += e.valor_frete || 0;
-        if (e.status === 'aguardando_coleta' || e.status === 'em_coleta' || e.status === 'coletado') {
+        if (e.status === 'aguardando') {
           aguardando++;
-        } else if (e.status === 'em_transito') {
+        } else if (e.status === 'saiu_para_coleta') {
           emTransito++;
-        } else if (e.status === 'em_entrega') {
+        } else if (e.status === 'saiu_para_entrega') {
           emEntrega++;
         }
       });
@@ -1291,7 +1287,7 @@ export default function GestaoCargas() {
           onOpenChange={(open) => !open && setSelectedEntregaForDetails(null)}
           entrega={{
             id: selectedEntregaForDetails.entrega.id,
-            status: selectedEntregaForDetails.entrega.status || 'aguardando_coleta',
+            status: selectedEntregaForDetails.entrega.status || 'aguardando',
             created_at: selectedEntregaForDetails.entrega.updated_at,
             coletado_em: selectedEntregaForDetails.entrega.coletado_em,
             entregue_em: selectedEntregaForDetails.entrega.entregue_em,

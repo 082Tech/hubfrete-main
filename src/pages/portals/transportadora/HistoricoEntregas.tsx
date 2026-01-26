@@ -95,18 +95,13 @@ interface EntregaHistorico {
   };
 }
 
-const finalizedStatuses: StatusEntrega[] = ['entregue', 'devolvida', 'problema', 'cancelada'];
+const finalizedStatuses: StatusEntrega[] = ['entregue', 'problema', 'cancelada'];
 
 const statusConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
   'entregue': { 
     color: 'bg-green-500/10 text-green-600 border-green-500/20', 
     label: 'Entregue', 
     icon: CheckCircle 
-  },
-  'devolvida': { 
-    color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', 
-    label: 'Devolvida', 
-    icon: XCircle 
   },
   'problema': { 
     color: 'bg-destructive/10 text-destructive border-destructive/20', 
@@ -190,7 +185,7 @@ export default function HistoricoEntregas() {
     return {
       total: entregas.length,
       entregue: entregas.filter(e => e.status === 'entregue').length,
-      devolvida: entregas.filter(e => e.status === 'devolvida').length,
+      cancelada: entregas.filter(e => e.status === 'cancelada').length,
       problema: entregas.filter(e => e.status === 'problema').length,
     };
   }, [entregas]);
@@ -271,15 +266,15 @@ export default function HistoricoEntregas() {
               </CardContent>
             </Card>
             <Card 
-              className={`border-border cursor-pointer transition-all ${selectedStatus === 'devolvida' ? 'ring-2 ring-amber-500' : 'hover:bg-muted/30'}`}
-              onClick={() => setSelectedStatus(selectedStatus === 'devolvida' ? null : 'devolvida')}
+              className={`border-border cursor-pointer transition-all ${selectedStatus === 'cancelada' ? 'ring-2 ring-gray-500' : 'hover:bg-muted/30'}`}
+              onClick={() => setSelectedStatus(selectedStatus === 'cancelada' ? null : 'cancelada')}
             >
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
-                  <XCircle className="w-4 h-4 text-amber-600" />
+                  <Ban className="w-4 h-4 text-gray-600" />
                 </div>
-                <p className="text-2xl font-bold text-amber-600">{stats.devolvida}</p>
-                <p className="text-xs text-muted-foreground">Devolvidas</p>
+                <p className="text-2xl font-bold text-gray-600">{stats.cancelada}</p>
+                <p className="text-xs text-muted-foreground">Canceladas</p>
               </CardContent>
             </Card>
             <Card 

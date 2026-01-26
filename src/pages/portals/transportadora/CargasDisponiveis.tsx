@@ -354,7 +354,7 @@ export default function CargasDisponiveis() {
       const { data, error } = await supabase
         .from('entregas')
         .select('motorista_id, peso_alocado_kg')
-        .in('status', ['aguardando_coleta', 'em_coleta', 'coletado', 'em_transito', 'em_entrega'])
+        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
         .not('motorista_id', 'is', null);
 
       if (error) throw error;
@@ -430,7 +430,7 @@ export default function CargasDisponiveis() {
           veiculo_id: veiculoId,
           peso_alocado_kg: pesoAlocadoKg,
           valor_frete: valorFrete,
-          status: 'aguardando_coleta',
+          status: 'aguardando',
         })
         .select('id')
         .single();
