@@ -294,92 +294,104 @@ export function MotoristaVinculosDialog({
 
           <Separator />
 
-          {/* Carrocerias */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Container className="w-4 h-4 text-primary" />
-              Carrocerias Vinculadas
+          {/* Carrocerias - Only show if vehicle doesn't have integrated body */}
+          {motorista.veiculos.some((v: any) => v.carroceria_integrada) ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Container className="w-4 h-4 text-primary" />
+                Carroceria
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="text-sm text-muted-foreground">
+                  O veículo vinculado possui <strong>carroceria integrada</strong>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Não é necessário vincular uma carroceria separada
+                </p>
+              </div>
             </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Container className="w-4 h-4 text-primary" />
+                Carrocerias Vinculadas
+              </div>
 
-            {/* Current carrocerias */}
-            <div className="space-y-2">
-              {motorista.carrocerias.length > 0 ? (
-                motorista.carrocerias.map((c) => (
-                  <div
-                    key={c.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{c.placa}</Badge>
-                      <span className="text-sm">
-                        {tipoCarroceriaLabels[c.tipo] || c.tipo}
-                      </span>
-                      {hasActiveDeliveries && (
-                        <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                          Em uso
-                        </Badge>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleUnlinkCarroceria(c.id)}
-                      disabled={isSubmitting || hasActiveDeliveries}
+              {/* Current carrocerias */}
+              <div className="space-y-2">
+                {motorista.carrocerias.length > 0 ? (
+                  motorista.carrocerias.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                     >
-                      <Unlink className="w-4 h-4 mr-1" />
-                      Desvincular
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-2">
-                  Nenhuma carroceria vinculada
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{c.placa}</Badge>
+                        <span className="text-sm">
+                          {tipoCarroceriaLabels[c.tipo] || c.tipo}
+                        </span>
+                        {hasActiveDeliveries && (
+                          <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            Em uso
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleUnlinkCarroceria(c.id)}
+                        disabled={isSubmitting || hasActiveDeliveries}
+                      >
+                        <Unlink className="w-4 h-4 mr-1" />
+                        Desvincular
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    Nenhuma carroceria vinculada
+                  </p>
+                )}
+              </div>
+
+              {/* Add new carroceria - only if no carroceria linked */}
+              {motorista.carrocerias.length === 0 && (
+                <div className="flex gap-2">
+                  <Select value={selectedCarroceriaId} onValueChange={setSelectedCarroceriaId}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecione uma carroceria para vincular" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCarrocerias
+                        .filter((c) => !motorista.carrocerias.find((mc) => mc.id === c.id))
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
+                            {c.marca && ` (${c.marca})`}
+                            {c.capacidade_kg && ` - ${c.capacidade_kg.toLocaleString()}kg`}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={handleLinkCarroceria}
+                    disabled={!selectedCarroceriaId || isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Link2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              )}
+              {motorista.carrocerias.length > 0 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Para trocar de carroceria, primeiro desvincule a atual
                 </p>
               )}
             </div>
-
-            {/* Add new carroceria - only if no carroceria linked and vehicle doesn't have integrated body */}
-            {motorista.carrocerias.length === 0 && !motorista.veiculos.some((v: any) => v.carroceria_integrada) && (
-              <div className="flex gap-2">
-                <Select value={selectedCarroceriaId} onValueChange={setSelectedCarroceriaId}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Selecione uma carroceria para vincular" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableCarrocerias
-                      .filter((c) => !motorista.carrocerias.find((mc) => mc.id === c.id))
-                      .map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
-                          {c.marca && ` (${c.marca})`}
-                          {c.capacidade_kg && ` - ${c.capacidade_kg.toLocaleString()}kg`}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={handleLinkCarroceria}
-                  disabled={!selectedCarroceriaId || isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Link2 className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            )}
-            {motorista.veiculos.some((v: any) => v.carroceria_integrada) && (
-              <p className="text-xs text-muted-foreground text-center">
-                O veículo vinculado possui carroceria integrada
-              </p>
-            )}
-            {motorista.carrocerias.length > 0 && !motorista.veiculos.some((v: any) => v.carroceria_integrada) && (
-              <p className="text-xs text-muted-foreground text-center">
-                Para trocar de carroceria, primeiro desvincule a atual
-              </p>
-            )}
-          </div>
+          )}
         </div>
 
         <DialogFooter>
