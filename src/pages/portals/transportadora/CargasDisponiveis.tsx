@@ -973,14 +973,11 @@ export default function CargasDisponiveis() {
                         key={value}
                         variant={isSelected ? 'default' : 'outline'}
                         className={`cursor-pointer transition-colors ${
-                          isInFleet 
-                            ? isSelected 
-                              ? 'bg-primary text-primary-foreground' 
-                              : 'hover:bg-muted'
-                            : 'opacity-50 cursor-not-allowed'
+                          isSelected 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'hover:bg-muted'
                         }`}
                         onClick={() => {
-                          if (!isInFleet) return;
                           if (isSelected) {
                             setFilterTiposVeiculo(prev => prev.filter(t => t !== value));
                           } else {
@@ -990,7 +987,7 @@ export default function CargasDisponiveis() {
                       >
                         {label}
                         {isInFleet && (
-                          <CheckCircle className={`w-3 h-3 ml-1 ${isSelected ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                          <CheckCircle className={`w-3 h-3 ml-1 ${isSelected ? 'text-primary-foreground' : 'text-primary'}`} />
                         )}
                       </Badge>
                     );
