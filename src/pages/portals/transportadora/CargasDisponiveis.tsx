@@ -466,11 +466,24 @@ export default function CargasDisponiveis() {
     return selectedMotoristaData?.veiculos?.find((v) => v.id === selectedVeiculo);
   }, [selectedMotoristaData, selectedVeiculo]);
 
-  // Calculate total capacity based on carrocerias linked to driver
-  const capacidadeCarroceriaTotal = useMemo(() => {
-    if (!selectedMotoristaData?.carrocerias?.length) return 0;
-    return selectedMotoristaData.carrocerias.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0);
+  // Calculate total capacity based on carrocerias linked to driver AND integrated vehicles
+  const capacidadeTotal = useMemo(() => {
+    if (!selectedMotoristaData) return 0;
+    
+    // Capacidade de veículos com carroceria integrada
+    const capacidadeVeiculosIntegrados = selectedMotoristaData.veiculos
+      ?.filter((v: any) => v.carroceria_integrada)
+      ?.reduce((acc: number, v: any) => acc + (v.capacidade_kg || 0), 0) || 0;
+    
+    // Capacidade de carrocerias separadas
+    const capacidadeCarrocerias = selectedMotoristaData.carrocerias
+      ?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
+    
+    return capacidadeVeiculosIntegrados + capacidadeCarrocerias;
   }, [selectedMotoristaData]);
+
+  // For backwards compatibility, keep this as alias
+  const capacidadeCarroceriaTotal = capacidadeTotal;
 
   // Calculate already used capacity (active deliveries)
   const capacidadeEmUso = useMemo(() => {
@@ -480,8 +493,8 @@ export default function CargasDisponiveis() {
 
   // Available capacity = total - in use
   const capacidadeDisponivel = useMemo(() => {
-    return Math.max(0, capacidadeCarroceriaTotal - capacidadeEmUso);
-  }, [capacidadeCarroceriaTotal, capacidadeEmUso]);
+    return Math.max(0, capacidadeTotal - capacidadeEmUso);
+  }, [capacidadeTotal, capacidadeEmUso]);
 
   // Calculate max weight that can be allocated
   const pesoMaximoAlocar = useMemo(() => {

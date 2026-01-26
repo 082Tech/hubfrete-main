@@ -1365,6 +1365,7 @@ export type Database = {
           capacidade_kg: number | null
           capacidade_m3: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
+          carroceria_integrada: boolean | null
           comprovante_endereco_proprietario_url: string | null
           created_at: string | null
           documento_veiculo_url: string | null
@@ -1394,6 +1395,7 @@ export type Database = {
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
+          carroceria_integrada?: boolean | null
           comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
           documento_veiculo_url?: string | null
@@ -1423,6 +1425,7 @@ export type Database = {
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria?: Database["public"]["Enums"]["tipo_carroceria"]
+          carroceria_integrada?: boolean | null
           comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
           documento_veiculo_url?: string | null
