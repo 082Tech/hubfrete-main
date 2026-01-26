@@ -1204,8 +1204,9 @@ export default function GestaoEntregas() {
                                               <TableHead className="text-xs min-w-[180px]">Rota</TableHead>
                                               <TableHead className="text-xs min-w-[80px] text-right">Peso</TableHead>
                                               <TableHead className="text-xs min-w-[110px]">Status</TableHead>
-                                              <TableHead className="text-xs min-w-[100px]">Nº CT-e</TableHead>
-                                              <TableHead className="text-xs min-w-[80px]">Docs</TableHead>
+                                              <TableHead className="text-xs min-w-[100px]">CT-e</TableHead>
+                                              <TableHead className="text-xs min-w-[80px]">NF-es</TableHead>
+                                              <TableHead className="text-xs min-w-[80px]">Manifesto</TableHead>
                                               <TableHead className="text-xs min-w-[90px]">Previsão</TableHead>
                                               <TableHead className="text-xs w-10">Chat</TableHead>
                                               <TableHead className="text-xs w-10"></TableHead>
@@ -1278,46 +1279,99 @@ export default function GestaoEntregas() {
                                                       {config?.label || status}
                                                     </Badge>
                                                   </TableCell>
+                                                  {/* CT-e Column */}
                                                   <TableCell>
-                                                    {entrega.numero_cte ? (
-                                                      <span className="text-sm font-mono text-foreground">{entrega.numero_cte}</span>
+                                                    {entrega.cte_url ? (
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <Badge 
+                                                            className="gap-1 cursor-pointer text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              setCtePreviewUrl(entrega.cte_url);
+                                                              setCtePreviewOpen(true);
+                                                            }}
+                                                          >
+                                                            <FileText className="w-3 h-3" />
+                                                            {entrega.numero_cte || 'Ver'}
+                                                          </Badge>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>Clique para visualizar</TooltipContent>
+                                                      </Tooltip>
                                                     ) : (
-                                                      <span className="text-sm text-muted-foreground">-</span>
+                                                      <Badge 
+                                                        className="gap-1 cursor-pointer text-xs bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setEntregaForCte(entrega);
+                                                          setAnexarCteDialogOpen(true);
+                                                        }}
+                                                      >
+                                                        <FileText className="w-3 h-3" />
+                                                        Pendente
+                                                      </Badge>
                                                     )}
                                                   </TableCell>
+                                                  {/* NF-es Column */}
                                                   <TableCell>
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        <Badge 
-                                                          className={`gap-1 cursor-pointer text-xs ${
-                                                            entrega.cte_url || (entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0)
-                                                              ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                                                              : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                                                          }`}
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setEntregaForCte(entrega);
-                                                            setAnexarCteDialogOpen(true);
-                                                          }}
-                                                        >
-                                                          <FileText className="w-3 h-3" />
-                                                          {(() => {
-                                                            const docsCount = 
-                                                              (entrega.cte_url ? 1 : 0) + 
-                                                              (entrega.notas_fiscais_urls?.length || 0) +
-                                                              (entrega.manifesto_url ? 1 : 0);
-                                                            return docsCount > 0 ? docsCount : 'Anexar';
-                                                          })()}
-                                                        </Badge>
-                                                      </TooltipTrigger>
-                                                      <TooltipContent>
-                                                        <div className="text-xs space-y-0.5">
-                                                          <p>CT-e: {entrega.cte_url ? '✓' : '✗'}</p>
-                                                          <p>NFs: {entrega.notas_fiscais_urls?.length || 0}</p>
-                                                          <p>Manifesto: {entrega.manifesto_url ? '✓' : '✗'}</p>
-                                                        </div>
-                                                      </TooltipContent>
-                                                    </Tooltip>
+                                                    {entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0 ? (
+                                                      <Badge 
+                                                        className="gap-1 cursor-pointer text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setEntregaForCte(entrega);
+                                                          setAnexarCteDialogOpen(true);
+                                                        }}
+                                                      >
+                                                        <FileText className="w-3 h-3" />
+                                                        {entrega.notas_fiscais_urls.length}
+                                                      </Badge>
+                                                    ) : (
+                                                      <Badge 
+                                                        className="gap-1 cursor-pointer text-xs bg-muted text-muted-foreground border-muted-foreground/20"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setEntregaForCte(entrega);
+                                                          setAnexarCteDialogOpen(true);
+                                                        }}
+                                                      >
+                                                        <FileText className="w-3 h-3" />
+                                                        0
+                                                      </Badge>
+                                                    )}
+                                                  </TableCell>
+                                                  {/* Manifesto Column */}
+                                                  <TableCell>
+                                                    {entrega.manifesto_url ? (
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <Badge 
+                                                            className="gap-1 cursor-pointer text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              setCtePreviewUrl(entrega.manifesto_url);
+                                                              setCtePreviewOpen(true);
+                                                            }}
+                                                          >
+                                                            <FileText className="w-3 h-3" />
+                                                            Ver
+                                                          </Badge>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>Clique para visualizar</TooltipContent>
+                                                      </Tooltip>
+                                                    ) : (
+                                                      <Badge 
+                                                        className="gap-1 cursor-pointer text-xs bg-muted text-muted-foreground border-muted-foreground/20"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setEntregaForCte(entrega);
+                                                          setAnexarCteDialogOpen(true);
+                                                        }}
+                                                      >
+                                                        <FileText className="w-3 h-3" />
+                                                        -
+                                                      </Badge>
+                                                    )}
                                                   </TableCell>
                                                   <TableCell className="text-sm text-muted-foreground">
                                                     {formatDate(entrega.carga.data_entrega_limite)}
