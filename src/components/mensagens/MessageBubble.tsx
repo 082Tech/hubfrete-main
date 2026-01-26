@@ -3,6 +3,7 @@ import { Check, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Mensagem } from './types';
+import { AttachmentMessage } from './AttachmentPreview';
 
 interface MessageBubbleProps {
   message: Mensagem;
@@ -44,6 +45,9 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
     }
     return message.sender_nome.substring(0, 2).toUpperCase();
   };
+
+  const hasAttachment = message.anexo_url && message.anexo_nome && message.anexo_tipo;
+  const hasText = message.conteudo && message.conteudo.trim().length > 0;
 
   return (
     <div className={cn('flex gap-2', isOwn ? 'justify-end' : 'justify-start')}>
@@ -87,7 +91,23 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
           </span>
         </div>
 
-        <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.conteudo}</p>
+        {/* Attachment */}
+        {hasAttachment && (
+          <div className="mb-2">
+            <AttachmentMessage
+              url={message.anexo_url!}
+              nome={message.anexo_nome!}
+              tipo={message.anexo_tipo!}
+              tamanho={message.anexo_tamanho}
+              isOwn={isOwn}
+            />
+          </div>
+        )}
+
+        {/* Text content */}
+        {hasText && (
+          <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.conteudo}</p>
+        )}
 
         <div className={cn(
           'flex items-center gap-1 mt-1.5',

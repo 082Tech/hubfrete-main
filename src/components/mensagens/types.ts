@@ -87,4 +87,15 @@ export interface Mensagem {
   created_at: string;
   // Extra data for avatar
   sender_avatar?: string;
+  // Attachment fields
+  anexo_url?: string;
+  anexo_nome?: string;
+  anexo_tipo?: string;
+  anexo_tamanho?: number;
+}
+
+export interface AttachmentPreview {
+  file: File;
+  preview: string;
+  type: 'image' | 'pdf' | 'document';
 }

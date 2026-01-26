@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Send, Package, ChevronRight, ArrowLeft, CheckCircle2, Ban, AlertTriangle, RotateCcw, Loader2 } from 'lucide-react';
+import { Send, Package, ChevronRight, ArrowLeft, CheckCircle2, Ban, AlertTriangle, RotateCcw, Loader2, Paperclip, X, ImageIcon, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -7,13 +7,36 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { MessageBubble } from './MessageBubble';
 import { ChatDetailsSheet } from './ChatDetailsSheet';
-import { Chat, Mensagem } from './types';
+import { AttachmentPreview } from './AttachmentPreview';
+import { Chat, Mensagem, AttachmentPreview as AttachmentPreviewType } from './types';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Finalized delivery statuses
 const FINALIZED_STATUSES = ['entregue', 'devolvida', 'cancelada', 'problema'];
+
+// Allowed file types
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_DOC_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/xml',
+  'application/xml'
+];
+const ALL_ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOC_TYPES];
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 interface ChatAreaProps {
   chat: Chat | null;
@@ -24,7 +47,7 @@ interface ChatAreaProps {
   isSending: boolean;
   currentUserId: string;
   userType: 'embarcador' | 'transportadora';
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, attachment?: { url: string; nome: string; tipo: string; tamanho: number }) => void;
   onLoadMore?: () => void;
   onBack?: () => void;
   showBackButton?: boolean;
@@ -46,11 +69,15 @@ export function ChatArea({
 }: ChatAreaProps) {
   const [newMessage, setNewMessage] = useState('');
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [attachment, setAttachment] = useState<AttachmentPreviewType | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const prevMessagesLengthRef = useRef(0);
   const isInitialLoadRef = useRef(true);
   const prevScrollHeightRef = useRef(0);
+  const { toast } = useToast();
 
   // Get scroll container
   const getScrollContainer = useCallback(() => {
@@ -135,9 +162,100 @@ export function ChatArea({
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length, scrollToBottom]);
 
-  const handleSend = () => {
-    if (!newMessage.trim() || isSending) return;
-    onSendMessage(newMessage.trim());
+  // Handle file selection
+  const handleFileSelect = useCallback((file: File) => {
+    if (!ALL_ALLOWED_TYPES.includes(file.type)) {
+      toast({
+        title: 'Tipo de arquivo não suportado',
+        description: 'Use imagens (JPG, PNG, WebP, GIF), PDFs ou documentos do Office.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        title: 'Arquivo muito grande',
+        description: 'O tamanho máximo é de 50MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
+    const preview = isImage ? URL.createObjectURL(file) : '';
+    
+    setAttachment({
+      file,
+      preview,
+      type: isImage ? 'image' : file.type === 'application/pdf' ? 'pdf' : 'document',
+    });
+  }, [toast]);
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const removeAttachment = useCallback(() => {
+    if (attachment?.preview) {
+      URL.revokeObjectURL(attachment.preview);
+    }
+    setAttachment(null);
+  }, [attachment]);
+
+  const handleSend = async () => {
+    if ((!newMessage.trim() && !attachment) || isSending || isUploading) return;
+
+    let uploadedAttachment: { url: string; nome: string; tipo: string; tamanho: number } | undefined;
+
+    // Upload attachment if exists
+    if (attachment) {
+      setIsUploading(true);
+      try {
+        const fileExt = attachment.file.name.split('.').pop();
+        const fileName = `${chat?.id}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('chat-anexos')
+          .upload(fileName, attachment.file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('chat-anexos')
+          .getPublicUrl(fileName);
+
+        uploadedAttachment = {
+          url: publicUrl,
+          nome: attachment.file.name,
+          tipo: attachment.file.type,
+          tamanho: attachment.file.size,
+        };
+
+        // Clean up preview URL
+        if (attachment.preview) {
+          URL.revokeObjectURL(attachment.preview);
+        }
+        setAttachment(null);
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        toast({
+          title: 'Erro ao enviar arquivo',
+          description: 'Não foi possível fazer upload do arquivo.',
+          variant: 'destructive',
+        });
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
+
+    onSendMessage(newMessage.trim(), uploadedAttachment);
     setNewMessage('');
     textareaRef.current?.focus();
   };
@@ -400,7 +518,68 @@ export function ChatArea({
       {/* Input Area - Modern Style - Hidden when finalized */}
       {!isDeliveryFinalized && (
         <div className="p-3 md:p-4 border-t border-border bg-card shrink-0">
+          {/* Attachment preview */}
+          {attachment && (
+            <div className="mb-3 flex items-center gap-2">
+              <AttachmentPreview
+                attachment={attachment}
+                onRemove={removeAttachment}
+              />
+            </div>
+          )}
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ALL_ALLOWED_TYPES.join(',')}
+            onChange={handleFileInputChange}
+            className="hidden"
+          />
+
           <div className="flex items-end gap-2 md:gap-3">
+            {/* Attach button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full"
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-5 w-5" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (fileInputRef.current) {
+                      fileInputRef.current.accept = ALLOWED_IMAGE_TYPES.join(',');
+                      fileInputRef.current.click();
+                    }
+                  }}
+                >
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  Imagem
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (fileInputRef.current) {
+                      fileInputRef.current.accept = ALLOWED_DOC_TYPES.join(',');
+                      fileInputRef.current.click();
+                    }
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Documento
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <div className="flex-1 relative min-w-0">
               <Textarea
                 ref={textareaRef}
@@ -414,7 +593,7 @@ export function ChatArea({
             </div>
             <Button 
               onClick={handleSend} 
-              disabled={!newMessage.trim() || isSending}
+              disabled={(!newMessage.trim() && !attachment) || isSending || isUploading}
               size="icon"
               className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full shadow-md"
             >
