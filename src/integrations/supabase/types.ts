@@ -61,6 +61,39 @@ export type Database = {
           },
         ]
       }
+      auditoria_logs: {
+        Row: {
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          operacao: string
+          registro_id: string
+          tabela: string
+          timestamp: string
+          usuario_id: string | null
+        }
+        Insert: {
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          operacao: string
+          registro_id: string
+          tabela: string
+          timestamp?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          operacao?: string
+          registro_id?: string
+          tabela?: string
+          timestamp?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       cargas: {
         Row: {
           carga_fragil: boolean | null
@@ -262,8 +295,10 @@ export type Database = {
           capacidade_kg: number | null
           capacidade_m3: number | null
           created_at: string | null
+          created_by: string | null
           empresa_id: number | null
           foto_url: string | null
+          fotos_urls: string[] | null
           id: string
           marca: string | null
           modelo: string | null
@@ -272,6 +307,7 @@ export type Database = {
           renavam: string | null
           tipo: string
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           ano?: number | null
@@ -279,8 +315,10 @@ export type Database = {
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           created_at?: string | null
+          created_by?: string | null
           empresa_id?: number | null
           foto_url?: string | null
+          fotos_urls?: string[] | null
           id?: string
           marca?: string | null
           modelo?: string | null
@@ -289,6 +327,7 @@ export type Database = {
           renavam?: string | null
           tipo: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           ano?: number | null
@@ -296,8 +335,10 @@ export type Database = {
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           created_at?: string | null
+          created_by?: string | null
           empresa_id?: number | null
           foto_url?: string | null
+          fotos_urls?: string[] | null
           id?: string
           marca?: string | null
           modelo?: string | null
@@ -306,6 +347,7 @@ export type Database = {
           renavam?: string | null
           tipo?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -532,6 +574,73 @@ export type Database = {
           },
         ]
       }
+      documentos_validacao: {
+        Row: {
+          carroceria_id: string | null
+          created_at: string
+          data_emissao: string | null
+          data_vencimento: string | null
+          id: string
+          motorista_id: string | null
+          numero: string
+          status: string
+          tipo: string
+          updated_at: string
+          url: string | null
+          veiculo_id: string | null
+        }
+        Insert: {
+          carroceria_id?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          id?: string
+          motorista_id?: string | null
+          numero: string
+          status?: string
+          tipo: string
+          updated_at?: string
+          url?: string | null
+          veiculo_id?: string | null
+        }
+        Update: {
+          carroceria_id?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          id?: string
+          motorista_id?: string | null
+          numero?: string
+          status?: string
+          tipo?: string
+          updated_at?: string
+          url?: string | null
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_validacao_carroceria_id_fkey"
+            columns: ["carroceria_id"]
+            isOneToOne: false
+            referencedRelation: "carrocerias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_validacao_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_validacao_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_invite_links: {
         Row: {
           ativo: boolean
@@ -687,6 +796,59 @@ export type Database = {
           },
         ]
       }
+      entrega_eventos: {
+        Row: {
+          created_at: string
+          entrega_id: string
+          foto_url: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          metadata: Json | null
+          observacao: string | null
+          timestamp: string
+          tipo: string
+          user_id: string | null
+          user_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          entrega_id: string
+          foto_url?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          observacao?: string | null
+          timestamp: string
+          tipo: string
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          entrega_id?: string
+          foto_url?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          observacao?: string | null
+          timestamp?: string
+          tipo?: string
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entrega_eventos_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entregas: {
         Row: {
           assinatura_recebedor: string | null
@@ -694,6 +856,7 @@ export type Database = {
           codigo: string | null
           coletado_em: string | null
           created_at: string | null
+          created_by: string | null
           cte_url: string | null
           documento_recebedor: string | null
           entregue_em: string | null
@@ -706,6 +869,7 @@ export type Database = {
           peso_alocado_kg: number | null
           status: Database["public"]["Enums"]["status_entrega"] | null
           updated_at: string | null
+          updated_by: string | null
           valor_frete: number | null
           veiculo_id: string | null
         }
@@ -715,6 +879,7 @@ export type Database = {
           codigo?: string | null
           coletado_em?: string | null
           created_at?: string | null
+          created_by?: string | null
           cte_url?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
@@ -727,6 +892,7 @@ export type Database = {
           peso_alocado_kg?: number | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
           updated_at?: string | null
+          updated_by?: string | null
           valor_frete?: number | null
           veiculo_id?: string | null
         }
@@ -736,6 +902,7 @@ export type Database = {
           codigo?: string | null
           coletado_em?: string | null
           created_at?: string | null
+          created_by?: string | null
           cte_url?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
@@ -748,6 +915,7 @@ export type Database = {
           peso_alocado_kg?: number | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
           updated_at?: string | null
+          updated_by?: string | null
           valor_frete?: number | null
           veiculo_id?: string | null
         }
@@ -840,6 +1008,68 @@ export type Database = {
           },
         ]
       }
+      geofences: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          entrega_id: string | null
+          id: string
+          latitude: number
+          longitude: number
+          mudar_status_auto: boolean
+          nome: string
+          notificar_entrada: boolean
+          notificar_saida: boolean
+          raio_metros: number
+          status_apos_entrada: string | null
+          status_apos_saida: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          entrega_id?: string | null
+          id?: string
+          latitude: number
+          longitude: number
+          mudar_status_auto?: boolean
+          nome: string
+          notificar_entrada?: boolean
+          notificar_saida?: boolean
+          raio_metros?: number
+          status_apos_entrada?: string | null
+          status_apos_saida?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          entrega_id?: string | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          mudar_status_auto?: boolean
+          nome?: string
+          notificar_entrada?: boolean
+          notificar_saida?: boolean
+          raio_metros?: number
+          status_apos_entrada?: string | null
+          status_apos_saida?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geofences_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       localizações: {
         Row: {
           email_motorista: string | null
@@ -924,6 +1154,68 @@ export type Database = {
             columns: ["chat_id"]
             isOneToOne: false
             referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      motorista_kpis: {
+        Row: {
+          consumo_estimado_litros: number | null
+          created_at: string
+          custo_estimado: number | null
+          entregas_atrasadas: number | null
+          entregas_finalizadas: number | null
+          id: string
+          km_rodado: number | null
+          media_pedagios: number | null
+          motorista_id: string
+          periodo_fim: string
+          periodo_inicio: string
+          taxa_atraso: number | null
+          tempo_em_rota_minutos: number | null
+          tempo_parado_minutos: number | null
+          updated_at: string
+        }
+        Insert: {
+          consumo_estimado_litros?: number | null
+          created_at?: string
+          custo_estimado?: number | null
+          entregas_atrasadas?: number | null
+          entregas_finalizadas?: number | null
+          id?: string
+          km_rodado?: number | null
+          media_pedagios?: number | null
+          motorista_id: string
+          periodo_fim: string
+          periodo_inicio: string
+          taxa_atraso?: number | null
+          tempo_em_rota_minutos?: number | null
+          tempo_parado_minutos?: number | null
+          updated_at?: string
+        }
+        Update: {
+          consumo_estimado_litros?: number | null
+          created_at?: string
+          custo_estimado?: number | null
+          entregas_atrasadas?: number | null
+          entregas_finalizadas?: number | null
+          id?: string
+          km_rodado?: number | null
+          media_pedagios?: number | null
+          motorista_id?: string
+          periodo_fim?: string
+          periodo_inicio?: string
+          taxa_atraso?: number | null
+          tempo_em_rota_minutos?: number | null
+          tempo_parado_minutos?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motorista_kpis_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
             referencedColumns: ["id"]
           },
         ]
@@ -1114,6 +1406,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      provas_entrega: {
+        Row: {
+          assinatura_url: string | null
+          checklist: Json
+          created_at: string
+          documento_recebedor: string | null
+          entrega_id: string
+          fotos_urls: string[] | null
+          id: string
+          nome_recebedor: string
+          observacoes: string | null
+          timestamp: string
+        }
+        Insert: {
+          assinatura_url?: string | null
+          checklist?: Json
+          created_at?: string
+          documento_recebedor?: string | null
+          entrega_id: string
+          fotos_urls?: string[] | null
+          id?: string
+          nome_recebedor: string
+          observacoes?: string | null
+          timestamp: string
+        }
+        Update: {
+          assinatura_url?: string | null
+          checklist?: Json
+          created_at?: string
+          documento_recebedor?: string | null
+          entrega_id?: string
+          fotos_urls?: string[] | null
+          id?: string
+          nome_recebedor?: string
+          observacoes?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provas_entrega_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: true
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -1357,6 +1696,41 @@ export type Database = {
         }
         Relationships: []
       }
+      veiculo_custo_config: {
+        Row: {
+          consumo_rodoviario_km_l: number | null
+          consumo_urbano_km_l: number | null
+          custo_por_km: number | null
+          pedagio_medio: number | null
+          updated_at: string
+          veiculo_id: string
+        }
+        Insert: {
+          consumo_rodoviario_km_l?: number | null
+          consumo_urbano_km_l?: number | null
+          custo_por_km?: number | null
+          pedagio_medio?: number | null
+          updated_at?: string
+          veiculo_id: string
+        }
+        Update: {
+          consumo_rodoviario_km_l?: number | null
+          consumo_urbano_km_l?: number | null
+          custo_por_km?: number | null
+          pedagio_medio?: number | null
+          updated_at?: string
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veiculo_custo_config_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: true
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       veiculos: {
         Row: {
           ano: number | null
@@ -1368,9 +1742,11 @@ export type Database = {
           carroceria_integrada: boolean | null
           comprovante_endereco_proprietario_url: string | null
           created_at: string | null
+          created_by: string | null
           documento_veiculo_url: string | null
           empresa_id: number | null
           foto_url: string | null
+          fotos_urls: string[] | null
           id: string
           marca: string | null
           modelo: string | null
@@ -1387,6 +1763,7 @@ export type Database = {
             | null
           uf: string | null
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           ano?: number | null
@@ -1398,9 +1775,11 @@ export type Database = {
           carroceria_integrada?: boolean | null
           comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
+          created_by?: string | null
           documento_veiculo_url?: string | null
           empresa_id?: number | null
           foto_url?: string | null
+          fotos_urls?: string[] | null
           id?: string
           marca?: string | null
           modelo?: string | null
@@ -1417,6 +1796,7 @@ export type Database = {
             | null
           uf?: string | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           ano?: number | null
@@ -1428,9 +1808,11 @@ export type Database = {
           carroceria_integrada?: boolean | null
           comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
+          created_by?: string | null
           documento_veiculo_url?: string | null
           empresa_id?: number | null
           foto_url?: string | null
+          fotos_urls?: string[] | null
           id?: string
           marca?: string | null
           modelo?: string | null
@@ -1447,6 +1829,7 @@ export type Database = {
             | null
           uf?: string | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {

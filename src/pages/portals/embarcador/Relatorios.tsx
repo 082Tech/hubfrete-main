@@ -34,8 +34,6 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -44,15 +42,17 @@ import {
   Legend,
   RadialBarChart,
   RadialBar,
-  ComposedChart
+  ComposedChart,
+  Line
 } from 'recharts';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { format, subDays, parseISO, subMonths, differenceInDays } from 'date-fns';
+import { format, subDays, parseISO, subMonths, differenceInDays, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
+import { ReportTabs, FinancialTab, PerformanceTab, OperationalTab } from '@/components/relatorios';
 
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
@@ -164,7 +164,8 @@ export default function Relatorios() {
           cargas!inner (
             empresa_id,
             filial_id,
-            endereco_destino_id
+            endereco_destino_id,
+            data_entrega_limite
           )
         `)
         .eq('cargas.empresa_id', empresa.id);
@@ -186,7 +187,6 @@ export default function Relatorios() {
     queryFn: async () => {
       if (!empresa?.id) return [];
 
-      // Get cargas IDs first
       const cargaIds = cargas.map(c => c.id);
       if (cargaIds.length === 0) return [];
 
@@ -226,12 +226,10 @@ export default function Relatorios() {
     const pesoTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.peso_kg) || 0), 0);
     const volumeTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.volume_m3) || 0), 0);
     
-    // Frete total das entregas
     const freteTotal = filteredEntregas.reduce((acc, e) => acc + (Number(e.valor_frete) || 0), 0);
     const entregasComFrete = filteredEntregas.filter(e => Number(e.valor_frete) > 0).length;
     const ticketMedio = entregasComFrete > 0 ? freteTotal / entregasComFrete : 0;
     
-    // Custo do frete em relação ao valor da mercadoria
     const custoFretePercentual = valorMercadoriaTotal > 0 
       ? (freteTotal / valorMercadoriaTotal) * 100 
       : 0;
@@ -242,10 +240,42 @@ export default function Relatorios() {
       e.status === 'aguardando_coleta' || e.status === 'em_coleta'
     ).length;
     const problemas = filteredEntregas.filter(e => e.status === 'problema').length;
+    const devoluidas = filteredEntregas.filter(e => e.status === 'devolvida').length;
     
     const taxaConclusao = filteredEntregas.length > 0 
       ? Math.round((entregues / filteredEntregas.length) * 100) 
       : 0;
+    
+    // OTIF calculations
+    const entreguesComData = filteredEntregas.filter(e => 
+      e.status === 'entregue' && e.entregue_em
+    );
+    
+    let entreguesNoPrazo = 0;
+    let totalLeadTime = 0;
+    
+    entreguesComData.forEach(e => {
+      const carga = e.cargas as any;
+      if (carga?.data_entrega_limite && e.entregue_em) {
+        const limite = parseISO(carga.data_entrega_limite);
+        const entregaDate = parseISO(e.entregue_em);
+        if (entregaDate <= limite) {
+          entreguesNoPrazo++;
+        }
+      }
+      if (e.coletado_em && e.entregue_em) {
+        totalLeadTime += differenceInHours(parseISO(e.entregue_em), parseISO(e.coletado_em));
+      }
+    });
+    
+    const onTimeDelivery = entreguesComData.length > 0 
+      ? Math.round((entreguesNoPrazo / entreguesComData.length) * 100) 
+      : 100;
+    const inFullDelivery = filteredEntregas.length > 0 
+      ? Math.round(((filteredEntregas.length - devoluidas) / filteredEntregas.length) * 100)
+      : 100;
+    const otifScore = Math.round((onTimeDelivery * inFullDelivery) / 100);
+    const leadTimeAvg = entreguesComData.length > 0 ? totalLeadTime / entreguesComData.length : 0;
     
     // Compare with previous period
     const periodDays = differenceInDays(dateRange.end, dateRange.start);
@@ -274,10 +304,10 @@ export default function Relatorios() {
       ? Math.round(((freteTotal - prevFrete) / prevFrete) * 100)
       : freteTotal > 0 ? 100 : 0;
 
-    // Average per day
     const mediaCargasDia = totalCargas / Math.max(periodDays, 1);
     const mediaValorDia = valorMercadoriaTotal / Math.max(periodDays, 1);
     const mediaFreteDia = freteTotal / Math.max(periodDays, 1);
+    const custoPorKg = pesoTotal > 0 ? freteTotal / pesoTotal : 0;
 
     return {
       totalCargas,
@@ -295,10 +325,18 @@ export default function Relatorios() {
       emTransito,
       aguardandoColeta,
       problemas,
+      devoluidas,
       mediaCargasDia,
       mediaValorDia,
       mediaFreteDia,
       totalEntregas: filteredEntregas.length,
+      otifScore,
+      onTimeDelivery,
+      inFullDelivery,
+      leadTimeAvg,
+      entreguesNoPrazo,
+      entreguesAtrasados: entreguesComData.length - entreguesNoPrazo,
+      custoPorKg,
     };
   }, [filteredCargas, filteredEntregas, cargas, entregas, dateRange]);
 
@@ -363,6 +401,8 @@ export default function Relatorios() {
         name: dayName.charAt(0).toUpperCase() + dayName.slice(1),
         cargas: cargasCount,
         entregas: entregasCount,
+        dia: dayName.charAt(0).toUpperCase() + dayName.slice(1),
+        coletas: cargasCount,
       });
     }
     return days;
@@ -386,83 +426,123 @@ export default function Relatorios() {
 
   // Chart: Tipo de carga distribution
   const tipoCargaData = useMemo(() => {
-    const tipoCounts: Record<string, number> = {};
+    const tipoCounts: Record<string, { count: number; frete: number }> = {};
     filteredCargas.forEach(c => {
       const tipo = c.tipo || 'carga_seca';
-      tipoCounts[tipo] = (tipoCounts[tipo] || 0) + 1;
+      if (!tipoCounts[tipo]) {
+        tipoCounts[tipo] = { count: 0, frete: 0 };
+      }
+      tipoCounts[tipo].count += 1;
+    });
+
+    filteredEntregas.forEach(e => {
+      // We'd need carga.tipo here, skipping for now
     });
 
     return Object.entries(tipoCounts)
-      .filter(([, count]) => count > 0)
-      .sort((a, b) => b[1] - a[1])
+      .filter(([, data]) => data.count > 0)
+      .sort((a, b) => b[1].count - a[1].count)
       .slice(0, 6)
-      .map(([tipo, count]) => ({
+      .map(([tipo, data]) => ({
         name: tipoCargaLabels[tipo] || tipo,
-        value: count,
+        value: data.count,
+        tipo: tipoCargaLabels[tipo] || tipo,
+        quantidade: data.count,
       }));
   }, [filteredCargas]);
 
-  // Chart: Monthly value trend
-  const monthlyValueData = useMemo(() => {
-    const months: Record<string, { valor: number; cargas: number; peso: number }> = {};
+  // Monthly financial data for DRE
+  const monthlyFinancialData = useMemo(() => {
+    const months: Record<string, { receita: number; custo: number }> = {};
     
     cargas.forEach(c => {
       const month = format(parseISO(c.created_at), 'MMM/yy', { locale: ptBR });
-      if (!months[month]) months[month] = { valor: 0, cargas: 0, peso: 0 };
-      months[month].valor += Number(c.valor_mercadoria) || 0;
-      months[month].cargas += 1;
-      months[month].peso += Number(c.peso_kg) || 0;
+      if (!months[month]) months[month] = { receita: 0, custo: 0 };
+      months[month].receita += Number(c.valor_mercadoria) || 0;
     });
 
-    return Object.entries(months).slice(-7).map(([mes, data]) => ({
+    entregas.forEach(e => {
+      const month = format(parseISO(e.created_at), 'MMM/yy', { locale: ptBR });
+      if (!months[month]) months[month] = { receita: 0, custo: 0 };
+      months[month].custo += Number(e.valor_frete) || 0;
+    });
+
+    return Object.entries(months).slice(-6).map(([mes, data]) => ({
       mes: mes.charAt(0).toUpperCase() + mes.slice(1),
-      valor: data.valor,
-      cargas: data.cargas,
-      peso: data.peso,
+      receita: data.receita,
+      custo: data.custo,
+      margem: data.receita > 0 ? (data.custo / data.receita) * 100 : 0,
     }));
-  }, [cargas]);
+  }, [cargas, entregas]);
 
-  // Delivery status for radial chart
-  const deliveryStatusData = useMemo(() => {
-    const total = filteredEntregas.length;
-    if (total === 0) return [];
-    
-    return [
-      { name: 'Entregues', value: kpis.entregues, fill: 'hsl(var(--chart-2))' },
-      { name: 'Em Trânsito', value: kpis.emTransito, fill: 'hsl(var(--chart-1))' },
-      { name: 'Aguardando', value: kpis.aguardandoColeta, fill: 'hsl(var(--chart-4))' },
-      { name: 'Problemas', value: kpis.problemas, fill: 'hsl(var(--destructive))' },
-    ].filter(d => d.value > 0);
-  }, [filteredEntregas, kpis]);
-
-  // Weekly comparison
-  const weeklyComparisonData = useMemo(() => {
+  // OTIF Trend
+  const otifTrendData = useMemo(() => {
     const weeks = [];
     for (let i = 3; i >= 0; i--) {
       const weekStart = subDays(new Date(), (i + 1) * 7);
       const weekEnd = subDays(new Date(), i * 7);
-      const weekLabel = `Sem ${4 - i}`;
-      
-      const weekCargas = cargas.filter(c => {
-        const date = parseISO(c.created_at);
-        return date >= weekStart && date < weekEnd;
-      });
       
       const weekEntregas = entregas.filter(e => {
-        if (!e.entregue_em) return false;
-        const date = parseISO(e.entregue_em);
-        return date >= weekStart && date < weekEnd;
+        const date = parseISO(e.created_at);
+        return date >= weekStart && date < weekEnd && e.status === 'entregue';
       });
+      
+      let onTime = 0;
+      weekEntregas.forEach(e => {
+        const carga = e.cargas as any;
+        if (carga?.data_entrega_limite && e.entregue_em) {
+          const limite = parseISO(carga.data_entrega_limite);
+          const entregaDate = parseISO(e.entregue_em);
+          if (entregaDate <= limite) onTime++;
+        }
+      });
+      
+      const devolvidas = entregas.filter(e => {
+        const date = parseISO(e.created_at);
+        return date >= weekStart && date < weekEnd && e.status === 'devolvida';
+      }).length;
+      
+      const totalWeek = weekEntregas.length + devolvidas;
+      const onTimePercent = weekEntregas.length > 0 ? Math.round((onTime / weekEntregas.length) * 100) : 100;
+      const inFullPercent = totalWeek > 0 ? Math.round(((totalWeek - devolvidas) / totalWeek) * 100) : 100;
 
       weeks.push({
-        semana: weekLabel,
-        cargas: weekCargas.length,
-        entregas: weekEntregas.length,
-        valor: weekCargas.reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0),
+        periodo: `Sem ${4 - i}`,
+        otif: Math.round((onTimePercent * inFullPercent) / 100),
+        onTime: onTimePercent,
+        inFull: inFullPercent,
       });
     }
     return weeks;
-  }, [cargas, entregas]);
+  }, [entregas]);
+
+  // Lead Time Data
+  const leadTimeData = useMemo(() => {
+    const weeks = [];
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = subDays(new Date(), (i + 1) * 7);
+      const weekEnd = subDays(new Date(), i * 7);
+      
+      const weekEntregas = entregas.filter(e => {
+        const date = parseISO(e.created_at);
+        return date >= weekStart && date < weekEnd && e.status === 'entregue' && e.coletado_em && e.entregue_em;
+      });
+      
+      let totalHours = 0;
+      weekEntregas.forEach(e => {
+        if (e.coletado_em && e.entregue_em) {
+          totalHours += differenceInHours(parseISO(e.entregue_em), parseISO(e.coletado_em));
+        }
+      });
+
+      weeks.push({
+        periodo: `Sem ${4 - i}`,
+        leadTime: weekEntregas.length > 0 ? Math.round(totalHours / weekEntregas.length) : 0,
+        meta: 48,
+      });
+    }
+    return weeks;
+  }, [entregas]);
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
@@ -479,6 +559,48 @@ export default function Relatorios() {
       return `${(value / 1000).toFixed(1)}t`;
     }
     return `${value.toFixed(0)}kg`;
+  };
+
+  // Prepare data for tabs
+  const financialMetrics = {
+    freteBruto: kpis.freteTotal,
+    custoOperacional: 0,
+    margemBruta: 0,
+    margemPercentual: 0,
+    ticketMedio: kpis.ticketMedio,
+    custoPorKg: kpis.custoPorKg,
+    receitaPorKm: 0,
+    custoFreteVsMercadoria: kpis.custoFretePercentual,
+    freteChange: kpis.freteChange,
+    valorMercadoria: kpis.valorMercadoriaTotal,
+  };
+
+  const performanceMetrics = {
+    otifScore: kpis.otifScore,
+    onTimeDelivery: kpis.onTimeDelivery,
+    inFullDelivery: kpis.inFullDelivery,
+    leadTimeAvg: kpis.leadTimeAvg,
+    leadTimeMeta: 48,
+    taxaConclusao: kpis.taxaConclusao,
+    entreguesNoPrazo: kpis.entreguesNoPrazo,
+    entreguesAtrasados: kpis.entreguesAtrasados,
+    devolucoesCount: kpis.devoluidas,
+    devolucoesPercentual: kpis.totalEntregas > 0 ? (kpis.devoluidas / kpis.totalEntregas) * 100 : 0,
+    ocorrenciasCount: kpis.problemas,
+    ocorrenciasPercentual: kpis.totalEntregas > 0 ? (kpis.problemas / kpis.totalEntregas) * 100 : 0,
+  };
+
+  const operationalMetrics = {
+    veiculosAtivos: 0,
+    veiculosTotal: 0,
+    motoristasAtivos: 0,
+    motoristasTotal: 0,
+    kmRodado: 0,
+    consumoCombustivel: 0,
+    utilizacaoFrota: 0,
+    ocupacaoMedia: 0,
+    rotasRealizadas: topDestinosData.reduce((acc, r) => acc + r.entregas, 0),
+    paradaMédiaMinutos: 0,
   };
 
   return (
@@ -515,554 +637,306 @@ export default function Relatorios() {
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <>
-            {/* Main KPIs Row */}
-            {/* Main KPIs Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border-border bg-gradient-to-br from-primary/5 to-transparent">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total de Cargas</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">{kpis.totalCargas}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        ~{kpis.mediaCargasDia.toFixed(1)}/dia
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Package className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className={`flex items-center text-xs ${kpis.cargasChange >= 0 ? 'text-chart-2' : 'text-destructive'}`}>
-                        {kpis.cargasChange >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                        {kpis.cargasChange >= 0 ? '+' : ''}{kpis.cargasChange}%
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border bg-gradient-to-br from-chart-2/5 to-transparent">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Frete Total</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.freteTotal)}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        ~{formatCurrency(kpis.mediaFreteDia)}/dia
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="p-2 bg-chart-2/10 rounded-lg">
-                        <DollarSign className="w-5 h-5 text-chart-2" />
-                      </div>
-                      <div className={`flex items-center text-xs ${kpis.freteChange >= 0 ? 'text-chart-2' : 'text-destructive'}`}>
-                        {kpis.freteChange >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                        {kpis.freteChange >= 0 ? '+' : ''}{kpis.freteChange}%
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Ticket Médio</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.ticketMedio)}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        por entrega
-                      </p>
-                    </div>
-                    <div className="p-2 bg-chart-4/10 rounded-lg">
-                      <BarChart3 className="w-5 h-5 text-chart-4" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Taxa de Conclusão</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">{kpis.taxaConclusao}%</p>
-                      <Progress value={kpis.taxaConclusao} className="h-2 mt-2 w-24" />
-                    </div>
-                    <div className="p-2 bg-chart-1/10 rounded-lg">
-                      <Target className="w-5 h-5 text-chart-1" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Secondary KPIs - Frete & Mercadoria */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-chart-2/10 rounded-lg">
-                    <DollarSign className="w-5 h-5 text-chart-2" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{formatCurrency(kpis.valorMercadoriaTotal)}</p>
-                    <p className="text-xs text-muted-foreground">Valor Mercadoria</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-chart-3/10 rounded-lg">
-                    <Activity className="w-5 h-5 text-chart-3" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{kpis.custoFretePercentual.toFixed(1)}%</p>
-                    <p className="text-xs text-muted-foreground">Frete vs Mercad.</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-chart-4/10 rounded-lg">
-                    <Weight className="w-5 h-5 text-chart-4" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{formatWeight(kpis.pesoTotal)}</p>
-                    <p className="text-xs text-muted-foreground">Peso Total</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-chart-5/10 rounded-lg">
-                    <Package className="w-5 h-5 text-chart-5" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{kpis.volumeTotal.toFixed(1)} m³</p>
-                    <p className="text-xs text-muted-foreground">Volume Total</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Truck className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{kpis.totalEntregas}</p>
-                    <p className="text-xs text-muted-foreground">Total Entregas</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Status KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-chart-2/10 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-chart-2" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{kpis.entregues}</p>
-                    <p className="text-xs text-muted-foreground">Entregues</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-chart-1/10 rounded-lg">
-                    <Truck className="w-5 h-5 text-chart-1" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{kpis.emTransito}</p>
-                    <p className="text-xs text-muted-foreground">Em Trânsito</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-chart-4/10 rounded-lg">
-                    <Clock className="w-5 h-5 text-chart-4" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{kpis.aguardandoColeta}</p>
-                    <p className="text-xs text-muted-foreground">Aguardando</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-destructive/10 rounded-lg">
-                    <AlertTriangle className="w-5 h-5 text-destructive" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{kpis.problemas}</p>
-                    <p className="text-xs text-muted-foreground">Problemas</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Charts Row 1 */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Activity Chart */}
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-primary" />
-                    Atividade
-                  </CardTitle>
-                  <CardDescription>Cargas criadas e entregas no período</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={activityChartData}>
-                        <defs>
-                          <linearGradient id="colorCargasR" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                          </linearGradient>
-                          <linearGradient id="colorEntregasR" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis 
-                          dataKey="name" 
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-                          axisLine={{ stroke: 'hsl(var(--border))' }}
-                        />
-                        <YAxis 
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-                          axisLine={{ stroke: 'hsl(var(--border))' }}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--popover))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            color: 'hsl(var(--foreground))'
-                          }}
-                        />
-                        <Legend />
-                        <Area 
-                          type="monotone" 
-                          dataKey="cargas" 
-                          stroke="hsl(var(--primary))" 
-                          fillOpacity={1} 
-                          fill="url(#colorCargasR)"
-                          name="Cargas"
-                        />
-                        <Area 
-                          type="monotone" 
-                          dataKey="entregas" 
-                          stroke="hsl(var(--chart-2))" 
-                          fillOpacity={1} 
-                          fill="url(#colorEntregasR)"
-                          name="Entregas"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Weekly Comparison */}
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-chart-1" />
-                    Comparativo Semanal
-                  </CardTitle>
-                  <CardDescription>Últimas 4 semanas</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={weeklyComparisonData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis 
-                          dataKey="semana" 
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-                          axisLine={{ stroke: 'hsl(var(--border))' }}
-                        />
-                        <YAxis 
-                          yAxisId="left"
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-                          axisLine={{ stroke: 'hsl(var(--border))' }}
-                        />
-                        <YAxis 
-                          yAxisId="right"
-                          orientation="right"
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-                          axisLine={{ stroke: 'hsl(var(--border))' }}
-                          tickFormatter={(value) => formatCurrency(value)}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--popover))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            color: 'hsl(var(--foreground))'
-                          }}
-                          formatter={(value: number, name: string) => {
-                            if (name === 'valor') return [formatCurrency(value), 'Valor'];
-                            return [value, name === 'cargas' ? 'Cargas' : 'Entregas'];
-                          }}
-                        />
-                        <Legend />
-                        <Bar yAxisId="left" dataKey="cargas" fill="hsl(var(--primary))" name="Cargas" radius={[4, 4, 0, 0]} />
-                        <Bar yAxisId="left" dataKey="entregas" fill="hsl(var(--chart-2))" name="Entregas" radius={[4, 4, 0, 0]} />
-                        <Line yAxisId="right" type="monotone" dataKey="valor" stroke="hsl(var(--chart-4))" strokeWidth={2} name="valor" dot={{ fill: 'hsl(var(--chart-4))' }} />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Charts Row 2 */}
-            <div className="grid lg:grid-cols-3 gap-6">
-              {/* Status Distribution */}
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg">Status das Cargas</CardTitle>
-                  <CardDescription>Distribuição por status</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[220px] flex items-center justify-center">
-                    {statusChartData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={statusChartData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={50}
-                            outerRadius={80}
-                            paddingAngle={2}
-                            dataKey="value"
-                          >
-                            {statusChartData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--popover))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px'
-                            }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">Sem dados no período</p>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-2 mt-2">
-                    {statusChartData.map((item, index) => (
-                      <div key={item.name} className="flex items-center gap-1.5">
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full" 
-                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }} 
-                        />
-                        <span className="text-xs text-muted-foreground">{item.name}: {item.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Tipo de Carga Distribution */}
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg">Tipos de Carga</CardTitle>
-                  <CardDescription>Principais tipos movimentados</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[220px]">
-                    {tipoCargaData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={tipoCargaData} layout="vertical">
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                          <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-                          <YAxis 
-                            type="category" 
-                            dataKey="name" 
-                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                            width={80}
-                          />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--popover))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px'
-                            }}
-                          />
-                          <Bar dataKey="value" fill="hsl(var(--chart-3))" radius={[0, 4, 4, 0]} name="Quantidade" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <p className="text-muted-foreground text-sm">Sem dados no período</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Delivery Status Radial */}
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg">Status Entregas</CardTitle>
-                  <CardDescription>Situação atual das entregas</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[220px] flex items-center justify-center">
-                    {deliveryStatusData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadialBarChart 
-                          cx="50%" 
-                          cy="50%" 
-                          innerRadius="30%" 
-                          outerRadius="90%" 
-                          data={deliveryStatusData}
-                          startAngle={180}
-                          endAngle={0}
-                        >
-                          <RadialBar
-                            dataKey="value"
-                            cornerRadius={10}
-                            background={{ fill: 'hsl(var(--muted))' }}
-                          />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--popover))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px'
-                            }}
-                          />
-                        </RadialBarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">Sem entregas no período</p>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-2 mt-2">
-                    {deliveryStatusData.map((item) => (
-                      <div key={item.name} className="flex items-center gap-1.5">
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full" 
-                          style={{ backgroundColor: item.fill }} 
-                        />
-                        <span className="text-xs text-muted-foreground">{item.name}: {item.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Top Destinos + Value Trend */}
-            <div className="grid lg:grid-cols-3 gap-6">
-              {/* Top Destinos */}
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-chart-3" />
-                    Top Destinos
-                  </CardTitle>
-                  <CardDescription>Principais rotas por entregas</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {topDestinosData.length > 0 ? (
-                      topDestinosData.map((item, index) => (
-                        <div key={item.destino} className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full shrink-0">
-                              {index + 1}º
-                            </span>
-                            <span className="text-sm truncate">{item.destino}</span>
+          <ReportTabs>
+            {{
+              overview: (
+                <>
+                  {/* Main KPIs Row */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="border-border bg-gradient-to-br from-primary/5 to-transparent">
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Total de Cargas</p>
+                            <p className="text-3xl font-bold text-foreground mt-1">{kpis.totalCargas}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              ~{kpis.mediaCargasDia.toFixed(1)}/dia
+                            </p>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-xs text-muted-foreground">{item.entregas} entregas</span>
-                            <span className="text-sm font-medium text-chart-2">{formatCurrency(item.frete)}</span>
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                              <Package className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className={`flex items-center text-xs ${kpis.cargasChange >= 0 ? 'text-chart-2' : 'text-destructive'}`}>
+                              {kpis.cargasChange >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                              {kpis.cargasChange >= 0 ? '+' : ''}{kpis.cargasChange}%
+                            </div>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-8">Sem dados de destino</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      </CardContent>
+                    </Card>
 
-              {/* Value Trend */}
-              <Card className="border-border lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 text-chart-2" />
-                    Evolução Mensal
-                  </CardTitle>
-                  <CardDescription>Valor e volume de cargas ao longo do tempo</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    {monthlyValueData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={monthlyValueData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                          <XAxis 
-                            dataKey="mes" 
-                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                            axisLine={{ stroke: 'hsl(var(--border))' }}
-                          />
-                          <YAxis 
-                            yAxisId="left"
-                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                            axisLine={{ stroke: 'hsl(var(--border))' }}
-                            tickFormatter={(value) => formatCurrency(value)}
-                          />
-                          <YAxis 
-                            yAxisId="right"
-                            orientation="right"
-                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                            axisLine={{ stroke: 'hsl(var(--border))' }}
-                          />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--popover))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px',
-                              color: 'hsl(var(--foreground))'
-                            }}
-                            formatter={(value: number, name: string) => {
-                              if (name === 'Valor') return [formatCurrency(value), 'Valor'];
-                              if (name === 'Peso') return [formatWeight(value), 'Peso'];
-                              return [value, 'Cargas'];
-                            }}
-                          />
-                          <Legend />
-                          <Bar yAxisId="right" dataKey="cargas" fill="hsl(var(--chart-1))" name="Cargas" radius={[4, 4, 0, 0]} />
-                          <Line yAxisId="left" type="monotone" dataKey="valor" stroke="hsl(var(--chart-2))" strokeWidth={3} name="Valor" dot={{ fill: 'hsl(var(--chart-2))', strokeWidth: 2 }} />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <p className="text-muted-foreground">Sem dados disponíveis</p>
-                      </div>
-                    )}
+                    <Card className="border-border bg-gradient-to-br from-chart-2/5 to-transparent">
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Frete Total</p>
+                            <p className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.freteTotal)}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              ~{formatCurrency(kpis.mediaFreteDia)}/dia
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="p-2 bg-chart-2/10 rounded-lg">
+                              <DollarSign className="w-5 h-5 text-chart-2" />
+                            </div>
+                            <div className={`flex items-center text-xs ${kpis.freteChange >= 0 ? 'text-chart-2' : 'text-destructive'}`}>
+                              {kpis.freteChange >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                              {kpis.freteChange >= 0 ? '+' : ''}{kpis.freteChange}%
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-border">
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">OTIF Score</p>
+                            <p className="text-3xl font-bold text-foreground mt-1">{kpis.otifScore}%</p>
+                            <Progress value={kpis.otifScore} className="h-2 mt-2 w-24" />
+                          </div>
+                          <div className="p-2 bg-chart-1/10 rounded-lg">
+                            <Target className="w-5 h-5 text-chart-1" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-border">
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Taxa de Conclusão</p>
+                            <p className="text-3xl font-bold text-foreground mt-1">{kpis.taxaConclusao}%</p>
+                            <Progress value={kpis.taxaConclusao} className="h-2 mt-2 w-24" />
+                          </div>
+                          <div className="p-2 bg-chart-3/10 rounded-lg">
+                            <CheckCircle className="w-5 h-5 text-chart-3" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
+
+                  {/* Secondary KPIs */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <Card className="border-border">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-chart-2/10 rounded-lg">
+                          <DollarSign className="w-5 h-5 text-chart-2" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-foreground">{formatCurrency(kpis.valorMercadoriaTotal)}</p>
+                          <p className="text-xs text-muted-foreground">Valor Mercadoria</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-border">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-chart-3/10 rounded-lg">
+                          <Activity className="w-5 h-5 text-chart-3" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-foreground">{kpis.custoFretePercentual.toFixed(1)}%</p>
+                          <p className="text-xs text-muted-foreground">Frete/Mercad.</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-border">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-chart-4/10 rounded-lg">
+                          <Weight className="w-5 h-5 text-chart-4" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-foreground">{formatWeight(kpis.pesoTotal)}</p>
+                          <p className="text-xs text-muted-foreground">Peso Total</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-border">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-chart-5/10 rounded-lg">
+                          <Package className="w-5 h-5 text-chart-5" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-foreground">{kpis.volumeTotal.toFixed(1)} m³</p>
+                          <p className="text-xs text-muted-foreground">Volume Total</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-border">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <Truck className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-foreground">{kpis.totalEntregas}</p>
+                          <p className="text-xs text-muted-foreground">Total Entregas</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Status Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card className="border-border">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-chart-2/10 rounded-lg">
+                          <CheckCircle className="w-5 h-5 text-chart-2" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-foreground">{kpis.entregues}</p>
+                          <p className="text-xs text-muted-foreground">Entregues</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-border">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-chart-1/10 rounded-lg">
+                          <Truck className="w-5 h-5 text-chart-1" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-foreground">{kpis.emTransito}</p>
+                          <p className="text-xs text-muted-foreground">Em Trânsito</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-border">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-chart-4/10 rounded-lg">
+                          <Clock className="w-5 h-5 text-chart-4" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-foreground">{kpis.aguardandoColeta}</p>
+                          <p className="text-xs text-muted-foreground">Aguardando</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-border">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-destructive/10 rounded-lg">
+                          <AlertTriangle className="w-5 h-5 text-destructive" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-foreground">{kpis.problemas}</p>
+                          <p className="text-xs text-muted-foreground">Problemas</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Charts */}
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    <Card className="border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Activity className="w-4 h-4 text-primary" />
+                          Atividade
+                        </CardTitle>
+                        <CardDescription>Cargas e entregas no período</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={280}>
+                          <AreaChart data={activityChartData}>
+                            <defs>
+                              <linearGradient id="colorCargasE" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                              </linearGradient>
+                              <linearGradient id="colorEntregasE" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="name" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                            <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'hsl(var(--popover))', 
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px'
+                              }}
+                            />
+                            <Legend />
+                            <Area type="monotone" dataKey="cargas" name="Cargas" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorCargasE)" />
+                            <Area type="monotone" dataKey="entregas" name="Entregas" stroke="hsl(var(--chart-2))" fillOpacity={1} fill="url(#colorEntregasE)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4 text-primary" />
+                          Status das Cargas
+                        </CardTitle>
+                        <CardDescription>Distribuição por status</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={280}>
+                          <PieChart>
+                            <Pie
+                              data={statusChartData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={100}
+                              paddingAngle={2}
+                              dataKey="value"
+                              label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                              labelLine={false}
+                            >
+                              {statusChartData.map((_, index) => (
+                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'hsl(var(--popover))', 
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px'
+                              }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              ),
+              financial: (
+                <FinancialTab 
+                  metrics={financialMetrics}
+                  monthlyData={monthlyFinancialData}
+                  costBreakdown={tipoCargaData.map(t => ({ name: t.name, value: t.value }))}
+                  formatCurrency={formatCurrency}
+                  portalType="embarcador"
+                />
+              ),
+              performance: (
+                <PerformanceTab 
+                  metrics={performanceMetrics}
+                  otifTrend={otifTrendData}
+                  leadTimeData={leadTimeData}
+                  portalType="embarcador"
+                />
+              ),
+              operational: (
+                <OperationalTab 
+                  metrics={operationalMetrics}
+                  topRoutes={topDestinosData}
+                  vehicleUsage={tipoCargaData}
+                  dailyActivity={activityChartData}
+                  formatCurrency={formatCurrency}
+                  portalType="embarcador"
+                />
+              ),
+            }}
+          </ReportTabs>
         )}
       </div>
     </div>
