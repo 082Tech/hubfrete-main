@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Clock, Phone, MapPin, Package, Truck } from 'lucide-react';
+import { Clock, MapPin, Package, Truck, MessageCircle } from 'lucide-react';
 
 import { EntregaMapItem } from './EntregasGoogleMap';
 
@@ -67,12 +67,10 @@ export function DriverHoverCard({
           <span>Atualizado: {formattedTimestamp ?? '-'}</span>
         </div>
 
-        {entrega.telefone && (
-          <div className="flex items-center gap-2">
-            <Phone className="w-3 h-3 shrink-0" />
-            <span>{entrega.telefone}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 text-primary">
+          <MessageCircle className="w-3 h-3 shrink-0" />
+          <span>Contato via chat</span>
+        </div>
 
         {!hasMultipleDeliveries && entrega.destino && (
           <div className="flex items-center gap-2">

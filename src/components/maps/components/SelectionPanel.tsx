@@ -126,7 +126,7 @@ export function SelectionPanel({ entrega, onClose }: SelectionPanelProps) {
       {/* Footer hint */}
       <div className="px-4 py-2 border-t bg-muted/20">
         <p className="text-[10px] text-muted-foreground text-center">
-          Clique fora ou no X para desselecionarw
+          Use o chat para contatar o motorista
         </p>
       </div>
     </div>
