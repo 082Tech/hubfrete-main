@@ -255,34 +255,41 @@ export function MotoristaVinculosDialog({
               )}
             </div>
 
-            {/* Add new vehicle */}
-            <div className="flex gap-2">
-              <Select value={selectedVeiculoId} onValueChange={setSelectedVeiculoId}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Selecione um veículo para vincular" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableVeiculos
-                    .filter((v) => !motorista.veiculos.find((mv) => mv.id === v.id))
-                    .map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.placa} - {tipoVeiculoLabels[v.tipo] || v.tipo}
-                        {v.marca && ` (${v.marca})`}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleLinkVeiculo}
-                disabled={!selectedVeiculoId || isSubmitting}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Link2 className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
+            {/* Add new vehicle - only if no vehicle linked yet */}
+            {motorista.veiculos.length === 0 && (
+              <div className="flex gap-2">
+                <Select value={selectedVeiculoId} onValueChange={setSelectedVeiculoId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecione um veículo para vincular" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableVeiculos
+                      .filter((v) => !motorista.veiculos.find((mv) => mv.id === v.id))
+                      .map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.placa} - {tipoVeiculoLabels[v.tipo] || v.tipo}
+                          {v.marca && ` (${v.marca})`}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={handleLinkVeiculo}
+                  disabled={!selectedVeiculoId || isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Link2 className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            )}
+            {motorista.veiculos.length > 0 && (
+              <p className="text-xs text-muted-foreground text-center">
+                Para trocar de veículo, primeiro desvincule o atual
+              </p>
+            )}
           </div>
 
           <Separator />
@@ -331,35 +338,47 @@ export function MotoristaVinculosDialog({
               )}
             </div>
 
-            {/* Add new carroceria */}
-            <div className="flex gap-2">
-              <Select value={selectedCarroceriaId} onValueChange={setSelectedCarroceriaId}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Selecione uma carroceria para vincular" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableCarrocerias
-                    .filter((c) => !motorista.carrocerias.find((mc) => mc.id === c.id))
-                    .map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
-                        {c.marca && ` (${c.marca})`}
-                        {c.capacidade_kg && ` - ${c.capacidade_kg.toLocaleString()}kg`}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleLinkCarroceria}
-                disabled={!selectedCarroceriaId || isSubmitting}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Link2 className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
+            {/* Add new carroceria - only if no carroceria linked and vehicle doesn't have integrated body */}
+            {motorista.carrocerias.length === 0 && !motorista.veiculos.some((v: any) => v.carroceria_integrada) && (
+              <div className="flex gap-2">
+                <Select value={selectedCarroceriaId} onValueChange={setSelectedCarroceriaId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecione uma carroceria para vincular" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCarrocerias
+                      .filter((c) => !motorista.carrocerias.find((mc) => mc.id === c.id))
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
+                          {c.marca && ` (${c.marca})`}
+                          {c.capacidade_kg && ` - ${c.capacidade_kg.toLocaleString()}kg`}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={handleLinkCarroceria}
+                  disabled={!selectedCarroceriaId || isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Link2 className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            )}
+            {motorista.veiculos.some((v: any) => v.carroceria_integrada) && (
+              <p className="text-xs text-muted-foreground text-center">
+                O veículo vinculado possui carroceria integrada
+              </p>
+            )}
+            {motorista.carrocerias.length > 0 && !motorista.veiculos.some((v: any) => v.carroceria_integrada) && (
+              <p className="text-xs text-muted-foreground text-center">
+                Para trocar de carroceria, primeiro desvincule a atual
+              </p>
+            )}
           </div>
         </div>
 
