@@ -53,9 +53,6 @@ import {
   ChevronRight,
   Weight,
   AlertTriangle,
-  File,
-  FileCheck,
-  Files,
   PanelLeftClose,
   PanelLeft,
 } from 'lucide-react';
@@ -616,7 +613,27 @@ export default function GestaoEntregas() {
     },
   });
 
+  // Helper to check if delivery has required documents for "entregue" status
+  const canMarkAsDelivered = (entrega: EntregaCompleta): boolean => {
+    const nfsCount = entrega.notas_fiscais_urls?.length || 0;
+    return nfsCount >= 1; // At least one NF is required
+  };
+
+  // Get entrega by ID from entregas list
+  const getEntregaById = (entregaId: string): EntregaCompleta | undefined => {
+    return entregas.find(e => e.id === entregaId);
+  };
+
   const handleStatusChange = (entregaId: string, newStatus: StatusEntrega, entregaCodigo?: string) => {
+    // Validate document requirements for "entregue" status
+    if (newStatus === 'entregue') {
+      const entrega = getEntregaById(entregaId);
+      if (entrega && !canMarkAsDelivered(entrega)) {
+        toast.error('Não é possível marcar como entregue. É necessário anexar pelo menos uma Nota Fiscal.');
+        return;
+      }
+    }
+
     setPendingStatusChange({
       type: 'single',
       entregaId,
@@ -627,6 +644,19 @@ export default function GestaoEntregas() {
   };
 
   const handleBulkStatusChange = (entregaIds: string[], newStatus: StatusEntrega, motoristaName?: string) => {
+    // Validate document requirements for "entregue" status
+    if (newStatus === 'entregue') {
+      const entregasWithMissingDocs = entregaIds.filter(id => {
+        const entrega = getEntregaById(id);
+        return entrega && !canMarkAsDelivered(entrega);
+      });
+
+      if (entregasWithMissingDocs.length > 0) {
+        toast.error(`${entregasWithMissingDocs.length} entrega(s) não podem ser marcadas como entregue. É necessário anexar pelo menos uma Nota Fiscal em cada.`);
+        return;
+      }
+    }
+
     setPendingStatusChange({
       type: 'bulk',
       entregaIds,
@@ -1101,63 +1131,31 @@ export default function GestaoEntregas() {
             {config?.label || status}
           </Badge>
         </TableCell>
-        {/* Documentos - Unified Column */}
+        {/* Documentos - Unified Column (styled like HistoricoEntregas) */}
         <TableCell className="py-3">
           {(() => {
             const hasCte = !!entrega.cte_url;
             const hasManifesto = !!entrega.manifesto_url;
             const nfsCount = entrega.notas_fiscais_urls?.length || 0;
             const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0);
-            const pendingDocs = (!hasCte ? 1 : 0) + (!hasManifesto ? 1 : 0);
-
-            if (pendingDocs > 0) {
-              return (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 gap-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedEntregaForDetails(entrega);
-                        setDetailsDialogOpen(true);
-                      }}
-                    >
-                      <AlertTriangle className="w-3.5 h-3.5 text-chart-3" />
-                      <span className="text-xs text-chart-3">{pendingDocs} pend.</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{pendingDocs} documento(s) pendente(s)</p>
-                    <p className="text-xs text-muted-foreground">Clique para ver detalhes</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
+            // Critical docs are: CTE, Manifesto, and at least 1 NF
+            const hasMissingCritical = !hasCte || !hasManifesto || nfsCount === 0;
 
             return (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 gap-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedEntregaForDetails(entrega);
-                      setDetailsDialogOpen(true);
-                    }}
-                  >
-                    <FileCheck className="w-3.5 h-3.5 text-chart-2" />
-                    <span className="text-xs text-muted-foreground">{totalDocs}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{totalDocs} documento(s) anexado(s)</p>
-                  <p className="text-xs text-muted-foreground">Clique para ver detalhes</p>
-                </TooltipContent>
-              </Tooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-7 px-2 gap-1 ${hasMissingCritical ? 'text-amber-600' : 'text-green-600'}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedEntregaForDetails(entrega);
+                  setDetailsDialogOpen(true);
+                }}
+              >
+                <FileText className="w-3 h-3" />
+                {totalDocs}
+                {hasMissingCritical && <AlertTriangle className="w-3 h-3" />}
+              </Button>
             );
           })()}
         </TableCell>
@@ -1333,61 +1331,31 @@ export default function GestaoEntregas() {
             {config?.label || status}
           </Badge>
         </TableCell>
-        {/* Documentos */}
+        {/* Documentos (styled like HistoricoEntregas) */}
         <TableCell className="py-2.5">
           {(() => {
             const hasCte = !!entrega.cte_url;
             const hasManifesto = !!entrega.manifesto_url;
             const nfsCount = entrega.notas_fiscais_urls?.length || 0;
             const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0);
-            const pendingDocs = (!hasCte ? 1 : 0) + (!hasManifesto ? 1 : 0);
-
-            if (pendingDocs > 0) {
-              return (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 gap-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedEntregaForDetails(entrega);
-                        setDetailsDialogOpen(true);
-                      }}
-                    >
-                      <AlertTriangle className="w-3 h-3 text-chart-3" />
-                      <span className="text-[10px] text-chart-3">{pendingDocs} pend.</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{pendingDocs} documento(s) pendente(s)</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
+            // Critical docs are: CTE, Manifesto, and at least 1 NF
+            const hasMissingCritical = !hasCte || !hasManifesto || nfsCount === 0;
 
             return (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 gap-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedEntregaForDetails(entrega);
-                      setDetailsDialogOpen(true);
-                    }}
-                  >
-                    <FileCheck className="w-3 h-3 text-chart-2" />
-                    <span className="text-[10px] text-muted-foreground">{totalDocs}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{totalDocs} documento(s) anexado(s)</p>
-                </TooltipContent>
-              </Tooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-6 px-2 gap-1 ${hasMissingCritical ? 'text-amber-600' : 'text-green-600'}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedEntregaForDetails(entrega);
+                  setDetailsDialogOpen(true);
+                }}
+              >
+                <FileText className="w-3 h-3" />
+                {totalDocs}
+                {hasMissingCritical && <AlertTriangle className="w-3 h-3" />}
+              </Button>
             );
           })()}
         </TableCell>
