@@ -1033,86 +1033,65 @@ export default function GestaoEntregas() {
             {config?.label || status}
           </Badge>
         </TableCell>
-        {/* CT-e Number */}
+        {/* Documentos - Unified Column */}
         <TableCell className="py-3">
-          {entrega.numero_cte ? (
-            <span className="text-xs font-mono whitespace-nowrap">{entrega.numero_cte}</span>
-          ) : (
-            <span className="text-xs text-muted-foreground">-</span>
-          )}
-        </TableCell>
-        {/* CT-e Document */}
-        <TableCell className="py-3">
-          {entrega.cte_url ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCtePreviewUrl(entrega.cte_url);
-                    setCtePreviewOpen(true);
-                  }}
-                >
-                  <FileCheck className="w-4 h-4 text-chart-2" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Ver CT-e</TooltipContent>
-            </Tooltip>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center justify-center h-7 w-7">
-                  <AlertTriangle className="w-4 h-4 text-chart-3" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>CT-e pendente</TooltipContent>
-            </Tooltip>
-          )}
-        </TableCell>
-        {/* NF-es */}
-        <TableCell className="py-3">
-          {entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0 ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1">
-                  <Files className="w-4 h-4 text-primary" />
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                    {entrega.notas_fiscais_urls.length}
-                  </Badge>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>{entrega.notas_fiscais_urls.length} nota(s) fiscal(is)</TooltipContent>
-            </Tooltip>
-          ) : (
-            <span className="text-xs text-muted-foreground">-</span>
-          )}
-        </TableCell>
-        {/* Manifesto */}
-        <TableCell className="py-3">
-          {entrega.manifesto_url ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCtePreviewUrl(entrega.manifesto_url);
-                    setCtePreviewOpen(true);
-                  }}
-                >
-                  <FileText className="w-4 h-4 text-primary" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Ver Manifesto</TooltipContent>
-            </Tooltip>
-          ) : (
-            <span className="text-xs text-muted-foreground">-</span>
-          )}
+          {(() => {
+            const hasCte = !!entrega.cte_url;
+            const hasManifesto = !!entrega.manifesto_url;
+            const nfsCount = entrega.notas_fiscais_urls?.length || 0;
+            const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0);
+            const pendingDocs = (!hasCte ? 1 : 0) + (!hasManifesto ? 1 : 0);
+
+            if (pendingDocs > 0) {
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedEntregaForDetails(entrega);
+                        setDetailsDialogOpen(true);
+                      }}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="text-xs text-amber-600">{pendingDocs} pend.</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{pendingDocs} documento(s) pendente(s)</p>
+                    <p className="text-xs text-muted-foreground">Clique para ver detalhes</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+
+            return (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedEntregaForDetails(entrega);
+                      setDetailsDialogOpen(true);
+                    }}
+                  >
+                    <FileCheck className="w-3.5 h-3.5 text-green-500" />
+                    <span className="text-xs text-muted-foreground">{totalDocs}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{totalDocs} documento(s) anexado(s)</p>
+                  <p className="text-xs text-muted-foreground">Clique para ver detalhes</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })()}
         </TableCell>
         <TableCell className="py-3">
           <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -1390,23 +1369,10 @@ export default function GestaoEntregas() {
                               <TableHead className="font-semibold whitespace-nowrap bg-muted">Rota</TableHead>
                               <TableHead className="font-semibold whitespace-nowrap text-right bg-muted">Peso</TableHead>
                               <TableHead className="font-semibold whitespace-nowrap bg-muted">Status</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">CT-e Nº</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap text-center bg-muted">
-                                <div className="flex items-center gap-1 justify-center">
-                                  <FileText className="w-3 h-3" />
-                                  Doc
-                                </div>
-                              </TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">
-                                <div className="flex items-center gap-1">
-                                  <Files className="w-3 h-3" />
-                                  NF-es
-                                </div>
-                              </TableHead>
                               <TableHead className="font-semibold whitespace-nowrap bg-muted">
                                 <div className="flex items-center gap-1">
                                   <FileText className="w-3 h-3" />
-                                  Manif.
+                                  Docs
                                 </div>
                               </TableHead>
                               <TableHead className="font-semibold whitespace-nowrap bg-muted">Previsão</TableHead>
@@ -1418,7 +1384,7 @@ export default function GestaoEntregas() {
                           <TableBody>
                             {filteredEntregas.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                                   Nenhuma entrega corresponde aos filtros selecionados
                                 </TableCell>
                               </TableRow>
