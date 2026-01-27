@@ -1,10 +1,11 @@
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Package, User, Truck, Building2, MapPin, ArrowRight } from 'lucide-react';
+import { Package, User, Truck, Building2, MapPin, ArrowRight, Image, FileText, Paperclip } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Chat } from './types';
+import textAbbr from '@/utils/textAbbr';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -12,6 +13,30 @@ interface ChatListItemProps {
   onClick: () => void;
   userType: 'embarcador' | 'transportadora';
 }
+
+// Attachment type icons helper
+const getAttachmentPreview = (anexoTipo: string | null, anexoNome: string | null) => {
+  if (!anexoTipo && !anexoNome) return null;
+  
+  const tipo = anexoTipo?.toLowerCase() || '';
+  
+  if (tipo.startsWith('image/')) {
+    return { icon: Image, label: '📷 Foto' };
+  }
+  if (tipo === 'application/pdf') {
+    return { icon: FileText, label: '📄 Documento PDF' };
+  }
+  if (tipo.includes('word') || tipo.includes('document')) {
+    return { icon: FileText, label: '📄 Documento' };
+  }
+  if (tipo.includes('sheet') || tipo.includes('excel')) {
+    return { icon: FileText, label: '📊 Planilha' };
+  }
+  if (tipo.includes('xml')) {
+    return { icon: FileText, label: '📄 XML' };
+  }
+  return { icon: Paperclip, label: '📎 Anexo' };
+};
 
 export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListItemProps) {
   const formatDate = (dateStr: string) => {
@@ -71,7 +96,29 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
     return <Building2 className="h-4 w-4" />;
   };
 
+  // Get last message preview with attachment support
+  const getLastMessagePreview = () => {
+    if (!chat.ultima_mensagem) return null;
+    
+    const msg = chat.ultima_mensagem;
+    const senderName = textAbbr(msg.sender_nome, 15);
+    
+    // Check if it's an attachment message
+    if (msg.anexo_url || msg.anexo_tipo) {
+      const attachment = getAttachmentPreview(msg.anexo_tipo || null, msg.anexo_nome || null);
+      if (attachment) {
+        return { senderName, content: attachment.label, isAttachment: true };
+      }
+    }
+    
+    // Regular text message
+    return { senderName, content: msg.conteudo, isAttachment: false };
+  };
+
   const route = getRoute();
+  const lastMessagePreview = getLastMessagePreview();
+  const chatTitle = textAbbr(getChatTitle(), 22);
+  const cargoDesc = textAbbr(chat.entrega?.carga?.descricao || '', 18);
 
   return (
     <div
@@ -105,7 +152,7 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
       <div className="flex-1 min-w-0 overflow-hidden">
         <div className="flex items-center justify-between gap-2 mb-1">
           <div className="flex-1 min-w-0">
-            <span className="font-semibold text-foreground block truncate">{getChatTitle()}</span>
+            <span className="font-semibold text-foreground block truncate">{chatTitle}</span>
           </div>
           <span className="text-xs text-muted-foreground shrink-0">
             {formatDate(chat.updated_at)}
@@ -118,20 +165,22 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
             {chat.entrega?.carga?.codigo || 'Carga'}
           </Badge>
           <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">
-            {chat.entrega?.carga?.descricao || ''}
+            {cargoDesc}
           </span>
         </div>
 
         {/* Route or last message */}
-        {chat.ultima_mensagem ? (
+        {lastMessagePreview ? (
           <p className={cn(
             'text-sm truncate block',
             chat.mensagens_nao_lidas && chat.mensagens_nao_lidas > 0 
               ? 'text-foreground font-medium' 
               : 'text-muted-foreground'
           )}>
-            <span className="font-medium">{chat.ultima_mensagem.sender_nome}:</span>{' '}
-            {chat.ultima_mensagem.conteudo}
+            <span className="font-medium">{lastMessagePreview.senderName}:</span>{' '}
+            <span className={lastMessagePreview.isAttachment ? 'italic' : ''}>
+              {lastMessagePreview.content}
+            </span>
           </p>
         ) : route ? (
           <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
