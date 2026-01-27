@@ -83,15 +83,23 @@ export function FilePreviewDialog({ open, onOpenChange, fileUrl, title = 'Visual
     setIsLoading(true);
     setError(null);
 
+    console.log('[FilePreviewDialog] Loading signed URL for:', fileUrl);
+
     try {
       const extracted = extractPathFromUrl(fileUrl);
+      console.log('[FilePreviewDialog] Extracted path:', extracted);
+      
       if (!extracted) {
         throw new Error('Não foi possível extrair o caminho do arquivo');
       }
 
+      console.log('[FilePreviewDialog] Requesting signed URL from bucket:', extracted.bucket, 'path:', extracted.path);
+      
       const { data, error: signError } = await supabase.storage
         .from(extracted.bucket)
         .createSignedUrl(extracted.path, 3600); // 1 hour expiry
+
+      console.log('[FilePreviewDialog] Signed URL response:', { data, error: signError });
 
       if (signError) throw signError;
       if (!data?.signedUrl) throw new Error('URL assinada não gerada');
