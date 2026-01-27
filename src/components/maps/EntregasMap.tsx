@@ -94,11 +94,11 @@ const createLocationIcon = (type: 'origem' | 'destino') => {
   });
 };
 
-// Updated status colors to match the actual database enum values
+// Updated status colors to match the correct visual design
 const statusColors: Record<string, string> = {
-  'aguardando': '#6b7280',        // Gray - waiting
+  'aguardando': '#f97316',        // Orange - waiting
   'saiu_para_coleta': '#3b82f6',  // Blue - left for pickup
-  'saiu_para_entrega': '#f97316', // Orange - left for delivery
+  'saiu_para_entrega': '#8b5cf6', // Purple - left for delivery
   'entregue': '#22c55e',          // Green - delivered
   'problema': '#ef4444',          // Red - problem
   'cancelada': '#991b1b',         // Dark red - cancelled

@@ -61,6 +61,7 @@ import {
 } from '@/components/ui/dialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
+import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { useNavigate } from 'react-router-dom';
 import { GoogleMapsLoader, airbnbMapStyles } from '@/components/maps/GoogleMapsLoader';
 import { GoogleMap } from '@react-google-maps/api';
@@ -154,6 +155,10 @@ export default function HistoricoEntregas() {
   const [filePreviewTitle, setFilePreviewTitle] = useState('Documento');
   const [currentPage, setCurrentPage] = useState(1);
   const [lastFilterKey, setLastFilterKey] = useState('');
+  
+  // Chat sheet state
+  const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
   // Draggable columns hook
   const {
@@ -472,7 +477,10 @@ export default function HistoricoEntregas() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => navigate(`/transportadora/mensagens?entrega=${e.id}`)}>
+                <DropdownMenuItem onClick={() => {
+                  setChatEntregaId(e.id);
+                  setChatSheetOpen(true);
+                }}>
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Ver conversa
                 </DropdownMenuItem>
@@ -890,6 +898,15 @@ export default function HistoricoEntregas() {
           onOpenChange={setFilePreviewOpen}
           fileUrl={filePreviewUrl}
           title={filePreviewTitle}
+        />
+
+        {/* Chat Sheet */}
+        <ChatSheet
+          open={chatSheetOpen}
+          onOpenChange={setChatSheetOpen}
+          entregaId={chatEntregaId}
+          userType="transportadora"
+          empresaId={empresa?.id}
         />
       </TooltipProvider>
     </div>

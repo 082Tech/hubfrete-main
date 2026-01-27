@@ -111,6 +111,7 @@ import { useUserContext } from '@/hooks/useUserContext';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
+import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -230,6 +231,10 @@ export default function GestaoEntregas() {
   const [ctePreviewUrl, setCtePreviewUrl] = useState<string | null>(null);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [expandedDrivers, setExpandedDrivers] = useState<Set<string>>(new Set());
+
+  // Chat sheet state
+  const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
   // Status change confirmation dialog state
   const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
@@ -1174,7 +1179,8 @@ export default function GestaoEntregas() {
                 className="h-7 w-7"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
+                  setChatEntregaId(entrega.id);
+                  setChatSheetOpen(true);
                 }}
               >
                 <MessageCircle className="w-4 h-4 text-primary" />
@@ -1374,7 +1380,8 @@ export default function GestaoEntregas() {
                 className="h-6 w-6"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
+                  setChatEntregaId(entrega.id);
+                  setChatSheetOpen(true);
                 }}
               >
                 <MessageCircle className="w-3.5 h-3.5 text-primary" />
@@ -1996,7 +2003,10 @@ export default function GestaoEntregas() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-52">
-                                  <DropdownMenuItem onClick={() => navigate(`/transportadora/mensagens?entrega=${entrega.id}`)}>
+                                  <DropdownMenuItem onClick={() => {
+                                    setChatEntregaId(entrega.id);
+                                    setChatSheetOpen(true);
+                                  }}>
                                     <MessageCircle className="w-4 h-4 mr-2" />
                                     Abrir chat
                                   </DropdownMenuItem>
@@ -2227,6 +2237,15 @@ export default function GestaoEntregas() {
           onOpenChange={setCtePreviewOpen}
           fileUrl={ctePreviewUrl}
           title="Visualizar Documento"
+        />
+
+        {/* Chat Sheet */}
+        <ChatSheet
+          open={chatSheetOpen}
+          onOpenChange={setChatSheetOpen}
+          entregaId={chatEntregaId}
+          userType="transportadora"
+          empresaId={empresa?.id}
         />
       </div>
     </TooltipProvider>
