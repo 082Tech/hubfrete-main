@@ -4,4 +4,5 @@ export { ChatListItem } from './ChatListItem';
 export { ChatArea } from './ChatArea';
 export { MessageBubble } from './MessageBubble';
 export { ChatDetailsSheet } from './ChatDetailsSheet';
+export { ChatSheet } from './ChatSheet';
 export { AttachmentPreview, AttachmentMessage } from './AttachmentPreview';

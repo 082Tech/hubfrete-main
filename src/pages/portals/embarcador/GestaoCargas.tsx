@@ -56,6 +56,7 @@ import {
 } from '@/components/ui/sheet';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
+import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Tooltip,
@@ -179,7 +180,7 @@ const activeStatuses: StatusEntrega[] = ['aguardando', 'saiu_para_coleta', 'saiu
 
 export default function GestaoCargas() {
   const navigate = useNavigate();
-  const { filialAtiva, switchingFilial } = useUserContext();
+  const { filialAtiva, switchingFilial, empresa } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -188,6 +189,10 @@ export default function GestaoCargas() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [selectedEntregaForDetails, setSelectedEntregaForDetails] = useState<{ entrega: EntregaData; carga: CargaCompleta } | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  // Chat sheet state
+  const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
   // Monitor internet connection status
   useEffect(() => {
@@ -575,8 +580,9 @@ export default function GestaoCargas() {
   );
 
   const handleOpenChat = (entrega: EntregaData, carga: CargaCompleta) => {
-    // Navigate to chat page with entrega context
-    navigate(`/embarcador/mensagens?entrega=${entrega.id}`);
+    // Open chat sheet instead of navigating
+    setChatEntregaId(entrega.id);
+    setChatSheetOpen(true);
   };
 
   return (
@@ -1311,6 +1317,15 @@ export default function GestaoCargas() {
           }}
         />
       )}
+
+      {/* Chat Sheet */}
+      <ChatSheet
+        open={chatSheetOpen}
+        onOpenChange={setChatSheetOpen}
+        entregaId={chatEntregaId}
+        userType="embarcador"
+        empresaId={empresa?.id}
+      />
     </div>
   );
 }
