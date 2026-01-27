@@ -1266,8 +1266,8 @@ export default function GestaoEntregas() {
     );
   };
 
-  // Render entrega row for grouped view (without driver column, with indent)
-  const renderEntregaRowGrouped = (entrega: EntregaCompleta) => {
+  // Render entrega row for nested subtable (without driver column)
+  const renderNestedEntregaRow = (entrega: EntregaCompleta) => {
     const status = entrega.status || 'aguardando';
     const config = statusEntregaConfig[status];
     const StatusIcon = config?.icon || Package;
@@ -1276,11 +1276,10 @@ export default function GestaoEntregas() {
     return (
       <TableRow
         key={entrega.id}
-        className={`cursor-pointer hover:bg-muted/50 ${isSelected ? 'bg-primary/5 hover:bg-primary/10' : ''}`}
+        className={`cursor-pointer hover:bg-muted/50 ${isSelected ? 'bg-primary/10' : ''}`}
         onClick={() => setSelectedEntregaId(isSelected ? null : entrega.id)}
       >
-        <TableCell className="py-3 pl-8"></TableCell>
-        <TableCell className="py-3">
+        <TableCell className="py-2.5">
           <Badge
             variant="secondary"
             className="text-xs font-mono whitespace-nowrap"
@@ -1288,7 +1287,7 @@ export default function GestaoEntregas() {
             {entrega.codigo || entrega.carga.codigo}
           </Badge>
         </TableCell>
-        <TableCell className="py-3">
+        <TableCell className="py-2.5">
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-sm whitespace-nowrap">
@@ -1300,7 +1299,7 @@ export default function GestaoEntregas() {
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell className="py-3">
+        <TableCell className="py-2.5">
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-sm whitespace-nowrap">
@@ -1314,7 +1313,7 @@ export default function GestaoEntregas() {
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell className="py-3">
+        <TableCell className="py-2.5">
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1 text-sm whitespace-nowrap">
@@ -1328,19 +1327,19 @@ export default function GestaoEntregas() {
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell className="text-right py-3">
+        <TableCell className="text-right py-2.5">
           <span className="text-sm font-medium whitespace-nowrap">
             {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
           </span>
         </TableCell>
-        <TableCell className="py-3">
+        <TableCell className="py-2.5">
           <Badge variant="outline" className={`${config?.color} border text-xs gap-1 whitespace-nowrap`}>
             <StatusIcon className="w-3 h-3" />
             {config?.label || status}
           </Badge>
         </TableCell>
-        {/* Documentos - Unified Column */}
-        <TableCell className="py-3">
+        {/* Documentos */}
+        <TableCell className="py-2.5">
           {(() => {
             const hasCte = !!entrega.cte_url;
             const hasManifesto = !!entrega.manifesto_url;
@@ -1355,20 +1354,19 @@ export default function GestaoEntregas() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 px-2 gap-1"
+                      className="h-6 px-2 gap-1"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedEntregaForDetails(entrega);
                         setDetailsDialogOpen(true);
                       }}
                     >
-                      <AlertTriangle className="w-3.5 h-3.5 text-chart-3" />
-                      <span className="text-xs text-chart-3">{pendingDocs} pend.</span>
+                      <AlertTriangle className="w-3 h-3 text-chart-3" />
+                      <span className="text-[10px] text-chart-3">{pendingDocs} pend.</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{pendingDocs} documento(s) pendente(s)</p>
-                    <p className="text-xs text-muted-foreground">Clique para ver detalhes</p>
                   </TooltipContent>
                 </Tooltip>
               );
@@ -1380,60 +1378,59 @@ export default function GestaoEntregas() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 gap-1"
+                    className="h-6 px-2 gap-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedEntregaForDetails(entrega);
                       setDetailsDialogOpen(true);
                     }}
                   >
-                    <FileCheck className="w-3.5 h-3.5 text-chart-2" />
-                    <span className="text-xs text-muted-foreground">{totalDocs}</span>
+                    <FileCheck className="w-3 h-3 text-chart-2" />
+                    <span className="text-[10px] text-muted-foreground">{totalDocs}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{totalDocs} documento(s) anexado(s)</p>
-                  <p className="text-xs text-muted-foreground">Clique para ver detalhes</p>
                 </TooltipContent>
               </Tooltip>
             );
           })()}
         </TableCell>
-        <TableCell className="py-3">
+        <TableCell className="py-2.5">
           <span className="text-xs text-muted-foreground whitespace-nowrap">
             {formatDate(entrega.carga.data_entrega_limite)}
           </span>
         </TableCell>
-        {/* Sticky Chat column */}
-        <TableCell className={`sticky right-10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] z-10 ${isSelected ? 'bg-primary/5' : 'bg-card'}`}>
+        {/* Chat column */}
+        <TableCell className="py-2.5">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="h-6 w-6"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
                 }}
               >
-                <MessageCircle className="w-4 h-4 text-primary" />
+                <MessageCircle className="w-3.5 h-3.5 text-primary" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Abrir chat</TooltipContent>
           </Tooltip>
         </TableCell>
-        {/* Sticky Actions column */}
-        <TableCell className={`sticky right-0 z-10 ${isSelected ? 'bg-primary/5' : 'bg-card'}`}>
+        {/* Actions column */}
+        <TableCell className="py-2.5">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="h-6 w-6"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreHorizontal className="w-4 h-4" />
+                <MoreHorizontal className="w-3.5 h-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 bg-popover">
@@ -1693,33 +1690,23 @@ export default function GestaoEntregas() {
                   {/* Table with driver grouping */}
                   <Card className="border-border">
                     <CardContent className="p-0">
-                      <div className="relative max-h-[450px] overflow-auto">
+                      <div className="relative max-h-[500px] overflow-auto">
                         <Table>
                           <TableHeader className="sticky top-0 z-20">
                             <TableRow className="bg-muted">
                               <TableHead className="font-semibold w-8 bg-muted"></TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Código</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Remetente</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Destinatário</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Rota</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap text-right bg-muted">Peso</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Motorista</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Veículo</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap text-right bg-muted">Peso Total</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Entregas</TableHead>
                               <TableHead className="font-semibold whitespace-nowrap bg-muted">Status</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">
-                                <div className="flex items-center gap-1">
-                                  <FileText className="w-3 h-3" />
-                                  Docs
-                                </div>
-                              </TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Previsão</TableHead>
-                              {/* Sticky action columns */}
-                              <TableHead className="font-semibold w-10 sticky right-10 bg-muted shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] z-10">Chat</TableHead>
-                              <TableHead className="font-semibold w-10 sticky right-0 bg-muted z-10"></TableHead>
+                              <TableHead className="font-semibold w-10 bg-muted"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {entregasGroupedByDriver.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                   Nenhuma entrega corresponde aos filtros selecionados
                                 </TableCell>
                               </TableRow>
@@ -1730,59 +1717,84 @@ export default function GestaoEntregas() {
                                 const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
                                 const isOnlineDriver = localizacao?.timestamp && (Date.now() - localizacao.timestamp) < 2 * 60 * 1000;
                                 const totalPesoGrupo = group.entregas.reduce((acc, e) => acc + (e.peso_alocado_kg || e.carga.peso_kg), 0);
+                                
+                                // Calculate status summary
+                                const statusCounts = group.entregas.reduce((acc, e) => {
+                                  acc[e.status || 'aguardando'] = (acc[e.status || 'aguardando'] || 0) + 1;
+                                  return acc;
+                                }, {} as Record<string, number>);
 
                                 return (
                                   <React.Fragment key={group.motoristaId}>
                                     {/* Driver header row */}
                                     <TableRow 
-                                      className="bg-muted/50 hover:bg-muted cursor-pointer"
+                                      className="bg-muted/30 hover:bg-muted/50 cursor-pointer"
                                       onClick={() => toggleDriverExpansion(group.motoristaId)}
                                     >
-                                      <TableCell className="py-2">
+                                      <TableCell className="py-3">
                                         <Button variant="ghost" size="icon" className="h-6 w-6">
                                           {isExpanded ? (
-                                            <ChevronDown className="w-4 h-4" />
+                                            <ChevronDown className="w-4 h-4 text-primary" />
                                           ) : (
                                             <ChevronRight className="w-4 h-4" />
                                           )}
                                         </Button>
                                       </TableCell>
-                                      <TableCell colSpan={4} className="py-2">
+                                      <TableCell className="py-3">
                                         <div className="flex items-center gap-3">
-                                          <Avatar className="h-8 w-8">
+                                          <Avatar className="h-9 w-9">
                                             <AvatarImage src={group.motorista?.foto_url || undefined} />
-                                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                            <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
                                               {group.motorista?.nome_completo.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?'}
                                             </AvatarFallback>
                                           </Avatar>
                                           <div>
                                             <div className="flex items-center gap-2">
-                                              <span className="font-semibold">{group.motorista?.nome_completo || 'Sem motorista'}</span>
+                                              <span className="font-semibold text-foreground">{group.motorista?.nome_completo || 'Sem motorista'}</span>
                                               {isOnlineDriver && (
-                                                <div className="w-2 h-2 rounded-full bg-chart-2 animate-pulse" title="Online" />
+                                                <Tooltip>
+                                                  <TooltipTrigger>
+                                                    <div className="w-2.5 h-2.5 rounded-full bg-chart-2 animate-pulse" />
+                                                  </TooltipTrigger>
+                                                  <TooltipContent>Online agora</TooltipContent>
+                                                </Tooltip>
                                               )}
                                             </div>
-                                            {group.veiculo && (
-                                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                                <Truck className="w-3 h-3" />
-                                                {group.veiculo.placa}
-                                              </span>
-                                            )}
+                                            <span className="text-xs text-muted-foreground">{group.motorista?.email}</span>
                                           </div>
                                         </div>
                                       </TableCell>
-                                      <TableCell className="text-right py-2">
-                                        <span className="font-semibold">{formatPeso(totalPesoGrupo)}</span>
+                                      <TableCell className="py-3">
+                                        {group.veiculo ? (
+                                          <div className="flex items-center gap-2">
+                                            <Truck className="w-4 h-4 text-muted-foreground" />
+                                            <span className="font-mono text-sm">{group.veiculo.placa}</span>
+                                          </div>
+                                        ) : (
+                                          <span className="text-sm text-muted-foreground">-</span>
+                                        )}
                                       </TableCell>
-                                      <TableCell className="py-2">
-                                        <Badge variant="secondary" className="text-xs">
-                                          {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
+                                      <TableCell className="text-right py-3">
+                                        <span className="font-semibold text-foreground">{formatPeso(totalPesoGrupo)}</span>
+                                      </TableCell>
+                                      <TableCell className="py-3">
+                                        <Badge variant="outline" className="text-xs">
+                                          {group.entregas.length} {group.entregas.length === 1 ? 'entrega' : 'entregas'}
                                         </Badge>
                                       </TableCell>
-                                      <TableCell colSpan={2} className="py-2"></TableCell>
-                                      {/* Sticky columns for driver row */}
-                                      <TableCell className="sticky right-10 bg-muted/50 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] z-10 py-2"></TableCell>
-                                      <TableCell className="sticky right-0 bg-muted/50 z-10 py-2">
+                                      <TableCell className="py-3">
+                                        <div className="flex flex-wrap gap-1">
+                                          {Object.entries(statusCounts).map(([status, count]) => {
+                                            const config = statusEntregaConfig[status];
+                                            return (
+                                              <Badge key={status} variant="outline" className={`${config?.color || ''} text-[10px] px-1.5 py-0`}>
+                                                {count}
+                                              </Badge>
+                                            );
+                                          })}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="py-3">
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                             <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -1821,8 +1833,48 @@ export default function GestaoEntregas() {
                                       </TableCell>
                                     </TableRow>
 
-                                    {/* Delivery rows - shown when expanded */}
-                                    {isExpanded && group.entregas.map(renderEntregaRowGrouped)}
+                                    {/* Expanded Row - Entregas com subtabela */}
+                                    {isExpanded && group.entregas.length > 0 && (
+                                      <TableRow className="bg-muted/10 hover:bg-muted/10">
+                                        <TableCell colSpan={7} className="p-0">
+                                          <div className="px-8 py-4">
+                                            <div className="flex items-center gap-2 mb-3">
+                                              <Package className="w-4 h-4 text-primary" />
+                                              <span className="text-sm font-medium">Entregas ({group.entregas.length})</span>
+                                            </div>
+                                            <div className="bg-background rounded-lg border overflow-hidden">
+                                              <ScrollArea className="w-full">
+                                                <Table>
+                                                  <TableHeader>
+                                                    <TableRow className="bg-muted/30">
+                                                      <TableHead className="text-xs font-semibold">Código</TableHead>
+                                                      <TableHead className="text-xs font-semibold">Remetente</TableHead>
+                                                      <TableHead className="text-xs font-semibold">Destinatário</TableHead>
+                                                      <TableHead className="text-xs font-semibold">Rota</TableHead>
+                                                      <TableHead className="text-xs font-semibold text-right">Peso</TableHead>
+                                                      <TableHead className="text-xs font-semibold">Status</TableHead>
+                                                      <TableHead className="text-xs font-semibold">
+                                                        <div className="flex items-center gap-1">
+                                                          <FileText className="w-3 h-3" />
+                                                          Docs
+                                                        </div>
+                                                      </TableHead>
+                                                      <TableHead className="text-xs font-semibold">Previsão</TableHead>
+                                                      <TableHead className="text-xs font-semibold w-10">Chat</TableHead>
+                                                      <TableHead className="text-xs font-semibold w-10"></TableHead>
+                                                    </TableRow>
+                                                  </TableHeader>
+                                                  <TableBody>
+                                                    {group.entregas.map(entrega => renderNestedEntregaRow(entrega))}
+                                                  </TableBody>
+                                                </Table>
+                                                <ScrollBar orientation="horizontal" />
+                                              </ScrollArea>
+                                            </div>
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    )}
                                   </React.Fragment>
                                 );
                               })
