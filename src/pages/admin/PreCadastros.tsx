@@ -36,12 +36,17 @@ import {
   Building2,
   FileText,
   Loader2,
-  Eye
+  Eye,
+  Trash2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Pagination } from '@/components/admin/Pagination';
+import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
+
+const ITEMS_PER_PAGE = 10;
 
 type PreCadastro = {
   id: string;
@@ -66,13 +71,17 @@ export default function PreCadastros() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('pendente');
   
+  const [currentPage, setCurrentPage] = useState(1);
+  
   // Dialog states
   const [selectedPreCadastro, setSelectedPreCadastro] = useState<PreCadastro | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchPreCadastros();
@@ -206,6 +215,37 @@ export default function PreCadastros() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!selectedPreCadastro) return;
+    setIsDeleting(true);
+
+    try {
+      const { error } = await supabase
+        .from('pre_cadastros')
+        .delete()
+        .eq('id', selectedPreCadastro.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Excluído",
+        description: `Pré-cadastro de ${selectedPreCadastro.nome} foi excluído.`,
+      });
+
+      setDeleteDialogOpen(false);
+      setSelectedPreCadastro(null);
+      fetchPreCadastros();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível excluir.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const filteredPreCadastros = preCadastros.filter(p => {
     const matchesSearch = 
       p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -214,6 +254,17 @@ export default function PreCadastros() {
     const matchesTab = selectedTab === 'todos' || p.status === selectedTab;
     return matchesSearch && matchesTab;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredPreCadastros.length / ITEMS_PER_PAGE);
+  const paginatedPreCadastros = filteredPreCadastros.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedTab]);
 
   const counts = {
     todos: preCadastros.length,
@@ -318,75 +369,97 @@ export default function PreCadastros() {
                     Nenhum pré-cadastro encontrado
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Nome</TableHead>
-                        <TableHead className="hidden md:table-cell">E-mail</TableHead>
-                        <TableHead className="hidden lg:table-cell">Empresa/CPF</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="hidden md:table-cell">Data</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredPreCadastros.map((pc) => (
-                        <TableRow key={pc.id}>
-                          <TableCell>{getTipoBadge(pc.tipo)}</TableCell>
-                          <TableCell className="font-medium">{pc.nome}</TableCell>
-                          <TableCell className="hidden md:table-cell text-muted-foreground">{pc.email}</TableCell>
-                          <TableCell className="hidden lg:table-cell text-muted-foreground">
-                            {pc.nome_empresa || pc.cpf || '-'}
-                          </TableCell>
-                          <TableCell>{getStatusBadge(pc.status)}</TableCell>
-                          <TableCell className="hidden md:table-cell text-muted-foreground">
-                            {format(new Date(pc.created_at), 'dd/MM/yy HH:mm', { locale: ptBR })}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setSelectedPreCadastro(pc);
-                                  setShowDetailsDialog(true);
-                                }}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              {pc.status === 'pendente' && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-green-600 hover:text-green-700 hover:bg-green-500/10"
-                                    onClick={() => {
-                                      setSelectedPreCadastro(pc);
-                                      setShowApproveDialog(true);
-                                    }}
-                                  >
-                                    <CheckCircle className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-500/10"
-                                    onClick={() => {
-                                      setSelectedPreCadastro(pc);
-                                      setShowRejectDialog(true);
-                                    }}
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Nome</TableHead>
+                          <TableHead className="hidden md:table-cell">E-mail</TableHead>
+                          <TableHead className="hidden lg:table-cell">Empresa/CPF</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="hidden md:table-cell">Data</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedPreCadastros.map((pc) => (
+                          <TableRow key={pc.id}>
+                            <TableCell>{getTipoBadge(pc.tipo)}</TableCell>
+                            <TableCell className="font-medium">{pc.nome}</TableCell>
+                            <TableCell className="hidden md:table-cell text-muted-foreground">{pc.email}</TableCell>
+                            <TableCell className="hidden lg:table-cell text-muted-foreground">
+                              {pc.nome_empresa || pc.cpf || '-'}
+                            </TableCell>
+                            <TableCell>{getStatusBadge(pc.status)}</TableCell>
+                            <TableCell className="hidden md:table-cell text-muted-foreground">
+                              {format(new Date(pc.created_at), 'dd/MM/yy HH:mm', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setSelectedPreCadastro(pc);
+                                    setShowDetailsDialog(true);
+                                  }}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                {pc.status === 'pendente' && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-green-600 hover:text-green-700 hover:bg-green-500/10"
+                                      onClick={() => {
+                                        setSelectedPreCadastro(pc);
+                                        setShowApproveDialog(true);
+                                      }}
+                                    >
+                                      <CheckCircle className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-500/10"
+                                      onClick={() => {
+                                        setSelectedPreCadastro(pc);
+                                        setShowRejectDialog(true);
+                                      }}
+                                    >
+                                      <XCircle className="w-4 h-4" />
+                                    </Button>
+                                  </>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => {
+                                    setSelectedPreCadastro(pc);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {totalPages > 1 && (
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={filteredPreCadastros.length}
+                        itemsPerPage={ITEMS_PER_PAGE}
+                        onPageChange={setCurrentPage}
+                      />
+                    )}
+                  </>
                 )}
               </TabsContent>
             </Tabs>
@@ -544,6 +617,16 @@ export default function PreCadastros() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
+        title="Excluir pré-cadastro?"
+        description={`Tem certeza que deseja excluir o pré-cadastro de "${selectedPreCadastro?.nome}"?`}
+      />
     </div>
   );
 }

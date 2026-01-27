@@ -366,6 +366,128 @@ export type Database = {
           },
         ]
       }
+      chamado_mensagens: {
+        Row: {
+          anexo_nome: string | null
+          anexo_url: string | null
+          chamado_id: string
+          conteudo: string
+          created_at: string
+          id: string
+          sender_id: string
+          sender_nome: string
+          sender_tipo: string
+        }
+        Insert: {
+          anexo_nome?: string | null
+          anexo_url?: string | null
+          chamado_id: string
+          conteudo: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          sender_nome: string
+          sender_tipo: string
+        }
+        Update: {
+          anexo_nome?: string | null
+          anexo_url?: string | null
+          chamado_id?: string
+          conteudo?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          sender_nome?: string
+          sender_tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chamado_mensagens_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chamados: {
+        Row: {
+          atribuido_a: string | null
+          categoria: Database["public"]["Enums"]["categoria_chamado"]
+          codigo: string
+          created_at: string
+          descricao: string
+          empresa_id: number | null
+          id: string
+          prioridade: Database["public"]["Enums"]["prioridade_chamado"]
+          resolucao: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          solicitante_email: string
+          solicitante_nome: string
+          solicitante_tipo: string
+          solicitante_user_id: string | null
+          status: Database["public"]["Enums"]["status_chamado"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          atribuido_a?: string | null
+          categoria?: Database["public"]["Enums"]["categoria_chamado"]
+          codigo: string
+          created_at?: string
+          descricao: string
+          empresa_id?: number | null
+          id?: string
+          prioridade?: Database["public"]["Enums"]["prioridade_chamado"]
+          resolucao?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          solicitante_email: string
+          solicitante_nome: string
+          solicitante_tipo: string
+          solicitante_user_id?: string | null
+          status?: Database["public"]["Enums"]["status_chamado"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          atribuido_a?: string | null
+          categoria?: Database["public"]["Enums"]["categoria_chamado"]
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          empresa_id?: number | null
+          id?: string
+          prioridade?: Database["public"]["Enums"]["prioridade_chamado"]
+          resolucao?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          solicitante_email?: string
+          solicitante_nome?: string
+          solicitante_tipo?: string
+          solicitante_user_id?: string | null
+          status?: Database["public"]["Enums"]["status_chamado"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chamados_atribuido_a_fkey"
+            columns: ["atribuido_a"]
+            isOneToOne: false
+            referencedRelation: "torre_users"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "chamados_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_participantes: {
         Row: {
           chat_id: string
@@ -2036,6 +2158,13 @@ export type Database = {
     Enums: {
       admin_role: "super_admin" | "admin" | "suporte"
       app_role: "admin" | "embarcador" | "transportadora" | "motorista"
+      categoria_chamado:
+        | "suporte_tecnico"
+        | "financeiro"
+        | "operacional"
+        | "reclamacao"
+        | "sugestao"
+        | "outros"
       classe_empresa: "INDÚSTRIA" | "LOJA" | "COMÉRCIO"
       forma_pagamento:
         | "a_vista"
@@ -2043,7 +2172,14 @@ export type Database = {
         | "faturado_14"
         | "faturado_21"
         | "faturado_30"
+      prioridade_chamado: "baixa" | "media" | "alta" | "urgente"
       status_carga: "publicada" | "parcialmente_alocada" | "totalmente_alocada"
+      status_chamado:
+        | "aberto"
+        | "em_andamento"
+        | "aguardando_resposta"
+        | "resolvido"
+        | "fechado"
       status_entrega:
         | "aguardando"
         | "saiu_para_coleta"
@@ -2240,6 +2376,14 @@ export const Constants = {
     Enums: {
       admin_role: ["super_admin", "admin", "suporte"],
       app_role: ["admin", "embarcador", "transportadora", "motorista"],
+      categoria_chamado: [
+        "suporte_tecnico",
+        "financeiro",
+        "operacional",
+        "reclamacao",
+        "sugestao",
+        "outros",
+      ],
       classe_empresa: ["INDÚSTRIA", "LOJA", "COMÉRCIO"],
       forma_pagamento: [
         "a_vista",
@@ -2248,7 +2392,15 @@ export const Constants = {
         "faturado_21",
         "faturado_30",
       ],
+      prioridade_chamado: ["baixa", "media", "alta", "urgente"],
       status_carga: ["publicada", "parcialmente_alocada", "totalmente_alocada"],
+      status_chamado: [
+        "aberto",
+        "em_andamento",
+        "aguardando_resposta",
+        "resolvido",
+        "fechado",
+      ],
       status_entrega: [
         "aguardando",
         "saiu_para_coleta",
