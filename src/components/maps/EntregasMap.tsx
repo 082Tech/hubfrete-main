@@ -57,15 +57,7 @@ const createTruckIcon = (
 
   return new L.DivIcon({
     className: 'truck-marker',
-    html: `
-      <div style="
-        position: relative;
-        width: ${size}px;
-        height: ${size}px;
-      ">
-        ${getTruckIconHtml(heading, isOnline, isSelected, size)}
-      </div>
-    `,
+    html: getTruckIconHtml(heading, isOnline, isSelected, size),
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -size / 2],
