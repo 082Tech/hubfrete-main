@@ -43,6 +43,7 @@ import {
   ArrowRightLeft,
   ChevronDown,
   ChevronRight,
+  Weight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -73,6 +74,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Tooltip,
@@ -190,10 +198,9 @@ export default function GestaoEntregas() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [showOnlyWithDeliveries, setShowOnlyWithDeliveries] = useState(true);
+  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
-  const [expandedDrivers, setExpandedDrivers] = useState<Set<string>>(new Set());
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedEntregaForDetails, setSelectedEntregaForDetails] = useState<EntregaCompleta | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -290,46 +297,32 @@ export default function GestaoEntregas() {
     refetchInterval: 60000, // Refresh every 1 minute
   });
 
-  // Fetch all drivers from the company (for "show all drivers" filter)
-  const { data: allMotoristas = [] } = useQuery({
-    queryKey: ['all_motoristas_empresa', empresa?.id],
-    queryFn: async () => {
-      if (!empresa?.id) return [];
+  // Get unique motoristas from entregas for the filter dropdown
+  const motoristasFromEntregas = useMemo(() => {
+    const motoristasMap = new Map<string, { id: string; nome_completo: string }>();
+    entregas.forEach(e => {
+      if (e.motorista) {
+        motoristasMap.set(e.motorista.id, {
+          id: e.motorista.id,
+          nome_completo: e.motorista.nome_completo,
+        });
+      }
+    });
+    return Array.from(motoristasMap.values()).sort((a, b) => 
+      a.nome_completo.localeCompare(b.nome_completo)
+    );
+  }, [entregas]);
 
-      const { data, error } = await supabase
-        .from('motoristas')
-        .select('id, nome_completo, telefone, email, foto_url, ativo')
-        .eq('empresa_id', empresa.id)
-        .eq('ativo', true);
-
-      if (error) throw error;
-      return (data || []) as MotoristaCompleto[];
-    },
-    enabled: !!empresa?.id && !showOnlyWithDeliveries,
-  });
-
-  // Get all driver emails (either from entregas or all drivers based on filter)
+  // Get all driver emails for realtime tracking
   const motoristaEmails = useMemo(() => {
     const emails = new Set<string>();
-    
-    // Always include drivers from entregas
     entregas.forEach(e => {
       if (e.motorista?.email) {
         emails.add(e.motorista.email);
       }
     });
-    
-    // If showing all drivers, include them too
-    if (!showOnlyWithDeliveries) {
-      allMotoristas.forEach(m => {
-        if (m.email) {
-          emails.add(m.email);
-        }
-      });
-    }
-    
     return Array.from(emails);
-  }, [entregas, allMotoristas, showOnlyWithDeliveries]);
+  }, [entregas]);
 
   // Real-time driver locations (no polling!)
   const { localizacaoMap, isConnected: isRealtimeConnected } = useRealtimeLocalizacoes({
@@ -344,70 +337,38 @@ export default function GestaoEntregas() {
         entrega.carga.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         entrega.carga.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
         entrega.motorista?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entrega.veiculo?.placa?.toLowerCase().includes(searchTerm.toLowerCase());
+        entrega.veiculo?.placa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entrega.numero_cte?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus = selectedStatuses.length === 0 ||
         selectedStatuses.includes(entrega.status || '');
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [entregas, searchTerm, selectedStatuses]);
-
-  // Group entregas by driver
-  interface DriverGroup {
-    motoristaId: string;
-    motorista: EntregaCompleta['motorista'];
-    veiculo: EntregaCompleta['veiculo'];
-    entregas: EntregaCompleta[];
-    totalPeso: number;
-    latestUpdate: string | null;
-  }
-
-  const entregasGroupedByDriver = useMemo(() => {
-    const driverMap = new Map<string, DriverGroup>();
-    
-    filteredEntregas.forEach((entrega) => {
-      const driverId = entrega.motorista?.id || 'sem-motorista';
       
-      if (!driverMap.has(driverId)) {
-        driverMap.set(driverId, {
-          motoristaId: driverId,
-          motorista: entrega.motorista,
-          veiculo: entrega.veiculo,
-          entregas: [entrega],
-          totalPeso: entrega.peso_alocado_kg || entrega.carga.peso_kg,
-          latestUpdate: entrega.updated_at,
-        });
-      } else {
-        const group = driverMap.get(driverId)!;
-        group.entregas.push(entrega);
-        group.totalPeso += entrega.peso_alocado_kg || entrega.carga.peso_kg;
-        // Keep track of the latest update
-        if (entrega.updated_at && (!group.latestUpdate || entrega.updated_at > group.latestUpdate)) {
-          group.latestUpdate = entrega.updated_at;
-        }
-      }
-    });
-    
-    // Sort groups by latest update (most recent first)
-    return Array.from(driverMap.values()).sort((a, b) => {
-      if (!a.latestUpdate) return 1;
-      if (!b.latestUpdate) return -1;
-      return new Date(b.latestUpdate).getTime() - new Date(a.latestUpdate).getTime();
-    });
-  }, [filteredEntregas]);
+      const matchesMotorista = !selectedMotoristaId || 
+        entrega.motorista?.id === selectedMotoristaId;
 
-  const toggleDriverExpanded = (motoristaId: string) => {
-    setExpandedDrivers(prev => {
-      const next = new Set(prev);
-      if (next.has(motoristaId)) {
-        next.delete(motoristaId);
-      } else {
-        next.add(motoristaId);
-      }
-      return next;
+      return matchesSearch && matchesStatus && matchesMotorista;
     });
-  };
+  }, [entregas, searchTerm, selectedStatuses, selectedMotoristaId]);
+
+  // Calculate summary for selected motorista
+  const selectedMotoristaSummary = useMemo(() => {
+    if (!selectedMotoristaId) return null;
+    
+    const motoristaEntregas = filteredEntregas.filter(e => e.motorista?.id === selectedMotoristaId);
+    const totalPeso = motoristaEntregas.reduce((acc, e) => acc + (e.peso_alocado_kg || e.carga.peso_kg), 0);
+    const motorista = motoristaEntregas[0]?.motorista;
+    const veiculo = motoristaEntregas[0]?.veiculo;
+    const motoristaEmail = motorista?.email;
+    const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
+    
+    return {
+      motorista,
+      veiculo,
+      totalEntregas: motoristaEntregas.length,
+      totalPeso,
+      localizacao,
+    };
+  }, [selectedMotoristaId, filteredEntregas, localizacaoMap]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -644,9 +605,6 @@ export default function GestaoEntregas() {
       heading?: number | null;
     }> = [];
 
-    // Track drivers that are already included from entregas
-    const includedDriverEmails = new Set<string>();
-
     // Add drivers from entregas
     filteredEntregas.forEach(e => {
       const origem = e.carga.endereco_origem;
@@ -659,10 +617,6 @@ export default function GestaoEntregas() {
       const hasRoute = (origem?.latitude != null && origem?.longitude != null) || (destino?.latitude != null && destino?.longitude != null);
 
       if (!hasLocation && !hasRoute) return;
-
-      if (motoristaEmail) {
-        includedDriverEmails.add(motoristaEmail);
-      }
 
       result.push({
         id: e.id,
@@ -689,41 +643,8 @@ export default function GestaoEntregas() {
       });
     });
 
-    // If showing all drivers, add idle drivers (not in active deliveries)
-    if (!showOnlyWithDeliveries) {
-      allMotoristas.forEach(m => {
-        if (m.email && !includedDriverEmails.has(m.email)) {
-          const localizacao = localizacaoMap.get(m.email);
-          const hasLocation = localizacao?.latitude != null && localizacao?.longitude != null;
-
-          if (hasLocation) {
-            result.push({
-              id: `idle-${m.id}`,
-              entregaId: `idle-${m.id}`,
-              latitude: localizacao?.latitude ?? null,
-              longitude: localizacao?.longitude ?? null,
-              status: null,
-              codigo: null,
-              descricao: null,
-              motorista: m.nome_completo,
-              motoristaFotoUrl: m.foto_url,
-              motoristaOnline: localizacao?.status ?? null,
-              telefone: m.telefone,
-              placa: null,
-              destino: null,
-              origemCoords: null,
-              destinoCoords: null,
-              isIdleDriver: true,
-              lastLocationUpdate: localizacao?.timestamp ?? null,
-              heading: localizacao?.heading ?? null,
-            });
-          }
-        }
-      });
-    }
-
     return result;
-  }, [filteredEntregas, localizacaoMap, showOnlyWithDeliveries, allMotoristas]);
+  }, [filteredEntregas, localizacaoMap]);
 
   const handleStatusToggle = (status: string) => {
     setSelectedStatuses(prev =>
@@ -736,7 +657,7 @@ export default function GestaoEntregas() {
   const clearFilters = () => {
     setSelectedStatuses([]);
     setSearchTerm('');
-    setShowOnlyWithDeliveries(true);
+    setSelectedMotoristaId(null);
   };
 
   const formatDate = (dateString: string | null) => {
@@ -769,31 +690,25 @@ export default function GestaoEntregas() {
   // Filters sidebar content
   const FiltersContent = () => (
     <div className="space-y-6">
-      {/* Driver filter */}
+      {/* Motorista filter */}
       <div>
-        <h4 className="font-medium text-sm text-foreground mb-3">Motoristas</h4>
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="filter-drivers-with-deliveries"
-              checked={showOnlyWithDeliveries}
-              onCheckedChange={(checked) => setShowOnlyWithDeliveries(checked === true)}
-            />
-            <Label htmlFor="filter-drivers-with-deliveries" className="text-sm font-normal cursor-pointer">
-              Apenas com entregas
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="filter-all-drivers"
-              checked={!showOnlyWithDeliveries}
-              onCheckedChange={(checked) => setShowOnlyWithDeliveries(checked !== true)}
-            />
-            <Label htmlFor="filter-all-drivers" className="text-sm font-normal cursor-pointer">
-              Todos os motoristas
-            </Label>
-          </div>
-        </div>
+        <h4 className="font-medium text-sm text-foreground mb-3">Motorista</h4>
+        <Select
+          value={selectedMotoristaId || "all"}
+          onValueChange={(value) => setSelectedMotoristaId(value === "all" ? null : value)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Todos os motoristas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os motoristas</SelectItem>
+            {motoristasFromEntregas.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.nome_completo}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Status filter */}
@@ -815,7 +730,7 @@ export default function GestaoEntregas() {
         </div>
       </div>
 
-      {(selectedStatuses.length > 0 || !showOnlyWithDeliveries) && (
+      {(selectedStatuses.length > 0 || selectedMotoristaId) && (
         <Button variant="outline" size="sm" onClick={clearFilters} className="w-full gap-2">
           <X className="w-4 h-4" />
           Limpar filtros
@@ -856,668 +771,344 @@ export default function GestaoEntregas() {
     </TooltipProvider>
   );
 
-  return (
-    <div className="p-4 md:p-8 pb-20 md:pb-8">
-      {/* Desktop Layout - Sidebar + Content */}
-      <div className="hidden lg:flex gap-6">
-        {/* Desktop Sidebar: Filters + Stats + Search */}
-        <aside className="hidden lg:flex flex-col w-72 shrink-0 gap-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
-              <p className="text-sm text-muted-foreground">Rastreie suas entregas em tempo real</p>
-            </div>
-          </div>
-
-          {/* Action buttons and Live Indicator */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => refetch()}
-              disabled={isLoading || isFetching}
-            >
-              <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-            </Button>
-            <LiveIndicator />
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar código, motorista, placa..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 gap-2">
-            <Card className="border-border bg-amber-500/5">
-              <CardContent className="p-3 text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Clock className="w-4 h-4 text-amber-600" />
-                </div>
-                <p className="text-xl font-bold text-amber-600">{stats.aguardando}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Aguardando</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-blue-500/5">
-              <CardContent className="p-3 text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Package className="w-4 h-4 text-blue-600" />
-                </div>
-                <p className="text-xl font-bold text-blue-600">{stats.saiu_para_coleta}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Coleta</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-purple-500/5">
-              <CardContent className="p-3 text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Truck className="w-4 h-4 text-purple-600" />
-                </div>
-                <p className="text-xl font-bold text-purple-600">{stats.saiu_para_entrega}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Entrega</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-destructive/5">
-              <CardContent className="p-3 text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <AlertCircle className="w-4 h-4 text-destructive" />
-                </div>
-                <p className="text-xl font-bold text-destructive">{stats.problema}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Problemas</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Filters Card */}
-          <Card className="border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                Filtros
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FiltersContent />
-            </CardContent>
-          </Card>
-
-          {/* Active Filters */}
-          {selectedStatuses.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {selectedStatuses.map(status => {
-                const config = statusEntregaConfig[status];
-                return (
-                  <Badge
-                    key={status}
-                    variant="outline"
-                    className={`${config?.color || ''} cursor-pointer text-xs`}
-                    onClick={() => handleStatusToggle(status)}
-                  >
-                    {config?.label || status}
-                    <X className="w-3 h-3 ml-1" />
-                  </Badge>
-                );
-              })}
-            </div>
-          )}
-        </aside>
-
-        {/* Desktop Main Content */}
-        <div className="flex-1 space-y-4 min-w-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : filteredEntregas.length === 0 ? (
-            <div className='space-y-4'>
-              <Suspense fallback={
-                <Card className="border-border">
-                  <CardContent className="p-0">
-                    <div className="w-full h-[400px] flex items-center justify-center bg-muted/30 rounded-lg">
-                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-              }>
-                <EntregasGoogleMap
-                  entregas={mapData}
-                  selectedEntregaId={selectedEntregaId}
-                  onSelectEntrega={setSelectedEntregaId}
-                />
-              </Suspense>
-
-              <Card className="border-border">
-                <CardContent className="p-8 text-center">
-                  <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-medium text-foreground mb-1">Nenhuma entrega em andamento</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {selectedStatuses.length > 0
-                      ? 'Tente ajustar os filtros selecionados'
-                      : 'Aceite cargas para começar a gerenciar entregas'}
-                  </p>
-                  {selectedStatuses.length > 0 && (
-                    <Button variant="outline" onClick={clearFilters}>
-                      Limpar filtros
-                    </Button>
+  // Driver Summary Card (shown when a driver is selected)
+  const DriverSummaryCard = () => {
+    if (!selectedMotoristaSummary) return null;
+    
+    const { motorista, veiculo, totalEntregas, totalPeso, localizacao } = selectedMotoristaSummary;
+    const lastUpdate = localizacao?.timestamp;
+    const isRecent = lastUpdate && (Date.now() - lastUpdate) < 5 * 60 * 1000;
+    
+    return (
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                {motorista?.foto_url ? (
+                  <img src={motorista.foto_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-6 h-6 text-primary" />
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">{motorista?.nome_completo || 'Motorista'}</h3>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  {veiculo && (
+                    <span className="flex items-center gap-1">
+                      <Truck className="w-3 h-3" />
+                      {veiculo.placa}
+                    </span>
                   )}
-                </CardContent>
-              </Card>
+                  {lastUpdate && (
+                    <span className={`flex items-center gap-1 ${isRecent ? 'text-emerald-600' : ''}`}>
+                      <Radio className={`w-3 h-3 ${isRecent ? 'animate-pulse' : ''}`} />
+                      {formatLocationTimestamp(lastUpdate)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-primary">{totalEntregas}</p>
+                <p className="text-xs text-muted-foreground">Entregas</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-foreground">{formatPeso(totalPeso)}</p>
+                <p className="text-xs text-muted-foreground">Peso Total</p>
+              </div>
+              
+              {/* Bulk actions for selected driver */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <ArrowRightLeft className="w-4 h-4" />
+                    Alterar todas
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
+                    const StatusIconComponent = statusConfig.icon;
+                    return (
+                      <DropdownMenuItem
+                        key={statusKey}
+                        onClick={() => {
+                          const entregaIds = filteredEntregas
+                            .filter(e => e.motorista?.id === selectedMotoristaId)
+                            .map(e => e.id);
+                          handleBulkStatusChange(entregaIds, statusKey as StatusEntrega, motorista?.nome_completo);
+                        }}
+                      >
+                        <StatusIconComponent className="w-4 h-4 mr-2" />
+                        {statusConfig.label}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedMotoristaId(null)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Render individual entrega row
+  const renderEntregaRow = (entrega: EntregaCompleta) => {
+    const status = entrega.status || 'aguardando';
+    const config = statusEntregaConfig[status];
+    const StatusIcon = config?.icon || Package;
+    const isSelected = selectedEntregaId === entrega.id;
+
+    return (
+      <TableRow
+        key={entrega.id}
+        className={`cursor-pointer ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
+        onClick={() => setSelectedEntregaId(entrega.id)}
+      >
+        <TableCell>
+          <Badge variant="secondary" className="text-xs font-mono text-nowrap">
+            {entrega.codigo || entrega.id.slice(0, 8).toUpperCase()}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          {entrega.motorista ? (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                {entrega.motorista.foto_url ? (
+                  <img src={entrega.motorista.foto_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-3 h-3 text-primary" />
+                )}
+              </div>
+              <span className="text-sm truncate max-w-[120px]">{entrega.motorista.nome_completo}</span>
             </div>
           ) : (
-            <div className='space-y-4'>
-              <Suspense fallback={
-                <Card className="border-border">
-                  <CardContent className="p-0">
-                    <div className="w-full h-[400px] flex items-center justify-center bg-muted/30 rounded-lg">
-                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-              }>
-                <EntregasGoogleMap
-                  entregas={mapData}
-                  selectedEntregaId={selectedEntregaId}
-                  onSelectEntrega={setSelectedEntregaId}
-                />
-              </Suspense>
-
-              <Card className="border-border">
-                <CardContent className="p-0">
-                  <ScrollArea className="w-full">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="w-10"></TableHead>
-                          <TableHead className="font-semibold min-w-[160px]">
-                            <div className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              Motorista
-                            </div>
-                          </TableHead>
-                          <TableHead className="font-semibold min-w-[100px]">Veículo</TableHead>
-                          <TableHead className="font-semibold min-w-[100px] text-center">Entregas</TableHead>
-                          <TableHead className="font-semibold min-w-[100px] text-center">Peso Total</TableHead>
-                          <TableHead className="font-semibold min-w-[120px]">
-                            <div className="flex items-center gap-1">
-                              <Radio className="w-3 h-3" />
-                              Localização
-                            </div>
-                          </TableHead>
-                          <TableHead className="font-semibold w-[50px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {entregasGroupedByDriver.map((driverGroup) => {
-                          const isExpanded = expandedDrivers.has(driverGroup.motoristaId);
-                          const motoristaEmail = driverGroup.motorista?.email;
-                          const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
-                          const lastUpdate = localizacao?.timestamp;
-                          const isRecent = lastUpdate && (Date.now() - lastUpdate) < 5 * 60 * 1000;
-
-                          return (
-                            <React.Fragment key={driverGroup.motoristaId}>
-                              {/* Driver Row */}
-                              <TableRow
-                                className={`cursor-pointer hover:bg-muted/50 ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
-                                onClick={() => toggleDriverExpanded(driverGroup.motoristaId)}
-                              >
-                                <TableCell className="p-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-6 w-6"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleDriverExpanded(driverGroup.motoristaId);
-                                    }}
-                                  >
-                                    {isExpanded ? (
-                                      <ChevronDown className="w-4 h-4 text-primary" />
-                                    ) : (
-                                      <ChevronRight className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                </TableCell>
-                                <TableCell>
-                                  {driverGroup.motorista ? (
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                                        {driverGroup.motorista.foto_url ? (
-                                          <img src={driverGroup.motorista.foto_url} alt="" className="w-full h-full object-cover" />
-                                        ) : (
-                                          <User className="w-4 h-4 text-primary" />
-                                        )}
-                                      </div>
-                                      <div className="min-w-0">
-                                        <p className="font-medium text-sm truncate">{driverGroup.motorista.nome_completo}</p>
-                                        {driverGroup.motorista.telefone && (
-                                          <p className="text-xs text-muted-foreground">{driverGroup.motorista.telefone}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">Sem motorista</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {driverGroup.veiculo ? (
-                                    <Badge variant="outline" className="text-xs">
-                                      {driverGroup.veiculo.placa}
-                                    </Badge>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">-</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Badge className="bg-primary/10 text-primary border-primary/20">
-                                    {driverGroup.entregas.length} {driverGroup.entregas.length === 1 ? 'entrega' : 'entregas'}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <span className="font-medium text-sm">{formatPeso(driverGroup.totalPeso)}</span>
-                                </TableCell>
-                                <TableCell>
-                                  {lastUpdate ? (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div className={`flex items-center gap-1 text-xs ${isRecent ? 'text-emerald-600' : 'text-muted-foreground'}`}>
-                                          <Radio className={`w-3 h-3 ${isRecent ? 'animate-pulse' : ''}`} />
-                                          <span>{formatLocationTimestamp(lastUpdate)}</span>
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p className="text-xs">
-                                          {new Date(lastUpdate).toLocaleString('pt-BR')}
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">-</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <MoreHorizontal className="w-4 h-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-56">
-                                      <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
-                                          <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                          Alterar status de todas
-                                        </DropdownMenuSubTrigger>
-                                        <DropdownMenuPortal>
-                                          <DropdownMenuSubContent className="w-48">
-                                            {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
-                                              const StatusIconComponent = statusConfig.icon;
-                                              return (
-                                                <DropdownMenuItem
-                                                  key={statusKey}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const entregaIds = driverGroup.entregas.map(e => e.id);
-                                                    handleBulkStatusChange(entregaIds, statusKey as StatusEntrega, driverGroup.motorista?.nome_completo);
-                                                  }}
-                                                >
-                                                  <StatusIconComponent className="w-4 h-4 mr-2" />
-                                                  {statusConfig.label}
-                                                </DropdownMenuItem>
-                                              );
-                                            })}
-                                          </DropdownMenuSubContent>
-                                        </DropdownMenuPortal>
-                                      </DropdownMenuSub>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
-
-                              {/* Expanded Deliveries */}
-                              {isExpanded && (
-                                <TableRow className="bg-muted/20 hover:bg-muted/20">
-                                  <TableCell colSpan={7} className="p-0">
-                                    <div className="px-8 py-4">
-                                      <div className="flex items-center gap-2 mb-3">
-                                        <Truck className="w-4 h-4 text-primary" />
-                                        <span className="text-sm font-medium">Entregas de {driverGroup.motorista?.nome_completo || 'Motorista'}</span>
-                                      </div>
-                                      <div className="bg-background rounded-lg border overflow-hidden">
-                                        <Table>
-                                          <TableHeader>
-                                            <TableRow className="bg-muted/30">
-                                              <TableHead className="text-xs min-w-[100px]">Código</TableHead>
-                                              <TableHead className="text-xs min-w-[140px]">Remetente</TableHead>
-                                              <TableHead className="text-xs min-w-[140px]">Destinatário</TableHead>
-                                              <TableHead className="text-xs min-w-[180px]">Rota</TableHead>
-                                              <TableHead className="text-xs min-w-[80px] text-right">Peso</TableHead>
-                                              <TableHead className="text-xs min-w-[110px]">Status</TableHead>
-                                              <TableHead className="text-xs min-w-[100px]">CT-e</TableHead>
-                                              <TableHead className="text-xs min-w-[80px]">NF-es</TableHead>
-                                              <TableHead className="text-xs min-w-[80px]">Manifesto</TableHead>
-                                              <TableHead className="text-xs min-w-[90px]">Previsão</TableHead>
-                                              <TableHead className="text-xs w-10">Chat</TableHead>
-                                              <TableHead className="text-xs w-10"></TableHead>
-                                            </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                            {driverGroup.entregas.map((entrega) => {
-                                              const status = entrega.status || 'aguardando_coleta';
-                                              const config = statusEntregaConfig[status];
-                                              const StatusIcon = config?.icon || Package;
-                                              const isSelected = selectedEntregaId === entrega.id;
-
-                                              return (
-                                                <TableRow
-                                                  key={entrega.id}
-                                                  className={`cursor-pointer ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedEntregaId(entrega.id);
-                                                  }}
-                                                >
-                                                  <TableCell>
-                                                    <Badge variant="secondary" className="text-xs font-mono text-nowrap">
-                                                      {entrega.codigo || entrega.id.slice(0, 8).toUpperCase()}
-                                                    </Badge>
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        <span className="text-sm truncate block max-w-[130px]">
-                                                          {entrega.carga.empresa?.nome || '-'}
-                                                        </span>
-                                                      </TooltipTrigger>
-                                                      <TooltipContent>
-                                                        <p className="font-medium">{entrega.carga.empresa?.nome || 'Remetente não informado'}</p>
-                                                      </TooltipContent>
-                                                    </Tooltip>
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        <span className="text-sm truncate block max-w-[130px]">
-                                                          {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
-                                                        </span>
-                                                      </TooltipTrigger>
-                                                      <TooltipContent>
-                                                        <p className="font-medium">{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
-                                                      </TooltipContent>
-                                                    </Tooltip>
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <div className="flex items-center gap-1 text-sm">
-                                                      <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
-                                                      <span className="truncate max-w-[50px]">
-                                                        {entrega.carga.endereco_origem?.cidade || '-'}
-                                                      </span>
-                                                      <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                                                      <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
-                                                      <span className="truncate max-w-[50px]">
-                                                        {entrega.carga.endereco_destino?.cidade || '-'}
-                                                      </span>
-                                                    </div>
-                                                  </TableCell>
-                                                  <TableCell className="text-right text-sm font-medium">
-                                                    {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
-                                                      <StatusIcon className="w-3 h-3" />
-                                                      {config?.label || status}
-                                                    </Badge>
-                                                  </TableCell>
-                                                  {/* CT-e Column */}
-                                                  <TableCell>
-                                                    {entrega.cte_url ? (
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <Badge 
-                                                            className="gap-1 cursor-pointer text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              setCtePreviewUrl(entrega.cte_url);
-                                                              setCtePreviewOpen(true);
-                                                            }}
-                                                          >
-                                                            <FileText className="w-3 h-3" />
-                                                            {entrega.numero_cte || 'Ver'}
-                                                          </Badge>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Clique para visualizar</TooltipContent>
-                                                      </Tooltip>
-                                                    ) : (
-                                                      <Badge 
-                                                        className="gap-1 cursor-pointer text-xs bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setEntregaForCte(entrega);
-                                                          setAnexarCteDialogOpen(true);
-                                                        }}
-                                                      >
-                                                        <FileText className="w-3 h-3" />
-                                                        Pendente
-                                                      </Badge>
-                                                    )}
-                                                  </TableCell>
-                                                  {/* NF-es Column */}
-                                                  <TableCell>
-                                                    {entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0 ? (
-                                                      <Badge 
-                                                        className="gap-1 cursor-pointer text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setEntregaForCte(entrega);
-                                                          setAnexarCteDialogOpen(true);
-                                                        }}
-                                                      >
-                                                        <FileText className="w-3 h-3" />
-                                                        {entrega.notas_fiscais_urls.length}
-                                                      </Badge>
-                                                    ) : (
-                                                      <Badge 
-                                                        className="gap-1 cursor-pointer text-xs bg-muted text-muted-foreground border-muted-foreground/20"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setEntregaForCte(entrega);
-                                                          setAnexarCteDialogOpen(true);
-                                                        }}
-                                                      >
-                                                        <FileText className="w-3 h-3" />
-                                                        0
-                                                      </Badge>
-                                                    )}
-                                                  </TableCell>
-                                                  {/* Manifesto Column */}
-                                                  <TableCell>
-                                                    {entrega.manifesto_url ? (
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <Badge 
-                                                            className="gap-1 cursor-pointer text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              setCtePreviewUrl(entrega.manifesto_url);
-                                                              setCtePreviewOpen(true);
-                                                            }}
-                                                          >
-                                                            <FileText className="w-3 h-3" />
-                                                            Ver
-                                                          </Badge>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Clique para visualizar</TooltipContent>
-                                                      </Tooltip>
-                                                    ) : (
-                                                      <Badge 
-                                                        className="gap-1 cursor-pointer text-xs bg-muted text-muted-foreground border-muted-foreground/20"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setEntregaForCte(entrega);
-                                                          setAnexarCteDialogOpen(true);
-                                                        }}
-                                                      >
-                                                        <FileText className="w-3 h-3" />
-                                                        -
-                                                      </Badge>
-                                                    )}
-                                                  </TableCell>
-                                                  <TableCell className="text-sm text-muted-foreground">
-                                                    {formatDate(entrega.carga.data_entrega_limite)}
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="icon"
-                                                          className="h-7 w-7"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
-                                                          }}
-                                                        >
-                                                          <MessageCircle className="w-4 h-4 text-primary" />
-                                                        </Button>
-                                                      </TooltipTrigger>
-                                                      <TooltipContent>Abrir chat</TooltipContent>
-                                                    </Tooltip>
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <DropdownMenu>
-                                                      <DropdownMenuTrigger asChild>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="icon"
-                                                          className="h-7 w-7"
-                                                          onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                          <MoreHorizontal className="w-4 h-4" />
-                                                        </Button>
-                                                      </DropdownMenuTrigger>
-                                                      <DropdownMenuContent align="end" className="w-52">
-                                                        <DropdownMenuItem onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
-                                                        }}>
-                                                          <MessageCircle className="w-4 h-4 mr-2" />
-                                                          Abrir chat
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setSelectedEntregaId(entrega.id);
-                                                        }}>
-                                                          <Eye className="w-4 h-4 mr-2" />
-                                                          Ver no mapa
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setSelectedEntregaForDetails(entrega);
-                                                          setDetailsDialogOpen(true);
-                                                        }}>
-                                                          <FileText className="w-4 h-4 mr-2" />
-                                                          Ver detalhes
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setEntregaForCte(entrega);
-                                                          setAnexarCteDialogOpen(true);
-                                                        }}>
-                                                          <Upload className="w-4 h-4 mr-2" />
-                                                          Gerenciar Documentos
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuSub>
-                                                          <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
-                                                            <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                                            Alterar status
-                                                          </DropdownMenuSubTrigger>
-                                                          <DropdownMenuPortal>
-                                                            <DropdownMenuSubContent className="w-48">
-                                                              {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
-                                                                const isCurrentStatus = entrega.status === statusKey;
-                                                                const StatusIconComponent = statusConfig.icon;
-                                                                return (
-                                                                  <DropdownMenuItem
-                                                                    key={statusKey}
-                                                                    disabled={isCurrentStatus}
-                                                                    className={isCurrentStatus ? 'opacity-50' : ''}
-                                                                    onClick={(e) => {
-                                                                      e.stopPropagation();
-                                                                      handleStatusChange(entrega.id, statusKey as StatusEntrega);
-                                                                    }}
-                                                                  >
-                                                                    <StatusIconComponent className="w-4 h-4 mr-2" />
-                                                                    {statusConfig.label}
-                                                                    {isCurrentStatus && (
-                                                                      <CheckCircle className="w-3 h-3 ml-auto text-primary" />
-                                                                    )}
-                                                                  </DropdownMenuItem>
-                                                                );
-                                                              })}
-                                                            </DropdownMenuSubContent>
-                                                          </DropdownMenuPortal>
-                                                        </DropdownMenuSub>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem 
-                                                          className="text-destructive focus:text-destructive"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDeleteClick(entrega);
-                                                          }}
-                                                        >
-                                                          <Trash2 className="w-4 h-4 mr-2" />
-                                                          Excluir entrega
-                                                        </DropdownMenuItem>
-                                                      </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                  </TableCell>
-                                                </TableRow>
-                                              );
-                                            })}
-                                          </TableBody>
-                                        </Table>
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </div>
+            <span className="text-sm text-muted-foreground">-</span>
           )}
-        </div>
-      </div>
+        </TableCell>
+        <TableCell>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-sm truncate block max-w-[130px]">
+                {entrega.carga.empresa?.nome || '-'}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="font-medium">{entrega.carga.empresa?.nome || 'Remetente não informado'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TableCell>
+        <TableCell>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-sm truncate block max-w-[130px]">
+                {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="font-medium">{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-1 text-sm">
+            <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
+            <span className="truncate max-w-[50px]">
+              {entrega.carga.endereco_origem?.cidade || '-'}
+            </span>
+            <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+            <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
+            <span className="truncate max-w-[50px]">
+              {entrega.carga.endereco_destino?.cidade || '-'}
+            </span>
+          </div>
+        </TableCell>
+        <TableCell className="text-right">
+          <span className="text-sm font-medium">
+            {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
+          </span>
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline" className={`${config?.color} border text-xs gap-1`}>
+            <StatusIcon className="w-3 h-3" />
+            {config?.label || status}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          {entrega.numero_cte ? (
+            entrega.cte_url ? (
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs text-primary hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCtePreviewUrl(entrega.cte_url);
+                  setCtePreviewOpen(true);
+                }}
+              >
+                {entrega.numero_cte}
+              </Button>
+            ) : (
+              <span className="text-xs">{entrega.numero_cte}</span>
+            )
+          ) : (
+            <span className="text-xs text-muted-foreground">-</span>
+          )}
+        </TableCell>
+        <TableCell>
+          {entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0 ? (
+            <Badge variant="secondary" className="text-xs">
+              {entrega.notas_fiscais_urls.length}
+            </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground">-</span>
+          )}
+        </TableCell>
+        <TableCell>
+          {entrega.manifesto_url ? (
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs text-primary hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCtePreviewUrl(entrega.manifesto_url);
+                setCtePreviewOpen(true);
+              }}
+            >
+              Ver
+            </Button>
+          ) : (
+            <span className="text-xs text-muted-foreground">-</span>
+          )}
+        </TableCell>
+        <TableCell>
+          <span className="text-xs text-muted-foreground">
+            {formatDate(entrega.carga.data_entrega_limite)}
+          </span>
+        </TableCell>
+        <TableCell>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/transportadora/mensagens?entrega=${entrega.id}`);
+                }}
+              >
+                <MessageCircle className="w-4 h-4 text-primary" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Abrir chat</TooltipContent>
+          </Tooltip>
+        </TableCell>
+        <TableCell>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onClick={() => setSelectedEntregaId(entrega.id)}>
+                <Eye className="w-4 h-4 mr-2" />
+                Ver no mapa
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                setSelectedEntregaForDetails(entrega);
+                setDetailsDialogOpen(true);
+              }}>
+                <FileText className="w-4 h-4 mr-2" />
+                Ver detalhes
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                setEntregaForCte(entrega);
+                setAnexarCteDialogOpen(true);
+              }}>
+                <Upload className="w-4 h-4 mr-2" />
+                Gerenciar Documentos
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <ArrowRightLeft className="w-4 h-4 mr-2" />
+                  Alterar status
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="w-48">
+                    {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
+                      const isCurrentStatus = entrega.status === statusKey;
+                      const StatusIconComponent = statusConfig.icon;
+                      return (
+                        <DropdownMenuItem
+                          key={statusKey}
+                          disabled={isCurrentStatus}
+                          className={isCurrentStatus ? 'opacity-50' : ''}
+                          onClick={() => handleStatusChange(entrega.id, statusKey as StatusEntrega)}
+                        >
+                          <StatusIconComponent className="w-4 h-4 mr-2" />
+                          {statusConfig.label}
+                          {isCurrentStatus && (
+                            <CheckCircle className="w-3 h-3 ml-auto text-primary" />
+                          )}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive"
+                onClick={() => handleDeleteClick(entrega)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir entrega
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+    );
+  };
 
-      {/* Mobile Layout */}
-      <div className="lg:hidden space-y-4">
-        {/* Mobile Header */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
-              <p className="text-sm text-muted-foreground">Rastreie suas entregas</p>
+  return (
+    <TooltipProvider>
+      <div className="p-4 md:p-8 pb-20 md:pb-8">
+        {/* Desktop Layout - Sidebar + Content */}
+        <div className="hidden lg:flex gap-6">
+          {/* Desktop Sidebar: Filters + Stats + Search */}
+          <aside className="hidden lg:flex flex-col w-72 shrink-0 gap-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
+                <p className="text-sm text-muted-foreground">Rastreie suas entregas em tempo real</p>
+              </div>
             </div>
+
+            {/* Action buttons and Live Indicator */}
             <div className="flex items-center gap-2">
-              <LiveIndicator />
               <Button
                 variant="outline"
                 size="icon"
@@ -1526,366 +1117,574 @@ export default function GestaoEntregas() {
               >
                 <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
               </Button>
+              <LiveIndicator />
             </div>
-          </div>
 
-          {/* Mobile Stats */}
-          <div className="grid grid-cols-4 gap-2">
-            <Card className="border-border bg-chart-3/5">
-              <CardContent className="p-2 text-center">
-                <Clock className="w-3 h-3 mx-auto text-chart-3 mb-0.5" />
-                <p className="text-lg font-bold text-chart-3">{stats.aguardando}</p>
-                <p className="text-[8px] text-muted-foreground">Aguardando</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-chart-1/5">
-              <CardContent className="p-2 text-center">
-                <Package className="w-3 h-3 mx-auto text-chart-1 mb-0.5" />
-                <p className="text-lg font-bold text-chart-1">{stats.saiu_para_coleta}</p>
-                <p className="text-[8px] text-muted-foreground">Coleta</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-chart-5/5">
-              <CardContent className="p-2 text-center">
-                <Truck className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
-                <p className="text-lg font-bold text-chart-5">{stats.saiu_para_entrega}</p>
-                <p className="text-[8px] text-muted-foreground">Entrega</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-destructive/5">
-              <CardContent className="p-2 text-center">
-                <AlertCircle className="w-3 h-3 mx-auto text-destructive mb-0.5" />
-                <p className="text-lg font-bold text-destructive">{stats.problema}</p>
-                <p className="text-[8px] text-muted-foreground">Problemas</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Mobile Search + Filter */}
-          <div className="flex gap-2">
-            <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="shrink-0">
-                  <Filter className="w-4 h-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80">
-                <SheetHeader>
-                  <SheetTitle>Filtros</SheetTitle>
-                </SheetHeader>
-                <div className="mt-6">
-                  <FiltersContent />
-                </div>
-              </SheetContent>
-            </Sheet>
-            <div className="relative flex-1">
+            {/* Search */}
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar..."
+                placeholder="Buscar código, motorista, placa, CT-e..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-          </div>
-        </div>
 
-        {/* Mobile Map */}
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <Suspense fallback={
-              <div className="w-full h-[250px] flex items-center justify-center bg-muted/30 rounded-lg">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              </div>
-            }>
-              <div className="h-[250px] rounded-lg overflow-hidden border border-border">
-                <EntregasGoogleMap
-                  entregas={mapData}
-                  selectedEntregaId={selectedEntregaId}
-                  onSelectEntrega={setSelectedEntregaId}
-                />
-              </div>
-            </Suspense>
-
-            {/* Mobile Cards List */}
-            {filteredEntregas.length === 0 ? (
-              <Card className="border-border">
-                <CardContent className="p-6 text-center">
-                  <Truck className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
-                  <h3 className="font-medium text-foreground mb-1">Nenhuma entrega</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {searchTerm ? 'Nenhuma corresponde à busca.' : 'Aceite cargas para começar.'}
-                  </p>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 gap-2">
+              <Card className="border-border bg-amber-500/5">
+                <CardContent className="p-3 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Clock className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <p className="text-xl font-bold text-amber-600">{stats.aguardando}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">Aguardando</p>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="space-y-3">
-                {filteredEntregas.map((entrega) => {
-                  const status = entrega.status || 'aguardando_coleta';
-                  const config = statusEntregaConfig[status];
-                  const StatusIcon = config?.icon || Package;
+              <Card className="border-border bg-blue-500/5">
+                <CardContent className="p-3 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Package className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <p className="text-xl font-bold text-blue-600">{stats.saiu_para_coleta}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Coleta</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-purple-500/5">
+                <CardContent className="p-3 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Truck className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <p className="text-xl font-bold text-purple-600">{stats.saiu_para_entrega}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Entrega</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-destructive/5">
+                <CardContent className="p-3 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                  </div>
+                  <p className="text-xl font-bold text-destructive">{stats.problema}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">Problemas</p>
+                </CardContent>
+              </Card>
+            </div>
 
+            {/* Filters Card */}
+            <Card className="border-border">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  Filtros
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FiltersContent />
+              </CardContent>
+            </Card>
+
+            {/* Active Filters */}
+            {(selectedStatuses.length > 0 || selectedMotoristaId) && (
+              <div className="flex flex-wrap gap-2">
+                {selectedMotoristaId && (
+                  <Badge
+                    variant="outline"
+                    className="bg-primary/10 text-primary border-primary/20 cursor-pointer text-xs"
+                    onClick={() => setSelectedMotoristaId(null)}
+                  >
+                    <User className="w-3 h-3 mr-1" />
+                    {motoristasFromEntregas.find(m => m.id === selectedMotoristaId)?.nome_completo}
+                    <X className="w-3 h-3 ml-1" />
+                  </Badge>
+                )}
+                {selectedStatuses.map(status => {
+                  const config = statusEntregaConfig[status];
                   return (
-                    <Card 
-                      key={entrega.id} 
-                      className={`border-border transition-all ${selectedEntregaId === entrega.id ? 'ring-2 ring-primary' : ''}`}
+                    <Badge
+                      key={status}
+                      variant="outline"
+                      className={`${config?.color || ''} cursor-pointer text-xs`}
+                      onClick={() => handleStatusToggle(status)}
                     >
-                      <CardContent className="p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Badge 
-                            variant="secondary" 
-                            className="text-xs cursor-pointer"
-                            onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
-                          >
-                            {entrega.carga.codigo}
-                          </Badge>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className={`${config?.color} border text-xs gap-1`}>
-                              <StatusIcon className="w-3 h-3" />
-                              {config?.label || status}
-                            </Badge>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-52">
-                                <DropdownMenuItem onClick={() => navigate(`/transportadora/mensagens?entrega=${entrega.id}`)}>
-                                  <MessageCircle className="w-4 h-4 mr-2" />
-                                  Abrir chat
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setSelectedEntregaId(entrega.id)}>
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  Ver no mapa
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  setSelectedEntregaForDetails(entrega);
-                                  setDetailsDialogOpen(true);
-                                }}>
-                                  <FileText className="w-4 h-4 mr-2" />
-                                  Ver detalhes
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  setEntregaForCte(entrega);
-                                  setAnexarCteDialogOpen(true);
-                                }}>
-                                  <Upload className="w-4 h-4 mr-2" />
-                                  Gerenciar Documentos
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuSub>
-                                  <DropdownMenuSubTrigger>
-                                    <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                    Alterar status
-                                  </DropdownMenuSubTrigger>
-                                  <DropdownMenuPortal>
-                                    <DropdownMenuSubContent className="w-48">
-                                      {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
-                                        const isCurrentStatus = entrega.status === statusKey;
-                                        const StatusIconComponent = statusConfig.icon;
-                                        return (
-                                          <DropdownMenuItem
-                                            key={statusKey}
-                                            disabled={isCurrentStatus}
-                                            className={isCurrentStatus ? 'opacity-50' : ''}
-                                            onClick={() => handleStatusChange(entrega.id, statusKey as StatusEntrega)}
-                                          >
-                                            <StatusIconComponent className="w-4 h-4 mr-2" />
-                                            {statusConfig.label}
-                                            {isCurrentStatus && (
-                                              <CheckCircle className="w-3 h-3 ml-auto text-primary" />
-                                            )}
-                                          </DropdownMenuItem>
-                                        );
-                                      })}
-                                    </DropdownMenuSubContent>
-                                  </DropdownMenuPortal>
-                                </DropdownMenuSub>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={() => handleDeleteClick(entrega)}
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Excluir entrega
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                        <p 
-                          className="text-sm font-medium line-clamp-1 cursor-pointer"
-                          onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
-                        >
-                          {entrega.carga.descricao}
-                        </p>
-                        <div 
-                          className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer"
-                          onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
-                        >
-                          <MapPin className="w-3 h-3 text-chart-1" />
-                          <span className="truncate">{entrega.carga.endereco_origem?.cidade}</span>
-                          <ArrowRight className="w-3 h-3" />
-                          <MapPin className="w-3 h-3 text-chart-2" />
-                          <span className="truncate">{entrega.carga.endereco_destino?.cidade}</span>
-                        </div>
-                        {entrega.motorista && (
-                          <div 
-                            className="flex items-center gap-2 text-xs pt-2 border-t border-border cursor-pointer"
-                            onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
-                          >
-                            <User className="w-3 h-3 text-primary" />
-                            <span className="truncate">{entrega.motorista.nome_completo}</span>
-                            {entrega.veiculo && (
-                              <span className="text-muted-foreground">• {entrega.veiculo.placa}</span>
-                            )}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                      {config?.label || status}
+                      <X className="w-3 h-3 ml-1" />
+                    </Badge>
                   );
                 })}
               </div>
             )}
+          </aside>
+
+          {/* Desktop Main Content */}
+          <div className="flex-1 space-y-4 min-w-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredEntregas.length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <Card className="border-border max-w-sm">
+                  <CardContent className="p-6 text-center">
+                    <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                    <h3 className="font-semibold text-foreground mb-1">Nenhuma entrega encontrada</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedStatuses.length > 0 || selectedMotoristaId
+                        ? 'Tente ajustar os filtros selecionados'
+                        : 'Aceite cargas para começar a gerenciar entregas'}
+                    </p>
+                    {(selectedStatuses.length > 0 || selectedMotoristaId) && (
+                      <Button variant="outline" onClick={clearFilters} className="mt-4">
+                        Limpar filtros
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <div className='space-y-4'>
+                <Suspense fallback={
+                  <Card className="border-border">
+                    <CardContent className="p-0">
+                      <div className="w-full h-[400px] flex items-center justify-center bg-muted/30 rounded-lg">
+                        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                }>
+                  <EntregasGoogleMap
+                    entregas={mapData}
+                    selectedEntregaId={selectedEntregaId}
+                    onSelectEntrega={setSelectedEntregaId}
+                  />
+                </Suspense>
+
+                {/* Driver Summary Card - shown when a driver is selected */}
+                {selectedMotoristaId && <DriverSummaryCard />}
+
+                <Card className="border-border">
+                  <CardContent className="p-0">
+                    <ScrollArea className="w-full">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/50">
+                            <TableHead className="font-semibold min-w-[100px]">Código</TableHead>
+                            <TableHead className="font-semibold min-w-[140px]">
+                              <div className="flex items-center gap-1">
+                                <User className="w-3 h-3" />
+                                Motorista
+                              </div>
+                            </TableHead>
+                            <TableHead className="font-semibold min-w-[140px]">Remetente</TableHead>
+                            <TableHead className="font-semibold min-w-[140px]">Destinatário</TableHead>
+                            <TableHead className="font-semibold min-w-[180px]">Rota</TableHead>
+                            <TableHead className="font-semibold min-w-[80px] text-right">Peso</TableHead>
+                            <TableHead className="font-semibold min-w-[110px]">Status</TableHead>
+                            <TableHead className="font-semibold min-w-[100px]">CT-e</TableHead>
+                            <TableHead className="font-semibold min-w-[80px]">NF-es</TableHead>
+                            <TableHead className="font-semibold min-w-[80px]">Manifesto</TableHead>
+                            <TableHead className="font-semibold min-w-[90px]">Previsão</TableHead>
+                            <TableHead className="font-semibold w-10">Chat</TableHead>
+                            <TableHead className="font-semibold w-10"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredEntregas.map(renderEntregaRow)}
+                        </TableBody>
+                      </Table>
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Details Dialog */}
-      <EntregaDetailsDialog
-        entrega={selectedEntregaForDetails}
-        open={detailsDialogOpen}
-        onOpenChange={setDetailsDialogOpen}
-      />
-
-      {/* Status Change Confirmation Dialog */}
-      <AlertDialog open={statusChangeDialogOpen} onOpenChange={setStatusChangeDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar alteração de status</AlertDialogTitle>
-            <AlertDialogDescription asChild>
+        {/* Mobile Layout */}
+        <div className="lg:hidden space-y-4">
+          {/* Mobile Header */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
               <div>
-                {pendingStatusChange && (
+                <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
+                <p className="text-sm text-muted-foreground">Rastreie suas entregas</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <LiveIndicator />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => refetch()}
+                  disabled={isLoading || isFetching}
+                >
+                  <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+
+            {/* Mobile Stats */}
+            <div className="grid grid-cols-4 gap-2">
+              <Card className="border-border bg-chart-3/5">
+                <CardContent className="p-2 text-center">
+                  <Clock className="w-3 h-3 mx-auto text-chart-3 mb-0.5" />
+                  <p className="text-lg font-bold text-chart-3">{stats.aguardando}</p>
+                  <p className="text-[8px] text-muted-foreground">Aguardando</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-chart-1/5">
+                <CardContent className="p-2 text-center">
+                  <Package className="w-3 h-3 mx-auto text-chart-1 mb-0.5" />
+                  <p className="text-lg font-bold text-chart-1">{stats.saiu_para_coleta}</p>
+                  <p className="text-[8px] text-muted-foreground">Coleta</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-chart-5/5">
+                <CardContent className="p-2 text-center">
+                  <Truck className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
+                  <p className="text-lg font-bold text-chart-5">{stats.saiu_para_entrega}</p>
+                  <p className="text-[8px] text-muted-foreground">Entrega</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-destructive/5">
+                <CardContent className="p-2 text-center">
+                  <AlertCircle className="w-3 h-3 mx-auto text-destructive mb-0.5" />
+                  <p className="text-lg font-bold text-destructive">{stats.problema}</p>
+                  <p className="text-[8px] text-muted-foreground">Problemas</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Mobile Search + Filter */}
+            <div className="flex gap-2">
+              <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="shrink-0">
+                    <Filter className="w-4 h-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-80">
+                  <SheetHeader>
+                    <SheetTitle>Filtros</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-6">
+                    <FiltersContent />
+                  </div>
+                </SheetContent>
+              </Sheet>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Map */}
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Suspense fallback={
+                <div className="w-full h-[250px] flex items-center justify-center bg-muted/30 rounded-lg">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                </div>
+              }>
+                <div className="h-[250px] rounded-lg overflow-hidden border border-border">
+                  <EntregasGoogleMap
+                    entregas={mapData}
+                    selectedEntregaId={selectedEntregaId}
+                    onSelectEntrega={setSelectedEntregaId}
+                  />
+                </div>
+              </Suspense>
+
+              {/* Mobile Driver Summary */}
+              {selectedMotoristaId && <DriverSummaryCard />}
+
+              {/* Mobile Cards List */}
+              {filteredEntregas.length === 0 ? (
+                <Card className="border-border">
+                  <CardContent className="p-6 text-center">
+                    <Truck className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                    <h3 className="font-medium text-foreground mb-1">Nenhuma entrega</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {searchTerm ? 'Nenhuma corresponde à busca.' : 'Aceite cargas para começar.'}
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {filteredEntregas.map((entrega) => {
+                    const status = entrega.status || 'aguardando';
+                    const config = statusEntregaConfig[status];
+                    const StatusIcon = config?.icon || Package;
+
+                    return (
+                      <Card 
+                        key={entrega.id} 
+                        className={`border-border transition-all ${selectedEntregaId === entrega.id ? 'ring-2 ring-primary' : ''}`}
+                      >
+                        <CardContent className="p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Badge 
+                              variant="secondary" 
+                              className="text-xs cursor-pointer"
+                              onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
+                            >
+                              {entrega.carga.codigo}
+                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className={`${config?.color} border text-xs gap-1`}>
+                                <StatusIcon className="w-3 h-3" />
+                                {config?.label || status}
+                              </Badge>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52">
+                                  <DropdownMenuItem onClick={() => navigate(`/transportadora/mensagens?entrega=${entrega.id}`)}>
+                                    <MessageCircle className="w-4 h-4 mr-2" />
+                                    Abrir chat
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setSelectedEntregaId(entrega.id)}>
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Ver no mapa
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    setSelectedEntregaForDetails(entrega);
+                                    setDetailsDialogOpen(true);
+                                  }}>
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Ver detalhes
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    setEntregaForCte(entrega);
+                                    setAnexarCteDialogOpen(true);
+                                  }}>
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Gerenciar Documentos
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger>
+                                      <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                      Alterar status
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuPortal>
+                                      <DropdownMenuSubContent className="w-48">
+                                        {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
+                                          const isCurrentStatus = entrega.status === statusKey;
+                                          const StatusIconComponent = statusConfig.icon;
+                                          return (
+                                            <DropdownMenuItem
+                                              key={statusKey}
+                                              disabled={isCurrentStatus}
+                                              className={isCurrentStatus ? 'opacity-50' : ''}
+                                              onClick={() => handleStatusChange(entrega.id, statusKey as StatusEntrega)}
+                                            >
+                                              <StatusIconComponent className="w-4 h-4 mr-2" />
+                                              {statusConfig.label}
+                                              {isCurrentStatus && (
+                                                <CheckCircle className="w-3 h-3 ml-auto text-primary" />
+                                              )}
+                                            </DropdownMenuItem>
+                                          );
+                                        })}
+                                      </DropdownMenuSubContent>
+                                    </DropdownMenuPortal>
+                                  </DropdownMenuSub>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => handleDeleteClick(entrega)}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Excluir entrega
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                          <p 
+                            className="text-sm font-medium line-clamp-1 cursor-pointer"
+                            onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
+                          >
+                            {entrega.carga.descricao}
+                          </p>
+                          <div 
+                            className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer"
+                            onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
+                          >
+                            <MapPin className="w-3 h-3 text-chart-1" />
+                            <span className="truncate">{entrega.carga.endereco_origem?.cidade}</span>
+                            <ArrowRight className="w-3 h-3" />
+                            <MapPin className="w-3 h-3 text-chart-2" />
+                            <span className="truncate">{entrega.carga.endereco_destino?.cidade}</span>
+                          </div>
+                          {entrega.motorista && (
+                            <div 
+                              className="flex items-center gap-2 text-xs pt-2 border-t border-border cursor-pointer"
+                              onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
+                            >
+                              <User className="w-3 h-3 text-primary" />
+                              <span className="truncate">{entrega.motorista.nome_completo}</span>
+                              {entrega.veiculo && (
+                                <span className="text-muted-foreground">• {entrega.veiculo.placa}</span>
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Details Dialog */}
+        <EntregaDetailsDialog
+          entrega={selectedEntregaForDetails}
+          open={detailsDialogOpen}
+          onOpenChange={setDetailsDialogOpen}
+        />
+
+        {/* Status Change Confirmation Dialog */}
+        <AlertDialog open={statusChangeDialogOpen} onOpenChange={setStatusChangeDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar alteração de status</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div>
+                  {pendingStatusChange && (
+                    <>
+                      {pendingStatusChange.type === 'single' ? (
+                        <p>
+                          Deseja alterar o status desta entrega para{' '}
+                          <strong className="text-foreground">
+                            "{statusEntregaConfig[pendingStatusChange.newStatus]?.label || pendingStatusChange.newStatus}"
+                          </strong>?
+                        </p>
+                      ) : (
+                        <p>
+                          Deseja alterar o status de{' '}
+                          <strong className="text-foreground">{pendingStatusChange.count} entregas</strong>
+                          {pendingStatusChange.motoristaName && (
+                            <> do motorista <strong className="text-foreground">{pendingStatusChange.motoristaName}</strong></>
+                          )}{' '}
+                          para{' '}
+                          <strong className="text-foreground">
+                            "{statusEntregaConfig[pendingStatusChange.newStatus]?.label || pendingStatusChange.newStatus}"
+                          </strong>?
+                        </p>
+                      )}
+                      
+                      {pendingStatusChange.newStatus === 'saiu_para_coleta' && (
+                        <p className="mt-3 text-sm">
+                          A data/hora de coleta será registrada automaticamente.
+                        </p>
+                      )}
+                      {pendingStatusChange.newStatus === 'entregue' && (
+                        <p className="mt-3 text-sm">
+                          A data/hora de entrega será registrada automaticamente.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={updateStatus.isPending || updateBulkStatus.isPending}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmStatusChange} 
+                disabled={updateStatus.isPending || updateBulkStatus.isPending}
+              >
+                {(updateStatus.isPending || updateBulkStatus.isPending) ? (
                   <>
-                    {pendingStatusChange.type === 'single' ? (
-                      <p>
-                        Deseja alterar o status desta entrega para{' '}
-                        <strong className="text-foreground">
-                          "{statusEntregaConfig[pendingStatusChange.newStatus]?.label || pendingStatusChange.newStatus}"
-                        </strong>?
-                      </p>
-                    ) : (
-                      <p>
-                        Deseja alterar o status de{' '}
-                        <strong className="text-foreground">{pendingStatusChange.count} entregas</strong>
-                        {pendingStatusChange.motoristaName && (
-                          <> do motorista <strong className="text-foreground">{pendingStatusChange.motoristaName}</strong></>
-                        )}{' '}
-                        para{' '}
-                        <strong className="text-foreground">
-                          "{statusEntregaConfig[pendingStatusChange.newStatus]?.label || pendingStatusChange.newStatus}"
-                        </strong>?
-                      </p>
-                    )}
-                    
-                    {pendingStatusChange.newStatus === 'saiu_para_coleta' && (
-                      <p className="mt-3 text-sm">
-                        A data/hora de coleta será registrada automaticamente.
-                      </p>
-                    )}
-                    {pendingStatusChange.newStatus === 'entregue' && (
-                      <p className="mt-3 text-sm">
-                        A data/hora de entrega será registrada automaticamente.
-                      </p>
-                    )}
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Alterando...
+                  </>
+                ) : (
+                  'Confirmar'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir entrega?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {entregaToDelete && (
+                  <>
+                    Tem certeza que deseja excluir a entrega da carga <strong>{entregaToDelete.carga.codigo}</strong>?
+                    <br /><br />
+                    Esta ação irá:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Liberar <strong>{(entregaToDelete.peso_alocado_kg || 0).toLocaleString('pt-BR')} kg</strong> de volta para a carga</li>
+                      <li>Remover a conversa associada a esta entrega</li>
+                      <li>Devolver a carga ao status "Disponível"</li>
+                    </ul>
+                    <br />
+                    Esta ação não pode ser desfeita.
                   </>
                 )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={updateStatus.isPending || updateBulkStatus.isPending}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmStatusChange} 
-              disabled={updateStatus.isPending || updateBulkStatus.isPending}
-            >
-              {(updateStatus.isPending || updateBulkStatus.isPending) ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Alterando...
-                </>
-              ) : (
-                'Confirmar'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteEntrega.isPending}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDelete} 
+                disabled={deleteEntrega.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteEntrega.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  'Excluir'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir entrega?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {entregaToDelete && (
-                <>
-                  Tem certeza que deseja excluir a entrega da carga <strong>{entregaToDelete.carga.codigo}</strong>?
-                  <br /><br />
-                  Esta ação irá:
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>Liberar <strong>{(entregaToDelete.peso_alocado_kg || 0).toLocaleString('pt-BR')} kg</strong> de volta para a carga</li>
-                    <li>Remover a conversa associada a esta entrega</li>
-                    <li>Devolver a carga ao status "Disponível"</li>
-                  </ul>
-                  <br />
-                  Esta ação não pode ser desfeita.
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteEntrega.isPending}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDelete} 
-              disabled={deleteEntrega.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteEntrega.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                'Excluir entrega'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Anexar Documentos Dialog */}
+        {entregaForCte && (
+          <AnexarDocumentosDialog
+            open={anexarCteDialogOpen}
+            onOpenChange={setAnexarCteDialogOpen}
+            entrega={entregaForCte}
+          />
+        )}
 
-      {/* Anexar Documentos Dialog */}
-      <AnexarDocumentosDialog
-        entrega={entregaForCte}
-        open={anexarCteDialogOpen}
-        onOpenChange={setAnexarCteDialogOpen}
-        onSuccess={() => refetch()}
-      />
-
-      {/* CT-e Preview Dialog */}
-      <FilePreviewDialog
-        open={ctePreviewOpen}
-        onOpenChange={setCtePreviewOpen}
-        fileUrl={ctePreviewUrl}
-        title="CT-e"
-      />
-    </div>
+        {/* CT-e/Manifesto Preview */}
+        <FilePreviewDialog
+          open={ctePreviewOpen}
+          onOpenChange={setCtePreviewOpen}
+          fileUrl={ctePreviewUrl}
+          title="Visualizar Documento"
+        />
+      </div>
+    </TooltipProvider>
   );
 }
