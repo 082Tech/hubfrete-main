@@ -21,6 +21,10 @@ import Usuarios from "./pages/admin/Usuarios";
 import Monitoramento from "./pages/admin/Monitoramento";
 import AdminRelatorios from "./pages/admin/Relatorios";
 import Chamados from "./pages/admin/Chamados";
+import Empresas from "./pages/admin/Empresas";
+import MotoristasAdmin from "./pages/admin/MotoristasAdmin";
+import VeiculosAdmin from "./pages/admin/VeiculosAdmin";
+import { AdminLayoutWrapper } from "./components/admin/AdminLayoutWrapper";
 import CadastroMotorista from "./pages/CadastroMotorista";
 import CadastroMotoristaConvite from "./pages/CadastroMotoristaConvite";
 import CadastroEmbarcador from "./pages/CadastroEmbarcador";
@@ -85,12 +89,19 @@ const App = () => {
                 <Route path="/esqueci-senha" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/admin/torre-controle" element={<TorreControle />} />
-                <Route path="/admin/pre-cadastros" element={<PreCadastros />} />
-                <Route path="/admin/usuarios" element={<Usuarios />} />
-                <Route path="/admin/monitoramento" element={<Monitoramento />} />
-                <Route path="/admin/relatorios" element={<AdminRelatorios />} />
-                <Route path="/admin/chamados" element={<Chamados />} />
+                
+                {/* Admin Portal - Nested routes with shared layout */}
+                <Route path="/admin" element={<AdminLayoutWrapper />}>
+                  <Route path="torre-controle" element={<TorreControle />} />
+                  <Route path="pre-cadastros" element={<PreCadastros />} />
+                  <Route path="usuarios" element={<Usuarios />} />
+                  <Route path="monitoramento" element={<Monitoramento />} />
+                  <Route path="relatorios" element={<AdminRelatorios />} />
+                  <Route path="chamados" element={<Chamados />} />
+                  <Route path="empresas" element={<Empresas />} />
+                  <Route path="motoristas" element={<MotoristasAdmin />} />
+                  <Route path="veiculos" element={<VeiculosAdmin />} />
+                </Route>
                 <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
                 <Route path="/cadastro/motorista/convite" element={<CadastroMotoristaConvite />} />
                 <Route path="/cadastro/motorista/convite/:linkId" element={<CadastroMotoristaConvite />} />

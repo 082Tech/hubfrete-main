@@ -11,8 +11,9 @@ import {
   TrendingUp,
   Activity,
   Truck,
-  Settings,
   AlertTriangle,
+  Building,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +81,24 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       title: 'Dashboard',
       icon: LayoutDashboard,
       href: '/admin/torre-controle',
+      roles: ['super_admin', 'admin', 'suporte'],
+    },
+    {
+      title: 'Empresas',
+      icon: Building,
+      href: '/admin/empresas',
+      roles: ['super_admin', 'admin'],
+    },
+    {
+      title: 'Motoristas',
+      icon: User,
+      href: '/admin/motoristas',
+      roles: ['super_admin', 'admin', 'suporte'],
+    },
+    {
+      title: 'Veículos',
+      icon: Truck,
+      href: '/admin/veiculos',
       roles: ['super_admin', 'admin', 'suporte'],
     },
     {
