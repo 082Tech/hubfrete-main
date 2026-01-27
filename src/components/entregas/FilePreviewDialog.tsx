@@ -21,24 +21,40 @@ function getFileType(url: string): FileType {
   return 'unknown';
 }
 
-function extractPathFromUrl(url: string): string | null {
-  // Extract the path after the bucket name from a Supabase storage URL
+interface ExtractedPath {
+  bucket: string;
+  path: string;
+}
+
+function extractPathFromUrl(url: string): ExtractedPath | null {
+  // Extract bucket and path from a Supabase storage URL
   // Supports both public and signed URL patterns:
   // - https://xxx.supabase.co/storage/v1/object/public/notas-fiscais/ctes/file.pdf
-  // - https://xxx.supabase.co/storage/v1/object/sign/notas-fiscais/ctes/file.pdf
-  // We need: ctes/file.pdf
+  // - https://xxx.supabase.co/storage/v1/object/sign/chat-anexos/uuid/file.pdf
+  // Returns: { bucket: 'notas-fiscais', path: 'ctes/file.pdf' }
   
-  // Try to match the bucket name followed by the path
-  const bucketPatterns = [
-    /\/storage\/v1\/object\/(?:public|sign)\/notas-fiscais\/(.+?)(?:\?|$)/,
-    /notas-fiscais\/(.+?)(?:\?|$)/,
-  ];
+  // Known buckets in the project
+  const knownBuckets = ['notas-fiscais', 'chat-anexos', 'fotos-frota'];
   
-  for (const pattern of bucketPatterns) {
-    const match = url.match(pattern);
-    if (match) {
-      // Remove query params if any and decode URI
-      return decodeURIComponent(match[1].split('?')[0]);
+  // Pattern to extract bucket and path
+  const storagePattern = /\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+?)(?:\?|$)/;
+  const match = url.match(storagePattern);
+  
+  if (match) {
+    const bucket = match[1];
+    const path = decodeURIComponent(match[2].split('?')[0]);
+    return { bucket, path };
+  }
+  
+  // Fallback: try to find known bucket names in the URL
+  for (const bucket of knownBuckets) {
+    const bucketPattern = new RegExp(`${bucket}/(.+?)(?:\\?|$)`);
+    const bucketMatch = url.match(bucketPattern);
+    if (bucketMatch) {
+      return { 
+        bucket, 
+        path: decodeURIComponent(bucketMatch[1].split('?')[0]) 
+      };
     }
   }
   
@@ -68,14 +84,14 @@ export function FilePreviewDialog({ open, onOpenChange, fileUrl, title = 'Visual
     setError(null);
 
     try {
-      const path = extractPathFromUrl(fileUrl);
-      if (!path) {
+      const extracted = extractPathFromUrl(fileUrl);
+      if (!extracted) {
         throw new Error('Não foi possível extrair o caminho do arquivo');
       }
 
       const { data, error: signError } = await supabase.storage
-        .from('notas-fiscais')
-        .createSignedUrl(path, 3600); // 1 hour expiry
+        .from(extracted.bucket)
+        .createSignedUrl(extracted.path, 3600); // 1 hour expiry
 
       if (signError) throw signError;
       if (!data?.signedUrl) throw new Error('URL assinada não gerada');
