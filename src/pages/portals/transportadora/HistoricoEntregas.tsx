@@ -17,13 +17,13 @@ import { useUserContext } from '@/hooks/useUserContext';
 import { useTableSort } from '@/hooks/useTableSort';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import type { Database } from '@/integrations/supabase/types';
-import { 
-  Building2, 
-  Calendar, 
-  Package, 
-  Search, 
-  Truck, 
-  CheckCircle, 
+import {
+  Building2,
+  Calendar,
+  Package,
+  Search,
+  Truck,
+  CheckCircle,
   AlertTriangle,
   MapPin,
   ArrowRight,
@@ -102,20 +102,20 @@ interface EntregaHistorico {
 const finalizedStatuses: StatusEntrega[] = ['entregue', 'problema', 'cancelada'];
 
 const statusConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
-  'entregue': { 
-    color: 'bg-green-500/10 text-green-600 border-green-500/20', 
-    label: 'Entregue', 
-    icon: CheckCircle 
+  'entregue': {
+    color: 'bg-green-500/10 text-green-600 border-green-500/20',
+    label: 'Entregue',
+    icon: CheckCircle
   },
-  'problema': { 
-    color: 'bg-destructive/10 text-destructive border-destructive/20', 
-    label: 'Problema', 
-    icon: AlertTriangle 
+  'problema': {
+    color: 'bg-destructive/10 text-destructive border-destructive/20',
+    label: 'Problema',
+    icon: AlertTriangle
   },
-  'cancelada': { 
-    color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', 
-    label: 'Cancelada', 
-    icon: Ban 
+  'cancelada': {
+    color: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+    label: 'Cancelada',
+    icon: Ban
   },
 };
 
@@ -206,7 +206,7 @@ export default function HistoricoEntregas() {
 
       // Search filter
       if (!q) return true;
-      
+
       const destinatario = (e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || '').toLowerCase();
       return (
         e.carga.codigo.toLowerCase().includes(q) ||
@@ -223,22 +223,22 @@ export default function HistoricoEntregas() {
 
   // Custom sort functions for nested/computed fields
   const sortFunctions = useMemo(() => ({
-    codigo: (a: EntregaHistorico, b: EntregaHistorico) => 
+    codigo: (a: EntregaHistorico, b: EntregaHistorico) =>
       (a.codigo || a.carga.codigo).localeCompare(b.codigo || b.carga.codigo, 'pt-BR'),
-    remetente: (a: EntregaHistorico, b: EntregaHistorico) => 
+    remetente: (a: EntregaHistorico, b: EntregaHistorico) =>
       (a.carga.empresa?.nome || '').localeCompare(b.carga.empresa?.nome || '', 'pt-BR'),
-    destinatario: (a: EntregaHistorico, b: EntregaHistorico) => 
+    destinatario: (a: EntregaHistorico, b: EntregaHistorico) =>
       (a.carga.destinatario_nome_fantasia || a.carga.destinatario_razao_social || '')
         .localeCompare(b.carga.destinatario_nome_fantasia || b.carga.destinatario_razao_social || '', 'pt-BR'),
-    peso: (a: EntregaHistorico, b: EntregaHistorico) => 
+    peso: (a: EntregaHistorico, b: EntregaHistorico) =>
       (a.peso_alocado_kg || a.carga.peso_kg) - (b.peso_alocado_kg || b.carga.peso_kg),
-    motorista: (a: EntregaHistorico, b: EntregaHistorico) => 
+    motorista: (a: EntregaHistorico, b: EntregaHistorico) =>
       (a.motorista?.nome_completo || '').localeCompare(b.motorista?.nome_completo || '', 'pt-BR'),
-    status: (a: EntregaHistorico, b: EntregaHistorico) => 
+    status: (a: EntregaHistorico, b: EntregaHistorico) =>
       (a.status || '').localeCompare(b.status || '', 'pt-BR'),
-    numero_cte: (a: EntregaHistorico, b: EntregaHistorico) => 
+    numero_cte: (a: EntregaHistorico, b: EntregaHistorico) =>
       (a.numero_cte || '').localeCompare(b.numero_cte || '', 'pt-BR'),
-    encerrada_em: (a: EntregaHistorico, b: EntregaHistorico) => 
+    encerrada_em: (a: EntregaHistorico, b: EntregaHistorico) =>
       new Date(a.entregue_em || a.updated_at || 0).getTime() - new Date(b.entregue_em || b.updated_at || 0).getTime(),
   }), []);
 
@@ -278,7 +278,7 @@ export default function HistoricoEntregas() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card 
+            <Card
               className={`border-border cursor-pointer transition-all ${selectedStatus === null ? 'ring-2 ring-primary' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(null)}
             >
@@ -290,7 +290,7 @@ export default function HistoricoEntregas() {
                 <p className="text-xs text-muted-foreground">Total</p>
               </CardContent>
             </Card>
-            <Card 
+            <Card
               className={`border-border cursor-pointer transition-all ${selectedStatus === 'entregue' ? 'ring-2 ring-green-500' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(selectedStatus === 'entregue' ? null : 'entregue')}
             >
@@ -302,7 +302,7 @@ export default function HistoricoEntregas() {
                 <p className="text-xs text-muted-foreground">Entregues</p>
               </CardContent>
             </Card>
-            <Card 
+            <Card
               className={`border-border cursor-pointer transition-all ${selectedStatus === 'cancelada' ? 'ring-2 ring-gray-500' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(selectedStatus === 'cancelada' ? null : 'cancelada')}
             >
@@ -314,7 +314,7 @@ export default function HistoricoEntregas() {
                 <p className="text-xs text-muted-foreground">Canceladas</p>
               </CardContent>
             </Card>
-            <Card 
+            <Card
               className={`border-border cursor-pointer transition-all ${selectedStatus === 'problema' ? 'ring-2 ring-destructive' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(selectedStatus === 'problema' ? null : 'problema')}
             >
@@ -339,55 +339,56 @@ export default function HistoricoEntregas() {
             />
           </div>
 
+          <div className='!-mb-3'>
+            <div className='flex gap-2 items-center'>
+              <Truck className="w-4 h-4" />
+              Entregas finalizadas
+            </div>
+            {selectedStatus && (
+              <Badge variant="outline" className="">
+                Filtro: {statusConfig[selectedStatus]?.label}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 ml-1 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedStatus(null);
+                  }}
+                >
+                  ×
+                </Button>
+              </Badge>
+            )}
+          </div>
+
           {/* Table */}
           <Card className="border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Truck className="w-4 h-4" />
-                Entregas finalizadas
-                {selectedStatus && (
-                  <Badge variant="outline" className="ml-2">
-                    Filtro: {statusConfig[selectedStatus]?.label}
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-4 w-4 ml-1 p-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedStatus(null);
-                      }}
-                    >
-                      ×
-                    </Button>
-                  </Badge>
-                )}
-              </CardTitle>
-            </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="w-full">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <SortableTableHead 
-                        sortKey="codigo" 
-                        sortDirection={getSortDirection('codigo')} 
+                      <SortableTableHead
+                        sortKey="codigo"
+                        sortDirection={getSortDirection('codigo')}
                         onSort={requestSort}
                         className="font-semibold min-w-[100px] sticky left-0 bg-muted/50 z-10"
                       >
                         Código
                       </SortableTableHead>
-                      <SortableTableHead 
-                        sortKey="remetente" 
-                        sortDirection={getSortDirection('remetente')} 
+                      <SortableTableHead
+                        sortKey="remetente"
+                        sortDirection={getSortDirection('remetente')}
                         onSort={requestSort}
                         className="font-semibold min-w-[160px]"
                       >
                         <Building2 className="w-3 h-3" />
                         Remetente
                       </SortableTableHead>
-                      <SortableTableHead 
-                        sortKey="destinatario" 
-                        sortDirection={getSortDirection('destinatario')} 
+                      <SortableTableHead
+                        sortKey="destinatario"
+                        sortDirection={getSortDirection('destinatario')}
                         onSort={requestSort}
                         className="font-semibold min-w-[160px]"
                       >
@@ -395,35 +396,35 @@ export default function HistoricoEntregas() {
                         Destinatário
                       </SortableTableHead>
                       <TableHead className="font-semibold min-w-[180px]">Rota</TableHead>
-                      <SortableTableHead 
-                        sortKey="peso" 
-                        sortDirection={getSortDirection('peso')} 
+                      <SortableTableHead
+                        sortKey="peso"
+                        sortDirection={getSortDirection('peso')}
                         onSort={requestSort}
                         className="font-semibold min-w-[80px]"
                       >
                         <Scale className="w-3 h-3" />
                         Peso
                       </SortableTableHead>
-                      <SortableTableHead 
-                        sortKey="motorista" 
-                        sortDirection={getSortDirection('motorista')} 
+                      <SortableTableHead
+                        sortKey="motorista"
+                        sortDirection={getSortDirection('motorista')}
                         onSort={requestSort}
                         className="font-semibold min-w-[130px]"
                       >
                         <User className="w-3 h-3" />
                         Motorista
                       </SortableTableHead>
-                      <SortableTableHead 
-                        sortKey="status" 
-                        sortDirection={getSortDirection('status')} 
+                      <SortableTableHead
+                        sortKey="status"
+                        sortDirection={getSortDirection('status')}
                         onSort={requestSort}
                         className="font-semibold min-w-[120px]"
                       >
                         Status
                       </SortableTableHead>
-                      <SortableTableHead 
-                        sortKey="numero_cte" 
-                        sortDirection={getSortDirection('numero_cte')} 
+                      <SortableTableHead
+                        sortKey="numero_cte"
+                        sortDirection={getSortDirection('numero_cte')}
                         onSort={requestSort}
                         className="font-semibold min-w-[100px]"
                       >
@@ -442,9 +443,9 @@ export default function HistoricoEntregas() {
                           Manifesto
                         </div>
                       </TableHead>
-                      <SortableTableHead 
-                        sortKey="encerrada_em" 
-                        sortDirection={getSortDirection('encerrada_em')} 
+                      <SortableTableHead
+                        sortKey="encerrada_em"
+                        sortDirection={getSortDirection('encerrada_em')}
                         onSort={requestSort}
                         className="font-semibold min-w-[110px]"
                       >
@@ -468,8 +469,8 @@ export default function HistoricoEntregas() {
                             <Package className="w-10 h-10 text-muted-foreground/50" />
                             <p>Nenhum registro encontrado.</p>
                             {(searchTerm || selectedStatus) && (
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => {
                                   setSearchTerm('');
@@ -571,7 +572,7 @@ export default function HistoricoEntregas() {
                             {/* CT-e Column */}
                             <TableCell>
                               {e.cte_url ? (
-                                <Badge 
+                                <Badge
                                   className="bg-green-500/10 text-green-600 border-green-500/20 cursor-pointer gap-1"
                                   onClick={() => {
                                     setCtePreviewUrl(e.cte_url);
@@ -605,7 +606,7 @@ export default function HistoricoEntregas() {
                             {/* Manifesto Column */}
                             <TableCell>
                               {e.manifesto_url ? (
-                                <Badge 
+                                <Badge
                                   className="bg-green-500/10 text-green-600 border-green-500/20 cursor-pointer gap-1"
                                   onClick={() => {
                                     setCtePreviewUrl(e.manifesto_url);
@@ -727,9 +728,9 @@ export default function HistoricoEntregas() {
                         <span className="text-xs text-muted-foreground">
                           {new Date(e.entregue_em || e.updated_at || Date.now()).toLocaleDateString('pt-BR')}
                         </span>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-8 w-8"
                           onClick={() => handleOpenDetails(e)}
                         >
@@ -786,7 +787,7 @@ export default function HistoricoEntregas() {
                   }}
                   onLoad={(map) => setMapInstance(map)}
                 >
-                  <TrackingHistoryGoogleMarkers 
+                  <TrackingHistoryGoogleMarkers
                     entregaId={trackingMapEntregaId}
                     onBoundsReady={(bounds) => {
                       if (mapInstance && bounds) {
