@@ -26,6 +26,7 @@ import {
   AlertCircle,
   MessageCircle,
   User,
+  Users,
   RefreshCw,
   X,
   Building2,
@@ -44,6 +45,10 @@ import {
   ChevronDown,
   ChevronRight,
   Weight,
+  AlertTriangle,
+  File,
+  FileCheck,
+  Files,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -75,12 +80,18 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Tooltip,
@@ -198,7 +209,8 @@ export default function GestaoEntregas() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
+  const [selectedMotoristaIds, setSelectedMotoristaIds] = useState<string[]>([]);
+  const [motoristaPopoverOpen, setMotoristaPopoverOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -343,32 +355,51 @@ export default function GestaoEntregas() {
       const matchesStatus = selectedStatuses.length === 0 ||
         selectedStatuses.includes(entrega.status || '');
       
-      const matchesMotorista = !selectedMotoristaId || 
-        entrega.motorista?.id === selectedMotoristaId;
+      const matchesMotorista = selectedMotoristaIds.length === 0 || 
+        (entrega.motorista?.id && selectedMotoristaIds.includes(entrega.motorista.id));
 
       return matchesSearch && matchesStatus && matchesMotorista;
     });
-  }, [entregas, searchTerm, selectedStatuses, selectedMotoristaId]);
+  }, [entregas, searchTerm, selectedStatuses, selectedMotoristaIds]);
 
-  // Calculate summary for selected motorista
+  // Calculate summary for selected motoristas
   const selectedMotoristaSummary = useMemo(() => {
-    if (!selectedMotoristaId) return null;
+    if (selectedMotoristaIds.length === 0) return null;
     
-    const motoristaEntregas = filteredEntregas.filter(e => e.motorista?.id === selectedMotoristaId);
+    // If multiple drivers are selected, we show a combined summary
+    const motoristaEntregas = filteredEntregas.filter(e => 
+      e.motorista?.id && selectedMotoristaIds.includes(e.motorista.id)
+    );
     const totalPeso = motoristaEntregas.reduce((acc, e) => acc + (e.peso_alocado_kg || e.carga.peso_kg), 0);
-    const motorista = motoristaEntregas[0]?.motorista;
-    const veiculo = motoristaEntregas[0]?.veiculo;
-    const motoristaEmail = motorista?.email;
-    const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
     
+    // For single driver, show detailed info
+    if (selectedMotoristaIds.length === 1) {
+      const motorista = motoristaEntregas[0]?.motorista;
+      const veiculo = motoristaEntregas[0]?.veiculo;
+      const motoristaEmail = motorista?.email;
+      const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
+      
+      return {
+        motorista,
+        veiculo,
+        totalEntregas: motoristaEntregas.length,
+        totalPeso,
+        localizacao,
+        isSingle: true,
+      };
+    }
+    
+    // For multiple drivers
     return {
-      motorista,
-      veiculo,
+      motorista: null,
+      veiculo: null,
       totalEntregas: motoristaEntregas.length,
       totalPeso,
-      localizacao,
+      localizacao: null,
+      isSingle: false,
+      driversCount: selectedMotoristaIds.length,
     };
-  }, [selectedMotoristaId, filteredEntregas, localizacaoMap]);
+  }, [selectedMotoristaIds, filteredEntregas, localizacaoMap]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -654,10 +685,18 @@ export default function GestaoEntregas() {
     );
   };
 
+  const handleMotoristaToggle = (motoristaId: string) => {
+    setSelectedMotoristaIds(prev =>
+      prev.includes(motoristaId)
+        ? prev.filter(id => id !== motoristaId)
+        : [...prev, motoristaId]
+    );
+  };
+
   const clearFilters = () => {
     setSelectedStatuses([]);
     setSearchTerm('');
-    setSelectedMotoristaId(null);
+    setSelectedMotoristaIds([]);
   };
 
   const formatDate = (dateString: string | null) => {
@@ -690,25 +729,63 @@ export default function GestaoEntregas() {
   // Filters sidebar content
   const FiltersContent = () => (
     <div className="space-y-6">
-      {/* Motorista filter */}
+      {/* Motorista multi-select filter with search */}
       <div>
-        <h4 className="font-medium text-sm text-foreground mb-3">Motorista</h4>
-        <Select
-          value={selectedMotoristaId || "all"}
-          onValueChange={(value) => setSelectedMotoristaId(value === "all" ? null : value)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Todos os motoristas" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os motoristas</SelectItem>
-            {motoristasFromEntregas.map((m) => (
-              <SelectItem key={m.id} value={m.id}>
-                {m.nome_completo}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <h4 className="font-medium text-sm text-foreground mb-3">Motoristas</h4>
+        <Popover open={motoristaPopoverOpen} onOpenChange={setMotoristaPopoverOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={motoristaPopoverOpen}
+              className="w-full justify-between h-auto min-h-10 py-2"
+            >
+              <span className="text-left truncate">
+                {selectedMotoristaIds.length === 0
+                  ? "Todos os motoristas"
+                  : selectedMotoristaIds.length === 1
+                    ? motoristasFromEntregas.find(m => m.id === selectedMotoristaIds[0])?.nome_completo
+                    : `${selectedMotoristaIds.length} motoristas selecionados`}
+              </span>
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[260px] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Buscar motorista..." />
+              <CommandList>
+                <CommandEmpty>Nenhum motorista encontrado.</CommandEmpty>
+                <CommandGroup>
+                  {motoristasFromEntregas.map((m) => (
+                    <CommandItem
+                      key={m.id}
+                      value={m.nome_completo}
+                      onSelect={() => handleMotoristaToggle(m.id)}
+                      className="flex items-center gap-2"
+                    >
+                      <Checkbox
+                        checked={selectedMotoristaIds.includes(m.id)}
+                        className="pointer-events-none"
+                      />
+                      <span>{m.nome_completo}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        {selectedMotoristaIds.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full mt-2 text-xs h-8"
+            onClick={() => setSelectedMotoristaIds([])}
+          >
+            <X className="w-3 h-3 mr-1" />
+            Limpar seleção
+          </Button>
+        )}
       </div>
 
       {/* Status filter */}
@@ -730,7 +807,7 @@ export default function GestaoEntregas() {
         </div>
       </div>
 
-      {(selectedStatuses.length > 0 || selectedMotoristaId) && (
+      {(selectedStatuses.length > 0 || selectedMotoristaIds.length > 0) && (
         <Button variant="outline" size="sm" onClick={clearFilters} className="w-full gap-2">
           <X className="w-4 h-4" />
           Limpar filtros
@@ -771,11 +848,11 @@ export default function GestaoEntregas() {
     </TooltipProvider>
   );
 
-  // Driver Summary Card (shown when a driver is selected)
+  // Driver Summary Card (shown when drivers are selected)
   const DriverSummaryCard = () => {
     if (!selectedMotoristaSummary) return null;
     
-    const { motorista, veiculo, totalEntregas, totalPeso, localizacao } = selectedMotoristaSummary;
+    const { motorista, veiculo, totalEntregas, totalPeso, localizacao, isSingle, driversCount } = selectedMotoristaSummary as any;
     const lastUpdate = localizacao?.timestamp;
     const isRecent = lastUpdate && (Date.now() - lastUpdate) < 5 * 60 * 1000;
     
@@ -784,30 +861,44 @@ export default function GestaoEntregas() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                {motorista?.foto_url ? (
-                  <img src={motorista.foto_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-6 h-6 text-primary" />
-                )}
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">{motorista?.nome_completo || 'Motorista'}</h3>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  {veiculo && (
-                    <span className="flex items-center gap-1">
-                      <Truck className="w-3 h-3" />
-                      {veiculo.placa}
-                    </span>
-                  )}
-                  {lastUpdate && (
-                    <span className={`flex items-center gap-1 ${isRecent ? 'text-emerald-600' : ''}`}>
-                      <Radio className={`w-3 h-3 ${isRecent ? 'animate-pulse' : ''}`} />
-                      {formatLocationTimestamp(lastUpdate)}
-                    </span>
-                  )}
-                </div>
-              </div>
+              {isSingle ? (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                    {motorista?.foto_url ? (
+                      <img src={motorista.foto_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-6 h-6 text-primary" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">{motorista?.nome_completo || 'Motorista'}</h3>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      {veiculo && (
+                        <span className="flex items-center gap-1">
+                          <Truck className="w-3 h-3" />
+                          {veiculo.placa}
+                        </span>
+                      )}
+                      {lastUpdate && (
+                        <span className={`flex items-center gap-1 ${isRecent ? 'text-chart-2' : ''}`}>
+                          <Radio className={`w-3 h-3 ${isRecent ? 'animate-pulse' : ''}`} />
+                          {formatLocationTimestamp(lastUpdate)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Users className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">{driversCount} motoristas selecionados</h3>
+                    <p className="text-sm text-muted-foreground">Resumo combinado</p>
+                  </div>
+                </>
+              )}
             </div>
             
             <div className="flex items-center gap-6">
@@ -820,7 +911,7 @@ export default function GestaoEntregas() {
                 <p className="text-xs text-muted-foreground">Peso Total</p>
               </div>
               
-              {/* Bulk actions for selected driver */}
+              {/* Bulk actions for selected drivers */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">
@@ -836,9 +927,13 @@ export default function GestaoEntregas() {
                         key={statusKey}
                         onClick={() => {
                           const entregaIds = filteredEntregas
-                            .filter(e => e.motorista?.id === selectedMotoristaId)
+                            .filter(e => e.motorista?.id && selectedMotoristaIds.includes(e.motorista.id))
                             .map(e => e.id);
-                          handleBulkStatusChange(entregaIds, statusKey as StatusEntrega, motorista?.nome_completo);
+                          handleBulkStatusChange(
+                            entregaIds, 
+                            statusKey as StatusEntrega, 
+                            isSingle ? motorista?.nome_completo : `${driversCount} motoristas`
+                          );
                         }}
                       >
                         <StatusIconComponent className="w-4 h-4 mr-2" />
@@ -852,7 +947,7 @@ export default function GestaoEntregas() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSelectedMotoristaId(null)}
+                onClick={() => setSelectedMotoristaIds([])}
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -876,12 +971,12 @@ export default function GestaoEntregas() {
         className={`cursor-pointer ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
         onClick={() => setSelectedEntregaId(entrega.id)}
       >
-        <TableCell>
-          <Badge variant="secondary" className="text-xs font-mono text-nowrap">
+        <TableCell className="align-top py-3">
+          <Badge variant="secondary" className="text-xs font-mono whitespace-nowrap">
             {entrega.codigo || entrega.id.slice(0, 8).toUpperCase()}
           </Badge>
         </TableCell>
-        <TableCell>
+        <TableCell className="align-top py-3">
           {entrega.motorista ? (
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
@@ -891,16 +986,16 @@ export default function GestaoEntregas() {
                   <User className="w-3 h-3 text-primary" />
                 )}
               </div>
-              <span className="text-sm truncate max-w-[120px]">{entrega.motorista.nome_completo}</span>
+              <span className="text-sm break-words max-w-[120px]">{entrega.motorista.nome_completo}</span>
             </div>
           ) : (
             <span className="text-sm text-muted-foreground">-</span>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell className="align-top py-3">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-sm truncate block max-w-[130px]">
+              <span className="text-sm break-words block max-w-[130px]">
                 {entrega.carga.empresa?.nome || '-'}
               </span>
             </TooltipTrigger>
@@ -909,10 +1004,10 @@ export default function GestaoEntregas() {
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell>
+        <TableCell className="align-top py-3">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-sm truncate block max-w-[130px]">
+              <span className="text-sm break-words block max-w-[130px]">
                 {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
               </span>
             </TooltipTrigger>
@@ -921,81 +1016,113 @@ export default function GestaoEntregas() {
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell>
+        <TableCell className="align-top py-3">
           <div className="flex items-center gap-1 text-sm">
-            <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
-            <span className="truncate max-w-[50px]">
+            <MapPin className="w-3 h-3 text-chart-2 shrink-0" />
+            <span className="break-words max-w-[50px]">
               {entrega.carga.endereco_origem?.cidade || '-'}
             </span>
             <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-            <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
-            <span className="truncate max-w-[50px]">
+            <MapPin className="w-3 h-3 text-destructive shrink-0" />
+            <span className="break-words max-w-[50px]">
               {entrega.carga.endereco_destino?.cidade || '-'}
             </span>
           </div>
         </TableCell>
-        <TableCell className="text-right">
-          <span className="text-sm font-medium">
+        <TableCell className="text-right align-top py-3">
+          <span className="text-sm font-medium whitespace-nowrap">
             {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
           </span>
         </TableCell>
-        <TableCell>
-          <Badge variant="outline" className={`${config?.color} border text-xs gap-1`}>
+        <TableCell className="align-top py-3">
+          <Badge variant="outline" className={`${config?.color} border text-xs gap-1 whitespace-nowrap`}>
             <StatusIcon className="w-3 h-3" />
             {config?.label || status}
           </Badge>
         </TableCell>
-        <TableCell>
+        {/* CT-e Number */}
+        <TableCell className="align-top py-3">
           {entrega.numero_cte ? (
-            entrega.cte_url ? (
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-xs text-primary hover:underline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCtePreviewUrl(entrega.cte_url);
-                  setCtePreviewOpen(true);
-                }}
-              >
-                {entrega.numero_cte}
-              </Button>
-            ) : (
-              <span className="text-xs">{entrega.numero_cte}</span>
-            )
+            <span className="text-xs font-mono">{entrega.numero_cte}</span>
           ) : (
             <span className="text-xs text-muted-foreground">-</span>
           )}
         </TableCell>
-        <TableCell>
+        {/* CT-e Document */}
+        <TableCell className="align-top py-3">
+          {entrega.cte_url ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCtePreviewUrl(entrega.cte_url);
+                    setCtePreviewOpen(true);
+                  }}
+                >
+                  <FileCheck className="w-4 h-4 text-chart-2" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Ver CT-e</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-center h-7 w-7">
+                  <AlertTriangle className="w-4 h-4 text-chart-3" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>CT-e pendente</TooltipContent>
+            </Tooltip>
+          )}
+        </TableCell>
+        {/* NF-es */}
+        <TableCell className="align-top py-3">
           {entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0 ? (
-            <Badge variant="secondary" className="text-xs">
-              {entrega.notas_fiscais_urls.length}
-            </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1">
+                  <Files className="w-4 h-4 text-primary" />
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                    {entrega.notas_fiscais_urls.length}
+                  </Badge>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>{entrega.notas_fiscais_urls.length} nota(s) fiscal(is)</TooltipContent>
+            </Tooltip>
           ) : (
             <span className="text-xs text-muted-foreground">-</span>
           )}
         </TableCell>
-        <TableCell>
+        {/* Manifesto */}
+        <TableCell className="align-top py-3">
           {entrega.manifesto_url ? (
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-xs text-primary hover:underline"
-              onClick={(e) => {
-                e.stopPropagation();
-                setCtePreviewUrl(entrega.manifesto_url);
-                setCtePreviewOpen(true);
-              }}
-            >
-              Ver
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCtePreviewUrl(entrega.manifesto_url);
+                    setCtePreviewOpen(true);
+                  }}
+                >
+                  <FileText className="w-4 h-4 text-primary" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Ver Manifesto</TooltipContent>
+            </Tooltip>
           ) : (
             <span className="text-xs text-muted-foreground">-</span>
           )}
         </TableCell>
-        <TableCell>
-          <span className="text-xs text-muted-foreground">
+        <TableCell className="align-top py-3">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
             {formatDate(entrega.carga.data_entrega_limite)}
           </span>
         </TableCell>
@@ -1133,30 +1260,30 @@ export default function GestaoEntregas() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-2">
-              <Card className="border-border bg-amber-500/5">
+              <Card className="border-border bg-chart-3/5">
                 <CardContent className="p-3 text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
-                    <Clock className="w-4 h-4 text-amber-600" />
+                    <Clock className="w-4 h-4 text-chart-3" />
                   </div>
-                  <p className="text-xl font-bold text-amber-600">{stats.aguardando}</p>
+                  <p className="text-xl font-bold text-chart-3">{stats.aguardando}</p>
                   <p className="text-[10px] text-muted-foreground leading-tight">Aguardando</p>
                 </CardContent>
               </Card>
-              <Card className="border-border bg-blue-500/5">
+              <Card className="border-border bg-chart-1/5">
                 <CardContent className="p-3 text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
-                    <Package className="w-4 h-4 text-blue-600" />
+                    <Package className="w-4 h-4 text-chart-1" />
                   </div>
-                  <p className="text-xl font-bold text-blue-600">{stats.saiu_para_coleta}</p>
+                  <p className="text-xl font-bold text-chart-1">{stats.saiu_para_coleta}</p>
                   <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Coleta</p>
                 </CardContent>
               </Card>
-              <Card className="border-border bg-purple-500/5">
+              <Card className="border-border bg-chart-5/5">
                 <CardContent className="p-3 text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
-                    <Truck className="w-4 h-4 text-purple-600" />
+                    <Truck className="w-4 h-4 text-chart-5" />
                   </div>
-                  <p className="text-xl font-bold text-purple-600">{stats.saiu_para_entrega}</p>
+                  <p className="text-xl font-bold text-chart-5">{stats.saiu_para_entrega}</p>
                   <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Entrega</p>
                 </CardContent>
               </Card>
@@ -1185,19 +1312,20 @@ export default function GestaoEntregas() {
             </Card>
 
             {/* Active Filters */}
-            {(selectedStatuses.length > 0 || selectedMotoristaId) && (
+            {(selectedStatuses.length > 0 || selectedMotoristaIds.length > 0) && (
               <div className="flex flex-wrap gap-2">
-                {selectedMotoristaId && (
+                {selectedMotoristaIds.map(motoristaId => (
                   <Badge
+                    key={motoristaId}
                     variant="outline"
                     className="bg-primary/10 text-primary border-primary/20 cursor-pointer text-xs"
-                    onClick={() => setSelectedMotoristaId(null)}
+                    onClick={() => handleMotoristaToggle(motoristaId)}
                   >
                     <User className="w-3 h-3 mr-1" />
-                    {motoristasFromEntregas.find(m => m.id === selectedMotoristaId)?.nome_completo}
+                    {motoristasFromEntregas.find(m => m.id === motoristaId)?.nome_completo}
                     <X className="w-3 h-3 ml-1" />
                   </Badge>
-                )}
+                ))}
                 {selectedStatuses.map(status => {
                   const config = statusEntregaConfig[status];
                   return (
@@ -1229,11 +1357,11 @@ export default function GestaoEntregas() {
                     <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
                     <h3 className="font-semibold text-foreground mb-1">Nenhuma entrega encontrada</h3>
                     <p className="text-sm text-muted-foreground">
-                      {selectedStatuses.length > 0 || selectedMotoristaId
+                      {selectedStatuses.length > 0 || selectedMotoristaIds.length > 0
                         ? 'Tente ajustar os filtros selecionados'
                         : 'Aceite cargas para começar a gerenciar entregas'}
                     </p>
-                    {(selectedStatuses.length > 0 || selectedMotoristaId) && (
+                    {(selectedStatuses.length > 0 || selectedMotoristaIds.length > 0) && (
                       <Button variant="outline" onClick={clearFilters} className="mt-4">
                         Limpar filtros
                       </Button>
@@ -1259,8 +1387,8 @@ export default function GestaoEntregas() {
                   />
                 </Suspense>
 
-                {/* Driver Summary Card - shown when a driver is selected */}
-                {selectedMotoristaId && <DriverSummaryCard />}
+                {/* Driver Summary Card - shown when drivers are selected */}
+                {selectedMotoristaIds.length > 0 && <DriverSummaryCard />}
 
                 <Card className="border-border">
                   <CardContent className="p-0">
@@ -1280,9 +1408,25 @@ export default function GestaoEntregas() {
                             <TableHead className="font-semibold min-w-[180px]">Rota</TableHead>
                             <TableHead className="font-semibold min-w-[80px] text-right">Peso</TableHead>
                             <TableHead className="font-semibold min-w-[110px]">Status</TableHead>
-                            <TableHead className="font-semibold min-w-[100px]">CT-e</TableHead>
-                            <TableHead className="font-semibold min-w-[80px]">NF-es</TableHead>
-                            <TableHead className="font-semibold min-w-[80px]">Manifesto</TableHead>
+                            <TableHead className="font-semibold min-w-[80px]">CT-e Nº</TableHead>
+                            <TableHead className="font-semibold min-w-[60px] text-center">
+                              <div className="flex items-center gap-1 justify-center">
+                                <FileText className="w-3 h-3" />
+                                Doc
+                              </div>
+                            </TableHead>
+                            <TableHead className="font-semibold min-w-[70px]">
+                              <div className="flex items-center gap-1">
+                                <Files className="w-3 h-3" />
+                                NF-es
+                              </div>
+                            </TableHead>
+                            <TableHead className="font-semibold min-w-[70px]">
+                              <div className="flex items-center gap-1">
+                                <FileText className="w-3 h-3" />
+                                Manif.
+                              </div>
+                            </TableHead>
                             <TableHead className="font-semibold min-w-[90px]">Previsão</TableHead>
                             <TableHead className="font-semibold w-10">Chat</TableHead>
                             <TableHead className="font-semibold w-10"></TableHead>
@@ -1406,7 +1550,7 @@ export default function GestaoEntregas() {
               </Suspense>
 
               {/* Mobile Driver Summary */}
-              {selectedMotoristaId && <DriverSummaryCard />}
+              {selectedMotoristaIds.length > 0 && <DriverSummaryCard />}
 
               {/* Mobile Cards List */}
               {filteredEntregas.length === 0 ? (
