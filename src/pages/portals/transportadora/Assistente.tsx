@@ -74,7 +74,7 @@ export default function AssistenteTransportadora() {
 
   return (
     <>
-      <div className="relative h-[100dvh] -m-8 overflow-hidden flex">
+      <div className="relative h-[100dvh] overflow-hidden flex">
         <AnimatedBackground />
         
         {/* Left Sidebar - Chat History */}
