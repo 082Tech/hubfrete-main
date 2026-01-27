@@ -118,7 +118,7 @@ import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
 // Lazy load the OpenStreetMap component
-const EntregasMap = lazy(() => import('@/components/maps/EntregasMap').then(m => ({ default: m.EntregasMap })));
+const EntregasMap = lazy(() => import('@/components/maps/EntregasMap'));
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
 interface EntregaCompleta {

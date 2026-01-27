@@ -721,3 +721,6 @@ export function EntregasMap({
     </div>
   );
 }
+
+// Default export for lazy loading compatibility
+export default EntregasMap;

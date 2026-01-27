@@ -69,7 +69,7 @@ import { useUserContext } from '@/hooks/useUserContext';
 import type { Database } from '@/integrations/supabase/types';
 
 // Lazy load the OpenStreetMap component
-const EntregasMap = lazy(() => import('@/components/maps/EntregasMap').then(m => ({ default: m.EntregasMap })));
+const EntregasMap = lazy(() => import('@/components/maps/EntregasMap'));
 
 type StatusCarga = Database['public']['Enums']['status_carga'];
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
