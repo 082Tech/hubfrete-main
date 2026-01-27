@@ -86,6 +86,7 @@ interface EntregaData {
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   cte_url: string | null;
+  numero_cte: string | null;
   motoristas: {
     id: string;
     nome_completo: string;
@@ -291,6 +292,7 @@ export default function GestaoCargas() {
             peso_alocado_kg,
             valor_frete,
             cte_url,
+            numero_cte,
             motoristas (
               id,
               nome_completo,
@@ -937,7 +939,7 @@ export default function GestaoCargas() {
                                                 <TableHead className="text-xs">Veículo</TableHead>
                                                 <TableHead className="text-xs text-right">Peso</TableHead>
                                                 <TableHead className="text-xs text-right">Frete</TableHead>
-                                                <TableHead className="text-xs">CT-e</TableHead>
+                                                <TableHead className="text-xs">N° CT-e</TableHead>
                                                 <TableHead className="text-xs">Status</TableHead>
                                                 <TableHead className="text-xs w-10"></TableHead>
                                               </TableRow>
@@ -975,17 +977,9 @@ export default function GestaoCargas() {
                                                       {formatCurrency(entrega.valor_frete)}
                                                     </TableCell>
                                                     <TableCell>
-                                                      {entrega.cte_url ? (
-                                                        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 text-xs">
-                                                          <FileText className="w-3 h-3" />
-                                                          CT-e
-                                                        </Badge>
-                                                      ) : (
-                                                        <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 text-xs">
-                                                          <FileText className="w-3 h-3" />
-                                                          Pendente
-                                                        </Badge>
-                                                      )}
+                                                      <span className="text-xs font-mono text-muted-foreground">
+                                                        {entrega.numero_cte || '-'}
+                                                      </span>
                                                     </TableCell>
                                                     <TableCell>
                                                       <Badge className={`${statusConfig?.color || ''} text-xs`}>
