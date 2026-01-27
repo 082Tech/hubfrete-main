@@ -34,21 +34,6 @@ export function TruckIcon({
         height: size,
       }}
     >
-      {/* Subtle pulse animation when online */}
-      {isOnline && (
-        <div
-          className="absolute rounded-full"
-          style={{
-            width: size * 0.55,
-            height: size * 0.55,
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(34, 197, 94, 0.35)',
-            animation: 'subtlePulse 2s ease-out infinite',
-          }}
-        />
-      )}
       
       {/* Wi-Fi indicator badge in top-right corner (non-rotating) */}
       <div
@@ -142,19 +127,6 @@ export function getTruckIconHtml(
 ): string {
   const wifiColor = isOnline ? '#22c55e' : '#ef4444';
   
-  const pulseHtml = isOnline ? `
-    <div style="
-      position: absolute;
-      width: ${size * 0.55}px;
-      height: ${size * 0.55}px;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background-color: rgba(34, 197, 94, 0.35);
-      border-radius: 50%;
-      animation: subtlePulse 2s ease-out infinite;
-    "></div>
-  ` : '';
 
   // Wi-Fi icon badge (positioned in top-right, non-rotating)
   const wifiBadgeHtml = `
@@ -179,15 +151,7 @@ export function getTruckIconHtml(
   `;
 
   return `
-    <style>
-      @keyframes subtlePulse {
-        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-        50% { transform: translate(-50%, -50%) scale(1.25); opacity: 0.4; }
-        100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-      }
-    </style>
     <div style="position: relative; width: ${size}px; height: ${size}px;">
-      ${pulseHtml}
       ${wifiBadgeHtml}
       <div style="
         width: ${size}px;
