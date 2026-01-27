@@ -3,6 +3,7 @@ import textAbbr from '@/utils/textAbbr';
 import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -980,7 +981,28 @@ export default function GestaoEntregas() {
           </Badge>
         </TableCell>
         <TableCell className="py-3">
-          <span className="text-sm font-medium whitespace-nowrap">{entrega.motorista?.nome_completo || '-'}</span>
+          {entrega.motorista ? (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={entrega.motorista.foto_url || undefined} alt={entrega.motorista.nome_completo} />
+                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                  {entrega.motorista.nome_completo.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {textAbbr(entrega.motorista.nome_completo, 18)}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{entrega.motorista.nome_completo}</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">-</span>
+          )}
         </TableCell>
         <TableCell className="py-3">
           <Tooltip>
