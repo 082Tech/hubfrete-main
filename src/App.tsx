@@ -78,7 +78,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login setShowSplash={setShowSplash} />} />
-                <Route path="/admin" element={<AdminLogin setShowSplash={setShowSplash} />} />
+                <Route path="/admin" element={<AdminLogin />} />
                 <Route path="/esqueci-senha" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/dashboard" element={<Dashboard />} />

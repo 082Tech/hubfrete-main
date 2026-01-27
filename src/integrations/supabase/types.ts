@@ -14,39 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin_users: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          email: string | null
-          id: string
-          nome: string | null
-          role: Database["public"]["Enums"]["admin_role"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          email?: string | null
-          id?: string
-          nome?: string | null
-          role?: Database["public"]["Enums"]["admin_role"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          email?: string | null
-          id?: string
-          nome?: string | null
-          role?: Database["public"]["Enums"]["admin_role"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       ajudantes: {
         Row: {
           ativo: boolean | null
@@ -1635,6 +1602,39 @@ export type Database = {
           jwt?: string | null
           nome?: string | null
           senha?: string | null
+        }
+        Relationships: []
+      }
+      torre_users: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+          role: Database["public"]["Enums"]["admin_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          role?: Database["public"]["Enums"]["admin_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          role?: Database["public"]["Enums"]["admin_role"]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
