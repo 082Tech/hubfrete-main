@@ -1119,7 +1119,8 @@ export default function GestaoEntregas() {
             {formatDate(entrega.carga.data_entrega_limite)}
           </span>
         </TableCell>
-        <TableCell>
+        {/* Sticky Chat column */}
+        <TableCell className={`sticky right-10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] z-10 ${isSelected ? 'bg-primary/5' : 'bg-card'}`}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -1137,7 +1138,8 @@ export default function GestaoEntregas() {
             <TooltipContent>Abrir chat</TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell>
+        {/* Sticky Actions column */}
+        <TableCell className={`sticky right-0 z-10 ${isSelected ? 'bg-primary/5' : 'bg-card'}`}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -1149,7 +1151,7 @@ export default function GestaoEntregas() {
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuContent align="end" className="w-52 bg-popover">
               <DropdownMenuItem onClick={() => setSelectedEntregaId(entrega.id)}>
                 <Eye className="w-4 h-4 mr-2" />
                 Ver no mapa
@@ -1175,7 +1177,7 @@ export default function GestaoEntregas() {
                   Alterar status
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
-                  <DropdownMenuSubContent className="w-48">
+                  <DropdownMenuSubContent className="w-48 bg-popover">
                     {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
                       const isCurrentStatus = entrega.status === statusKey;
                       const StatusIconComponent = statusConfig.icon;
@@ -1198,7 +1200,7 @@ export default function GestaoEntregas() {
                 </DropdownMenuPortal>
               </DropdownMenuSub>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
+              <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
                 onClick={() => handleDeleteClick(entrega)}
               >
@@ -1369,47 +1371,48 @@ export default function GestaoEntregas() {
                   {/* Driver Summary Card - shown when drivers are selected */}
                   {selectedMotoristaIds.length > 0 && <DriverSummaryCard />}
 
-                  {/* Table */}
+                  {/* Table with fixed height and sticky action columns */}
                   <Card className="border-border">
                     <CardContent className="p-0">
-                      <ScrollArea className="w-full">
+                      <div className="relative max-h-[450px] overflow-auto">
                         <Table>
-                          <TableHeader>
-                            <TableRow className="bg-muted/50">
-                              <TableHead className="font-semibold whitespace-nowrap">Código</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap">
+                          <TableHeader className="sticky top-0 z-20">
+                            <TableRow className="bg-muted">
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Código</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">
                                 <div className="flex items-center gap-1">
                                   <User className="w-3 h-3" />
                                   Motorista
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap">Remetente</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap">Destinatário</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap">Rota</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap text-right">Peso</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap">Status</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap">CT-e Nº</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap text-center">
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Remetente</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Destinatário</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Rota</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap text-right bg-muted">Peso</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Status</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">CT-e Nº</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap text-center bg-muted">
                                 <div className="flex items-center gap-1 justify-center">
                                   <FileText className="w-3 h-3" />
                                   Doc
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap">
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">
                                 <div className="flex items-center gap-1">
                                   <Files className="w-3 h-3" />
                                   NF-es
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap">
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">
                                 <div className="flex items-center gap-1">
                                   <FileText className="w-3 h-3" />
                                   Manif.
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap">Previsão</TableHead>
-                              <TableHead className="font-semibold w-10">Chat</TableHead>
-                              <TableHead className="font-semibold w-10"></TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Previsão</TableHead>
+                              {/* Sticky action columns */}
+                              <TableHead className="font-semibold w-10 sticky right-10 bg-muted shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] z-10">Chat</TableHead>
+                              <TableHead className="font-semibold w-10 sticky right-0 bg-muted z-10"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1424,8 +1427,7 @@ export default function GestaoEntregas() {
                             )}
                           </TableBody>
                         </Table>
-                        <ScrollBar orientation="horizontal" />
-                      </ScrollArea>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
