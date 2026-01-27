@@ -10,11 +10,11 @@ export function ModernHero() {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-start pt-32 lg:pt-40 pb-20 overflow-hidden">
       {/* Subtle gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent" />
       
       {/* Grid pattern */}
       <div 
-        className="absolute inset-0 opacity-[0.015]"
+        className="absolute inset-0 opacity-[0.040]"
         style={{
           backgroundImage: `linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)`,
           backgroundSize: '60px 60px'
