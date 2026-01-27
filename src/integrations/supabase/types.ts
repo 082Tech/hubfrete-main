@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+          role: Database["public"]["Enums"]["admin_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          role?: Database["public"]["Enums"]["admin_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          role?: Database["public"]["Enums"]["admin_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ajudantes: {
         Row: {
           ativo: boolean | null
@@ -1444,6 +1477,60 @@ export type Database = {
         }
         Relationships: []
       }
+      pre_cadastros: {
+        Row: {
+          analisado_em: string | null
+          analisado_por: string | null
+          cnpj: string | null
+          cpf: string | null
+          created_at: string
+          email: string
+          id: string
+          motivo_rejeicao: string | null
+          nome: string
+          nome_empresa: string | null
+          observacoes: string | null
+          status: Database["public"]["Enums"]["status_pre_cadastro"]
+          telefone: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          motivo_rejeicao?: string | null
+          nome: string
+          nome_empresa?: string | null
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_pre_cadastro"]
+          telefone?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          motivo_rejeicao?: string | null
+          nome?: string
+          nome_empresa?: string | null
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_pre_cadastro"]
+          telefone?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       provas_entrega: {
         Row: {
           assinatura_url: string | null
@@ -1907,9 +1994,20 @@ export type Database = {
         Args: { p_entrega_id: string }
         Returns: string
       }
+      get_admin_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["admin_role"]
+      }
       get_user_empresa_id: { Args: { _user_id: string }; Returns: number }
       get_user_empresa_tipo: { Args: { _user_id: string }; Returns: string }
       get_user_filial_ids: { Args: { _user_id: string }; Returns: number[] }
+      has_admin_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["admin_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1921,6 +2019,7 @@ export type Database = {
         Args: { email: string; password: string }
         Returns: string
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_chat_participant: {
         Args: { p_chat_id: string; p_user_id: string }
         Returns: boolean
@@ -1935,6 +2034,7 @@ export type Database = {
       }
     }
     Enums: {
+      admin_role: "super_admin" | "admin" | "suporte"
       app_role: "admin" | "embarcador" | "transportadora" | "motorista"
       classe_empresa: "INDÚSTRIA" | "LOJA" | "COMÉRCIO"
       forma_pagamento:
@@ -1951,6 +2051,7 @@ export type Database = {
         | "entregue"
         | "problema"
         | "cancelada"
+      status_pre_cadastro: "pendente" | "aprovado" | "rejeitado"
       tipo_cadastro_motorista: "autonomo" | "frota"
       tipo_carga:
         | "granel_solido"
@@ -2137,6 +2238,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_role: ["super_admin", "admin", "suporte"],
       app_role: ["admin", "embarcador", "transportadora", "motorista"],
       classe_empresa: ["INDÚSTRIA", "LOJA", "COMÉRCIO"],
       forma_pagamento: [
@@ -2155,6 +2257,7 @@ export const Constants = {
         "problema",
         "cancelada",
       ],
+      status_pre_cadastro: ["pendente", "aprovado", "rejeitado"],
       tipo_cadastro_motorista: ["autonomo", "frota"],
       tipo_carga: [
         "granel_solido",
