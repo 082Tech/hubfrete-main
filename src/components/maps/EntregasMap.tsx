@@ -46,33 +46,14 @@ const isRecentLocation = (timestamp: number | null | undefined): boolean => {
 import { getTruckIconHtml } from './TruckIcon';
 
 // Create 3D truck icon with rotation based on heading
+// No transparency/grayscale - all trucks are fully visible
+// Wi-Fi indicator shows connection status (green=online, red=offline)
 const createTruckIcon = (
   heading: number = 0,
   isOnline: boolean = false,
   isSelected: boolean = false
 ) => {
   const size = isSelected ? 56 : 48;
-  
-  // Pulse animation for online drivers
-  const pulseStyle = isOnline ? `
-    <style>
-      @keyframes truck-pulse {
-        0%, 100% { transform: scale(1); opacity: 0.6; }
-        50% { transform: scale(1.4); opacity: 0; }
-      }
-    </style>
-    <div style="
-      position: absolute;
-      inset: -4px;
-      border-radius: 50%;
-      background-color: #22c55e;
-      opacity: 0.4;
-      animation: truck-pulse 2s ease-in-out infinite;
-    "></div>
-  ` : '';
-
-  // Less aggressive grayscale for offline - still visible but dimmed
-  const grayFilter = !isOnline ? 'filter: grayscale(80%); opacity: 0.75;' : '';
 
   return new L.DivIcon({
     className: 'truck-marker',
@@ -82,10 +63,7 @@ const createTruckIcon = (
         width: ${size}px;
         height: ${size}px;
       ">
-        ${pulseStyle}
-        <div style="${grayFilter}">
-          ${getTruckIconHtml(heading, isOnline, isSelected, size)}
-        </div>
+        ${getTruckIconHtml(heading, isOnline, isSelected, size)}
       </div>
     `,
     iconSize: [size, size],
@@ -124,26 +102,23 @@ const createLocationIcon = (type: 'origem' | 'destino') => {
   });
 };
 
+// Updated status colors to match the actual database enum values
 const statusColors: Record<string, string> = {
-  'aguardando_coleta': '#6b7280',
-  'em_coleta': '#3b82f6',
-  'coletado': '#06b6d4',
-  'em_transito': '#f97316',
-  'em_entrega': '#a855f7',
-  'entregue': '#22c55e',
-  'problema': '#ef4444',
-  'devolvida': '#ef4444',
+  'aguardando': '#6b7280',        // Gray - waiting
+  'saiu_para_coleta': '#3b82f6',  // Blue - left for pickup
+  'saiu_para_entrega': '#f97316', // Orange - left for delivery
+  'entregue': '#22c55e',          // Green - delivered
+  'problema': '#ef4444',          // Red - problem
+  'cancelada': '#991b1b',         // Dark red - cancelled
 };
 
 const statusLabels: Record<string, string> = {
-  'aguardando_coleta': 'Aguardando Coleta',
-  'em_coleta': 'Em Coleta',
-  'coletado': 'Coletado',
-  'em_transito': 'Em Trânsito',
-  'em_entrega': 'Em Entrega',
+  'aguardando': 'Aguardando',
+  'saiu_para_coleta': 'Saiu p/ Coleta',
+  'saiu_para_entrega': 'Saiu p/ Entrega',
   'entregue': 'Entregue',
   'problema': 'Problema',
-  'devolvida': 'Devolvida',
+  'cancelada': 'Cancelada',
 };
 
 interface EntregaMapData {
@@ -239,11 +214,13 @@ function FitBounds({ entregas, selectedEntrega }: { entregas: EntregaMapData[]; 
   return null;
 }
 
-// Statuses that indicate the truck has already left the origin
-const showRouteToOriginStatuses = ['aguardando_coleta', 'em_coleta'];
+// Statuses where we show route to origin (truck hasn't picked up cargo yet)
+// aguardando = waiting, saiu_para_coleta = left for pickup
+const showRouteToOriginStatuses = ['aguardando', 'saiu_para_coleta'];
 
 // Route display component with OSRM integration
-// Now only shows truck-to-destination when status indicates origin was already visited
+// - aguardando/saiu_para_coleta: dashed lines truck->origin->destination
+// - saiu_para_entrega: solid line truck->destination only
 function RouteDisplay({ 
   selectedEntrega,
   hasTrackingHistory 
@@ -251,16 +228,16 @@ function RouteDisplay({
   selectedEntrega: EntregaMapData | null;
   hasTrackingHistory: boolean;
 }) {
-  const [truckToDestinationRoute, setTruckToDestinationRoute] = useState<[number, number][]>([]);
   const [truckToOriginRoute, setTruckToOriginRoute] = useState<[number, number][]>([]);
-  const [fallbackOriginToDestinationRoute, setFallbackOriginToDestinationRoute] = useState<[number, number][]>([]);
+  const [originToDestinationRoute, setOriginToDestinationRoute] = useState<[number, number][]>([]);
+  const [truckToDestinationRoute, setTruckToDestinationRoute] = useState<[number, number][]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!selectedEntrega?.destinoCoords) {
-      setTruckToDestinationRoute([]);
       setTruckToOriginRoute([]);
-      setFallbackOriginToDestinationRoute([]);
+      setOriginToDestinationRoute([]);
+      setTruckToDestinationRoute([]);
       return;
     }
 
@@ -269,39 +246,57 @@ function RouteDisplay({
       
       try {
         const status = selectedEntrega.status || '';
-
         const hasTruckPos = !!(selectedEntrega.latitude && selectedEntrega.longitude);
-
-        // Blue dashed: prefer truck -> destination; fallback to origin -> destination when no truck position
-        if (hasTruckPos) {
-          const remainingRoute = await fetchRoute(
-            { lat: selectedEntrega.latitude!, lng: selectedEntrega.longitude! },
-            selectedEntrega.destinoCoords!
-          );
-          setTruckToDestinationRoute(remainingRoute);
-          setFallbackOriginToDestinationRoute([]);
-        } else if (selectedEntrega.origemCoords) {
-          const fallback = await fetchRoute(selectedEntrega.origemCoords!, selectedEntrega.destinoCoords!);
-          setFallbackOriginToDestinationRoute(fallback);
+        const hasOrigin = !!selectedEntrega.origemCoords;
+        const hasDestination = !!selectedEntrega.destinoCoords;
+        
+        // Check if status is before delivery (aguardando or saiu_para_coleta)
+        const isBeforeDelivery = showRouteToOriginStatuses.includes(status);
+        
+        if (isBeforeDelivery) {
+          // DASHED routes: truck -> origin -> destination
+          if (hasTruckPos && hasOrigin) {
+            const toOrigin = await fetchRoute(
+              { lat: selectedEntrega.latitude!, lng: selectedEntrega.longitude! },
+              selectedEntrega.origemCoords!
+            );
+            setTruckToOriginRoute(toOrigin);
+          } else {
+            setTruckToOriginRoute([]);
+          }
+          
+          if (hasOrigin && hasDestination) {
+            const originToDest = await fetchRoute(
+              selectedEntrega.origemCoords!,
+              selectedEntrega.destinoCoords!
+            );
+            setOriginToDestinationRoute(originToDest);
+          } else {
+            setOriginToDestinationRoute([]);
+          }
+          
           setTruckToDestinationRoute([]);
         } else {
-          setTruckToDestinationRoute([]);
-          setFallbackOriginToDestinationRoute([]);
-        }
-
-        // Orange dashed: ONLY when awaiting/collecting (aguardando_coleta/em_coleta) and we have truck pos + origin
-        if (
-          showRouteToOriginStatuses.includes(status) &&
-          hasTruckPos &&
-          selectedEntrega.origemCoords
-        ) {
-          const toOrigin = await fetchRoute(
-            { lat: selectedEntrega.latitude!, lng: selectedEntrega.longitude! },
-            selectedEntrega.origemCoords
-          );
-          setTruckToOriginRoute(toOrigin);
-        } else {
+          // SOLID route: truck -> destination directly (saiu_para_entrega)
           setTruckToOriginRoute([]);
+          setOriginToDestinationRoute([]);
+          
+          if (hasTruckPos && hasDestination) {
+            const toDest = await fetchRoute(
+              { lat: selectedEntrega.latitude!, lng: selectedEntrega.longitude! },
+              selectedEntrega.destinoCoords!
+            );
+            setTruckToDestinationRoute(toDest);
+          } else if (hasOrigin && hasDestination) {
+            // Fallback if no truck position
+            const fallback = await fetchRoute(
+              selectedEntrega.origemCoords!,
+              selectedEntrega.destinoCoords!
+            );
+            setTruckToDestinationRoute(fallback);
+          } else {
+            setTruckToDestinationRoute([]);
+          }
         }
       } catch (error) {
         console.error('Error loading routes:', error);
@@ -315,43 +310,50 @@ function RouteDisplay({
 
   if (!selectedEntrega) return null;
 
+  const status = selectedEntrega.status || '';
+  const isBeforeDelivery = showRouteToOriginStatuses.includes(status);
+
   return (
     <>
-      {/* Fallback suggested route: origin to destination (dashed blue) - only when no truck position */}
-      {fallbackOriginToDestinationRoute.length > 1 && (
-        <Polyline
-          positions={fallbackOriginToDestinationRoute}
-          pathOptions={{
-            color: '#3b82f6',
-            weight: 4,
-            opacity: 0.6,
-            dashArray: '12, 8',
-          }}
-        />
+      {/* Dashed routes for aguardando/saiu_para_coleta */}
+      {isBeforeDelivery && (
+        <>
+          {/* Dashed orange: truck to origin */}
+          {truckToOriginRoute.length > 1 && (
+            <Polyline
+              positions={truckToOriginRoute}
+              pathOptions={{
+                color: '#f97316',
+                weight: 4,
+                opacity: 0.7,
+                dashArray: '10, 10',
+              }}
+            />
+          )}
+          
+          {/* Dashed blue: origin to destination */}
+          {originToDestinationRoute.length > 1 && (
+            <Polyline
+              positions={originToDestinationRoute}
+              pathOptions={{
+                color: '#3b82f6',
+                weight: 4,
+                opacity: 0.7,
+                dashArray: '12, 8',
+              }}
+            />
+          )}
+        </>
       )}
-      
-      {/* Suggested route: truck to destination (dashed blue) */}
-      {truckToDestinationRoute.length > 1 && (
+
+      {/* Solid route for saiu_para_entrega: truck to destination */}
+      {!isBeforeDelivery && truckToDestinationRoute.length > 1 && (
         <Polyline
           positions={truckToDestinationRoute}
           pathOptions={{
             color: '#3b82f6',
-            weight: 4,
-            opacity: 0.6,
-            dashArray: '12, 8',
-          }}
-        />
-      )}
-
-      {/* Distance to origin (dashed orange) - only when awaiting/collecting */}
-      {truckToOriginRoute.length > 1 && (
-        <Polyline
-          positions={truckToOriginRoute}
-          pathOptions={{
-            color: '#f97316',
-            weight: 4,
-            opacity: 0.55,
-            dashArray: '10, 10',
+            weight: 5,
+            opacity: 0.9,
           }}
         />
       )}
@@ -604,11 +606,11 @@ export function EntregasMap({
           })}
       </MapContainer>
       
-      {/* Legend - simplified for active deliveries */}
+      {/* Legend - using correct database status values */}
       <div className="absolute bottom-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
-        <p className="text-xs font-medium text-muted-foreground mb-2">Legenda</p>
+        <p className="text-xs font-medium text-muted-foreground mb-2">Status</p>
         <div className="flex flex-col gap-1">
-          {['em_coleta', 'em_transito', 'em_entrega'].map((key) => (
+          {['aguardando', 'saiu_para_coleta', 'saiu_para_entrega', 'problema'].map((key) => (
             <div key={key} className="flex items-center gap-1.5">
               <div 
                 className="w-3 h-3 rounded-full border-2 border-white shadow-sm"
@@ -618,23 +620,48 @@ export function EntregasMap({
             </div>
           ))}
         </div>
+        
+        {/* Wi-Fi indicator legend */}
+        <div className="mt-2 pt-2 border-t border-border">
+          <p className="text-xs font-medium text-muted-foreground mb-1">Conexão</p>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-green-500" />
+              <span className="text-xs">Online</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-red-500" />
+              <span className="text-xs">Offline</span>
+            </div>
+          </div>
+        </div>
+        
         {effectiveSelectedId && (
           <div className="mt-2 pt-2 border-t border-border">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: '#22c55e' }} />
-                <span className="text-xs">Origem</span>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Rota</p>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: '#22c55e' }} />
+                  <span className="text-xs">Origem</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: '#ef4444' }} />
+                  <span className="text-xs">Destino</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: '#ef4444' }} />
-                <span className="text-xs">Destino</span>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0" style={{ borderTop: '2px dashed #f97316' }} />
+                <span className="text-xs">p/ Coleta</span>
               </div>
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="w-2 h-2 rounded-full border border-white shadow-sm" style={{ backgroundColor: '#f97316' }} />
-              <span className="text-xs">Pontos do histórico</span>
-              <div className="w-6 h-0" style={{ borderTop: '2px dashed #3b82f6' }} />
-              <span className="text-xs">Rota sugerida</span>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0" style={{ borderTop: '2px dashed #3b82f6' }} />
+                <span className="text-xs">p/ Entrega (tracejado)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0" style={{ borderTop: '3px solid #3b82f6' }} />
+                <span className="text-xs">p/ Entrega (sólido)</span>
+              </div>
             </div>
           </div>
         )}

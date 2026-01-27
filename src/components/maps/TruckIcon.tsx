@@ -10,7 +10,8 @@ interface TruckIconProps {
 
 /**
  * Top-down 3D-style truck icon that can rotate based on heading.
- * Similar to Uber's vehicle icons.
+ * Includes a Wi-Fi indicator in the top-right corner (green=online, red=offline).
+ * All trucks are fully visible (no transparency for offline).
  */
 export function TruckIcon({ 
   heading = 0, 
@@ -20,8 +21,10 @@ export function TruckIcon({
   className = ''
 }: TruckIconProps) {
   const rotation = heading ?? 0;
-  // Use a stable unique ID based on a ref to avoid SVG gradient conflicts
   const uniqueId = React.useId();
+  
+  // Wi-Fi indicator colors
+  const wifiColor = isOnline ? '#22c55e' : '#ef4444';
   
   return (
     <div 
@@ -46,6 +49,33 @@ export function TruckIcon({
           }}
         />
       )}
+      
+      {/* Wi-Fi indicator badge in top-right corner (non-rotating) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: -2,
+          right: -2,
+          width: size * 0.35,
+          height: size * 0.35,
+          backgroundColor: 'white',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+          zIndex: 10,
+        }}
+      >
+        <svg 
+          viewBox="0 0 24 24" 
+          width={size * 0.22}
+          height={size * 0.22}
+          fill={wifiColor}
+        >
+          <path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/>
+        </svg>
+      </div>
       
       {/* Rotatable truck container */}
       <div
@@ -101,14 +131,17 @@ export function TruckIcon({
 
 /**
  * Generate SVG HTML string for use with Leaflet DivIcon or Google Maps OverlayView
- * No avatar badge - avatar is shown in tooltip/popup instead
+ * Includes Wi-Fi indicator badge (green=online, red=offline)
+ * All trucks are fully visible (no transparency/grayscale for offline)
  */
 export function getTruckIconHtml(
   heading: number = 0,
   isOnline: boolean = false,
-  _isSelected: boolean = false, // No longer used - keeping for compatibility
+  _isSelected: boolean = false,
   size: number = 48
 ): string {
+  const wifiColor = isOnline ? '#22c55e' : '#ef4444';
+  
   const pulseHtml = isOnline ? `
     <div style="
       position: absolute;
@@ -123,6 +156,28 @@ export function getTruckIconHtml(
     "></div>
   ` : '';
 
+  // Wi-Fi icon badge (positioned in top-right, non-rotating)
+  const wifiBadgeHtml = `
+    <div style="
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: ${size * 0.35}px;
+      height: ${size * 0.35}px;
+      background-color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      z-index: 10;
+    ">
+      <svg viewBox="0 0 24 24" width="${size * 0.22}" height="${size * 0.22}" fill="${wifiColor}">
+        <path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/>
+      </svg>
+    </div>
+  `;
+
   return `
     <style>
       @keyframes subtlePulse {
@@ -133,6 +188,7 @@ export function getTruckIconHtml(
     </style>
     <div style="position: relative; width: ${size}px; height: ${size}px;">
       ${pulseHtml}
+      ${wifiBadgeHtml}
       <div style="
         width: ${size}px;
         height: ${size}px;
