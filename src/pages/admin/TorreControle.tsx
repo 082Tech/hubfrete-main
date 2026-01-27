@@ -1,12 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AdminLayout } from '@/components/admin/AdminLayout';
-import { StatCard } from '@/components/admin/StatCard';
-import { AccessChart, EntregasStatusChart, GrowthChart } from '@/components/admin/charts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useEffect } from 'react';
 import { 
   Shield, 
   CheckCircle, 
@@ -26,9 +18,17 @@ import {
   DollarSign,
   TrendingUp,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { StatCard } from '@/components/admin/StatCard';
+import { AccessChart, EntregasStatusChart, GrowthChart } from '@/components/admin/charts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, eachMonthOfInterval, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAdminContext } from '@/components/admin/AdminLayoutWrapper';
 
 type Stats = {
   empresasEmbarcador: number;
@@ -65,6 +65,7 @@ type GrowthData = {
 
 export default function TorreControle() {
   const navigate = useNavigate();
+  const { pendingCount } = useAdminContext();
   const [stats, setStats] = useState<Stats | null>(null);
   const [entregasStatus, setEntregasStatus] = useState<EntregasStatus | null>(null);
   const [accessData, setAccessData] = useState<AccessData[]>([]);
@@ -162,7 +163,6 @@ export default function TorreControle() {
   };
 
   const fetchAccessData = async () => {
-    // Simulate access data - in real app would come from analytics
     const days = eachDayOfInterval({
       start: subDays(new Date(), 29),
       end: new Date(),
@@ -177,7 +177,6 @@ export default function TorreControle() {
   };
 
   const fetchGrowthData = async () => {
-    // Get last 6 months
     const months = eachMonthOfInterval({
       start: subMonths(new Date(), 5),
       end: new Date(),
@@ -235,274 +234,272 @@ export default function TorreControle() {
   };
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-              <Shield className="w-8 h-8 text-destructive" />
-              Torre de Controle
-            </h1>
-            <p className="text-muted-foreground">
-              Visão geral da plataforma • Atualizado às {format(new Date(), 'HH:mm', { locale: ptBR })}
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+            <Shield className="w-8 h-8 text-destructive" />
+            Torre de Controle
+          </h1>
+          <p className="text-muted-foreground">
+            Visão geral da plataforma • Atualizado às {format(new Date(), 'HH:mm', { locale: ptBR })}
+          </p>
         </div>
-
-        {isLoading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-              <TabsTrigger value="operations">Operações</TabsTrigger>
-              <TabsTrigger value="growth">Crescimento</TabsTrigger>
-            </TabsList>
-
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-6">
-              {/* Pendências Alert */}
-              {stats && stats.preCadastrosPendentes > 0 && (
-                <Card className="border-chart-4/50 bg-chart-4/5">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-chart-4/10 rounded-lg">
-                        <Clock className="w-5 h-5 text-chart-4" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {stats.preCadastrosPendentes} pré-cadastro{stats.preCadastrosPendentes > 1 ? 's' : ''} pendente{stats.preCadastrosPendentes > 1 ? 's' : ''}
-                        </p>
-                        <p className="text-sm text-muted-foreground">Aguardando análise e aprovação</p>
-                      </div>
-                    </div>
-                    <Button onClick={() => navigate('/admin/pre-cadastros')}>
-                      Analisar <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Main Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                <StatCard
-                  title="Embarcadores"
-                  value={stats?.empresasEmbarcador || 0}
-                  icon={Package}
-                  iconClassName="bg-chart-1/10 text-chart-1"
-                />
-                <StatCard
-                  title="Transportadoras"
-                  value={stats?.empresasTransportadora || 0}
-                  icon={Building2}
-                  iconClassName="bg-chart-2/10 text-chart-2"
-                />
-                <StatCard
-                  title="Motoristas"
-                  value={stats?.motoristas || 0}
-                  icon={User}
-                  iconClassName="bg-chart-3/10 text-chart-3"
-                />
-                <StatCard
-                  title="Usuários Totais"
-                  value={stats?.totalUsuarios || 0}
-                  icon={Users}
-                  iconClassName="bg-chart-4/10 text-chart-4"
-                />
-                <StatCard
-                  title="Volume de Frete"
-                  value={formatCurrency(stats?.volumeFreteTotal || 0)}
-                  icon={DollarSign}
-                  iconClassName="bg-chart-1/10 text-chart-1"
-                />
-              </div>
-
-              {/* Charts Row */}
-              <div className="grid lg:grid-cols-2 gap-6">
-                <AccessChart data={accessData} />
-                {entregasStatus && <EntregasStatusChart data={entregasStatus} />}
-              </div>
-
-              {/* Quick Actions */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <Card 
-                  className="border-border hover:border-primary/50 transition-all cursor-pointer group"
-                  onClick={() => navigate('/admin/pre-cadastros')}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
-                        <UserPlus className="w-6 h-6 text-primary" />
-                      </div>
-                      {stats?.preCadastrosPendentes !== undefined && stats.preCadastrosPendentes > 0 && (
-                        <Badge className="bg-chart-4/10 text-chart-4">
-                          {stats.preCadastrosPendentes} pendentes
-                        </Badge>
-                      )}
-                    </div>
-                    <CardTitle className="text-lg mt-4">Pré-Cadastros</CardTitle>
-                    <p className="text-sm text-muted-foreground">Aprovar solicitações de acesso</p>
-                  </CardHeader>
-                </Card>
-
-                <Card 
-                  className="border-border hover:border-primary/50 transition-all cursor-pointer group"
-                  onClick={() => navigate('/admin/usuarios')}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
-                      <Shield className="w-6 h-6 text-primary" />
-                    </div>
-                    <CardTitle className="text-lg mt-4">Usuários Admin</CardTitle>
-                    <p className="text-sm text-muted-foreground">Gerenciar equipe administrativa</p>
-                  </CardHeader>
-                </Card>
-
-                <Card 
-                  className="border-border hover:border-primary/50 transition-all cursor-pointer group"
-                  onClick={() => navigate('/admin/monitoramento')}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
-                      <Activity className="w-6 h-6 text-primary" />
-                    </div>
-                    <CardTitle className="text-lg mt-4">Monitoramento</CardTitle>
-                    <p className="text-sm text-muted-foreground">Rastreamento em tempo real</p>
-                  </CardHeader>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Operations Tab */}
-            <TabsContent value="operations" className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard
-                  title="Cargas Publicadas"
-                  value={stats?.cargasPublicadas || 0}
-                  icon={MapPin}
-                  iconClassName="bg-primary/10 text-primary"
-                />
-                <StatCard
-                  title="Em Andamento"
-                  value={stats?.entregasEmAndamento || 0}
-                  icon={Truck}
-                  iconClassName="bg-chart-2/10 text-chart-2"
-                />
-                <StatCard
-                  title="Concluídas"
-                  value={stats?.entregasConcluidas || 0}
-                  icon={CheckCircle}
-                  iconClassName="bg-chart-1/10 text-chart-1"
-                />
-                <StatCard
-                  title="Entregas Hoje"
-                  value={stats?.entregasHoje || 0}
-                  icon={Calendar}
-                  iconClassName="bg-chart-3/10 text-chart-3"
-                />
-              </div>
-
-              <div className="grid lg:grid-cols-2 gap-6">
-                {entregasStatus && <EntregasStatusChart data={entregasStatus} />}
-                
-                <Card className="border-border">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Atividade Recente</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                        <div className="p-2 bg-chart-1/10 rounded-lg">
-                          <CheckCircle className="w-4 h-4 text-chart-1" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Entrega concluída</p>
-                          <p className="text-xs text-muted-foreground">há 5 minutos</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                        <div className="p-2 bg-chart-2/10 rounded-lg">
-                          <Package className="w-4 h-4 text-chart-2" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Nova carga publicada</p>
-                          <p className="text-xs text-muted-foreground">há 12 minutos</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                        <div className="p-2 bg-chart-3/10 rounded-lg">
-                          <User className="w-4 h-4 text-chart-3" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Novo motorista cadastrado</p>
-                          <p className="text-xs text-muted-foreground">há 28 minutos</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Growth Tab */}
-            <TabsContent value="growth" className="space-y-6">
-              <GrowthChart data={growthData} />
-              
-              <div className="grid md:grid-cols-3 gap-4">
-                <Card className="border-border">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-chart-1" />
-                      <CardTitle className="text-base">Crescimento Embarcadores</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold">{stats?.empresasEmbarcador || 0}</p>
-                    <p className="text-sm text-muted-foreground">empresas ativas</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-border">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-chart-2" />
-                      <CardTitle className="text-base">Crescimento Transportadoras</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold">{stats?.empresasTransportadora || 0}</p>
-                    <p className="text-sm text-muted-foreground">empresas ativas</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-border">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-chart-3" />
-                      <CardTitle className="text-base">Crescimento Motoristas</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold">{stats?.motoristas || 0}</p>
-                    <p className="text-sm text-muted-foreground">motoristas cadastrados</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
-        )}
+        <Button 
+          variant="outline" 
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Atualizar
+        </Button>
       </div>
-    </AdminLayout>
+
+      {isLoading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="operations">Operações</TabsTrigger>
+            <TabsTrigger value="growth">Crescimento</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* Pendências Alert */}
+            {pendingCount > 0 && (
+              <Card className="border-chart-4/50 bg-chart-4/5">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-chart-4/10 rounded-lg">
+                      <Clock className="w-5 h-5 text-chart-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {pendingCount} pré-cadastro{pendingCount > 1 ? 's' : ''} pendente{pendingCount > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Aguardando análise e aprovação</p>
+                    </div>
+                  </div>
+                  <Button onClick={() => navigate('/admin/pre-cadastros')}>
+                    Analisar <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Main Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              <StatCard
+                title="Embarcadores"
+                value={stats?.empresasEmbarcador || 0}
+                icon={Package}
+                iconClassName="bg-chart-1/10 text-chart-1"
+              />
+              <StatCard
+                title="Transportadoras"
+                value={stats?.empresasTransportadora || 0}
+                icon={Building2}
+                iconClassName="bg-chart-2/10 text-chart-2"
+              />
+              <StatCard
+                title="Motoristas"
+                value={stats?.motoristas || 0}
+                icon={User}
+                iconClassName="bg-chart-3/10 text-chart-3"
+              />
+              <StatCard
+                title="Usuários Totais"
+                value={stats?.totalUsuarios || 0}
+                icon={Users}
+                iconClassName="bg-chart-4/10 text-chart-4"
+              />
+              <StatCard
+                title="Volume de Frete"
+                value={formatCurrency(stats?.volumeFreteTotal || 0)}
+                icon={DollarSign}
+                iconClassName="bg-chart-1/10 text-chart-1"
+              />
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              <AccessChart data={accessData} />
+              {entregasStatus && <EntregasStatusChart data={entregasStatus} />}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <Card 
+                className="border-border hover:border-primary/50 transition-all cursor-pointer group"
+                onClick={() => navigate('/admin/pre-cadastros')}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
+                      <UserPlus className="w-6 h-6 text-primary" />
+                    </div>
+                    {pendingCount > 0 && (
+                      <Badge className="bg-chart-4/10 text-chart-4">
+                        {pendingCount} pendentes
+                      </Badge>
+                    )}
+                  </div>
+                  <CardTitle className="text-lg mt-4">Pré-Cadastros</CardTitle>
+                  <p className="text-sm text-muted-foreground">Aprovar solicitações de acesso</p>
+                </CardHeader>
+              </Card>
+
+              <Card 
+                className="border-border hover:border-primary/50 transition-all cursor-pointer group"
+                onClick={() => navigate('/admin/empresas')}
+              >
+                <CardHeader className="pb-2">
+                  <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
+                    <Building2 className="w-6 h-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-lg mt-4">Empresas</CardTitle>
+                  <p className="text-sm text-muted-foreground">Gerenciar embarcadores e transportadoras</p>
+                </CardHeader>
+              </Card>
+
+              <Card 
+                className="border-border hover:border-primary/50 transition-all cursor-pointer group"
+                onClick={() => navigate('/admin/motoristas')}
+              >
+                <CardHeader className="pb-2">
+                  <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
+                    <User className="w-6 h-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-lg mt-4">Motoristas</CardTitle>
+                  <p className="text-sm text-muted-foreground">Ver todos os motoristas cadastrados</p>
+                </CardHeader>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Operations Tab */}
+          <TabsContent value="operations" className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                title="Cargas Publicadas"
+                value={stats?.cargasPublicadas || 0}
+                icon={MapPin}
+                iconClassName="bg-primary/10 text-primary"
+              />
+              <StatCard
+                title="Em Andamento"
+                value={stats?.entregasEmAndamento || 0}
+                icon={Truck}
+                iconClassName="bg-chart-2/10 text-chart-2"
+              />
+              <StatCard
+                title="Concluídas"
+                value={stats?.entregasConcluidas || 0}
+                icon={CheckCircle}
+                iconClassName="bg-chart-1/10 text-chart-1"
+              />
+              <StatCard
+                title="Entregas Hoje"
+                value={stats?.entregasHoje || 0}
+                icon={Calendar}
+                iconClassName="bg-chart-3/10 text-chart-3"
+              />
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-6">
+              {entregasStatus && <EntregasStatusChart data={entregasStatus} />}
+              
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="text-lg">Atividade Recente</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="p-2 bg-chart-1/10 rounded-lg">
+                        <CheckCircle className="w-4 h-4 text-chart-1" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Entrega concluída</p>
+                        <p className="text-xs text-muted-foreground">há 5 minutos</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="p-2 bg-chart-2/10 rounded-lg">
+                        <Package className="w-4 h-4 text-chart-2" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Nova carga publicada</p>
+                        <p className="text-xs text-muted-foreground">há 12 minutos</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="p-2 bg-chart-3/10 rounded-lg">
+                        <User className="w-4 h-4 text-chart-3" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Novo motorista cadastrado</p>
+                        <p className="text-xs text-muted-foreground">há 28 minutos</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Growth Tab */}
+          <TabsContent value="growth" className="space-y-6">
+            <GrowthChart data={growthData} />
+            
+            <div className="grid md:grid-cols-3 gap-4">
+              <Card className="border-border">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-chart-1" />
+                    <CardTitle className="text-base">Crescimento Embarcadores</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{stats?.empresasEmbarcador || 0}</p>
+                  <p className="text-sm text-muted-foreground">empresas ativas</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-chart-2" />
+                    <CardTitle className="text-base">Crescimento Transportadoras</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{stats?.empresasTransportadora || 0}</p>
+                  <p className="text-sm text-muted-foreground">empresas ativas</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-chart-3" />
+                    <CardTitle className="text-base">Crescimento Motoristas</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{stats?.motoristas || 0}</p>
+                  <p className="text-sm text-muted-foreground">motoristas cadastrados</p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
   );
 }
