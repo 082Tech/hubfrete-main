@@ -182,15 +182,15 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
           )}>
             <span className="font-medium">{lastMessagePreview.senderName}:</span>{' '}
             <span className={lastMessagePreview.isAttachment ? 'italic' : ''}>
-              {lastMessagePreview.content}
+              {textAbbr(lastMessagePreview.content || '', 25)}
             </span>
           </p>
         ) : route ? (
           <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
             <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{route.origem.cidade}</span>
+            <span className="truncate">{textAbbr(route.origem.cidade, 10)}</span>
             <ArrowRight className="w-3 h-3 shrink-0" />
-            <span className="truncate">{route.destino.cidade}</span>
+            <span className="truncate">{textAbbr(route.destino.cidade, 10)}</span>
           </div>
         ) : null}
       </div>
