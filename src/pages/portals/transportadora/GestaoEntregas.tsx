@@ -223,7 +223,7 @@ export default function GestaoEntregas() {
   const [entregaForCte, setEntregaForCte] = useState<EntregaCompleta | null>(null);
   const [ctePreviewOpen, setCtePreviewOpen] = useState(false);
   const [ctePreviewUrl, setCtePreviewUrl] = useState<string | null>(null);
-  
+
   // Status change confirmation dialog state
   const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<{
@@ -321,7 +321,7 @@ export default function GestaoEntregas() {
         });
       }
     });
-    return Array.from(motoristasMap.values()).sort((a, b) => 
+    return Array.from(motoristasMap.values()).sort((a, b) =>
       a.nome_completo.localeCompare(b.nome_completo)
     );
   }, [entregas]);
@@ -355,8 +355,8 @@ export default function GestaoEntregas() {
 
       const matchesStatus = selectedStatuses.length === 0 ||
         selectedStatuses.includes(entrega.status || '');
-      
-      const matchesMotorista = selectedMotoristaIds.length === 0 || 
+
+      const matchesMotorista = selectedMotoristaIds.length === 0 ||
         (entrega.motorista?.id && selectedMotoristaIds.includes(entrega.motorista.id));
 
       return matchesSearch && matchesStatus && matchesMotorista;
@@ -366,20 +366,20 @@ export default function GestaoEntregas() {
   // Calculate summary for selected motoristas
   const selectedMotoristaSummary = useMemo(() => {
     if (selectedMotoristaIds.length === 0) return null;
-    
+
     // If multiple drivers are selected, we show a combined summary
-    const motoristaEntregas = filteredEntregas.filter(e => 
+    const motoristaEntregas = filteredEntregas.filter(e =>
       e.motorista?.id && selectedMotoristaIds.includes(e.motorista.id)
     );
     const totalPeso = motoristaEntregas.reduce((acc, e) => acc + (e.peso_alocado_kg || e.carga.peso_kg), 0);
-    
+
     // For single driver, show detailed info
     if (selectedMotoristaIds.length === 1) {
       const motorista = motoristaEntregas[0]?.motorista;
       const veiculo = motoristaEntregas[0]?.veiculo;
       const motoristaEmail = motorista?.email;
       const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
-      
+
       return {
         motorista,
         veiculo,
@@ -389,7 +389,7 @@ export default function GestaoEntregas() {
         isSingle: true,
       };
     }
-    
+
     // For multiple drivers
     return {
       motorista: null,
@@ -436,10 +436,10 @@ export default function GestaoEntregas() {
       // 2. Calculate new available weight and status
       const pesoDisponivelAtual = cargaAtual.peso_disponivel_kg ?? 0;
       const novoPesoDisponivel = pesoDisponivelAtual + pesoAlocado;
-      
+
       // If restored weight equals total weight, set to 'publicada', otherwise 'parcialmente_alocada'
-      const novoStatus = novoPesoDisponivel >= cargaAtual.peso_kg 
-        ? 'publicada' 
+      const novoStatus = novoPesoDisponivel >= cargaAtual.peso_kg
+        ? 'publicada'
         : 'parcialmente_alocada';
 
       // 3. Delete associated chat and participants first
@@ -455,13 +455,13 @@ export default function GestaoEntregas() {
           .from('chat_participantes')
           .delete()
           .eq('chat_id', chat.id);
-        
+
         // Delete messages
         await supabase
           .from('mensagens')
           .delete()
           .eq('chat_id', chat.id);
-        
+
         // Delete chat
         await supabase
           .from('chats')
@@ -480,7 +480,7 @@ export default function GestaoEntregas() {
       // 5. Update cargo with restored weight and new status
       const { error: updateError } = await supabase
         .from('cargas')
-        .update({ 
+        .update({
           peso_disponivel_kg: Math.min(novoPesoDisponivel, cargaAtual.peso_kg),
           status: novoStatus
         })
@@ -592,13 +592,13 @@ export default function GestaoEntregas() {
 
   const confirmStatusChange = () => {
     if (!pendingStatusChange) return;
-    
+
     if (pendingStatusChange.type === 'single' && pendingStatusChange.entregaId) {
       updateStatus.mutate({ entregaId: pendingStatusChange.entregaId, newStatus: pendingStatusChange.newStatus });
     } else if (pendingStatusChange.type === 'bulk' && pendingStatusChange.entregaIds) {
       updateBulkStatus.mutate({ entregaIds: pendingStatusChange.entregaIds, newStatus: pendingStatusChange.newStatus });
     }
-    
+
     setStatusChangeDialogOpen(false);
     setPendingStatusChange(null);
   };
@@ -714,16 +714,16 @@ export default function GestaoEntregas() {
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
-    
+
     if (diffMins < 1) return 'Agora';
     if (diffMins < 60) return `${diffMins} min`;
     if (diffHours < 24) return `${diffHours}h`;
-    
-    return date.toLocaleString('pt-BR', { 
-      day: '2-digit', 
+
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
       month: '2-digit',
-      hour: '2-digit', 
-      minute: '2-digit' 
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -822,11 +822,10 @@ export default function GestaoEntregas() {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-            isOnline 
-              ? 'bg-primary/10 text-primary border border-primary/20' 
-              : 'bg-destructive/10 text-destructive border border-destructive/20'
-          }`}>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${isOnline
+            ? 'bg-primary/10 text-primary border border-primary/20'
+            : 'bg-destructive/10 text-destructive border border-destructive/20'
+            }`}>
             {isOnline ? (
               <>
                 <Radio className="w-3 h-3 animate-pulse" />
@@ -841,8 +840,8 @@ export default function GestaoEntregas() {
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          {isOnline 
-            ? 'Mapa atualizado em tempo real' 
+          {isOnline
+            ? 'Mapa atualizado em tempo real'
             : 'Sem conexão com a internet'}
         </TooltipContent>
       </Tooltip>
@@ -852,11 +851,11 @@ export default function GestaoEntregas() {
   // Driver Summary Card (shown when drivers are selected)
   const DriverSummaryCard = () => {
     if (!selectedMotoristaSummary) return null;
-    
+
     const { motorista, veiculo, totalEntregas, totalPeso, localizacao, isSingle, driversCount } = selectedMotoristaSummary as any;
     const lastUpdate = localizacao?.timestamp;
     const isRecent = lastUpdate && (Date.now() - lastUpdate) < 5 * 60 * 1000;
-    
+
     return (
       <Card className="border-primary/30 bg-primary/5">
         <CardContent className="p-4">
@@ -901,7 +900,7 @@ export default function GestaoEntregas() {
                 </>
               )}
             </div>
-            
+
             <div className="flex items-center gap-6">
               <div className="text-center">
                 <p className="text-2xl font-bold text-primary">{totalEntregas}</p>
@@ -911,7 +910,7 @@ export default function GestaoEntregas() {
                 <p className="text-2xl font-bold text-foreground">{formatPeso(totalPeso)}</p>
                 <p className="text-xs text-muted-foreground">Peso Total</p>
               </div>
-              
+
               {/* Bulk actions for selected drivers */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -931,8 +930,8 @@ export default function GestaoEntregas() {
                             .filter(e => e.motorista?.id && selectedMotoristaIds.includes(e.motorista.id))
                             .map(e => e.id);
                           handleBulkStatusChange(
-                            entregaIds, 
-                            statusKey as StatusEntrega, 
+                            entregaIds,
+                            statusKey as StatusEntrega,
                             isSingle ? motorista?.nome_completo : `${driversCount} motoristas`
                           );
                         }}
@@ -944,7 +943,7 @@ export default function GestaoEntregas() {
                   })}
                 </DropdownMenuContent>
               </DropdownMenu>
-              
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -973,8 +972,8 @@ export default function GestaoEntregas() {
         onClick={() => setSelectedEntregaId(isSelected ? null : entrega.id)}
       >
         <TableCell className="py-3">
-          <Badge 
-            variant="secondary" 
+          <Badge
+            variant="secondary"
             className="text-xs font-mono whitespace-nowrap"
           >
             {entrega.codigo || entrega.carga.codigo}
@@ -999,7 +998,7 @@ export default function GestaoEntregas() {
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-sm whitespace-nowrap">
-                {(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social) 
+                {(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social)
                   ? textAbbr(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '', 18)
                   : '-'}
               </span>
@@ -1199,7 +1198,7 @@ export default function GestaoEntregas() {
                 </DropdownMenuPortal>
               </DropdownMenuSub>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onClick={() => handleDeleteClick(entrega)}
               >
@@ -1218,25 +1217,6 @@ export default function GestaoEntregas() {
       <div className="p-4 md:p-8 pb-20 md:pb-8">
         {/* Desktop Layout - New Layout: Top row (Filters | Map), Bottom row (Full-width Table) */}
         <div className="hidden lg:block space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
-              <p className="text-sm text-muted-foreground">Rastreie suas entregas em tempo real</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => refetch()}
-                disabled={isLoading || isFetching}
-              >
-                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-              </Button>
-              <LiveIndicator />
-            </div>
-          </div>
-
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -1258,7 +1238,26 @@ export default function GestaoEntregas() {
               {/* Two Column Layout: Left (Filters/Cards) | Right (Map + Table) */}
               <div className="grid grid-cols-12 gap-4">
                 {/* Left Column: Search, Stats, Filters */}
-                <div className="col-span-3 space-y-4">
+                <div className="col-span-2 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
+                      <p className="text-sm text-muted-foreground">Rastreie suas entregas em tempo real</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => refetch()}
+                      disabled={isLoading || isFetching}
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                    </Button>
+                    <LiveIndicator />
+                  </div>
+
                   {/* Search */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1349,7 +1348,7 @@ export default function GestaoEntregas() {
                 </div>
 
                 {/* Right Column: Map + Table */}
-                <div className="col-span-9 space-y-4">
+                <div className="col-span-10 space-y-4">
                   {/* Map */}
                   <Suspense fallback={
                     <Card className="border-border">
@@ -1553,14 +1552,14 @@ export default function GestaoEntregas() {
                     const StatusIcon = config?.icon || Package;
 
                     return (
-                      <Card 
-                        key={entrega.id} 
+                      <Card
+                        key={entrega.id}
                         className={`border-border transition-all ${selectedEntregaId === entrega.id ? 'ring-2 ring-primary' : ''}`}
                       >
                         <CardContent className="p-3 space-y-2">
                           <div className="flex items-center justify-between">
-                            <Badge 
-                              variant="secondary" 
+                            <Badge
+                              variant="secondary"
                               className="text-xs cursor-pointer"
                               onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
                             >
@@ -1630,7 +1629,7 @@ export default function GestaoEntregas() {
                                     </DropdownMenuPortal>
                                   </DropdownMenuSub>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
                                     onClick={() => handleDeleteClick(entrega)}
                                   >
@@ -1641,13 +1640,13 @@ export default function GestaoEntregas() {
                               </DropdownMenu>
                             </div>
                           </div>
-                          <p 
+                          <p
                             className="text-sm font-medium line-clamp-1 cursor-pointer"
                             onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
                           >
                             {entrega.carga.descricao}
                           </p>
-                          <div 
+                          <div
                             className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer"
                             onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
                           >
@@ -1658,7 +1657,7 @@ export default function GestaoEntregas() {
                             <span className="truncate">{entrega.carga.endereco_destino?.cidade}</span>
                           </div>
                           {entrega.motorista && (
-                            <div 
+                            <div
                               className="flex items-center gap-2 text-xs pt-2 border-t border-border cursor-pointer"
                               onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
                             >
@@ -1715,7 +1714,7 @@ export default function GestaoEntregas() {
                           </strong>?
                         </p>
                       )}
-                      
+
                       {pendingStatusChange.newStatus === 'saiu_para_coleta' && (
                         <p className="mt-3 text-sm">
                           A data/hora de coleta será registrada automaticamente.
@@ -1735,8 +1734,8 @@ export default function GestaoEntregas() {
               <AlertDialogCancel disabled={updateStatus.isPending || updateBulkStatus.isPending}>
                 Cancelar
               </AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={confirmStatusChange} 
+              <AlertDialogAction
+                onClick={confirmStatusChange}
                 disabled={updateStatus.isPending || updateBulkStatus.isPending}
               >
                 {(updateStatus.isPending || updateBulkStatus.isPending) ? (
@@ -1776,8 +1775,8 @@ export default function GestaoEntregas() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={deleteEntrega.isPending}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={confirmDelete} 
+              <AlertDialogAction
+                onClick={confirmDelete}
                 disabled={deleteEntrega.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
