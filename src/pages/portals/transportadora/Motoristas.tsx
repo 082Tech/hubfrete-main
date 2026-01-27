@@ -4,6 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   User,
   Plus,
@@ -23,6 +40,8 @@ import {
   Container,
   Link2,
   Share2,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,10 +69,14 @@ import {
   tipoCarroceriaLabels 
 } from '@/components/motoristas/types';
 
+const ITEMS_PER_PAGE = 12;
+
 export default function Motoristas() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isVinculosDialogOpen, setIsVinculosDialogOpen] = useState(false);
@@ -167,6 +190,18 @@ export default function Motoristas() {
     );
   }, [motoristas, searchTerm]);
 
+  // Reset page when search changes
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredMotoristas.length / ITEMS_PER_PAGE);
+  const paginatedMotoristas = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredMotoristas.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredMotoristas, currentPage]);
+
   const formatValidadeCNH = (validade: string | null | undefined): string => {
     if (!validade) return 'Não informada';
     try {
@@ -257,15 +292,25 @@ export default function Motoristas() {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, CPF, e-mail..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
+        {/* Search + View Toggle */}
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, CPF, e-mail..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'card' | 'list')}>
+            <ToggleGroupItem value="card" aria-label="Visualização em cards">
+              <LayoutGrid className="w-4 h-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="Visualização em lista">
+              <List className="w-4 h-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         {/* List */}
@@ -289,12 +334,106 @@ export default function Motoristas() {
               )}
             </CardContent>
           </Card>
+        ) : viewMode === 'list' ? (
+          /* List View */
+          <Card className="border-border">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Motorista</TableHead>
+                    <TableHead>CPF</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>CNH</TableHead>
+                    <TableHead>Validade CNH</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Equipamentos</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedMotoristas.map((motorista) => {
+                    const cnhStatus = getCNHStatus(motorista.validade_cnh);
+                    const isDeleting = deletingMotoristaId === motorista.id;
+                    const isAtivo = motorista.ativo !== false;
+                    return (
+                      <TableRow key={motorista.id} className={`${!isAtivo ? 'opacity-60' : ''} ${isDeleting ? 'pointer-events-none' : ''}`}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src={motorista.foto_url || undefined} alt={motorista.nome_completo} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                {motorista.nome_completo.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{motorista.nome_completo}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{formatCPF(motorista.cpf)}</TableCell>
+                        <TableCell className="text-muted-foreground">{motorista.telefone || '-'}</TableCell>
+                        <TableCell><Badge variant="secondary">{motorista.categoria_cnh}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant={cnhStatus === 'expired' ? 'destructive' : cnhStatus === 'expiring' ? 'outline' : 'secondary'} className={cnhStatus === 'expiring' ? 'bg-chart-4/10 text-chart-4 border-chart-4/20' : ''}>
+                            {formatValidadeCNH(motorista.validade_cnh)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={isAtivo ? 'outline' : 'destructive'} className={isAtivo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''}>
+                            {isAtivo ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            {motorista.veiculos?.map((v) => (
+                              <Badge key={v.id} variant="outline" className="text-xs gap-1">
+                                <Car className="w-3 h-3" />{v.placa}
+                              </Badge>
+                            ))}
+                            {motorista.carrocerias?.map((c) => (
+                              <Badge key={c.id} variant="outline" className="text-xs gap-1">
+                                <Container className="w-3 h-3" />{c.placa}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(motorista)}>
+                                <Edit className="w-4 h-4 mr-2" />Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleVinculos(motorista)}>
+                                <Link2 className="w-4 h-4 mr-2" />Gerenciar Vínculos
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => toggleAtivo.mutate({ id: motorista.id, ativo: !isAtivo })}>
+                                {isAtivo ? <XCircle className="w-4 h-4 mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                                {isAtivo ? 'Desativar' : 'Ativar'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={() => deleteMotorista.mutate(motorista.id)}>
+                                <Trash2 className="w-4 h-4 mr-2" />Remover
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
         ) : (
+          /* Card View */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredMotoristas.map((motorista) => {
+            {paginatedMotoristas.map((motorista) => {
               const cnhStatus = getCNHStatus(motorista.validade_cnh);
               const isDeleting = deletingMotoristaId === motorista.id;
-              // Treat null as active (default)
               const isAtivo = motorista.ativo !== false;
               return (
                 <Card key={motorista.id} className={`border-border transition-all relative ${!isAtivo ? 'opacity-60' : 'hover:shadow-md'} ${isDeleting ? 'pointer-events-none' : ''}`}>
@@ -328,12 +467,10 @@ export default function Motoristas() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleEdit(motorista)}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Editar
+                            <Edit className="w-4 h-4 mr-2" />Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleVinculos(motorista)}>
-                            <Link2 className="w-4 h-4 mr-2" />
-                            Gerenciar Vínculos
+                            <Link2 className="w-4 h-4 mr-2" />Gerenciar Vínculos
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => toggleAtivo.mutate({ id: motorista.id, ativo: !isAtivo })}>
@@ -341,8 +478,7 @@ export default function Motoristas() {
                             {isAtivo ? 'Desativar' : 'Ativar'}
                           </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive" onClick={() => deleteMotorista.mutate(motorista.id)}>
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Remover
+                            <Trash2 className="w-4 h-4 mr-2" />Remover
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -378,8 +514,7 @@ export default function Motoristas() {
                           <div className="flex flex-wrap gap-1">
                             {motorista.veiculos.map((v) => (
                               <Badge key={v.id} variant="outline" className="text-xs gap-1">
-                                <Car className="w-3 h-3" />
-                                {v.placa}
+                                <Car className="w-3 h-3" />{v.placa}
                               </Badge>
                             ))}
                           </div>
@@ -388,8 +523,7 @@ export default function Motoristas() {
                           <div className="flex flex-wrap gap-1">
                             {motorista.carrocerias.map((c) => (
                               <Badge key={c.id} variant="outline" className="text-xs gap-1">
-                                <Container className="w-3 h-3" />
-                                {c.placa}
+                                <Container className="w-3 h-3" />{c.placa}
                               </Badge>
                             ))}
                           </div>
@@ -401,6 +535,37 @@ export default function Motoristas() {
               );
             })}
           </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    isActive={currentPage === page}
+                    onClick={() => setCurrentPage(page)}
+                    className="cursor-pointer"
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         )}
       </div>
 
