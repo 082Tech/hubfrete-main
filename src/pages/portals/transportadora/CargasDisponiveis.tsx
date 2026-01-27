@@ -718,21 +718,21 @@ export default function CargasDisponiveis() {
   };
 
   // Carga Card component for reuse
-  const CargaCard = ({ carga, isHovered }: { carga: Carga; isHovered?: boolean }) => {
+  const CargaCard = ({ carga, isHovered, uniformHeight = false }: { carga: Carga; isHovered?: boolean; uniformHeight?: boolean }) => {
     const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
     const percentDisponivel = (pesoDisponivel / carga.peso_kg) * 100;
     const veiculoRequisitos = carga.veiculo_requisitos as VeiculoRequisitos | null;
 
     return (
       <Card
-        className={`border-border hover:shadow-lg transition-all cursor-pointer h-full flex flex-col ${isHovered ? 'ring-2 ring-primary shadow-lg' : ''}`}
+        className={`border-border hover:shadow-lg transition-all cursor-pointer ${uniformHeight ? 'h-full flex flex-col' : ''} ${isHovered ? 'ring-2 ring-primary shadow-lg' : ''}`}
         onMouseEnter={() => setHoveredCargaId(carga.id)}
         onMouseLeave={() => setHoveredCargaId(null)}
         onClick={() => handleAcceptClick(carga)}
       >
-        <CardContent className="p-4 flex flex-col flex-1">
+        <CardContent className={`p-4 ${uniformHeight ? 'flex flex-col flex-1' : 'space-y-3'}`}>
           {/* Destinatário Company Name - First Line */}
-          <div className="flex items-center gap-2 pb-2 border-b border-border min-h-[36px]">
+          <div className={`flex items-center gap-2 pb-2 border-b border-border ${uniformHeight ? 'min-h-[36px]' : ''}`}>
             <Package className="w-4 h-4 text-primary shrink-0" />
             <span className="font-semibold text-sm text-primary truncate">
               {carga.destinatario_nome_fantasia || carga.destinatario_razao_social || 'Destinatário não informado'}
@@ -740,7 +740,7 @@ export default function CargasDisponiveis() {
           </div>
 
           {/* Header - Fixed height section */}
-          <div className="flex items-start gap-3 py-3 min-h-[80px]">
+          <div className={`flex items-start gap-3 py-3 ${uniformHeight ? 'min-h-[80px]' : ''}`}>
             {/* Company Logo or Initials */}
             <div className="shrink-0 w-10 h-10 rounded-md border border-border bg-muted/50 flex items-center justify-center overflow-hidden">
               {carga.empresa?.logo_url ? (
@@ -804,7 +804,7 @@ export default function CargasDisponiveis() {
           </div>
 
           {/* Route with company names - Fixed height */}
-          <div className="flex items-center gap-2 text-xs min-h-[60px]">
+          <div className={`flex items-center gap-2 text-xs ${uniformHeight ? 'min-h-[60px]' : ''}`}>
             <div className="flex flex-col gap-0.5 flex-1 min-w-0">
               {/* Origin company name */}
               <span className="text-xs text-muted-foreground font-medium truncate">
@@ -835,7 +835,7 @@ export default function CargasDisponiveis() {
           </div>
 
           {/* Distance Badge - Fixed height */}
-          <div className="flex items-center gap-2 h-[28px] my-1">
+          <div className={`flex items-center gap-2 ${uniformHeight ? 'h-[28px]' : ''} my-1`}>
             {distancias.has(carga.id) ? (
               <>
                 <Badge variant="secondary" className="gap-1">
@@ -846,13 +846,13 @@ export default function CargasDisponiveis() {
                   ~{distancias.get(carga.id)?.duration}
                 </span>
               </>
-            ) : (
+            ) : uniformHeight ? (
               <span className="text-xs text-muted-foreground italic">Calculando distância...</span>
-            )}
+            ) : null}
           </div>
 
-          {/* Spacer to push bottom content down */}
-          <div className="flex-1" />
+          {/* Spacer to push bottom content down - only in uniform height mode */}
+          {uniformHeight && <div className="flex-1" />}
 
           {/* Weight Progress Bar - Always at same position */}
           <div className="space-y-1.5 pt-2">
@@ -1078,7 +1078,7 @@ export default function CargasDisponiveis() {
           /* List View */
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20 md:pb-0 items-stretch">
             {filteredCargas.map((carga) => (
-              <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} />
+              <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} uniformHeight />
             ))}
           </div>
         ) : isMobile ? (
