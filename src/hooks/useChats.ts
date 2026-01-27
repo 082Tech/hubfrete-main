@@ -9,6 +9,7 @@ interface UseChatsOptions {
 }
 
 const MESSAGES_PER_PAGE = 20;
+const CHATS_PER_PAGE = 15;
 
 export function useChats({ userType, empresaId }: UseChatsOptions) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -17,11 +18,14 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
   const [isLoadingChats, setIsLoadingChats] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoadingMoreChats, setIsLoadingMoreChats] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [hasMoreChats, setHasMoreChats] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [currentUserName, setCurrentUserName] = useState<string>('');
   const messagesOffsetRef = useRef(0);
+  const chatsOffsetRef = useRef(0);
   const { toast } = useToast();
 
   // Get current user and cache their name
@@ -44,109 +48,157 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     getUser();
   }, []);
 
-  // Fetch chats based on user type
-  const fetchChats = useCallback(async () => {
+  // Optimized fetch chats - loads initial batch quickly
+  const fetchChats = useCallback(async (loadMore = false) => {
     if (!empresaId) {
       setIsLoadingChats(false);
       return;
     }
     
-    setIsLoadingChats(true);
+    if (loadMore) {
+      setIsLoadingMoreChats(true);
+    } else {
+      setIsLoadingChats(true);
+      chatsOffsetRef.current = 0;
+    }
+
     try {
-      // Fetch chats with related data
-      const { data: chatsData, error } = await supabase
+      const offset = loadMore ? chatsOffsetRef.current : 0;
+
+      // Step 1: Fetch chats with basic entrega info in a single query
+      const { data: chatsData, error: chatsError } = await supabase
         .from('chats')
         .select(`
           id,
           entrega_id,
           created_at,
-          updated_at
+          updated_at,
+          entregas!inner (
+            id,
+            status,
+            carga_id,
+            motorista_id,
+            veiculo_id,
+            peso_alocado_kg,
+            valor_frete
+          )
         `)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .range(offset, offset + CHATS_PER_PAGE - 1);
 
-      if (error) throw error;
+      if (chatsError) throw chatsError;
 
-      // For each chat, fetch entrega details with more info
-      const chatsWithDetails = await Promise.all(
-        (chatsData || []).map(async (chat) => {
-          // Fetch entrega with carga and motorista
-          const { data: entrega } = await supabase
-            .from('entregas')
-            .select(`
-              id,
-              status,
-              carga_id,
-              motorista_id,
-              veiculo_id,
-              peso_alocado_kg,
-              valor_frete
-            `)
-            .eq('id', chat.entrega_id)
-            .maybeSingle();
+      if (!chatsData || chatsData.length === 0) {
+        if (!loadMore) setChats([]);
+        setHasMoreChats(false);
+        return;
+      }
 
+      // Step 2: Collect IDs for batch queries
+      const cargaIds = [...new Set(chatsData.map(c => c.entregas?.carga_id).filter(Boolean))];
+      const motoristaIds = [...new Set(chatsData.map(c => c.entregas?.motorista_id).filter(Boolean))];
+      const veiculoIds = [...new Set(chatsData.map(c => c.entregas?.veiculo_id).filter(Boolean))];
+      const chatIds = chatsData.map(c => c.id);
+
+      // Step 3: Batch fetch all related data in parallel
+      const [cargasResult, motoristasResult, veiculosResult, lastMessagesResult, unreadCountsResult, participantesResult] = await Promise.all([
+        // Cargas with addresses and empresa
+        cargaIds.length > 0 ? supabase
+          .from('cargas')
+          .select(`
+            id, 
+            codigo, 
+            descricao, 
+            empresa_id,
+            peso_kg,
+            tipo,
+            data_entrega_limite,
+            endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro),
+            endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro)
+          `)
+          .in('id', cargaIds) : { data: [] },
+
+        // Motoristas with empresa
+        motoristaIds.length > 0 ? supabase
+          .from('motoristas')
+          .select('id, nome_completo, foto_url, telefone, empresa_id')
+          .in('id', motoristaIds) : { data: [] },
+
+        // Veiculos
+        veiculoIds.length > 0 ? supabase
+          .from('veiculos')
+          .select('id, placa, tipo')
+          .in('id', veiculoIds) : { data: [] },
+
+        // Last message per chat - using RPC or window function would be ideal
+        // For now, fetch separately per chat (still fast as parallel)
+        Promise.all(chatIds.map(chatId =>
+          supabase
+            .from('mensagens')
+            .select('*')
+            .eq('chat_id', chatId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+            .then(r => ({ chatId, message: r.data }))
+        )),
+
+        // Unread counts
+        Promise.all(chatIds.map(chatId =>
+          supabase
+            .from('mensagens')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chatId)
+            .eq('lida', false)
+            .neq('sender_id', currentUserId)
+            .then(r => ({ chatId, count: r.count || 0 }))
+        )),
+
+        // Participantes
+        supabase
+          .from('chat_participantes')
+          .select('*')
+          .in('chat_id', chatIds),
+      ]);
+
+      const cargas = cargasResult.data || [];
+      const motoristas = motoristasResult.data || [];
+      const veiculos = veiculosResult.data || [];
+      const lastMessages = lastMessagesResult as { chatId: string; message: Mensagem | null }[];
+      const unreadCounts = unreadCountsResult as { chatId: string; count: number }[];
+      const participantes = participantesResult.data || [];
+
+      // Step 4: Fetch empresas for cargas and motoristas in parallel
+      const embarcadorEmpresaIds = [...new Set(cargas.map(c => c.empresa_id).filter(Boolean))];
+      const transportadoraEmpresaIds = [...new Set(motoristas.map(m => m.empresa_id).filter(Boolean))];
+      const allEmpresaIds = [...new Set([...embarcadorEmpresaIds, ...transportadoraEmpresaIds])];
+
+      let empresas: { id: number; nome: string | null; logo_url: string | null }[] = [];
+      if (allEmpresaIds.length > 0) {
+        const { data } = await supabase
+          .from('empresas')
+          .select('id, nome, logo_url')
+          .in('id', allEmpresaIds);
+        empresas = data || [];
+      }
+
+      // Step 5: Build lookup maps
+      const cargasMap = new Map(cargas.map(c => [c.id, c]));
+      const motoristasMap = new Map(motoristas.map(m => [m.id, m]));
+      const veiculosMap = new Map(veiculos.map(v => [v.id, v]));
+      const empresasMap = new Map(empresas.map(e => [e.id, e]));
+      const lastMessagesMap = new Map(lastMessages.map(lm => [lm.chatId, lm.message]));
+      const unreadCountsMap = new Map(unreadCounts.map(uc => [uc.chatId, uc.count]));
+
+      // Step 6: Assemble chat objects
+      const assembledChats = chatsData
+        .map((chat) => {
+          const entrega = chat.entregas;
           if (!entrega) return null;
 
-          // Fetch carga with addresses
-          const { data: carga } = await supabase
-            .from('cargas')
-            .select(`
-              id, 
-              codigo, 
-              descricao, 
-              empresa_id,
-              peso_kg,
-              tipo,
-              data_entrega_limite,
-              endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro),
-              endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro)
-            `)
-            .eq('id', entrega.carga_id)
-            .maybeSingle();
-
-          // Fetch empresa (embarcador) with logo
-          let empresa = null;
-          if (carga?.empresa_id) {
-            const { data } = await supabase
-              .from('empresas')
-              .select('id, nome, logo_url')
-              .eq('id', carga.empresa_id)
-              .maybeSingle();
-            empresa = data;
-          }
-
-          // Fetch motorista
-          let motorista = null;
-          if (entrega.motorista_id) {
-            const { data } = await supabase
-              .from('motoristas')
-              .select('id, nome_completo, foto_url, telefone, empresa_id')
-              .eq('id', entrega.motorista_id)
-              .maybeSingle();
-            motorista = data;
-
-            // If motorista belongs to transportadora, fetch empresa with logo
-            if (motorista?.empresa_id) {
-              const { data: motoristaEmpresa } = await supabase
-                .from('empresas')
-                .select('id, nome, logo_url')
-                .eq('id', motorista.empresa_id)
-                .maybeSingle();
-              if (motoristaEmpresa) {
-                motorista = { ...motorista, empresa: motoristaEmpresa };
-              }
-            }
-          }
-
-          // Fetch veiculo
-          let veiculo = null;
-          if (entrega.veiculo_id) {
-            const { data } = await supabase
-              .from('veiculos')
-              .select('placa, tipo')
-              .eq('id', entrega.veiculo_id)
-              .maybeSingle();
-            veiculo = data;
-          }
+          const carga = cargasMap.get(entrega.carga_id);
+          const motorista = motoristasMap.get(entrega.motorista_id);
+          const veiculo = veiculosMap.get(entrega.veiculo_id);
 
           // Filter based on user type
           if (userType === 'embarcador' && carga?.empresa_id !== empresaId) {
@@ -156,53 +208,49 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
             return null;
           }
 
-          // Fetch last message only (for chat list preview)
-          const { data: lastMessage } = await supabase
-            .from('mensagens')
-            .select('*')
-            .eq('chat_id', chat.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          const embarcadorEmpresa = carga?.empresa_id ? empresasMap.get(carga.empresa_id) : null;
+          const transportadoraEmpresa = motorista?.empresa_id ? empresasMap.get(motorista.empresa_id) : null;
 
-          // Count unread messages
-          const { count } = await supabase
-            .from('mensagens')
-            .select('*', { count: 'exact', head: true })
-            .eq('chat_id', chat.id)
-            .eq('lida', false)
-            .neq('sender_id', currentUserId);
-
-          // Fetch participants
-          const { data: participantes } = await supabase
-            .from('chat_participantes')
-            .select('*')
-            .eq('chat_id', chat.id);
+          const chatParticipantes = participantes.filter(p => p.chat_id === chat.id);
 
           return {
-            ...chat,
+            id: chat.id,
+            entrega_id: chat.entrega_id,
+            created_at: chat.created_at,
+            updated_at: chat.updated_at,
             entrega: {
               id: entrega.id,
               status: entrega.status,
               peso_alocado_kg: entrega.peso_alocado_kg,
               valor_frete: entrega.valor_frete,
-              carga: carga ? { 
-                ...carga, 
-                empresa,
+              carga: carga ? {
+                ...carga,
+                empresa: embarcadorEmpresa,
                 endereco_origem: carga.endereco_origem,
                 endereco_destino: carga.endereco_destino,
               } : null,
-              motorista,
+              motorista: motorista ? {
+                ...motorista,
+                empresa: transportadoraEmpresa,
+              } : null,
               veiculo,
             },
-            participantes: participantes || [],
-            ultima_mensagem: lastMessage,
-            mensagens_nao_lidas: count || 0,
+            participantes: chatParticipantes,
+            ultima_mensagem: lastMessagesMap.get(chat.id) || null,
+            mensagens_nao_lidas: unreadCountsMap.get(chat.id) || 0,
           } as Chat;
         })
-      );
+        .filter(Boolean) as Chat[];
 
-      setChats(chatsWithDetails.filter(Boolean) as Chat[]);
+      if (loadMore) {
+        setChats(prev => [...prev, ...assembledChats]);
+      } else {
+        setChats(assembledChats);
+      }
+
+      chatsOffsetRef.current = offset + chatsData.length;
+      setHasMoreChats(chatsData.length >= CHATS_PER_PAGE);
+
     } catch (error: any) {
       console.error('Error fetching chats:', error);
       if (error?.code !== 'PGRST116') {
@@ -214,8 +262,16 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       }
     } finally {
       setIsLoadingChats(false);
+      setIsLoadingMoreChats(false);
     }
   }, [empresaId, userType, currentUserId, toast]);
+
+  // Load more chats
+  const loadMoreChats = useCallback(() => {
+    if (!isLoadingMoreChats && hasMoreChats) {
+      fetchChats(true);
+    }
+  }, [fetchChats, isLoadingMoreChats, hasMoreChats]);
 
   // Fetch initial messages for selected chat (last N messages)
   const fetchMessages = useCallback(async (chatId: string) => {
@@ -576,13 +632,16 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
     isLoadingChats,
     isLoadingMessages,
     isLoadingMore,
+    isLoadingMoreChats,
     hasMoreMessages,
+    hasMoreChats,
     isSending,
     currentUserId,
     selectChat,
     selectChatByEntregaId,
     sendMessage,
     loadMoreMessages,
+    loadMoreChats,
     refetchChats: fetchChats,
   };
 }
