@@ -721,27 +721,26 @@ export default function CargasDisponiveis() {
   const CargaCard = ({ carga, isHovered }: { carga: Carga; isHovered?: boolean }) => {
     const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
     const percentDisponivel = (pesoDisponivel / carga.peso_kg) * 100;
+    const veiculoRequisitos = carga.veiculo_requisitos as VeiculoRequisitos | null;
 
     return (
       <Card
-        className={`border-border hover:shadow-lg transition-all cursor-pointer ${isHovered ? 'ring-2 ring-primary shadow-lg' : ''}`}
+        className={`border-border hover:shadow-lg transition-all cursor-pointer h-full flex flex-col ${isHovered ? 'ring-2 ring-primary shadow-lg' : ''}`}
         onMouseEnter={() => setHoveredCargaId(carga.id)}
         onMouseLeave={() => setHoveredCargaId(null)}
         onClick={() => handleAcceptClick(carga)}
       >
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-4 flex flex-col flex-1">
           {/* Destinatário Company Name - First Line */}
-          {(carga.destinatario_nome_fantasia || carga.destinatario_razao_social) && (
-            <div className="flex items-center gap-2 pb-2 border-b border-border">
-              <Package className="w-4 h-4 text-primary shrink-0" />
-              <span className="font-semibold text-sm text-primary truncate">
-                {carga.destinatario_nome_fantasia || carga.destinatario_razao_social}
-              </span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 pb-2 border-b border-border min-h-[36px]">
+            <Package className="w-4 h-4 text-primary shrink-0" />
+            <span className="font-semibold text-sm text-primary truncate">
+              {carga.destinatario_nome_fantasia || carga.destinatario_razao_social || 'Destinatário não informado'}
+            </span>
+          </div>
 
-          {/* Header */}
-          <div className="flex items-start gap-3">
+          {/* Header - Fixed height section */}
+          <div className="flex items-start gap-3 py-3 min-h-[80px]">
             {/* Company Logo or Initials */}
             <div className="shrink-0 w-10 h-10 rounded-md border border-border bg-muted/50 flex items-center justify-center overflow-hidden">
               {carga.empresa?.logo_url ? (
@@ -764,12 +763,13 @@ export default function CargasDisponiveis() {
                 <Badge variant="outline" className="text-xs">
                   {tipoCargaLabels[carga.tipo] || carga.tipo}
                 </Badge>
-                {/* Badge de tipo de veículo requerido */}
-                {(carga.veiculo_requisitos as VeiculoRequisitos | null)?.tipos_veiculo && 
-                 (carga.veiculo_requisitos as VeiculoRequisitos).tipos_veiculo!.length > 0 && (
-                  <Badge variant="outline" className="text-xs gap-1">
-                    <Truck className="w-3 h-3" />
-                    {(carga.veiculo_requisitos as VeiculoRequisitos).tipos_veiculo!.map(t => tipoVeiculoLabels[t] || t).join(', ')}
+                {/* Badge de tipo de veículo requerido - single line truncate */}
+                {veiculoRequisitos?.tipos_veiculo && veiculoRequisitos.tipos_veiculo.length > 0 && (
+                  <Badge variant="outline" className="text-xs gap-1 max-w-[140px]">
+                    <Truck className="w-3 h-3 shrink-0" />
+                    <span className="truncate">
+                      {veiculoRequisitos.tipos_veiculo.map(t => tipoVeiculoLabels[t] || t).join(', ')}
+                    </span>
                   </Badge>
                 )}
               </div>
@@ -803,56 +803,59 @@ export default function CargasDisponiveis() {
             </div>
           </div>
 
-          {/* Route with company names and address details */}
-          <div className="flex items-center gap-2 text-xs">
-            <div className="flex flex-col gap-0.5">
+          {/* Route with company names - Fixed height */}
+          <div className="flex items-center gap-2 text-xs min-h-[60px]">
+            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
               {/* Origin company name */}
-              <span className="text-xs text-muted-foreground font-medium truncate max-w-[150px]">
+              <span className="text-xs text-muted-foreground font-medium truncate">
                 {formatEmpresaFilial(carga)}
               </span>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5 text-chart-1 shrink-0" />
-                <span className="font-medium text-foreground">{carga.endereco_origem?.cidade || 'N/A'}, {carga.endereco_origem?.estado || ''}</span>
+                <span className="font-medium text-foreground truncate">{carga.endereco_origem?.cidade || 'N/A'}, {carga.endereco_origem?.estado || ''}</span>
               </div>
-              {carga.endereco_origem?.logradouro && (
-                <span className="text-muted-foreground ml-5 truncate max-w-[150px]">
-                  {carga.endereco_origem.logradouro}{carga.endereco_origem.numero ? `, ${carga.endereco_origem.numero}` : ''}
-                </span>
-              )}
+              <span className="text-muted-foreground ml-5 truncate text-[10px]">
+                {carga.endereco_origem?.logradouro ? `${carga.endereco_origem.logradouro}${carga.endereco_origem.numero ? `, ${carga.endereco_origem.numero}` : ''}` : '-'}
+              </span>
             </div>
             <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0 mx-1" />
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
               {/* Destination company name */}
-              <span className="text-xs text-muted-foreground font-medium truncate max-w-[150px]">
+              <span className="text-xs text-muted-foreground font-medium truncate">
                 {carga.destinatario_nome_fantasia || carga.destinatario_razao_social || 'Destinatário'}
               </span>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5 text-chart-2 shrink-0" />
-                <span className="font-medium text-foreground">{carga.endereco_destino?.cidade || 'N/A'}, {carga.endereco_destino?.estado || ''}</span>
+                <span className="font-medium text-foreground truncate">{carga.endereco_destino?.cidade || 'N/A'}, {carga.endereco_destino?.estado || ''}</span>
               </div>
-              {carga.endereco_destino?.logradouro && (
-                <span className="text-muted-foreground ml-5 truncate max-w-[150px]">
-                  {carga.endereco_destino.logradouro}{carga.endereco_destino.numero ? `, ${carga.endereco_destino.numero}` : ''}
-                </span>
-              )}
+              <span className="text-muted-foreground ml-5 truncate text-[10px]">
+                {carga.endereco_destino?.logradouro ? `${carga.endereco_destino.logradouro}${carga.endereco_destino.numero ? `, ${carga.endereco_destino.numero}` : ''}` : '-'}
+              </span>
             </div>
           </div>
 
-          {/* Distance Badge */}
-          {distancias.has(carga.id) && (
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="gap-1">
-                <Route className="w-3 h-3" />
-                {distancias.get(carga.id)?.distance}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                ~{distancias.get(carga.id)?.duration}
-              </span>
-            </div>
-          )}
+          {/* Distance Badge - Fixed height */}
+          <div className="flex items-center gap-2 h-[28px] my-1">
+            {distancias.has(carga.id) ? (
+              <>
+                <Badge variant="secondary" className="gap-1">
+                  <Route className="w-3 h-3" />
+                  {distancias.get(carga.id)?.distance}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  ~{distancias.get(carga.id)?.duration}
+                </span>
+              </>
+            ) : (
+              <span className="text-xs text-muted-foreground italic">Calculando distância...</span>
+            )}
+          </div>
 
-          {/* Weight Progress Bar - Green primary when full, decreasing with availability */}
-          <div className="space-y-1.5">
+          {/* Spacer to push bottom content down */}
+          <div className="flex-1" />
+
+          {/* Weight Progress Bar - Always at same position */}
+          <div className="space-y-1.5 pt-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Disponível</span>
               <span className="font-medium text-foreground">
@@ -870,8 +873,8 @@ export default function CargasDisponiveis() {
             </div>
           </div>
 
-          {/* Details Row */}
-          <div className="flex items-center justify-between pt-2 border-t border-border">
+          {/* Details Row - Fixed position at bottom */}
+          <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Weight className="w-3.5 h-3.5" />
@@ -901,9 +904,9 @@ export default function CargasDisponiveis() {
             )}
           </div>
 
-          {/* Dates Row */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
-            {carga.data_coleta_de && (
+          {/* Dates Row - Fixed at bottom */}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground pt-2">
+            {carga.data_coleta_de ? (
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-chart-1" />
                 <span>Coleta: {format(new Date(carga.data_coleta_de), 'dd/MM', { locale: ptBR })}</span>
@@ -911,11 +914,21 @@ export default function CargasDisponiveis() {
                   <span> - {format(new Date(carga.data_coleta_ate), 'dd/MM', { locale: ptBR })}</span>
                 )}
               </span>
+            ) : (
+              <span className="flex items-center gap-1 text-muted-foreground/50">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Coleta: -</span>
+              </span>
             )}
-            {carga.data_entrega_limite && (
+            {carga.data_entrega_limite ? (
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-chart-2" />
                 <span>Entrega: {format(new Date(carga.data_entrega_limite), 'dd/MM', { locale: ptBR })}</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-muted-foreground/50">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Entrega: -</span>
               </span>
             )}
           </div>
@@ -1063,7 +1076,7 @@ export default function CargasDisponiveis() {
           </Card>
         ) : viewMode === 'list' ? (
           /* List View */
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20 md:pb-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20 md:pb-0 items-stretch">
             {filteredCargas.map((carga) => (
               <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} />
             ))}
