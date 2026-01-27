@@ -1272,7 +1272,7 @@ export default function GestaoEntregas() {
 
                   {/* Stats Cards */}
                   <div className="grid grid-cols-2 gap-2">
-                    <Card className="border-chart-3/30 bg-chart-3/10">
+                    <Card className="border-chart-3/30 !bg-chart-3/10">
                       <CardContent className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1 mb-1">
                           <Clock className="w-4 h-4 text-chart-3" />
@@ -1281,7 +1281,7 @@ export default function GestaoEntregas() {
                         <p className="text-[10px] text-muted-foreground leading-tight">Aguardando</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-chart-1/30 bg-chart-1/10">
+                    <Card className="border-chart-1/30 !bg-chart-1/10">
                       <CardContent className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1 mb-1">
                           <Package className="w-4 h-4 text-chart-1" />
@@ -1290,7 +1290,7 @@ export default function GestaoEntregas() {
                         <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Coleta</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-chart-5/30 bg-chart-5/10">
+                    <Card className="border-chart-5/30 !bg-chart-5/10">
                       <CardContent className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1 mb-1">
                           <Truck className="w-4 h-4 text-chart-5" />
@@ -1299,7 +1299,7 @@ export default function GestaoEntregas() {
                         <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Entrega</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-destructive/30 bg-destructive/10">
+                    <Card className="border-destructive/30 !bg-destructive/10">
                       <CardContent className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1 mb-1">
                           <AlertCircle className="w-4 h-4 text-destructive" />
@@ -1466,28 +1466,28 @@ export default function GestaoEntregas() {
 
             {/* Mobile Stats */}
             <div className="grid grid-cols-4 gap-2">
-              <Card className="border-chart-3/30 bg-chart-3/10">
+              <Card className="border-chart-3/30 !bg-chart-3/10">
                 <CardContent className="p-2 text-center">
                   <Clock className="w-3 h-3 mx-auto text-chart-3 mb-0.5" />
                   <p className="text-lg font-bold text-chart-3">{stats.aguardando}</p>
                   <p className="text-[8px] text-muted-foreground">Aguardando</p>
                 </CardContent>
               </Card>
-              <Card className="border-chart-1/30 bg-chart-1/10">
+              <Card className="border-chart-1/30 !bg-chart-1/10">
                 <CardContent className="p-2 text-center">
                   <Package className="w-3 h-3 mx-auto text-chart-1 mb-0.5" />
                   <p className="text-lg font-bold text-chart-1">{stats.saiu_para_coleta}</p>
                   <p className="text-[8px] text-muted-foreground">Coleta</p>
                 </CardContent>
               </Card>
-              <Card className="border-chart-5/30 bg-chart-5/10">
+              <Card className="border-chart-5/30 !bg-chart-5/10">
                 <CardContent className="p-2 text-center">
                   <Truck className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
                   <p className="text-lg font-bold text-chart-5">{stats.saiu_para_entrega}</p>
                   <p className="text-[8px] text-muted-foreground">Entrega</p>
                 </CardContent>
               </Card>
-              <Card className="border-destructive/30 bg-destructive/10">
+              <Card className="border-destructive/30 !bg-destructive/10">
                 <CardContent className="p-2 text-center">
                   <AlertCircle className="w-3 h-3 mx-auto text-destructive mb-0.5" />
                   <p className="text-lg font-bold text-destructive">{stats.problema}</p>
