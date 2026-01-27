@@ -436,7 +436,7 @@ export default function Motoristas() {
               const isDeleting = deletingMotoristaId === motorista.id;
               const isAtivo = motorista.ativo !== false;
               return (
-                <Card key={motorista.id} className={`border-border transition-all relative ${!isAtivo ? 'opacity-60' : 'hover:shadow-md'} ${isDeleting ? 'pointer-events-none' : ''}`}>
+                <Card key={motorista.id} className={`border-border transition-all relative h-full flex flex-col ${!isAtivo ? 'opacity-60' : 'hover:shadow-md'} ${isDeleting ? 'pointer-events-none' : ''}`}>
                   {isDeleting && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
                       <div className="flex flex-col items-center gap-2">
@@ -484,7 +484,7 @@ export default function Motoristas() {
                       </DropdownMenu>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="flex-1 flex flex-col">
                     <div className="flex flex-wrap gap-2">
                       <Badge className={isAtivo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''} variant={isAtivo ? 'outline' : 'destructive'}>
                         {isAtivo ? 'Ativo' : 'Inativo'}
@@ -495,41 +495,42 @@ export default function Motoristas() {
                       {cnhStatus === 'expired' && <Badge variant="destructive">CNH Vencida</Badge>}
                     </div>
 
-                    <div className="space-y-2 text-sm">
-                      {motorista.telefone && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Phone className="w-4 h-4" />
-                          {motorista.telefone}
-                        </div>
-                      )}
+                    <div className="space-y-2 text-sm mt-4">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Phone className="w-4 h-4" />
+                        {motorista.telefone || 'Não informado'}
+                      </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="w-4 h-4" />
                         Validade CNH: {formatValidadeCNH(motorista.validade_cnh)}
                       </div>
                     </div>
 
-                    {(motorista.veiculos?.length > 0 || motorista.carrocerias?.length > 0) && (
-                      <div className="pt-3 border-t border-border space-y-2">
-                        {motorista.veiculos?.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {motorista.veiculos.map((v) => (
-                              <Badge key={v.id} variant="outline" className="text-xs gap-1">
-                                <Car className="w-3 h-3" />{v.placa}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        {motorista.carrocerias?.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {motorista.carrocerias.map((c) => (
-                              <Badge key={c.id} variant="outline" className="text-xs gap-1">
-                                <Container className="w-3 h-3" />{c.placa}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* Spacer to push equipment to bottom */}
+                    <div className="flex-1 min-h-4" />
+
+                    <div className="pt-3 border-t border-border space-y-2 mt-4">
+                      {motorista.veiculos?.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {motorista.veiculos.map((v) => (
+                            <Badge key={v.id} variant="outline" className="text-xs gap-1">
+                              <Car className="w-3 h-3" />{v.placa}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground">Nenhum veículo vinculado</div>
+                      )}
+                      {motorista.carrocerias?.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {motorista.carrocerias.map((c) => (
+                            <Badge key={c.id} variant="outline" className="text-xs gap-1">
+                              <Container className="w-3 h-3" />{c.placa}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               );
