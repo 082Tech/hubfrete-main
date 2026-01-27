@@ -968,34 +968,24 @@ export default function GestaoEntregas() {
     return (
       <TableRow
         key={entrega.id}
-        className={`cursor-pointer ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
-        onClick={() => setSelectedEntregaId(entrega.id)}
+        className={`cursor-pointer hover:bg-muted/50 ${isSelected ? 'bg-primary/5 hover:bg-primary/10' : ''}`}
+        onClick={() => setSelectedEntregaId(isSelected ? null : entrega.id)}
       >
-        <TableCell className="align-top py-3">
-          <Badge variant="secondary" className="text-xs font-mono whitespace-nowrap">
-            {entrega.codigo || entrega.id.slice(0, 8).toUpperCase()}
+        <TableCell className="py-3">
+          <Badge 
+            variant="secondary" 
+            className="text-xs font-mono whitespace-nowrap"
+          >
+            {entrega.codigo || entrega.carga.codigo}
           </Badge>
         </TableCell>
-        <TableCell className="align-top py-3">
-          {entrega.motorista ? (
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                {entrega.motorista.foto_url ? (
-                  <img src={entrega.motorista.foto_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-3 h-3 text-primary" />
-                )}
-              </div>
-              <span className="text-sm break-words max-w-[120px]">{entrega.motorista.nome_completo}</span>
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">-</span>
-          )}
+        <TableCell className="py-3">
+          <span className="text-sm font-medium whitespace-nowrap">{entrega.motorista?.nome_completo || '-'}</span>
         </TableCell>
-        <TableCell className="align-top py-3">
+        <TableCell className="py-3">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-sm break-words block max-w-[130px]">
+              <span className="text-sm whitespace-nowrap">
                 {entrega.carga.empresa?.nome || '-'}
               </span>
             </TooltipTrigger>
@@ -1004,10 +994,10 @@ export default function GestaoEntregas() {
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell className="align-top py-3">
+        <TableCell className="py-3">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-sm break-words block max-w-[130px]">
+              <span className="text-sm whitespace-nowrap">
                 {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
               </span>
             </TooltipTrigger>
@@ -1016,40 +1006,36 @@ export default function GestaoEntregas() {
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell className="align-top py-3">
-          <div className="flex items-center gap-1 text-sm">
+        <TableCell className="py-3">
+          <div className="flex items-center gap-1 text-sm whitespace-nowrap">
             <MapPin className="w-3 h-3 text-chart-2 shrink-0" />
-            <span className="break-words max-w-[50px]">
-              {entrega.carga.endereco_origem?.cidade || '-'}
-            </span>
+            <span>{entrega.carga.endereco_origem?.cidade || '-'}</span>
             <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
             <MapPin className="w-3 h-3 text-destructive shrink-0" />
-            <span className="break-words max-w-[50px]">
-              {entrega.carga.endereco_destino?.cidade || '-'}
-            </span>
+            <span>{entrega.carga.endereco_destino?.cidade || '-'}</span>
           </div>
         </TableCell>
-        <TableCell className="text-right align-top py-3">
+        <TableCell className="text-right py-3">
           <span className="text-sm font-medium whitespace-nowrap">
             {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
           </span>
         </TableCell>
-        <TableCell className="align-top py-3">
+        <TableCell className="py-3">
           <Badge variant="outline" className={`${config?.color} border text-xs gap-1 whitespace-nowrap`}>
             <StatusIcon className="w-3 h-3" />
             {config?.label || status}
           </Badge>
         </TableCell>
         {/* CT-e Number */}
-        <TableCell className="align-top py-3">
+        <TableCell className="py-3">
           {entrega.numero_cte ? (
-            <span className="text-xs font-mono">{entrega.numero_cte}</span>
+            <span className="text-xs font-mono whitespace-nowrap">{entrega.numero_cte}</span>
           ) : (
             <span className="text-xs text-muted-foreground">-</span>
           )}
         </TableCell>
         {/* CT-e Document */}
-        <TableCell className="align-top py-3">
+        <TableCell className="py-3">
           {entrega.cte_url ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1080,7 +1066,7 @@ export default function GestaoEntregas() {
           )}
         </TableCell>
         {/* NF-es */}
-        <TableCell className="align-top py-3">
+        <TableCell className="py-3">
           {entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0 ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1098,7 +1084,7 @@ export default function GestaoEntregas() {
           )}
         </TableCell>
         {/* Manifesto */}
-        <TableCell className="align-top py-3">
+        <TableCell className="py-3">
           {entrega.manifesto_url ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1121,7 +1107,7 @@ export default function GestaoEntregas() {
             <span className="text-xs text-muted-foreground">-</span>
           )}
         </TableCell>
-        <TableCell className="align-top py-3">
+        <TableCell className="py-3">
           <span className="text-xs text-muted-foreground whitespace-nowrap">
             {formatDate(entrega.carga.data_entrega_limite)}
           </span>
@@ -1222,19 +1208,14 @@ export default function GestaoEntregas() {
   return (
     <TooltipProvider>
       <div className="p-4 md:p-8 pb-20 md:pb-8">
-        {/* Desktop Layout - Sidebar + Content */}
-        <div className="hidden lg:flex gap-6">
-          {/* Desktop Sidebar: Filters + Stats + Search */}
-          <aside className="hidden lg:flex flex-col w-72 shrink-0 gap-4">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
-                <p className="text-sm text-muted-foreground">Rastreie suas entregas em tempo real</p>
-              </div>
+        {/* Desktop Layout - New Layout: Top row (Filters | Map), Bottom row (Full-width Table) */}
+        <div className="hidden lg:block space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
+              <p className="text-sm text-muted-foreground">Rastreie suas entregas em tempo real</p>
             </div>
-
-            {/* Action buttons and Live Indicator */}
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -1246,203 +1227,211 @@ export default function GestaoEntregas() {
               </Button>
               <LiveIndicator />
             </div>
+          </div>
 
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar código, motorista, placa, CT-e..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-2">
-              <Card className="border-border bg-chart-3/5">
-                <CardContent className="p-3 text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Clock className="w-4 h-4 text-chart-3" />
-                  </div>
-                  <p className="text-xl font-bold text-chart-3">{stats.aguardando}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">Aguardando</p>
-                </CardContent>
-              </Card>
-              <Card className="border-border bg-chart-1/5">
-                <CardContent className="p-3 text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Package className="w-4 h-4 text-chart-1" />
-                  </div>
-                  <p className="text-xl font-bold text-chart-1">{stats.saiu_para_coleta}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Coleta</p>
-                </CardContent>
-              </Card>
-              <Card className="border-border bg-chart-5/5">
-                <CardContent className="p-3 text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Truck className="w-4 h-4 text-chart-5" />
-                  </div>
-                  <p className="text-xl font-bold text-chart-5">{stats.saiu_para_entrega}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Entrega</p>
-                </CardContent>
-              </Card>
-              <Card className="border-border bg-destructive/5">
-                <CardContent className="p-3 text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <AlertCircle className="w-4 h-4 text-destructive" />
-                  </div>
-                  <p className="text-xl font-bold text-destructive">{stats.problema}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">Problemas</p>
+          ) : filteredEntregas.length === 0 && entregas.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <Card className="border-border max-w-sm">
+                <CardContent className="p-6 text-center">
+                  <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                  <h3 className="font-semibold text-foreground mb-1">Nenhuma entrega encontrada</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Aceite cargas para começar a gerenciar entregas
+                  </p>
                 </CardContent>
               </Card>
             </div>
+          ) : (
+            <>
+              {/* Top Row: Filters/Cards | Map */}
+              <div className="grid grid-cols-12 gap-4">
+                {/* Left Column: Search, Stats, Filters */}
+                <div className="col-span-4 space-y-4">
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar código, motorista, placa, CT-e..."
+                      className="pl-10"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
 
-            {/* Filters Card */}
-            <Card className="border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  Filtros
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FiltersContent />
-              </CardContent>
-            </Card>
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Card className="border-chart-3/30 bg-chart-3/10">
+                      <CardContent className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <Clock className="w-4 h-4 text-chart-3" />
+                        </div>
+                        <p className="text-xl font-bold text-chart-3">{stats.aguardando}</p>
+                        <p className="text-[10px] text-muted-foreground leading-tight">Aguardando</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-chart-1/30 bg-chart-1/10">
+                      <CardContent className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <Package className="w-4 h-4 text-chart-1" />
+                        </div>
+                        <p className="text-xl font-bold text-chart-1">{stats.saiu_para_coleta}</p>
+                        <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Coleta</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-chart-5/30 bg-chart-5/10">
+                      <CardContent className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <Truck className="w-4 h-4 text-chart-5" />
+                        </div>
+                        <p className="text-xl font-bold text-chart-5">{stats.saiu_para_entrega}</p>
+                        <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Entrega</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-destructive/30 bg-destructive/10">
+                      <CardContent className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <AlertCircle className="w-4 h-4 text-destructive" />
+                        </div>
+                        <p className="text-xl font-bold text-destructive">{stats.problema}</p>
+                        <p className="text-[10px] text-muted-foreground leading-tight">Problemas</p>
+                      </CardContent>
+                    </Card>
+                  </div>
 
-            {/* Active Filters */}
-            {(selectedStatuses.length > 0 || selectedMotoristaIds.length > 0) && (
-              <div className="flex flex-wrap gap-2">
-                {selectedMotoristaIds.map(motoristaId => (
-                  <Badge
-                    key={motoristaId}
-                    variant="outline"
-                    className="bg-primary/10 text-primary border-primary/20 cursor-pointer text-xs"
-                    onClick={() => handleMotoristaToggle(motoristaId)}
-                  >
-                    <User className="w-3 h-3 mr-1" />
-                    {motoristasFromEntregas.find(m => m.id === motoristaId)?.nome_completo}
-                    <X className="w-3 h-3 ml-1" />
-                  </Badge>
-                ))}
-                {selectedStatuses.map(status => {
-                  const config = statusEntregaConfig[status];
-                  return (
-                    <Badge
-                      key={status}
-                      variant="outline"
-                      className={`${config?.color || ''} cursor-pointer text-xs`}
-                      onClick={() => handleStatusToggle(status)}
-                    >
-                      {config?.label || status}
-                      <X className="w-3 h-3 ml-1" />
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
-          </aside>
-
-          {/* Desktop Main Content */}
-          <div className="flex-1 space-y-4 min-w-0">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : filteredEntregas.length === 0 ? (
-              <div className="flex items-center justify-center h-64">
-                <Card className="border-border max-w-sm">
-                  <CardContent className="p-6 text-center">
-                    <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                    <h3 className="font-semibold text-foreground mb-1">Nenhuma entrega encontrada</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedStatuses.length > 0 || selectedMotoristaIds.length > 0
-                        ? 'Tente ajustar os filtros selecionados'
-                        : 'Aceite cargas para começar a gerenciar entregas'}
-                    </p>
-                    {(selectedStatuses.length > 0 || selectedMotoristaIds.length > 0) && (
-                      <Button variant="outline" onClick={clearFilters} className="mt-4">
-                        Limpar filtros
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            ) : (
-              <div className='space-y-4'>
-                <Suspense fallback={
+                  {/* Filters Card */}
                   <Card className="border-border">
-                    <CardContent className="p-0">
-                      <div className="w-full h-[400px] flex items-center justify-center bg-muted/30 rounded-lg">
-                        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                      </div>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Filter className="w-4 h-4" />
+                        Filtros
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <FiltersContent />
                     </CardContent>
                   </Card>
-                }>
-                  <EntregasGoogleMap
-                    entregas={mapData}
-                    selectedEntregaId={selectedEntregaId}
-                    onSelectEntrega={setSelectedEntregaId}
-                  />
-                </Suspense>
 
-                {/* Driver Summary Card - shown when drivers are selected */}
-                {selectedMotoristaIds.length > 0 && <DriverSummaryCard />}
+                  {/* Active Filters */}
+                  {(selectedStatuses.length > 0 || selectedMotoristaIds.length > 0) && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedMotoristaIds.map(motoristaId => (
+                        <Badge
+                          key={motoristaId}
+                          variant="outline"
+                          className="bg-primary/10 text-primary border-primary/20 cursor-pointer text-xs"
+                          onClick={() => handleMotoristaToggle(motoristaId)}
+                        >
+                          <User className="w-3 h-3 mr-1" />
+                          {motoristasFromEntregas.find(m => m.id === motoristaId)?.nome_completo}
+                          <X className="w-3 h-3 ml-1" />
+                        </Badge>
+                      ))}
+                      {selectedStatuses.map(status => {
+                        const config = statusEntregaConfig[status];
+                        return (
+                          <Badge
+                            key={status}
+                            variant="outline"
+                            className={`${config?.color || ''} cursor-pointer text-xs`}
+                            onClick={() => handleStatusToggle(status)}
+                          >
+                            {config?.label || status}
+                            <X className="w-3 h-3 ml-1" />
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
-                <Card className="border-border">
-                  <CardContent className="p-0">
-                    <ScrollArea className="w-full">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-muted/50">
-                            <TableHead className="font-semibold min-w-[100px]">Código</TableHead>
-                            <TableHead className="font-semibold min-w-[140px]">
-                              <div className="flex items-center gap-1">
-                                <User className="w-3 h-3" />
-                                Motorista
-                              </div>
-                            </TableHead>
-                            <TableHead className="font-semibold min-w-[140px]">Remetente</TableHead>
-                            <TableHead className="font-semibold min-w-[140px]">Destinatário</TableHead>
-                            <TableHead className="font-semibold min-w-[180px]">Rota</TableHead>
-                            <TableHead className="font-semibold min-w-[80px] text-right">Peso</TableHead>
-                            <TableHead className="font-semibold min-w-[110px]">Status</TableHead>
-                            <TableHead className="font-semibold min-w-[80px]">CT-e Nº</TableHead>
-                            <TableHead className="font-semibold min-w-[60px] text-center">
-                              <div className="flex items-center gap-1 justify-center">
-                                <FileText className="w-3 h-3" />
-                                Doc
-                              </div>
-                            </TableHead>
-                            <TableHead className="font-semibold min-w-[70px]">
-                              <div className="flex items-center gap-1">
-                                <Files className="w-3 h-3" />
-                                NF-es
-                              </div>
-                            </TableHead>
-                            <TableHead className="font-semibold min-w-[70px]">
-                              <div className="flex items-center gap-1">
-                                <FileText className="w-3 h-3" />
-                                Manif.
-                              </div>
-                            </TableHead>
-                            <TableHead className="font-semibold min-w-[90px]">Previsão</TableHead>
-                            <TableHead className="font-semibold w-10">Chat</TableHead>
-                            <TableHead className="font-semibold w-10"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredEntregas.map(renderEntregaRow)}
-                        </TableBody>
-                      </Table>
-                      <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
+                {/* Right Column: Map */}
+                <div className="col-span-8">
+                  <Suspense fallback={
+                    <Card className="border-border">
+                      <CardContent className="p-0">
+                        <div className="w-full h-[400px] flex items-center justify-center bg-muted/30 rounded-lg">
+                          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  }>
+                    <EntregasGoogleMap
+                      entregas={mapData}
+                      selectedEntregaId={selectedEntregaId}
+                      onSelectEntrega={setSelectedEntregaId}
+                    />
+                  </Suspense>
+                </div>
               </div>
-            )}
-          </div>
+
+              {/* Driver Summary Card - shown when drivers are selected */}
+              {selectedMotoristaIds.length > 0 && <DriverSummaryCard />}
+
+              {/* Bottom Row: Full-width Table */}
+              <Card className="border-border">
+                <CardContent className="p-0">
+                  <ScrollArea className="w-full">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="font-semibold whitespace-nowrap">Código</TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap">
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              Motorista
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap">Remetente</TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap">Destinatário</TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap">Rota</TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap text-right">Peso</TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap">Status</TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap">CT-e Nº</TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap text-center">
+                            <div className="flex items-center gap-1 justify-center">
+                              <FileText className="w-3 h-3" />
+                              Doc
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap">
+                            <div className="flex items-center gap-1">
+                              <Files className="w-3 h-3" />
+                              NF-es
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap">
+                            <div className="flex items-center gap-1">
+                              <FileText className="w-3 h-3" />
+                              Manif.
+                            </div>
+                          </TableHead>
+                          <TableHead className="font-semibold whitespace-nowrap">Previsão</TableHead>
+                          <TableHead className="font-semibold w-10">Chat</TableHead>
+                          <TableHead className="font-semibold w-10"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredEntregas.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                              Nenhuma entrega corresponde aos filtros selecionados
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          filteredEntregas.map(renderEntregaRow)
+                        )}
+                      </TableBody>
+                    </Table>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
 
         {/* Mobile Layout */}
@@ -1469,28 +1458,28 @@ export default function GestaoEntregas() {
 
             {/* Mobile Stats */}
             <div className="grid grid-cols-4 gap-2">
-              <Card className="border-border bg-chart-3/5">
+              <Card className="border-chart-3/30 bg-chart-3/10">
                 <CardContent className="p-2 text-center">
                   <Clock className="w-3 h-3 mx-auto text-chart-3 mb-0.5" />
                   <p className="text-lg font-bold text-chart-3">{stats.aguardando}</p>
                   <p className="text-[8px] text-muted-foreground">Aguardando</p>
                 </CardContent>
               </Card>
-              <Card className="border-border bg-chart-1/5">
+              <Card className="border-chart-1/30 bg-chart-1/10">
                 <CardContent className="p-2 text-center">
                   <Package className="w-3 h-3 mx-auto text-chart-1 mb-0.5" />
                   <p className="text-lg font-bold text-chart-1">{stats.saiu_para_coleta}</p>
                   <p className="text-[8px] text-muted-foreground">Coleta</p>
                 </CardContent>
               </Card>
-              <Card className="border-border bg-chart-5/5">
+              <Card className="border-chart-5/30 bg-chart-5/10">
                 <CardContent className="p-2 text-center">
                   <Truck className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
                   <p className="text-lg font-bold text-chart-5">{stats.saiu_para_entrega}</p>
                   <p className="text-[8px] text-muted-foreground">Entrega</p>
                 </CardContent>
               </Card>
-              <Card className="border-border bg-destructive/5">
+              <Card className="border-destructive/30 bg-destructive/10">
                 <CardContent className="p-2 text-center">
                   <AlertCircle className="w-3 h-3 mx-auto text-destructive mb-0.5" />
                   <p className="text-lg font-bold text-destructive">{stats.problema}</p>
