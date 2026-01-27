@@ -126,7 +126,8 @@ export function getTruckIconHtml(
   size: number = 48
 ): string {
   const wifiColor = isOnline ? '#22c55e' : '#ef4444';
-  
+  // Generate unique ID for gradient to avoid SVG ID collisions in Leaflet
+  const uniqueId = `shadow-${Math.random().toString(36).substring(2, 9)}`;
 
   // Wi-Fi icon badge (positioned in top-right, non-rotating)
   const wifiBadgeHtml = `
@@ -162,12 +163,12 @@ export function getTruckIconHtml(
       ">
         <svg viewBox="0 0 80 80" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+            <radialGradient id="${uniqueId}" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stop-color="black" stop-opacity="0.3" />
               <stop offset="100%" stop-color="black" stop-opacity="0" />
             </radialGradient>
           </defs>
-          <ellipse cx="40" cy="42" rx="22" ry="32" fill="url(#shadowGrad)" />
+          <ellipse cx="40" cy="42" rx="22" ry="32" fill="url(#${uniqueId})" />
           <rect x="22" y="15" width="4" height="8" rx="2" fill="#222" />
           <rect x="54" y="15" width="4" height="8" rx="2" fill="#222" />
           <rect x="22" y="45" width="4" height="8" rx="2" fill="#222" />
