@@ -43,9 +43,9 @@ export function ModernCTA() {
           {/* Role selection cards */}
           <div className="grid sm:grid-cols-3 gap-4 mb-10">
             {[
-              { icon: Package, label: 'Sou Embarcador', path: '/cadastro/embarcador', desc: 'Publique cargas' },
-              { icon: Truck, label: 'Sou Transportadora', path: '/cadastro/transportadora', desc: 'Gerencie frota' },
-              { icon: User, label: 'Sou Motorista', path: '/cadastro/motorista', desc: 'Aceite fretes' },
+              { icon: Package, label: 'Sou Embarcador', path: '/pre-cadastro/embarcador', desc: 'Publique cargas' },
+              { icon: Truck, label: 'Sou Transportadora', path: '/pre-cadastro/transportadora', desc: 'Gerencie frota' },
+              { icon: User, label: 'Sou Motorista', path: '/pre-cadastro/motorista', desc: 'Aceite fretes' },
             ].map((item, i) => (
               <motion.button
                 key={item.label}

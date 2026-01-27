@@ -16,11 +16,15 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import TorreControle from "./pages/admin/TorreControle";
+import PreCadastros from "./pages/admin/PreCadastros";
 import Usuarios from "./pages/admin/Usuarios";
 import CadastroMotorista from "./pages/CadastroMotorista";
 import CadastroMotoristaConvite from "./pages/CadastroMotoristaConvite";
 import CadastroEmbarcador from "./pages/CadastroEmbarcador";
 import CadastroTransportadora from "./pages/CadastroTransportadora";
+import PreCadastroEmbarcador from "./pages/PreCadastroEmbarcador";
+import PreCadastroTransportadora from "./pages/PreCadastroTransportadora";
+import PreCadastroMotorista from "./pages/PreCadastroMotorista";
 import EmbarcadorDashboard from "./pages/portals/EmbarcadorDashboard";
 import CargasPublicadas from "./pages/portals/embarcador/CargasPublicadas";
 import CargasEmRota from "./pages/portals/embarcador/GestaoCargas";
@@ -79,12 +83,18 @@ const App = () => {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/admin/torre-controle" element={<TorreControle />} />
+                <Route path="/admin/pre-cadastros" element={<PreCadastros />} />
                 <Route path="/admin/usuarios" element={<Usuarios />} />
                 <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
-                 <Route path="/cadastro/motorista/convite" element={<CadastroMotoristaConvite />} />
-                 <Route path="/cadastro/motorista/convite/:linkId" element={<CadastroMotoristaConvite />} />
+                <Route path="/cadastro/motorista/convite" element={<CadastroMotoristaConvite />} />
+                <Route path="/cadastro/motorista/convite/:linkId" element={<CadastroMotoristaConvite />} />
                 <Route path="/cadastro/embarcador" element={<CadastroEmbarcador />} />
                 <Route path="/cadastro/transportadora" element={<CadastroTransportadora />} />
+                
+                {/* Pré-cadastros públicos */}
+                <Route path="/pre-cadastro/embarcador" element={<PreCadastroEmbarcador />} />
+                <Route path="/pre-cadastro/transportadora" element={<PreCadastroTransportadora />} />
+                <Route path="/pre-cadastro/motorista" element={<PreCadastroMotorista />} />
                 
                 {/* Portal Embarcador - Nested routes with shared layout */}
                 <Route path="/embarcador" element={<PortalLayoutWrapper expectedUserType="embarcador" />}>
