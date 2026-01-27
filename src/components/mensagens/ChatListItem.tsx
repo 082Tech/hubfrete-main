@@ -101,7 +101,9 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
     if (!chat.ultima_mensagem) return null;
     
     const msg = chat.ultima_mensagem;
-    const senderName = textAbbr(msg.sender_nome, 15);
+    // Abbreviate sender name to first name only
+    const firstName = msg.sender_nome.split(' ')[0];
+    const senderName = textAbbr(firstName, 12);
     
     // Check if it's an attachment message
     if (msg.anexo_url || msg.anexo_tipo) {
@@ -111,8 +113,9 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
       }
     }
     
-    // Regular text message
-    return { senderName, content: msg.conteudo, isAttachment: false };
+    // Regular text message - abbreviate content
+    const content = textAbbr(msg.conteudo, 25);
+    return { senderName, content, isAttachment: false };
   };
 
   const route = getRoute();
