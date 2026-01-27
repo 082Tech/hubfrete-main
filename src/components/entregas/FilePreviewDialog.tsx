@@ -23,10 +23,26 @@ function getFileType(url: string): FileType {
 
 function extractPathFromUrl(url: string): string | null {
   // Extract the path after the bucket name from a Supabase storage URL
-  // Example: https://xxx.supabase.co/storage/v1/object/public/notas-fiscais/ctes/file.pdf
+  // Supports both public and signed URL patterns:
+  // - https://xxx.supabase.co/storage/v1/object/public/notas-fiscais/ctes/file.pdf
+  // - https://xxx.supabase.co/storage/v1/object/sign/notas-fiscais/ctes/file.pdf
   // We need: ctes/file.pdf
-  const match = url.match(/notas-fiscais\/(.+)$/);
-  return match ? match[1] : null;
+  
+  // Try to match the bucket name followed by the path
+  const bucketPatterns = [
+    /\/storage\/v1\/object\/(?:public|sign)\/notas-fiscais\/(.+?)(?:\?|$)/,
+    /notas-fiscais\/(.+?)(?:\?|$)/,
+  ];
+  
+  for (const pattern of bucketPatterns) {
+    const match = url.match(pattern);
+    if (match) {
+      // Remove query params if any and decode URI
+      return decodeURIComponent(match[1].split('?')[0]);
+    }
+  }
+  
+  return null;
 }
 
 export function FilePreviewDialog({ open, onOpenChange, fileUrl, title = 'Visualizar Arquivo' }: FilePreviewDialogProps) {

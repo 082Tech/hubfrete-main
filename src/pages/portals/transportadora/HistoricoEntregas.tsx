@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useMemo, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -15,7 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useTableSort } from '@/hooks/useTableSort';
-import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColumns';
+import { DraggableTableHead } from '@/components/ui/draggable-table-head';
 import type { Database } from '@/integrations/supabase/types';
 import { 
   Building2, 
@@ -38,8 +39,8 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
+  RotateCcw,
 } from 'lucide-react';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,6 +80,7 @@ interface EntregaHistorico {
   numero_cte: string | null;
   notas_fiscais_urls: string[] | null;
   manifesto_url: string | null;
+  canhoto_url?: string | null;
   motorista: {
     id: string;
     nome_completo: string;
@@ -123,6 +125,20 @@ const statusConfig: Record<string, { color: string; label: string; icon: React.E
 
 const ITEMS_PER_PAGE = 15;
 
+// Column definitions
+const columns: ColumnDefinition[] = [
+  { id: 'codigo', label: 'Código', minWidth: '100px', sticky: 'left', sortable: true, sortKey: 'codigo' },
+  { id: 'remetente', label: 'Remetente', minWidth: '160px', sortable: true, sortKey: 'remetente' },
+  { id: 'destinatario', label: 'Destinatário', minWidth: '160px', sortable: true, sortKey: 'destinatario' },
+  { id: 'rota', label: 'Rota', minWidth: '180px' },
+  { id: 'peso', label: 'Peso', minWidth: '80px', sortable: true, sortKey: 'peso' },
+  { id: 'motorista', label: 'Motorista', minWidth: '130px', sortable: true, sortKey: 'motorista' },
+  { id: 'status', label: 'Status', minWidth: '120px', sortable: true, sortKey: 'status' },
+  { id: 'docs', label: 'Docs', minWidth: '80px' },
+  { id: 'encerrada_em', label: 'Encerrada em', minWidth: '110px', sortable: true, sortKey: 'encerrada_em' },
+  { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
+];
+
 export default function HistoricoEntregas() {
   const { empresa } = useUserContext();
   const navigate = useNavigate();
@@ -133,10 +149,28 @@ export default function HistoricoEntregas() {
   const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
   const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
-  const [ctePreviewUrl, setCtePreviewUrl] = useState<string | null>(null);
-  const [ctePreviewOpen, setCtePreviewOpen] = useState(false);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [filePreviewOpen, setFilePreviewOpen] = useState(false);
+  const [filePreviewTitle, setFilePreviewTitle] = useState('Documento');
   const [currentPage, setCurrentPage] = useState(1);
   const [lastFilterKey, setLastFilterKey] = useState('');
+
+  // Draggable columns hook
+  const {
+    orderedColumns,
+    draggedColumn,
+    dragOverColumn,
+    handleDragStart,
+    handleDragEnd,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    resetColumnOrder,
+  } = useDraggableColumns({
+    columns,
+    persistKey: 'historico-entregas-columns',
+  });
+
   const { data: entregas = [], isLoading } = useQuery({
     queryKey: ['historico_entregas_transportadora', empresa?.id],
     queryFn: async () => {
@@ -167,6 +201,7 @@ export default function HistoricoEntregas() {
           numero_cte,
           notas_fiscais_urls,
           manifesto_url,
+          canhoto_url,
           motorista:motoristas(id, nome_completo, telefone),
           veiculo:veiculos(placa, tipo),
           carga:cargas(
@@ -206,10 +241,7 @@ export default function HistoricoEntregas() {
     const q = searchTerm.trim().toLowerCase();
 
     return entregas.filter((e) => {
-      // Status filter
       if (selectedStatus && e.status !== selectedStatus) return false;
-
-      // Search filter
       if (!q) return true;
 
       const destinatario = (e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || '').toLowerCase();
@@ -220,7 +252,6 @@ export default function HistoricoEntregas() {
         (e.carga.empresa?.nome || '').toLowerCase().includes(q) ||
         (e.motorista?.nome_completo || '').toLowerCase().includes(q) ||
         (e.veiculo?.placa || '').toLowerCase().includes(q) ||
-        // Busca por número de CT-e
         (e.numero_cte || '').toLowerCase().includes(q)
       );
     });
@@ -241,8 +272,6 @@ export default function HistoricoEntregas() {
       (a.motorista?.nome_completo || '').localeCompare(b.motorista?.nome_completo || '', 'pt-BR'),
     status: (a: EntregaHistorico, b: EntregaHistorico) =>
       (a.status || '').localeCompare(b.status || '', 'pt-BR'),
-    numero_cte: (a: EntregaHistorico, b: EntregaHistorico) =>
-      (a.numero_cte || '').localeCompare(b.numero_cte || '', 'pt-BR'),
     encerrada_em: (a: EntregaHistorico, b: EntregaHistorico) =>
       new Date(a.entregue_em || a.updated_at || 0).getTime() - new Date(b.entregue_em || b.updated_at || 0).getTime(),
   }), []);
@@ -279,6 +308,216 @@ export default function HistoricoEntregas() {
     setDetailsDialogOpen(true);
   };
 
+  const handleOpenFile = (url: string, title: string) => {
+    setFilePreviewUrl(url);
+    setFilePreviewTitle(title);
+    setFilePreviewOpen(true);
+  };
+
+  // Count documents for a delivery
+  const getDocsCount = (e: EntregaHistorico) => {
+    let count = 0;
+    if (e.cte_url) count++;
+    if (e.notas_fiscais_urls && e.notas_fiscais_urls.length > 0) count += e.notas_fiscais_urls.length;
+    if (e.manifesto_url) count++;
+    if (e.canhoto_url) count++;
+    return count;
+  };
+
+  // Check if critical docs are missing
+  const hasMissingCriticalDocs = (e: EntregaHistorico) => {
+    return !e.cte_url || !e.manifesto_url;
+  };
+
+  // Render cell based on column ID
+  const renderCell = (columnId: string, e: EntregaHistorico) => {
+    const origem = e.carga.endereco_origem;
+    const destino = e.carga.endereco_destino;
+    const status = e.status || 'entregue';
+    const config = statusConfig[status];
+    const StatusIcon = config?.icon || CheckCircle;
+
+    switch (columnId) {
+      case 'codigo':
+        return (
+          <TableCell className="sticky left-0 bg-background z-10">
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="font-medium text-nowrap">{e.codigo || e.carga.codigo}</span>
+            </div>
+          </TableCell>
+        );
+      case 'remetente':
+        return (
+          <TableCell className="text-nowrap">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="truncate block max-w-[150px]">
+                  {e.carga.empresa?.nome || '-'}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="font-medium">{e.carga.empresa?.nome || 'Remetente não informado'}</p>
+                {origem && (
+                  <p className="text-xs text-muted-foreground">{origem.logradouro}, {origem.cidade}/{origem.estado}</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TableCell>
+        );
+      case 'destinatario':
+        return (
+          <TableCell className="text-nowrap">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="truncate block max-w-[150px]">
+                  {e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || '-'}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="font-medium">{e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
+                {destino && (
+                  <p className="text-xs text-muted-foreground">{destino.logradouro}, {destino.cidade}/{destino.estado}</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TableCell>
+        );
+      case 'rota':
+        return (
+          <TableCell className="text-nowrap">
+            <div className="flex items-center gap-1 text-sm">
+              <MapPin className="w-3 h-3 text-chart-1 shrink-0" />
+              <span className="truncate max-w-[50px]">{origem?.cidade || '-'}</span>
+              <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+              <MapPin className="w-3 h-3 text-chart-2 shrink-0" />
+              <span className="truncate max-w-[50px]">{destino?.cidade || '-'}</span>
+            </div>
+          </TableCell>
+        );
+      case 'peso':
+        return (
+          <TableCell className="text-sm text-nowrap">
+            {formatPeso(e.peso_alocado_kg || e.carga.peso_kg)}
+          </TableCell>
+        );
+      case 'motorista':
+        return (
+          <TableCell className="text-nowrap">
+            {e.motorista ? (
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <User className="w-3 h-3 text-primary" />
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-sm truncate max-w-[80px]">
+                      {e.motorista.nome_completo}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-medium">{e.motorista.nome_completo}</p>
+                    {e.veiculo && <p className="text-xs text-muted-foreground">Placa: {e.veiculo.placa}</p>}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">-</span>
+            )}
+          </TableCell>
+        );
+      case 'status':
+        return (
+          <TableCell className="text-nowrap">
+            <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
+              <StatusIcon className="w-3 h-3" />
+              {config?.label || status}
+            </Badge>
+          </TableCell>
+        );
+      case 'docs':
+        const docsCount = getDocsCount(e);
+        const hasMissing = hasMissingCriticalDocs(e);
+        return (
+          <TableCell className="text-nowrap">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-7 px-2 gap-1 ${hasMissing ? 'text-amber-600' : 'text-green-600'}`}
+              onClick={() => handleOpenDetails(e)}
+            >
+              <FileText className="w-3 h-3" />
+              {docsCount}
+              {hasMissing && <AlertTriangle className="w-3 h-3" />}
+            </Button>
+          </TableCell>
+        );
+      case 'encerrada_em':
+        return (
+          <TableCell className="text-sm text-muted-foreground text-nowrap">
+            {new Date(e.entregue_em || e.updated_at || Date.now()).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })}
+          </TableCell>
+        );
+      case 'acoes':
+        return (
+          <TableCell className="sticky right-0 bg-background z-10">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => navigate(`/transportadora/mensagens?entrega=${e.id}`)}>
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Ver conversa
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOpenDetails(e)}>
+                  <Eye className="w-4 h-4 mr-2" />
+                  Ver detalhes
+                </DropdownMenuItem>
+                {e.cte_url && (
+                  <DropdownMenuItem onClick={() => handleOpenFile(e.cte_url!, 'CT-e')}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Ver CT-e
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => {
+                  setTrackingMapEntregaId(e.id);
+                  setTrackingMapInfo({
+                    motorista: e.motorista?.nome_completo || 'Motorista',
+                    placa: e.veiculo?.placa || '-',
+                  });
+                }}>
+                  <Route className="w-4 h-4 mr-2" />
+                  Ver histórico no mapa
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        );
+      default:
+        return <TableCell>-</TableCell>;
+    }
+  };
+
+  // Render column header icon based on column ID
+  const getColumnIcon = (columnId: string) => {
+    switch (columnId) {
+      case 'remetente': return <Building2 className="w-3 h-3" />;
+      case 'destinatario': return <Package className="w-3 h-3" />;
+      case 'peso': return <Scale className="w-3 h-3" />;
+      case 'motorista': return <User className="w-3 h-3" />;
+      case 'docs': return <FileText className="w-3 h-3" />;
+      case 'encerrada_em': return <Calendar className="w-3 h-3" />;
+      default: return null;
+    }
+  };
+
   return (
     <div className="p-4 md:p-8">
       <TooltipProvider>
@@ -289,10 +528,20 @@ export default function HistoricoEntregas() {
               <h1 className="text-2xl font-bold text-foreground">Histórico de Entregas</h1>
               <p className="text-muted-foreground">Entregas finalizadas, devoluções e ocorrências</p>
             </div>
-            <Badge variant="outline" className="w-fit">
-              <Clock className="w-3 h-3 mr-1" />
-              {sortedData.length} registros
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={resetColumnOrder}>
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Redefinir ordem das colunas</TooltipContent>
+              </Tooltip>
+              <Badge variant="outline" className="w-fit">
+                <Clock className="w-3 h-3 mr-1" />
+                {sortedData.length} registros
+              </Badge>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -382,108 +631,48 @@ export default function HistoricoEntregas() {
           </div>
 
           {/* Table */}
-          <Card className="border-border">
+          <Card className="border-border hidden md:block">
             <CardContent className="p-0">
               <div className="max-h-[500px] overflow-auto">
                 <Table>
                   <TableHeader className="sticky top-0 z-20 bg-background">
                     <TableRow className="bg-muted/50">
-                      <SortableTableHead
-                        sortKey="codigo"
-                        sortDirection={getSortDirection('codigo')}
-                        onSort={requestSort}
-                        className="font-semibold min-w-[100px] sticky left-0 bg-muted/50 z-10"
-                      >
-                        Código
-                      </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="remetente"
-                        sortDirection={getSortDirection('remetente')}
-                        onSort={requestSort}
-                        className="font-semibold min-w-[160px]"
-                      >
-                        <Building2 className="w-3 h-3" />
-                        Remetente
-                      </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="destinatario"
-                        sortDirection={getSortDirection('destinatario')}
-                        onSort={requestSort}
-                        className="font-semibold min-w-[160px]"
-                      >
-                        <Package className="w-3 h-3" />
-                        Destinatário
-                      </SortableTableHead>
-                      <TableHead className="font-semibold min-w-[180px]">Rota</TableHead>
-                      <SortableTableHead
-                        sortKey="peso"
-                        sortDirection={getSortDirection('peso')}
-                        onSort={requestSort}
-                        className="font-semibold min-w-[80px]"
-                      >
-                        <Scale className="w-3 h-3" />
-                        Peso
-                      </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="motorista"
-                        sortDirection={getSortDirection('motorista')}
-                        onSort={requestSort}
-                        className="font-semibold min-w-[130px]"
-                      >
-                        <User className="w-3 h-3" />
-                        Motorista
-                      </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="status"
-                        sortDirection={getSortDirection('status')}
-                        onSort={requestSort}
-                        className="font-semibold min-w-[120px]"
-                      >
-                        Status
-                      </SortableTableHead>
-                      <SortableTableHead
-                        sortKey="numero_cte"
-                        sortDirection={getSortDirection('numero_cte')}
-                        onSort={requestSort}
-                        className="font-semibold min-w-[100px]"
-                      >
-                        <FileText className="w-3 h-3" />
-                        CT-e
-                      </SortableTableHead>
-                      <TableHead className="font-semibold min-w-[80px]">
-                        <div className="flex items-center gap-1">
-                          <FileText className="w-3 h-3" />
-                          NF-es
-                        </div>
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[90px]">
-                        <div className="flex items-center gap-1">
-                          <FileText className="w-3 h-3" />
-                          Manifesto
-                        </div>
-                      </TableHead>
-                      <SortableTableHead
-                        sortKey="encerrada_em"
-                        sortDirection={getSortDirection('encerrada_em')}
-                        onSort={requestSort}
-                        className="font-semibold min-w-[110px]"
-                      >
-                        <Calendar className="w-3 h-3" />
-                        Encerrada em
-                      </SortableTableHead>
-                      <TableHead className="font-semibold w-[50px]"></TableHead>
+                      {orderedColumns.map((col) => (
+                        <DraggableTableHead
+                          key={col.id}
+                          columnId={col.id}
+                          isDragging={draggedColumn === col.id}
+                          isDragOver={dragOverColumn === col.id}
+                          isSticky={!!col.sticky}
+                          sortable={col.sortable}
+                          sortDirection={col.sortKey ? getSortDirection(col.sortKey) : null}
+                          onSort={col.sortKey ? () => requestSort(col.sortKey!) : undefined}
+                          onColumnDragStart={handleDragStart}
+                          onColumnDragEnd={handleDragEnd}
+                          onColumnDragOver={handleDragOver}
+                          onColumnDragLeave={handleDragLeave}
+                          onColumnDrop={handleDrop}
+                          className={`min-w-[${col.minWidth}] ${
+                            col.sticky === 'left' ? 'sticky left-0 bg-muted/50 z-10' :
+                            col.sticky === 'right' ? 'sticky right-0 bg-muted/50 z-10' : ''
+                          }`}
+                        >
+                          {getColumnIcon(col.id)}
+                          {col.label}
+                        </DraggableTableHead>
+                      ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={12} className="py-10 text-center text-muted-foreground">
+                        <TableCell colSpan={orderedColumns.length} className="py-10 text-center text-muted-foreground">
                           Carregando...
                         </TableCell>
                       </TableRow>
                     ) : paginatedData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={12} className="py-10 text-center text-muted-foreground">
+                        <TableCell colSpan={orderedColumns.length} className="py-10 text-center text-muted-foreground">
                           <div className="flex flex-col items-center gap-2">
                             <Package className="w-10 h-10 text-muted-foreground/50" />
                             <p>Nenhum registro encontrado.</p>
@@ -503,193 +692,15 @@ export default function HistoricoEntregas() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      paginatedData.map((e) => {
-                        const origem = e.carga.endereco_origem;
-                        const destino = e.carga.endereco_destino;
-                        const status = e.status || 'entregue';
-                        const config = statusConfig[status];
-                        const StatusIcon = config?.icon || CheckCircle;
-
-                        return (
-                          <TableRow key={e.id} className="hover:bg-muted/30">
-                            <TableCell className="sticky left-0 bg-background z-10">
-                              <div className="flex items-center gap-2">
-                                <Package className="w-4 h-4 text-muted-foreground" />
-                                <span className="font-medium text-nowrap">{e.codigo || e.carga.codigo}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="truncate block max-w-[150px]">
-                                    {e.carga.empresa?.nome || '-'}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="font-medium">{e.carga.empresa?.nome || 'Remetente não informado'}</p>
-                                  {origem && (
-                                    <p className="text-xs text-muted-foreground">{origem.logradouro}, {origem.cidade}/{origem.estado}</p>
-                                  )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TableCell>
-                            <TableCell>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="truncate block max-w-[150px]">
-                                    {e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || '-'}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="font-medium">{e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
-                                  {destino && (
-                                    <p className="text-xs text-muted-foreground">{destino.logradouro}, {destino.cidade}/{destino.estado}</p>
-                                  )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1 text-sm">
-                                <MapPin className="w-3 h-3 text-chart-1 shrink-0" />
-                                <span className="truncate max-w-[50px]">{origem?.cidade || '-'}</span>
-                                <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                                <MapPin className="w-3 h-3 text-chart-2 shrink-0" />
-                                <span className="truncate max-w-[50px]">{destino?.cidade || '-'}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {formatPeso(e.peso_alocado_kg || e.carga.peso_kg)}
-                            </TableCell>
-                            <TableCell>
-                              {e.motorista ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                    <User className="w-3 h-3 text-primary" />
-                                  </div>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="text-sm truncate max-w-[80px]">
-                                        {e.motorista.nome_completo}
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="font-medium">{e.motorista.nome_completo}</p>
-                                      {e.veiculo && <p className="text-xs text-muted-foreground">Placa: {e.veiculo.placa}</p>}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
-                                <StatusIcon className="w-3 h-3" />
-                                {config?.label || status}
-                              </Badge>
-                            </TableCell>
-                            {/* CT-e Column */}
-                            <TableCell>
-                              {e.cte_url ? (
-                                <Badge
-                                  className="bg-green-500/10 text-green-600 border-green-500/20 cursor-pointer gap-1"
-                                  onClick={() => {
-                                    setCtePreviewUrl(e.cte_url);
-                                    setCtePreviewOpen(true);
-                                  }}
-                                >
-                                  <FileText className="w-3 h-3" />
-                                  {e.numero_cte || 'Ver'}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-muted text-muted-foreground gap-1">
-                                  <FileText className="w-3 h-3" />
-                                  -
-                                </Badge>
-                              )}
-                            </TableCell>
-                            {/* NF-es Column */}
-                            <TableCell>
-                              {e.notas_fiscais_urls && e.notas_fiscais_urls.length > 0 ? (
-                                <Badge className="bg-green-500/10 text-green-600 border-green-500/20 gap-1">
-                                  <FileText className="w-3 h-3" />
-                                  {e.notas_fiscais_urls.length}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-muted text-muted-foreground gap-1">
-                                  <FileText className="w-3 h-3" />
-                                  0
-                                </Badge>
-                              )}
-                            </TableCell>
-                            {/* Manifesto Column */}
-                            <TableCell>
-                              {e.manifesto_url ? (
-                                <Badge
-                                  className="bg-green-500/10 text-green-600 border-green-500/20 cursor-pointer gap-1"
-                                  onClick={() => {
-                                    setCtePreviewUrl(e.manifesto_url);
-                                    setCtePreviewOpen(true);
-                                  }}
-                                >
-                                  <FileText className="w-3 h-3" />
-                                  Ver
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-muted text-muted-foreground gap-1">
-                                  <FileText className="w-3 h-3" />
-                                  -
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {new Date(e.entregue_em || e.updated_at || Date.now()).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                              })}
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-48">
-                                  <DropdownMenuItem onClick={() => navigate(`/transportadora/mensagens?entrega=${e.id}`)}>
-                                    <MessageCircle className="w-4 h-4 mr-2" />
-                                    Ver conversa
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleOpenDetails(e)}>
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    Ver detalhes
-                                  </DropdownMenuItem>
-                                  {e.cte_url && (
-                                    <DropdownMenuItem onClick={() => {
-                                      setCtePreviewUrl(e.cte_url);
-                                      setCtePreviewOpen(true);
-                                    }}>
-                                      <FileText className="w-4 h-4 mr-2" />
-                                      Ver CT-e
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem onClick={() => {
-                                    setTrackingMapEntregaId(e.id);
-                                    setTrackingMapInfo({
-                                      motorista: e.motorista?.nome_completo || 'Motorista',
-                                      placa: e.veiculo?.placa || '-',
-                                    });
-                                  }}>
-                                    <Route className="w-4 h-4 mr-2" />
-                                    Ver histórico no mapa
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
+                      paginatedData.map((e) => (
+                        <TableRow key={e.id} className="hover:bg-muted/30">
+                          {orderedColumns.map((col) => (
+                            <React.Fragment key={col.id}>
+                              {renderCell(col.id, e)}
+                            </React.Fragment>
+                          ))}
+                        </TableRow>
+                      ))
                     )}
                   </TableBody>
                 </Table>
@@ -873,12 +884,12 @@ export default function HistoricoEntregas() {
           </DialogContent>
         </Dialog>
 
-        {/* CT-e Preview Dialog */}
+        {/* File Preview Dialog */}
         <FilePreviewDialog
-          open={ctePreviewOpen}
-          onOpenChange={setCtePreviewOpen}
-          fileUrl={ctePreviewUrl}
-          title="CT-e"
+          open={filePreviewOpen}
+          onOpenChange={setFilePreviewOpen}
+          fileUrl={filePreviewUrl}
+          title={filePreviewTitle}
         />
       </TooltipProvider>
     </div>
