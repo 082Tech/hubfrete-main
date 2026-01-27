@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Phone, Truck, MapPin, Navigation, Route, Loader2, Clock, Package } from 'lucide-react';
+import { Truck, MapPin, Navigation, Route, Loader2, Clock, Package } from 'lucide-react';
 import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
 
 // Helper function to format timestamp to readable date/time
@@ -140,7 +140,11 @@ interface EntregaMapData {
   destinoCoords: { lat: number; lng: number } | null;
   isIdleDriver?: boolean;
   lastLocationUpdate?: number | null;
-  heading?: number | null; // Compass heading in degrees (0-360)
+  heading?: number | null;
+  // Additional delivery info
+  entregasCount?: number;
+  pesoTotal?: number;
+  statusCounts?: Record<string, number>;
 }
 
 interface EntregasMapProps {
@@ -557,38 +561,62 @@ export function EntregasMap({
                       </div>
                     </div>
 
-                    {/* Cargo info section */}
-                    <div className="space-y-2 mb-3 pb-3 border-b border-gray-200">
-                      {/* Cargo code */}
-                      {entrega.codigo && (
-                        <div className="text-xs">
-                          <span className="text-gray-500">Código: </span>
-                          <span className="font-semibold text-gray-900">{entrega.codigo}</span>
+                    {/* Delivery count info - priority display */}
+                    {(entrega.entregasCount ?? 0) > 0 && (
+                      <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200">
+                        <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-1 rounded-md">
+                          <Package className="w-3.5 h-3.5 text-blue-600" />
+                          <span className="text-xs font-semibold text-blue-700">
+                            {entrega.entregasCount} {entrega.entregasCount === 1 ? 'entrega' : 'entregas'}
+                          </span>
                         </div>
-                      )}
-                      
-                      {/* Cargo description */}
-                      {entrega.descricao && (
-                        <div className="flex items-start gap-1.5 text-xs">
-                          <Package className="w-3 h-3 mt-0.5 flex-shrink-0 text-gray-400" />
-                          <span className="text-gray-800 line-clamp-2">{entrega.descricao}</span>
-                        </div>
-                      )}
-                    </div>
+                        {(entrega.pesoTotal ?? 0) > 0 && (
+                          <span className="text-xs text-gray-500">
+                            {(entrega.pesoTotal! / 1000).toFixed(1)}t
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Status counts if multiple deliveries */}
+                    {entrega.statusCounts && Object.keys(entrega.statusCounts).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {Object.entries(entrega.statusCounts).map(([st, count]) => (
+                          <span 
+                            key={st}
+                            className="text-[10px] px-1.5 py-0.5 rounded text-white font-medium"
+                            style={{ backgroundColor: statusColors[st] || '#6b7280' }}
+                          >
+                            {count} {statusLabels[st] || st}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Cargo info section - only show if no delivery count */}
+                    {!entrega.entregasCount && (
+                      <div className="space-y-2 mb-3 pb-3 border-b border-gray-200">
+                        {entrega.codigo && (
+                          <div className="text-xs">
+                            <span className="text-gray-500">Código: </span>
+                            <span className="font-semibold text-gray-900">{entrega.codigo}</span>
+                          </div>
+                        )}
+                        
+                        {entrega.descricao && (
+                          <div className="flex items-start gap-1.5 text-xs">
+                            <Package className="w-3 h-3 mt-0.5 flex-shrink-0 text-gray-400" />
+                            <span className="text-gray-800 line-clamp-2">{entrega.descricao}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Destination */}
                     {entrega.destino && (
                       <div className="flex items-start gap-1.5 text-xs text-gray-500 mb-3">
                         <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-blue-500" />
                         <span className="text-gray-800 line-clamp-2">{entrega.destino}</span>
-                      </div>
-                    )}
-
-                    {/* Phone (not clickable) */}
-                    {entrega.telefone && (
-                      <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-3">
-                        <Phone className="w-3.5 h-3.5 text-gray-400" />
-                        {entrega.telefone}
                       </div>
                     )}
 
