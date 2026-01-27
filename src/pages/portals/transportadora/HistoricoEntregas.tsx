@@ -17,13 +17,13 @@ import { useUserContext } from '@/hooks/useUserContext';
 import { useTableSort } from '@/hooks/useTableSort';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import type { Database } from '@/integrations/supabase/types';
-import {
-  Building2,
-  Calendar,
-  Package,
-  Search,
-  Truck,
-  CheckCircle,
+import { 
+  Building2, 
+  Calendar, 
+  Package, 
+  Search, 
+  Truck, 
+  CheckCircle, 
   AlertTriangle,
   MapPin,
   ArrowRight,
@@ -36,6 +36,8 @@ import {
   Ban,
   Route,
   FileText,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
@@ -119,6 +121,8 @@ const statusConfig: Record<string, { color: string; label: string; icon: React.E
   },
 };
 
+const ITEMS_PER_PAGE = 15;
+
 export default function HistoricoEntregas() {
   const { empresa } = useUserContext();
   const navigate = useNavigate();
@@ -131,7 +135,8 @@ export default function HistoricoEntregas() {
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const [ctePreviewUrl, setCtePreviewUrl] = useState<string | null>(null);
   const [ctePreviewOpen, setCtePreviewOpen] = useState(false);
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastFilterKey, setLastFilterKey] = useState('');
   const { data: entregas = [], isLoading } = useQuery({
     queryKey: ['historico_entregas_transportadora', empresa?.id],
     queryFn: async () => {
@@ -249,6 +254,20 @@ export default function HistoricoEntregas() {
     sortFunctions,
   });
 
+  // Pagination
+  const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [sortedData, currentPage]);
+
+  // Reset to page 1 when filters change
+  const filterKey = `${searchTerm}-${selectedStatus}`;
+  if (filterKey !== lastFilterKey) {
+    setCurrentPage(1);
+    setLastFilterKey(filterKey);
+  }
+
   const formatPeso = (peso: number | null) => {
     if (!peso) return '-';
     if (peso >= 1000) return `${(peso / 1000).toFixed(1)}t`;
@@ -365,9 +384,9 @@ export default function HistoricoEntregas() {
           {/* Table */}
           <Card className="border-border">
             <CardContent className="p-0">
-              <ScrollArea className="w-full">
+              <div className="max-h-[500px] overflow-auto">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-20 bg-background">
                     <TableRow className="bg-muted/50">
                       <SortableTableHead
                         sortKey="codigo"
@@ -462,7 +481,7 @@ export default function HistoricoEntregas() {
                           Carregando...
                         </TableCell>
                       </TableRow>
-                    ) : sortedData.length === 0 ? (
+                    ) : paginatedData.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={12} className="py-10 text-center text-muted-foreground">
                           <div className="flex flex-col items-center gap-2">
@@ -484,7 +503,7 @@ export default function HistoricoEntregas() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      sortedData.map((e) => {
+                      paginatedData.map((e) => {
                         const origem = e.carga.endereco_origem;
                         const destino = e.carga.endereco_destino;
                         const status = e.status || 'entregue';
@@ -674,8 +693,61 @@ export default function HistoricoEntregas() {
                     )}
                   </TableBody>
                 </Table>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t px-4 py-3">
+                  <p className="text-sm text-muted-foreground">
+                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length} registros
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Anterior
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? 'default' : 'outline'}
+                            size="sm"
+                            className="w-8 h-8 p-0"
+                            onClick={() => setCurrentPage(pageNum)}
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Próximo
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
