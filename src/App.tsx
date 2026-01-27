@@ -24,6 +24,7 @@ import Chamados from "./pages/admin/Chamados";
 import Empresas from "./pages/admin/Empresas";
 import MotoristasAdmin from "./pages/admin/MotoristasAdmin";
 import VeiculosAdmin from "./pages/admin/VeiculosAdmin";
+import Logs from "./pages/admin/Logs";
 import { AdminLayoutWrapper } from "./components/admin/AdminLayoutWrapper";
 import CadastroMotorista from "./pages/CadastroMotorista";
 import CadastroMotoristaConvite from "./pages/CadastroMotoristaConvite";
@@ -101,6 +102,7 @@ const App = () => {
                   <Route path="empresas" element={<Empresas />} />
                   <Route path="motoristas" element={<MotoristasAdmin />} />
                   <Route path="veiculos" element={<VeiculosAdmin />} />
+                  <Route path="logs" element={<Logs />} />
                 </Route>
                 <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
                 <Route path="/cadastro/motorista/convite" element={<CadastroMotoristaConvite />} />

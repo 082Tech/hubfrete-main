@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Building,
   User,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -131,6 +132,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       icon: AlertTriangle,
       href: '/admin/chamados',
       roles: ['super_admin', 'admin', 'suporte'],
+    },
+    {
+      title: 'Logs',
+      icon: FileText,
+      href: '/admin/logs',
+      roles: ['super_admin', 'admin'],
     },
   ];
 
