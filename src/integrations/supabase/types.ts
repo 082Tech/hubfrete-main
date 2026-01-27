@@ -852,6 +852,7 @@ export type Database = {
       entregas: {
         Row: {
           assinatura_recebedor: string | null
+          canhoto_url: string | null
           carga_id: string
           carroceria_id: string | null
           codigo: string | null
@@ -879,6 +880,7 @@ export type Database = {
         }
         Insert: {
           assinatura_recebedor?: string | null
+          canhoto_url?: string | null
           carga_id: string
           carroceria_id?: string | null
           codigo?: string | null
@@ -906,6 +908,7 @@ export type Database = {
         }
         Update: {
           assinatura_recebedor?: string | null
+          canhoto_url?: string | null
           carga_id?: string
           carroceria_id?: string | null
           codigo?: string | null
