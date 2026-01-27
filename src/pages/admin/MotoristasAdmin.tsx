@@ -8,10 +8,13 @@ import {
   Truck,
   Phone,
   Mail,
-  Calendar,
   Building2,
   CheckCircle,
   XCircle,
+  Pencil,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +32,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -38,10 +42,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Pagination } from '@/components/admin/Pagination';
+import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
 
 type Motorista = {
   id: string;
@@ -62,12 +75,21 @@ type Motorista = {
   };
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function MotoristasAdmin() {
   const [motoristas, setMotoristas] = useState<Motorista[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterTipo, setFilterTipo] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Dialog states
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedMotorista, setSelectedMotorista] = useState<Motorista | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchMotoristas();
@@ -94,6 +116,47 @@ export default function MotoristasAdmin() {
     }
   };
 
+  const handleToggleAtivo = async (motorista: Motorista) => {
+    try {
+      const { error } = await supabase
+        .from('motoristas')
+        .update({ ativo: !motorista.ativo })
+        .eq('id', motorista.id);
+
+      if (error) throw error;
+
+      toast.success(`Motorista ${motorista.ativo ? 'desativado' : 'ativado'} com sucesso`);
+      fetchMotoristas();
+    } catch (error) {
+      console.error('Erro ao atualizar motorista:', error);
+      toast.error('Erro ao atualizar status do motorista');
+    }
+  };
+
+  const handleDeleteMotorista = async () => {
+    if (!selectedMotorista) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('motoristas')
+        .delete()
+        .eq('id', selectedMotorista.id);
+
+      if (error) throw error;
+
+      toast.success('Motorista excluído com sucesso!');
+      setDeleteDialogOpen(false);
+      setSelectedMotorista(null);
+      fetchMotoristas();
+    } catch (error: any) {
+      console.error('Erro ao excluir motorista:', error);
+      toast.error(error.message || 'Erro ao excluir motorista');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const filteredMotoristas = motoristas.filter(m => {
     const matchesSearch = 
       m.nome_completo.toLowerCase().includes(search.toLowerCase()) ||
@@ -105,6 +168,17 @@ export default function MotoristasAdmin() {
     const matchesTipo = filterTipo === 'all' || m.tipo_cadastro === filterTipo;
     return matchesSearch && matchesStatus && matchesTipo;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredMotoristas.length / ITEMS_PER_PAGE);
+  const paginatedMotoristas = filteredMotoristas.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterStatus, filterTipo]);
 
   const formatCpf = (cpf: string) => {
     const cleaned = cpf.replace(/\D/g, '');
@@ -231,97 +305,195 @@ export default function MotoristasAdmin() {
               Nenhum motorista encontrado
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Motorista</TableHead>
-                  <TableHead>CPF</TableHead>
-                  <TableHead>CNH</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Cadastro</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMotoristas.map((motorista) => (
-                  <TableRow key={motorista.id}>
-                    <TableCell>
-                      <span className="font-medium">{motorista.nome_completo}</span>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {formatCpf(motorista.cpf)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <p>{motorista.cnh}</p>
-                        <p className="text-muted-foreground">{motorista.categoria_cnh}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm space-y-1">
-                        {motorista.telefone && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Phone className="w-3 h-3" />
-                            {motorista.telefone}
-                          </div>
-                        )}
-                        {motorista.email && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Mail className="w-3 h-3" />
-                            {motorista.email}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={motorista.tipo_cadastro === 'frota' ? 'default' : 'secondary'}>
-                        {motorista.tipo_cadastro === 'frota' ? 'Frota' : 'Autônomo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {motorista.empresa?.nome || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {motorista.ativo ? (
-                        <Badge variant="outline" className="bg-chart-1/10 text-chart-1 border-chart-1/30">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Ativo
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
-                          <XCircle className="w-3 h-3 mr-1" />
-                          Inativo
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(motorista.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver detalhes
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Motorista</TableHead>
+                    <TableHead>CPF</TableHead>
+                    <TableHead>CNH</TableHead>
+                    <TableHead>Contato</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Cadastro</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedMotoristas.map((motorista) => (
+                    <TableRow key={motorista.id}>
+                      <TableCell>
+                        <span className="font-medium">{motorista.nome_completo}</span>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {formatCpf(motorista.cpf)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <p>{motorista.cnh}</p>
+                          <p className="text-muted-foreground">{motorista.categoria_cnh}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm space-y-1">
+                          {motorista.telefone && (
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <Phone className="w-3 h-3" />
+                              {motorista.telefone}
+                            </div>
+                          )}
+                          {motorista.email && (
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <Mail className="w-3 h-3" />
+                              {motorista.email}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={motorista.tipo_cadastro === 'frota' ? 'default' : 'secondary'}>
+                          {motorista.tipo_cadastro === 'frota' ? 'Frota' : 'Autônomo'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {motorista.empresa?.nome || '-'}
+                      </TableCell>
+                      <TableCell>
+                        {motorista.ativo ? (
+                          <Badge variant="outline" className="bg-chart-1/10 text-chart-1 border-chart-1/30">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Ativo
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Inativo
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(motorista.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => {
+                              setSelectedMotorista(motorista);
+                              setDetailsDialogOpen(true);
+                            }}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              Ver detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleAtivo(motorista)}>
+                              {motorista.ativo ? (
+                                <>
+                                  <ToggleLeft className="w-4 h-4 mr-2" />
+                                  Desativar
+                                </>
+                              ) : (
+                                <>
+                                  <ToggleRight className="w-4 h-4 mr-2" />
+                                  Ativar
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => {
+                                setSelectedMotorista(motorista);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {totalPages > 1 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredMotoristas.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setCurrentPage}
+                />
+              )}
+            </>
           )}
         </CardContent>
       </Card>
+
+      {/* Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Motorista</DialogTitle>
+            <DialogDescription>Informações completas do cadastro</DialogDescription>
+          </DialogHeader>
+          {selectedMotorista && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Nome</p>
+                  <p className="font-medium">{selectedMotorista.nome_completo}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">CPF</p>
+                  <p className="font-mono">{formatCpf(selectedMotorista.cpf)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">CNH</p>
+                  <p>{selectedMotorista.cnh} ({selectedMotorista.categoria_cnh})</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Validade CNH</p>
+                  <p>{format(new Date(selectedMotorista.validade_cnh), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Telefone</p>
+                  <p>{selectedMotorista.telefone || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">E-mail</p>
+                  <p>{selectedMotorista.email || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tipo</p>
+                  <Badge variant={selectedMotorista.tipo_cadastro === 'frota' ? 'default' : 'secondary'}>
+                    {selectedMotorista.tipo_cadastro === 'frota' ? 'Frota' : 'Autônomo'}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Empresa</p>
+                  <p>{selectedMotorista.empresa?.nome || '-'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteMotorista}
+        isDeleting={isDeleting}
+        title="Excluir motorista?"
+        description={`Tem certeza que deseja excluir o motorista "${selectedMotorista?.nome_completo}"? Esta ação não pode ser desfeita.`}
+      />
     </div>
   );
 }
