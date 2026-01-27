@@ -1255,10 +1255,10 @@ export default function GestaoEntregas() {
             </div>
           ) : (
             <>
-              {/* Top Row: Filters/Cards | Map */}
+              {/* Two Column Layout: Left (Filters/Cards) | Right (Map + Table) */}
               <div className="grid grid-cols-12 gap-4">
                 {/* Left Column: Search, Stats, Filters */}
-                <div className="col-span-4 space-y-4">
+                <div className="col-span-3 space-y-4">
                   {/* Search */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1270,44 +1270,36 @@ export default function GestaoEntregas() {
                     />
                   </div>
 
-                  {/* Stats Cards */}
+                  {/* Stats Cards - using divs for proper background colors */}
                   <div className="grid grid-cols-2 gap-2">
-                    <Card className="border-chart-3/30 !bg-chart-3/10">
-                      <CardContent className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <Clock className="w-4 h-4 text-chart-3" />
-                        </div>
-                        <p className="text-xl font-bold text-chart-3">{stats.aguardando}</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight">Aguardando</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-chart-1/30 !bg-chart-1/10">
-                      <CardContent className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <Package className="w-4 h-4 text-chart-1" />
-                        </div>
-                        <p className="text-xl font-bold text-chart-1">{stats.saiu_para_coleta}</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Coleta</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-chart-5/30 !bg-chart-5/10">
-                      <CardContent className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <Truck className="w-4 h-4 text-chart-5" />
-                        </div>
-                        <p className="text-xl font-bold text-chart-5">{stats.saiu_para_entrega}</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Entrega</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-destructive/30 !bg-destructive/10">
-                      <CardContent className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <AlertCircle className="w-4 h-4 text-destructive" />
-                        </div>
-                        <p className="text-xl font-bold text-destructive">{stats.problema}</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight">Problemas</p>
-                      </CardContent>
-                    </Card>
+                    <div className="rounded-lg border border-chart-3/30 bg-chart-3/10 p-3 text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <Clock className="w-4 h-4 text-chart-3" />
+                      </div>
+                      <p className="text-xl font-bold text-chart-3">{stats.aguardando}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Aguardando</p>
+                    </div>
+                    <div className="rounded-lg border border-chart-1/30 bg-chart-1/10 p-3 text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <Package className="w-4 h-4 text-chart-1" />
+                      </div>
+                      <p className="text-xl font-bold text-chart-1">{stats.saiu_para_coleta}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Coleta</p>
+                    </div>
+                    <div className="rounded-lg border border-chart-5/30 bg-chart-5/10 p-3 text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <Truck className="w-4 h-4 text-chart-5" />
+                      </div>
+                      <p className="text-xl font-bold text-chart-5">{stats.saiu_para_entrega}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Entrega</p>
+                    </div>
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <AlertCircle className="w-4 h-4 text-destructive" />
+                      </div>
+                      <p className="text-xl font-bold text-destructive">{stats.problema}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Problemas</p>
+                    </div>
                   </div>
 
                   {/* Filters Card */}
@@ -1356,8 +1348,9 @@ export default function GestaoEntregas() {
                   )}
                 </div>
 
-                {/* Right Column: Map */}
-                <div className="col-span-8">
+                {/* Right Column: Map + Table */}
+                <div className="col-span-9 space-y-4">
+                  {/* Map */}
                   <Suspense fallback={
                     <Card className="border-border">
                       <CardContent className="p-0">
@@ -1373,71 +1366,71 @@ export default function GestaoEntregas() {
                       onSelectEntrega={setSelectedEntregaId}
                     />
                   </Suspense>
+
+                  {/* Driver Summary Card - shown when drivers are selected */}
+                  {selectedMotoristaIds.length > 0 && <DriverSummaryCard />}
+
+                  {/* Table */}
+                  <Card className="border-border">
+                    <CardContent className="p-0">
+                      <ScrollArea className="w-full">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50">
+                              <TableHead className="font-semibold whitespace-nowrap">Código</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap">
+                                <div className="flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  Motorista
+                                </div>
+                              </TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap">Remetente</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap">Destinatário</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap">Rota</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap text-right">Peso</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap">Status</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap">CT-e Nº</TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap text-center">
+                                <div className="flex items-center gap-1 justify-center">
+                                  <FileText className="w-3 h-3" />
+                                  Doc
+                                </div>
+                              </TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap">
+                                <div className="flex items-center gap-1">
+                                  <Files className="w-3 h-3" />
+                                  NF-es
+                                </div>
+                              </TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap">
+                                <div className="flex items-center gap-1">
+                                  <FileText className="w-3 h-3" />
+                                  Manif.
+                                </div>
+                              </TableHead>
+                              <TableHead className="font-semibold whitespace-nowrap">Previsão</TableHead>
+                              <TableHead className="font-semibold w-10">Chat</TableHead>
+                              <TableHead className="font-semibold w-10"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredEntregas.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                                  Nenhuma entrega corresponde aos filtros selecionados
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              filteredEntregas.map(renderEntregaRow)
+                            )}
+                          </TableBody>
+                        </Table>
+                        <ScrollBar orientation="horizontal" />
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
-
-              {/* Driver Summary Card - shown when drivers are selected */}
-              {selectedMotoristaIds.length > 0 && <DriverSummaryCard />}
-
-              {/* Bottom Row: Full-width Table */}
-              <Card className="border-border">
-                <CardContent className="p-0">
-                  <ScrollArea className="w-full">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="font-semibold whitespace-nowrap">Código</TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap">
-                            <div className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              Motorista
-                            </div>
-                          </TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap">Remetente</TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap">Destinatário</TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap">Rota</TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap text-right">Peso</TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap">Status</TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap">CT-e Nº</TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap text-center">
-                            <div className="flex items-center gap-1 justify-center">
-                              <FileText className="w-3 h-3" />
-                              Doc
-                            </div>
-                          </TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap">
-                            <div className="flex items-center gap-1">
-                              <Files className="w-3 h-3" />
-                              NF-es
-                            </div>
-                          </TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap">
-                            <div className="flex items-center gap-1">
-                              <FileText className="w-3 h-3" />
-                              Manif.
-                            </div>
-                          </TableHead>
-                          <TableHead className="font-semibold whitespace-nowrap">Previsão</TableHead>
-                          <TableHead className="font-semibold w-10">Chat</TableHead>
-                          <TableHead className="font-semibold w-10"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredEntregas.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
-                              Nenhuma entrega corresponde aos filtros selecionados
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          filteredEntregas.map(renderEntregaRow)
-                        )}
-                      </TableBody>
-                    </Table>
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
-                </CardContent>
-              </Card>
             </>
           )}
         </div>
@@ -1466,34 +1459,26 @@ export default function GestaoEntregas() {
 
             {/* Mobile Stats */}
             <div className="grid grid-cols-4 gap-2">
-              <Card className="border-chart-3/30 !bg-chart-3/10">
-                <CardContent className="p-2 text-center">
-                  <Clock className="w-3 h-3 mx-auto text-chart-3 mb-0.5" />
-                  <p className="text-lg font-bold text-chart-3">{stats.aguardando}</p>
-                  <p className="text-[8px] text-muted-foreground">Aguardando</p>
-                </CardContent>
-              </Card>
-              <Card className="border-chart-1/30 !bg-chart-1/10">
-                <CardContent className="p-2 text-center">
-                  <Package className="w-3 h-3 mx-auto text-chart-1 mb-0.5" />
-                  <p className="text-lg font-bold text-chart-1">{stats.saiu_para_coleta}</p>
-                  <p className="text-[8px] text-muted-foreground">Coleta</p>
-                </CardContent>
-              </Card>
-              <Card className="border-chart-5/30 !bg-chart-5/10">
-                <CardContent className="p-2 text-center">
-                  <Truck className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
-                  <p className="text-lg font-bold text-chart-5">{stats.saiu_para_entrega}</p>
-                  <p className="text-[8px] text-muted-foreground">Entrega</p>
-                </CardContent>
-              </Card>
-              <Card className="border-destructive/30 !bg-destructive/10">
-                <CardContent className="p-2 text-center">
-                  <AlertCircle className="w-3 h-3 mx-auto text-destructive mb-0.5" />
-                  <p className="text-lg font-bold text-destructive">{stats.problema}</p>
-                  <p className="text-[8px] text-muted-foreground">Problemas</p>
-                </CardContent>
-              </Card>
+              <div className="rounded-lg border border-chart-3/30 bg-chart-3/10 p-2 text-center">
+                <Clock className="w-3 h-3 mx-auto text-chart-3 mb-0.5" />
+                <p className="text-lg font-bold text-chart-3">{stats.aguardando}</p>
+                <p className="text-[8px] text-muted-foreground">Aguardando</p>
+              </div>
+              <div className="rounded-lg border border-chart-1/30 bg-chart-1/10 p-2 text-center">
+                <Package className="w-3 h-3 mx-auto text-chart-1 mb-0.5" />
+                <p className="text-lg font-bold text-chart-1">{stats.saiu_para_coleta}</p>
+                <p className="text-[8px] text-muted-foreground">Coleta</p>
+              </div>
+              <div className="rounded-lg border border-chart-5/30 bg-chart-5/10 p-2 text-center">
+                <Truck className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
+                <p className="text-lg font-bold text-chart-5">{stats.saiu_para_entrega}</p>
+                <p className="text-[8px] text-muted-foreground">Entrega</p>
+              </div>
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-center">
+                <AlertCircle className="w-3 h-3 mx-auto text-destructive mb-0.5" />
+                <p className="text-lg font-bold text-destructive">{stats.problema}</p>
+                <p className="text-[8px] text-muted-foreground">Problemas</p>
+              </div>
             </div>
 
             {/* Mobile Search + Filter */}
