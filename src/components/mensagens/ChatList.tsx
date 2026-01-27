@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, MessageSquare, Filter } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Search, MessageSquare, Filter, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChatListItem } from './ChatListItem';
@@ -21,12 +21,54 @@ interface ChatListProps {
   selectedChatId: string | null;
   onSelectChat: (chatId: string) => void;
   isLoading: boolean;
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
   userType: 'embarcador' | 'transportadora';
 }
 
-export function ChatList({ chats, selectedChatId, onSelectChat, isLoading, userType }: ChatListProps) {
+export function ChatList({ 
+  chats, 
+  selectedChatId, 
+  onSelectChat, 
+  isLoading, 
+  isLoadingMore = false,
+  hasMore = false,
+  onLoadMore,
+  userType 
+}: ChatListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFinalized, setShowFinalized] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Get scroll container
+  const getScrollContainer = useCallback(() => {
+    if (!scrollRef.current) return null;
+    return scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+  }, []);
+
+  // Handle scroll for loading more chats
+  const handleScroll = useCallback(() => {
+    if (!onLoadMore || isLoadingMore || !hasMore) return;
+    
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+
+    // Load more when scrolled near bottom (threshold: 200px from bottom)
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+    if (scrollHeight - scrollTop - clientHeight < 200) {
+      onLoadMore();
+    }
+  }, [onLoadMore, isLoadingMore, hasMore, getScrollContainer]);
+
+  // Attach scroll listener
+  useEffect(() => {
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [handleScroll, getScrollContainer]);
 
   // Count finalized chats
   const finalizedCount = chats.filter(chat => 
@@ -109,10 +151,10 @@ export function ChatList({ chats, selectedChatId, onSelectChat, isLoading, userT
       </div>
 
       {/* Chat List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" ref={scrollRef}>
         {isLoading ? (
           <div className="p-4 space-y-3">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="flex items-center gap-3 animate-pulse">
                 <div className="h-12 w-12 rounded-full bg-muted" />
                 <div className="flex-1 space-y-2">
@@ -141,15 +183,38 @@ export function ChatList({ chats, selectedChatId, onSelectChat, isLoading, userT
             </p>
           </div>
         ) : (
-          filteredChats.map(chat => (
-            <ChatListItem
-              key={chat.id}
-              chat={chat}
-              isSelected={chat.id === selectedChatId}
-              onClick={() => onSelectChat(chat.id)}
-              userType={userType}
-            />
-          ))
+          <>
+            {filteredChats.map(chat => (
+              <ChatListItem
+                key={chat.id}
+                chat={chat}
+                isSelected={chat.id === selectedChatId}
+                onClick={() => onSelectChat(chat.id)}
+                userType={userType}
+              />
+            ))}
+            
+            {/* Load more indicator */}
+            {hasMore && (
+              <div className="flex justify-center py-4">
+                {isLoadingMore ? (
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Carregando...</span>
+                  </div>
+                ) : (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={onLoadMore}
+                    className="text-muted-foreground text-xs"
+                  >
+                    Carregar mais conversas
+                  </Button>
+                )}
+              </div>
+            )}
+          </>
         )}
       </ScrollArea>
     </div>

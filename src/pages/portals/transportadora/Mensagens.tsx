@@ -55,13 +55,16 @@ export default function TransportadoraMensagens() {
     isLoadingChats,
     isLoadingMessages,
     isLoadingMore,
+    isLoadingMoreChats,
     hasMoreMessages,
+    hasMoreChats,
     isSending,
     currentUserId,
     selectChat,
     selectChatByEntregaId,
     sendMessage,
     loadMoreMessages,
+    loadMoreChats,
   } = useChats({ userType: 'transportadora', empresaId });
 
   // Auto-select chat from URL param
@@ -105,6 +108,9 @@ export default function TransportadoraMensagens() {
             selectedChatId={selectedChat?.id || null}
             onSelectChat={handleSelectChat}
             isLoading={isLoadingChats}
+            isLoadingMore={isLoadingMoreChats}
+            hasMore={hasMoreChats}
+            onLoadMore={loadMoreChats}
             userType="transportadora"
           />
         </div>
