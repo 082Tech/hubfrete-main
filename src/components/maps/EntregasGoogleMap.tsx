@@ -88,7 +88,7 @@ export function EntregasGoogleMap({
   selectedEntregaId,
   onSelectCarga,
   onSelectEntrega,
-  height = 500,
+  height = 430,
 }: EntregasGoogleMapProps) {
   const { isLoaded, loadError } = useGoogleMaps();
   const [map, setMap] = useState<google.maps.Map | null>(null);
