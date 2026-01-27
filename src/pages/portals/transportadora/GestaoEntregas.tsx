@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
+import textAbbr from '@/utils/textAbbr';
 import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -986,7 +987,7 @@ export default function GestaoEntregas() {
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-sm whitespace-nowrap">
-                {entrega.carga.empresa?.nome || '-'}
+                {entrega.carga.empresa?.nome ? textAbbr(entrega.carga.empresa.nome, 15) : '-'}
               </span>
             </TooltipTrigger>
             <TooltipContent>
@@ -998,7 +999,9 @@ export default function GestaoEntregas() {
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-sm whitespace-nowrap">
-                {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
+                {(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social) 
+                  ? textAbbr(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '', 18)
+                  : '-'}
               </span>
             </TooltipTrigger>
             <TooltipContent>
@@ -1007,13 +1010,18 @@ export default function GestaoEntregas() {
           </Tooltip>
         </TableCell>
         <TableCell className="py-3">
-          <div className="flex items-center gap-1 text-sm whitespace-nowrap">
-            <MapPin className="w-3 h-3 text-chart-2 shrink-0" />
-            <span>{entrega.carga.endereco_origem?.cidade || '-'}</span>
-            <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-            <MapPin className="w-3 h-3 text-destructive shrink-0" />
-            <span>{entrega.carga.endereco_destino?.cidade || '-'}</span>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1 text-sm whitespace-nowrap">
+                <span>{textAbbr(entrega.carga.endereco_origem?.cidade || '-', 10)}</span>
+                <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                <span>{textAbbr(entrega.carga.endereco_destino?.cidade || '-', 10)}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{entrega.carga.endereco_origem?.cidade}/{entrega.carga.endereco_origem?.estado} → {entrega.carga.endereco_destino?.cidade}/{entrega.carga.endereco_destino?.estado}</p>
+            </TooltipContent>
+          </Tooltip>
         </TableCell>
         <TableCell className="text-right py-3">
           <span className="text-sm font-medium whitespace-nowrap">
