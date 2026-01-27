@@ -488,6 +488,9 @@ export default function CargasDisponiveis() {
       const matchesCodigo = !advancedFilters.codigo || 
         carga.codigo.toLowerCase().includes(advancedFilters.codigo.toLowerCase());
       
+      const matchesDescricao = !advancedFilters.descricao || 
+        carga.descricao?.toLowerCase().includes(advancedFilters.descricao.toLowerCase());
+      
       const matchesCidadeOrigem = !advancedFilters.cidadeOrigem || 
         carga.endereco_origem?.cidade?.toLowerCase().includes(advancedFilters.cidadeOrigem.toLowerCase());
       
@@ -523,7 +526,7 @@ export default function CargasDisponiveis() {
         }
       }
 
-      return matchesCodigo && matchesCidadeOrigem && matchesEstadoOrigem && 
+      return matchesCodigo && matchesDescricao && matchesCidadeOrigem && matchesEstadoOrigem && 
              matchesCidadeDestino && matchesEstadoDestino && matchesEmbarcador && 
              matchesDestinatario && matchesCnpjDestinatario && matchesTipo && matchesTipoVeiculo;
     });

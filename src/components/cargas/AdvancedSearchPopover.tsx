@@ -23,10 +23,12 @@ import {
   Package,
   Building2,
   Hash,
+  FileText,
 } from 'lucide-react';
 
 export interface AdvancedSearchFilters {
   codigo: string;
+  descricao: string;
   cidadeOrigem: string;
   estadoOrigem: string;
   cidadeDestino: string;
@@ -44,6 +46,7 @@ const estadosBrasil = [
 
 const emptyFilters: AdvancedSearchFilters = {
   codigo: '',
+  descricao: '',
   cidadeOrigem: '',
   estadoOrigem: '',
   cidadeDestino: '',
@@ -88,6 +91,7 @@ export function AdvancedSearchPopover({ filters, onFiltersChange }: AdvancedSear
   const getFilterLabel = (key: keyof AdvancedSearchFilters, value: string): string => {
     const labels: Record<keyof AdvancedSearchFilters, string> = {
       codigo: 'Código',
+      descricao: 'Descrição',
       cidadeOrigem: 'Origem',
       estadoOrigem: 'UF Origem',
       cidadeDestino: 'Destino',
@@ -140,18 +144,32 @@ export function AdvancedSearchPopover({ filters, onFiltersChange }: AdvancedSear
               )}
             </div>
 
-            {/* Código da Carga */}
-            <div className="space-y-1.5">
-              <Label className="text-xs flex items-center gap-1.5">
-                <Hash className="w-3 h-3" />
-                Código da Carga
-              </Label>
-              <Input
-                placeholder="Ex: CRG-001"
-                value={localFilters.codigo}
-                onChange={(e) => setLocalFilters({ ...localFilters, codigo: e.target.value })}
-                className="h-9"
-              />
+            {/* Código e Descrição */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1.5">
+                  <Hash className="w-3 h-3" />
+                  Código
+                </Label>
+                <Input
+                  placeholder="Ex: CRG-001"
+                  value={localFilters.codigo}
+                  onChange={(e) => setLocalFilters({ ...localFilters, codigo: e.target.value })}
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1.5">
+                  <FileText className="w-3 h-3" />
+                  Descrição
+                </Label>
+                <Input
+                  placeholder="Ex: Soja, Milho..."
+                  value={localFilters.descricao}
+                  onChange={(e) => setLocalFilters({ ...localFilters, descricao: e.target.value })}
+                  className="h-9"
+                />
+              </div>
             </div>
 
             {/* Origem */}
