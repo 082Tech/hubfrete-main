@@ -1094,6 +1094,7 @@ export type Database = {
       }
       localizações: {
         Row: {
+          bussola_pos: number | null
           email_motorista: string | null
           heading: number | null
           historico_url: string | null
@@ -1106,6 +1107,7 @@ export type Database = {
           visivel: boolean | null
         }
         Insert: {
+          bussola_pos?: number | null
           email_motorista?: string | null
           heading?: number | null
           historico_url?: string | null
@@ -1118,6 +1120,7 @@ export type Database = {
           visivel?: boolean | null
         }
         Update: {
+          bussola_pos?: number | null
           email_motorista?: string | null
           heading?: number | null
           historico_url?: string | null
@@ -1550,6 +1553,7 @@ export type Database = {
       }
       tracking_historico: {
         Row: {
+          bussola_pos: number | null
           created_at: string | null
           entrega_id: string
           id: string
@@ -1559,6 +1563,7 @@ export type Database = {
           status: Database["public"]["Enums"]["status_entrega"]
         }
         Insert: {
+          bussola_pos?: number | null
           created_at?: string | null
           entrega_id: string
           id?: string
@@ -1568,6 +1573,7 @@ export type Database = {
           status: Database["public"]["Enums"]["status_entrega"]
         }
         Update: {
+          bussola_pos?: number | null
           created_at?: string | null
           entrega_id?: string
           id?: string
