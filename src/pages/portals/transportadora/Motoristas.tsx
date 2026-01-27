@@ -291,11 +291,13 @@ export default function Motoristas() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredMotoristas.map((motorista) => {
+          {filteredMotoristas.map((motorista) => {
               const cnhStatus = getCNHStatus(motorista.validade_cnh);
               const isDeleting = deletingMotoristaId === motorista.id;
+              // Treat null as active (default)
+              const isAtivo = motorista.ativo !== false;
               return (
-                <Card key={motorista.id} className={`border-border transition-all relative ${!motorista.ativo ? 'opacity-60' : 'hover:shadow-md'} ${isDeleting ? 'pointer-events-none' : ''}`}>
+                <Card key={motorista.id} className={`border-border transition-all relative ${!isAtivo ? 'opacity-60' : 'hover:shadow-md'} ${isDeleting ? 'pointer-events-none' : ''}`}>
                   {isDeleting && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
                       <div className="flex flex-col items-center gap-2">
@@ -334,9 +336,9 @@ export default function Motoristas() {
                             Gerenciar Vínculos
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => toggleAtivo.mutate({ id: motorista.id, ativo: !motorista.ativo })}>
-                            {motorista.ativo ? <XCircle className="w-4 h-4 mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
-                            {motorista.ativo ? 'Desativar' : 'Ativar'}
+                          <DropdownMenuItem onClick={() => toggleAtivo.mutate({ id: motorista.id, ativo: !isAtivo })}>
+                            {isAtivo ? <XCircle className="w-4 h-4 mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                            {isAtivo ? 'Desativar' : 'Ativar'}
                           </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive" onClick={() => deleteMotorista.mutate(motorista.id)}>
                             <Trash2 className="w-4 h-4 mr-2" />
@@ -348,8 +350,8 @@ export default function Motoristas() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                      <Badge className={motorista.ativo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''} variant={motorista.ativo ? 'outline' : 'destructive'}>
-                        {motorista.ativo ? 'Ativo' : 'Inativo'}
+                      <Badge className={isAtivo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''} variant={isAtivo ? 'outline' : 'destructive'}>
+                        {isAtivo ? 'Ativo' : 'Inativo'}
                       </Badge>
                       <Badge variant="secondary">CNH {motorista.categoria_cnh}</Badge>
                       <Badge variant="secondary">{motorista.tipo_cadastro === 'frota' ? 'Frota' : 'Autônomo'}</Badge>
