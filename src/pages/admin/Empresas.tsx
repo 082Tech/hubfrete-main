@@ -10,7 +10,10 @@ import {
   Package,
   Truck,
   MapPin,
-  Eye,
+  ChevronDown,
+  ChevronRight,
+  Users,
+  User,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +48,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -52,6 +60,25 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Pagination } from '@/components/admin/Pagination';
 import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
+
+type Usuario = {
+  id: number;
+  nome: string | null;
+  email: string | null;
+  cargo: string | null;
+  auth_user_id: string | null;
+};
+
+type Filial = {
+  id: number;
+  nome: string | null;
+  cnpj: string | null;
+  cidade: string | null;
+  estado: string | null;
+  is_matriz: boolean | null;
+  ativa: boolean | null;
+  usuarios: Usuario[];
+};
 
 type Empresa = {
   id: number;
@@ -61,7 +88,8 @@ type Empresa = {
   classe: string;
   created_at: string;
   logo_url: string | null;
-  _count?: {
+  filiais: Filial[];
+  _count: {
     filiais: number;
     usuarios: number;
   };
@@ -72,12 +100,20 @@ type ClasseEmpresa = 'INDÚSTRIA' | 'LOJA' | 'COMÉRCIO';
 
 const ITEMS_PER_PAGE = 10;
 
+const cargoLabels: Record<string, string> = {
+  ADMIN: 'Administrador',
+  GERENTE: 'Gerente',
+  OPERADOR: 'Operador',
+  VISUALIZADOR: 'Visualizador',
+};
+
 export default function Empresas() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -103,35 +139,66 @@ export default function Empresas() {
   const fetchEmpresas = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch empresas
+      const { data: empresasData, error: empresasError } = await supabase
         .from('empresas')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (empresasError) throw empresasError;
 
-      // Fetch counts for each empresa
-      const empresasWithCounts = await Promise.all(
-        (data || []).map(async (empresa) => {
-          const [filiaisRes, usuariosRes] = await Promise.all([
-            supabase.from('filiais').select('id', { count: 'exact', head: true }).eq('empresa_id', empresa.id),
-            supabase.from('usuarios_filiais').select('id', { count: 'exact', head: true })
-              .in('filial_id', 
-                (await supabase.from('filiais').select('id').eq('empresa_id', empresa.id)).data?.map(f => f.id) || []
-              ),
-          ]);
+      // Fetch all filiais and usuarios_filiais in parallel
+      const empresaIds = (empresasData || []).map(e => e.id);
+      
+      const [filiaisRes, usuariosFiliaisRes] = await Promise.all([
+        supabase.from('filiais').select('*').in('empresa_id', empresaIds),
+        supabase.from('usuarios_filiais').select('*, usuarios(*)'),
+      ]);
+
+      const filiais = filiaisRes.data || [];
+      const usuariosFiliais = usuariosFiliaisRes.data || [];
+
+      // Build empresa objects with nested data
+      const empresasWithData: Empresa[] = (empresasData || []).map(empresa => {
+        const empresaFiliais = filiais.filter(f => f.empresa_id === empresa.id);
+        const filialIds = empresaFiliais.map(f => f.id);
+        
+        const filiaisWithUsers: Filial[] = empresaFiliais.map(filial => {
+          const filialUsuarios = usuariosFiliais
+            .filter(uf => uf.filial_id === filial.id)
+            .map(uf => ({
+              id: uf.usuarios?.id || uf.usuario_id,
+              nome: uf.usuarios?.nome || null,
+              email: uf.usuarios?.email || null,
+              cargo: uf.cargo_na_filial,
+              auth_user_id: uf.usuarios?.auth_user_id || null,
+            }));
 
           return {
-            ...empresa,
-            _count: {
-              filiais: filiaisRes.count || 0,
-              usuarios: usuariosRes.count || 0,
-            },
+            id: filial.id,
+            nome: filial.nome,
+            cnpj: filial.cnpj,
+            cidade: filial.cidade,
+            estado: filial.estado,
+            is_matriz: filial.is_matriz,
+            ativa: filial.ativa,
+            usuarios: filialUsuarios,
           };
-        })
-      );
+        });
 
-      setEmpresas(empresasWithCounts);
+        const totalUsuarios = filiaisWithUsers.reduce((sum, f) => sum + f.usuarios.length, 0);
+
+        return {
+          ...empresa,
+          filiais: filiaisWithUsers,
+          _count: {
+            filiais: empresaFiliais.length,
+            usuarios: totalUsuarios,
+          },
+        };
+      });
+
+      setEmpresas(empresasWithData);
     } catch (error) {
       console.error('Erro ao buscar empresas:', error);
       toast.error('Erro ao carregar empresas');
@@ -268,6 +335,18 @@ export default function Empresas() {
       classe: 'COMÉRCIO',
     });
     setSelectedEmpresa(null);
+  };
+
+  const toggleExpanded = (empresaId: number) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(empresaId)) {
+        next.delete(empresaId);
+      } else {
+        next.add(empresaId);
+      }
+      return next;
+    });
   };
 
   const filteredEmpresas = empresas.filter(empresa => {
@@ -472,6 +551,7 @@ export default function Empresas() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]"></TableHead>
                     <TableHead>Empresa</TableHead>
                     <TableHead>CNPJ</TableHead>
                     <TableHead>Tipo</TableHead>
@@ -483,62 +563,177 @@ export default function Empresas() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedEmpresas.map((empresa) => (
-                    <TableRow key={empresa.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {empresa.logo_url ? (
-                            <img 
-                              src={empresa.logo_url} 
-                              alt={empresa.nome || ''} 
-                              className="w-8 h-8 rounded object-contain bg-muted"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                              <Building2 className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                          )}
-                          <span className="font-medium">{empresa.nome || '-'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {formatCnpj(empresa.cnpj_matriz)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={empresa.tipo === 'EMBARCADOR' ? 'default' : 'secondary'}>
-                          {empresa.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{empresa.classe}</TableCell>
-                      <TableCell>{empresa._count?.filiais || 0}</TableCell>
-                      <TableCell>{empresa._count?.usuarios || 0}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(empresa.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditDialog(empresa)}>
-                              <Pencil className="w-4 h-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => openDeleteDialog(empresa)}
+                  {paginatedEmpresas.map((empresa) => {
+                    const isExpanded = expandedRows.has(empresa.id);
+                    return (
+                      <>
+                        <TableRow key={empresa.id} className={isExpanded ? 'border-b-0' : ''}>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => toggleExpanded(empresa.id)}
                             >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {empresa.logo_url ? (
+                                <img 
+                                  src={empresa.logo_url} 
+                                  alt={empresa.nome || ''} 
+                                  className="w-8 h-8 rounded object-contain bg-muted"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
+                                  <Building2 className="w-4 h-4 text-muted-foreground" />
+                                </div>
+                              )}
+                              <span className="font-medium">{empresa.nome || '-'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {formatCnpj(empresa.cnpj_matriz)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={empresa.tipo === 'EMBARCADOR' ? 'default' : 'secondary'}>
+                              {empresa.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{empresa.classe}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{empresa._count?.filiais || 0}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{empresa._count?.usuarios || 0}</Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {format(new Date(empresa.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openEditDialog(empresa)}>
+                                  <Pencil className="w-4 h-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => openDeleteDialog(empresa)}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                        {/* Expanded Row - Filiais & Users */}
+                        {isExpanded && (
+                          <TableRow key={`${empresa.id}-expanded`} className="bg-muted/30 hover:bg-muted/30">
+                            <TableCell colSpan={9} className="p-0">
+                              <div className="p-4 space-y-4">
+                                {empresa.filiais.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground text-center py-4">
+                                    Nenhuma filial cadastrada
+                                  </p>
+                                ) : (
+                                  empresa.filiais.map(filial => (
+                                    <Card key={filial.id} className="border-border">
+                                      <CardContent className="p-4">
+                                        <div className="flex items-start justify-between mb-3">
+                                          <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-primary/10 rounded-lg">
+                                              <MapPin className="w-4 h-4 text-primary" />
+                                            </div>
+                                            <div>
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-medium">{filial.nome || 'Sem nome'}</span>
+                                                {filial.is_matriz && (
+                                                  <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                                                    Matriz
+                                                  </Badge>
+                                                )}
+                                                <Badge 
+                                                  variant={filial.ativa ? 'default' : 'secondary'}
+                                                  className={`text-[10px] px-1.5 py-0 ${filial.ativa ? 'bg-chart-1/10 text-chart-1' : ''}`}
+                                                >
+                                                  {filial.ativa ? 'Ativa' : 'Inativa'}
+                                                </Badge>
+                                              </div>
+                                              <p className="text-xs text-muted-foreground">
+                                                {filial.cidade && filial.estado 
+                                                  ? `${filial.cidade}, ${filial.estado}`
+                                                  : 'Local não informado'
+                                                }
+                                                {filial.cnpj && ` • ${formatCnpj(filial.cnpj)}`}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <Badge variant="outline" className="shrink-0">
+                                            <Users className="w-3 h-3 mr-1" />
+                                            {filial.usuarios.length} usuário{filial.usuarios.length !== 1 ? 's' : ''}
+                                          </Badge>
+                                        </div>
+
+                                        {/* Users table */}
+                                        {filial.usuarios.length > 0 && (
+                                          <div className="rounded-lg border bg-background overflow-hidden">
+                                            <Table>
+                                              <TableHeader>
+                                                <TableRow className="bg-muted/50">
+                                                  <TableHead className="text-xs h-8">Usuário</TableHead>
+                                                  <TableHead className="text-xs h-8">Email</TableHead>
+                                                  <TableHead className="text-xs h-8">Cargo</TableHead>
+                                                </TableRow>
+                                              </TableHeader>
+                                              <TableBody>
+                                                {filial.usuarios.map(usuario => (
+                                                  <TableRow key={usuario.id}>
+                                                    <TableCell className="py-2">
+                                                      <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                                                          <User className="w-3 h-3 text-muted-foreground" />
+                                                        </div>
+                                                        <span className="text-sm">{usuario.nome || '-'}</span>
+                                                      </div>
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-sm text-muted-foreground">
+                                                      {usuario.email || '-'}
+                                                    </TableCell>
+                                                    <TableCell className="py-2">
+                                                      <Badge variant="secondary" className="text-xs">
+                                                        {cargoLabels[usuario.cargo || ''] || usuario.cargo || '-'}
+                                                      </Badge>
+                                                    </TableCell>
+                                                  </TableRow>
+                                                ))}
+                                              </TableBody>
+                                            </Table>
+                                          </div>
+                                        )}
+                                      </CardContent>
+                                    </Card>
+                                  ))
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </>
+                    );
+                  })}
                 </TableBody>
               </Table>
               {totalPages > 1 && (
