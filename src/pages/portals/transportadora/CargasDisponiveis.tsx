@@ -55,6 +55,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { AdvancedSearchPopover, AdvancedSearchFilters, emptyFilters } from '@/components/cargas/AdvancedSearchPopover';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -177,7 +178,7 @@ export default function CargasDisponiveis() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedSearchFilters>(emptyFilters);
   const [filterTipo, setFilterTipo] = useState<string>('all');
   const [filterTiposVeiculo, setFilterTiposVeiculo] = useState<string[]>([]);
   const [tiposVeiculoInitialized, setTiposVeiculoInitialized] = useState(false);
@@ -463,10 +464,11 @@ export default function CargasDisponiveis() {
 
   const filteredCargas = useMemo(() => {
     return cargas.filter((carga) => {
-      const searchLower = searchTerm.toLowerCase().trim();
+      // Check if any advanced filter is active
+      const hasAdvancedFilters = Object.values(advancedFilters).some(v => v.length > 0);
       
-      // Se não há termo de busca, passa
-      if (!searchLower) {
+      // If no advanced filters, just apply tipo and veiculo filters
+      if (!hasAdvancedFilters) {
         const matchesTipo = filterTipo === 'all' || carga.tipo === filterTipo;
         
         let matchesTipoVeiculo = true;
@@ -482,42 +484,50 @@ export default function CargasDisponiveis() {
         return matchesTipo && matchesTipoVeiculo;
       }
       
-      const matchesSearch =
-        // Código e descrição da carga
-        carga.codigo.toLowerCase().includes(searchLower) ||
-        carga.descricao.toLowerCase().includes(searchLower) ||
-        // Cidades de origem/destino
-        carga.endereco_origem?.cidade?.toLowerCase().includes(searchLower) ||
-        carga.endereco_destino?.cidade?.toLowerCase().includes(searchLower) ||
-        // Estados
-        carga.endereco_origem?.estado?.toLowerCase().includes(searchLower) ||
-        carga.endereco_destino?.estado?.toLowerCase().includes(searchLower) ||
-        // Remetente (embarcador)
-        carga.empresa?.nome?.toLowerCase().includes(searchLower) ||
-        // Destinatário
-        carga.destinatario_razao_social?.toLowerCase().includes(searchLower) ||
-        carga.destinatario_nome_fantasia?.toLowerCase().includes(searchLower) ||
-        // CNPJ do destinatário (para busca por nota fiscal associada ao CNPJ)
-        carga.destinatario_cnpj?.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
+      // Apply advanced filters
+      const matchesCodigo = !advancedFilters.codigo || 
+        carga.codigo.toLowerCase().includes(advancedFilters.codigo.toLowerCase());
+      
+      const matchesCidadeOrigem = !advancedFilters.cidadeOrigem || 
+        carga.endereco_origem?.cidade?.toLowerCase().includes(advancedFilters.cidadeOrigem.toLowerCase());
+      
+      const matchesEstadoOrigem = !advancedFilters.estadoOrigem || 
+        carga.endereco_origem?.estado?.toLowerCase() === advancedFilters.estadoOrigem.toLowerCase();
+      
+      const matchesCidadeDestino = !advancedFilters.cidadeDestino || 
+        carga.endereco_destino?.cidade?.toLowerCase().includes(advancedFilters.cidadeDestino.toLowerCase());
+      
+      const matchesEstadoDestino = !advancedFilters.estadoDestino || 
+        carga.endereco_destino?.estado?.toLowerCase() === advancedFilters.estadoDestino.toLowerCase();
+      
+      const matchesEmbarcador = !advancedFilters.embarcador || 
+        carga.empresa?.nome?.toLowerCase().includes(advancedFilters.embarcador.toLowerCase());
+      
+      const matchesDestinatario = !advancedFilters.destinatario || 
+        carga.destinatario_razao_social?.toLowerCase().includes(advancedFilters.destinatario.toLowerCase()) ||
+        carga.destinatario_nome_fantasia?.toLowerCase().includes(advancedFilters.destinatario.toLowerCase());
+      
+      const matchesCnpjDestinatario = !advancedFilters.cnpjDestinatario || 
+        carga.destinatario_cnpj?.replace(/\D/g, '').includes(advancedFilters.cnpjDestinatario.replace(/\D/g, ''));
 
       const matchesTipo = filterTipo === 'all' || carga.tipo === filterTipo;
 
-      // Filtro por tipo de veículo - verifica se a carga aceita pelo menos um dos veículos selecionados
+      // Filtro por tipo de veículo
       let matchesTipoVeiculo = true;
       if (filterTiposVeiculo.length > 0) {
         const requisitos = carga.veiculo_requisitos as VeiculoRequisitos | null;
         if (requisitos?.tipos_veiculo && requisitos.tipos_veiculo.length > 0) {
-          // A carga tem requisitos específicos - verificar se algum dos filtros selecionados é aceito
           matchesTipoVeiculo = filterTiposVeiculo.some(tipo => 
             requisitos.tipos_veiculo!.includes(tipo)
           );
         }
-        // Se a carga não tem requisitos de tipo de veículo, ela é compatível com todos
       }
 
-      return matchesSearch && matchesTipo && matchesTipoVeiculo;
+      return matchesCodigo && matchesCidadeOrigem && matchesEstadoOrigem && 
+             matchesCidadeDestino && matchesEstadoDestino && matchesEmbarcador && 
+             matchesDestinatario && matchesCnpjDestinatario && matchesTipo && matchesTipoVeiculo;
     });
-  }, [cargas, searchTerm, filterTipo, filterTiposVeiculo]);
+  }, [cargas, advancedFilters, filterTipo, filterTiposVeiculo]);
 
   // Map bounds removed - now handled by Google Maps component
 
@@ -955,15 +965,10 @@ export default function CargasDisponiveis() {
           <CardContent className="p-4">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por código, descrição, cidade, embarcador ou destinatário..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
+                <AdvancedSearchPopover 
+                  filters={advancedFilters} 
+                  onFiltersChange={setAdvancedFilters} 
+                />
                 <Select value={filterTipo} onValueChange={setFilterTipo}>
                   <SelectTrigger className="w-full md:w-[200px]">
                     <Filter className="w-4 h-4 mr-2" />
@@ -1047,7 +1052,7 @@ export default function CargasDisponiveis() {
                 Nenhuma carga disponível
               </h3>
               <p className="text-muted-foreground">
-                {searchTerm || filterTipo !== 'all'
+                {Object.values(advancedFilters).some(v => v.length > 0) || filterTipo !== 'all'
                   ? 'Nenhuma carga corresponde aos filtros aplicados.'
                   : 'Não há cargas publicadas no momento. Volte mais tarde.'}
               </p>
