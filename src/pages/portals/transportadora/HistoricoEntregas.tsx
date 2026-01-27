@@ -135,6 +135,7 @@ const columns: ColumnDefinition[] = [
   { id: 'peso', label: 'Peso', minWidth: '80px', sortable: true, sortKey: 'peso' },
   { id: 'motorista', label: 'Motorista', minWidth: '130px', sortable: true, sortKey: 'motorista' },
   { id: 'status', label: 'Status', minWidth: '120px', sortable: true, sortKey: 'status' },
+  { id: 'numero_cte', label: 'N° CT-e', minWidth: '100px' },
   { id: 'docs', label: 'Docs', minWidth: '80px' },
   { id: 'encerrada_em', label: 'Encerrada em', minWidth: '110px', sortable: true, sortKey: 'encerrada_em' },
   { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
@@ -329,9 +330,10 @@ export default function HistoricoEntregas() {
     return count;
   };
 
-  // Check if critical docs are missing
+  // Check if critical docs are missing (NF + CTE + Manifesto + Canhoto)
   const hasMissingCriticalDocs = (e: EntregaHistorico) => {
-    return !e.cte_url || !e.manifesto_url;
+    const nfsCount = e.notas_fiscais_urls?.length || 0;
+    return !e.cte_url || !e.manifesto_url || !e.canhoto_url || nfsCount === 0;
   };
 
   // Render cell based on column ID
@@ -438,6 +440,14 @@ export default function HistoricoEntregas() {
               <StatusIcon className="w-3 h-3" />
               {config?.label || status}
             </Badge>
+          </TableCell>
+        );
+      case 'numero_cte':
+        return (
+          <TableCell className="text-nowrap">
+            <span className="text-xs font-mono text-muted-foreground">
+              {e.numero_cte || '-'}
+            </span>
           </TableCell>
         );
       case 'docs':

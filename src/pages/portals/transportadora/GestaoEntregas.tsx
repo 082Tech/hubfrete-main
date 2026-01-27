@@ -133,6 +133,7 @@ interface EntregaCompleta {
   numero_cte: string | null;
   notas_fiscais_urls: string[] | null;
   manifesto_url: string | null;
+  canhoto_url: string | null;
   motorista: {
     id: string;
     nome_completo: string;
@@ -295,6 +296,7 @@ export default function GestaoEntregas() {
           numero_cte,
           notas_fiscais_urls,
           manifesto_url,
+          canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, email, foto_url),
           veiculo:veiculos(id, placa, tipo),
           carga:cargas(
@@ -619,9 +621,13 @@ export default function GestaoEntregas() {
   });
 
   // Helper to check if delivery has required documents for "entregue" status
+  // ALL documents are required: at least 1 NF + canhoto + manifesto + CT-e
   const canMarkAsDelivered = (entrega: EntregaCompleta): boolean => {
     const nfsCount = entrega.notas_fiscais_urls?.length || 0;
-    return nfsCount >= 1; // At least one NF is required
+    const hasCte = !!entrega.cte_url;
+    const hasManifesto = !!entrega.manifesto_url;
+    const hasCanhoto = !!entrega.canhoto_url;
+    return nfsCount >= 1 && hasCte && hasManifesto && hasCanhoto;
   };
 
   // Get entrega by ID from entregas list
@@ -634,7 +640,7 @@ export default function GestaoEntregas() {
     if (newStatus === 'entregue') {
       const entrega = getEntregaById(entregaId);
       if (entrega && !canMarkAsDelivered(entrega)) {
-        toast.error('Não é possível marcar como entregue. É necessário anexar pelo menos uma Nota Fiscal.');
+        toast.error('Não é possível marcar como entregue. É necessário anexar: pelo menos 1 Nota Fiscal, CT-e, Manifesto e Canhoto.');
         return;
       }
     }
@@ -657,7 +663,7 @@ export default function GestaoEntregas() {
       });
 
       if (entregasWithMissingDocs.length > 0) {
-        toast.error(`${entregasWithMissingDocs.length} entrega(s) não podem ser marcadas como entregue. É necessário anexar pelo menos uma Nota Fiscal em cada.`);
+        toast.error(`${entregasWithMissingDocs.length} entrega(s) não podem ser marcadas como entregue. É necessário anexar: NF, CT-e, Manifesto e Canhoto em cada.`);
         return;
       }
     }
@@ -1136,15 +1142,22 @@ export default function GestaoEntregas() {
             {config?.label || status}
           </Badge>
         </TableCell>
+        {/* N° CT-e column */}
+        <TableCell className="py-3">
+          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+            {entrega.numero_cte || '-'}
+          </span>
+        </TableCell>
         {/* Documentos - Unified Column (styled like HistoricoEntregas) */}
         <TableCell className="py-3">
           {(() => {
             const hasCte = !!entrega.cte_url;
             const hasManifesto = !!entrega.manifesto_url;
+            const hasCanhoto = !!entrega.canhoto_url;
             const nfsCount = entrega.notas_fiscais_urls?.length || 0;
-            const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0);
-            // Critical docs are: CTE, Manifesto, and at least 1 NF
-            const hasMissingCritical = !hasCte || !hasManifesto || nfsCount === 0;
+            const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
+            // Critical docs are: CTE, Manifesto, Canhoto, and at least 1 NF
+            const hasMissingCritical = !hasCte || !hasManifesto || !hasCanhoto || nfsCount === 0;
 
             return (
               <Button
@@ -1337,15 +1350,22 @@ export default function GestaoEntregas() {
             {config?.label || status}
           </Badge>
         </TableCell>
+        {/* N° CT-e column */}
+        <TableCell className="py-2.5">
+          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+            {entrega.numero_cte || '-'}
+          </span>
+        </TableCell>
         {/* Documentos (styled like HistoricoEntregas) */}
         <TableCell className="py-2.5">
           {(() => {
             const hasCte = !!entrega.cte_url;
             const hasManifesto = !!entrega.manifesto_url;
+            const hasCanhoto = !!entrega.canhoto_url;
             const nfsCount = entrega.notas_fiscais_urls?.length || 0;
-            const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0);
-            // Critical docs are: CTE, Manifesto, and at least 1 NF
-            const hasMissingCritical = !hasCte || !hasManifesto || nfsCount === 0;
+            const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
+            // Critical docs are: CTE, Manifesto, Canhoto, and at least 1 NF
+            const hasMissingCritical = !hasCte || !hasManifesto || !hasCanhoto || nfsCount === 0;
 
             return (
               <Button
@@ -1823,6 +1843,7 @@ export default function GestaoEntregas() {
                                                       <TableHead className="text-xs font-semibold">Rota</TableHead>
                                                       <TableHead className="text-xs font-semibold text-right">Peso</TableHead>
                                                       <TableHead className="text-xs font-semibold">Status</TableHead>
+                                                      <TableHead className="text-xs font-semibold">N° CT-e</TableHead>
                                                       <TableHead className="text-xs font-semibold">
                                                         <div className="flex items-center gap-1">
                                                           <FileText className="w-3 h-3" />
