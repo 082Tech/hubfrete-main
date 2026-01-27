@@ -5,6 +5,23 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { MaskedInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -46,6 +63,8 @@ import {
   FileText,
   CheckCircle,
   ImageOff,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -59,6 +78,8 @@ import { useUserContext } from '@/hooks/useUserContext';
 import { useState, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { VeiculoEditDialog, CarroceriaEditDialog } from '@/components/frota';
+
+const ITEMS_PER_PAGE = 12;
 
 const ESTADOS_BRASIL = [
   { value: 'AC', label: 'Acre' },
@@ -186,6 +207,9 @@ export default function MinhaFrota() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'veiculos' | 'carrocerias'>('veiculos');
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [currentPageVeiculos, setCurrentPageVeiculos] = useState(1);
+  const [currentPageCarrocerias, setCurrentPageCarrocerias] = useState(1);
   const [isVeiculoDialogOpen, setIsVeiculoDialogOpen] = useState(false);
   const [isCarroceriaDialogOpen, setIsCarroceriaDialogOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
@@ -680,6 +704,26 @@ export default function MinhaFrota() {
         c.modelo?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [carrocerias, searchTerm]);
+
+  // Reset pages when search changes
+  useMemo(() => {
+    setCurrentPageVeiculos(1);
+    setCurrentPageCarrocerias(1);
+  }, [searchTerm]);
+
+  // Pagination for vehicles
+  const totalPagesVeiculos = Math.ceil(filteredVeiculos.length / ITEMS_PER_PAGE);
+  const paginatedVeiculos = useMemo(() => {
+    const start = (currentPageVeiculos - 1) * ITEMS_PER_PAGE;
+    return filteredVeiculos.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredVeiculos, currentPageVeiculos]);
+
+  // Pagination for carrocerias
+  const totalPagesCarrocerias = Math.ceil(filteredCarrocerias.length / ITEMS_PER_PAGE);
+  const paginatedCarrocerias = useMemo(() => {
+    const start = (currentPageCarrocerias - 1) * ITEMS_PER_PAGE;
+    return filteredCarrocerias.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredCarrocerias, currentPageCarrocerias]);
 
   const veiculoStats = useMemo(() => {
     const ativos = veiculos.filter((v) => v.ativo).length;
@@ -1372,15 +1416,25 @@ export default function MinhaFrota() {
               </Card>
             </div>
 
-            {/* Search */}
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por placa, motorista, marca..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
+            {/* Search + View Toggle */}
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+              <div className="relative max-w-md flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por placa, motorista, marca..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'card' | 'list')}>
+                <ToggleGroupItem value="card" aria-label="Visualização em cards">
+                  <LayoutGrid className="w-4 h-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" aria-label="Visualização em lista">
+                  <List className="w-4 h-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
             {/* Veículos List */}
@@ -1408,18 +1462,95 @@ export default function MinhaFrota() {
                   )}
                 </CardContent>
               </Card>
+            ) : viewMode === 'list' ? (
+              /* List View */
+              <Card className="border-border">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Placa</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Carroceria</TableHead>
+                        <TableHead>Marca/Modelo</TableHead>
+                        <TableHead>Motorista</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedVeiculos.map((veiculo) => (
+                        <TableRow key={veiculo.id} className={!veiculo.ativo ? 'opacity-60' : ''}>
+                          <TableCell className="font-medium">{veiculo.placa}</TableCell>
+                          <TableCell><Badge variant="secondary">{tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}</Badge></TableCell>
+                          <TableCell>
+                            {veiculo.carroceria_integrada ? (
+                              <Badge className="bg-primary/10 text-primary border-primary/20">{tipoCarroceriaLabels[veiculo.carroceria] || veiculo.carroceria}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">Apenas Cavalo</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{veiculo.marca} {veiculo.modelo} {veiculo.ano && `(${veiculo.ano})`}</TableCell>
+                          <TableCell>
+                            {veiculo.motorista ? (
+                              <div className="flex items-center gap-2">
+                                <Avatar className="w-6 h-6">
+                                  <AvatarImage src={veiculo.motorista.foto_url || undefined} />
+                                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                    {getDriverInitials(veiculo.motorista.nome_completo)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm">{veiculo.motorista.nome_completo}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Badge variant={veiculo.ativo ? 'outline' : 'destructive'} className={veiculo.ativo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''}>
+                                {veiculo.ativo ? 'Ativo' : 'Inativo'}
+                              </Badge>
+                              {veiculo.seguro_ativo && <Badge variant="outline" className="text-xs"><Shield className="w-3 h-3" /></Badge>}
+                              {veiculo.rastreador && <Badge variant="outline" className="text-xs"><Gauge className="w-3 h-3" /></Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
+                                  <Edit className="w-4 h-4 mr-2" />Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive" onClick={() => deleteVeiculo.mutate(veiculo.id)}>
+                                  <Trash2 className="w-4 h-4 mr-2" />Remover
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </Card>
             ) : (
+              /* Card View - with larger photo */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredVeiculos.map((veiculo) => (
+                {paginatedVeiculos.map((veiculo) => (
                   <Card
                     key={veiculo.id}
                     className={`border-border transition-all overflow-hidden ${
                       !veiculo.ativo ? 'opacity-60' : 'hover:shadow-md'
                     }`}
                   >
-                    {/* Vehicle Photo Section */}
+                    {/* Vehicle Photo Section - Larger (aspect-video) */}
                     <div 
-                      className="relative h-40 bg-muted/50 group cursor-pointer"
+                      className="relative aspect-video bg-muted/50 group cursor-pointer"
                       onClick={() => cardFileInputRefs.current[veiculo.id]?.click()}
                     >
                       {uploadingPhoto === veiculo.id ? (
@@ -1600,6 +1731,37 @@ export default function MinhaFrota() {
                 ))}
               </div>
             )}
+
+            {/* Pagination */}
+            {totalPagesVeiculos > 1 && (
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPageVeiculos(p => Math.max(1, p - 1))}
+                      className={currentPageVeiculos === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPagesVeiculos }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        isActive={currentPageVeiculos === page}
+                        onClick={() => setCurrentPageVeiculos(page)}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPageVeiculos(p => Math.min(totalPagesVeiculos, p + 1))}
+                      className={currentPageVeiculos === totalPagesVeiculos ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
           </TabsContent>
 
           <TabsContent value="carrocerias" className="space-y-6 mt-6">
@@ -1629,15 +1791,25 @@ export default function MinhaFrota() {
               </Card>
             </div>
 
-            {/* Search */}
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por placa, motorista, marca..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
+            {/* Search + View Toggle */}
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+              <div className="relative max-w-md flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por placa, motorista, marca..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'card' | 'list')}>
+                <ToggleGroupItem value="card" aria-label="Visualização em cards">
+                  <LayoutGrid className="w-4 h-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" aria-label="Visualização em lista">
+                  <List className="w-4 h-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
             {/* Carrocerias List */}
@@ -1665,9 +1837,94 @@ export default function MinhaFrota() {
                   )}
                 </CardContent>
               </Card>
+            ) : viewMode === 'list' ? (
+              /* List View */
+              <Card className="border-border">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Placa</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Marca/Modelo</TableHead>
+                        <TableHead>Capacidade</TableHead>
+                        <TableHead>Veículo</TableHead>
+                        <TableHead>Motorista</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedCarrocerias.map((carroceria) => {
+                        const veiculoAtrelado = veiculos.find(
+                          (v) => v.motorista?.id === carroceria.motorista?.id && carroceria.motorista?.id
+                        );
+                        return (
+                          <TableRow key={carroceria.id} className={!carroceria.ativo ? 'opacity-60' : ''}>
+                            <TableCell className="font-medium">{carroceria.placa}</TableCell>
+                            <TableCell><Badge variant="secondary">{tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}</Badge></TableCell>
+                            <TableCell className="text-muted-foreground">{carroceria.marca} {carroceria.modelo} {carroceria.ano && `(${carroceria.ano})`}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {carroceria.capacidade_kg ? `${(carroceria.capacidade_kg / 1000).toLocaleString('pt-BR')}t` : '-'}
+                              {carroceria.capacidade_m3 && ` / ${carroceria.capacidade_m3}m³`}
+                            </TableCell>
+                            <TableCell>
+                              {veiculoAtrelado ? (
+                                <Badge variant="outline" className="text-xs gap-1">
+                                  <Car className="w-3 h-3" />{veiculoAtrelado.placa}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {carroceria.motorista ? (
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="w-6 h-6">
+                                    <AvatarImage src={carroceria.motorista.foto_url || undefined} />
+                                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                      {getDriverInitials(carroceria.motorista.nome_completo)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-sm">{carroceria.motorista.nome_completo}</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={carroceria.ativo ? 'outline' : 'destructive'} className={carroceria.ativo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''}>
+                                {carroceria.ativo ? 'Ativa' : 'Inativa'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setEditingCarroceria(carroceria)}>
+                                    <Edit className="w-4 h-4 mr-2" />Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-destructive" onClick={() => deleteCarroceria.mutate(carroceria.id)}>
+                                    <Trash2 className="w-4 h-4 mr-2" />Remover
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </Card>
             ) : (
+              /* Card View */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredCarrocerias.map((carroceria) => (
+                {paginatedCarrocerias.map((carroceria) => (
                   <Card
                     key={carroceria.id}
                     className={`border-border transition-all overflow-hidden ${
@@ -1833,6 +2090,37 @@ export default function MinhaFrota() {
                   </Card>
                 ))}
               </div>
+            )}
+
+            {/* Pagination */}
+            {totalPagesCarrocerias > 1 && (
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPageCarrocerias(p => Math.max(1, p - 1))}
+                      className={currentPageCarrocerias === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPagesCarrocerias }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        isActive={currentPageCarrocerias === page}
+                        onClick={() => setCurrentPageCarrocerias(page)}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPageCarrocerias(p => Math.min(totalPagesCarrocerias, p + 1))}
+                      className={currentPageCarrocerias === totalPagesCarrocerias ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             )}
           </TabsContent>
         </Tabs>
