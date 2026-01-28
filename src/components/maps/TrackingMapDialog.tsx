@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Route } from 'lucide-react';
@@ -22,30 +22,35 @@ interface TrackingMapDialogProps {
 }
 
 export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialogProps) {
-  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
+  
+  // Use refs to avoid callback dependency issues
+  const mapRef = useRef<google.maps.Map | null>(null);
   const pendingBoundsRef = useRef<google.maps.LatLngBounds | null>(null);
 
-  // Apply pending bounds when map becomes available
-  useEffect(() => {
-    if (mapInstance && pendingBoundsRef.current) {
-      mapInstance.fitBounds(pendingBoundsRef.current, { top: 50, bottom: 50, left: 50, right: 50 });
+  // Handle map load - apply pending bounds if available
+  const handleMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+    
+    // If bounds were already received, apply them now
+    if (pendingBoundsRef.current) {
+      map.fitBounds(pendingBoundsRef.current, { top: 50, bottom: 50, left: 50, right: 50 });
       pendingBoundsRef.current = null;
     }
-  }, [mapInstance]);
+  }, []);
 
-  // Memoize callbacks to prevent infinite re-renders
+  // Handle bounds ready - use ref to access map instance
   const handleBoundsReady = useCallback((bounds: google.maps.LatLngBounds | null) => {
     if (!bounds) return;
     
-    if (mapInstance) {
-      mapInstance.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
+    if (mapRef.current) {
+      mapRef.current.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
     } else {
       // Store bounds to apply when map loads
       pendingBoundsRef.current = bounds;
     }
-  }, [mapInstance]);
+  }, []);
 
   const handleLoadingChange = useCallback((loading: boolean) => {
     setIsLoading(loading);
@@ -85,7 +90,7 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
                 streetViewControl: false,
                 fullscreenControl: true,
               }}
-              onLoad={(map) => setMapInstance(map)}
+              onLoad={handleMapLoad}
             >
               <TrackingHistoryGoogleMarkers
                 entregaId={entregaId}

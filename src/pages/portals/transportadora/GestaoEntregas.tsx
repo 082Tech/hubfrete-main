@@ -1102,26 +1102,52 @@ export default function GestaoEntregas() {
         <TableCell className="py-3">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-sm whitespace-nowrap">
-                {entrega.carga.empresa?.nome ? textAbbr(entrega.carga.empresa.nome, 15) : '-'}
-              </span>
+              <div className="cursor-help">
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-green-500 shrink-0" />
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {entrega.carga.empresa?.nome ? textAbbr(entrega.carga.empresa.nome, 15) : '-'}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                  {entrega.carga.endereco_origem?.cidade || '-'}
+                </p>
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="bottom" className="max-w-xs">
               <p className="font-medium">{entrega.carga.empresa?.nome || 'Remetente não informado'}</p>
+              {entrega.carga.endereco_origem && (
+                <p className="text-xs text-muted-foreground">
+                  {entrega.carga.endereco_origem.cidade}/{entrega.carga.endereco_origem.estado}
+                </p>
+              )}
             </TooltipContent>
           </Tooltip>
         </TableCell>
         <TableCell className="py-3">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-sm whitespace-nowrap">
-                {(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social)
-                  ? textAbbr(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '', 18)
-                  : '-'}
-              </span>
+              <div className="cursor-help">
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social)
+                      ? textAbbr(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '', 18)
+                      : '-'}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                  {entrega.carga.endereco_destino?.cidade || '-'}
+                </p>
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="bottom" className="max-w-xs">
               <p className="font-medium">{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
+              {entrega.carga.endereco_destino && (
+                <p className="text-xs text-muted-foreground">
+                  {entrega.carga.endereco_destino.cidade}/{entrega.carga.endereco_destino.estado}
+                </p>
+              )}
             </TooltipContent>
           </Tooltip>
         </TableCell>
@@ -1310,26 +1336,52 @@ export default function GestaoEntregas() {
         <TableCell className="py-2.5">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-sm whitespace-nowrap">
-                {entrega.carga.empresa?.nome ? textAbbr(entrega.carga.empresa.nome, 15) : '-'}
-              </span>
+              <div className="cursor-help">
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-green-500 shrink-0" />
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {entrega.carga.empresa?.nome ? textAbbr(entrega.carga.empresa.nome, 15) : '-'}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                  {entrega.carga.endereco_origem?.cidade || '-'}
+                </p>
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="bottom" className="max-w-xs">
               <p className="font-medium">{entrega.carga.empresa?.nome || 'Remetente não informado'}</p>
+              {entrega.carga.endereco_origem && (
+                <p className="text-xs text-muted-foreground">
+                  {entrega.carga.endereco_origem.cidade}/{entrega.carga.endereco_origem.estado}
+                </p>
+              )}
             </TooltipContent>
           </Tooltip>
         </TableCell>
         <TableCell className="py-2.5">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-sm whitespace-nowrap">
-                {(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social)
-                  ? textAbbr(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '', 18)
-                  : '-'}
-              </span>
+              <div className="cursor-help">
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social)
+                      ? textAbbr(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '', 18)
+                      : '-'}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                  {entrega.carga.endereco_destino?.cidade || '-'}
+                </p>
+              </div>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="bottom" className="max-w-xs">
               <p className="font-medium">{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
+              {entrega.carga.endereco_destino && (
+                <p className="text-xs text-muted-foreground">
+                  {entrega.carga.endereco_destino.cidade}/{entrega.carga.endereco_destino.estado}
+                </p>
+              )}
             </TooltipContent>
           </Tooltip>
         </TableCell>

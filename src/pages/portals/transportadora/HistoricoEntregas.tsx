@@ -356,11 +356,19 @@ export default function HistoricoEntregas() {
           <TableCell className="text-nowrap">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="truncate block max-w-[150px]">
-                  {e.carga.empresa?.nome || '-'}
-                </span>
+                <div className="cursor-help">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-green-500 shrink-0" />
+                    <span className="font-medium text-sm truncate max-w-[130px]">
+                      {e.carga.empresa?.nome || '-'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate max-w-[130px]">
+                    {origem?.cidade || '-'}
+                  </p>
+                </div>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent side="bottom" className="max-w-xs">
                 <p className="font-medium">{e.carga.empresa?.nome || 'Remetente não informado'}</p>
                 {origem && (
                   <p className="text-xs text-muted-foreground">{origem.logradouro}, {origem.cidade}/{origem.estado}</p>
@@ -374,11 +382,19 @@ export default function HistoricoEntregas() {
           <TableCell className="text-nowrap">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="truncate block max-w-[150px]">
-                  {e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || '-'}
-                </span>
+                <div className="cursor-help">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                    <span className="font-medium text-sm truncate max-w-[130px]">
+                      {e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || '-'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate max-w-[130px]">
+                    {destino?.cidade || '-'}
+                  </p>
+                </div>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent side="bottom" className="max-w-xs">
                 <p className="font-medium">{e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
                 {destino && (
                   <p className="text-xs text-muted-foreground">{destino.logradouro}, {destino.cidade}/{destino.estado}</p>
@@ -391,10 +407,8 @@ export default function HistoricoEntregas() {
         return (
           <TableCell className="text-nowrap">
             <div className="flex items-center gap-1 text-sm">
-              <MapPin className="w-3 h-3 text-chart-1 shrink-0" />
               <span className="truncate max-w-[50px]">{origem?.cidade || '-'}</span>
               <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-              <MapPin className="w-3 h-3 text-chart-2 shrink-0" />
               <span className="truncate max-w-[50px]">{destino?.cidade || '-'}</span>
             </div>
           </TableCell>
