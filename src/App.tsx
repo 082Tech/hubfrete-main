@@ -25,6 +25,7 @@ import Empresas from "./pages/admin/Empresas";
 import MotoristasAdmin from "./pages/admin/MotoristasAdmin";
 import VeiculosAdmin from "./pages/admin/VeiculosAdmin";
 import CargasAdmin from "./pages/admin/CargasAdmin";
+import CargasHistoricoAdmin from "./pages/admin/CargasHistoricoAdmin";
 import EntregasAdmin from "./pages/admin/EntregasAdmin";
 import Logs from "./pages/admin/Logs";
 import { AdminLayoutWrapper } from "./components/admin/AdminLayoutWrapper";
@@ -105,6 +106,7 @@ const App = () => {
                   <Route path="motoristas" element={<MotoristasAdmin />} />
                   <Route path="veiculos" element={<VeiculosAdmin />} />
                   <Route path="cargas" element={<CargasAdmin />} />
+                  <Route path="cargas/historico" element={<CargasHistoricoAdmin />} />
                   <Route path="entregas" element={<EntregasAdmin />} />
                   <Route path="logs" element={<Logs />} />
                 </Route>

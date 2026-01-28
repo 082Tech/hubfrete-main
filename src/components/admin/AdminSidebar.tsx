@@ -7,6 +7,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LayoutDashboard,
   TrendingUp,
   Activity,
@@ -16,6 +17,8 @@ import {
   User,
   FileText,
   Package,
+  History,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +28,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 
 type AdminRole = 'super_admin' | 'admin' | 'suporte';
@@ -36,12 +44,19 @@ interface AdminUser {
   email: string | null;
 }
 
+interface SubMenuItem {
+  title: string;
+  href: string;
+  icon?: React.ElementType;
+}
+
 interface MenuItem {
   title: string;
   icon: React.ElementType;
-  href: string;
+  href?: string;
   roles: AdminRole[];
   badge?: number;
+  subItems?: SubMenuItem[];
 }
 
 interface AdminSidebarProps {
@@ -68,14 +83,41 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     const saved = localStorage.getItem('hubfrete_admin_sidebar_collapsed');
     return saved === 'true';
   });
+  const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(() => {
+    // Auto-expand submenu if current path matches
+    const initial = new Set<string>();
+    if (location.pathname.startsWith('/admin/cargas')) {
+      initial.add('Cargas');
+    }
+    return initial;
+  });
 
   useEffect(() => {
     localStorage.setItem('hubfrete_admin_sidebar_collapsed', String(collapsed));
   }, [collapsed]);
 
+  // Update open submenus when location changes
+  useEffect(() => {
+    if (location.pathname.startsWith('/admin/cargas')) {
+      setOpenSubmenus(prev => new Set(prev).add('Cargas'));
+    }
+  }, [location.pathname]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/admin');
+  };
+
+  const toggleSubmenu = (title: string) => {
+    setOpenSubmenus(prev => {
+      const next = new Set(prev);
+      if (next.has(title)) {
+        next.delete(title);
+      } else {
+        next.add(title);
+      }
+      return next;
+    });
   };
 
   const menuItems: MenuItem[] = [
@@ -94,8 +136,11 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     {
       title: 'Cargas',
       icon: Package,
-      href: '/admin/cargas',
       roles: ['super_admin', 'admin', 'suporte'],
+      subItems: [
+        { title: 'Publicadas', href: '/admin/cargas', icon: Clock },
+        { title: 'Histórico', href: '/admin/cargas/historico', icon: History },
+      ],
     },
     {
       title: 'Entregas',
@@ -156,6 +201,11 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
 
   const visibleMenuItems = menuItems.filter(item => item.roles.includes(adminUser.role));
 
+  const isSubItemActive = (item: MenuItem) => {
+    if (!item.subItems) return false;
+    return item.subItems.some(sub => location.pathname === sub.href);
+  };
+
   return (
     <TooltipProvider delayDuration={0}>
       <aside
@@ -201,11 +251,99 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
         {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {visibleMenuItems.map((item) => {
+            // Item with submenu
+            if (item.subItems) {
+              const isOpen = openSubmenus.has(item.title);
+              const isAnySubActive = isSubItemActive(item);
+
+              if (collapsed) {
+                // When collapsed, show first sub-item link with tooltip
+                return (
+                  <Tooltip key={item.title}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to={item.subItems[0].href}
+                        className={`flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                          isAnySubActive
+                            ? 'bg-destructive text-destructive-foreground'
+                            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                        }`}
+                      >
+                        <item.icon className="w-5 h-5 shrink-0" />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={10} className="space-y-1">
+                      <p className="font-medium">{item.title}</p>
+                      <div className="flex flex-col gap-1">
+                        {item.subItems.map(sub => (
+                          <Link
+                            key={sub.href}
+                            to={sub.href}
+                            className={`text-xs px-2 py-1 rounded ${
+                              location.pathname === sub.href
+                                ? 'bg-destructive/20 text-destructive'
+                                : 'hover:bg-muted'
+                            }`}
+                          >
+                            {sub.title}
+                          </Link>
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return (
+                <Collapsible
+                  key={item.title}
+                  open={isOpen}
+                  onOpenChange={() => toggleSubmenu(item.title)}
+                >
+                  <CollapsibleTrigger asChild>
+                    <button
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                        isAnySubActive
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                      }`}
+                    >
+                      <item.icon className="w-5 h-5 shrink-0" />
+                      <span className="flex-1 font-medium text-left">{item.title}</span>
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                    {item.subItems.map(sub => {
+                      const SubIcon = sub.icon;
+                      return (
+                        <Link
+                          key={sub.href}
+                          to={sub.href}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                            location.pathname === sub.href
+                              ? 'bg-destructive text-destructive-foreground'
+                              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                          }`}
+                        >
+                          {SubIcon && <SubIcon className="w-4 h-4" />}
+                          {sub.title}
+                        </Link>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            }
+
+            // Regular menu item
             const isActive = location.pathname === item.href;
             const linkContent = (
               <Link
                 key={item.href}
-                to={item.href}
+                to={item.href!}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''} ${
                   isActive
                     ? 'bg-destructive text-destructive-foreground'
