@@ -7,7 +7,7 @@ export interface MotoristaLocalizacao {
   longitude: number | null;
   timestamp: number | null;
   status: boolean | null;
-  heading: number | null;
+  bussola_pos: number | null;
 }
 
 interface UseRealtimeLocalizacoesOptions {
@@ -40,7 +40,7 @@ export function useRealtimeLocalizacoes({ emails, enabled = true }: UseRealtimeL
     try {
       const { data, error } = await supabase
         .from('localizações')
-        .select('email_motorista, latitude, longitude, timestamp, status, heading')
+        .select('email_motorista, latitude, longitude, timestamp, status, bussola_pos')
         .in('email_motorista', stableEmails);
 
       if (error) throw error;
