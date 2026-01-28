@@ -33,12 +33,14 @@ const passwordSchema = z.object({
 });
 
 export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialogProps) {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ newPassword?: string; confirmPassword?: string }>({});
+  const [errors, setErrors] = useState<{ currentPassword?: string; newPassword?: string; confirmPassword?: string }>({});
 
   const passwordRequirements = [
     { label: 'Mínimo 8 caracteres', met: newPassword.length >= 8 },
@@ -50,9 +52,14 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
   const handleSubmit = async () => {
     setErrors({});
 
+    if (!currentPassword) {
+      setErrors({ currentPassword: 'Digite sua senha atual' });
+      return;
+    }
+
     const result = passwordSchema.safeParse({ newPassword, confirmPassword });
     if (!result.success) {
-      const fieldErrors: { newPassword?: string; confirmPassword?: string } = {};
+      const fieldErrors: { currentPassword?: string; newPassword?: string; confirmPassword?: string } = {};
       result.error.errors.forEach((err) => {
         if (err.path[0] === 'newPassword') {
           fieldErrors.newPassword = err.message;
@@ -66,6 +73,25 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
 
     setLoading(true);
     try {
+      // Get current user email
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        toast.error('Usuário não encontrado');
+        return;
+      }
+
+      // Verify current password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        setErrors({ currentPassword: 'Senha atual incorreta' });
+        return;
+      }
+
+      // Update to new password
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -90,8 +116,10 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
   };
 
   const handleClose = () => {
+    setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+    setShowCurrentPassword(false);
     setShowNewPassword(false);
     setShowConfirmPassword(false);
     setErrors({});
@@ -112,6 +140,37 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
+          {/* Current Password */}
+          <div className="space-y-2">
+            <Label htmlFor="current-password">Senha Atual</Label>
+            <div className="relative">
+              <Input
+                id="current-password"
+                type={showCurrentPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Digite sua senha atual"
+                className={errors.currentPassword ? 'border-destructive' : ''}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+              >
+                {showCurrentPassword ? (
+                  <EyeOff className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+            {errors.currentPassword && (
+              <p className="text-sm text-destructive">{errors.currentPassword}</p>
+            )}
+          </div>
+
           {/* New Password */}
           <div className="space-y-2">
             <Label htmlFor="new-password">Nova Senha</Label>
@@ -204,7 +263,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
             </Button>
             <Button 
               onClick={handleSubmit} 
-              disabled={loading || !newPassword || !confirmPassword}
+              disabled={loading || !currentPassword || !newPassword || !confirmPassword}
             >
               {loading ? (
                 <>
