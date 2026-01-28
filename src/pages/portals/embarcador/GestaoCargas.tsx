@@ -857,21 +857,21 @@ export default function GestaoCargas() {
                 {filtersCollapsed ? (
                   <div className="flex flex-col gap-2">
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="icon"
                       className="w-10 h-10 bg-background shadow-lg hover:bg-muted border"
                       onClick={() => setFiltersCollapsed(false)}
                     >
-                      <PanelLeft className="w-5 h-5" />
+                      <PanelLeft className="w-5 h-5 text-foreground" />
                     </Button>
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="icon"
                       className="w-10 h-10 bg-background shadow-lg hover:bg-muted border"
                       onClick={() => refetch()}
                       disabled={isLoading || isFetching}
                     >
-                      <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-4 h-4 text-foreground ${isFetching ? 'animate-spin' : ''}`} />
                     </Button>
                     <div className="bg-background shadow-lg rounded-lg p-2 border">
                       <LiveIndicator />
@@ -1103,7 +1103,7 @@ export default function GestaoCargas() {
                   </CardHeader>
                   {tableExpanded && (
                     <CardContent className="p-0">
-                      <div className="max-h-[280px] overflow-y-auto">
+                      <div className="max-h-[340px] overflow-y-auto">
                         <Table>
                           <TableHeader className="sticky top-0 z-10 bg-muted">
                             <TableRow>
