@@ -1,15 +1,18 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-// Layout is now handled by PortalLayoutWrapper in App.tsx
+import { useTableSort } from '@/hooks/useTableSort';
+import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColumns';
+import { DraggableTableHead } from '@/components/ui/draggable-table-head';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
+import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Dialog,
@@ -80,6 +83,8 @@ import {
   History,
   Route,
   FileText,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 
 // Types
@@ -100,6 +105,7 @@ interface EnderecoData {
 
 interface EntregaData {
   id: string;
+  codigo: string | null;
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   status: StatusEntrega;
@@ -107,6 +113,10 @@ interface EntregaData {
   entregue_em: string | null;
   motorista_id: string | null;
   cte_url: string | null;
+  numero_cte: string | null;
+  notas_fiscais_urls: string[] | null;
+  manifesto_url: string | null;
+  canhoto_url: string | null;
   motoristas: {
     nome_completo: string;
     telefone: string | null;
@@ -170,10 +180,22 @@ const statusEntregaConfig: Record<string, { label: string; color: string; icon: 
 
 // Filter options for Histórico - only finalized states
 type FilterStatus = 'all' | 'entregue' | 'cancelada' | 'problema';
-type SortField = 'created_at' | 'codigo' | 'peso_kg' | 'valor_mercadoria';
-type SortOrder = 'asc' | 'desc';
 
 const ITEMS_PER_PAGE = 15;
+
+// Column definitions for draggable table
+const columns: ColumnDefinition[] = [
+  { id: 'expand', label: '', minWidth: '40px', sticky: 'left' },
+  { id: 'codigo', label: 'Código', minWidth: '120px', sortable: true, sortKey: 'codigo' },
+  { id: 'descricao', label: 'Descrição', minWidth: '180px' },
+  { id: 'origem', label: 'Origem', minWidth: '130px' },
+  { id: 'destino', label: 'Destino', minWidth: '130px' },
+  { id: 'peso', label: 'Peso', minWidth: '80px', sortable: true, sortKey: 'peso_kg' },
+  { id: 'mercadoria', label: 'Mercadoria', minWidth: '100px', sortable: true, sortKey: 'valor_mercadoria' },
+  { id: 'frete', label: 'Frete Total', minWidth: '100px', sortable: true, sortKey: 'frete_total' },
+  { id: 'status', label: 'Status', minWidth: '100px' },
+  { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
+];
 
 export default function HistoricoCargas() {
   const { filialAtiva } = useUserContext();
@@ -182,15 +204,36 @@ export default function HistoricoCargas() {
   const [detailsCarga, setDetailsCarga] = useState<CargaData | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-  const [sortField, setSortField] = useState<SortField>('created_at');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [highlightedEntregaId, setHighlightedEntregaId] = useState<string | null>(null);
   const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
   const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
-  const [ctePreviewUrl, setCtePreviewUrl] = useState<string | null>(null);
-  const [ctePreviewOpen, setCtePreviewOpen] = useState(false);
+  
+  // Date filters
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  
+  // Entrega details dialog
+  const [entregaDetailsOpen, setEntregaDetailsOpen] = useState(false);
+  const [selectedEntrega, setSelectedEntrega] = useState<EntregaData | null>(null);
+  const [selectedEntregaCarga, setSelectedEntregaCarga] = useState<CargaData | null>(null);
+
+  // Draggable columns hook
+  const {
+    orderedColumns,
+    draggedColumn,
+    dragOverColumn,
+    handleDragStart,
+    handleDragEnd,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    resetColumnOrder,
+  } = useDraggableColumns({
+    columns,
+    persistKey: 'historico-cargas-embarcador',
+  });
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
   useEffect(() => {
@@ -276,6 +319,7 @@ export default function HistoricoCargas() {
           ),
           entregas (
             id,
+            codigo,
             peso_alocado_kg,
             valor_frete,
             status,
@@ -283,6 +327,10 @@ export default function HistoricoCargas() {
             entregue_em,
             motorista_id,
             cte_url,
+            numero_cte,
+            notas_fiscais_urls,
+            manifesto_url,
+            canhoto_url,
             motoristas (
               nome_completo,
               telefone
@@ -314,10 +362,6 @@ export default function HistoricoCargas() {
     return carga.entregas.every(e => ['entregue', 'cancelada', 'problema'].includes(e.status));
   };
 
-  const hasProblems = (carga: CargaData) => {
-    return carga.entregas.some(e => e.status === 'problema' || e.status === 'cancelada');
-  };
-
   const allDelivered = (carga: CargaData) => {
     return carga.entregas.length > 0 && carga.entregas.every(e => e.status === 'entregue');
   };
@@ -329,6 +373,19 @@ export default function HistoricoCargas() {
   const hasProblema = (carga: CargaData) => {
     return carga.entregas.some(e => e.status === 'problema');
   };
+
+  const getTotalFrete = (carga: CargaData) => {
+    return carga.entregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
+  };
+
+  // Sort functions for custom fields
+  const sortFunctions = useMemo(() => ({
+    codigo: (a: CargaData, b: CargaData) => a.codigo.localeCompare(b.codigo, 'pt-BR'),
+    peso_kg: (a: CargaData, b: CargaData) => a.peso_kg - b.peso_kg,
+    valor_mercadoria: (a: CargaData, b: CargaData) => (a.valor_mercadoria || 0) - (b.valor_mercadoria || 0),
+    frete_total: (a: CargaData, b: CargaData) => getTotalFrete(a) - getTotalFrete(b),
+    created_at: (a: CargaData, b: CargaData) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  }), []);
 
   // Apply filters - ONLY show finalized cargas (Histórico view)
   const filteredCargas = useMemo(() => {
@@ -354,39 +411,47 @@ export default function HistoricoCargas() {
         break;
     }
 
-    result.sort((a, b) => {
-      let comparison = 0;
-      switch (sortField) {
-        case 'created_at':
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-          break;
-        case 'codigo':
-          comparison = a.codigo.localeCompare(b.codigo);
-          break;
-        case 'peso_kg':
-          comparison = a.peso_kg - b.peso_kg;
-          break;
-        case 'valor_mercadoria':
-          comparison = (a.valor_mercadoria || 0) - (b.valor_mercadoria || 0);
-          break;
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
+    // Apply date filters
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      fromDate.setHours(0, 0, 0, 0);
+      result = result.filter(c => {
+        const cargaDate = new Date(c.created_at);
+        return cargaDate >= fromDate;
+      });
+    }
+    
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      result = result.filter(c => {
+        const cargaDate = new Date(c.created_at);
+        return cargaDate <= toDate;
+      });
+    }
 
     return result;
-  }, [cargas, searchTerm, filterStatus, sortField, sortOrder]);
+  }, [cargas, searchTerm, filterStatus, dateFrom, dateTo]);
+
+  // Apply sorting with useTableSort
+  const { sortedData, requestSort, getSortDirection } = useTableSort({
+    data: filteredCargas,
+    defaultSort: { key: 'created_at', direction: 'desc' },
+    persistKey: 'historico-cargas-embarcador-sort',
+    sortFunctions,
+  });
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, searchTerm, sortField, sortOrder]);
+  }, [filterStatus, searchTerm, dateFrom, dateTo]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredCargas.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
   const paginatedCargas = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredCargas.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredCargas, currentPage]);
+    return sortedData.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedData, currentPage]);
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => {
@@ -449,6 +514,27 @@ export default function HistoricoCargas() {
     return new Date(date).toLocaleDateString('pt-BR');
   };
 
+  // Count documents for an entrega
+  const getDocsCount = (entrega: EntregaData) => {
+    let count = 0;
+    if (entrega.cte_url) count++;
+    if (entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0) count += entrega.notas_fiscais_urls.length;
+    if (entrega.manifesto_url) count++;
+    if (entrega.canhoto_url) count++;
+    return count;
+  };
+
+  // Check if critical docs are missing
+  const hasMissingCriticalDocs = (entrega: EntregaData) => {
+    return !entrega.cte_url || !entrega.manifesto_url;
+  };
+
+  const handleOpenEntregaDetails = (entrega: EntregaData, carga: CargaData) => {
+    setSelectedEntrega(entrega);
+    setSelectedEntregaCarga(carga);
+    setEntregaDetailsOpen(true);
+  };
+
   // Stats - only for finalized cargas
   const finalizedCargas = useMemo(() => cargas.filter(c => allEntregasFinalized(c)), [cargas]);
   
@@ -459,26 +545,119 @@ export default function HistoricoCargas() {
     comProblemas: finalizedCargas.filter(c => hasProblema(c)).length,
     pesoTotal: finalizedCargas.reduce((acc, c) => acc + c.peso_kg, 0),
     valorTotal: finalizedCargas.reduce((acc, c) => acc + (c.valor_mercadoria || 0), 0),
+    freteTotal: finalizedCargas.reduce((acc, c) => acc + getTotalFrete(c), 0),
   }), [finalizedCargas]);
 
-  const getTotalFrete = (carga: CargaData) => {
-    return carga.entregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
+  const clearDateFilters = () => {
+    setDateFrom('');
+    setDateTo('');
   };
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('desc');
+  // Render cell based on column ID
+  const renderCell = (columnId: string, carga: CargaData) => {
+    const isExpanded = expandedRows.has(carga.id);
+    const origem = getEnderecoData(carga, 'origem');
+    const destino = getEnderecoData(carga, 'destino');
+
+    switch (columnId) {
+      case 'expand':
+        return (
+          <TableCell className="sticky left-0 bg-background z-10">
+            <Button variant="ghost" size="icon" className="h-6 w-6">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
+          </TableCell>
+        );
+      case 'codigo':
+        return (
+          <TableCell className="font-mono text-sm font-medium text-nowrap">{carga.codigo}</TableCell>
+        );
+      case 'descricao':
+        return (
+          <TableCell>
+            <div className="max-w-[200px] truncate" title={carga.descricao}>
+              {carga.descricao}
+            </div>
+          </TableCell>
+        );
+      case 'origem':
+        return (
+          <TableCell>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 text-sm">
+                  <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <span className="truncate max-w-[120px]">{origem.cidade}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <p className="font-medium">{origem.empresa}</p>
+                <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TableCell>
+        );
+      case 'destino':
+        return (
+          <TableCell>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 text-sm">
+                  <MapPin className="w-3 h-3 text-primary shrink-0" />
+                  <span className="truncate max-w-[120px]">{destino.cidade}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <p className="font-medium">{destino.empresa}</p>
+                <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TableCell>
+        );
+      case 'peso':
+        return (
+          <TableCell className="text-right font-medium">{formatWeight(carga.peso_kg)}</TableCell>
+        );
+      case 'mercadoria':
+        return (
+          <TableCell className="text-right">{formatCurrency(carga.valor_mercadoria)}</TableCell>
+        );
+      case 'frete':
+        return (
+          <TableCell className="text-right font-medium text-emerald-600">
+            {formatCurrency(getTotalFrete(carga))}
+          </TableCell>
+        );
+      case 'status':
+        return <TableCell>{getStatusBadge(carga)}</TableCell>;
+      case 'acoes':
+        return (
+          <TableCell className="sticky right-0 bg-background z-10">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  setDetailsCarga(carga);
+                }}>
+                  <Eye className="w-4 h-4 mr-2" />
+                  Ver detalhes
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        );
+      default:
+        return <TableCell>-</TableCell>;
     }
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />;
-    return sortOrder === 'asc' 
-      ? <ArrowUp className="w-3 h-3 ml-1 text-primary" /> 
-      : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
   };
 
   // Render pagination
@@ -509,7 +688,7 @@ export default function HistoricoCargas() {
     return (
       <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/30">
         <div className="text-sm text-muted-foreground">
-          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredCargas.length)} de {filteredCargas.length}
+          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length}
         </div>
         <div className="flex items-center gap-1">
           <Button
@@ -599,7 +778,7 @@ export default function HistoricoCargas() {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <Card 
               className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary' : ''}`}
               onClick={() => setFilterStatus('all')}
@@ -671,6 +850,16 @@ export default function HistoricoCargas() {
                 <p className="text-lg font-bold text-amber-600">{formatCurrency(stats.valorTotal)}</p>
               </CardContent>
             </Card>
+
+            <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Truck className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs text-muted-foreground">Frete Total</span>
+                </div>
+                <p className="text-lg font-bold text-emerald-600">{formatCurrency(stats.freteTotal)}</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Filters Row */}
@@ -683,33 +872,44 @@ export default function HistoricoCargas() {
               <SelectContent>
                 <SelectItem value="all">Todas Finalizadas</SelectItem>
                 <SelectItem value="entregue">Entregues</SelectItem>
-                <SelectItem value="devolvida">Com Devoluções</SelectItem>
+                <SelectItem value="cancelada">Canceladas</SelectItem>
                 <SelectItem value="problema">Com Problemas</SelectItem>
               </SelectContent>
             </Select>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <ArrowUpDown className="w-4 h-4" />
-                  Ordenar
+            {/* Date filters */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">De:</span>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-36 h-9"
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">Até:</span>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-36 h-9"
+                />
+              </div>
+              {(dateFrom || dateTo) && (
+                <Button variant="ghost" size="sm" onClick={clearDateFilters} className="h-9 px-2">
+                  <X className="w-4 h-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleSort('created_at')}>
-                  Data de criação <SortIcon field="created_at" />
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSort('codigo')}>
-                  Código <SortIcon field="codigo" />
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSort('peso_kg')}>
-                  Peso <SortIcon field="peso_kg" />
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSort('valor_mercadoria')}>
-                  Valor <SortIcon field="valor_mercadoria" />
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+            </div>
+
+            {/* Reset column order */}
+            <Button variant="ghost" size="sm" onClick={resetColumnOrder} className="ml-auto">
+              <RotateCcw className="w-4 h-4 mr-1" />
+              Resetar colunas
+            </Button>
           </div>
 
           {/* Table */}
@@ -729,240 +929,189 @@ export default function HistoricoCargas() {
             ) : (
               <>
                 <ScrollArea className="w-full">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="w-10"></TableHead>
-                        <TableHead className="whitespace-nowrap cursor-pointer" onClick={() => handleSort('codigo')}>
-                          <div className="flex items-center">Código <SortIcon field="codigo" /></div>
-                        </TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead>Origem</TableHead>
-                        <TableHead>Destino</TableHead>
-                        <TableHead className="text-right whitespace-nowrap cursor-pointer" onClick={() => handleSort('peso_kg')}>
-                          <div className="flex items-center justify-end">Peso <SortIcon field="peso_kg" /></div>
-                        </TableHead>
-                        <TableHead className="text-right whitespace-nowrap cursor-pointer" onClick={() => handleSort('valor_mercadoria')}>
-                          <div className="flex items-center justify-end">Mercadoria <SortIcon field="valor_mercadoria" /></div>
-                        </TableHead>
-                        <TableHead className="text-right">Frete Total</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-16"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedCargas.map((carga) => {
-                        const isExpanded = expandedRows.has(carga.id);
-                        const origem = getEnderecoData(carga, 'origem');
-                        const destino = getEnderecoData(carga, 'destino');
-                        
-                        return (
-                          <>
-                            <TableRow 
-                              key={carga.id} 
-                              className={`cursor-pointer hover:bg-muted/50 ${isExpanded ? 'bg-muted/30' : ''}`}
-                              onClick={() => toggleRow(carga.id)}
+                  <div className="max-h-[600px] overflow-y-auto">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-muted/50 z-20">
+                        <TableRow>
+                          {orderedColumns.map((column) => (
+                            <DraggableTableHead
+                              key={column.id}
+                              columnId={column.id}
+                              isDragging={draggedColumn === column.id}
+                              isDragOver={dragOverColumn === column.id}
+                              isSticky={!!column.sticky}
+                              sortable={column.sortable}
+                              sortDirection={column.sortKey ? getSortDirection(column.sortKey) : null}
+                              onSort={column.sortKey ? () => requestSort(column.sortKey!) : undefined}
+                              onColumnDragStart={handleDragStart}
+                              onColumnDragEnd={handleDragEnd}
+                              onColumnDragOver={handleDragOver}
+                              onColumnDragLeave={handleDragLeave}
+                              onColumnDrop={handleDrop}
+                              className={`whitespace-nowrap ${column.sticky === 'left' ? 'sticky left-0 bg-muted/50 z-30' : ''} ${column.sticky === 'right' ? 'sticky right-0 bg-muted/50 z-30' : ''}`}
                             >
-                              <TableCell>
-                                <Button variant="ghost" size="icon" className="h-6 w-6">
-                                  {isExpanded ? (
-                                    <ChevronDown className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronRight className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TableCell>
-                              <TableCell className="font-mono text-sm font-medium text-nowrap">{carga.codigo}</TableCell>
-                              <TableCell>
-                                <div className="max-w-[200px] truncate" title={carga.descricao}>
-                                  {carga.descricao}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1 text-sm">
-                                      <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
-                                      <span className="truncate max-w-[120px]">{origem.cidade}</span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-xs">
-                                    <p className="font-medium">{origem.empresa}</p>
-                                    <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TableCell>
-                              <TableCell>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1 text-sm">
-                                      <MapPin className="w-3 h-3 text-primary shrink-0" />
-                                      <span className="truncate max-w-[120px]">{destino.cidade}</span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-xs">
-                                    <p className="font-medium">{destino.empresa}</p>
-                                    <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TableCell>
-                              <TableCell className="text-right font-medium">{formatWeight(carga.peso_kg)}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(carga.valor_mercadoria)}</TableCell>
-                              <TableCell className="text-right font-medium text-emerald-600">
-                                {formatCurrency(getTotalFrete(carga))}
-                              </TableCell>
-                              <TableCell>{getStatusBadge(carga)}</TableCell>
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={(e) => {
-                                      e.stopPropagation();
-                                      setDetailsCarga(carga);
-                                    }}>
-                                      <Eye className="w-4 h-4 mr-2" />
-                                      Ver detalhes
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                            
-                            {/* Expanded Row - Entregas */}
-                            {isExpanded && carga.entregas.length > 0 && (
-                              <TableRow className="bg-muted/20 hover:bg-muted/20">
-                                <TableCell colSpan={10} className="p-0">
-                                  <div className="px-8 py-4">
-                                    <div className="flex items-center gap-2 mb-3">
-                                      <Truck className="w-4 h-4 text-primary" />
-                                      <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
-                                    </div>
-                                    <div className="bg-background rounded-lg border overflow-hidden">
-                                      <Table>
-                                                        <TableHeader>
-                                                          <TableRow className="bg-muted/30">
-                                                            <TableHead className="text-xs">Motorista</TableHead>
-                                                            <TableHead className="text-xs">Veículo</TableHead>
-                                                            <TableHead className="text-xs text-right">Peso Alocado</TableHead>
-                                                            <TableHead className="text-xs text-right">Valor Frete</TableHead>
-                                                            <TableHead className="text-xs">Coletado em</TableHead>
-                                                            <TableHead className="text-xs">Entregue em</TableHead>
-                                                            <TableHead className="text-xs">Status</TableHead>
-                                                            <TableHead className="text-xs">CT-e</TableHead>
-                                                            <TableHead className="text-xs w-10"></TableHead>
-                                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {carga.entregas.map((entrega) => {
-                                            const statusConfig = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando_coleta;
-                                            const StatusIcon = statusConfig.icon;
-                                            const isHighlighted = highlightedEntregaId === entrega.id;
-                                            
-                                            return (
-                                              <TableRow 
-                                                key={entrega.id} 
-                                                className={`${isHighlighted ? 'bg-primary/10 animate-pulse' : ''}`}
-                                              >
-                                                <TableCell>
-                                                  <div className="flex items-center gap-2">
-                                                    <User className="w-3 h-3 text-muted-foreground" />
-                                                    <span className="text-sm">
-                                                      {entrega.motoristas?.nome_completo || '-'}
-                                                    </span>
-                                                  </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex items-center gap-2">
-                                                    <Truck className="w-3 h-3 text-muted-foreground" />
-                                                    <span className="text-sm font-mono">
-                                                      {entrega.veiculos?.placa || '-'}
-                                                    </span>
-                                                  </div>
-                                                </TableCell>
-                                                <TableCell className="text-right text-sm font-medium">
-                                                  {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
-                                                </TableCell>
-                                                <TableCell className="text-right text-sm font-medium text-emerald-600">
-                                                  {formatCurrency(entrega.valor_frete)}
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex items-center gap-1 text-sm">
-                                                    <Calendar className="w-3 h-3 text-muted-foreground" />
-                                                    {formatDate(entrega.coletado_em)}
-                                                  </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex items-center gap-1 text-sm">
-                                                    <Calendar className="w-3 h-3 text-muted-foreground" />
-                                                    {formatDate(entrega.entregue_em)}
-                                                  </div>
-                                                </TableCell>
-                                                                <TableCell>
-                                                                  <Badge className={`${statusConfig.color} text-xs`}>
-                                                                    <StatusIcon className="w-3 h-3 mr-1" />
-                                                                    {statusConfig.label}
-                                                                  </Badge>
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                  {entrega.cte_url ? (
-                                                                    <Badge 
-                                                                      className="bg-green-500/10 text-green-600 border-green-500/20 cursor-pointer gap-1 text-xs"
-                                                                      onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setCtePreviewUrl(entrega.cte_url);
-                                                                        setCtePreviewOpen(true);
-                                                                      }}
-                                                                    >
-                                                                      <FileText className="w-3 h-3" />
-                                                                      CT-e
-                                                                    </Badge>
-                                                                  ) : (
-                                                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 text-xs">
-                                                                      <FileText className="w-3 h-3" />
-                                                                      Sem CT-e
-                                                                    </Badge>
-                                                                  )}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                  <DropdownMenu>
-                                                                    <DropdownMenuTrigger asChild>
-                                                                      <Button variant="ghost" size="icon" className="h-7 w-7">
-                                                                        <MoreHorizontal className="h-4 w-4" />
-                                                                      </Button>
-                                                                    </DropdownMenuTrigger>
-                                                                    <DropdownMenuContent align="end">
-                                                                      <DropdownMenuItem onClick={() => {
-                                                                        setTrackingMapEntregaId(entrega.id);
-                                                                        setTrackingMapInfo({
-                                                                          motorista: entrega.motoristas?.nome_completo || 'Motorista',
-                                                                          placa: entrega.veiculos?.placa || '-',
-                                                                        });
-                                                                      }}>
-                                                                        <Route className="w-4 h-4 mr-2" />
-                                                                        Ver histórico no mapa
-                                                                      </DropdownMenuItem>
-                                                                    </DropdownMenuContent>
-                                                                  </DropdownMenu>
-                                                                </TableCell>
-                                                              </TableRow>
-                                            );
-                                          })}
-                                        </TableBody>
-                                      </Table>
-                                    </div>
-                                  </div>
-                                </TableCell>
+                              {column.label}
+                            </DraggableTableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedCargas.map((carga) => {
+                          const isExpanded = expandedRows.has(carga.id);
+                          
+                          return (
+                            <>
+                              <TableRow 
+                                key={carga.id} 
+                                className={`cursor-pointer hover:bg-muted/50 ${isExpanded ? 'bg-muted/30' : ''}`}
+                                onClick={() => toggleRow(carga.id)}
+                              >
+                                {orderedColumns.map((column) => (
+                                  <React.Fragment key={column.id}>
+                                    {renderCell(column.id, carga)}
+                                  </React.Fragment>
+                                ))}
                               </TableRow>
-                            )}
-                          </>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                              
+                              {/* Expanded Row - Entregas */}
+                              {isExpanded && carga.entregas.length > 0 && (
+                                <TableRow className="bg-muted/20 hover:bg-muted/20">
+                                  <TableCell colSpan={orderedColumns.length} className="p-0">
+                                    <div className="px-8 py-4">
+                                      <div className="flex items-center gap-2 mb-3">
+                                        <Truck className="w-4 h-4 text-primary" />
+                                        <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
+                                      </div>
+                                      <div className="bg-background rounded-lg border overflow-hidden">
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow className="bg-muted/30">
+                                              <TableHead className="text-xs">Código</TableHead>
+                                              <TableHead className="text-xs">Motorista</TableHead>
+                                              <TableHead className="text-xs">Veículo</TableHead>
+                                              <TableHead className="text-xs text-right">Peso Alocado</TableHead>
+                                              <TableHead className="text-xs text-right">Valor Frete</TableHead>
+                                              <TableHead className="text-xs">Coletado em</TableHead>
+                                              <TableHead className="text-xs">Entregue em</TableHead>
+                                              <TableHead className="text-xs">Status</TableHead>
+                                              <TableHead className="text-xs">N° CT-e</TableHead>
+                                              <TableHead className="text-xs">Docs</TableHead>
+                                              <TableHead className="text-xs w-10"></TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {carga.entregas.map((entrega) => {
+                                              const statusConfig = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando;
+                                              const StatusIcon = statusConfig.icon;
+                                              const isHighlighted = highlightedEntregaId === entrega.id;
+                                              const docsCount = getDocsCount(entrega);
+                                              const hasMissing = hasMissingCriticalDocs(entrega);
+                                              
+                                              return (
+                                                <TableRow 
+                                                  key={entrega.id} 
+                                                  className={`${isHighlighted ? 'bg-primary/10 animate-pulse' : ''}`}
+                                                >
+                                                  <TableCell className="text-xs font-mono">
+                                                    {entrega.codigo || '-'}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                      <User className="w-3 h-3 text-muted-foreground" />
+                                                      <span className="text-sm">
+                                                        {entrega.motoristas?.nome_completo || '-'}
+                                                      </span>
+                                                    </div>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                      <Truck className="w-3 h-3 text-muted-foreground" />
+                                                      <span className="text-sm font-mono">
+                                                        {entrega.veiculos?.placa || '-'}
+                                                      </span>
+                                                    </div>
+                                                  </TableCell>
+                                                  <TableCell className="text-right text-sm font-medium">
+                                                    {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
+                                                  </TableCell>
+                                                  <TableCell className="text-right text-sm font-medium text-emerald-600">
+                                                    {formatCurrency(entrega.valor_frete)}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <div className="flex items-center gap-1 text-sm">
+                                                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                                                      {formatDate(entrega.coletado_em)}
+                                                    </div>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <div className="flex items-center gap-1 text-sm">
+                                                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                                                      {formatDate(entrega.entregue_em)}
+                                                    </div>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Badge className={`${statusConfig.color} text-xs`}>
+                                                      <StatusIcon className="w-3 h-3 mr-1" />
+                                                      {statusConfig.label}
+                                                    </Badge>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <span className="text-xs font-mono text-muted-foreground">
+                                                      {entrega.numero_cte || '-'}
+                                                    </span>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      className={`h-7 px-2 gap-1 ${hasMissing ? 'text-amber-600' : 'text-green-600'}`}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleOpenEntregaDetails(entrega, carga);
+                                                      }}
+                                                    >
+                                                      <FileText className="w-3 h-3" />
+                                                      {docsCount}
+                                                      {hasMissing && <AlertTriangle className="w-3 h-3" />}
+                                                    </Button>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <DropdownMenu>
+                                                      <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                          <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => {
+                                                          setTrackingMapEntregaId(entrega.id);
+                                                          setTrackingMapInfo({
+                                                            motorista: entrega.motoristas?.nome_completo || 'Motorista',
+                                                            placa: entrega.veiculos?.placa || '-',
+                                                          });
+                                                        }}>
+                                                          <Route className="w-4 h-4 mr-2" />
+                                                          Ver histórico no mapa
+                                                        </DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                  </TableCell>
+                                                </TableRow>
+                                              );
+                                            })}
+                                          </TableBody>
+                                        </Table>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                   <ScrollBar orientation="horizontal" />
                 </ScrollArea>
                 {renderPagination()}
@@ -978,13 +1127,65 @@ export default function HistoricoCargas() {
           onOpenChange={(open) => !open && setDetailsCarga(null)}
         />
 
-        {/* CT-e Preview Dialog */}
-        <FilePreviewDialog
-          open={ctePreviewOpen}
-          onOpenChange={setCtePreviewOpen}
-          fileUrl={ctePreviewUrl}
-          title="Visualizar CT-e"
-        />
+        {/* Entrega Details Dialog */}
+        {selectedEntrega && selectedEntregaCarga && (
+          <EntregaDetailsDialog
+            open={entregaDetailsOpen}
+            onOpenChange={setEntregaDetailsOpen}
+            entrega={{
+              id: selectedEntrega.id,
+              codigo: selectedEntrega.codigo,
+              status: selectedEntrega.status,
+              created_at: null,
+              peso_alocado_kg: selectedEntrega.peso_alocado_kg,
+              valor_frete: selectedEntrega.valor_frete,
+              coletado_em: selectedEntrega.coletado_em,
+              entregue_em: selectedEntrega.entregue_em,
+              cte_url: selectedEntrega.cte_url,
+              numero_cte: selectedEntrega.numero_cte,
+              notas_fiscais_urls: selectedEntrega.notas_fiscais_urls,
+              manifesto_url: selectedEntrega.manifesto_url,
+              canhoto_url: selectedEntrega.canhoto_url,
+              motorista: selectedEntrega.motoristas ? {
+                id: selectedEntrega.motorista_id || '',
+                nome_completo: selectedEntrega.motoristas.nome_completo,
+                telefone: selectedEntrega.motoristas.telefone,
+                email: null,
+                foto_url: null,
+              } : null,
+              veiculo: selectedEntrega.veiculos ? {
+                id: '',
+                placa: selectedEntrega.veiculos.placa,
+                tipo: selectedEntrega.veiculos.tipo || '',
+              } : null,
+              carga: {
+                id: selectedEntregaCarga.id,
+                codigo: selectedEntregaCarga.codigo,
+                descricao: selectedEntregaCarga.descricao,
+                peso_kg: selectedEntregaCarga.peso_kg,
+                tipo: selectedEntregaCarga.tipo,
+                data_entrega_limite: selectedEntregaCarga.data_entrega_limite,
+                destinatario_nome_fantasia: selectedEntregaCarga.destinatario_nome_fantasia,
+                destinatario_razao_social: selectedEntregaCarga.destinatario_razao_social,
+                empresa: null,
+                endereco_origem: selectedEntregaCarga.endereco_origem ? {
+                  cidade: selectedEntregaCarga.endereco_origem.cidade,
+                  estado: selectedEntregaCarga.endereco_origem.estado,
+                  logradouro: selectedEntregaCarga.endereco_origem.logradouro,
+                  latitude: selectedEntregaCarga.endereco_origem.latitude,
+                  longitude: selectedEntregaCarga.endereco_origem.longitude,
+                } : null,
+                endereco_destino: selectedEntregaCarga.endereco_destino ? {
+                  cidade: selectedEntregaCarga.endereco_destino.cidade,
+                  estado: selectedEntregaCarga.endereco_destino.estado,
+                  logradouro: selectedEntregaCarga.endereco_destino.logradouro,
+                  latitude: selectedEntregaCarga.endereco_destino.latitude,
+                  longitude: selectedEntregaCarga.endereco_destino.longitude,
+                } : null,
+              },
+            }}
+          />
+        )}
 
         {/* Tracking History Map Dialog */}
         <Dialog open={!!trackingMapEntregaId} onOpenChange={(open) => {
