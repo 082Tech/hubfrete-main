@@ -9,6 +9,7 @@ export interface Filial {
   id: number;
   nome: string | null;
   cnpj: string | null;
+  hasAccess?: boolean; // true if the user has permission to access this branch
 }
 
 export interface Empresa {
@@ -55,6 +56,11 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   const [switchingFilial, setSwitchingFilial] = useState(false);
 
   const setFilialAtiva = useCallback((filial: Filial) => {
+    // Only allow switching to filiais the user has access to
+    if (!filial.hasAccess) {
+      console.warn('User does not have access to this filial:', filial.id);
+      return;
+    }
     // Show loading briefly when switching
     setSwitchingFilial(true);
     setFilialAtivaState(filial);
@@ -163,12 +169,19 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
 
           setEmpresa(empresaData);
 
-          // For ADMINs, fetch ALL filiais of the empresa dynamically
-          // For OPERADORs, only show the filiais they're assigned to
+          // Collect filial IDs the user has direct access to
+          const userAccessibleFilialIds = new Set<number>();
+          usuarioData.usuarios_filiais?.forEach((uf: any) => {
+            if (uf.filiais) {
+              userAccessibleFilialIds.add(uf.filiais.id);
+            }
+          });
+
+          // Always fetch ALL filiais of the empresa for display
+          // Mark each with hasAccess based on user's permissions
           let filiaisData: Filial[] = [];
           
-          if (userCargo === 'ADMIN' && empresaId) {
-            // Fetch all active filiais for the empresa
+          if (empresaId) {
             const { data: allFiliais } = await supabase
               .from('filiais')
               .select('id, nome, cnpj')
@@ -182,19 +195,10 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
                 id: f.id,
                 nome: f.nome,
                 cnpj: f.cnpj,
+                // ADMINs have access to all, others only to their assigned filiais
+                hasAccess: userCargo === 'ADMIN' || userAccessibleFilialIds.has(f.id),
               }));
             }
-          } else {
-            // For non-admins, only show assigned filiais
-            usuarioData.usuarios_filiais?.forEach((uf: any) => {
-              if (uf.filiais) {
-                filiaisData.push({
-                  id: uf.filiais.id,
-                  nome: uf.filiais.nome,
-                  cnpj: uf.filiais.cnpj,
-                });
-              }
-            });
           }
 
           setFiliais(filiaisData);
@@ -209,24 +213,26 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
             });
           }
 
-          // Try to restore filial ativa from localStorage, or use first one
+          // Try to restore filial ativa from localStorage, or use first ACCESSIBLE one
+          const accessibleFiliais = filiaisData.filter(f => f.hasAccess);
           const storedFilial = localStorage.getItem('hubfrete_filial_ativa');
           if (storedFilial) {
             try {
               const parsed = JSON.parse(storedFilial);
-              const found = filiaisData.find(f => f.id === parsed.id);
+              // Only allow restoring if user has access to it
+              const found = accessibleFiliais.find(f => f.id === parsed.id);
               if (found) {
                 setFilialAtivaState(found);
-              } else if (filiaisData.length > 0) {
-                setFilialAtivaState(filiaisData[0]);
+              } else if (accessibleFiliais.length > 0) {
+                setFilialAtivaState(accessibleFiliais[0]);
               }
             } catch {
-              if (filiaisData.length > 0) {
-                setFilialAtivaState(filiaisData[0]);
+              if (accessibleFiliais.length > 0) {
+                setFilialAtivaState(accessibleFiliais[0]);
               }
             }
-          } else if (filiaisData.length > 0) {
-            setFilialAtivaState(filiaisData[0]);
+          } else if (accessibleFiliais.length > 0) {
+            setFilialAtivaState(accessibleFiliais[0]);
           }
         }
       }

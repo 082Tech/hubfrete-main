@@ -204,26 +204,37 @@ export function MobileMenuSheet({ open, onOpenChange, userType }: MobileMenuShee
                       Selecionar Filial
                     </p>
                   </div>
-                  {filiais.map((filial) => (
-                    <DropdownMenuItem
-                      key={filial.id}
-                      onClick={() => setFilialAtiva(filial)}
-                      className={`flex items-center gap-2 py-2.5 cursor-pointer ${filialAtiva?.id === filial.id ? 'bg-accent' : ''}`}
-                    >
-                      <MapPin className={`w-3.5 h-3.5 ${filialAtiva?.id === filial.id ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${filialAtiva?.id === filial.id ? 'text-primary' : ''}`}>
-                          {filial.nome || 'Filial'}
-                        </p>
-                        {filial.cnpj && (
-                          <p className="text-[10px] text-muted-foreground">{filial.cnpj}</p>
+                  {filiais.map((filial) => {
+                    const isSelected = filialAtiva?.id === filial.id;
+                    const isDisabled = !filial.hasAccess;
+                    
+                    return (
+                      <DropdownMenuItem
+                        key={filial.id}
+                        onClick={() => !isDisabled && setFilialAtiva(filial)}
+                        disabled={isDisabled}
+                        className={`flex items-center gap-2 py-2.5 ${
+                          isDisabled 
+                            ? 'opacity-50 cursor-not-allowed' 
+                            : 'cursor-pointer'
+                        } ${isSelected ? 'bg-accent' : ''}`}
+                      >
+                        <MapPin className={`w-3.5 h-3.5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : ''}`}>
+                            {filial.nome || 'Filial'}
+                            {isDisabled && <span className="text-xs text-muted-foreground ml-1">(Sem acesso)</span>}
+                          </p>
+                          {filial.cnpj && (
+                            <p className="text-[10px] text-muted-foreground">{filial.cnpj}</p>
+                          )}
+                        </div>
+                        {isSelected && (
+                          <Check className="w-4 h-4 text-primary shrink-0" />
                         )}
-                      </div>
-                      {filialAtiva?.id === filial.id && (
-                        <Check className="w-4 h-4 text-primary shrink-0" />
-                      )}
-                    </DropdownMenuItem>
-                  ))}
+                      </DropdownMenuItem>
+                    );
+                  })}
                   {cargo === 'ADMIN' && (
                     <>
                       <DropdownMenuSeparator />
