@@ -111,6 +111,10 @@ interface EntregaData {
   created_at: string | null;
   motorista_id: string | null;
   cte_url: string | null;
+  manifesto_url: string | null;
+  canhoto_url: string | null;
+  notas_fiscais_urls: string[] | null;
+  numero_cte: string | null;
   motoristas: {
     id: string;
     nome_completo: string;
@@ -298,6 +302,10 @@ export default function CargasPublicadas() {
             created_at,
             motorista_id,
             cte_url,
+            manifesto_url,
+            canhoto_url,
+            notas_fiscais_urls,
+            numero_cte,
             motoristas:motoristas (
               id,
               nome_completo,
@@ -1104,7 +1112,7 @@ export default function CargasPublicadas() {
                                             <TableHead className="text-xs">Veículo</TableHead>
                                             <TableHead className="text-xs text-right">Peso Alocado</TableHead>
                                             <TableHead className="text-xs text-right">Valor Frete</TableHead>
-                                            <TableHead className="text-xs">CT-e</TableHead>
+                                            <TableHead className="text-xs">Docs</TableHead>
                                             <TableHead className="text-xs">Coletado em</TableHead>
                                             <TableHead className="text-xs">Status</TableHead>
                                             <TableHead className="text-xs w-10"></TableHead>
@@ -1115,6 +1123,14 @@ export default function CargasPublicadas() {
                                             const statusConfig = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando_coleta;
                                             const StatusIcon = statusConfig.icon;
                                             const isHighlighted = highlightedEntregaId === entrega.id;
+                                            
+                                            // Document count logic
+                                            const hasCte = !!entrega.cte_url;
+                                            const hasManifesto = !!entrega.manifesto_url;
+                                            const hasCanhoto = !!entrega.canhoto_url;
+                                            const hasNf = entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0;
+                                            const docCount = [hasCte, hasManifesto, hasCanhoto, hasNf].filter(Boolean).length;
+                                            const missingCritical = !hasCte || !hasManifesto;
                                             
                                             return (
                                               <TableRow 
@@ -1147,17 +1163,19 @@ export default function CargasPublicadas() {
                                                   {formatCurrency(entrega.valor_frete)}
                                                 </TableCell>
                                                 <TableCell>
-                                                  {entrega.cte_url ? (
-                                                    <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 text-xs">
-                                                      <FileText className="w-3 h-3" />
-                                                      CT-e
-                                                    </Badge>
-                                                  ) : (
-                                                    <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 text-xs">
-                                                      <FileText className="w-3 h-3" />
-                                                      Pendente
-                                                    </Badge>
-                                                  )}
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className={`h-7 px-2 gap-1 ${missingCritical ? 'text-amber-600' : 'text-emerald-600'}`}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setDetailsEntrega({ entrega, carga });
+                                                    }}
+                                                  >
+                                                    <FileText className="w-3 h-3" />
+                                                    <span className="text-xs">{docCount}/4</span>
+                                                    {missingCritical && <AlertCircle className="w-3 h-3" />}
+                                                  </Button>
                                                 </TableCell>
                                                 <TableCell>
                                                   <div className="flex items-center gap-1 text-sm">
