@@ -716,9 +716,9 @@ export function EntregasMap({
         )}
       </div>
 
-      {/* Selected info badge */}
+      {/* Selected info badge - positioned top-left to avoid overlap */}
       {selectedEntrega && (
-        <div className="absolute top-4 right-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
+        <div className="absolute top-4 left-[180px] z-[1001] bg-background border border-border rounded-lg p-3 shadow-xl">
           <div className="flex items-center gap-2">
             <Route className="w-4 h-4 text-primary" />
             <div>
