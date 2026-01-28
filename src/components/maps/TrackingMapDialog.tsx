@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Route } from 'lucide-react';
@@ -25,11 +25,25 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
+  const pendingBoundsRef = useRef<google.maps.LatLngBounds | null>(null);
+
+  // Apply pending bounds when map becomes available
+  useEffect(() => {
+    if (mapInstance && pendingBoundsRef.current) {
+      mapInstance.fitBounds(pendingBoundsRef.current, { top: 50, bottom: 50, left: 50, right: 50 });
+      pendingBoundsRef.current = null;
+    }
+  }, [mapInstance]);
 
   // Memoize callbacks to prevent infinite re-renders
   const handleBoundsReady = useCallback((bounds: google.maps.LatLngBounds | null) => {
-    if (mapInstance && bounds) {
+    if (!bounds) return;
+    
+    if (mapInstance) {
       mapInstance.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
+    } else {
+      // Store bounds to apply when map loads
+      pendingBoundsRef.current = bounds;
     }
   }, [mapInstance]);
 
