@@ -1112,6 +1112,7 @@ export default function CargasPublicadas() {
                                             <TableHead className="text-xs">Veículo</TableHead>
                                             <TableHead className="text-xs text-right">Peso Alocado</TableHead>
                                             <TableHead className="text-xs text-right">Valor Frete</TableHead>
+                                            <TableHead className="text-xs">N° CT-e</TableHead>
                                             <TableHead className="text-xs">Docs</TableHead>
                                             <TableHead className="text-xs">Coletado em</TableHead>
                                             <TableHead className="text-xs">Status</TableHead>
@@ -1161,6 +1162,9 @@ export default function CargasPublicadas() {
                                                 </TableCell>
                                                 <TableCell className="text-right text-sm font-medium text-green-600">
                                                   {formatCurrency(entrega.valor_frete)}
+                                                </TableCell>
+                                                <TableCell className="text-sm font-mono">
+                                                  {entrega.numero_cte || '-'}
                                                 </TableCell>
                                                 <TableCell>
                                                   <Button
