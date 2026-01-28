@@ -17,11 +17,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
   Search,
   Package,
   MapPin,
@@ -33,14 +28,11 @@ import {
   AlertCircle,
   MessageCircle,
   User,
-  Users,
   RefreshCw,
   X,
-  Building2,
   WifiOff,
   Radio,
   ArrowRight,
-  Route,
   Clock,
   MoreHorizontal,
   Eye,
@@ -51,10 +43,10 @@ import {
   ArrowRightLeft,
   ChevronDown,
   ChevronRight,
-  Weight,
   AlertTriangle,
   PanelLeftClose,
   PanelLeft,
+  DollarSign,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -175,24 +167,6 @@ interface EntregaCompleta {
   };
 }
 
-interface MotoristaLocalizacao {
-  email_motorista: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  timestamp: number | null;
-  status: boolean | null;
-  heading: number | null;
-}
-
-interface MotoristaCompleto {
-  id: string;
-  nome_completo: string;
-  telefone: string | null;
-  email: string | null;
-  foto_url: string | null;
-  ativo: boolean | null;
-}
-
 // Status configuration for display
 const statusEntregaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
   'aguardando': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando', icon: Clock },
@@ -232,6 +206,7 @@ export default function GestaoEntregas() {
   const [ctePreviewUrl, setCtePreviewUrl] = useState<string | null>(null);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [expandedDrivers, setExpandedDrivers] = useState<Set<string>>(new Set());
+  const [tableExpanded, setTableExpanded] = useState(true);
 
   // Chat sheet state
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
@@ -262,13 +237,32 @@ export default function GestaoEntregas() {
     };
   }, []);
 
+  // Get sidebar state from localStorage (synced with PortalLayoutWrapper)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('hubfrete_sidebar_collapsed') === 'true';
+  });
+
+  // Listen for storage changes to sync sidebar state
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setIsSidebarCollapsed(localStorage.getItem('hubfrete_sidebar_collapsed') === 'true');
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    const interval = setInterval(handleStorageChange, 100);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
   // Fetch entregas da transportadora
   const { data: entregas = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ['gestao_entregas_transportadora', empresa?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
 
-      // Primeiro busca os motoristas da empresa
       const { data: motoristasData, error: motoristasError } = await supabase
         .from('motoristas')
         .select('id')
@@ -277,7 +271,6 @@ export default function GestaoEntregas() {
       if (motoristasError) throw motoristasError;
 
       const motoristaIds = (motoristasData || []).map((m) => m.id);
-
       if (motoristaIds.length === 0) return [];
 
       const { data, error } = await supabase
@@ -321,7 +314,7 @@ export default function GestaoEntregas() {
       return (data || []) as EntregaCompleta[];
     },
     enabled: !!empresa?.id,
-    refetchInterval: 60000, // Refresh every 1 minute
+    refetchInterval: 60000,
   });
 
   // Get unique motoristas from entregas for the filter dropdown
@@ -351,7 +344,7 @@ export default function GestaoEntregas() {
     return Array.from(emails);
   }, [entregas]);
 
-  // Real-time driver locations (no polling!)
+  // Real-time driver locations
   const { localizacaoMap, isConnected: isRealtimeConnected } = useRealtimeLocalizacoes({
     emails: motoristaEmails,
     enabled: motoristaEmails.length > 0,
@@ -377,45 +370,6 @@ export default function GestaoEntregas() {
     });
   }, [entregas, searchTerm, selectedStatuses, selectedMotoristaIds]);
 
-  // Calculate summary for selected motoristas
-  const selectedMotoristaSummary = useMemo(() => {
-    if (selectedMotoristaIds.length === 0) return null;
-
-    // If multiple drivers are selected, we show a combined summary
-    const motoristaEntregas = filteredEntregas.filter(e =>
-      e.motorista?.id && selectedMotoristaIds.includes(e.motorista.id)
-    );
-    const totalPeso = motoristaEntregas.reduce((acc, e) => acc + (e.peso_alocado_kg || e.carga.peso_kg), 0);
-
-    // For single driver, show detailed info
-    if (selectedMotoristaIds.length === 1) {
-      const motorista = motoristaEntregas[0]?.motorista;
-      const veiculo = motoristaEntregas[0]?.veiculo;
-      const motoristaEmail = motorista?.email;
-      const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
-
-      return {
-        motorista,
-        veiculo,
-        totalEntregas: motoristaEntregas.length,
-        totalPeso,
-        localizacao,
-        isSingle: true,
-      };
-    }
-
-    // For multiple drivers
-    return {
-      motorista: null,
-      veiculo: null,
-      totalEntregas: motoristaEntregas.length,
-      totalPeso,
-      localizacao: null,
-      isSingle: false,
-      driversCount: selectedMotoristaIds.length,
-    };
-  }, [selectedMotoristaIds, filteredEntregas, localizacaoMap]);
-
   // Calculate stats
   const stats = useMemo(() => {
     const byStatus = entregas.reduce((acc, e) => {
@@ -438,6 +392,11 @@ export default function GestaoEntregas() {
   const formatCurrency = (value: number | null) => {
     if (!value) return '-';
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  const formatWeight = (kg: number) => {
+    if (kg >= 1000) return `${(kg / 1000).toFixed(1)}t`;
+    return `${kg.toLocaleString('pt-BR')}kg`;
   };
 
   // Group entregas by driver
@@ -475,15 +434,12 @@ export default function GestaoEntregas() {
     });
   };
 
-  // Rows start collapsed by default - no auto-expansion
-
-  // Delete entrega mutation with reverse logic
+  // Delete entrega mutation
   const deleteEntrega = useMutation({
     mutationFn: async (entrega: EntregaCompleta) => {
       const pesoAlocado = entrega.peso_alocado_kg || 0;
       const cargaId = entrega.carga.id;
 
-      // 1. Get current cargo data
       const { data: cargaAtual, error: fetchError } = await supabase
         .from('cargas')
         .select('peso_disponivel_kg, peso_kg, status')
@@ -492,16 +448,13 @@ export default function GestaoEntregas() {
 
       if (fetchError) throw fetchError;
 
-      // 2. Calculate new available weight and status
       const pesoDisponivelAtual = cargaAtual.peso_disponivel_kg ?? 0;
       const novoPesoDisponivel = pesoDisponivelAtual + pesoAlocado;
 
-      // If restored weight equals total weight, set to 'publicada', otherwise 'parcialmente_alocada'
       const novoStatus = novoPesoDisponivel >= cargaAtual.peso_kg
         ? 'publicada'
         : 'parcialmente_alocada';
 
-      // 3. Delete associated chat and participants first
       const { data: chat } = await supabase
         .from('chats')
         .select('id')
@@ -509,26 +462,11 @@ export default function GestaoEntregas() {
         .single();
 
       if (chat) {
-        // Delete chat participants
-        await supabase
-          .from('chat_participantes')
-          .delete()
-          .eq('chat_id', chat.id);
-
-        // Delete messages
-        await supabase
-          .from('mensagens')
-          .delete()
-          .eq('chat_id', chat.id);
-
-        // Delete chat
-        await supabase
-          .from('chats')
-          .delete()
-          .eq('id', chat.id);
+        await supabase.from('chat_participantes').delete().eq('chat_id', chat.id);
+        await supabase.from('mensagens').delete().eq('chat_id', chat.id);
+        await supabase.from('chats').delete().eq('id', chat.id);
       }
 
-      // 4. Delete the entrega
       const { error: deleteError } = await supabase
         .from('entregas')
         .delete()
@@ -536,7 +474,6 @@ export default function GestaoEntregas() {
 
       if (deleteError) throw deleteError;
 
-      // 5. Update cargo with restored weight and new status
       const { error: updateError } = await supabase
         .from('cargas')
         .update({
@@ -568,7 +505,6 @@ export default function GestaoEntregas() {
         status: newStatus,
       };
 
-      // Set timestamp for specific status transitions
       if (newStatus === 'saiu_para_coleta') {
         updateData.coletado_em = new Date().toISOString();
       }
@@ -595,7 +531,7 @@ export default function GestaoEntregas() {
     },
   });
 
-  // Bulk update status mutation for all driver deliveries
+  // Bulk update status mutation
   const updateBulkStatus = useMutation({
     mutationFn: async ({ entregaIds, newStatus }: { entregaIds: string[]; newStatus: StatusEntrega }) => {
       const updateData: { status: StatusEntrega; coletado_em?: string | null; entregue_em?: string | null } = {
@@ -629,7 +565,6 @@ export default function GestaoEntregas() {
   });
 
   // Helper to check if delivery has required documents for "entregue" status
-  // ALL documents are required: at least 1 NF + canhoto + manifesto + CT-e
   const canMarkAsDelivered = (entrega: EntregaCompleta): boolean => {
     const nfsCount = entrega.notas_fiscais_urls?.length || 0;
     const hasCte = !!entrega.cte_url;
@@ -638,13 +573,11 @@ export default function GestaoEntregas() {
     return nfsCount >= 1 && hasCte && hasManifesto && hasCanhoto;
   };
 
-  // Get entrega by ID from entregas list
   const getEntregaById = (entregaId: string): EntregaCompleta | undefined => {
     return entregas.find(e => e.id === entregaId);
   };
 
-  const handleStatusChange = (entregaId: string, newStatus: StatusEntrega, entregaCodigo?: string) => {
-    // Validate document requirements for "entregue" status
+  const handleStatusChange = (entregaId: string, newStatus: StatusEntrega) => {
     if (newStatus === 'entregue') {
       const entrega = getEntregaById(entregaId);
       if (entrega && !canMarkAsDelivered(entrega)) {
@@ -663,7 +596,6 @@ export default function GestaoEntregas() {
   };
 
   const handleBulkStatusChange = (entregaIds: string[], newStatus: StatusEntrega, motoristaName?: string) => {
-    // Validate document requirements for "entregue" status
     if (newStatus === 'entregue') {
       const entregasWithMissingDocs = entregaIds.filter(id => {
         const entrega = getEntregaById(id);
@@ -710,11 +642,13 @@ export default function GestaoEntregas() {
     }
   };
 
-  // Map data for entregas with location - using entrega.id as the selection key
+  // Map data for entregas with location
   const mapData = useMemo(() => {
     const result: Array<{
       id: string;
       entregaId: string;
+      entregaCodigo: string | null;
+      cargaCodigo: string;
       latitude: number | null;
       longitude: number | null;
       status: string | null;
@@ -725,19 +659,19 @@ export default function GestaoEntregas() {
       motoristaOnline: boolean | null;
       telefone: string | null;
       placa: string | null;
+      pesoAlocado: number | null;
+      valorFrete: number | null;
+      origem: string | null;
       destino: string | null;
       origemCoords: { lat: number; lng: number } | null;
       destinoCoords: { lat: number; lng: number } | null;
-      isIdleDriver?: boolean;
       lastLocationUpdate?: number | null;
       heading?: number | null;
     }> = [];
 
-    // Add drivers from entregas
     filteredEntregas.forEach(e => {
       const origem = e.carga.endereco_origem;
       const destino = e.carga.endereco_destino;
-
       const motoristaEmail = e.motorista?.email;
       const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
 
@@ -749,6 +683,8 @@ export default function GestaoEntregas() {
       result.push({
         id: e.id,
         entregaId: e.id,
+        entregaCodigo: e.codigo,
+        cargaCodigo: e.carga.codigo,
         latitude: localizacao?.latitude ?? null,
         longitude: localizacao?.longitude ?? null,
         status: e.status || null,
@@ -759,6 +695,9 @@ export default function GestaoEntregas() {
         motoristaOnline: localizacao?.status ?? null,
         telefone: e.motorista?.telefone || null,
         placa: e.veiculo?.placa || null,
+        pesoAlocado: e.peso_alocado_kg || null,
+        valorFrete: e.valor_frete || null,
+        origem: origem ? `${origem.cidade}, ${origem.estado}` : null,
         destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
         origemCoords: origem?.latitude != null && origem?.longitude != null
           ? { lat: origem.latitude, lng: origem.longitude }
@@ -801,118 +740,6 @@ export default function GestaoEntregas() {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const formatPeso = (peso: number) => peso.toLocaleString('pt-BR') + ' kg';
-
-  const formatLocationTimestamp = (timestamp: number | null | undefined): string => {
-    if (!timestamp) return '-';
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-
-    if (diffMins < 1) return 'Agora';
-    if (diffMins < 60) return `${diffMins} min`;
-    if (diffHours < 24) return `${diffHours}h`;
-
-    return date.toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // Filters sidebar content
-  const FiltersContent = () => (
-    <div className="space-y-6">
-      {/* Motorista multi-select filter with search */}
-      <div>
-        <h4 className="font-medium text-sm text-foreground mb-3">Motoristas</h4>
-        <Popover open={motoristaPopoverOpen} onOpenChange={setMotoristaPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={motoristaPopoverOpen}
-              className="w-full justify-between h-auto min-h-10 py-2"
-            >
-              <span className="text-left truncate">
-                {selectedMotoristaIds.length === 0
-                  ? "Todos os motoristas"
-                  : selectedMotoristaIds.length === 1
-                    ? motoristasFromEntregas.find(m => m.id === selectedMotoristaIds[0])?.nome_completo
-                    : `${selectedMotoristaIds.length} motoristas selecionados`}
-              </span>
-              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[260px] p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Buscar motorista..." />
-              <CommandList>
-                <CommandEmpty>Nenhum motorista encontrado.</CommandEmpty>
-                <CommandGroup>
-                  {motoristasFromEntregas.map((m) => (
-                    <CommandItem
-                      key={m.id}
-                      value={m.nome_completo}
-                      onSelect={() => handleMotoristaToggle(m.id)}
-                      className="flex items-center gap-2"
-                    >
-                      <Checkbox
-                        checked={selectedMotoristaIds.includes(m.id)}
-                        className="pointer-events-none"
-                      />
-                      <span>{m.nome_completo}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        {selectedMotoristaIds.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full mt-2 text-xs h-8"
-            onClick={() => setSelectedMotoristaIds([])}
-          >
-            <X className="w-3 h-3 mr-1" />
-            Limpar seleção
-          </Button>
-        )}
-      </div>
-
-      {/* Status filter */}
-      <div>
-        <h4 className="font-medium text-sm text-foreground mb-3">Status da Entrega</h4>
-        <div className="space-y-2">
-          {allStatusFilters.map(status => (
-            <div key={status.value} className="flex items-center space-x-2">
-              <Checkbox
-                id={`filter-${status.value}`}
-                checked={selectedStatuses.includes(status.value)}
-                onCheckedChange={() => handleStatusToggle(status.value)}
-              />
-              <Label htmlFor={`filter-${status.value}`} className="text-sm font-normal cursor-pointer">
-                {status.label}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {(selectedStatuses.length > 0 || selectedMotoristaIds.length > 0) && (
-        <Button variant="outline" size="sm" onClick={clearFilters} className="w-full gap-2">
-          <X className="w-4 h-4" />
-          Limpar filtros
-        </Button>
-      )}
-    </div>
-  );
-
   // Live indicator component
   const LiveIndicator = () => (
     <TooltipProvider>
@@ -944,138 +771,32 @@ export default function GestaoEntregas() {
     </TooltipProvider>
   );
 
-  // Driver Summary Card (shown when drivers are selected)
-  const DriverSummaryCard = () => {
-    if (!selectedMotoristaSummary) return null;
-
-    const { motorista, veiculo, totalEntregas, totalPeso, localizacao, isSingle, driversCount } = selectedMotoristaSummary as any;
-    const lastUpdate = localizacao?.timestamp;
-    const isRecent = lastUpdate && (Date.now() - lastUpdate) < 5 * 60 * 1000;
-
-    return (
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              {isSingle ? (
-                <>
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                    {motorista?.foto_url ? (
-                      <img src={motorista.foto_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-6 h-6 text-primary" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{motorista?.nome_completo || 'Motorista'}</h3>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      {veiculo && (
-                        <span className="flex items-center gap-1">
-                          <Truck className="w-3 h-3" />
-                          {veiculo.placa}
-                        </span>
-                      )}
-                      {lastUpdate && (
-                        <span className={`flex items-center gap-1 ${isRecent ? 'text-chart-2' : ''}`}>
-                          <Radio className={`w-3 h-3 ${isRecent ? 'animate-pulse' : ''}`} />
-                          {formatLocationTimestamp(lastUpdate)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Users className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{driversCount} motoristas selecionados</h3>
-                    <p className="text-sm text-muted-foreground">Resumo combinado</p>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary">{totalEntregas}</p>
-                <p className="text-xs text-muted-foreground">Entregas</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-foreground">{formatPeso(totalPeso)}</p>
-                <p className="text-xs text-muted-foreground">Peso Total</p>
-              </div>
-
-              {/* Bulk actions for selected drivers */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <ArrowRightLeft className="w-4 h-4" />
-                    Alterar todas
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
-                    const StatusIconComponent = statusConfig.icon;
-                    return (
-                      <DropdownMenuItem
-                        key={statusKey}
-                        onClick={() => {
-                          const entregaIds = filteredEntregas
-                            .filter(e => e.motorista?.id && selectedMotoristaIds.includes(e.motorista.id))
-                            .map(e => e.id);
-                          handleBulkStatusChange(
-                            entregaIds,
-                            statusKey as StatusEntrega,
-                            isSingle ? motorista?.nome_completo : `${driversCount} motoristas`
-                          );
-                        }}
-                      >
-                        <StatusIconComponent className="w-4 h-4 mr-2" />
-                        {statusConfig.label}
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSelectedMotoristaIds([])}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // Render individual entrega row
-  const renderEntregaRow = (entrega: EntregaCompleta) => {
+  // Render entrega row for nested subtable
+  const renderEntregaRow = (entrega: EntregaCompleta, idx: number) => {
     const status = entrega.status || 'aguardando';
-    const config = statusEntregaConfig[status];
-    const StatusIcon = config?.icon || Package;
+    const statusConfig = statusEntregaConfig[status];
+    const StatusIcon = statusConfig?.icon || Package;
     const isSelected = selectedEntregaId === entrega.id;
+    
+    const hasCte = !!entrega.cte_url;
+    const hasManifesto = !!entrega.manifesto_url;
+    const hasCanhoto = !!entrega.canhoto_url;
+    const nfsCount = entrega.notas_fiscais_urls?.length || 0;
+    const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
+    const hasMissingCritical = !hasCte || !hasManifesto || !hasCanhoto || nfsCount === 0;
 
     return (
-      <TableRow
+      <TableRow 
         key={entrega.id}
-        className={`cursor-pointer hover:bg-muted/50 ${isSelected ? 'bg-primary/5 hover:bg-primary/10' : ''}`}
+        className={`cursor-pointer hover:bg-muted/50 ${isSelected ? 'bg-primary/10' : ''}`}
         onClick={() => setSelectedEntregaId(isSelected ? null : entrega.id)}
       >
-        <TableCell className="py-3">
-          <Badge
-            variant="secondary"
-            className="text-xs font-mono whitespace-nowrap"
-          >
+        <TableCell className="py-2.5">
+          <Badge variant="secondary" className="text-xs font-mono whitespace-nowrap">
             {entrega.codigo || entrega.carga.codigo}
           </Badge>
         </TableCell>
-        <TableCell className="py-3">
+        <TableCell className="py-2.5">
           {entrega.motorista ? (
             <div className="flex items-center gap-2">
               <Avatar className="h-7 w-7">
@@ -1099,358 +820,51 @@ export default function GestaoEntregas() {
             <span className="text-sm text-muted-foreground">-</span>
           )}
         </TableCell>
-        <TableCell className="py-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="cursor-help">
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-green-500 shrink-0" />
-                  <span className="text-sm font-medium whitespace-nowrap">
-                    {entrega.carga.empresa?.nome ? textAbbr(entrega.carga.empresa.nome, 15) : '-'}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  {entrega.carga.endereco_origem?.cidade || '-'}
-                </p>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs">
-              <p className="font-medium">{entrega.carga.empresa?.nome || 'Remetente não informado'}</p>
-              {entrega.carga.endereco_origem && (
-                <p className="text-xs text-muted-foreground">
-                  {entrega.carga.endereco_origem.cidade}/{entrega.carga.endereco_origem.estado}
-                </p>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        </TableCell>
-        <TableCell className="py-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="cursor-help">
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                  <span className="text-sm font-medium whitespace-nowrap">
-                    {(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social)
-                      ? textAbbr(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '', 18)
-                      : '-'}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  {entrega.carga.endereco_destino?.cidade || '-'}
-                </p>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs">
-              <p className="font-medium">{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
-              {entrega.carga.endereco_destino && (
-                <p className="text-xs text-muted-foreground">
-                  {entrega.carga.endereco_destino.cidade}/{entrega.carga.endereco_destino.estado}
-                </p>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        </TableCell>
-        <TableCell className="py-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1 text-sm whitespace-nowrap">
-                <span>{textAbbr(entrega.carga.endereco_origem?.cidade || '-', 10)}</span>
-                <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                <span>{textAbbr(entrega.carga.endereco_destino?.cidade || '-', 10)}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{entrega.carga.endereco_origem?.cidade}/{entrega.carga.endereco_origem?.estado} → {entrega.carga.endereco_destino?.cidade}/{entrega.carga.endereco_destino?.estado}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TableCell>
-        <TableCell className="text-right py-3">
-          <span className="text-sm font-medium whitespace-nowrap">
-            {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
-          </span>
-        </TableCell>
-        <TableCell className="py-3">
-          <Badge variant="outline" className={`${config?.color} border text-xs gap-1 whitespace-nowrap`}>
-            <StatusIcon className="w-3 h-3" />
-            {config?.label || status}
-          </Badge>
-        </TableCell>
-        {/* N° CT-e column */}
-        <TableCell className="py-3">
-          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-            {entrega.numero_cte || '-'}
-          </span>
-        </TableCell>
-        {/* Documentos - Unified Column (styled like HistoricoEntregas) */}
-        <TableCell className="py-3">
-          {(() => {
-            const hasCte = !!entrega.cte_url;
-            const hasManifesto = !!entrega.manifesto_url;
-            const hasCanhoto = !!entrega.canhoto_url;
-            const nfsCount = entrega.notas_fiscais_urls?.length || 0;
-            const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
-            // Critical docs are: CTE, Manifesto, Canhoto, and at least 1 NF
-            const hasMissingCritical = !hasCte || !hasManifesto || !hasCanhoto || nfsCount === 0;
-
-            return (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`h-7 px-2 gap-1 ${hasMissingCritical ? 'text-amber-600' : 'text-green-600'}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedEntregaForDetails(entrega);
-                  setDetailsDialogOpen(true);
-                }}
-              >
-                <FileText className="w-3 h-3" />
-                {totalDocs}
-                {hasMissingCritical && <AlertTriangle className="w-3 h-3" />}
-              </Button>
-            );
-          })()}
-        </TableCell>
-        <TableCell className="py-3">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {formatDate(entrega.carga.data_entrega_limite)}
-          </span>
-        </TableCell>
-        {/* Sticky Chat column */}
-        <TableCell className={`sticky right-10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] z-10 ${isSelected ? 'bg-primary/5' : 'bg-card'}`}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setChatEntregaId(entrega.id);
-                  setChatSheetOpen(true);
-                }}
-              >
-                <MessageCircle className="w-4 h-4 text-primary" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Abrir chat</TooltipContent>
-          </Tooltip>
-        </TableCell>
-        {/* Sticky Actions column */}
-        <TableCell className={`sticky right-0 z-10 ${isSelected ? 'bg-primary/5' : 'bg-card'}`}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 bg-popover">
-              <DropdownMenuItem onClick={() => setSelectedEntregaId(entrega.id)}>
-                <Eye className="w-4 h-4 mr-2" />
-                Ver no mapa
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                setSelectedEntregaForDetails(entrega);
-                setDetailsDialogOpen(true);
-              }}>
-                <FileText className="w-4 h-4 mr-2" />
-                Ver detalhes
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                setEntregaForCte(entrega);
-                setAnexarCteDialogOpen(true);
-              }}>
-                <Upload className="w-4 h-4 mr-2" />
-                Gerenciar Documentos
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <ArrowRightLeft className="w-4 h-4 mr-2" />
-                  Alterar status
-                </DropdownMenuSubTrigger>
-                <DropdownMenuPortal>
-                  <DropdownMenuSubContent className="w-48 bg-popover">
-                    {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
-                      const isCurrentStatus = entrega.status === statusKey;
-                      const StatusIconComponent = statusConfig.icon;
-                      return (
-                        <DropdownMenuItem
-                          key={statusKey}
-                          disabled={isCurrentStatus}
-                          className={isCurrentStatus ? 'opacity-50' : ''}
-                          onClick={() => handleStatusChange(entrega.id, statusKey as StatusEntrega)}
-                        >
-                          <StatusIconComponent className="w-4 h-4 mr-2" />
-                          {statusConfig.label}
-                          {isCurrentStatus && (
-                            <CheckCircle className="w-3 h-3 ml-auto text-primary" />
-                          )}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuSubContent>
-                </DropdownMenuPortal>
-              </DropdownMenuSub>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="text-destructive focus:text-destructive"
-                onClick={() => handleDeleteClick(entrega)}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Excluir entrega
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
-      </TableRow>
-    );
-  };
-
-  // Render entrega row for nested subtable (without driver column)
-  const renderNestedEntregaRow = (entrega: EntregaCompleta) => {
-    const status = entrega.status || 'aguardando';
-    const config = statusEntregaConfig[status];
-    const StatusIcon = config?.icon || Package;
-    const isSelected = selectedEntregaId === entrega.id;
-
-    return (
-      <TableRow
-        key={entrega.id}
-        className={`cursor-pointer hover:bg-muted/50 ${isSelected ? 'bg-primary/10' : ''}`}
-        onClick={() => setSelectedEntregaId(isSelected ? null : entrega.id)}
-      >
         <TableCell className="py-2.5">
-          <Badge
-            variant="secondary"
-            className="text-xs font-mono whitespace-nowrap"
-          >
-            {entrega.codigo || entrega.carga.codigo}
-          </Badge>
-        </TableCell>
-        <TableCell className="py-2.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="cursor-help">
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-green-500 shrink-0" />
-                  <span className="text-sm font-medium whitespace-nowrap">
-                    {entrega.carga.empresa?.nome ? textAbbr(entrega.carga.empresa.nome, 15) : '-'}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  {entrega.carga.endereco_origem?.cidade || '-'}
-                </p>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs">
-              <p className="font-medium">{entrega.carga.empresa?.nome || 'Remetente não informado'}</p>
-              {entrega.carga.endereco_origem && (
-                <p className="text-xs text-muted-foreground">
-                  {entrega.carga.endereco_origem.cidade}/{entrega.carga.endereco_origem.estado}
-                </p>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        </TableCell>
-        <TableCell className="py-2.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="cursor-help">
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                  <span className="text-sm font-medium whitespace-nowrap">
-                    {(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social)
-                      ? textAbbr(entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '', 18)
-                      : '-'}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground whitespace-nowrap">
-                  {entrega.carga.endereco_destino?.cidade || '-'}
-                </p>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs">
-              <p className="font-medium">{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
-              {entrega.carga.endereco_destino && (
-                <p className="text-xs text-muted-foreground">
-                  {entrega.carga.endereco_destino.cidade}/{entrega.carga.endereco_destino.estado}
-                </p>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        </TableCell>
-        <TableCell className="py-2.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1 text-sm whitespace-nowrap">
-                <span>{textAbbr(entrega.carga.endereco_origem?.cidade || '-', 10)}</span>
-                <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                <span>{textAbbr(entrega.carga.endereco_destino?.cidade || '-', 10)}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{entrega.carga.endereco_origem?.cidade}/{entrega.carga.endereco_origem?.estado} → {entrega.carga.endereco_destino?.cidade}/{entrega.carga.endereco_destino?.estado}</p>
-            </TooltipContent>
-          </Tooltip>
+          <div className="flex items-center gap-2">
+            <Truck className="w-3 h-3 text-muted-foreground" />
+            <span className="text-sm font-mono">
+              {entrega.veiculo?.placa || '-'}
+            </span>
+          </div>
         </TableCell>
         <TableCell className="text-right py-2.5">
-          <span className="text-sm font-medium whitespace-nowrap">
-            {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
+          <span className="text-sm font-medium">
+            {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
           </span>
         </TableCell>
-        <TableCell className="py-2.5">
-          <Badge variant="outline" className={`${config?.color} border text-xs gap-1 whitespace-nowrap`}>
-            <StatusIcon className="w-3 h-3" />
-            {config?.label || status}
-          </Badge>
+        <TableCell className="text-right py-2.5">
+          <span className="text-sm font-medium text-green-600">
+            {formatCurrency(entrega.valor_frete)}
+          </span>
         </TableCell>
-        {/* N° CT-e column */}
         <TableCell className="py-2.5">
           <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
             {entrega.numero_cte || '-'}
           </span>
         </TableCell>
-        {/* Documentos (styled like HistoricoEntregas) */}
         <TableCell className="py-2.5">
-          {(() => {
-            const hasCte = !!entrega.cte_url;
-            const hasManifesto = !!entrega.manifesto_url;
-            const hasCanhoto = !!entrega.canhoto_url;
-            const nfsCount = entrega.notas_fiscais_urls?.length || 0;
-            const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
-            // Critical docs are: CTE, Manifesto, Canhoto, and at least 1 NF
-            const hasMissingCritical = !hasCte || !hasManifesto || !hasCanhoto || nfsCount === 0;
-
-            return (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`h-6 px-2 gap-1 ${hasMissingCritical ? 'text-amber-600' : 'text-green-600'}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedEntregaForDetails(entrega);
-                  setDetailsDialogOpen(true);
-                }}
-              >
-                <FileText className="w-3 h-3" />
-                {totalDocs}
-                {hasMissingCritical && <AlertTriangle className="w-3 h-3" />}
-              </Button>
-            );
-          })()}
+          <Badge className={`${statusConfig?.color || ''} text-xs gap-1`}>
+            <StatusIcon className="w-3 h-3" />
+            {statusConfig?.label || status}
+          </Badge>
         </TableCell>
         <TableCell className="py-2.5">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {formatDate(entrega.carga.data_entrega_limite)}
-          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-6 px-2 gap-1 ${hasMissingCritical ? 'text-amber-600' : 'text-green-600'}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedEntregaForDetails(entrega);
+              setDetailsDialogOpen(true);
+            }}
+          >
+            <FileText className="w-3 h-3" />
+            {totalDocs}
+            {hasMissingCritical && <AlertTriangle className="w-3 h-3" />}
+          </Button>
         </TableCell>
-        {/* Chat column */}
         <TableCell className="py-2.5">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1470,16 +884,10 @@ export default function GestaoEntregas() {
             <TooltipContent>Abrir chat</TooltipContent>
           </Tooltip>
         </TableCell>
-        {/* Actions column */}
         <TableCell className="py-2.5">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => e.stopPropagation()}>
                 <MoreHorizontal className="w-3.5 h-3.5" />
               </Button>
             </DropdownMenuTrigger>
@@ -1510,9 +918,9 @@ export default function GestaoEntregas() {
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                   <DropdownMenuSubContent className="w-48 bg-popover">
-                    {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
+                    {Object.entries(statusEntregaConfig).map(([statusKey, config]) => {
                       const isCurrentStatus = entrega.status === statusKey;
-                      const StatusIconComponent = statusConfig.icon;
+                      const StatusIconComponent = config.icon;
                       return (
                         <DropdownMenuItem
                           key={statusKey}
@@ -1521,7 +929,7 @@ export default function GestaoEntregas() {
                           onClick={() => handleStatusChange(entrega.id, statusKey as StatusEntrega)}
                         >
                           <StatusIconComponent className="w-4 h-4 mr-2" />
-                          {statusConfig.label}
+                          {config.label}
                           {isCurrentStatus && (
                             <CheckCircle className="w-3 h-3 ml-auto text-primary" />
                           )}
@@ -1547,17 +955,43 @@ export default function GestaoEntregas() {
   };
 
   return (
-    <TooltipProvider>
-      <div className="p-4 md:p-8 pb-20 md:pb-8">
-        {/* Desktop Layout - New Layout: Top row (Filters | Map), Bottom row (Full-width Table) */}
-        <div className="hidden lg:block space-y-4">
+    <>
+      {/* Desktop: Fullscreen Map Layout */}
+      <div 
+        className="hidden lg:block fixed inset-0 overflow-hidden transition-[left] duration-300"
+        style={{ left: isSidebarCollapsed ? '4rem' : '16rem' }}
+      >
+        <TooltipProvider>
+          {/* Fullscreen Map Container */}
+          <div className="absolute inset-0 z-0">
+            <Suspense fallback={
+              <div className="w-full h-full flex items-center justify-center bg-muted/30">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            }>
+              <EntregasMap
+                entregas={mapData}
+                selectedEntregaId={selectedEntregaId}
+                onSelectEntrega={setSelectedEntregaId}
+                fullHeight
+                hideLegend
+                hideSelectionBadge
+              />
+            </Suspense>
+          </div>
+
+          {/* Loading/Empty States */}
           {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+              <Card className="border-border bg-background shadow-lg pointer-events-auto">
+                <CardContent className="p-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto" />
+                </CardContent>
+              </Card>
             </div>
           ) : filteredEntregas.length === 0 && entregas.length === 0 ? (
-            <div className="flex items-center justify-center h-64">
-              <Card className="border-border max-w-sm">
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+              <Card className="border-border bg-background shadow-lg max-w-sm pointer-events-auto">
                 <CardContent className="p-6 text-center">
                   <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
                   <h3 className="font-semibold text-foreground mb-1">Nenhuma entrega encontrada</h3>
@@ -1569,200 +1003,419 @@ export default function GestaoEntregas() {
             </div>
           ) : (
             <>
-              {/* Collapsible Layout */}
-              <div className="flex gap-4">
-                {/* Left Column: Collapsible Filters Panel */}
-                <div className={`transition-all duration-300 ${filtersCollapsed ? 'w-12' : 'w-64'} shrink-0`}>
-                  {filtersCollapsed ? (
-                    // Collapsed state - just icons
-                    <div className="space-y-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-10 h-10"
-                        onClick={() => setFiltersCollapsed(false)}
-                      >
-                        <PanelLeft className="w-5 h-5" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="w-10 h-10"
-                        onClick={() => refetch()}
-                        disabled={isLoading || isFetching}
-                      >
-                        <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-                      </Button>
-                    </div>
-                  ) : (
-                    // Expanded state - full filters
-                    <div className="space-y-4">
-                      {/* Header with collapse button */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h1 className="text-xl font-bold text-foreground">Gestão de Entregas</h1>
-                          <p className="text-sm text-muted-foreground">Rastreie suas entregas em tempo real</p>
+              {/* Selected Delivery Card - positioned to the left of control panel */}
+              {selectedEntregaId && (() => {
+                const selectedEntrega = mapData.find(e => e.entregaId === selectedEntregaId || e.id === selectedEntregaId);
+                if (!selectedEntrega) return null;
+                const statusConfig = statusEntregaConfig[selectedEntrega.status || 'aguardando'];
+                const StatusIcon = statusConfig?.icon || Package;
+                return (
+                  <div className={`absolute top-4 z-30 transition-all duration-300 ${filtersCollapsed ? 'right-16' : 'right-[22rem]'}`}>
+                    <Card className="w-64 border shadow-xl bg-background">
+                      <CardHeader className="pb-2 pt-3 px-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-md ${statusConfig?.color?.split(' ')[0] || 'bg-muted'}`}>
+                              <StatusIcon className={`w-4 h-4 ${statusConfig?.color?.split(' ')[1] || 'text-muted-foreground'}`} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">{selectedEntrega.entregaCodigo || 'Entrega'}</p>
+                              <p className="text-[10px] text-muted-foreground">{selectedEntrega.cargaCodigo}</p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={() => setSelectedEntregaId(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => setFiltersCollapsed(true)}
-                        >
-                          <PanelLeftClose className="w-4 h-4" />
-                        </Button>
+                      </CardHeader>
+                      <CardContent className="px-3 pb-3 pt-0 space-y-2">
+                        <Badge variant="outline" className={`text-[10px] ${statusConfig?.color || ''}`}>
+                          {statusConfig?.label || selectedEntrega.status}
+                        </Badge>
+                        
+                        {/* Route Info */}
+                        <div className="space-y-1.5">
+                          {selectedEntrega.origem && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                              <span className="text-muted-foreground truncate">{selectedEntrega.origem}</span>
+                            </div>
+                          )}
+                          {selectedEntrega.destino && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                              <span className="text-muted-foreground truncate">{selectedEntrega.destino}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Driver & Vehicle */}
+                        {(selectedEntrega.motorista || selectedEntrega.placa) && (
+                          <div className="pt-1.5 border-t flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              {selectedEntrega.motoristaFotoUrl ? (
+                                <AvatarImage src={selectedEntrega.motoristaFotoUrl} />
+                              ) : null}
+                              <AvatarFallback className="text-[10px]">
+                                {selectedEntrega.motorista?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'M'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate">{selectedEntrega.motorista || 'Motorista'}</p>
+                              {selectedEntrega.placa && (
+                                <p className="text-[10px] text-muted-foreground">{selectedEntrega.placa}</p>
+                              )}
+                            </div>
+                            {selectedEntrega.motoristaOnline !== null && (
+                              <div className={`w-2 h-2 rounded-full ${selectedEntrega.motoristaOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Weight & Freight */}
+                        <div className="pt-1.5 border-t grid grid-cols-2 gap-2">
+                          {selectedEntrega.pesoAlocado && (
+                            <div className="text-xs">
+                              <p className="text-muted-foreground">Peso</p>
+                              <p className="font-medium">{formatWeight(selectedEntrega.pesoAlocado)}</p>
+                            </div>
+                          )}
+                          {selectedEntrega.valorFrete && (
+                            <div className="text-xs">
+                              <p className="text-muted-foreground">Frete</p>
+                              <p className="font-medium text-green-600">{formatCurrency(selectedEntrega.valorFrete)}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              })()}
+
+              {/* Floating Control Panel - Top Right */}
+              <div className={`absolute top-4 z-20 transition-all duration-300 ${filtersCollapsed ? 'right-4' : 'right-4'}`}>
+                {filtersCollapsed ? (
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 bg-background shadow-lg"
+                      onClick={() => setFiltersCollapsed(false)}
+                    >
+                      <PanelLeft className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 bg-background shadow-lg"
+                      onClick={() => refetch()}
+                      disabled={isLoading || isFetching}
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
+                ) : (
+                  <Card className="w-80 border shadow-xl bg-background">
+                    <CardHeader className="pb-2 pt-3 px-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-primary" />
+                          <CardTitle className="text-sm">Gestão de Entregas</CardTitle>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <LiveIndicator />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => refetch()}
+                            disabled={isLoading || isFetching}
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setFiltersCollapsed(true)}
+                          >
+                            <PanelLeftClose className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => refetch()}
-                          disabled={isLoading || isFetching}
-                        >
-                          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-                        </Button>
-                        <LiveIndicator />
+                    </CardHeader>
+                    <CardContent className="px-3 pb-3 pt-0 space-y-3">
+                      {/* Status Summary Cards */}
+                      <div className="grid grid-cols-4 gap-1.5">
+                        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2">
+                          <Clock className="w-4 h-4 text-amber-600" />
+                          <div>
+                            <span className="text-lg font-bold text-amber-600">{stats.aguardando}</span>
+                            <p className="text-[10px] text-amber-600/80">Aguard.</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-2">
+                          <Package className="w-4 h-4 text-blue-600" />
+                          <div>
+                            <span className="text-lg font-bold text-blue-600">{stats.saiu_para_coleta}</span>
+                            <p className="text-[10px] text-blue-600/80">Coleta</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-2">
+                          <Truck className="w-4 h-4 text-purple-600" />
+                          <div>
+                            <span className="text-lg font-bold text-purple-600">{stats.saiu_para_entrega}</span>
+                            <p className="text-[10px] text-purple-600/80">Entrega</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-2.5 py-2">
+                          <AlertCircle className="w-4 h-4 text-destructive" />
+                          <div>
+                            <span className="text-lg font-bold text-destructive">{stats.problema}</span>
+                            <p className="text-[10px] text-destructive/80">Probl.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Total Frete */}
+                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+                        <DollarSign className="w-4 h-4 text-emerald-600" />
+                        <div>
+                          <span className="text-sm font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</span>
+                          <p className="text-[10px] text-emerald-600/80">Frete Total</p>
+                        </div>
                       </div>
 
                       {/* Search */}
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                         <Input
-                          placeholder="Buscar código, motorista, placa, CT-e..."
-                          className="pl-10"
+                          placeholder="Buscar código, motorista..."
+                          className="pl-8 h-8 text-xs bg-background"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
                       </div>
 
-                      {/* Stats Cards - cores correspondentes aos status */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-center">
-                          <div className="flex items-center justify-center gap-1 mb-1">
-                            <Clock className="w-4 h-4 text-amber-600" />
-                          </div>
-                          <p className="text-xl font-bold text-amber-600">{stats.aguardando}</p>
-                          <p className="text-[10px] text-muted-foreground leading-tight">Aguardando</p>
-                        </div>
-                        <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-center">
-                          <div className="flex items-center justify-center gap-1 mb-1">
-                            <Package className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <p className="text-xl font-bold text-blue-600">{stats.saiu_para_coleta}</p>
-                          <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Coleta</p>
-                        </div>
-                        <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-3 text-center">
-                          <div className="flex items-center justify-center gap-1 mb-1">
-                            <Truck className="w-4 h-4 text-purple-600" />
-                          </div>
-                          <p className="text-xl font-bold text-purple-600">{stats.saiu_para_entrega}</p>
-                          <p className="text-[10px] text-muted-foreground leading-tight">Saiu p/ Entrega</p>
-                        </div>
-                        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-center">
-                          <div className="flex items-center justify-center gap-1 mb-1">
-                            <AlertCircle className="w-4 h-4 text-destructive" />
-                          </div>
-                          <p className="text-xl font-bold text-destructive">{stats.problema}</p>
-                          <p className="text-[10px] text-muted-foreground leading-tight">Problemas</p>
-                        </div>
-                      </div>
+                      {/* Motorista Filter */}
+                      <Popover open={motoristaPopoverOpen} onOpenChange={setMotoristaPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={motoristaPopoverOpen}
+                            className="w-full justify-between h-8 text-xs"
+                          >
+                            <span className="text-left truncate">
+                              {selectedMotoristaIds.length === 0
+                                ? "Todos os motoristas"
+                                : selectedMotoristaIds.length === 1
+                                  ? motoristasFromEntregas.find(m => m.id === selectedMotoristaIds[0])?.nome_completo
+                                  : `${selectedMotoristaIds.length} motoristas`}
+                            </span>
+                            <ChevronDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[260px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar motorista..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum motorista encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {motoristasFromEntregas.map((m) => (
+                                  <CommandItem
+                                    key={m.id}
+                                    value={m.nome_completo}
+                                    onSelect={() => handleMotoristaToggle(m.id)}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Checkbox
+                                      checked={selectedMotoristaIds.includes(m.id)}
+                                      className="pointer-events-none"
+                                    />
+                                    <span>{m.nome_completo}</span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
 
-                      {/* Frete Total KPI */}
-                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-center">
-                        <p className="text-lg font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight">Frete Total</p>
-                      </div>
-
-                      {/* Filters Card */}
-                      <Card className="border-border">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-sm flex items-center gap-2">
-                            <Filter className="w-4 h-4" />
-                            Filtros
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <FiltersContent />
-                        </CardContent>
-                      </Card>
+                      {/* Filters - Collapsible */}
+                      <details className="group">
+                        <summary className="text-[10px] font-medium text-muted-foreground cursor-pointer flex items-center gap-1 hover:text-foreground">
+                          <Filter className="w-3 h-3" />
+                          Filtros de Status
+                          <ChevronRight className="w-3 h-3 transition-transform group-open:rotate-90" />
+                        </summary>
+                        <div className="mt-2 space-y-1.5">
+                          {allStatusFilters.map(status => (
+                            <div key={status.value} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`filter-${status.value}`}
+                                checked={selectedStatuses.includes(status.value)}
+                                onCheckedChange={() => handleStatusToggle(status.value)}
+                                className="h-3.5 w-3.5"
+                              />
+                              <Label htmlFor={`filter-${status.value}`} className="text-xs font-normal cursor-pointer">
+                                {status.label}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
 
                       {/* Active Filters */}
                       {(selectedStatuses.length > 0 || selectedMotoristaIds.length > 0) && (
-                        <div className="flex flex-wrap gap-2">
-                          {selectedMotoristaIds.map(motoristaId => (
-                            <Badge
-                              key={motoristaId}
-                              variant="outline"
-                              className="bg-primary/10 text-primary border-primary/20 cursor-pointer text-xs"
-                              onClick={() => handleMotoristaToggle(motoristaId)}
-                            >
-                              <User className="w-3 h-3 mr-1" />
-                              {textAbbr(motoristasFromEntregas.find(m => m.id === motoristaId)?.nome_completo || '', 12)}
-                              <X className="w-3 h-3 ml-1" />
-                            </Badge>
-                          ))}
+                        <div className="flex flex-wrap gap-1">
                           {selectedStatuses.map(status => {
                             const config = statusEntregaConfig[status];
                             return (
                               <Badge
                                 key={status}
                                 variant="outline"
-                                className={`${config?.color || ''} cursor-pointer text-xs`}
+                                className={`${config?.color || ''} cursor-pointer text-[9px] px-1.5 py-0`}
                                 onClick={() => handleStatusToggle(status)}
                               >
                                 {config?.label || status}
-                                <X className="w-3 h-3 ml-1" />
+                                <X className="w-2.5 h-2.5 ml-1" />
                               </Badge>
                             );
                           })}
+                          {selectedMotoristaIds.length > 0 && (
+                            <Badge
+                              variant="outline"
+                              className="cursor-pointer text-[9px] px-1.5 py-0"
+                              onClick={() => setSelectedMotoristaIds([])}
+                            >
+                              {selectedMotoristaIds.length} motorista(s)
+                              <X className="w-2.5 h-2.5 ml-1" />
+                            </Badge>
+                          )}
                         </div>
                       )}
-                    </div>
-                  )}
-                </div>
 
-                {/* Right Column: Map + Table - grows to fill remaining space */}
-                <div className="flex-1 space-y-4 min-w-0">
-                  {/* Map */}
-                  <Suspense fallback={
-                    <Card className="border-border">
-                      <CardContent className="p-0">
-                        <div className="w-full h-[400px] flex items-center justify-center bg-muted/30 rounded-lg">
-                          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                      {/* Legend */}
+                      <details className="group" open>
+                        <summary className="text-[10px] font-medium text-muted-foreground cursor-pointer flex items-center gap-1 hover:text-foreground">
+                          <MapPin className="w-3 h-3" />
+                          Legenda do Mapa
+                          <ChevronRight className="w-3 h-3 transition-transform group-open:rotate-90" />
+                        </summary>
+                        <div className="mt-2 space-y-2">
+                          <div className="space-y-1">
+                            <p className="text-[9px] font-medium text-muted-foreground uppercase">Status</p>
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                              {[
+                                { key: 'aguardando', color: '#f97316', label: 'Aguardando' },
+                                { key: 'saiu_para_coleta', color: '#3b82f6', label: 'Coleta' },
+                                { key: 'saiu_para_entrega', color: '#8b5cf6', label: 'Entrega' },
+                                { key: 'problema', color: '#ef4444', label: 'Problema' },
+                              ].map(item => (
+                                <div key={item.key} className="flex items-center gap-1">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                  <span className="text-[10px] text-muted-foreground">{item.label}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-1 pt-1 border-t">
+                            <p className="text-[9px] font-medium text-muted-foreground uppercase">Conexão</p>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1">
+                                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                                <span className="text-[10px] text-muted-foreground">Online</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                                <span className="text-[10px] text-muted-foreground">Offline</span>
+                              </div>
+                            </div>
+                          </div>
+                          {selectedEntregaId && (
+                            <div className="space-y-1 pt-1 border-t">
+                              <p className="text-[9px] font-medium text-muted-foreground uppercase">Rota</p>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                                  <span className="text-[10px] text-muted-foreground">Origem</span>
+                                  <div className="w-2.5 h-2.5 rounded-full bg-red-500 ml-2" />
+                                  <span className="text-[10px] text-muted-foreground">Destino</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-0" style={{ borderTop: '2px dashed #f97316' }} />
+                                  <span className="text-[10px] text-muted-foreground">p/ Coleta</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-0" style={{ borderTop: '2px solid #3b82f6' }} />
+                                  <span className="text-[10px] text-muted-foreground">p/ Entrega</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </CardContent>
-                    </Card>
-                  }>
-                    <EntregasMap
-                      entregas={mapData}
-                      selectedEntregaId={selectedEntregaId}
-                      onSelectEntrega={setSelectedEntregaId}
-                    />
-                  </Suspense>
+                      </details>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
 
-                  {/* Driver Summary Card - shown when drivers are selected */}
-                  {selectedMotoristaIds.length > 0 && <DriverSummaryCard />}
-
-                  {/* Table with driver grouping */}
-                  <Card className="border-border">
+              {/* Floating Table Panel at Bottom - Full Width */}
+              <div className="absolute bottom-4 left-4 right-4 z-20">
+                <Card className="border bg-background shadow-xl">
+                  <CardHeader className="py-2.5 px-4 border-b">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-primary" />
+                        <CardTitle className="text-sm">Entregas por Motorista ({entregasGroupedByDriver.length})</CardTitle>
+                      </div>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setTableExpanded(!tableExpanded)}
+                      >
+                        {tableExpanded ? (
+                          <>
+                            <ChevronDown className="w-4 h-4 mr-1" />
+                            Minimizar
+                          </>
+                        ) : (
+                          <>
+                            <ChevronRight className="w-4 h-4 mr-1" />
+                            Expandir
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  {tableExpanded && (
                     <CardContent className="p-0">
-                      <div className="relative max-h-[500px] overflow-auto">
+                      <div className="max-h-[340px] overflow-y-auto">
                         <Table>
-                          <TableHeader className="sticky top-0 z-20">
-                            <TableRow className="bg-muted">
-                              <TableHead className="font-semibold w-8 bg-muted"></TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Motorista</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Veículo</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap text-right bg-muted">Peso Total</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Entregas</TableHead>
-                              <TableHead className="font-semibold whitespace-nowrap bg-muted">Status</TableHead>
-                              <TableHead className="font-semibold w-10 bg-muted"></TableHead>
+                          <TableHeader className="sticky top-0 z-10 bg-muted">
+                            <TableRow>
+                              <TableHead className="font-semibold w-8"></TableHead>
+                              <TableHead className="font-semibold min-w-[200px]">Motorista</TableHead>
+                              <TableHead className="font-semibold min-w-[100px]">Veículo</TableHead>
+                              <TableHead className="font-semibold min-w-[100px] text-right">Peso Total</TableHead>
+                              <TableHead className="font-semibold min-w-[100px]">Entregas</TableHead>
+                              <TableHead className="font-semibold min-w-[150px]">Status</TableHead>
+                              <TableHead className="font-semibold w-10"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {entregasGroupedByDriver.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
                                   Nenhuma entrega corresponde aos filtros selecionados
                                 </TableCell>
                               </TableRow>
@@ -1771,10 +1424,9 @@ export default function GestaoEntregas() {
                                 const isExpanded = expandedDrivers.has(group.motoristaId);
                                 const motoristaEmail = group.motorista?.email;
                                 const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
-                                const isOnlineDriver = localizacao?.timestamp && (Date.now() - localizacao.timestamp) < 2 * 60 * 1000;
+                                const isOnlineDriver = localizacao?.status === true;
                                 const totalPesoGrupo = group.entregas.reduce((acc, e) => acc + (e.peso_alocado_kg || e.carga.peso_kg), 0);
                                 
-                                // Calculate status summary
                                 const statusCounts = group.entregas.reduce((acc, e) => {
                                   acc[e.status || 'aguardando'] = (acc[e.status || 'aguardando'] || 0) + 1;
                                   return acc;
@@ -1782,13 +1434,20 @@ export default function GestaoEntregas() {
 
                                 return (
                                   <React.Fragment key={group.motoristaId}>
-                                    {/* Driver header row */}
-                                    <TableRow 
-                                      className="bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                                    <TableRow
+                                      className={`hover:bg-muted/50 cursor-pointer ${isExpanded ? 'bg-muted/30 border-l-2 border-l-primary' : ''}`}
                                       onClick={() => toggleDriverExpansion(group.motoristaId)}
                                     >
-                                      <TableCell className="py-3">
-                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                      <TableCell className="p-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleDriverExpansion(group.motoristaId);
+                                          }}
+                                        >
                                           {isExpanded ? (
                                             <ChevronDown className="w-4 h-4 text-primary" />
                                           ) : (
@@ -1810,7 +1469,7 @@ export default function GestaoEntregas() {
                                               {isOnlineDriver && (
                                                 <Tooltip>
                                                   <TooltipTrigger>
-                                                    <div className="w-2.5 h-2.5 rounded-full bg-chart-2 animate-pulse" />
+                                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
                                                   </TooltipTrigger>
                                                   <TooltipContent>Online agora</TooltipContent>
                                                 </Tooltip>
@@ -1831,7 +1490,7 @@ export default function GestaoEntregas() {
                                         )}
                                       </TableCell>
                                       <TableCell className="text-right py-3">
-                                        <span className="font-semibold text-foreground">{formatPeso(totalPesoGrupo)}</span>
+                                        <span className="font-semibold text-foreground">{formatWeight(totalPesoGrupo)}</span>
                                       </TableCell>
                                       <TableCell className="py-3">
                                         <Badge variant="outline" className="text-xs">
@@ -1889,7 +1548,7 @@ export default function GestaoEntregas() {
                                       </TableCell>
                                     </TableRow>
 
-                                    {/* Expanded Row - Entregas com subtabela */}
+                                    {/* Expanded Row - Nested delivery table */}
                                     {isExpanded && group.entregas.length > 0 && (
                                       <TableRow className="bg-muted/10 hover:bg-muted/10">
                                         <TableCell colSpan={7} className="p-0">
@@ -1904,25 +1563,19 @@ export default function GestaoEntregas() {
                                                   <TableHeader>
                                                     <TableRow className="bg-muted/30">
                                                       <TableHead className="text-xs font-semibold">Código</TableHead>
-                                                      <TableHead className="text-xs font-semibold">Remetente</TableHead>
-                                                      <TableHead className="text-xs font-semibold">Destinatário</TableHead>
-                                                      <TableHead className="text-xs font-semibold">Rota</TableHead>
+                                                      <TableHead className="text-xs font-semibold">Motorista</TableHead>
+                                                      <TableHead className="text-xs font-semibold">Veículo</TableHead>
                                                       <TableHead className="text-xs font-semibold text-right">Peso</TableHead>
-                                                      <TableHead className="text-xs font-semibold">Status</TableHead>
+                                                      <TableHead className="text-xs font-semibold text-right">Frete</TableHead>
                                                       <TableHead className="text-xs font-semibold">N° CT-e</TableHead>
-                                                      <TableHead className="text-xs font-semibold">
-                                                        <div className="flex items-center gap-1">
-                                                          <FileText className="w-3 h-3" />
-                                                          Docs
-                                                        </div>
-                                                      </TableHead>
-                                                      <TableHead className="text-xs font-semibold">Previsão</TableHead>
+                                                      <TableHead className="text-xs font-semibold">Status</TableHead>
+                                                      <TableHead className="text-xs font-semibold">Docs</TableHead>
                                                       <TableHead className="text-xs font-semibold w-10">Chat</TableHead>
                                                       <TableHead className="text-xs font-semibold w-10"></TableHead>
                                                     </TableRow>
                                                   </TableHeader>
                                                   <TableBody>
-                                                    {group.entregas.map(entrega => renderNestedEntregaRow(entrega))}
+                                                    {group.entregas.map((entrega, idx) => renderEntregaRow(entrega, idx))}
                                                   </TableBody>
                                                 </Table>
                                                 <ScrollBar orientation="horizontal" />
@@ -1940,15 +1593,17 @@ export default function GestaoEntregas() {
                         </Table>
                       </div>
                     </CardContent>
-                  </Card>
-                </div>
+                  )}
+                </Card>
               </div>
             </>
           )}
-        </div>
+        </TooltipProvider>
+      </div>
 
-        {/* Mobile Layout */}
-        <div className="lg:hidden space-y-4">
+      {/* Mobile Layout */}
+      <div className="lg:hidden p-4 pb-20 space-y-4">
+        <TooltipProvider>
           {/* Mobile Header */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -1971,19 +1626,19 @@ export default function GestaoEntregas() {
 
             {/* Mobile Stats */}
             <div className="grid grid-cols-4 gap-2">
-              <div className="rounded-lg border border-chart-3/30 bg-chart-3/10 p-2 text-center">
-                <Clock className="w-3 h-3 mx-auto text-chart-3 mb-0.5" />
-                <p className="text-lg font-bold text-chart-3">{stats.aguardando}</p>
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-center">
+                <Clock className="w-3 h-3 mx-auto text-amber-600 mb-0.5" />
+                <p className="text-lg font-bold text-amber-600">{stats.aguardando}</p>
                 <p className="text-[8px] text-muted-foreground">Aguardando</p>
               </div>
-              <div className="rounded-lg border border-chart-1/30 bg-chart-1/10 p-2 text-center">
-                <Package className="w-3 h-3 mx-auto text-chart-1 mb-0.5" />
-                <p className="text-lg font-bold text-chart-1">{stats.saiu_para_coleta}</p>
+              <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 text-center">
+                <Package className="w-3 h-3 mx-auto text-blue-600 mb-0.5" />
+                <p className="text-lg font-bold text-blue-600">{stats.saiu_para_coleta}</p>
                 <p className="text-[8px] text-muted-foreground">Coleta</p>
               </div>
-              <div className="rounded-lg border border-chart-5/30 bg-chart-5/10 p-2 text-center">
-                <Truck className="w-3 h-3 mx-auto text-chart-5 mb-0.5" />
-                <p className="text-lg font-bold text-chart-5">{stats.saiu_para_entrega}</p>
+              <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-2 text-center">
+                <Truck className="w-3 h-3 mx-auto text-purple-600 mb-0.5" />
+                <p className="text-lg font-bold text-purple-600">{stats.saiu_para_entrega}</p>
                 <p className="text-[8px] text-muted-foreground">Entrega</p>
               </div>
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-center">
@@ -2005,8 +1660,51 @@ export default function GestaoEntregas() {
                   <SheetHeader>
                     <SheetTitle>Filtros</SheetTitle>
                   </SheetHeader>
-                  <div className="mt-6">
-                    <FiltersContent />
+                  <div className="mt-6 space-y-6">
+                    {/* Motorista Filter */}
+                    <div>
+                      <h4 className="font-medium text-sm text-foreground mb-3">Motoristas</h4>
+                      <div className="space-y-2">
+                        {motoristasFromEntregas.map((m) => (
+                          <div key={m.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`motorista-${m.id}`}
+                              checked={selectedMotoristaIds.includes(m.id)}
+                              onCheckedChange={() => handleMotoristaToggle(m.id)}
+                            />
+                            <Label htmlFor={`motorista-${m.id}`} className="text-sm font-normal cursor-pointer">
+                              {m.nome_completo}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Status Filter */}
+                    <div>
+                      <h4 className="font-medium text-sm text-foreground mb-3">Status da Entrega</h4>
+                      <div className="space-y-2">
+                        {allStatusFilters.map(status => (
+                          <div key={status.value} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`filter-mobile-${status.value}`}
+                              checked={selectedStatuses.includes(status.value)}
+                              onCheckedChange={() => handleStatusToggle(status.value)}
+                            />
+                            <Label htmlFor={`filter-mobile-${status.value}`} className="text-sm font-normal cursor-pointer">
+                              {status.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {(selectedStatuses.length > 0 || selectedMotoristaIds.length > 0) && (
+                      <Button variant="outline" size="sm" onClick={clearFilters} className="w-full gap-2">
+                        <X className="w-4 h-4" />
+                        Limpar filtros
+                      </Button>
+                    )}
                   </div>
                 </SheetContent>
               </Sheet>
@@ -2042,9 +1740,6 @@ export default function GestaoEntregas() {
                   />
                 </div>
               </Suspense>
-
-              {/* Mobile Driver Summary */}
-              {selectedMotoristaIds.length > 0 && <DriverSummaryCard />}
 
               {/* Mobile Cards List */}
               {filteredEntregas.length === 0 ? (
@@ -2089,24 +1784,20 @@ export default function GestaoEntregas() {
                                     <MoreHorizontal className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuContent align="end" className="w-52 bg-popover">
+                                  <DropdownMenuItem onClick={() => {
+                                    setSelectedEntregaForDetails(entrega);
+                                    setDetailsDialogOpen(true);
+                                  }}>
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Ver detalhes
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => {
                                     setChatEntregaId(entrega.id);
                                     setChatSheetOpen(true);
                                   }}>
                                     <MessageCircle className="w-4 h-4 mr-2" />
                                     Abrir chat
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => setSelectedEntregaId(entrega.id)}>
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    Ver no mapa
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => {
-                                    setSelectedEntregaForDetails(entrega);
-                                    setDetailsDialogOpen(true);
-                                  }}>
-                                    <FileText className="w-4 h-4 mr-2" />
-                                    Ver detalhes
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => {
                                     setEntregaForCte(entrega);
@@ -2122,7 +1813,7 @@ export default function GestaoEntregas() {
                                       Alterar status
                                     </DropdownMenuSubTrigger>
                                     <DropdownMenuPortal>
-                                      <DropdownMenuSubContent className="w-48">
+                                      <DropdownMenuSubContent className="w-48 bg-popover">
                                         {Object.entries(statusEntregaConfig).map(([statusKey, statusConfig]) => {
                                           const isCurrentStatus = entrega.status === statusKey;
                                           const StatusIconComponent = statusConfig.icon;
@@ -2135,9 +1826,6 @@ export default function GestaoEntregas() {
                                             >
                                               <StatusIconComponent className="w-4 h-4 mr-2" />
                                               {statusConfig.label}
-                                              {isCurrentStatus && (
-                                                <CheckCircle className="w-3 h-3 ml-auto text-primary" />
-                                              )}
                                             </DropdownMenuItem>
                                           );
                                         })}
@@ -2156,32 +1844,21 @@ export default function GestaoEntregas() {
                               </DropdownMenu>
                             </div>
                           </div>
-                          <p
-                            className="text-sm font-medium line-clamp-1 cursor-pointer"
-                            onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
-                          >
-                            {entrega.carga.descricao}
-                          </p>
-                          <div
-                            className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer"
-                            onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
-                          >
-                            <MapPin className="w-3 h-3 text-chart-1" />
-                            <span className="truncate">{entrega.carga.endereco_origem?.cidade}</span>
-                            <ArrowRight className="w-3 h-3" />
-                            <MapPin className="w-3 h-3 text-chart-2" />
-                            <span className="truncate">{entrega.carga.endereco_destino?.cidade}</span>
+                          <p className="text-xs text-muted-foreground truncate">{entrega.carga.descricao}</p>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span>{entrega.carga.endereco_origem?.cidade || '-'}</span>
+                            <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                            <span>{entrega.carga.endereco_destino?.cidade || '-'}</span>
                           </div>
                           {entrega.motorista && (
-                            <div
-                              className="flex items-center gap-2 text-xs pt-2 border-t border-border cursor-pointer"
-                              onClick={() => setSelectedEntregaId(selectedEntregaId === entrega.id ? null : entrega.id)}
-                            >
-                              <User className="w-3 h-3 text-primary" />
-                              <span className="truncate">{entrega.motorista.nome_completo}</span>
-                              {entrega.veiculo && (
-                                <span className="text-muted-foreground">• {entrega.veiculo.placa}</span>
-                              )}
+                            <div className="flex items-center gap-2 pt-1 border-t">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={entrega.motorista.foto_url || undefined} />
+                                <AvatarFallback className="text-[10px]">
+                                  {entrega.motorista.nome_completo.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-xs font-medium">{entrega.motorista.nome_completo}</span>
                             </div>
                           )}
                         </CardContent>
@@ -2192,149 +1869,96 @@ export default function GestaoEntregas() {
               )}
             </div>
           )}
-        </div>
-
-        {/* Details Dialog */}
-        <EntregaDetailsDialog
-          entrega={selectedEntregaForDetails}
-          open={detailsDialogOpen}
-          onOpenChange={setDetailsDialogOpen}
-        />
-
-        {/* Status Change Confirmation Dialog */}
-        <AlertDialog open={statusChangeDialogOpen} onOpenChange={setStatusChangeDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar alteração de status</AlertDialogTitle>
-              <AlertDialogDescription asChild>
-                <div>
-                  {pendingStatusChange && (
-                    <>
-                      {pendingStatusChange.type === 'single' ? (
-                        <p>
-                          Deseja alterar o status desta entrega para{' '}
-                          <strong className="text-foreground">
-                            "{statusEntregaConfig[pendingStatusChange.newStatus]?.label || pendingStatusChange.newStatus}"
-                          </strong>?
-                        </p>
-                      ) : (
-                        <p>
-                          Deseja alterar o status de{' '}
-                          <strong className="text-foreground">{pendingStatusChange.count} entregas</strong>
-                          {pendingStatusChange.motoristaName && (
-                            <> do motorista <strong className="text-foreground">{pendingStatusChange.motoristaName}</strong></>
-                          )}{' '}
-                          para{' '}
-                          <strong className="text-foreground">
-                            "{statusEntregaConfig[pendingStatusChange.newStatus]?.label || pendingStatusChange.newStatus}"
-                          </strong>?
-                        </p>
-                      )}
-
-                      {pendingStatusChange.newStatus === 'saiu_para_coleta' && (
-                        <p className="mt-3 text-sm">
-                          A data/hora de coleta será registrada automaticamente.
-                        </p>
-                      )}
-                      {pendingStatusChange.newStatus === 'entregue' && (
-                        <p className="mt-3 text-sm">
-                          A data/hora de entrega será registrada automaticamente.
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={updateStatus.isPending || updateBulkStatus.isPending}>
-                Cancelar
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmStatusChange}
-                disabled={updateStatus.isPending || updateBulkStatus.isPending}
-              >
-                {(updateStatus.isPending || updateBulkStatus.isPending) ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Alterando...
-                  </>
-                ) : (
-                  'Confirmar'
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Excluir entrega?</AlertDialogTitle>
-              <AlertDialogDescription>
-                {entregaToDelete && (
-                  <>
-                    Tem certeza que deseja excluir a entrega da carga <strong>{entregaToDelete.carga.codigo}</strong>?
-                    <br /><br />
-                    Esta ação irá:
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>Liberar <strong>{(entregaToDelete.peso_alocado_kg || 0).toLocaleString('pt-BR')} kg</strong> de volta para a carga</li>
-                      <li>Remover a conversa associada a esta entrega</li>
-                      <li>Devolver a carga ao status "Disponível"</li>
-                    </ul>
-                    <br />
-                    Esta ação não pode ser desfeita.
-                  </>
-                )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleteEntrega.isPending}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmDelete}
-                disabled={deleteEntrega.isPending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleteEntrega.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Excluindo...
-                  </>
-                ) : (
-                  'Excluir'
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Anexar Documentos Dialog */}
-        {entregaForCte && (
-          <AnexarDocumentosDialog
-            open={anexarCteDialogOpen}
-            onOpenChange={setAnexarCteDialogOpen}
-            entrega={entregaForCte}
-          />
-        )}
-
-        {/* CT-e/Manifesto Preview */}
-        <FilePreviewDialog
-          open={ctePreviewOpen}
-          onOpenChange={setCtePreviewOpen}
-          fileUrl={ctePreviewUrl}
-          title="Visualizar Documento"
-        />
-
-        {/* Chat Sheet */}
-        <ChatSheet
-          open={chatSheetOpen}
-          onOpenChange={setChatSheetOpen}
-          entregaId={chatEntregaId}
-          userType="transportadora"
-          empresaId={empresa?.id}
-        />
+        </TooltipProvider>
       </div>
-    </TooltipProvider>
+
+      {/* Dialogs */}
+      <ChatSheet 
+        open={chatSheetOpen} 
+        onOpenChange={setChatSheetOpen} 
+        entregaId={chatEntregaId}
+        userType="transportadora"
+        empresaId={empresa?.id}
+      />
+
+      <EntregaDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        entrega={selectedEntregaForDetails}
+      />
+
+      {entregaForCte && (
+        <AnexarDocumentosDialog
+          open={anexarCteDialogOpen}
+          onOpenChange={setAnexarCteDialogOpen}
+          entrega={{
+            id: entregaForCte.id,
+            cte_url: entregaForCte.cte_url,
+            numero_cte: entregaForCte.numero_cte,
+            notas_fiscais_urls: entregaForCte.notas_fiscais_urls,
+            manifesto_url: entregaForCte.manifesto_url,
+            carga: {
+              codigo: entregaForCte.carga.codigo,
+            },
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['gestao_entregas_transportadora'] });
+            setAnexarCteDialogOpen(false);
+            setEntregaForCte(null);
+          }}
+        />
+      )}
+
+      <FilePreviewDialog
+        open={ctePreviewOpen}
+        onOpenChange={setCtePreviewOpen}
+        fileUrl={ctePreviewUrl}
+        title="CT-e"
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir entrega?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a entrega <strong>{entregaToDelete?.carga.codigo}</strong>?
+              O peso alocado será liberado na carga original.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={statusChangeDialogOpen} onOpenChange={setStatusChangeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterar status?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingStatusChange?.type === 'single' ? (
+                <>Deseja alterar o status da entrega para <strong>"{statusEntregaConfig[pendingStatusChange.newStatus]?.label}"</strong>?</>
+              ) : (
+                <>Deseja alterar o status de <strong>{pendingStatusChange?.count} entrega(s)</strong>{pendingStatusChange?.motoristaName ? ` de ${pendingStatusChange.motoristaName}` : ''} para <strong>"{statusEntregaConfig[pendingStatusChange?.newStatus || 'aguardando']?.label}"</strong>?</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusChange}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
