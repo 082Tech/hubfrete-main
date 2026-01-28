@@ -145,6 +145,7 @@ interface EntregasMapProps {
   selectedCargaId?: string | null;
   onSelectEntrega?: (entregaId: string | null) => void;
   onSelectCarga?: (cargaId: string | null) => void;
+  fullHeight?: boolean;
 }
 
 // Fetch route from OSRM
@@ -386,7 +387,8 @@ export function EntregasMap({
   selectedEntregaId, 
   selectedCargaId,
   onSelectEntrega,
-  onSelectCarga 
+  onSelectCarga,
+  fullHeight = false
 }: EntregasMapProps) {
   // Entregas with truck location
   const validEntregas = entregas.filter(e => e.latitude && e.longitude);
@@ -439,7 +441,7 @@ export function EntregasMap({
 
   if (!hasContent) {
     return (
-      <div className="w-full h-[360px] bg-muted/30 rounded-lg flex flex-col items-center justify-center text-center p-6">
+      <div className={`w-full ${fullHeight ? 'h-full' : 'h-[360px]'} bg-muted/30 rounded-lg flex flex-col items-center justify-center text-center p-6`}>
         <div className="p-4 bg-primary/10 rounded-full mb-4">
           <MapPin className="w-12 h-12 text-primary" />
         </div>
@@ -452,7 +454,7 @@ export function EntregasMap({
   }
 
   return (
-    <div className="relative z-0 w-full h-[500px] rounded-lg overflow-hidden border border-border">
+    <div className={`relative z-0 w-full ${fullHeight ? 'h-full' : 'h-[500px]'} rounded-lg overflow-hidden border border-border`}>
       <MapContainer
         center={center}
         zoom={defaultZoom}

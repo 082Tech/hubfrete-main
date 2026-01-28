@@ -201,6 +201,7 @@ export default function GestaoCargas() {
   const [selectedEntregaForDetails, setSelectedEntregaForDetails] = useState<{ entrega: EntregaData; carga: CargaCompleta } | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [tableExpanded, setTableExpanded] = useState(true);
   
   // Chat sheet state
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
@@ -918,244 +919,273 @@ export default function GestaoCargas() {
                   )}
                 </div>
 
-                {/* Right Column: Map + Table */}
-                <div className="flex-1 space-y-4 min-w-0">
-                  {/* Map */}
-                  <Suspense fallback={
-                    <Card className="border-border">
-                      <CardContent className="p-0">
-                        <div className="w-full h-[400px] flex items-center justify-center bg-muted/30 rounded-lg">
-                          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  }>
-                    <EntregasMap
-                      entregas={mapData}
-                      selectedEntregaId={selectedEntregaId}
-                      onSelectEntrega={setSelectedEntregaId}
-                    />
-                  </Suspense>
-
-                  {/* Table with carga grouping */}
-                  <Card className="border-border">
-                    <CardContent className="p-0">
-                      <div className="relative max-h-[500px] overflow-auto">
-                        <Table>
-                          <TableHeader className="sticky top-0 z-20">
-                            <TableRow className="bg-muted">
-                              <TableHead className="font-semibold w-8 bg-muted"></TableHead>
-                              <TableHead className="font-semibold min-w-[130px] bg-muted">Código</TableHead>
-                              <TableHead className="font-semibold min-w-[160px] bg-muted">
-                                <div className="flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
-                                  Remetente
-                                </div>
-                              </TableHead>
-                              <TableHead className="font-semibold min-w-[160px] bg-muted">
-                                <div className="flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
-                                  Destinatário
-                                </div>
-                              </TableHead>
-                              <TableHead className="font-semibold min-w-[90px] text-center bg-muted">Peso Total</TableHead>
-                              <TableHead className="font-semibold min-w-[100px] bg-muted">
-                                <div className="flex items-center gap-1">
-                                  <DollarSign className="w-3 h-3" />
-                                  Frete
-                                </div>
-                              </TableHead>
-                              <TableHead className="font-semibold min-w-[90px] text-center bg-muted">Entregas</TableHead>
-                              <TableHead className="font-semibold min-w-[100px] bg-muted">
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  Limite
-                                </div>
-                              </TableHead>
-                              <TableHead className="font-semibold w-10 bg-muted"></TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredCargas.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                                  Nenhuma entrega corresponde aos filtros selecionados
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              filteredCargas.map((carga) => {
-                                const isExpanded = expandedRows.has(carga.id);
-                                const origem = getEnderecoData(carga, 'origem');
-                                const destino = getEnderecoData(carga, 'destino');
-                                const totalPeso = getTotalPeso(carga);
-                                const totalFrete = getTotalFrete(carga);
-                                
-                                // Calculate status summary for badge display
-                                const statusCounts = carga.entregas.reduce((acc, e) => {
-                                  acc[e.status || 'aguardando'] = (acc[e.status || 'aguardando'] || 0) + 1;
-                                  return acc;
-                                }, {} as Record<string, number>);
-                                
-                                return (
-                                  <>
-                                    {/* Main Row - Carga */}
-                                    <TableRow 
-                                      key={carga.id}
-                                      className={`hover:bg-muted/50 cursor-pointer ${isExpanded ? 'bg-muted/30 border-l-2 border-l-primary' : ''}`}
-                                      onClick={() => toggleRow(carga.id)}
-                                    >
-                                      <TableCell className="p-2">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          className="h-6 w-6"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleRow(carga.id);
-                                          }}
-                                        >
-                                          {isExpanded ? (
-                                            <ChevronDown className="w-4 h-4 text-primary" />
-                                          ) : (
-                                            <ChevronRight className="w-4 h-4" />
-                                          )}
-                                        </Button>
-                                      </TableCell>
-                                      <TableCell>
-                                        <div>
-                                          <p className="font-medium text-primary text-nowrap">{carga.codigo}</p>
-                                          <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                                            {carga.descricao}
-                                          </p>
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <div className="cursor-help">
-                                              <div className="flex items-center gap-1">
-                                                <MapPin className="w-3 h-3 text-green-500 shrink-0" />
-                                                <p className="font-medium text-sm truncate max-w-[130px]">{origem.empresa}</p>
-                                              </div>
-                                              <p className="text-xs text-muted-foreground truncate max-w-[130px]">
-                                                {origem.cidade}
-                                              </p>
-                                            </div>
-                                          </TooltipTrigger>
-                                          <TooltipContent side="bottom" className="max-w-xs">
-                                            <p className="font-medium">{origem.empresa}</p>
-                                            <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TableCell>
-                                      <TableCell>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <div className="cursor-help">
-                                              <div className="flex items-center gap-1">
-                                                <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                                                <p className="font-medium text-sm truncate max-w-[130px]">{destino.empresa}</p>
-                                              </div>
-                                              <p className="text-xs text-muted-foreground truncate max-w-[130px]">
-                                                {destino.cidade}
-                                              </p>
-                                            </div>
-                                          </TooltipTrigger>
-                                          <TooltipContent side="bottom" className="max-w-xs">
-                                            <p className="font-medium">{destino.empresa}</p>
-                                            <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TableCell>
-                                      <TableCell className="text-center">
-                                        <span className="font-medium">{formatWeight(totalPeso)}</span>
-                                      </TableCell>
-                                      <TableCell>
-                                        <span className="font-medium text-green-600">
-                                          {formatCurrency(totalFrete)}
-                                        </span>
-                                      </TableCell>
-                                      <TableCell className="text-center">
-                                        <div className="flex flex-wrap gap-1 justify-center">
-                                          {Object.entries(statusCounts).map(([status, count]) => {
-                                            const config = statusEntregaConfig[status];
-                                            return (
-                                              <Badge key={status} variant="outline" className={`${config?.color || ''} text-[10px] px-1.5 py-0`}>
-                                                {count}
-                                              </Badge>
-                                            );
-                                          })}
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        <span className="text-sm">
-                                          {formatDate(carga.data_entrega_limite)}
-                                        </span>
-                                      </TableCell>
-                                      <TableCell>
-                                        <DropdownMenu>
-                                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                              <MoreHorizontal className="w-4 h-4" />
-                                            </Button>
-                                          </DropdownMenuTrigger>
-                                          <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={(e) => {
-                                              e.stopPropagation();
-                                              setDetailsCargaId(carga.id);
-                                            }}>
-                                              <Eye className="w-4 h-4 mr-2" />
-                                              Ver detalhes da carga
-                                            </DropdownMenuItem>
-                                          </DropdownMenuContent>
-                                        </DropdownMenu>
-                                      </TableCell>
-                                    </TableRow>
-
-                                    {/* Expanded Row - Entregas */}
-                                    {isExpanded && carga.entregas.length > 0 && (
-                                      <TableRow className="bg-muted/10 hover:bg-muted/10">
-                                        <TableCell colSpan={9} className="p-0">
-                                          <div className="px-8 py-4">
-                                            <div className="flex items-center gap-2 mb-3">
-                                              <Truck className="w-4 h-4 text-primary" />
-                                              <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
-                                              <span className="text-xs text-muted-foreground">• Clique em uma entrega para ver no mapa</span>
-                                            </div>
-                                            <div className="bg-background rounded-lg border overflow-hidden">
-                                              <Table>
-                                                <TableHeader>
-                                                  <TableRow className="bg-muted/30">
-                                                    <TableHead className="text-xs">Código</TableHead>
-                                                    <TableHead className="text-xs">Motorista</TableHead>
-                                                    <TableHead className="text-xs">Veículo</TableHead>
-                                                    <TableHead className="text-xs text-right">Peso</TableHead>
-                                                    <TableHead className="text-xs text-right">Frete</TableHead>
-                                                    <TableHead className="text-xs">N° CT-e</TableHead>
-                                                    <TableHead className="text-xs">Status</TableHead>
-                                                    <TableHead className="text-xs">Docs</TableHead>
-                                                    <TableHead className="text-xs">Chat</TableHead>
-                                                    <TableHead className="text-xs w-10"></TableHead>
-                                                  </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                  {carga.entregas.map((entrega, idx) => renderEntregaRow(entrega, carga, idx))}
-                                                </TableBody>
-                                              </Table>
-                                            </div>
-                                          </div>
-                                        </TableCell>
-                                      </TableRow>
-                                    )}
-                                  </>
-                                );
-                              })
-                            )}
-                          </TableBody>
-                        </Table>
+                {/* Right Column: Fullscreen Map with Floating Table */}
+                <div className="flex-1 min-w-0 relative" style={{ height: 'calc(100vh - 140px)' }}>
+                  {/* Fullscreen Map */}
+                  <div className="absolute inset-0 rounded-lg overflow-hidden">
+                    <Suspense fallback={
+                      <div className="w-full h-full flex items-center justify-center bg-muted/30">
+                        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                       </div>
-                    </CardContent>
-                  </Card>
+                    }>
+                      <EntregasMap
+                        entregas={mapData}
+                        selectedEntregaId={selectedEntregaId}
+                        onSelectEntrega={setSelectedEntregaId}
+                        fullHeight
+                      />
+                    </Suspense>
+                  </div>
+
+                  {/* Floating Table Panel */}
+                  <div className="absolute bottom-4 left-4 right-4 z-10">
+                    <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg">
+                      <CardHeader className="py-3 px-4 border-b">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Package className="w-4 h-4 text-primary" />
+                            <CardTitle className="text-sm">Cargas em Rota ({filteredCargas.length})</CardTitle>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2"
+                            onClick={() => setTableExpanded(!tableExpanded)}
+                          >
+                            {tableExpanded ? (
+                              <>
+                                <ChevronDown className="w-4 h-4 mr-1" />
+                                Minimizar
+                              </>
+                            ) : (
+                              <>
+                                <ChevronRight className="w-4 h-4 mr-1" />
+                                Expandir
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      {tableExpanded && (
+                        <CardContent className="p-0">
+                          <div className="relative max-h-[300px] overflow-auto">
+                            <Table>
+                              <TableHeader className="sticky top-0 z-20">
+                                <TableRow className="bg-muted">
+                                  <TableHead className="font-semibold w-8 bg-muted"></TableHead>
+                                  <TableHead className="font-semibold min-w-[130px] bg-muted">Código</TableHead>
+                                  <TableHead className="font-semibold min-w-[160px] bg-muted">
+                                    <div className="flex items-center gap-1">
+                                      <Building2 className="w-3 h-3" />
+                                      Remetente
+                                    </div>
+                                  </TableHead>
+                                  <TableHead className="font-semibold min-w-[160px] bg-muted">
+                                    <div className="flex items-center gap-1">
+                                      <Building2 className="w-3 h-3" />
+                                      Destinatário
+                                    </div>
+                                  </TableHead>
+                                  <TableHead className="font-semibold min-w-[90px] text-center bg-muted">Peso Total</TableHead>
+                                  <TableHead className="font-semibold min-w-[100px] bg-muted">
+                                    <div className="flex items-center gap-1">
+                                      <DollarSign className="w-3 h-3" />
+                                      Frete
+                                    </div>
+                                  </TableHead>
+                                  <TableHead className="font-semibold min-w-[90px] text-center bg-muted">Entregas</TableHead>
+                                  <TableHead className="font-semibold min-w-[100px] bg-muted">
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      Limite
+                                    </div>
+                                  </TableHead>
+                                  <TableHead className="font-semibold w-10 bg-muted"></TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {filteredCargas.length === 0 ? (
+                                  <TableRow>
+                                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                                      Nenhuma entrega corresponde aos filtros selecionados
+                                    </TableCell>
+                                  </TableRow>
+                                ) : (
+                                  filteredCargas.map((carga) => {
+                                    const isExpanded = expandedRows.has(carga.id);
+                                    const origem = getEnderecoData(carga, 'origem');
+                                    const destino = getEnderecoData(carga, 'destino');
+                                    const totalPeso = getTotalPeso(carga);
+                                    const totalFrete = getTotalFrete(carga);
+                                    
+                                    // Calculate status summary for badge display
+                                    const statusCounts = carga.entregas.reduce((acc, e) => {
+                                      acc[e.status || 'aguardando'] = (acc[e.status || 'aguardando'] || 0) + 1;
+                                      return acc;
+                                    }, {} as Record<string, number>);
+                                    
+                                    return (
+                                      <>
+                                        {/* Main Row - Carga */}
+                                        <TableRow 
+                                          key={carga.id}
+                                          className={`hover:bg-muted/50 cursor-pointer ${isExpanded ? 'bg-muted/30 border-l-2 border-l-primary' : ''}`}
+                                          onClick={() => toggleRow(carga.id)}
+                                        >
+                                          <TableCell className="p-2">
+                                            <Button 
+                                              variant="ghost" 
+                                              size="icon" 
+                                              className="h-6 w-6"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleRow(carga.id);
+                                              }}
+                                            >
+                                              {isExpanded ? (
+                                                <ChevronDown className="w-4 h-4 text-primary" />
+                                              ) : (
+                                                <ChevronRight className="w-4 h-4" />
+                                              )}
+                                            </Button>
+                                          </TableCell>
+                                          <TableCell>
+                                            <div>
+                                              <p className="font-medium text-primary text-nowrap">{carga.codigo}</p>
+                                              <p className="text-xs text-muted-foreground truncate max-w-[120px]">
+                                                {carga.descricao}
+                                              </p>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <div className="cursor-help">
+                                                  <div className="flex items-center gap-1">
+                                                    <MapPin className="w-3 h-3 text-green-500 shrink-0" />
+                                                    <p className="font-medium text-sm truncate max-w-[130px]">{origem.empresa}</p>
+                                                  </div>
+                                                  <p className="text-xs text-muted-foreground truncate max-w-[130px]">
+                                                    {origem.cidade}
+                                                  </p>
+                                                </div>
+                                              </TooltipTrigger>
+                                              <TooltipContent side="bottom" className="max-w-xs">
+                                                <p className="font-medium">{origem.empresa}</p>
+                                                <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </TableCell>
+                                          <TableCell>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <div className="cursor-help">
+                                                  <div className="flex items-center gap-1">
+                                                    <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                                                    <p className="font-medium text-sm truncate max-w-[130px]">{destino.empresa}</p>
+                                                  </div>
+                                                  <p className="text-xs text-muted-foreground truncate max-w-[130px]">
+                                                    {destino.cidade}
+                                                  </p>
+                                                </div>
+                                              </TooltipTrigger>
+                                              <TooltipContent side="bottom" className="max-w-xs">
+                                                <p className="font-medium">{destino.empresa}</p>
+                                                <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </TableCell>
+                                          <TableCell className="text-center">
+                                            <span className="font-medium">{formatWeight(totalPeso)}</span>
+                                          </TableCell>
+                                          <TableCell>
+                                            <span className="font-medium text-green-600">
+                                              {formatCurrency(totalFrete)}
+                                            </span>
+                                          </TableCell>
+                                          <TableCell className="text-center">
+                                            <div className="flex flex-wrap gap-1 justify-center">
+                                              {Object.entries(statusCounts).map(([status, count]) => {
+                                                const config = statusEntregaConfig[status];
+                                                return (
+                                                  <Badge key={status} variant="outline" className={`${config?.color || ''} text-[10px] px-1.5 py-0`}>
+                                                    {count}
+                                                  </Badge>
+                                                );
+                                              })}
+                                            </div>
+                                          </TableCell>
+                                          <TableCell>
+                                            <span className="text-sm">
+                                              {formatDate(carga.data_entrega_limite)}
+                                            </span>
+                                          </TableCell>
+                                          <TableCell>
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                  <MoreHorizontal className="w-4 h-4" />
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setDetailsCargaId(carga.id);
+                                                }}>
+                                                  <Eye className="w-4 h-4 mr-2" />
+                                                  Ver detalhes da carga
+                                                </DropdownMenuItem>
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
+                                          </TableCell>
+                                        </TableRow>
+
+                                        {/* Expanded Row - Entregas */}
+                                        {isExpanded && carga.entregas.length > 0 && (
+                                          <TableRow className="bg-muted/10 hover:bg-muted/10">
+                                            <TableCell colSpan={9} className="p-0">
+                                              <div className="px-8 py-4">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                  <Truck className="w-4 h-4 text-primary" />
+                                                  <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
+                                                  <span className="text-xs text-muted-foreground">• Clique em uma entrega para ver no mapa</span>
+                                                </div>
+                                                <div className="bg-background rounded-lg border overflow-hidden">
+                                                  <Table>
+                                                    <TableHeader>
+                                                      <TableRow className="bg-muted/30">
+                                                        <TableHead className="text-xs">Código</TableHead>
+                                                        <TableHead className="text-xs">Motorista</TableHead>
+                                                        <TableHead className="text-xs">Veículo</TableHead>
+                                                        <TableHead className="text-xs text-right">Peso</TableHead>
+                                                        <TableHead className="text-xs text-right">Frete</TableHead>
+                                                        <TableHead className="text-xs">N° CT-e</TableHead>
+                                                        <TableHead className="text-xs">Status</TableHead>
+                                                        <TableHead className="text-xs">Docs</TableHead>
+                                                        <TableHead className="text-xs">Chat</TableHead>
+                                                        <TableHead className="text-xs w-10"></TableHead>
+                                                      </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                      {carga.entregas.map((entrega, idx) => renderEntregaRow(entrega, carga, idx))}
+                                                    </TableBody>
+                                                  </Table>
+                                                </div>
+                                              </div>
+                                            </TableCell>
+                                          </TableRow>
+                                        )}
+                                      </>
+                                    );
+                                  })
+                                )}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </CardContent>
+                      )}
+                    </Card>
+                  </div>
                 </div>
               </div>
             </>
