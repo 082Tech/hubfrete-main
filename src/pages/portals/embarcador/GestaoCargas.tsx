@@ -757,37 +757,35 @@ export default function GestaoCargas() {
     <div className="relative">
       <TooltipProvider>
         {/* Desktop Layout - Fullscreen Map */}
-        <div className="hidden lg:block">
-        {/* Fullscreen Map Container */}
-        <div className="fixed inset-0 z-0" style={{ left: 'var(--sidebar-width, 16rem)' }}>
-          <Suspense fallback={
-            <div className="w-full h-full flex items-center justify-center bg-muted/30">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-          }>
-            <EntregasMap
-              entregas={mapData}
-              selectedEntregaId={selectedEntregaId}
-              onSelectEntrega={setSelectedEntregaId}
-              fullHeight
-            />
-          </Suspense>
-        </div>
+        <div className="hidden lg:block h-[100dvh] -m-8 relative">
+          {/* Fullscreen Map Container */}
+          <div className="absolute inset-0 z-0">
+            <Suspense fallback={
+              <div className="w-full h-full flex items-center justify-center bg-muted/30">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            }>
+              <EntregasMap
+                entregas={mapData}
+                selectedEntregaId={selectedEntregaId}
+                onSelectEntrega={setSelectedEntregaId}
+                fullHeight
+              />
+            </Suspense>
+          </div>
 
-        {/* Floating UI Elements */}
-        <div className="relative z-10 h-[100dvh] pointer-events-none">
           {/* Loading/Empty States */}
           {(isLoading || switchingFilial) ? (
-            <div className="flex items-center justify-center h-full pointer-events-auto">
-              <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg">
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+              <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg pointer-events-auto">
                 <CardContent className="p-8">
                   <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto" />
                 </CardContent>
               </Card>
             </div>
           ) : filteredCargas.length === 0 && cargas.length === 0 ? (
-            <div className="flex items-center justify-center h-full pointer-events-auto">
-              <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg max-w-sm">
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+              <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg max-w-sm pointer-events-auto">
                 <CardContent className="p-6 text-center">
                   <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
                   <h3 className="font-semibold text-foreground mb-1">Nenhuma entrega encontrada</h3>
@@ -800,14 +798,14 @@ export default function GestaoCargas() {
           ) : (
             <>
               {/* Floating Left Panel */}
-              <div className={`absolute top-4 left-4 transition-all duration-300 pointer-events-auto ${filtersCollapsed ? 'w-auto' : 'w-72'}`}>
+              <div className={`absolute top-4 left-4 z-20 transition-all duration-300 ${filtersCollapsed ? 'w-auto' : 'w-80'}`}>
                 {filtersCollapsed ? (
                   // Collapsed state - floating buttons
                   <div className="flex flex-col gap-2">
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="w-10 h-10 bg-background/95 backdrop-blur-sm shadow-lg hover:bg-background"
+                      className="w-10 h-10 bg-background/95 backdrop-blur-sm shadow-lg hover:bg-background border"
                       onClick={() => setFiltersCollapsed(false)}
                     >
                       <PanelLeft className="w-5 h-5" />
@@ -815,25 +813,24 @@ export default function GestaoCargas() {
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="w-10 h-10 bg-background/95 backdrop-blur-sm shadow-lg hover:bg-background"
+                      className="w-10 h-10 bg-background/95 backdrop-blur-sm shadow-lg hover:bg-background border"
                       onClick={() => refetch()}
                       disabled={isLoading || isFetching}
                     >
                       <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
                     </Button>
-                    <div className="bg-background/95 backdrop-blur-sm shadow-lg rounded-lg p-2">
+                    <div className="bg-background/95 backdrop-blur-sm shadow-lg rounded-lg p-2 border">
                       <LiveIndicator />
                     </div>
                   </div>
                 ) : (
                   // Expanded state - floating panel
-                  <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg">
-                    <CardContent className="p-4 space-y-4">
-                      {/* Header with collapse button */}
+                  <Card className="border bg-background/95 backdrop-blur-sm shadow-xl">
+                    <CardHeader className="pb-3 pt-4 px-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h1 className="text-lg font-bold text-foreground">Gestão de Entregas</h1>
-                          <p className="text-xs text-muted-foreground">Rastreie em tempo real</p>
+                          <CardTitle className="text-base">Gestão de Entregas</CardTitle>
+                          <p className="text-xs text-muted-foreground mt-0.5">Rastreie em tempo real</p>
                         </div>
                         <Button
                           variant="ghost"
@@ -844,11 +841,14 @@ export default function GestaoCargas() {
                           <PanelLeftClose className="w-4 h-4" />
                         </Button>
                       </div>
-                      
+                    </CardHeader>
+                    <CardContent className="px-4 pb-4 pt-0 space-y-4">
+                      {/* Actions Row */}
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="icon"
+                          className="h-8 w-8"
                           onClick={() => refetch()}
                           disabled={isLoading || isFetching}
                         >
@@ -862,41 +862,41 @@ export default function GestaoCargas() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           placeholder="Buscar código, motorista..."
-                          className="pl-10 bg-background"
+                          className="pl-9 h-9 bg-background/50"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
                       </div>
 
-                      {/* Stats Cards */}
+                      {/* Stats Cards - 2x2 grid */}
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-center">
-                          <Clock className="w-3 h-3 text-amber-600 mx-auto mb-1" />
-                          <p className="text-lg font-bold text-amber-600">{stats.aguardando}</p>
-                          <p className="text-[9px] text-muted-foreground">Aguardando</p>
+                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-center">
+                          <Clock className="w-3.5 h-3.5 text-amber-600 mx-auto mb-1" />
+                          <p className="text-xl font-bold text-amber-600">{stats.aguardando}</p>
+                          <p className="text-[10px] text-muted-foreground">Aguardando</p>
                         </div>
-                        <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 text-center">
-                          <Package className="w-3 h-3 text-blue-600 mx-auto mb-1" />
-                          <p className="text-lg font-bold text-blue-600">{stats.saiu_para_coleta}</p>
-                          <p className="text-[9px] text-muted-foreground">Coleta</p>
+                        <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2.5 text-center">
+                          <Package className="w-3.5 h-3.5 text-blue-600 mx-auto mb-1" />
+                          <p className="text-xl font-bold text-blue-600">{stats.saiu_para_coleta}</p>
+                          <p className="text-[10px] text-muted-foreground">Coleta</p>
                         </div>
-                        <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-2 text-center">
-                          <Truck className="w-3 h-3 text-purple-600 mx-auto mb-1" />
-                          <p className="text-lg font-bold text-purple-600">{stats.saiu_para_entrega}</p>
-                          <p className="text-[9px] text-muted-foreground">Entrega</p>
+                        <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-2.5 text-center">
+                          <Truck className="w-3.5 h-3.5 text-purple-600 mx-auto mb-1" />
+                          <p className="text-xl font-bold text-purple-600">{stats.saiu_para_entrega}</p>
+                          <p className="text-[10px] text-muted-foreground">Entrega</p>
                         </div>
-                        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-center">
-                          <AlertCircle className="w-3 h-3 text-destructive mx-auto mb-1" />
-                          <p className="text-lg font-bold text-destructive">{stats.problema}</p>
-                          <p className="text-[9px] text-muted-foreground">Problema</p>
+                        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-center">
+                          <AlertCircle className="w-3.5 h-3.5 text-destructive mx-auto mb-1" />
+                          <p className="text-xl font-bold text-destructive">{stats.problema}</p>
+                          <p className="text-[10px] text-muted-foreground">Problema</p>
                         </div>
                       </div>
 
                       {/* Frete Total */}
-                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-center">
-                        <DollarSign className="w-3 h-3 text-emerald-600 mx-auto mb-1" />
-                        <p className="text-base font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</p>
-                        <p className="text-[9px] text-muted-foreground">Frete Total</p>
+                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-center">
+                        <DollarSign className="w-4 h-4 text-emerald-600 mx-auto mb-1" />
+                        <p className="text-lg font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</p>
+                        <p className="text-[10px] text-muted-foreground">Frete Total</p>
                       </div>
 
                       {/* Filters */}
@@ -933,9 +933,9 @@ export default function GestaoCargas() {
               </div>
 
               {/* Floating Table Panel at Bottom */}
-              <div className="absolute bottom-4 left-4 right-4 z-10 pointer-events-auto">
-                <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg">
-                  <CardHeader className="py-3 px-4 border-b">
+              <div className={`absolute bottom-4 right-4 z-20 transition-all duration-300 ${filtersCollapsed ? 'left-4' : 'left-[21rem]'}`}>
+                <Card className="border bg-background/95 backdrop-blur-sm shadow-xl">
+                  <CardHeader className="py-2.5 px-4 border-b">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Package className="w-4 h-4 text-primary" />
@@ -944,7 +944,7 @@ export default function GestaoCargas() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2"
+                        className="h-7 px-2 text-xs"
                         onClick={() => setTableExpanded(!tableExpanded)}
                       >
                         {tableExpanded ? (
@@ -963,39 +963,39 @@ export default function GestaoCargas() {
                   </CardHeader>
                   {tableExpanded && (
                     <CardContent className="p-0">
-                      <div className="relative max-h-[280px] overflow-auto">
+                      <div className="relative max-h-[260px] overflow-auto">
                         <Table>
                           <TableHeader className="sticky top-0 z-20">
-                            <TableRow className="bg-muted">
-                              <TableHead className="font-semibold w-8 bg-muted"></TableHead>
-                              <TableHead className="font-semibold min-w-[130px] bg-muted">Código</TableHead>
-                              <TableHead className="font-semibold min-w-[160px] bg-muted">
+                            <TableRow className="bg-muted/80 backdrop-blur-sm">
+                              <TableHead className="font-semibold w-8 bg-muted/80"></TableHead>
+                              <TableHead className="font-semibold min-w-[130px] bg-muted/80">Código</TableHead>
+                              <TableHead className="font-semibold min-w-[160px] bg-muted/80">
                                 <div className="flex items-center gap-1">
                                   <Building2 className="w-3 h-3" />
                                   Remetente
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold min-w-[160px] bg-muted">
+                              <TableHead className="font-semibold min-w-[160px] bg-muted/80">
                                 <div className="flex items-center gap-1">
                                   <Building2 className="w-3 h-3" />
                                   Destinatário
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold min-w-[90px] text-center bg-muted">Peso Total</TableHead>
-                              <TableHead className="font-semibold min-w-[100px] bg-muted">
+                              <TableHead className="font-semibold min-w-[90px] text-center bg-muted/80">Peso Total</TableHead>
+                              <TableHead className="font-semibold min-w-[100px] bg-muted/80">
                                 <div className="flex items-center gap-1">
                                   <DollarSign className="w-3 h-3" />
                                   Frete
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold min-w-[90px] text-center bg-muted">Entregas</TableHead>
-                              <TableHead className="font-semibold min-w-[100px] bg-muted">
+                              <TableHead className="font-semibold min-w-[90px] text-center bg-muted/80">Entregas</TableHead>
+                              <TableHead className="font-semibold min-w-[100px] bg-muted/80">
                                 <div className="flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
                                   Limite
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold w-10 bg-muted"></TableHead>
+                              <TableHead className="font-semibold w-10 bg-muted/80"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1180,7 +1180,6 @@ export default function GestaoCargas() {
             </>
           )}
         </div>
-      </div>
 
         {/* Mobile Layout */}
         <div className="lg:hidden space-y-4">
