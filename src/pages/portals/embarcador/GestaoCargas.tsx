@@ -70,7 +70,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useSidebar } from '@/components/ui/sidebar';
+// Sidebar state is read from localStorage (same key as PortalLayoutWrapper)
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -754,9 +754,28 @@ export default function GestaoCargas() {
     );
   };
 
-  // Get sidebar state for responsive map
-  const { state: sidebarState } = useSidebar();
-  const isSidebarCollapsed = sidebarState === 'collapsed';
+  // Get sidebar state from localStorage (synced with PortalLayoutWrapper)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('hubfrete_sidebar_collapsed') === 'true';
+  });
+
+  // Listen for storage changes to sync sidebar state
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setIsSidebarCollapsed(localStorage.getItem('hubfrete_sidebar_collapsed') === 'true');
+    };
+    
+    // Listen for changes from other components
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also poll for local changes (since storage event doesn't fire for same-tab changes)
+    const interval = setInterval(handleStorageChange, 100);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div 
