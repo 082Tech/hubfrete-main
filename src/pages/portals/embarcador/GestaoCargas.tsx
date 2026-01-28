@@ -754,53 +754,52 @@ export default function GestaoCargas() {
   };
 
   return (
-    <div className="relative">
+    <div className="fixed inset-0 overflow-hidden" style={{ left: 'var(--sidebar-width, 16rem)' }}>
       <TooltipProvider>
-        {/* Desktop Layout - Fullscreen Map */}
-        <div className="hidden lg:block h-[100dvh] -m-8 relative">
-          {/* Fullscreen Map Container */}
-          <div className="absolute inset-0 z-0">
-            <Suspense fallback={
-              <div className="w-full h-full flex items-center justify-center bg-muted/30">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              </div>
-            }>
-              <EntregasMap
-                entregas={mapData}
-                selectedEntregaId={selectedEntregaId}
-                onSelectEntrega={setSelectedEntregaId}
-                fullHeight
-              />
-            </Suspense>
-          </div>
+        {/* Fullscreen Map Container */}
+        <div className="absolute inset-0 z-0">
+          <Suspense fallback={
+            <div className="w-full h-full flex items-center justify-center bg-muted/30">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          }>
+            <EntregasMap
+              entregas={mapData}
+              selectedEntregaId={selectedEntregaId}
+              onSelectEntrega={setSelectedEntregaId}
+              fullHeight
+            />
+          </Suspense>
+        </div>
 
-          {/* Loading/Empty States */}
-          {(isLoading || switchingFilial) ? (
-            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-              <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg pointer-events-auto">
-                <CardContent className="p-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto" />
-                </CardContent>
-              </Card>
-            </div>
-          ) : filteredCargas.length === 0 && cargas.length === 0 ? (
-            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-              <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg max-w-sm pointer-events-auto">
-                <CardContent className="p-6 text-center">
-                  <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                  <h3 className="font-semibold text-foreground mb-1">Nenhuma entrega encontrada</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Publique cargas para começar a receber entregas
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <>
-              {/* Floating Left Panel */}
-              <div className={`absolute top-4 left-4 z-20 transition-all duration-300 ${filtersCollapsed ? 'w-auto' : 'w-80'}`}>
+        {/* Loading/Empty States */}
+        {(isLoading || switchingFilial) ? (
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg pointer-events-auto">
+              <CardContent className="p-8">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto" />
+              </CardContent>
+            </Card>
+          </div>
+        ) : filteredCargas.length === 0 && cargas.length === 0 ? (
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg max-w-sm pointer-events-auto">
+              <CardContent className="p-6 text-center">
+                <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                <h3 className="font-semibold text-foreground mb-1">Nenhuma entrega encontrada</h3>
+                <p className="text-sm text-muted-foreground">
+                  Publique cargas para começar a receber entregas
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <>
+            {/* Desktop Layout */}
+            <div className="hidden lg:block">
+              {/* Floating Top Right Panel - Compact Control Panel */}
+              <div className={`absolute top-4 right-4 z-20 transition-all duration-300 ${filtersCollapsed ? 'w-auto' : 'w-72'}`}>
                 {filtersCollapsed ? (
-                  // Collapsed state - floating buttons
                   <div className="flex flex-col gap-2">
                     <Button
                       variant="secondary"
@@ -824,89 +823,92 @@ export default function GestaoCargas() {
                     </div>
                   </div>
                 ) : (
-                  // Expanded state - floating panel
                   <Card className="border bg-background/95 backdrop-blur-sm shadow-xl">
-                    <CardHeader className="pb-3 pt-4 px-4">
+                    <CardHeader className="pb-2 pt-3 px-3">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-base">Gestão de Entregas</CardTitle>
-                          <p className="text-xs text-muted-foreground mt-0.5">Rastreie em tempo real</p>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => refetch()}
+                            disabled={isLoading || isFetching}
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+                          </Button>
+                          <LiveIndicator />
                         </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-7 w-7"
                           onClick={() => setFiltersCollapsed(true)}
                         >
                           <PanelLeftClose className="w-4 h-4" />
                         </Button>
                       </div>
                     </CardHeader>
-                    <CardContent className="px-4 pb-4 pt-0 space-y-4">
-                      {/* Actions Row */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => refetch()}
-                          disabled={isLoading || isFetching}
-                        >
-                          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-                        </Button>
-                        <LiveIndicator />
-                      </div>
-
+                    <CardContent className="px-3 pb-3 pt-0 space-y-3">
                       {/* Search */}
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                         <Input
                           placeholder="Buscar código, motorista..."
-                          className="pl-9 h-9 bg-background/50"
+                          className="pl-8 h-8 text-xs bg-background/50"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
                       </div>
 
-                      {/* Stats Cards - 2x2 grid */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-center">
-                          <Clock className="w-3.5 h-3.5 text-amber-600 mx-auto mb-1" />
-                          <p className="text-xl font-bold text-amber-600">{stats.aguardando}</p>
-                          <p className="text-[10px] text-muted-foreground">Aguardando</p>
+                      {/* Stats Cards - Compact 2x2 grid */}
+                      <div className="grid grid-cols-4 gap-1.5">
+                        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-1.5 text-center">
+                          <p className="text-base font-bold text-amber-600">{stats.aguardando}</p>
+                          <p className="text-[9px] text-muted-foreground">Aguard.</p>
                         </div>
-                        <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2.5 text-center">
-                          <Package className="w-3.5 h-3.5 text-blue-600 mx-auto mb-1" />
-                          <p className="text-xl font-bold text-blue-600">{stats.saiu_para_coleta}</p>
-                          <p className="text-[10px] text-muted-foreground">Coleta</p>
+                        <div className="rounded-md border border-blue-500/30 bg-blue-500/10 p-1.5 text-center">
+                          <p className="text-base font-bold text-blue-600">{stats.saiu_para_coleta}</p>
+                          <p className="text-[9px] text-muted-foreground">Coleta</p>
                         </div>
-                        <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-2.5 text-center">
-                          <Truck className="w-3.5 h-3.5 text-purple-600 mx-auto mb-1" />
-                          <p className="text-xl font-bold text-purple-600">{stats.saiu_para_entrega}</p>
-                          <p className="text-[10px] text-muted-foreground">Entrega</p>
+                        <div className="rounded-md border border-purple-500/30 bg-purple-500/10 p-1.5 text-center">
+                          <p className="text-base font-bold text-purple-600">{stats.saiu_para_entrega}</p>
+                          <p className="text-[9px] text-muted-foreground">Entrega</p>
                         </div>
-                        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-center">
-                          <AlertCircle className="w-3.5 h-3.5 text-destructive mx-auto mb-1" />
-                          <p className="text-xl font-bold text-destructive">{stats.problema}</p>
-                          <p className="text-[10px] text-muted-foreground">Problema</p>
+                        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-1.5 text-center">
+                          <p className="text-base font-bold text-destructive">{stats.problema}</p>
+                          <p className="text-[9px] text-muted-foreground">Probl.</p>
                         </div>
                       </div>
 
-                      {/* Frete Total */}
-                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-center">
-                        <DollarSign className="w-4 h-4 text-emerald-600 mx-auto mb-1" />
-                        <p className="text-lg font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</p>
-                        <p className="text-[10px] text-muted-foreground">Frete Total</p>
+                      {/* Frete Total - Compact */}
+                      <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-center">
+                        <p className="text-sm font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</p>
+                        <p className="text-[9px] text-muted-foreground">Frete Total</p>
                       </div>
 
-                      {/* Filters */}
-                      <div className="border-t pt-3">
-                        <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                      {/* Filters - Collapsible */}
+                      <details className="group">
+                        <summary className="text-[10px] font-medium text-muted-foreground cursor-pointer flex items-center gap-1 hover:text-foreground">
                           <Filter className="w-3 h-3" />
                           Filtros
-                        </p>
-                        <FiltersContent />
-                      </div>
+                          <ChevronRight className="w-3 h-3 transition-transform group-open:rotate-90" />
+                        </summary>
+                        <div className="mt-2 space-y-1.5">
+                          {allStatusFilters.map(status => (
+                            <div key={status.value} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`filter-${status.value}`}
+                                checked={selectedStatuses.includes(status.value)}
+                                onCheckedChange={() => handleStatusToggle(status.value)}
+                                className="h-3.5 w-3.5"
+                              />
+                              <Label htmlFor={`filter-${status.value}`} className="text-xs font-normal cursor-pointer">
+                                {status.label}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
 
                       {/* Active Filters */}
                       {selectedStatuses.length > 0 && (
@@ -917,7 +919,7 @@ export default function GestaoCargas() {
                               <Badge
                                 key={status}
                                 variant="outline"
-                                className={`${config?.color || ''} cursor-pointer text-[10px]`}
+                                className={`${config?.color || ''} cursor-pointer text-[9px] px-1.5 py-0`}
                                 onClick={() => handleStatusToggle(status)}
                               >
                                 {config?.label || status}
@@ -932,10 +934,10 @@ export default function GestaoCargas() {
                 )}
               </div>
 
-              {/* Floating Table Panel at Bottom */}
-              <div className={`absolute bottom-4 right-4 z-20 transition-all duration-300 ${filtersCollapsed ? 'left-4' : 'left-[21rem]'}`}>
+              {/* Floating Table Panel at Bottom - Full Width */}
+              <div className="absolute bottom-4 left-4 right-4 z-20">
                 <Card className="border bg-background/95 backdrop-blur-sm shadow-xl">
-                  <CardHeader className="py-2.5 px-4 border-b">
+                  <CardHeader className="py-2 px-4 border-b">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Package className="w-4 h-4 text-primary" />
@@ -963,7 +965,7 @@ export default function GestaoCargas() {
                   </CardHeader>
                   {tableExpanded && (
                     <CardContent className="p-0">
-                      <div className="relative max-h-[260px] overflow-auto">
+                      <ScrollArea className="max-h-[220px]">
                         <Table>
                           <TableHeader className="sticky top-0 z-20">
                             <TableRow className="bg-muted/80 backdrop-blur-sm">
@@ -1001,7 +1003,7 @@ export default function GestaoCargas() {
                           <TableBody>
                             {filteredCargas.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                                <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                                   Nenhuma entrega corresponde aos filtros selecionados
                                 </TableCell>
                               </TableRow>
@@ -1062,7 +1064,7 @@ export default function GestaoCargas() {
                                               </p>
                                             </div>
                                           </TooltipTrigger>
-                                          <TooltipContent side="bottom" className="max-w-xs">
+                                          <TooltipContent side="top" className="max-w-xs">
                                             <p className="font-medium">{origem.empresa}</p>
                                             <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
                                           </TooltipContent>
@@ -1081,7 +1083,7 @@ export default function GestaoCargas() {
                                               </p>
                                             </div>
                                           </TooltipTrigger>
-                                          <TooltipContent side="bottom" className="max-w-xs">
+                                          <TooltipContent side="top" className="max-w-xs">
                                             <p className="font-medium">{destino.empresa}</p>
                                             <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
                                           </TooltipContent>
@@ -1135,8 +1137,8 @@ export default function GestaoCargas() {
                                     {isExpanded && carga.entregas.length > 0 && (
                                       <TableRow className="bg-muted/10 hover:bg-muted/10">
                                         <TableCell colSpan={9} className="p-0">
-                                          <div className="px-8 py-4">
-                                            <div className="flex items-center gap-2 mb-3">
+                                          <div className="px-6 py-3">
+                                            <div className="flex items-center gap-2 mb-2">
                                               <Truck className="w-4 h-4 text-primary" />
                                               <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
                                               <span className="text-xs text-muted-foreground">• Clique em uma entrega para ver no mapa</span>
@@ -1172,224 +1174,66 @@ export default function GestaoCargas() {
                             )}
                           </TableBody>
                         </Table>
-                      </div>
+                        <ScrollBar orientation="horizontal" />
+                      </ScrollArea>
                     </CardContent>
                   )}
                 </Card>
               </div>
-            </>
-          )}
-        </div>
-
-        {/* Mobile Layout */}
-        <div className="lg:hidden space-y-4">
-          {/* Mobile Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-bold text-foreground">Gestão de Entregas</h1>
-              <p className="text-xs text-muted-foreground">Acompanhe em tempo real</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => refetch()}
-                disabled={isLoading || switchingFilial}
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
-              <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Filter className="w-4 h-4" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-80">
-                  <SheetHeader>
-                    <SheetTitle>Filtros</SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-6">
-                    <FiltersContent />
+
+            {/* Mobile Layout */}
+            <div className="lg:hidden absolute inset-0 flex flex-col">
+              {/* Mobile Header */}
+              <div className="bg-background/95 backdrop-blur-sm border-b p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h1 className="text-lg font-bold text-foreground">Gestão de Entregas</h1>
+                    <p className="text-xs text-muted-foreground">Acompanhe em tempo real</p>
                   </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-          </div>
-
-          {/* Mobile Stats - Updated colors */}
-          <div className="grid grid-cols-4 gap-2">
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-center">
-              <p className="text-lg font-bold text-amber-600">{stats.aguardando}</p>
-              <p className="text-[9px] text-muted-foreground">Aguardando</p>
-            </div>
-            <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 text-center">
-              <p className="text-lg font-bold text-blue-600">{stats.saiu_para_coleta}</p>
-              <p className="text-[9px] text-muted-foreground">Coleta</p>
-            </div>
-            <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-2 text-center">
-              <p className="text-lg font-bold text-purple-600">{stats.saiu_para_entrega}</p>
-              <p className="text-[9px] text-muted-foreground">Entrega</p>
-            </div>
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-center">
-              <p className="text-lg font-bold text-destructive">{stats.problema}</p>
-              <p className="text-[9px] text-muted-foreground">Problema</p>
-            </div>
-          </div>
-
-          {/* Mobile Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* Mobile Map */}
-          <Suspense fallback={
-            <Card className="border-border">
-              <CardContent className="p-0">
-                <div className="w-full h-[300px] flex items-center justify-center bg-muted/30 rounded-lg">
-                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => refetch()}
+                      disabled={isLoading || isFetching}
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                    </Button>
+                    <LiveIndicator />
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          }>
-            <EntregasMap
-              entregas={mapData}
-              selectedEntregaId={selectedEntregaId}
-              onSelectEntrega={setSelectedEntregaId}
-            />
-          </Suspense>
+                {/* Mobile Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar código, motorista..."
+                    className="pl-9 h-9 bg-background"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          {/* Mobile Cards */}
-          {isLoading || switchingFilial ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              {/* Mobile Map Area */}
+              <div className="flex-1 relative">
+                <Suspense fallback={
+                  <div className="w-full h-full flex items-center justify-center bg-muted/30">
+                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                  </div>
+                }>
+                  <EntregasMap
+                    entregas={mapData}
+                    selectedEntregaId={selectedEntregaId}
+                    onSelectEntrega={setSelectedEntregaId}
+                    fullHeight
+                  />
+                </Suspense>
+              </div>
             </div>
-          ) : filteredCargas.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Package className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">Nenhuma entrega encontrada</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {filteredCargas.map((carga) => {
-                const origem = getEnderecoData(carga, 'origem');
-                const destino = getEnderecoData(carga, 'destino');
-                const isExpanded = expandedRows.has(carga.id);
-                
-                return (
-                  <Card 
-                    key={carga.id} 
-                    className={`${selectedEntregaId && carga.entregas.some(e => e.id === selectedEntregaId) ? 'ring-2 ring-primary' : ''}`}
-                  >
-                    <CardContent className="p-4">
-                      <div 
-                        className="flex items-start justify-between cursor-pointer"
-                        onClick={() => toggleRow(carga.id)}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            {isExpanded ? (
-                              <ChevronDown className="w-4 h-4 text-primary" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4" />
-                            )}
-                            <span className="font-medium text-primary">{carga.codigo}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {carga.entregas.length} {carga.entregas.length === 1 ? 'entrega' : 'entregas'}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{carga.descricao}</p>
-                          <div className="flex items-center gap-4 text-xs">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-green-500" />
-                              <span>{origem.cidade}</span>
-                            </div>
-                            <ArrowRight className="w-3 h-3" />
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-red-500" />
-                              <span>{destino.cidade}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDetailsCargaId(carga.id);
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </div>
-
-                      {/* Mobile Expanded Entregas */}
-                      {isExpanded && (
-                        <div className="mt-4 space-y-2 border-t pt-4">
-                          {carga.entregas.map((entrega, idx) => {
-                            const statusConfig = statusEntregaConfig[entrega.status || 'aguardando'];
-                            const isSelected = selectedEntregaId === entrega.id;
-                            
-                            return (
-                              <div 
-                                key={entrega.id}
-                                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer ${isSelected ? 'bg-primary/10 ring-1 ring-primary' : 'bg-muted/30'}`}
-                                onClick={() => setSelectedEntregaId(isSelected ? null : entrega.id)}
-                              >
-                                <div className="flex items-center gap-2 flex-1">
-                                  <Avatar className="h-6 w-6">
-                                    <AvatarImage src={entrega.motoristas?.foto_url || undefined} />
-                                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                                      {entrega.motoristas?.nome_completo?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?'}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-mono font-medium text-primary">
-                                      {entrega.codigo || `${carga.codigo}-E${String(idx + 1).padStart(2, '0')}`}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                      {entrega.motoristas?.nome_completo || 'Sem motorista'}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge className={`${statusConfig?.color || ''} text-[10px]`}>
-                                    {statusConfig?.label || entrega.status}
-                                  </Badge>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleOpenChat(entrega);
-                                    }}
-                                  >
-                                    <MessageCircle className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </TooltipProvider>
-
+          </>
+        )}
       {/* Dialogs */}
       {detailsCargaId && (() => {
         const cargaForDetails = cargas.find(c => c.id === detailsCargaId);
@@ -1478,7 +1322,6 @@ export default function GestaoCargas() {
               empresa: null,
             },
           }}
-          // Embarcador has view-only access to documents
         />
       )}
 
@@ -1490,6 +1333,7 @@ export default function GestaoCargas() {
         userType="embarcador"
         empresaId={empresa?.id}
       />
+      </TooltipProvider>
     </div>
   );
 }
