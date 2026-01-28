@@ -171,13 +171,35 @@ async function fetchRoute(
   return [[start.lat, start.lng], [end.lat, end.lng]];
 }
 
-// Component to fit bounds to markers
-function FitBounds({ entregas, selectedEntrega }: { entregas: EntregaMapData[]; selectedEntrega: EntregaMapData | null }) {
+// Component to fit bounds to markers - only triggers on selection change, not location updates
+function FitBounds({ 
+  entregas, 
+  selectedEntrega,
+  selectedId 
+}: { 
+  entregas: EntregaMapData[]; 
+  selectedEntrega: EntregaMapData | null;
+  selectedId: string | null;
+}) {
   const map = useMap();
+  const prevSelectedIdRef = useRef<string | null | undefined>(undefined);
+  const hasInitialFit = useRef(false);
   
   useEffect(() => {
+    // Only fit bounds when selection actually changes (ID change), not on location updates
+    const selectionChanged = prevSelectedIdRef.current !== selectedId;
+    
+    // Initial fit on mount (when no selection)
+    const needsInitialFit = !hasInitialFit.current && !selectedId && entregas.length > 0;
+    
+    if (!selectionChanged && !needsInitialFit) {
+      return;
+    }
+    
+    prevSelectedIdRef.current = selectedId;
+    
     if (selectedEntrega) {
-      // If there's a selected entrega, fit bounds to show the route
+      // Fit bounds to show the route when selecting a delivery
       const points: [number, number][] = [];
       
       if (selectedEntrega.latitude && selectedEntrega.longitude) {
@@ -196,16 +218,18 @@ function FitBounds({ entregas, selectedEntrega }: { entregas: EntregaMapData[]; 
       } else if (points.length === 1) {
         map.setView(points[0], 10);
       }
-    } else {
+    } else if (needsInitialFit || selectionChanged) {
+      // Only fit all entregas on initial load or when deselecting
       const validEntregas = entregas.filter(e => e.latitude && e.longitude);
       if (validEntregas.length > 0) {
         const bounds = L.latLngBounds(
           validEntregas.map(e => [e.latitude!, e.longitude!] as [number, number])
         );
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+        hasInitialFit.current = true;
       }
     }
-  }, [entregas, selectedEntrega, map]);
+  }, [selectedId, entregas.length, map]); // Only depend on selectedId, not the full objects
   
   return null;
 }
@@ -439,7 +463,7 @@ export function EntregasMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBounds entregas={validEntregas} selectedEntrega={selectedEntrega} />
+        <FitBounds entregas={validEntregas} selectedEntrega={selectedEntrega} selectedId={effectiveSelectedId} />
         
         {/* Tracking history points when entrega is selected */}
         {selectedEntrega && (
