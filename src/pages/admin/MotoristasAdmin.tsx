@@ -15,6 +15,7 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  Plus,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Pagination } from '@/components/admin/Pagination';
 import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
+import { MotoristaAdminFormDialog } from '@/components/admin/MotoristaAdminFormDialog';
 
 type Motorista = {
   id: string;
@@ -88,6 +90,7 @@ export default function MotoristasAdmin() {
   // Dialog states
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [selectedMotorista, setSelectedMotorista] = useState<Motorista | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -196,6 +199,10 @@ export default function MotoristasAdmin() {
           </h1>
           <p className="text-muted-foreground">Todos os motoristas cadastrados na plataforma</p>
         </div>
+        <Button onClick={() => { setSelectedMotorista(null); setFormDialogOpen(true); }}>
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Motorista
+        </Button>
       </div>
 
       {/* Stats */}
@@ -385,6 +392,13 @@ export default function MotoristasAdmin() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => {
                               setSelectedMotorista(motorista);
+                              setFormDialogOpen(true);
+                            }}>
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              setSelectedMotorista(motorista);
                               setDetailsDialogOpen(true);
                             }}>
                               <Eye className="w-4 h-4 mr-2" />
@@ -493,6 +507,14 @@ export default function MotoristasAdmin() {
         isDeleting={isDeleting}
         title="Excluir motorista?"
         description={`Tem certeza que deseja excluir o motorista "${selectedMotorista?.nome_completo}"? Esta ação não pode ser desfeita.`}
+      />
+
+      {/* Form Dialog */}
+      <MotoristaAdminFormDialog
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+        motorista={selectedMotorista}
+        onSuccess={fetchMotoristas}
       />
     </div>
   );
