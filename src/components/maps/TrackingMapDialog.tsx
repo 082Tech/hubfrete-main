@@ -1,10 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Route } from 'lucide-react';
 import { GoogleMapsLoader } from './GoogleMapsLoader';
 import { TrackingHistoryGoogleMarkers, TrackingHistoryLoadingOverlay, TrackingHistoryEmptyOverlay } from './TrackingHistoryGoogleMarkers';
-
 
 interface TrackingMapDialogProps {
   entregaId: string | null;
@@ -15,33 +14,48 @@ interface TrackingMapDialogProps {
 export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialogProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   
   // Use refs to avoid callback dependency issues
   const mapRef = useRef<google.maps.Map | null>(null);
   const pendingBoundsRef = useRef<google.maps.LatLngBounds | null>(null);
 
-  // Handle map load - apply pending bounds if available
-  const handleMapLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
-    
-    // If bounds were already received, apply them now
-    if (pendingBoundsRef.current) {
-      map.fitBounds(pendingBoundsRef.current, { top: 50, bottom: 50, left: 50, right: 50 });
+  // Reset state when dialog opens with new entregaId
+  useEffect(() => {
+    if (entregaId) {
+      setMapReady(false);
       pendingBoundsRef.current = null;
     }
+  }, [entregaId]);
+
+  // Apply pending bounds when map becomes ready
+  useEffect(() => {
+    if (mapReady && mapRef.current && pendingBoundsRef.current) {
+      mapRef.current.fitBounds(pendingBoundsRef.current, { top: 50, bottom: 50, left: 50, right: 50 });
+      pendingBoundsRef.current = null;
+    }
+  }, [mapReady]);
+
+  // Handle map load
+  const handleMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+    // Small delay to ensure map is fully initialized
+    setTimeout(() => setMapReady(true), 100);
   }, []);
 
   // Handle bounds ready - use ref to access map instance
   const handleBoundsReady = useCallback((bounds: google.maps.LatLngBounds | null) => {
     if (!bounds) return;
     
-    if (mapRef.current) {
+    // Store bounds
+    pendingBoundsRef.current = bounds;
+    
+    // If map is already ready, apply immediately
+    if (mapRef.current && mapReady) {
       mapRef.current.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
-    } else {
-      // Store bounds to apply when map loads
-      pendingBoundsRef.current = bounds;
+      pendingBoundsRef.current = null;
     }
-  }, []);
+  }, [mapReady]);
 
   const handleLoadingChange = useCallback((loading: boolean) => {
     setIsLoading(loading);
