@@ -448,6 +448,8 @@ export default function GestaoCargas() {
           id: e.id,
           entregaId: e.id,
           cargaId: c.id,
+          entregaCodigo: e.codigo,
+          cargaCodigo: c.codigo,
           latitude: localizacao?.latitude || null,
           longitude: localizacao?.longitude || null,
           status: e.status || null,
@@ -457,6 +459,10 @@ export default function GestaoCargas() {
           motoristaFotoUrl: e.motoristas?.foto_url || null,
           motoristaOnline: localizacao?.status ?? null,
           placa: e.veiculos?.placa || null,
+          veiculoTipo: e.veiculos?.tipo || null,
+          pesoAlocado: e.peso_alocado_kg || null,
+          valorFrete: e.valor_frete || null,
+          origem: origem ? `${origem.cidade}, ${origem.estado}` : null,
           destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
           origemCoords: origem?.latitude && origem?.longitude
             ? { lat: origem.latitude, lng: origem.longitude }
@@ -827,27 +833,102 @@ export default function GestaoCargas() {
           <>
             {/* Desktop Layout */}
             <div className="hidden lg:block">
-              {/* Selected Cargo Badge - positioned to the left of control panel */}
+              {/* Selected Delivery Card - positioned to the left of control panel */}
               {selectedEntregaId && (() => {
                 const selectedEntrega = mapData.find(e => e.entregaId === selectedEntregaId || e.id === selectedEntregaId);
                 if (!selectedEntrega) return null;
+                const statusConfig = statusEntregaConfig[selectedEntrega.status || 'aguardando'];
+                const StatusIcon = statusConfig?.icon || Package;
                 return (
                   <div className={`absolute top-4 z-30 transition-all duration-300 ${filtersCollapsed ? 'right-16' : 'right-[22rem]'}`}>
-                    <div className="bg-background border border-border rounded-lg px-3 py-2 shadow-xl flex items-center gap-2">
-                      <Route className="w-4 h-4 text-primary" />
-                      <div>
-                        <p className="text-sm font-medium">{selectedEntrega.codigo}</p>
-                        <p className="text-xs text-muted-foreground">Histórico de rastreamento</p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="ml-1 h-6 w-6 p-0"
-                        onClick={() => setSelectedEntregaId(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Card className="w-64 border shadow-xl bg-background">
+                      <CardHeader className="pb-2 pt-3 px-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-md ${statusConfig?.color?.split(' ')[0] || 'bg-muted'}`}>
+                              <StatusIcon className={`w-4 h-4 ${statusConfig?.color?.split(' ')[1] || 'text-muted-foreground'}`} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">{selectedEntrega.entregaCodigo || 'Entrega'}</p>
+                              <p className="text-[10px] text-muted-foreground">{selectedEntrega.cargaCodigo}</p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={() => setSelectedEntregaId(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="px-3 pb-3 pt-0 space-y-2">
+                        {/* Status Badge */}
+                        <Badge variant="outline" className={`text-[10px] ${statusConfig?.color || ''}`}>
+                          {statusConfig?.label || selectedEntrega.status}
+                        </Badge>
+                        
+                        {/* Route Info */}
+                        <div className="space-y-1.5">
+                          {selectedEntrega.origem && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                              <span className="text-muted-foreground truncate">{selectedEntrega.origem}</span>
+                            </div>
+                          )}
+                          {selectedEntrega.destino && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                              <span className="text-muted-foreground truncate">{selectedEntrega.destino}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Driver & Vehicle */}
+                        {(selectedEntrega.motorista || selectedEntrega.placa) && (
+                          <div className="pt-1.5 border-t flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              {selectedEntrega.motoristaFotoUrl ? (
+                                <AvatarImage src={selectedEntrega.motoristaFotoUrl} />
+                              ) : null}
+                              <AvatarFallback className="text-[10px]">
+                                {selectedEntrega.motorista?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'M'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate">{selectedEntrega.motorista || 'Motorista'}</p>
+                              {selectedEntrega.placa && (
+                                <p className="text-[10px] text-muted-foreground">{selectedEntrega.placa}</p>
+                              )}
+                            </div>
+                            {selectedEntrega.motoristaOnline !== null && (
+                              <div className={`w-2 h-2 rounded-full ${selectedEntrega.motoristaOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Weight & Freight */}
+                        {(selectedEntrega.pesoAlocado || selectedEntrega.valorFrete) && (
+                          <div className="grid grid-cols-2 gap-2 pt-1.5 border-t">
+                            {selectedEntrega.pesoAlocado && (
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Peso</p>
+                                <p className="text-xs font-medium">{(selectedEntrega.pesoAlocado / 1000).toFixed(1)}t</p>
+                              </div>
+                            )}
+                            {selectedEntrega.valorFrete && (
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Frete</p>
+                                <p className="text-xs font-medium text-green-600">
+                                  {selectedEntrega.valorFrete.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
                 );
               })()}
