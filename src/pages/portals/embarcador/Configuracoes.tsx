@@ -30,6 +30,7 @@ import {
   Users
 } from 'lucide-react';
 import { ContatosSettingsTab } from '@/components/contatos';
+import { ChangePasswordDialog } from '@/components/settings';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -123,6 +124,7 @@ export default function Configuracoes() {
     statusEntrega: true,
     relatorios: false,
   });
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -533,7 +535,7 @@ export default function Configuracoes() {
                     <p className="text-sm text-muted-foreground">Atualize sua senha de acesso</p>
                   </div>
                 </div>
-                <Button variant="outline">Alterar</Button>
+                <Button variant="outline" onClick={() => setChangePasswordOpen(true)}>Alterar</Button>
               </div>
               <div className="flex items-center justify-between p-4 rounded-lg border border-border">
                 <div className="flex items-center gap-3">
@@ -718,6 +720,12 @@ export default function Configuracoes() {
           </div>
         </div>
       </div>
+
+      {/* Change Password Dialog */}
+      <ChangePasswordDialog 
+        open={changePasswordOpen} 
+        onOpenChange={setChangePasswordOpen} 
+      />
     </div>
   );
 }
