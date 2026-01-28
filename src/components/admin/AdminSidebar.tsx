@@ -15,6 +15,7 @@ import {
   Building,
   User,
   FileText,
+  Package,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -89,6 +90,18 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       icon: Building,
       href: '/admin/empresas',
       roles: ['super_admin', 'admin'],
+    },
+    {
+      title: 'Cargas',
+      icon: Package,
+      href: '/admin/cargas',
+      roles: ['super_admin', 'admin', 'suporte'],
+    },
+    {
+      title: 'Entregas',
+      icon: Truck,
+      href: '/admin/entregas',
+      roles: ['super_admin', 'admin', 'suporte'],
     },
     {
       title: 'Motoristas',
