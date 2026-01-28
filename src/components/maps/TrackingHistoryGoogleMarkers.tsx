@@ -52,7 +52,6 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!entregaId) {
@@ -62,8 +61,9 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
       return;
     }
 
+    let isMounted = true;
+
     const fetchTrackingHistory = async () => {
-      setIsLoading(true);
       onLoadingChange?.(true);
       try {
         const { data, error } = await supabase
@@ -72,6 +72,7 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
           .eq('entrega_id', entregaId)
           .order('created_at', { ascending: true });
 
+        if (!isMounted) return;
         if (error) throw error;
         
         const validPoints: TrackingPoint[] = (data || [])
@@ -87,30 +88,35 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
         
         setTrackingPoints(validPoints);
         onEmptyChange?.(validPoints.length === 0);
+        onLoadingChange?.(false);
         
         // Calculate bounds and notify parent
-        if (onBoundsReady && validPoints.length > 0) {
+        if (validPoints.length > 0) {
           const bounds = new google.maps.LatLngBounds();
           validPoints.forEach(p => {
             bounds.extend({ lat: p.latitude, lng: p.longitude });
           });
-          onBoundsReady(bounds);
-        } else if (onBoundsReady) {
-          onBoundsReady(null);
+          onBoundsReady?.(bounds);
+        } else {
+          onBoundsReady?.(null);
         }
       } catch (error) {
+        if (!isMounted) return;
         console.error('Error fetching tracking history:', error);
         setTrackingPoints([]);
         onEmptyChange?.(true);
-        onBoundsReady?.(null);
-      } finally {
-        setIsLoading(false);
         onLoadingChange?.(false);
+        onBoundsReady?.(null);
       }
     };
 
     fetchTrackingHistory();
-  }, [entregaId, onBoundsReady, onLoadingChange, onEmptyChange]);
+
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entregaId]); // Only re-fetch when entregaId changes, callbacks are stable via useCallback in parent
 
   if (!entregaId || trackingPoints.length === 0) return null;
 
