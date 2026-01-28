@@ -499,9 +499,12 @@ export function EntregasMap({
             const isSelected = entregaKey === effectiveSelectedId;
             const isRecent = isRecentLocation(entrega.lastLocationUpdate);
             
+            // Include heading and online status in key to force icon recreation on updates
+            const headingKey = Math.round((entrega.heading ?? 0) / 5) * 5; // Round to 5-degree increments
+            
             return (
               <Marker
-                key={entrega.id}
+                key={`${entrega.id}-${headingKey}-${isRecent}`}
                 position={[entrega.latitude!, entrega.longitude!]}
                 icon={createTruckIcon(entrega.heading ?? 0, isRecent, isSelected)}
                 eventHandlers={{
