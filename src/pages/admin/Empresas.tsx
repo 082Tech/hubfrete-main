@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Users,
   User,
+  UserPlus,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -60,6 +62,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Pagination } from '@/components/admin/Pagination';
 import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
+import { FilialFormDialog } from '@/components/admin/FilialFormDialog';
+import { AddUserToCompanyDialog } from '@/components/admin/AddUserToCompanyDialog';
 
 type Usuario = {
   id: number;
@@ -123,6 +127,15 @@ export default function Empresas() {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Filial dialog states
+  const [filialDialogOpen, setFilialDialogOpen] = useState(false);
+  const [selectedFilial, setSelectedFilial] = useState<Filial | null>(null);
+  const [deleteFilialDialogOpen, setDeleteFilialDialogOpen] = useState(false);
+  const [isDeletingFilial, setIsDeletingFilial] = useState(false);
+  
+  // User dialog states
+  const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -335,6 +348,50 @@ export default function Empresas() {
       classe: 'COMÉRCIO',
     });
     setSelectedEmpresa(null);
+  };
+
+  const openFilialDialog = (empresa: Empresa, filial?: Filial) => {
+    setSelectedEmpresa(empresa);
+    setSelectedFilial(filial || null);
+    setFilialDialogOpen(true);
+  };
+
+  const openDeleteFilialDialog = (empresa: Empresa, filial: Filial) => {
+    setSelectedEmpresa(empresa);
+    setSelectedFilial(filial);
+    setDeleteFilialDialogOpen(true);
+  };
+
+  const handleDeleteFilial = async () => {
+    if (!selectedFilial) return;
+
+    setIsDeletingFilial(true);
+    try {
+      // First delete usuarios_filiais associations
+      await supabase.from('usuarios_filiais').delete().eq('filial_id', selectedFilial.id);
+      
+      const { error } = await supabase
+        .from('filiais')
+        .delete()
+        .eq('id', selectedFilial.id);
+
+      if (error) throw error;
+
+      toast.success('Filial excluída com sucesso!');
+      setDeleteFilialDialogOpen(false);
+      setSelectedFilial(null);
+      fetchEmpresas();
+    } catch (error: any) {
+      console.error('Erro ao excluir filial:', error);
+      toast.error(error.message || 'Erro ao excluir filial');
+    } finally {
+      setIsDeletingFilial(false);
+    }
+  };
+
+  const openAddUserDialog = (empresa: Empresa) => {
+    setSelectedEmpresa(empresa);
+    setAddUserDialogOpen(true);
   };
 
   const toggleExpanded = (empresaId: number) => {
@@ -644,6 +701,18 @@ export default function Empresas() {
                           <TableRow key={`${empresa.id}-expanded`} className="bg-muted/30 hover:bg-muted/30">
                             <TableCell colSpan={9} className="p-0">
                               <div className="p-4 space-y-4">
+                                {/* Action buttons for company */}
+                                <div className="flex gap-2 mb-4">
+                                  <Button size="sm" onClick={() => openFilialDialog(empresa)}>
+                                    <Plus className="w-4 h-4 mr-1" />
+                                    Nova Filial
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => openAddUserDialog(empresa)}>
+                                    <UserPlus className="w-4 h-4 mr-1" />
+                                    Adicionar Usuário
+                                  </Button>
+                                </div>
+
                                 {empresa.filiais.length === 0 ? (
                                   <p className="text-sm text-muted-foreground text-center py-4">
                                     Nenhuma filial cadastrada
@@ -681,10 +750,33 @@ export default function Empresas() {
                                               </p>
                                             </div>
                                           </div>
-                                          <Badge variant="outline" className="shrink-0">
-                                            <Users className="w-3 h-3 mr-1" />
-                                            {filial.usuarios.length} usuário{filial.usuarios.length !== 1 ? 's' : ''}
-                                          </Badge>
+                                          <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="shrink-0">
+                                              <Users className="w-3 h-3 mr-1" />
+                                              {filial.usuarios.length} usuário{filial.usuarios.length !== 1 ? 's' : ''}
+                                            </Badge>
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                  <MoreHorizontal className="w-4 h-4" />
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => openFilialDialog(empresa, filial)}>
+                                                  <Pencil className="w-4 h-4 mr-2" />
+                                                  Editar Filial
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem 
+                                                  className="text-destructive"
+                                                  onClick={() => openDeleteFilialDialog(empresa, filial)}
+                                                >
+                                                  <Trash2 className="w-4 h-4 mr-2" />
+                                                  Excluir Filial
+                                                </DropdownMenuItem>
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
+                                          </div>
                                         </div>
 
                                         {/* Users table */}
@@ -803,6 +895,41 @@ export default function Empresas() {
         title="Excluir empresa?"
         description={`Tem certeza que deseja excluir a empresa "${selectedEmpresa?.nome}"? Todas as filiais associadas também serão removidas.`}
       />
+
+      {/* Filial Form Dialog */}
+      {selectedEmpresa && (
+        <FilialFormDialog
+          open={filialDialogOpen}
+          onOpenChange={setFilialDialogOpen}
+          empresaId={selectedEmpresa.id}
+          empresaNome={selectedEmpresa.nome || ''}
+          filial={selectedFilial}
+          onSuccess={fetchEmpresas}
+        />
+      )}
+
+      {/* Delete Filial Confirmation */}
+      <DeleteConfirmDialog
+        open={deleteFilialDialogOpen}
+        onOpenChange={setDeleteFilialDialogOpen}
+        onConfirm={handleDeleteFilial}
+        isDeleting={isDeletingFilial}
+        title="Excluir filial?"
+        description={`Tem certeza que deseja excluir a filial "${selectedFilial?.nome}"? Todos os vínculos de usuários serão removidos.`}
+      />
+
+      {/* Add User to Company Dialog */}
+      {selectedEmpresa && (
+        <AddUserToCompanyDialog
+          open={addUserDialogOpen}
+          onOpenChange={setAddUserDialogOpen}
+          empresaId={selectedEmpresa.id}
+          empresaNome={selectedEmpresa.nome || ''}
+          empresaTipo={selectedEmpresa.tipo}
+          filiais={selectedEmpresa.filiais.map(f => ({ id: f.id, nome: f.nome }))}
+          onSuccess={fetchEmpresas}
+        />
+      )}
     </div>
   );
 }
