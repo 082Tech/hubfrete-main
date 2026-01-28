@@ -35,6 +35,7 @@ import { useTheme } from 'next-themes';
 import type { Tables } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
+import { ChangePasswordDialog } from '@/components/settings';
 
 type Filial = Tables<'filiais'>;
 
@@ -120,6 +121,7 @@ export default function Configuracoes() {
     statusEntrega: true,
     relatorios: false,
   });
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -517,7 +519,7 @@ export default function Configuracoes() {
                     <p className="text-sm text-muted-foreground">Atualize sua senha de acesso</p>
                   </div>
                 </div>
-                <Button variant="outline">Alterar</Button>
+                <Button variant="outline" onClick={() => setChangePasswordOpen(true)}>Alterar</Button>
               </div>
               <div className="flex items-center justify-between p-4 rounded-lg border border-border">
                 <div className="flex items-center gap-3">
@@ -702,6 +704,12 @@ export default function Configuracoes() {
           </div>
         </div>
       </div>
+
+      {/* Change Password Dialog */}
+      <ChangePasswordDialog 
+        open={changePasswordOpen} 
+        onOpenChange={setChangePasswordOpen} 
+      />
     </div>
   );
 }
