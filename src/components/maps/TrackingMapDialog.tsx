@@ -5,15 +5,6 @@ import { Route } from 'lucide-react';
 import { GoogleMapsLoader } from './GoogleMapsLoader';
 import { TrackingHistoryGoogleMarkers, TrackingHistoryLoadingOverlay, TrackingHistoryEmptyOverlay } from './TrackingHistoryGoogleMarkers';
 
-const airbnbMapStyles = [
-  { featureType: 'all', elementType: 'geometry.fill', stylers: [{ visibility: 'on' }] },
-  { featureType: 'water', elementType: 'geometry.fill', stylers: [{ color: '#a3ccff' }] },
-  { featureType: 'landscape', elementType: 'geometry.fill', stylers: [{ color: '#f5f5f5' }] },
-  { featureType: 'road', elementType: 'geometry.fill', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#e0e0e0' }] },
-  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-];
 
 interface TrackingMapDialogProps {
   entregaId: string | null;
@@ -83,7 +74,6 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
               center={{ lat: -23.55, lng: -46.63 }}
               zoom={10}
               options={{
-                styles: airbnbMapStyles,
                 disableDefaultUI: false,
                 zoomControl: true,
                 mapTypeControl: false,
