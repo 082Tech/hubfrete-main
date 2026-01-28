@@ -195,8 +195,8 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
                 id: f.id,
                 nome: f.nome,
                 cnpj: f.cnpj,
-                // ADMINs have access to all, others only to their assigned filiais
-                hasAccess: userCargo === 'ADMIN' || userAccessibleFilialIds.has(f.id),
+                // Access is based solely on explicit filial assignments
+                hasAccess: userAccessibleFilialIds.has(f.id),
               }));
             }
           }
