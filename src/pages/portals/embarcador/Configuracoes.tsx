@@ -26,8 +26,10 @@ import {
   Check,
   AlertCircle,
   Code,
-  Database
+  Database,
+  Users
 } from 'lucide-react';
+import { ContatosSettingsTab } from '@/components/contatos';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,7 +40,7 @@ import { cn } from '@/lib/utils';
 
 type Filial = Tables<'filiais'>;
 
-type TabId = 'perfil' | 'empresa' | 'notificacoes' | 'seguranca' | 'integracoes';
+type TabId = 'perfil' | 'empresa' | 'contatos' | 'notificacoes' | 'seguranca' | 'integracoes';
 
 interface Tab {
   id: TabId;
@@ -50,6 +52,7 @@ interface Tab {
 const tabs: Tab[] = [
   { id: 'perfil', label: 'Perfil', icon: User, description: 'Dados pessoais e aparência' },
   { id: 'empresa', label: 'Empresa', icon: Building2, description: 'Dados da empresa e filiais' },
+  { id: 'contatos', label: 'Contatos', icon: Users, description: 'Destinatários e remetentes' },
   { id: 'notificacoes', label: 'Notificações', icon: Bell, description: 'Alertas e canais' },
   { id: 'seguranca', label: 'Segurança', icon: Shield, description: 'Senha e autenticação' },
   { id: 'integracoes', label: 'Integrações', icon: Plug, description: 'ERPs e APIs externas' },
@@ -500,6 +503,15 @@ export default function Configuracoes() {
               </div>
             </CardContent>
           </Card>
+        );
+
+      case 'contatos':
+        return empresa?.id ? (
+          <ContatosSettingsTab empresaId={empresa.id} />
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            Carregando...
+          </div>
         );
 
       case 'seguranca':
