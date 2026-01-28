@@ -125,51 +125,42 @@ export default function UsuariosAdmin() {
       return;
     }
 
+    if (formData.senha.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
     setCreating(true);
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: formData.senha,
-        email_confirm: true,
-      });
+      // Get current session for auth header
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Sessão expirada. Faça login novamente.');
+        return;
+      }
 
-      if (authError) {
-        // Fallback: try to use regular signup
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.senha,
-        });
-
-        if (signUpError) throw signUpError;
-        
-        if (signUpData.user) {
-          // Create torre_user entry
-          const { error: insertError } = await supabase
-            .from('torre_users')
-            .insert({
-              user_id: signUpData.user.id,
-              email: formData.email,
-              nome: formData.nome,
-              role: formData.role,
-              ativo: true,
-            });
-
-          if (insertError) throw insertError;
-        }
-      } else if (authData.user) {
-        // Create torre_user entry
-        const { error: insertError } = await supabase
-          .from('torre_users')
-          .insert({
-            user_id: authData.user.id,
+      // Call edge function to create admin user
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-admin-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
             email: formData.email,
+            password: formData.senha,
             nome: formData.nome,
             role: formData.role,
-            ativo: true,
-          });
+          }),
+        }
+      );
 
-        if (insertError) throw insertError;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar usuário');
       }
 
       toast.success('Usuário admin criado com sucesso!');
