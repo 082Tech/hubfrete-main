@@ -754,7 +754,7 @@ export default function GestaoCargas() {
   };
 
   return (
-    <div className="fixed inset-0 overflow-hidden" style={{ left: 'var(--sidebar-width, 16rem)' }}>
+    <div className="fixed inset-0 overflow-hidden lg:left-[var(--sidebar-width,16rem)]">
       <TooltipProvider>
         {/* Fullscreen Map Container */}
         <div className="absolute inset-0 z-0">
@@ -775,7 +775,7 @@ export default function GestaoCargas() {
         {/* Loading/Empty States */}
         {(isLoading || switchingFilial) ? (
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-            <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg pointer-events-auto">
+            <Card className="border-border bg-background shadow-lg pointer-events-auto">
               <CardContent className="p-8">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto" />
               </CardContent>
@@ -783,7 +783,7 @@ export default function GestaoCargas() {
           </div>
         ) : filteredCargas.length === 0 && cargas.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-            <Card className="border-border bg-background/95 backdrop-blur-sm shadow-lg max-w-sm pointer-events-auto">
+            <Card className="border-border bg-background shadow-lg max-w-sm pointer-events-auto">
               <CardContent className="p-6 text-center">
                 <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
                 <h3 className="font-semibold text-foreground mb-1">Nenhuma entrega encontrada</h3>
@@ -798,13 +798,13 @@ export default function GestaoCargas() {
             {/* Desktop Layout */}
             <div className="hidden lg:block">
               {/* Floating Top Right Panel - Compact Control Panel */}
-              <div className={`absolute top-4 right-4 z-20 transition-all duration-300 ${filtersCollapsed ? 'w-auto' : 'w-72'}`}>
+              <div className={`absolute top-4 right-4 z-30 transition-all duration-300 ${filtersCollapsed ? 'w-auto' : 'w-72'}`}>
                 {filtersCollapsed ? (
                   <div className="flex flex-col gap-2">
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="w-10 h-10 bg-background/95 backdrop-blur-sm shadow-lg hover:bg-background border"
+                      className="w-10 h-10 bg-background shadow-lg hover:bg-muted border"
                       onClick={() => setFiltersCollapsed(false)}
                     >
                       <PanelLeft className="w-5 h-5" />
@@ -812,18 +812,18 @@ export default function GestaoCargas() {
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="w-10 h-10 bg-background/95 backdrop-blur-sm shadow-lg hover:bg-background border"
+                      className="w-10 h-10 bg-background shadow-lg hover:bg-muted border"
                       onClick={() => refetch()}
                       disabled={isLoading || isFetching}
                     >
                       <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
                     </Button>
-                    <div className="bg-background/95 backdrop-blur-sm shadow-lg rounded-lg p-2 border">
+                    <div className="bg-background shadow-lg rounded-lg p-2 border">
                       <LiveIndicator />
                     </div>
                   </div>
                 ) : (
-                  <Card className="border bg-background/95 backdrop-blur-sm shadow-xl">
+                  <Card className="border bg-background shadow-xl">
                     <CardHeader className="pb-2 pt-3 px-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -854,36 +854,10 @@ export default function GestaoCargas() {
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                         <Input
                           placeholder="Buscar código, motorista..."
-                          className="pl-8 h-8 text-xs bg-background/50"
+                          className="pl-8 h-8 text-xs bg-background"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                      </div>
-
-                      {/* Stats Cards - Compact 2x2 grid */}
-                      <div className="grid grid-cols-4 gap-1.5">
-                        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-1.5 text-center">
-                          <p className="text-base font-bold text-amber-600">{stats.aguardando}</p>
-                          <p className="text-[9px] text-muted-foreground">Aguard.</p>
-                        </div>
-                        <div className="rounded-md border border-blue-500/30 bg-blue-500/10 p-1.5 text-center">
-                          <p className="text-base font-bold text-blue-600">{stats.saiu_para_coleta}</p>
-                          <p className="text-[9px] text-muted-foreground">Coleta</p>
-                        </div>
-                        <div className="rounded-md border border-purple-500/30 bg-purple-500/10 p-1.5 text-center">
-                          <p className="text-base font-bold text-purple-600">{stats.saiu_para_entrega}</p>
-                          <p className="text-[9px] text-muted-foreground">Entrega</p>
-                        </div>
-                        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-1.5 text-center">
-                          <p className="text-base font-bold text-destructive">{stats.problema}</p>
-                          <p className="text-[9px] text-muted-foreground">Probl.</p>
-                        </div>
-                      </div>
-
-                      {/* Frete Total - Compact */}
-                      <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-center">
-                        <p className="text-sm font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</p>
-                        <p className="text-[9px] text-muted-foreground">Frete Total</p>
                       </div>
 
                       {/* Filters - Collapsible */}
@@ -934,15 +908,43 @@ export default function GestaoCargas() {
                 )}
               </div>
 
-              {/* Floating Table Panel at Bottom - Full Width */}
+              {/* Floating Table Panel at Bottom - Full Width with Status Cards */}
               <div className="absolute bottom-4 left-4 right-4 z-20">
-                <Card className="border bg-background/95 backdrop-blur-sm shadow-xl">
-                  <CardHeader className="py-2 px-4 border-b">
-                    <div className="flex items-center justify-between">
+                <Card className="border bg-background shadow-xl">
+                  {/* Header with Status Cards */}
+                  <CardHeader className="py-3 px-4 border-b">
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Left: Title */}
                       <div className="flex items-center gap-2">
                         <Package className="w-4 h-4 text-primary" />
                         <CardTitle className="text-sm">Cargas em Rota ({filteredCargas.length})</CardTitle>
                       </div>
+                      
+                      {/* Center: Stats Cards - Compact inline */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1">
+                          <Clock className="w-3 h-3 text-amber-600" />
+                          <span className="text-sm font-bold text-amber-600">{stats.aguardando}</span>
+                        </div>
+                        <div className="flex items-center gap-1 rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-1">
+                          <Package className="w-3 h-3 text-blue-600" />
+                          <span className="text-sm font-bold text-blue-600">{stats.saiu_para_coleta}</span>
+                        </div>
+                        <div className="flex items-center gap-1 rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-1">
+                          <Truck className="w-3 h-3 text-purple-600" />
+                          <span className="text-sm font-bold text-purple-600">{stats.saiu_para_entrega}</span>
+                        </div>
+                        <div className="flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1">
+                          <AlertCircle className="w-3 h-3 text-destructive" />
+                          <span className="text-sm font-bold text-destructive">{stats.problema}</span>
+                        </div>
+                        <div className="flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1">
+                          <DollarSign className="w-3 h-3 text-emerald-600" />
+                          <span className="text-sm font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Right: Minimize button */}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -965,39 +967,39 @@ export default function GestaoCargas() {
                   </CardHeader>
                   {tableExpanded && (
                     <CardContent className="p-0">
-                      <ScrollArea className="max-h-[220px]">
+                      <div className="max-h-[200px] overflow-y-auto">
                         <Table>
-                          <TableHeader className="sticky top-0 z-20">
-                            <TableRow className="bg-muted/80 backdrop-blur-sm">
-                              <TableHead className="font-semibold w-8 bg-muted/80"></TableHead>
-                              <TableHead className="font-semibold min-w-[130px] bg-muted/80">Código</TableHead>
-                              <TableHead className="font-semibold min-w-[160px] bg-muted/80">
+                          <TableHeader className="sticky top-0 z-10 bg-muted">
+                            <TableRow>
+                              <TableHead className="font-semibold w-8"></TableHead>
+                              <TableHead className="font-semibold min-w-[130px]">Código</TableHead>
+                              <TableHead className="font-semibold min-w-[160px]">
                                 <div className="flex items-center gap-1">
                                   <Building2 className="w-3 h-3" />
                                   Remetente
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold min-w-[160px] bg-muted/80">
+                              <TableHead className="font-semibold min-w-[160px]">
                                 <div className="flex items-center gap-1">
                                   <Building2 className="w-3 h-3" />
                                   Destinatário
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold min-w-[90px] text-center bg-muted/80">Peso Total</TableHead>
-                              <TableHead className="font-semibold min-w-[100px] bg-muted/80">
+                              <TableHead className="font-semibold min-w-[90px] text-center">Peso Total</TableHead>
+                              <TableHead className="font-semibold min-w-[100px]">
                                 <div className="flex items-center gap-1">
                                   <DollarSign className="w-3 h-3" />
                                   Frete
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold min-w-[90px] text-center bg-muted/80">Entregas</TableHead>
-                              <TableHead className="font-semibold min-w-[100px] bg-muted/80">
+                              <TableHead className="font-semibold min-w-[90px] text-center">Entregas</TableHead>
+                              <TableHead className="font-semibold min-w-[100px]">
                                 <div className="flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
                                   Limite
                                 </div>
                               </TableHead>
-                              <TableHead className="font-semibold w-10 bg-muted/80"></TableHead>
+                              <TableHead className="font-semibold w-10"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1174,8 +1176,7 @@ export default function GestaoCargas() {
                             )}
                           </TableBody>
                         </Table>
-                        <ScrollBar orientation="horizontal" />
-                      </ScrollArea>
+                      </div>
                     </CardContent>
                   )}
                 </Card>
