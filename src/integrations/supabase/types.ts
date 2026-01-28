@@ -1236,7 +1236,6 @@ export type Database = {
         Row: {
           bussola_pos: number | null
           email_motorista: string | null
-          heading: number | null
           historico_url: string | null
           id: number
           latitude: number | null
@@ -1249,7 +1248,6 @@ export type Database = {
         Insert: {
           bussola_pos?: number | null
           email_motorista?: string | null
-          heading?: number | null
           historico_url?: string | null
           id?: number
           latitude?: number | null
@@ -1262,7 +1260,6 @@ export type Database = {
         Update: {
           bussola_pos?: number | null
           email_motorista?: string | null
-          heading?: number | null
           historico_url?: string | null
           id?: number
           latitude?: number | null

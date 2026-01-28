@@ -20,7 +20,8 @@ export function TruckIcon({
   size = 48,
   className = ''
 }: TruckIconProps) {
-  const rotation = heading ?? 0;
+  // The SVG truck is drawn facing DOWN, so add 180° to align with compass (0° = North/up)
+  const rotation = ((heading ?? 0) + 180) % 360;
   const uniqueId = React.useId();
   
   // Wi-Fi indicator colors
@@ -126,6 +127,8 @@ export function getTruckIconHtml(
   size: number = 48
 ): string {
   const wifiColor = isOnline ? '#22c55e' : '#ef4444';
+  // The SVG truck is drawn facing DOWN, so add 180° to align with compass (0° = North/up)
+  const rotation = ((heading ?? 0) + 180) % 360;
   // Generate unique ID for gradient to avoid SVG ID collisions in Leaflet
   const uniqueId = `shadow-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -157,7 +160,7 @@ export function getTruckIconHtml(
       <div style="
         width: ${size}px;
         height: ${size}px;
-        transform: rotate(${heading}deg);
+        transform: rotate(${rotation}deg);
         transition: transform 0.5s ease-out;
         will-change: transform;
       ">
