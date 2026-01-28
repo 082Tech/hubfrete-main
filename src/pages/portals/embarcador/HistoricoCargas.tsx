@@ -147,6 +147,11 @@ interface CargaData {
   data_coleta_ate: string | null;
   data_entrega_limite: string | null;
   created_at: string;
+  // Remetente fields
+  remetente_razao_social: string | null;
+  remetente_nome_fantasia: string | null;
+  remetente_cnpj: string | null;
+  // Destinatario fields
   destinatario_razao_social: string | null;
   destinatario_nome_fantasia: string | null;
   destinatario_cnpj: string | null;
@@ -275,6 +280,9 @@ export default function HistoricoCargas() {
           data_coleta_ate,
           data_entrega_limite,
           created_at,
+          remetente_razao_social,
+          remetente_nome_fantasia,
+          remetente_cnpj,
           destinatario_razao_social,
           destinatario_nome_fantasia,
           destinatario_cnpj,
@@ -480,12 +488,12 @@ export default function HistoricoCargas() {
     ].filter(Boolean).join(', ');
     
     let empresa: string;
-    if (tipo === 'destino' && carga.destinatario_nome_fantasia) {
-      empresa = carga.destinatario_nome_fantasia;
-    } else if (tipo === 'destino' && carga.destinatario_razao_social) {
-      empresa = carga.destinatario_razao_social;
+    if (tipo === 'origem') {
+      // Use remetente fields for origin
+      empresa = carga.remetente_nome_fantasia || carga.remetente_razao_social || endereco.contato_nome || 'Remetente';
     } else {
-      empresa = endereco.contato_nome || (tipo === 'origem' ? (filialAtiva?.nome || 'Remetente') : 'Destinatário');
+      // Use destinatario fields for destination
+      empresa = carga.destinatario_nome_fantasia || carga.destinatario_razao_social || endereco.contato_nome || 'Destinatário';
     }
     
     return { empresa, cidade: `${endereco.cidade}/${endereco.estado}`, enderecoCompleto };

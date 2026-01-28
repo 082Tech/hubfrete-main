@@ -242,6 +242,12 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
             tipos_veiculo: veiculosSelecionados,
             tipos_carroceria: carroceriasSelecionadas,
           },
+          // Remetente fields from origemData
+          remetente_razao_social: origemData.razao_social || null,
+          remetente_nome_fantasia: origemData.razao_social || null,
+          remetente_cnpj: origemData.cnpj || null,
+          remetente_contato_nome: origemData.contato_nome || null,
+          remetente_contato_telefone: origemData.contato_telefone || null,
           // Destinatário fields from destinoData
           destinatario_razao_social: destinoData.razao_social || null,
           destinatario_nome_fantasia: destinoData.razao_social || null, // Use razao_social as fallback

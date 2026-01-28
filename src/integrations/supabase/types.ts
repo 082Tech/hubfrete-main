@@ -131,6 +131,11 @@ export type Database = {
           quantidade: number | null
           quantidade_paletes: number | null
           regras_carregamento: string | null
+          remetente_cnpj: string | null
+          remetente_contato_nome: string | null
+          remetente_contato_telefone: string | null
+          remetente_nome_fantasia: string | null
+          remetente_razao_social: string | null
           requer_refrigeracao: boolean | null
           status: Database["public"]["Enums"]["status_carga"] | null
           temperatura_max: number | null
@@ -178,6 +183,11 @@ export type Database = {
           quantidade?: number | null
           quantidade_paletes?: number | null
           regras_carregamento?: string | null
+          remetente_cnpj?: string | null
+          remetente_contato_nome?: string | null
+          remetente_contato_telefone?: string | null
+          remetente_nome_fantasia?: string | null
+          remetente_razao_social?: string | null
           requer_refrigeracao?: boolean | null
           status?: Database["public"]["Enums"]["status_carga"] | null
           temperatura_max?: number | null
@@ -225,6 +235,11 @@ export type Database = {
           quantidade?: number | null
           quantidade_paletes?: number | null
           regras_carregamento?: string | null
+          remetente_cnpj?: string | null
+          remetente_contato_nome?: string | null
+          remetente_contato_telefone?: string | null
+          remetente_nome_fantasia?: string | null
+          remetente_razao_social?: string | null
           requer_refrigeracao?: boolean | null
           status?: Database["public"]["Enums"]["status_carga"] | null
           temperatura_max?: number | null
