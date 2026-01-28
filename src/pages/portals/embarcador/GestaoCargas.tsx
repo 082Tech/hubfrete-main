@@ -157,6 +157,9 @@ interface CargaCompleta {
   destinatario_razao_social: string | null;
   destinatario_nome_fantasia: string | null;
   destinatario_cnpj: string | null;
+  remetente_razao_social: string | null;
+  remetente_nome_fantasia: string | null;
+  remetente_cnpj: string | null;
   endereco_origem: EnderecoData | null;
   endereco_destino: EnderecoData | null;
   filiais: {
@@ -261,6 +264,9 @@ export default function GestaoCargas() {
           destinatario_razao_social,
           destinatario_nome_fantasia,
           destinatario_cnpj,
+          remetente_razao_social,
+          remetente_nome_fantasia,
+          remetente_cnpj,
           filiais (
             nome,
             cidade,
@@ -516,14 +522,12 @@ export default function GestaoCargas() {
     ].filter(Boolean).join(', ');
     
     let empresa: string;
-    if (tipo === 'destino' && carga.destinatario_nome_fantasia) {
-      empresa = carga.destinatario_nome_fantasia;
-    } else if (tipo === 'destino' && carga.destinatario_razao_social) {
-      empresa = carga.destinatario_razao_social;
-    } else if (tipo === 'origem') {
-      empresa = carga.filiais?.nome || endereco.contato_nome || 'Remetente';
+    if (tipo === 'origem') {
+      // Use remetente fields for origin
+      empresa = carga.remetente_nome_fantasia || carga.remetente_razao_social || carga.filiais?.nome || endereco.contato_nome || 'Remetente';
     } else {
-      empresa = endereco.contato_nome || 'Destinatário';
+      // Use destinatario fields for destination
+      empresa = carga.destinatario_nome_fantasia || carga.destinatario_razao_social || endereco.contato_nome || 'Destinatário';
     }
     
     return { empresa, cidade: `${endereco.cidade}/${endereco.estado}`, enderecoCompleto };
