@@ -767,7 +767,7 @@ export default function GestaoEntregas() {
           ? { lat: destino.latitude, lng: destino.longitude }
           : null,
         lastLocationUpdate: localizacao?.timestamp ?? null,
-        heading: localizacao?.heading ?? null,
+        heading: localizacao?.bussola_pos ?? null,
       });
     });
 
