@@ -1214,6 +1214,24 @@ export type Database = {
           },
         ]
       }
+      ia_chat: {
+        Row: {
+          id: number
+          message: Json
+          session_id: string
+        }
+        Insert: {
+          id?: number
+          message: Json
+          session_id: string
+        }
+        Update: {
+          id?: number
+          message?: Json
+          session_id?: string
+        }
+        Relationships: []
+      }
       localizações: {
         Row: {
           bussola_pos: number | null
