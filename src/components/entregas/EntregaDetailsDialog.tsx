@@ -181,7 +181,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
   const hasCanhoto = !!entrega.canhoto_url;
   
   const totalDocs = (hasCte ? 1 : 0) + (hasNfs ? entrega.notas_fiscais_urls!.length : 0) + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
-  const pendingDocs = (!hasCte ? 1 : 0) + (!hasManifesto ? 1 : 0);
+  const pendingDocs = (!hasCte ? 1 : 0) + (!hasNfs ? 1 : 0) + (!hasManifesto ? 1 : 0) + (!hasCanhoto ? 1 : 0);
 
   return (
     <>

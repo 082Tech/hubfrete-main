@@ -25,9 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { GoogleMapsLoader, airbnbMapStyles } from '@/components/maps/GoogleMapsLoader';
-import { GoogleMap } from '@react-google-maps/api';
-import { TrackingHistoryGoogleMarkers } from '@/components/maps/TrackingHistoryGoogleMarkers';
+import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 import type { Database } from '@/integrations/supabase/types';
 
 type StatusCarga = Database['public']['Enums']['status_carga'];
@@ -213,7 +211,6 @@ export default function HistoricoCargas() {
   const [highlightedEntregaId, setHighlightedEntregaId] = useState<string | null>(null);
   const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
   const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
-  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   
   // Date filters
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
@@ -1224,53 +1221,14 @@ export default function HistoricoCargas() {
         )}
 
         {/* Tracking History Map Dialog */}
-        <Dialog open={!!trackingMapEntregaId} onOpenChange={(open) => {
-          if (!open) {
+        <TrackingMapDialog 
+          entregaId={trackingMapEntregaId}
+          info={trackingMapInfo}
+          onClose={() => {
             setTrackingMapEntregaId(null);
             setTrackingMapInfo(null);
-          }
-        }}>
-          <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
-            <DialogHeader className="px-6 py-4 border-b">
-              <DialogTitle className="flex items-center gap-2">
-                <Route className="w-5 h-5 text-primary" />
-                Histórico de Rastreamento
-                {trackingMapInfo && (
-                  <span className="text-muted-foreground font-normal text-sm ml-2">
-                    {trackingMapInfo.motorista} • {trackingMapInfo.placa}
-                  </span>
-                )}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 relative">
-              <GoogleMapsLoader>
-                <GoogleMap
-                  mapContainerStyle={{ width: '100%', height: '100%' }}
-                  center={{ lat: -23.55, lng: -46.63 }}
-                  zoom={10}
-                  options={{
-                    styles: airbnbMapStyles,
-                    disableDefaultUI: false,
-                    zoomControl: true,
-                    mapTypeControl: false,
-                    streetViewControl: false,
-                    fullscreenControl: true,
-                  }}
-                  onLoad={(map) => setMapInstance(map)}
-                >
-                  <TrackingHistoryGoogleMarkers 
-                    entregaId={trackingMapEntregaId}
-                    onBoundsReady={(bounds) => {
-                      if (mapInstance && bounds) {
-                        mapInstance.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
-                      }
-                    }}
-                  />
-                </GoogleMap>
-              </GoogleMapsLoader>
-            </div>
-          </DialogContent>
-        </Dialog>
+          }}
+        />
       </TooltipProvider>
     </div>
   );
