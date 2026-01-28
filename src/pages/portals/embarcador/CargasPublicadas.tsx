@@ -171,16 +171,14 @@ interface CargaData {
   } | null;
 }
 
-// Status config for entregas
+// Status config for entregas (simplified status enum)
 const statusEntregaConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  aguardando_coleta: { label: 'Aguardando Coleta', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
-  em_coleta: { label: 'Em Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
-  coletado: { label: 'Coletado', color: 'bg-cyan-100 text-cyan-700 border-cyan-200', icon: Package },
-  em_transito: { label: 'Em Trânsito', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: Truck },
-  em_entrega: { label: 'Em Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
+  aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
+  saiu_para_coleta: { label: 'Saiu para Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
+  saiu_para_entrega: { label: 'Saiu para Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
   entregue: { label: 'Entregue', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 },
-  devolvida: { label: 'Devolvida', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: RotateCcw },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
+  cancelada: { label: 'Cancelada', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: RotateCcw },
 };
 
 // Filter options - only non-finalized states for Publicadas
