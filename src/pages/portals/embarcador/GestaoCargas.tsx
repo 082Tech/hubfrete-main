@@ -70,6 +70,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useSidebar } from '@/components/ui/sidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -753,8 +754,15 @@ export default function GestaoCargas() {
     );
   };
 
+  // Get sidebar state for responsive map
+  const { state: sidebarState } = useSidebar();
+  const isSidebarCollapsed = sidebarState === 'collapsed';
+
   return (
-    <div className="fixed inset-0 overflow-hidden lg:left-[var(--sidebar-width,16rem)]">
+    <div 
+      className="fixed inset-0 overflow-hidden transition-[left] duration-300"
+      style={{ left: isSidebarCollapsed ? '4rem' : '16rem' }}
+    >
       <TooltipProvider>
         {/* Fullscreen Map Container */}
         <div className="absolute inset-0 z-0">
@@ -768,6 +776,7 @@ export default function GestaoCargas() {
               selectedEntregaId={selectedEntregaId}
               onSelectEntrega={setSelectedEntregaId}
               fullHeight
+              hideLegend
             />
           </Suspense>
         </div>
@@ -797,8 +806,8 @@ export default function GestaoCargas() {
           <>
             {/* Desktop Layout */}
             <div className="hidden lg:block">
-              {/* Floating Top Right Panel - Compact Control Panel */}
-              <div className={`absolute top-4 right-4 z-30 transition-all duration-300 ${filtersCollapsed ? 'w-auto' : 'w-72'}`}>
+              {/* Floating Top Right Panel - Control Panel with Stats & Legend */}
+              <div className={`absolute top-4 right-4 z-30 transition-all duration-300 ${filtersCollapsed ? 'w-auto' : 'w-80'}`}>
                 {filtersCollapsed ? (
                   <div className="flex flex-col gap-2">
                     <Button
@@ -849,6 +858,47 @@ export default function GestaoCargas() {
                       </div>
                     </CardHeader>
                     <CardContent className="px-3 pb-3 pt-0 space-y-3">
+                      {/* Stats Summary Cards */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2">
+                          <Clock className="w-4 h-4 text-amber-600" />
+                          <div>
+                            <span className="text-lg font-bold text-amber-600">{stats.aguardando}</span>
+                            <p className="text-[10px] text-amber-600/80">Aguardando</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-2">
+                          <Package className="w-4 h-4 text-blue-600" />
+                          <div>
+                            <span className="text-lg font-bold text-blue-600">{stats.saiu_para_coleta}</span>
+                            <p className="text-[10px] text-blue-600/80">Coleta</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-2">
+                          <Truck className="w-4 h-4 text-purple-600" />
+                          <div>
+                            <span className="text-lg font-bold text-purple-600">{stats.saiu_para_entrega}</span>
+                            <p className="text-[10px] text-purple-600/80">Entrega</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-2.5 py-2">
+                          <AlertCircle className="w-4 h-4 text-destructive" />
+                          <div>
+                            <span className="text-lg font-bold text-destructive">{stats.problema}</span>
+                            <p className="text-[10px] text-destructive/80">Problema</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Total Frete */}
+                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+                        <DollarSign className="w-4 h-4 text-emerald-600" />
+                        <div>
+                          <span className="text-sm font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</span>
+                          <p className="text-[10px] text-emerald-600/80">Frete Total</p>
+                        </div>
+                      </div>
+
                       {/* Search */}
                       <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -903,45 +953,85 @@ export default function GestaoCargas() {
                           })}
                         </div>
                       )}
+
+                      {/* Legend */}
+                      <details className="group" open>
+                        <summary className="text-[10px] font-medium text-muted-foreground cursor-pointer flex items-center gap-1 hover:text-foreground">
+                          <MapPin className="w-3 h-3" />
+                          Legenda do Mapa
+                          <ChevronRight className="w-3 h-3 transition-transform group-open:rotate-90" />
+                        </summary>
+                        <div className="mt-2 space-y-2">
+                          {/* Status Legend */}
+                          <div className="space-y-1">
+                            <p className="text-[9px] font-medium text-muted-foreground uppercase">Status</p>
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                              {[
+                                { key: 'aguardando', color: '#f97316', label: 'Aguardando' },
+                                { key: 'saiu_para_coleta', color: '#3b82f6', label: 'Coleta' },
+                                { key: 'saiu_para_entrega', color: '#8b5cf6', label: 'Entrega' },
+                                { key: 'problema', color: '#ef4444', label: 'Problema' },
+                              ].map(item => (
+                                <div key={item.key} className="flex items-center gap-1">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                  <span className="text-[10px] text-muted-foreground">{item.label}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          {/* Connection Legend */}
+                          <div className="space-y-1 pt-1 border-t">
+                            <p className="text-[9px] font-medium text-muted-foreground uppercase">Conexão</p>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1">
+                                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                                <span className="text-[10px] text-muted-foreground">Online</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                                <span className="text-[10px] text-muted-foreground">Offline</span>
+                              </div>
+                            </div>
+                          </div>
+                          {/* Route Legend when selection active */}
+                          {selectedEntregaId && (
+                            <div className="space-y-1 pt-1 border-t">
+                              <p className="text-[9px] font-medium text-muted-foreground uppercase">Rota</p>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                                  <span className="text-[10px] text-muted-foreground">Origem</span>
+                                  <div className="w-2.5 h-2.5 rounded-full bg-red-500 ml-2" />
+                                  <span className="text-[10px] text-muted-foreground">Destino</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-0" style={{ borderTop: '2px dashed #f97316' }} />
+                                  <span className="text-[10px] text-muted-foreground">p/ Coleta</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-0" style={{ borderTop: '2px solid #3b82f6' }} />
+                                  <span className="text-[10px] text-muted-foreground">p/ Entrega</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </details>
                     </CardContent>
                   </Card>
                 )}
               </div>
 
-              {/* Floating Table Panel at Bottom - Full Width with Status Cards */}
+              {/* Floating Table Panel at Bottom - Full Width */}
               <div className="absolute bottom-4 left-4 right-4 z-20">
                 <Card className="border bg-background shadow-xl">
-                  {/* Header with Status Cards */}
-                  <CardHeader className="py-3 px-4 border-b">
-                    <div className="flex items-center justify-between gap-4">
+                  {/* Header */}
+                  <CardHeader className="py-2.5 px-4 border-b">
+                    <div className="flex items-center justify-between">
                       {/* Left: Title */}
                       <div className="flex items-center gap-2">
                         <Package className="w-4 h-4 text-primary" />
                         <CardTitle className="text-sm">Cargas em Rota ({filteredCargas.length})</CardTitle>
-                      </div>
-                      
-                      {/* Center: Stats Cards - Compact inline */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1">
-                          <Clock className="w-3 h-3 text-amber-600" />
-                          <span className="text-sm font-bold text-amber-600">{stats.aguardando}</span>
-                        </div>
-                        <div className="flex items-center gap-1 rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-1">
-                          <Package className="w-3 h-3 text-blue-600" />
-                          <span className="text-sm font-bold text-blue-600">{stats.saiu_para_coleta}</span>
-                        </div>
-                        <div className="flex items-center gap-1 rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-1">
-                          <Truck className="w-3 h-3 text-purple-600" />
-                          <span className="text-sm font-bold text-purple-600">{stats.saiu_para_entrega}</span>
-                        </div>
-                        <div className="flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1">
-                          <AlertCircle className="w-3 h-3 text-destructive" />
-                          <span className="text-sm font-bold text-destructive">{stats.problema}</span>
-                        </div>
-                        <div className="flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1">
-                          <DollarSign className="w-3 h-3 text-emerald-600" />
-                          <span className="text-sm font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</span>
-                        </div>
                       </div>
                       
                       {/* Right: Minimize button */}
@@ -967,7 +1057,7 @@ export default function GestaoCargas() {
                   </CardHeader>
                   {tableExpanded && (
                     <CardContent className="p-0">
-                      <div className="max-h-[200px] overflow-y-auto">
+                      <div className="max-h-[280px] overflow-y-auto">
                         <Table>
                           <TableHeader className="sticky top-0 z-10 bg-muted">
                             <TableRow>

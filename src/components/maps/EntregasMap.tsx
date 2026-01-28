@@ -146,6 +146,7 @@ interface EntregasMapProps {
   onSelectEntrega?: (entregaId: string | null) => void;
   onSelectCarga?: (cargaId: string | null) => void;
   fullHeight?: boolean;
+  hideLegend?: boolean;
 }
 
 // Fetch route from OSRM
@@ -388,7 +389,8 @@ export function EntregasMap({
   selectedCargaId,
   onSelectEntrega,
   onSelectCarga,
-  fullHeight = false
+  fullHeight = false,
+  hideLegend = false
 }: EntregasMapProps) {
   // Entregas with truck location
   const validEntregas = entregas.filter(e => e.latitude && e.longitude);
@@ -655,66 +657,68 @@ export function EntregasMap({
           })}
       </MapContainer>
       
-      {/* Legend - using correct database status values */}
-      <div className="absolute bottom-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
-        <p className="text-xs font-medium text-muted-foreground mb-2">Status</p>
-        <div className="flex flex-col gap-1">
-          {['aguardando', 'saiu_para_coleta', 'saiu_para_entrega', 'problema'].map((key) => (
-            <div key={key} className="flex items-center gap-1.5">
-              <div 
-                className="w-3 h-3 rounded-full border-2 border-white shadow-sm"
-                style={{ backgroundColor: statusColors[key] }}
-              />
-              <span className="text-xs text-foreground">{statusLabels[key]}</span>
-            </div>
-          ))}
-        </div>
-        
-        {/* Wi-Fi indicator legend */}
-        <div className="mt-2 pt-2 border-t border-border">
-          <p className="text-xs font-medium text-muted-foreground mb-1">Conexão</p>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span className="text-xs">Online</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <span className="text-xs">Offline</span>
-            </div>
+      {/* Legend - only show if not hidden */}
+      {!hideLegend && (
+        <div className="absolute bottom-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Status</p>
+          <div className="flex flex-col gap-1">
+            {['aguardando', 'saiu_para_coleta', 'saiu_para_entrega', 'problema'].map((key) => (
+              <div key={key} className="flex items-center gap-1.5">
+                <div 
+                  className="w-3 h-3 rounded-full border-2 border-white shadow-sm"
+                  style={{ backgroundColor: statusColors[key] }}
+                />
+                <span className="text-xs text-foreground">{statusLabels[key]}</span>
+              </div>
+            ))}
           </div>
-        </div>
-        
-        {effectiveSelectedId && (
+          
+          {/* Wi-Fi indicator legend */}
           <div className="mt-2 pt-2 border-t border-border">
-            <p className="text-xs font-medium text-muted-foreground mb-1">Rota</p>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: '#22c55e' }} />
-                  <span className="text-xs">Origem</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: '#ef4444' }} />
-                  <span className="text-xs">Destino</span>
-                </div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Conexão</p>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="text-xs">Online</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-0" style={{ borderTop: '2px dashed #f97316' }} />
-                <span className="text-xs">p/ Coleta</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-0" style={{ borderTop: '2px dashed #3b82f6' }} />
-                <span className="text-xs">p/ Entrega (tracejado)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-0" style={{ borderTop: '3px solid #3b82f6' }} />
-                <span className="text-xs">p/ Entrega (sólido)</span>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="text-xs">Offline</span>
               </div>
             </div>
           </div>
-        )}
-      </div>
+          
+          {effectiveSelectedId && (
+            <div className="mt-2 pt-2 border-t border-border">
+              <p className="text-xs font-medium text-muted-foreground mb-1">Rota</p>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: '#22c55e' }} />
+                    <span className="text-xs">Origem</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: '#ef4444' }} />
+                    <span className="text-xs">Destino</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-0" style={{ borderTop: '2px dashed #f97316' }} />
+                  <span className="text-xs">p/ Coleta</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-0" style={{ borderTop: '2px dashed #3b82f6' }} />
+                  <span className="text-xs">p/ Entrega (tracejado)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-0" style={{ borderTop: '3px solid #3b82f6' }} />
+                  <span className="text-xs">p/ Entrega (sólido)</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Selected info badge - positioned top-left to avoid overlap */}
       {selectedEntrega && (
