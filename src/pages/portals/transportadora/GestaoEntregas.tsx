@@ -423,14 +423,22 @@ export default function GestaoEntregas() {
       return acc;
     }, {} as Record<string, number>);
 
+    const totalFrete = entregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
+
     return {
       total: entregas.length,
       aguardando: byStatus['aguardando'] || 0,
       saiu_para_coleta: byStatus['saiu_para_coleta'] || 0,
       saiu_para_entrega: byStatus['saiu_para_entrega'] || 0,
       problema: byStatus['problema'] || 0,
+      totalFrete,
     };
   }, [entregas]);
+
+  const formatCurrency = (value: number | null) => {
+    if (!value) return '-';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
 
   // Group entregas by driver
   const entregasGroupedByDriver = useMemo(() => {
@@ -1605,6 +1613,12 @@ export default function GestaoEntregas() {
                           <p className="text-xl font-bold text-destructive">{stats.problema}</p>
                           <p className="text-[10px] text-muted-foreground leading-tight">Problemas</p>
                         </div>
+                      </div>
+
+                      {/* Frete Total KPI */}
+                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-center">
+                        <p className="text-lg font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</p>
+                        <p className="text-[10px] text-muted-foreground leading-tight">Frete Total</p>
                       </div>
 
                       {/* Filters Card */}
