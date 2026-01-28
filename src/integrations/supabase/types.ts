@@ -1243,6 +1243,7 @@ export type Database = {
           precisao: number | null
           status: boolean | null
           timestamp: number | null
+          velocidade: number | null
           visivel: boolean | null
         }
         Insert: {
@@ -1255,6 +1256,7 @@ export type Database = {
           precisao?: number | null
           status?: boolean | null
           timestamp?: number | null
+          velocidade?: number | null
           visivel?: boolean | null
         }
         Update: {
@@ -1267,6 +1269,7 @@ export type Database = {
           precisao?: number | null
           status?: boolean | null
           timestamp?: number | null
+          velocidade?: number | null
           visivel?: boolean | null
         }
         Relationships: [
@@ -1785,6 +1788,7 @@ export type Database = {
           longitude: number | null
           observacao: string | null
           status: Database["public"]["Enums"]["status_entrega"]
+          velocidade: number | null
         }
         Insert: {
           bussola_pos?: number | null
@@ -1795,6 +1799,7 @@ export type Database = {
           longitude?: number | null
           observacao?: string | null
           status: Database["public"]["Enums"]["status_entrega"]
+          velocidade?: number | null
         }
         Update: {
           bussola_pos?: number | null
@@ -1805,6 +1810,7 @@ export type Database = {
           longitude?: number | null
           observacao?: string | null
           status?: Database["public"]["Enums"]["status_entrega"]
+          velocidade?: number | null
         }
         Relationships: [
           {
