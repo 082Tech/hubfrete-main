@@ -337,11 +337,12 @@ export default function CargasPublicadas() {
 
   const allEntregasFinalized = (carga: CargaData) => {
     if (carga.entregas.length === 0) return false;
-    return carga.entregas.every(e => ['entregue', 'devolvida', 'problema'].includes(e.status));
+    // Use simplified status enum: entregue, cancelada, problema are finalized
+    return carga.entregas.every(e => ['entregue', 'cancelada', 'problema'].includes(e.status));
   };
 
   const hasProblems = (carga: CargaData) => {
-    return carga.entregas.some(e => e.status === 'problema' || e.status === 'devolvida');
+    return carga.entregas.some(e => e.status === 'problema' || e.status === 'cancelada');
   };
 
   // Apply filters - ONLY show non-finalized cargas (Publicadas view)
