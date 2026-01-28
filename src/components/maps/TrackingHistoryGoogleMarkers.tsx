@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { OverlayView, InfoWindow } from '@react-google-maps/api';
 import { supabase } from '@/integrations/supabase/client';
-import { Clock, MapPin, AlertCircle, CheckCircle, Package, Truck, Route } from 'lucide-react';
+import { Clock, MapPin, AlertCircle, CheckCircle, Package, Truck, Route, Loader2, MapPinOff } from 'lucide-react';
 
 interface TrackingPoint {
   id: string;
@@ -15,6 +15,8 @@ interface TrackingPoint {
 interface TrackingHistoryGoogleMarkersProps {
   entregaId: string | null;
   onBoundsReady?: (bounds: google.maps.LatLngBounds | null) => void;
+  onLoadingChange?: (isLoading: boolean) => void;
+  onEmptyChange?: (isEmpty: boolean) => void;
 }
 
 const statusLabels: Record<string, string> = {
@@ -46,18 +48,23 @@ function formatDateTime(dateString: string): string {
   });
 }
 
-export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady }: TrackingHistoryGoogleMarkersProps) {
+export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadingChange, onEmptyChange }: TrackingHistoryGoogleMarkersProps) {
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!entregaId) {
       setTrackingPoints([]);
+      onLoadingChange?.(false);
+      onEmptyChange?.(true);
       return;
     }
 
     const fetchTrackingHistory = async () => {
+      setIsLoading(true);
+      onLoadingChange?.(true);
       try {
         const { data, error } = await supabase
           .from('tracking_historico')
@@ -79,6 +86,7 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady }: Track
           }));
         
         setTrackingPoints(validPoints);
+        onEmptyChange?.(validPoints.length === 0);
         
         // Calculate bounds and notify parent
         if (onBoundsReady && validPoints.length > 0) {
@@ -93,12 +101,16 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady }: Track
       } catch (error) {
         console.error('Error fetching tracking history:', error);
         setTrackingPoints([]);
+        onEmptyChange?.(true);
         onBoundsReady?.(null);
+      } finally {
+        setIsLoading(false);
+        onLoadingChange?.(false);
       }
     };
 
     fetchTrackingHistory();
-  }, [entregaId, onBoundsReady]);
+  }, [entregaId, onBoundsReady, onLoadingChange, onEmptyChange]);
 
   if (!entregaId || trackingPoints.length === 0) return null;
 
@@ -201,5 +213,31 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady }: Track
         </InfoWindow>
       )}
     </>
+  );
+}
+
+// Export loading and empty overlay components for use in parents
+export function TrackingHistoryLoadingOverlay() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+      <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Carregando histórico...</p>
+      </div>
+    </div>
+  );
+}
+
+export function TrackingHistoryEmptyOverlay() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+      <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
+        <MapPinOff className="w-10 h-10 text-muted-foreground" />
+        <div className="text-center">
+          <p className="font-medium text-foreground">Nenhum histórico encontrado</p>
+          <p className="text-sm text-muted-foreground">Ainda não há registros de rastreamento para esta entrega</p>
+        </div>
+      </div>
+    </div>
   );
 }
