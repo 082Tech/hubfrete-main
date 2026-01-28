@@ -336,7 +336,11 @@ export default function CargasPublicadas() {
   };
 
   const allEntregasFinalized = (carga: CargaData) => {
-    if (carga.entregas.length === 0) return false;
+    // If cargo has no deliveries but is fully allocated (0kg available), treat as finalized
+    // This handles cases where deliveries were deleted after completion
+    if (carga.entregas.length === 0) {
+      return carga.peso_disponivel_kg === 0 && carga.status === 'totalmente_alocada';
+    }
     // Use simplified status enum: entregue, cancelada, problema are finalized
     return carga.entregas.every(e => ['entregue', 'cancelada', 'problema'].includes(e.status));
   };
