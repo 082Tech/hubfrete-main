@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Route } from 'lucide-react';
@@ -25,6 +25,21 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
+
+  // Memoize callbacks to prevent infinite re-renders
+  const handleBoundsReady = useCallback((bounds: google.maps.LatLngBounds | null) => {
+    if (mapInstance && bounds) {
+      mapInstance.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
+    }
+  }, [mapInstance]);
+
+  const handleLoadingChange = useCallback((loading: boolean) => {
+    setIsLoading(loading);
+  }, []);
+
+  const handleEmptyChange = useCallback((empty: boolean) => {
+    setIsEmpty(empty);
+  }, []);
 
   return (
     <Dialog open={!!entregaId} onOpenChange={(open) => !open && onClose()}>
@@ -60,13 +75,9 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
             >
               <TrackingHistoryGoogleMarkers
                 entregaId={entregaId}
-                onBoundsReady={(bounds) => {
-                  if (mapInstance && bounds) {
-                    mapInstance.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
-                  }
-                }}
-                onLoadingChange={setIsLoading}
-                onEmptyChange={setIsEmpty}
+                onBoundsReady={handleBoundsReady}
+                onLoadingChange={handleLoadingChange}
+                onEmptyChange={handleEmptyChange}
               />
             </GoogleMap>
           </GoogleMapsLoader>
