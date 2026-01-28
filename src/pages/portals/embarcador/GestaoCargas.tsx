@@ -949,13 +949,13 @@ export default function GestaoCargas() {
                               <TableHead className="font-semibold min-w-[160px] bg-muted">
                                 <div className="flex items-center gap-1">
                                   <Building2 className="w-3 h-3" />
-                                  Origem
+                                  Remetente
                                 </div>
                               </TableHead>
                               <TableHead className="font-semibold min-w-[160px] bg-muted">
                                 <div className="flex items-center gap-1">
                                   <Building2 className="w-3 h-3" />
-                                  Destino
+                                  Destinatário
                                 </div>
                               </TableHead>
                               <TableHead className="font-semibold min-w-[90px] text-center bg-muted">Peso Total</TableHead>
