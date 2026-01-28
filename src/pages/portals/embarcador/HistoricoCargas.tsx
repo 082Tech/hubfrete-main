@@ -191,8 +191,8 @@ const columns: ColumnDefinition[] = [
   { id: 'expand', label: '', minWidth: '40px', sticky: 'left' },
   { id: 'codigo', label: 'Código', minWidth: '120px', sortable: true, sortKey: 'codigo' },
   { id: 'descricao', label: 'Descrição', minWidth: '180px' },
-  { id: 'origem', label: 'Origem', minWidth: '130px' },
-  { id: 'destino', label: 'Destino', minWidth: '130px' },
+  { id: 'remetente', label: 'Remetente', minWidth: '160px' },
+  { id: 'destinatario', label: 'Destinatário', minWidth: '160px' },
   { id: 'peso', label: 'Peso', minWidth: '80px', sortable: true, sortKey: 'peso_kg' },
   { id: 'mercadoria', label: 'Mercadoria', minWidth: '100px', sortable: true, sortKey: 'valor_mercadoria' },
   { id: 'frete', label: 'Frete Total', minWidth: '100px', sortable: true, sortKey: 'frete_total' },
@@ -586,34 +586,44 @@ export default function HistoricoCargas() {
             </div>
           </TableCell>
         );
-      case 'origem':
+      case 'remetente':
         return (
           <TableCell>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 text-sm">
-                  <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
-                  <span className="truncate max-w-[120px]">{origem.cidade}</span>
+                <div className="cursor-help">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-green-500 shrink-0" />
+                    <span className="font-medium text-sm truncate max-w-[130px]">{origem.empresa}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate max-w-[130px]">
+                    {origem.cidade}
+                  </p>
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs">
+              <TooltipContent side="bottom" className="max-w-xs">
                 <p className="font-medium">{origem.empresa}</p>
                 <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
               </TooltipContent>
             </Tooltip>
           </TableCell>
         );
-      case 'destino':
+      case 'destinatario':
         return (
           <TableCell>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 text-sm">
-                  <MapPin className="w-3 h-3 text-primary shrink-0" />
-                  <span className="truncate max-w-[120px]">{destino.cidade}</span>
+                <div className="cursor-help">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                    <span className="font-medium text-sm truncate max-w-[130px]">{destino.empresa}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate max-w-[130px]">
+                    {destino.cidade}
+                  </p>
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs">
+              <TooltipContent side="bottom" className="max-w-xs">
                 <p className="font-medium">{destino.empresa}</p>
                 <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
               </TooltipContent>
