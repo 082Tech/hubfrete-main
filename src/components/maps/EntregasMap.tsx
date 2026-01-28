@@ -147,6 +147,7 @@ interface EntregasMapProps {
   onSelectCarga?: (cargaId: string | null) => void;
   fullHeight?: boolean;
   hideLegend?: boolean;
+  hideSelectionBadge?: boolean;
 }
 
 // Fetch route from OSRM
@@ -390,7 +391,8 @@ export function EntregasMap({
   onSelectEntrega,
   onSelectCarga,
   fullHeight = false,
-  hideLegend = false
+  hideLegend = false,
+  hideSelectionBadge = false
 }: EntregasMapProps) {
   // Entregas with truck location
   const validEntregas = entregas.filter(e => e.latitude && e.longitude);
@@ -720,8 +722,8 @@ export function EntregasMap({
         </div>
       )}
 
-      {/* Selected info badge - positioned top-left to avoid overlap */}
-      {selectedEntrega && (
+      {/* Selected info badge - positioned top-left to avoid overlap (can be hidden via prop) */}
+      {!hideSelectionBadge && selectedEntrega && (
         <div className="absolute top-4 left-[180px] z-[1001] bg-background border border-border rounded-lg p-3 shadow-xl">
           <div className="flex items-center gap-2">
             <Route className="w-4 h-4 text-primary" />

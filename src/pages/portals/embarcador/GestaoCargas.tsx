@@ -46,6 +46,7 @@ import {
   XCircle,
   PanelLeftClose,
   PanelLeft,
+  Route,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -796,6 +797,7 @@ export default function GestaoCargas() {
               onSelectEntrega={setSelectedEntregaId}
               fullHeight
               hideLegend
+              hideSelectionBadge
             />
           </Suspense>
         </div>
@@ -825,6 +827,31 @@ export default function GestaoCargas() {
           <>
             {/* Desktop Layout */}
             <div className="hidden lg:block">
+              {/* Selected Cargo Badge - positioned to the left of control panel */}
+              {selectedEntregaId && (() => {
+                const selectedEntrega = mapData.find(e => e.entregaId === selectedEntregaId || e.id === selectedEntregaId);
+                if (!selectedEntrega) return null;
+                return (
+                  <div className={`absolute top-4 z-30 transition-all duration-300 ${filtersCollapsed ? 'right-16' : 'right-[22rem]'}`}>
+                    <div className="bg-background border border-border rounded-lg px-3 py-2 shadow-xl flex items-center gap-2">
+                      <Route className="w-4 h-4 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium">{selectedEntrega.codigo}</p>
+                        <p className="text-xs text-muted-foreground">Histórico de rastreamento</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="ml-1 h-6 w-6 p-0"
+                        onClick={() => setSelectedEntregaId(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Floating Top Right Panel - Control Panel with Stats & Legend */}
               <div className={`absolute top-4 right-4 z-30 transition-all duration-300 ${filtersCollapsed ? 'w-auto' : 'w-80'}`}>
                 {filtersCollapsed ? (
