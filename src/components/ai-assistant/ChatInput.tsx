@@ -39,7 +39,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   return (
     <form onSubmit={handleSubmit} className="relative">
       <div className="glass-input rounded-2xl p-2 shadow-lg">
-        <div className="flex items-end gap-2">
+        <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="ghost"
@@ -50,7 +50,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             <Paperclip className="w-5 h-5" />
           </Button>
           
-          <div className="flex-1 relative">
+          <div className="flex-1 relative flex items-center">
             <textarea
               ref={textareaRef}
               value={input}
@@ -59,7 +59,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
               placeholder="Digite sua mensagem..."
               disabled={disabled}
               rows={1}
-              className="w-full px-3 py-2.5 bg-transparent text-foreground placeholder:text-muted-foreground/60 focus:outline-none resize-none scrollbar-thin text-sm"
+              className="w-full px-3 py-2.5 bg-transparent text-foreground placeholder:text-muted-foreground/60 focus:outline-none resize-none scrollbar-thin text-sm leading-5"
             />
           </div>
           
