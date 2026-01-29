@@ -1891,10 +1891,10 @@ export type Database = {
       tracking_historico: {
         Row: {
           accuracy: number | null
+          altitude: number | null
           bussola_pos: number | null
           created_at: string | null
           entrega_id: string
-          heading: number | null
           id: string
           latitude: number | null
           longitude: number | null
@@ -1904,10 +1904,10 @@ export type Database = {
         }
         Insert: {
           accuracy?: number | null
+          altitude?: number | null
           bussola_pos?: number | null
           created_at?: string | null
           entrega_id: string
-          heading?: number | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -1917,10 +1917,10 @@ export type Database = {
         }
         Update: {
           accuracy?: number | null
+          altitude?: number | null
           bussola_pos?: number | null
           created_at?: string | null
           entrega_id?: string
-          heading?: number | null
           id?: string
           latitude?: number | null
           longitude?: number | null
