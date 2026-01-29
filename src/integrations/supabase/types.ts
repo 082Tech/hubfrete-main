@@ -75,7 +75,7 @@ export type Database = {
           {
             foreignKeyName: "ai_chat_messages_sessionid_fkey"
             columns: ["sessionid"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "ai_chat"
             referencedColumns: ["sessionid"]
           },
