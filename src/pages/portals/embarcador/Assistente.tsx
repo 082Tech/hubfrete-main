@@ -3,6 +3,7 @@ import { ChatMessage } from "@/components/ai-assistant/ChatMessage";
 import { ChatInput } from "@/components/ai-assistant/ChatInput";
 import { TypingIndicator } from "@/components/ai-assistant/TypingIndicator";
 import { ImmersiveBackground } from "@/components/ai-assistant/ImmersiveBackground";
+import { SuggestionBubbles } from "@/components/ai-assistant/SuggestionBubbles";
 import { sendMessage, generateSessionId, getOrCreateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
 import { Sparkles, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight, Trash2, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
@@ -303,6 +304,10 @@ export default function Assistente() {
         {/* Input Area */}
         <div className="px-6 py-4">
           <div className="max-w-3xl mx-auto">
+            {/* Suggestion bubbles - only show when it's a new conversation */}
+            {isFirstMessage && !isLoading && (
+              <SuggestionBubbles onSelect={handleSend} disabled={isLoading} />
+            )}
             <ChatInput onSend={handleSend} disabled={isLoading} />
           </div>
         </div>
