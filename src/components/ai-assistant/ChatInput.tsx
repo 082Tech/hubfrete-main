@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ChatInputProps {
@@ -38,8 +38,18 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className="relative">
-      <div className="glass-card input-glow p-1.5">
-        <div className="flex items-center gap-2">
+      <div className="glass-input rounded-2xl p-2 shadow-lg">
+        <div className="flex items-end gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 flex-shrink-0"
+            disabled={disabled}
+          >
+            <Paperclip className="w-5 h-5" />
+          </Button>
+          
           <div className="flex-1 relative">
             <textarea
               ref={textareaRef}
@@ -49,7 +59,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
               placeholder="Digite sua mensagem..."
               disabled={disabled}
               rows={1}
-              className="w-full px-4 py-3 rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none resize-none scrollbar-thin"
+              className="w-full px-3 py-2.5 bg-transparent text-foreground placeholder:text-muted-foreground/60 focus:outline-none resize-none scrollbar-thin text-sm"
             />
           </div>
           
@@ -57,19 +67,15 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             type="submit"
             disabled={!input.trim() || disabled}
             size="icon"
-            className="h-11 w-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 mb-2"
+            className="h-10 w-10 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 flex-shrink-0"
           >
-            {disabled ? (
-              <Sparkles className="w-5 h-5 animate-pulse" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
+            <Send className="w-5 h-5" />
           </Button>
         </div>
       </div>
       
       <p className="text-center text-xs text-muted-foreground/50 mt-3">
-        Powered by <span className="text-primary/70 font-medium">HubFrete AI</span>
+        Powered by <span className="text-primary/70 font-medium">Hubinho</span>
       </p>
     </form>
   );

@@ -1336,6 +1336,7 @@ export type Database = {
         Row: {
           bussola_pos: number | null
           email_motorista: string | null
+          entrega_id: string | null
           historico_url: string | null
           id: number
           latitude: number | null
@@ -1349,6 +1350,7 @@ export type Database = {
         Insert: {
           bussola_pos?: number | null
           email_motorista?: string | null
+          entrega_id?: string | null
           historico_url?: string | null
           id?: number
           latitude?: number | null
@@ -1362,6 +1364,7 @@ export type Database = {
         Update: {
           bussola_pos?: number | null
           email_motorista?: string | null
+          entrega_id?: string | null
           historico_url?: string | null
           id?: number
           latitude?: number | null
@@ -1379,6 +1382,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "motoristas"
             referencedColumns: ["email"]
+          },
+          {
+            foreignKeyName: "localizações_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1880,9 +1890,11 @@ export type Database = {
       }
       tracking_historico: {
         Row: {
+          accuracy: number | null
           bussola_pos: number | null
           created_at: string | null
           entrega_id: string
+          heading: number | null
           id: string
           latitude: number | null
           longitude: number | null
@@ -1891,9 +1903,11 @@ export type Database = {
           velocidade: number | null
         }
         Insert: {
+          accuracy?: number | null
           bussola_pos?: number | null
           created_at?: string | null
           entrega_id: string
+          heading?: number | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -1902,9 +1916,11 @@ export type Database = {
           velocidade?: number | null
         }
         Update: {
+          accuracy?: number | null
           bussola_pos?: number | null
           created_at?: string | null
           entrega_id?: string
+          heading?: number | null
           id?: string
           latitude?: number | null
           longitude?: number | null
