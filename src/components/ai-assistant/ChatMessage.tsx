@@ -5,10 +5,14 @@ import type { ChatMessage as ChatMessageType } from "@/lib/chatApi";
 interface ChatMessageProps {
   message: ChatMessageType;
   userName?: string;
+  userInitials?: string;
 }
 
-export function ChatMessage({ message, userName = "Você" }: ChatMessageProps) {
+export function ChatMessage({ message, userName = "Você", userInitials }: ChatMessageProps) {
   const isBot = message.role === "assistant";
+  
+  // Get initials from userName
+  const initials = userInitials || userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
   return (
     <div
@@ -18,13 +22,7 @@ export function ChatMessage({ message, userName = "Você" }: ChatMessageProps) {
     >
       {isBot && (
         <div className="flex-shrink-0">
-          <div 
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ 
-              backgroundColor: 'hsl(var(--ai-accent) / 0.15)',
-              border: '1px solid hsl(var(--ai-accent) / 0.3)'
-            }}
-          >
+          <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center glow-border">
             <Bot className="w-5 h-5 text-primary" />
           </div>
         </div>
@@ -32,54 +30,45 @@ export function ChatMessage({ message, userName = "Você" }: ChatMessageProps) {
 
       <div className="flex flex-col max-w-[75%]">
         {/* Name label */}
-        <span 
-          className={`text-xs font-medium mb-1 ${isBot ? 'text-left' : 'text-right'}`}
-          style={{ color: 'hsl(var(--ai-text-secondary))' }}
-        >
-          {isBot ? 'HubFrete AI' : userName}
-        </span>
+        <div className={`flex items-center gap-2 mb-1.5 ${isBot ? '' : 'justify-end'}`}>
+          <span className="text-xs font-medium text-muted-foreground">
+            {isBot ? 'Hubinho' : userName}
+          </span>
+        </div>
 
         {/* Message bubble */}
         <div
-          className="px-4 py-3 rounded-2xl"
-          style={isBot ? {
-            backgroundColor: 'hsl(var(--ai-sidebar-bg))',
-            border: '1px solid hsl(var(--ai-border) / 0.5)',
-            borderTopLeftRadius: '4px'
-          } : {
-            backgroundColor: 'hsl(var(--primary))',
-            color: 'hsl(var(--primary-foreground))',
-            borderTopRightRadius: '4px'
-          }}
+          className={`px-4 py-3 rounded-2xl ${
+            isBot 
+              ? 'chat-bubble-ai' 
+              : 'chat-bubble-user text-primary-foreground'
+          }`}
         >
           {isBot ? (
-            <div 
-              className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-ul:my-2 prose-li:my-0.5"
-              style={{ color: 'hsl(var(--ai-text-primary))' }}
-            >
+            <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-ul:my-2 prose-li:my-0.5 text-foreground">
               <ReactMarkdown
                 components={{
                   ul: ({ children }) => (
-                    <ul className="list-disc list-inside space-y-1" style={{ color: 'hsl(var(--ai-text-primary) / 0.9)' }}>
+                    <ul className="list-disc list-inside space-y-1 text-foreground/90">
                       {children}
                     </ul>
                   ),
                   ol: ({ children }) => (
-                    <ol className="list-decimal list-inside space-y-1" style={{ color: 'hsl(var(--ai-text-primary) / 0.9)' }}>
+                    <ol className="list-decimal list-inside space-y-1 text-foreground/90">
                       {children}
                     </ol>
                   ),
                   li: ({ children }) => (
-                    <li style={{ color: 'hsl(var(--ai-text-primary) / 0.9)' }}>{children}</li>
+                    <li className="text-foreground/90">{children}</li>
                   ),
                   p: ({ children }) => (
-                    <p className="mb-2 last:mb-0" style={{ color: 'hsl(var(--ai-text-primary) / 0.9)' }}>{children}</p>
+                    <p className="mb-2 last:mb-0 text-foreground/90">{children}</p>
                   ),
                   strong: ({ children }) => (
                     <strong className="text-primary font-semibold">{children}</strong>
                   ),
                   em: ({ children }) => (
-                    <em className="italic" style={{ color: 'hsl(var(--ai-text-primary) / 0.8)' }}>{children}</em>
+                    <em className="italic text-foreground/80">{children}</em>
                   ),
                   code: ({ children }) => (
                     <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-xs font-mono">
@@ -109,10 +98,7 @@ export function ChatMessage({ message, userName = "Você" }: ChatMessageProps) {
         </div>
 
         {/* Timestamp */}
-        <span 
-          className={`text-xs mt-1 ${isBot ? 'text-left' : 'text-right'}`}
-          style={{ color: 'hsl(var(--ai-text-muted))' }}
-        >
+        <span className={`text-xs mt-1.5 text-muted-foreground/70 ${isBot ? 'text-left' : 'text-right'}`}>
           {message.timestamp.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
@@ -122,14 +108,8 @@ export function ChatMessage({ message, userName = "Você" }: ChatMessageProps) {
 
       {!isBot && (
         <div className="flex-shrink-0">
-          <div 
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ 
-              backgroundColor: 'hsl(var(--ai-accent) / 0.1)',
-              border: '1px solid hsl(var(--ai-border))'
-            }}
-          >
-            <User className="w-5 h-5" style={{ color: 'hsl(var(--ai-text-secondary))' }} />
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-border flex items-center justify-center">
+            <span className="text-sm font-semibold text-primary">{initials}</span>
           </div>
         </div>
       )}
