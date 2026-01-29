@@ -43,7 +43,7 @@ export default function AssistenteTransportadora() {
   const getWelcomeMessage = useCallback((): ChatMessageType => ({
     id: 'welcome',
     role: 'assistant',
-    content: `Olá, ${userName}! 👋\n\nSou o **Hubinho**, seu copiloto inteligente de logística.\n\nComo posso ajudá-lo hoje?`,
+    content: `Olá, ${userName}! 👋 Sou o **Hubinho**, seu copiloto inteligente de logística. Como posso ajudá-lo hoje?`,
     timestamp: new Date(),
   }), [userName]);
 
