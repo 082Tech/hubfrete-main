@@ -8,8 +8,7 @@ export function TypingIndicator() {
       </div>
       
       <div className="flex flex-col">
-        <span className="text-xs font-medium text-muted-foreground mb-1.5">Hubinho</span>
-        <div className="chat-bubble-ai px-5 py-4 rounded-2xl">
+        <div className="chat-bubble-ai px-5 py-4">
           <div className="flex gap-1.5">
             <span className="w-2 h-2 rounded-full bg-primary typing-dot" />
             <span className="w-2 h-2 rounded-full bg-primary typing-dot" />
