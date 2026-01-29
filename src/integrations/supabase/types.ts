@@ -1336,11 +1336,10 @@ export type Database = {
         Row: {
           bussola_pos: number | null
           email_motorista: string | null
-          entrega_id: string | null
-          historico_url: string | null
           id: number
           latitude: number | null
           longitude: number | null
+          motorista_id: string | null
           precisao: number | null
           status: boolean | null
           timestamp: number | null
@@ -1350,11 +1349,10 @@ export type Database = {
         Insert: {
           bussola_pos?: number | null
           email_motorista?: string | null
-          entrega_id?: string | null
-          historico_url?: string | null
           id?: number
           latitude?: number | null
           longitude?: number | null
+          motorista_id?: string | null
           precisao?: number | null
           status?: boolean | null
           timestamp?: number | null
@@ -1364,11 +1362,10 @@ export type Database = {
         Update: {
           bussola_pos?: number | null
           email_motorista?: string | null
-          entrega_id?: string | null
-          historico_url?: string | null
           id?: number
           latitude?: number | null
           longitude?: number | null
+          motorista_id?: string | null
           precisao?: number | null
           status?: boolean | null
           timestamp?: number | null
@@ -1384,10 +1381,10 @@ export type Database = {
             referencedColumns: ["email"]
           },
           {
-            foreignKeyName: "localizações_entrega_id_fkey"
-            columns: ["entrega_id"]
+            foreignKeyName: "localizações_motorista_id_fkey"
+            columns: ["motorista_id"]
             isOneToOne: false
-            referencedRelation: "entregas"
+            referencedRelation: "motoristas"
             referencedColumns: ["id"]
           },
         ]
