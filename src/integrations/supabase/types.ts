@@ -1874,7 +1874,6 @@ export type Database = {
       }
       tracking_historico: {
         Row: {
-          accuracy: number | null
           altitude: number | null
           bussola_pos: number | null
           created_at: string | null
@@ -1883,11 +1882,11 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           observacao: string | null
+          precisao: number | null
           status: Database["public"]["Enums"]["status_entrega"]
           velocidade: number | null
         }
         Insert: {
-          accuracy?: number | null
           altitude?: number | null
           bussola_pos?: number | null
           created_at?: string | null
@@ -1896,11 +1895,11 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           observacao?: string | null
+          precisao?: number | null
           status: Database["public"]["Enums"]["status_entrega"]
           velocidade?: number | null
         }
         Update: {
-          accuracy?: number | null
           altitude?: number | null
           bussola_pos?: number | null
           created_at?: string | null
@@ -1909,6 +1908,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           observacao?: string | null
+          precisao?: number | null
           status?: Database["public"]["Enums"]["status_entrega"]
           velocidade?: number | null
         }

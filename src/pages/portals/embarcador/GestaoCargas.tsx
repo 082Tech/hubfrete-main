@@ -352,23 +352,23 @@ export default function GestaoCargas() {
     refetchInterval: 60000, // Refresh every 1 minute
   });
 
-  // Fetch driver locations from localizações table
-  const motoristaEmails = useMemo(() => {
-    const emails = new Set<string>();
+  // Fetch driver locations from localizações table using motorista_id
+  const motoristaIds = useMemo(() => {
+    const ids = new Set<string>();
     cargas.forEach(c => {
       c.entregas.forEach(e => {
-        if (e.motoristas?.email) {
-          emails.add(e.motoristas.email);
+        if (e.motoristas?.id) {
+          ids.add(e.motoristas.id);
         }
       });
     });
-    return Array.from(emails);
+    return Array.from(ids);
   }, [cargas]);
 
   // Real-time driver locations
   const { localizacaoMap, isConnected: isRealtimeConnected } = useRealtimeLocalizacoes({
-    emails: motoristaEmails,
-    enabled: motoristaEmails.length > 0,
+    motoristaIds,
+    enabled: motoristaIds.length > 0,
   });
 
   // Filter cargas based on search and status filters
@@ -442,8 +442,8 @@ export default function GestaoCargas() {
       c.entregas.forEach(e => {
         const origem = c.endereco_origem;
         const destino = c.endereco_destino;
-        const motoristaEmail = e.motoristas?.email;
-        const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
+        const motoristaId = e.motoristas?.id;
+        const localizacao = motoristaId ? localizacaoMap.get(motoristaId) : null;
 
         const hasLocation = localizacao?.latitude && localizacao?.longitude;
         const hasRoute = (origem?.latitude && origem?.longitude) || (destino?.latitude && destino?.longitude);
