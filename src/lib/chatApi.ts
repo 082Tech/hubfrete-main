@@ -1,4 +1,4 @@
-const CHAT_API_URL = "https://n8n.srv1251718.hstgr.cloud/webhook/hubfrete-chat";
+const CHAT_API_URL = "https://n8n.srv1251718.hstgr.cloud/webhook/ia/enviar/mensagem";
 
 export interface ChatMessage {
   id: string;
@@ -25,7 +25,8 @@ export function getOrCreateSessionId(): string {
 
 export async function sendMessage(
   sessionId: string,
-  chatInput: string
+  chatInput: string,
+  jwt: string
 ): Promise<string> {
   const response = await fetch(CHAT_API_URL, {
     method: "POST",
@@ -36,6 +37,7 @@ export async function sendMessage(
       action: "sendMessage",
       sessionId,
       chatInput,
+      jwt,
     }),
   });
 

@@ -42,6 +42,21 @@ export default function AssistenteTransportadora() {
     toast.success("Nova conversa iniciada!");
   };
 
+  // Get JWT from local storage
+  const getJwt = (): string | null => {
+    const storageKey = `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`;
+    const sessionData = localStorage.getItem(storageKey);
+    if (sessionData) {
+      try {
+        const parsed = JSON.parse(sessionData);
+        return parsed?.access_token || null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
   const handleSend = async (content: string) => {
     const userMessage: ChatMessageType = {
       id: crypto.randomUUID(),
@@ -54,7 +69,14 @@ export default function AssistenteTransportadora() {
     setIsLoading(true);
 
     try {
-      const response = await sendMessage(sessionId, content);
+      const jwt = getJwt();
+      if (!jwt) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await sendMessage(sessionId, content, jwt);
 
       const assistantMessage: ChatMessageType = {
         id: crypto.randomUUID(),
