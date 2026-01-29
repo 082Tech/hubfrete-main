@@ -17,11 +17,11 @@ export function ChatMessage({ message, userName = "Você", userInitials }: ChatM
   return (
     <div
       className={`flex gap-3 animate-fade-in ${
-        isBot ? "justify-start" : "justify-end"
+        isBot ? "justify-start items-center" : "justify-end"
       }`}
     >
       {isBot && (
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 self-center">
           <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center glow-border">
             <Bot className="w-5 h-5 text-primary" />
           </div>
@@ -29,12 +29,14 @@ export function ChatMessage({ message, userName = "Você", userInitials }: ChatM
       )}
 
       <div className="flex flex-col max-w-[75%]">
-        {/* Name label */}
-        <div className={`flex items-center gap-2 mb-1.5 ${isBot ? '' : 'justify-end'}`}>
-          <span className="text-xs font-medium text-muted-foreground">
-            {isBot ? 'Hubinho' : userName}
-          </span>
-        </div>
+        {/* Name label - only for user */}
+        {!isBot && (
+          <div className="flex items-center gap-2 mb-1.5 justify-end">
+            <span className="text-xs font-medium text-muted-foreground">
+              {userName}
+            </span>
+          </div>
+        )}
 
         {/* Message bubble */}
         <div
