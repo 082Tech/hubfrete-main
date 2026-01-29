@@ -1334,52 +1334,39 @@ export type Database = {
       }
       localizações: {
         Row: {
+          altitude: number | null
           bussola_pos: number | null
-          email_motorista: string | null
           id: number
           latitude: number | null
           longitude: number | null
           motorista_id: string | null
           precisao: number | null
-          status: boolean | null
           timestamp: string | null
           velocidade: number | null
-          visivel: boolean | null
         }
         Insert: {
+          altitude?: number | null
           bussola_pos?: number | null
-          email_motorista?: string | null
           id?: number
           latitude?: number | null
           longitude?: number | null
           motorista_id?: string | null
           precisao?: number | null
-          status?: boolean | null
           timestamp?: string | null
           velocidade?: number | null
-          visivel?: boolean | null
         }
         Update: {
+          altitude?: number | null
           bussola_pos?: number | null
-          email_motorista?: string | null
           id?: number
           latitude?: number | null
           longitude?: number | null
           motorista_id?: string | null
           precisao?: number | null
-          status?: boolean | null
           timestamp?: string | null
           velocidade?: number | null
-          visivel?: boolean | null
         }
         Relationships: [
-          {
-            foreignKeyName: "localizações_email_motorista_fkey"
-            columns: ["email_motorista"]
-            isOneToOne: true
-            referencedRelation: "motoristas"
-            referencedColumns: ["email"]
-          },
           {
             foreignKeyName: "localizações_motorista_id_fkey"
             columns: ["motorista_id"]
