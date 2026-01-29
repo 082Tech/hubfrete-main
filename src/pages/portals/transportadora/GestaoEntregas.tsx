@@ -333,21 +333,21 @@ export default function GestaoEntregas() {
     );
   }, [entregas]);
 
-  // Get all driver emails for realtime tracking
-  const motoristaEmails = useMemo(() => {
-    const emails = new Set<string>();
+  // Get all driver IDs for realtime tracking
+  const motoristaIds = useMemo(() => {
+    const ids = new Set<string>();
     entregas.forEach(e => {
-      if (e.motorista?.email) {
-        emails.add(e.motorista.email);
+      if (e.motorista?.id) {
+        ids.add(e.motorista.id);
       }
     });
-    return Array.from(emails);
+    return Array.from(ids);
   }, [entregas]);
 
   // Real-time driver locations
   const { localizacaoMap, isConnected: isRealtimeConnected } = useRealtimeLocalizacoes({
-    emails: motoristaEmails,
-    enabled: motoristaEmails.length > 0,
+    motoristaIds,
+    enabled: motoristaIds.length > 0,
   });
 
   // Filter entregas
@@ -672,8 +672,8 @@ export default function GestaoEntregas() {
     filteredEntregas.forEach(e => {
       const origem = e.carga.endereco_origem;
       const destino = e.carga.endereco_destino;
-      const motoristaEmail = e.motorista?.email;
-      const localizacao = motoristaEmail ? localizacaoMap.get(motoristaEmail) : null;
+      const motoristaId = e.motorista?.id;
+      const localizacao = motoristaId ? localizacaoMap.get(motoristaId) : null;
 
       const hasLocation = localizacao?.latitude != null && localizacao?.longitude != null;
       const hasRoute = (origem?.latitude != null && origem?.longitude != null) || (destino?.latitude != null && destino?.longitude != null);
