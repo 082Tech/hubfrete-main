@@ -256,14 +256,16 @@ All colors MUST be HSL.
 
 .glass-input {
   background: hsl(0 0% 100% / 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
   border: 1px solid hsl(0 0% 100% / 0.3);
 }
 
 .dark .glass-input {
-  background: hsl(222 47% 15% / 0.5);
-  border: 1px solid hsl(0 0% 100% / 0.05);
+  background: hsl(165 30% 8% / 0.75);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid hsl(158 64% 51% / 0.15);
 }
 
 .chat-bubble-ai {
