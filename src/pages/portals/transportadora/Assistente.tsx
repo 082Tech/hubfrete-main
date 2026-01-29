@@ -1,38 +1,55 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ChatMessage } from "@/components/ai-assistant/ChatMessage";
 import { ChatInput } from "@/components/ai-assistant/ChatInput";
 import { TypingIndicator } from "@/components/ai-assistant/TypingIndicator";
 import { AnimatedBackground } from "@/components/ai-assistant/AnimatedBackground";
-import { sendMessage, getOrCreateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
-import { Sparkles, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { sendMessage, generateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
+import { Sparkles, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useAIChatHistory } from "@/hooks/useAIChatHistory";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function AssistenteTransportadora() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const userName = profile?.nome_completo?.split(' ')[0] || 'Você';
+  const userId = profile?.id ? parseInt(profile.id, 10) : null;
 
-  // Welcome message from Hubinho
-  const getWelcomeMessage = (): ChatMessageType => ({
+  const {
+    chatSessions,
+    isLoading: isLoadingHistory,
+    createChatSession,
+    saveMessage,
+    loadChatMessages,
+    getChatBySessionId,
+    deleteChatSession,
+    updateChatTitle,
+    refreshSessions,
+  } = useAIChatHistory(userId);
+
+  const getWelcomeMessage = useCallback((): ChatMessageType => ({
     id: 'welcome',
     role: 'assistant',
     content: `Opa, ${userName}! 👋\n\nEu sou o **Hubinho**, seu copiloto inteligente de logística.\n\nMe conta o que você precisa que eu te ajudo no caminho 🚦`,
     timestamp: new Date(),
-  });
+  }), [userName]);
 
-  const [messages, setMessages] = useState<ChatMessageType[]>([getWelcomeMessage()]);
+  const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(() => getOrCreateSessionId());
+  const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
+  const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
+  const [isFirstMessage, setIsFirstMessage] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const chatHistory = [
-    { id: "1", title: "Status da frota", date: "Hoje" },
-    { id: "2", title: "Cargas disponíveis", date: "Ontem" },
-    { id: "3", title: "Entregas pendentes", date: "3 dias atrás" },
-  ];
+  // Initialize with welcome message
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([getWelcomeMessage()]);
+    }
+  }, [getWelcomeMessage, messages.length]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -42,15 +59,41 @@ export default function AssistenteTransportadora() {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const handleNewChat = () => {
-    sessionStorage.removeItem("hubfrete-session-id");
-    const newSessionId = getOrCreateSessionId();
+  const handleNewChat = useCallback(() => {
+    const newSessionId = generateSessionId();
     setSessionId(newSessionId);
+    setCurrentChatId(null);
     setMessages([getWelcomeMessage()]);
+    setIsFirstMessage(true);
     toast.success("Nova conversa iniciada!");
-  };
+  }, [getWelcomeMessage]);
 
-  // Get JWT from local storage
+  const handleSelectChat = useCallback(async (chat: { id: number; sessionid: string; title: string | null }) => {
+    setSessionId(chat.sessionid);
+    setCurrentChatId(chat.id);
+    setIsFirstMessage(false);
+    
+    const loadedMessages = await loadChatMessages(chat.sessionid);
+    if (loadedMessages.length > 0) {
+      setMessages(loadedMessages);
+    } else {
+      setMessages([getWelcomeMessage()]);
+    }
+  }, [loadChatMessages, getWelcomeMessage]);
+
+  const handleDeleteChat = useCallback(async (chatId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const success = await deleteChatSession(chatId);
+    if (success) {
+      toast.success("Conversa excluída!");
+      if (currentChatId === chatId) {
+        handleNewChat();
+      }
+    } else {
+      toast.error("Erro ao excluir conversa");
+    }
+  }, [deleteChatSession, currentChatId, handleNewChat]);
+
   const getJwt = (): string | null => {
     const storageKey = `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`;
     const sessionData = localStorage.getItem(storageKey);
@@ -84,6 +127,23 @@ export default function AssistenteTransportadora() {
         return;
       }
 
+      // Create chat session on first message
+      let chatId = currentChatId;
+      if (isFirstMessage && !chatId) {
+        // Use first few words as title
+        const title = content.length > 30 ? content.substring(0, 30) + '...' : content;
+        chatId = await createChatSession(sessionId, title);
+        if (chatId) {
+          setCurrentChatId(chatId);
+          setIsFirstMessage(false);
+        }
+      }
+
+      // Save user message to database
+      if (chatId) {
+        await saveMessage(chatId, sessionId, content, 'user');
+      }
+
       const response = await sendMessage(sessionId, content, jwt);
 
       const assistantMessage: ChatMessageType = {
@@ -94,11 +154,25 @@ export default function AssistenteTransportadora() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Save AI response to database
+      if (chatId) {
+        await saveMessage(chatId, sessionId, response, 'ai');
+      }
+
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
       toast.error("Erro ao enviar mensagem. Tente novamente.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true, locale: ptBR });
+    } catch {
+      return dateString;
     }
   };
 
@@ -153,39 +227,58 @@ export default function AssistenteTransportadora() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {chatHistory.map((chat) => (
-              <button
-                key={chat.id}
-                className={`w-full text-left rounded-lg transition-all duration-200 hover:bg-[hsl(var(--ai-accent)/0.1)] group ${
-                  historyCollapsed ? 'p-3 flex justify-center' : 'p-3'
-                }`}
-              >
-                {historyCollapsed ? (
-                  <MessageCircle 
-                    className="w-4 h-4 group-hover:text-primary" 
-                    style={{ color: 'hsl(var(--ai-text-muted))' }}
-                  />
-                ) : (
-                  <div>
-                    <p 
-                      className="text-sm truncate"
-                      style={{ color: 'hsl(var(--ai-text-primary))' }}
-                    >
-                      {chat.title}
-                    </p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Clock className="w-3 h-3" style={{ color: 'hsl(var(--ai-text-muted))' }} />
-                      <span 
-                        className="text-xs"
-                        style={{ color: 'hsl(var(--ai-text-muted))' }}
+            {isLoadingHistory ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+              </div>
+            ) : chatSessions.length === 0 ? (
+              !historyCollapsed && (
+                <p className="text-xs text-center py-4" style={{ color: 'hsl(var(--ai-text-muted))' }}>
+                  Nenhuma conversa ainda
+                </p>
+              )
+            ) : (
+              chatSessions.map((chat) => (
+                <button
+                  key={chat.id}
+                  onClick={() => handleSelectChat(chat)}
+                  className={`w-full text-left rounded-lg transition-all duration-200 hover:bg-[hsl(var(--ai-accent)/0.1)] group relative ${
+                    historyCollapsed ? 'p-3 flex justify-center' : 'p-3'
+                  } ${currentChatId === chat.id ? 'bg-[hsl(var(--ai-accent)/0.15)]' : ''}`}
+                >
+                  {historyCollapsed ? (
+                    <MessageCircle 
+                      className="w-4 h-4 group-hover:text-primary" 
+                      style={{ color: currentChatId === chat.id ? 'hsl(var(--primary))' : 'hsl(var(--ai-text-muted))' }}
+                    />
+                  ) : (
+                    <div className="pr-6">
+                      <p 
+                        className="text-sm truncate"
+                        style={{ color: 'hsl(var(--ai-text-primary))' }}
                       >
-                        {chat.date}
-                      </span>
+                        {chat.title || 'Nova conversa'}
+                      </p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Clock className="w-3 h-3" style={{ color: 'hsl(var(--ai-text-muted))' }} />
+                        <span 
+                          className="text-xs"
+                          style={{ color: 'hsl(var(--ai-text-muted))' }}
+                        >
+                          {formatDate(chat.created_at)}
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => handleDeleteChat(chat.id, e)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </button>
                     </div>
-                  </div>
-                )}
-              </button>
-            ))}
+                  )}
+                </button>
+              ))
+            )}
           </div>
         </div>
 
