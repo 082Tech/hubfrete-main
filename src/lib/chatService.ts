@@ -38,34 +38,15 @@ export async function createChatForEntrega({ entregaId }: CreateChatParams): Pro
  * Creates chats for all existing deliveries that don't have one.
  * Useful for migrating existing data.
  */
+/**
+ * Creates chats for existing deliveries that don't have one.
+ * This function is now a no-op since chats are created on-demand when needed.
+ * The edge function handles permission checking properly.
+ * @deprecated Chats are now created on-demand when opening a delivery chat
+ */
 export async function createChatsForExistingEntregas(): Promise<number> {
-  try {
-    // Get all entregas that have motorista assigned
-    const { data: entregas, error } = await supabase
-      .from('entregas')
-      .select('id')
-      .not('motorista_id', 'is', null);
-
-    if (error) {
-      console.error('Error fetching entregas:', error);
-      return 0;
-    }
-
-    // Get existing chats
-    const { data: existingChats } = await supabase.from('chats').select('entrega_id');
-    const existingEntregaIds = new Set((existingChats || []).map((c) => c.entrega_id));
-
-    let created = 0;
-    for (const entrega of entregas || []) {
-      if (existingEntregaIds.has(entrega.id)) continue;
-
-      const chatId = await createChatForEntrega({ entregaId: entrega.id });
-      if (chatId) created++;
-    }
-
-    return created;
-  } catch (err) {
-    console.error('Error in createChatsForExistingEntregas:', err);
-    return 0;
-  }
+  // No longer automatically create chats for all entregas
+  // Chats are created on-demand when a user tries to access them
+  // This avoids permission errors and unnecessary API calls
+  return 0;
 }

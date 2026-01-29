@@ -38,13 +38,25 @@ export function useRealtimeLocalizacoes({ emails, enabled = true }: UseRealtimeL
     }
 
     try {
-      const { data, error } = await supabase
+      // Using type assertion to avoid deep instantiation TS error
+      const query = supabase
         .from('localizações')
-        .select('email_motorista, latitude, longitude, timestamp, status, bussola_pos')
-        .in('email_motorista', stableEmails);
+        .select('*');
+      
+      const { data, error } = await (query as any).in('motorista_id', stableEmails);
 
       if (error) throw error;
-      setLocalizacoes((data || []) as unknown as MotoristaLocalizacao[]);
+      
+      // Map the actual DB columns to our interface
+      const mapped = (data || []).map((row: any) => ({
+        email_motorista: row.motorista_id,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        timestamp: row.timestamp ? new Date(row.timestamp).getTime() : null,
+        status: true,
+        bussola_pos: row.bussola_pos,
+      }));
+      setLocalizacoes(mapped);
     } catch (error) {
       console.error('Error fetching locations:', error);
     } finally {
