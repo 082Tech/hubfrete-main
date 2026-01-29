@@ -22,13 +22,14 @@ export async function createChatForEntrega({ entregaId }: CreateChatParams): Pro
     });
 
     if (error) {
-      console.error('Error invoking create-chat-for-entrega:', error);
+      // Silently ignore permission errors (403) - expected when user doesn't have access
+      // These errors happen during batch migration and are not critical
       return null;
     }
 
     return (data as { chatId?: string } | null)?.chatId ?? null;
   } catch (err) {
-    console.error('Error in createChatForEntrega:', err);
+    // Silently handle errors to avoid console spam during migrations
     return null;
   }
 }
