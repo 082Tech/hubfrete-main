@@ -40,10 +40,10 @@ export function ChatMessage({ message, userName = "Você", userInitials }: ChatM
 
         {/* Message bubble */}
         <div
-          className={`px-4 py-3 rounded-2xl ${
+          className={`px-4 py-3 ${
             isBot 
               ? 'chat-bubble-ai' 
-              : 'chat-bubble-user text-primary-foreground'
+              : 'chat-bubble-user rounded-2xl text-primary-foreground'
           }`}
         >
           {isBot ? (
