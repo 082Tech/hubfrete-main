@@ -4,22 +4,29 @@ import { ChatInput } from "@/components/ai-assistant/ChatInput";
 import { TypingIndicator } from "@/components/ai-assistant/TypingIndicator";
 import { ImmersiveBackground } from "@/components/ai-assistant/ImmersiveBackground";
 import { SuggestionBubbles } from "@/components/ai-assistant/SuggestionBubbles";
+import { WelcomeAnimation } from "@/components/ai-assistant/WelcomeAnimation";
 import { sendMessage, generateSessionId, getOrCreateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
-import { Sparkles, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight, Trash2, Moon, Sun } from "lucide-react";
+import { Sparkles, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useAIChatHistory } from "@/hooks/useAIChatHistory";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useTheme } from "next-themes";
+import { AnimatePresence } from "framer-motion";
+
+const WELCOME_SHOWN_KEY = 'hubfrete_welcome_shown';
 
 export default function Assistente() {
   const { profile, user } = useAuth();
   const userName = profile?.nome_completo?.split(' ')[0] || 'Você';
   const fullName = profile?.nome_completo || 'Você';
   const userId = profile?.id ? parseInt(profile.id, 10) : null;
-  const { theme, setTheme } = useTheme();
+
+  // Check if welcome animation was already shown
+  const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(() => {
+    return !sessionStorage.getItem(WELCOME_SHOWN_KEY);
+  });
 
   const {
     chatSessions,
@@ -36,7 +43,7 @@ export default function Assistente() {
   const getWelcomeMessage = useCallback((): ChatMessageType => ({
     id: 'welcome',
     role: 'assistant',
-    content: `Olá, ${userName}! 👋\n\nEu sou o **Hubinho**, seu copiloto inteligente de logística.\n\nComo posso ajudá-lo hoje? Se tiver alguma dúvida ou precisa de informações sobre suas cargas, estou à disposição!`,
+    content: `Olá, ${userName}! 👋\n\nSou o **Hubinho**, seu copiloto inteligente de logística.\n\nComo posso ajudá-lo hoje?`,
     timestamp: new Date(),
   }), [userName]);
 
@@ -48,12 +55,17 @@ export default function Assistente() {
   const [isFirstMessage, setIsFirstMessage] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize with welcome message
+  const handleWelcomeComplete = useCallback(() => {
+    sessionStorage.setItem(WELCOME_SHOWN_KEY, 'true');
+    setShowWelcomeAnimation(false);
+  }, []);
+
+  // Initialize with welcome message after animation completes
   useEffect(() => {
-    if (messages.length === 0) {
+    if (!showWelcomeAnimation && messages.length === 0) {
       setMessages([getWelcomeMessage()]);
     }
-  }, [getWelcomeMessage, messages.length]);
+  }, [showWelcomeAnimation, getWelcomeMessage, messages.length]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -184,6 +196,18 @@ export default function Assistente() {
   return (
     <div className="relative h-[100dvh] overflow-hidden flex">
       <ImmersiveBackground />
+      
+      {/* Welcome Animation - First visit only */}
+      <AnimatePresence mode="wait">
+        {showWelcomeAnimation && (
+          <div className="absolute inset-0 z-50">
+            <WelcomeAnimation 
+              userName={fullName} 
+              onComplete={handleWelcomeComplete} 
+            />
+          </div>
+        )}
+      </AnimatePresence>
       
       {/* Left Sidebar - Chat History */}
       <div className={`relative z-10 h-full flex flex-col glass-sidebar transition-all duration-300 ${
