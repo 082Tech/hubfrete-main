@@ -320,6 +320,42 @@ All colors MUST be HSL.
   animation-delay: 0.4s;
 }
 
+/* Floating orb animation for AI background */
+@keyframes floatOrb {
+  0%, 100% {
+    transform: translate(-50%, -50%) translateY(0) translateX(0);
+  }
+  25% {
+    transform: translate(-50%, -50%) translateY(-30px) translateX(20px);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-10px) translateX(-15px);
+  }
+  75% {
+    transform: translate(-50%, -50%) translateY(20px) translateX(10px);
+  }
+}
+
+.animate-float-orb {
+  animation: floatOrb 20s ease-in-out infinite;
+}
+
+/* Slow pulse for glow spots */
+@keyframes pulseSlow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 8s ease-in-out infinite;
+}
+
 /* Truck marker pulse animation for maps */
 @keyframes subtlePulse {
   0% {
