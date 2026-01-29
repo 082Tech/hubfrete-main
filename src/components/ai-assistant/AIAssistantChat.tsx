@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, Send, X, Loader2, User } from "lucide-react";
+import { Send, X, Loader2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import hubinhoLogo from '@/assets/hubinho-logo.png';
 
 type Message = {
   role: "user" | "assistant";
@@ -88,8 +89,8 @@ export function AIAssistantChat({ open, onOpenChange }: AIAssistantChatProps) {
         {/* Header */}
         <div className="bg-primary text-primary-foreground p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-              <Bot className="h-5 w-5" />
+            <div className="h-10 w-10 rounded-full bg-primary-foreground/20 flex items-center justify-center overflow-hidden">
+              <img src={hubinhoLogo} alt="Hubinho" className="h-7 w-7 object-contain" />
             </div>
             <div>
               <h3 className="font-semibold">Assistente IA</h3>
@@ -118,8 +119,8 @@ export function AIAssistantChat({ open, onOpenChange }: AIAssistantChatProps) {
                 )}
               >
                 {message.role === "assistant" && (
-                  <div className="h-8 w-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0">
-                    <Bot className="h-4 w-4 text-primary" />
+                  <div className="h-8 w-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <img src={hubinhoLogo} alt="Hubinho" className="h-6 w-6 object-contain" />
                   </div>
                 )}
                 <div
@@ -141,8 +142,8 @@ export function AIAssistantChat({ open, onOpenChange }: AIAssistantChatProps) {
             ))}
             {isLoading && messages[messages.length - 1]?.role === "user" && (
               <div className="flex gap-3 justify-start">
-                <div className="h-8 w-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0">
-                  <Bot className="h-4 w-4 text-primary" />
+                <div className="h-8 w-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <img src={hubinhoLogo} alt="Hubinho" className="h-6 w-6 object-contain" />
                 </div>
                 <div className="bg-muted/40 border border-border/30 rounded-2xl rounded-bl-md px-4 py-2.5">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

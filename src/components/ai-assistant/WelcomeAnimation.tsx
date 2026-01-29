@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Bot, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import hubinhoLogo from '@/assets/hubinho-logo.png';
 
 interface WelcomeAnimationProps {
   userName: string;
@@ -67,8 +68,8 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
               }}
               className="relative mb-6"
             >
-              <div className="w-20 h-20 rounded-2xl bg-primary/20 border-2 border-primary/40 flex items-center justify-center glow-border shadow-lg shadow-primary/20">
-                <Bot className="w-10 h-10 text-primary" />
+              <div className="w-20 h-20 rounded-2xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center glow-border shadow-lg shadow-primary/20 overflow-hidden">
+                <img src={hubinhoLogo} alt="Hubinho" className="w-14 h-14 object-contain" />
               </div>
               
               {/* Sparkles around icon */}

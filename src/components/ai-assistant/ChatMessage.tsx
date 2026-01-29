@@ -1,6 +1,6 @@
-import { Bot, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { ChatMessage as ChatMessageType } from "@/lib/chatApi";
+import hubinhoLogo from '@/assets/hubinho-logo.png';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -22,8 +22,8 @@ export function ChatMessage({ message, userName = "Você", userInitials }: ChatM
     >
       {isBot && (
         <div className="flex-shrink-0 self-center">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center glow-border">
-            <Bot className="w-5 h-5 text-primary" />
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center glow-border overflow-hidden">
+            <img src={hubinhoLogo} alt="Hubinho" className="w-7 h-7 object-contain" />
           </div>
         </div>
       )}
