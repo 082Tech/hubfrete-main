@@ -6,7 +6,7 @@ import { ImmersiveBackground } from "@/components/ai-assistant/ImmersiveBackgrou
 import { SuggestionBubbles } from "@/components/ai-assistant/SuggestionBubbles";
 import { WelcomeAnimation } from "@/components/ai-assistant/WelcomeAnimation";
 import { sendMessage, generateSessionId, getOrCreateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
-import { Sparkles, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Plus, MessageCircle, Clock, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -290,23 +290,6 @@ export default function Assistente() {
 
       {/* Main Chat Area */}
       <div className="relative z-10 flex-1 flex flex-col h-full">
-        {/* Header */}
-        <header className="glass-header px-6 py-4 flex items-center justify-center">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center glow-border">
-                <Sparkles className="w-5 h-5 text-primary" />
-              </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background" style={{ backgroundColor: 'hsl(142 76% 36%)' }} />
-            </div>
-            
-            <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              Hubinho
-              <Sparkles className="w-4 h-4 text-primary" />
-            </h1>
-          </div>
-        </header>
-
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto py-6">
           <div className="px-6 h-full">
