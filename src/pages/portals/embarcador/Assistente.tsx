@@ -246,15 +246,22 @@ export default function Assistente() {
                   </div>
 
                   <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                    <span style={{ color: 'hsl(var(--ai-text-primary))' }}>Bem-vindo ao </span>
-                    <span className="text-primary">HubFrete AI</span>
+                    <span style={{ color: 'hsl(var(--ai-text-primary))' }}>Opa, {userName}! </span>
+                    <span>👋</span>
                   </h2>
 
+                  <p 
+                    className="mb-2 max-w-md text-lg"
+                    style={{ color: 'hsl(var(--ai-text-primary))' }}
+                  >
+                    Eu sou o <span className="text-primary font-semibold">Hubinho</span>, seu copiloto inteligente de logística.
+                  </p>
+                  
                   <p 
                     className="mb-8 max-w-md"
                     style={{ color: 'hsl(var(--ai-text-secondary))' }}
                   >
-                    Sou seu assistente inteligente. Como posso ajudar você hoje?
+                    Me conta o que você precisa que eu te ajudo no caminho 🚦
                   </p>
                   
                   <div className="grid gap-3 w-full max-w-md">
