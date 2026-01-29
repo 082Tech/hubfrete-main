@@ -5,3 +5,4 @@ export { ChatMessage } from "./ChatMessage";
 export { ChatInput } from "./ChatInput";
 export { TypingIndicator } from "./TypingIndicator";
 export { SuggestionBubbles } from "./SuggestionBubbles";
+export { WelcomeAnimation } from "./WelcomeAnimation";
