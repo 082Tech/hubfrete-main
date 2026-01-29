@@ -14,6 +14,73 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_chat: {
+        Row: {
+          created_at: string
+          id: number
+          sessionid: string
+          title: string | null
+          user_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          sessionid: string
+          title?: string | null
+          user_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          sessionid?: string
+          title?: string | null
+          user_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_chat_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_chat_messages: {
+        Row: {
+          author: Database["public"]["Enums"]["user_ai"] | null
+          chat_id: number | null
+          created_at: string
+          id: number
+          message: string | null
+          sessionid: string | null
+        }
+        Insert: {
+          author?: Database["public"]["Enums"]["user_ai"] | null
+          chat_id?: number | null
+          created_at?: string
+          id?: number
+          message?: string | null
+          sessionid?: string | null
+        }
+        Update: {
+          author?: Database["public"]["Enums"]["user_ai"] | null
+          chat_id?: number | null
+          created_at?: string
+          id?: number
+          message?: string | null
+          sessionid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_chat_messages_sessionid_fkey"
+            columns: ["sessionid"]
+            isOneToOne: true
+            referencedRelation: "ai_chat"
+            referencedColumns: ["sessionid"]
+          },
+        ]
+      }
       ajudantes: {
         Row: {
           ativo: boolean | null
@@ -1247,24 +1314,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ia_chat: {
-        Row: {
-          id: number
-          message: Json
-          session_id: string
-        }
-        Insert: {
-          id?: number
-          message: Json
-          session_id: string
-        }
-        Update: {
-          id?: number
-          message?: Json
-          session_id?: string
-        }
-        Relationships: []
-      }
       ia_search_chat: {
         Row: {
           id: number
@@ -2318,6 +2367,7 @@ export type Database = {
         | "rodotrem"
         | "vanderleia"
         | "bitruck"
+      user_ai: "ai" | "user"
       usuario_cargo: "ADMIN" | "OPERADOR"
     }
     CompositeTypes: {
@@ -2544,6 +2594,7 @@ export const Constants = {
         "vanderleia",
         "bitruck",
       ],
+      user_ai: ["ai", "user"],
       usuario_cargo: ["ADMIN", "OPERADOR"],
     },
   },
