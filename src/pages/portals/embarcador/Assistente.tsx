@@ -3,7 +3,7 @@ import { ChatMessage } from "@/components/ai-assistant/ChatMessage";
 import { ChatInput } from "@/components/ai-assistant/ChatInput";
 import { TypingIndicator } from "@/components/ai-assistant/TypingIndicator";
 import { AnimatedBackground } from "@/components/ai-assistant/AnimatedBackground";
-import { sendMessage, generateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
+import { sendMessage, generateSessionId, getOrCreateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
 import { Sparkles, Plus, MessageCircle, Clock, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ export default function Assistente() {
 
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
+  const [sessionId, setSessionId] = useState<string>(() => getOrCreateSessionId());
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const [isFirstMessage, setIsFirstMessage] = useState(true);
@@ -60,7 +60,10 @@ export default function Assistente() {
   }, [messages, isLoading]);
 
   const handleNewChat = useCallback(() => {
+    // Clear sessionStorage and generate new sessionId
+    sessionStorage.removeItem("hubfrete-session-id");
     const newSessionId = generateSessionId();
+    sessionStorage.setItem("hubfrete-session-id", newSessionId);
     setSessionId(newSessionId);
     setCurrentChatId(null);
     setMessages([getWelcomeMessage()]);
@@ -69,6 +72,8 @@ export default function Assistente() {
   }, [getWelcomeMessage]);
 
   const handleSelectChat = useCallback(async (chat: { id: number; sessionid: string; title: string | null }) => {
+    // Update sessionStorage with the selected chat's sessionId
+    sessionStorage.setItem("hubfrete-session-id", chat.sessionid);
     setSessionId(chat.sessionid);
     setCurrentChatId(chat.id);
     setIsFirstMessage(false);

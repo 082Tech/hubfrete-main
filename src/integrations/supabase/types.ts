@@ -49,7 +49,7 @@ export type Database = {
       ai_chat_messages: {
         Row: {
           author: Database["public"]["Enums"]["user_ai"] | null
-          chat_id: number | null
+          chat_id: number
           created_at: string
           id: number
           message: string | null
@@ -57,7 +57,7 @@ export type Database = {
         }
         Insert: {
           author?: Database["public"]["Enums"]["user_ai"] | null
-          chat_id?: number | null
+          chat_id: number
           created_at?: string
           id?: number
           message?: string | null
@@ -65,7 +65,7 @@ export type Database = {
         }
         Update: {
           author?: Database["public"]["Enums"]["user_ai"] | null
-          chat_id?: number | null
+          chat_id?: number
           created_at?: string
           id?: number
           message?: string | null
