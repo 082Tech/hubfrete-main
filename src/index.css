@@ -267,13 +267,31 @@ All colors MUST be HSL.
 }
 
 .chat-bubble-ai {
-  background: hsl(0 0% 94%);
+  background: hsl(0 0% 100% / 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid hsl(0 0% 100% / 0.3);
   border-radius: 18px;
   border-bottom-left-radius: 4px;
+  box-shadow: 0 4px 16px hsl(0 0% 0% / 0.06);
+  animation: bubbleAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .dark .chat-bubble-ai {
-  background: hsl(220 13% 20%);
+  background: hsl(220 15% 18% / 0.7);
+  border: 1px solid hsl(0 0% 100% / 0.08);
+  box-shadow: 0 4px 16px hsl(0 0% 0% / 0.2);
+}
+
+@keyframes bubbleAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .chat-bubble-user {
