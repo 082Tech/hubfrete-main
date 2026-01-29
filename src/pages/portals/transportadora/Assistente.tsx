@@ -11,14 +11,22 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function AssistenteTransportadora() {
-  const [messages, setMessages] = useState<ChatMessageType[]>([]);
+  const { profile } = useAuth();
+  const userName = profile?.nome_completo?.split(' ')[0] || 'Você';
+
+  // Welcome message from Hubinho
+  const getWelcomeMessage = (): ChatMessageType => ({
+    id: 'welcome',
+    role: 'assistant',
+    content: `Opa, ${userName}! 👋\n\nEu sou o **Hubinho**, seu copiloto inteligente de logística.\n\nMe conta o que você precisa que eu te ajudo no caminho 🚦`,
+    timestamp: new Date(),
+  });
+
+  const [messages, setMessages] = useState<ChatMessageType[]>([getWelcomeMessage()]);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState(() => getOrCreateSessionId());
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { profile } = useAuth();
-
-  const userName = profile?.nome_completo?.split(' ')[0] || 'Você';
 
   const chatHistory = [
     { id: "1", title: "Status da frota", date: "Hoje" },
@@ -38,7 +46,7 @@ export default function AssistenteTransportadora() {
     sessionStorage.removeItem("hubfrete-session-id");
     const newSessionId = getOrCreateSessionId();
     setSessionId(newSessionId);
-    setMessages([]);
+    setMessages([getWelcomeMessage()]);
     toast.success("Nova conversa iniciada!");
   };
 
@@ -204,13 +212,13 @@ export default function AssistenteTransportadora() {
                 className="text-lg font-bold"
                 style={{ color: 'hsl(var(--ai-text-primary))' }}
               >
-                HubFrete AI
+                Hubinho
               </h1>
               <p 
                 className="text-xs"
                 style={{ color: 'hsl(var(--ai-text-secondary))' }}
               >
-                Assistente para transportadoras
+                Seu copiloto de logística
               </p>
             </div>
           </div>
@@ -222,74 +230,13 @@ export default function AssistenteTransportadora() {
             }}
           >
             <div className="px-6 h-full">
-              {messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center">
-                  <div 
-                    className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
-                    style={{ 
-                      backgroundColor: 'hsl(var(--ai-accent) / 0.15)',
-                      border: '1px solid hsl(var(--ai-accent) / 0.3)',
-                      boxShadow: '0 0 30px hsl(var(--ai-accent) / 0.2)'
-                    }}
-                  >
-                    <Sparkles className="w-10 h-10 text-primary" />
-                  </div>
-
-                  <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                    <span style={{ color: 'hsl(var(--ai-text-primary))' }}>Opa, {userName}! </span>
-                    <span>👋</span>
-                  </h2>
-
-                  <p 
-                    className="mb-2 max-w-md text-lg"
-                    style={{ color: 'hsl(var(--ai-text-primary))' }}
-                  >
-                    Eu sou o <span className="text-primary font-semibold">Hubinho</span>, seu copiloto inteligente de logística.
-                  </p>
-                  
-                  <p 
-                    className="mb-8 max-w-md"
-                    style={{ color: 'hsl(var(--ai-text-secondary))' }}
-                  >
-                    Me conta o que você precisa que eu te ajudo no caminho 🚦
-                  </p>
-                  
-                  <div className="grid gap-3 w-full max-w-md">
-                    {[
-                      "Quais cargas estão disponíveis?",
-                      "Status da minha frota",
-                      "Entregas pendentes hoje",
-                    ].map((suggestion) => (
-                      <button
-                        key={suggestion}
-                        onClick={() => handleSend(suggestion)}
-                        className="px-4 py-3 rounded-xl text-sm text-left transition-all duration-300 hover:scale-[1.02] hover:border-primary/50"
-                        style={{ 
-                          color: 'hsl(var(--ai-text-secondary))',
-                          border: '1px solid hsl(var(--ai-border))',
-                          backgroundColor: 'hsl(var(--ai-sidebar-bg) / 0.8)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = 'hsl(var(--ai-text-primary))';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = 'hsl(var(--ai-text-secondary))';
-                        }}
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="max-w-3xl mx-auto space-y-6 pb-3">
-                  {messages.map((message) => (
-                    <ChatMessage key={message.id} message={message} userName={userName} />
-                  ))}
-                  {isLoading && <TypingIndicator />}
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
+              <div className="max-w-3xl mx-auto space-y-6 pb-3">
+                {messages.map((message) => (
+                  <ChatMessage key={message.id} message={message} userName={userName} />
+                ))}
+                {isLoading && <TypingIndicator />}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
           </div>
           
