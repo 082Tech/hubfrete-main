@@ -1342,7 +1342,7 @@ export type Database = {
           motorista_id: string | null
           precisao: number | null
           status: boolean | null
-          timestamp: number | null
+          timestamp: string | null
           velocidade: number | null
           visivel: boolean | null
         }
@@ -1355,7 +1355,7 @@ export type Database = {
           motorista_id?: string | null
           precisao?: number | null
           status?: boolean | null
-          timestamp?: number | null
+          timestamp?: string | null
           velocidade?: number | null
           visivel?: boolean | null
         }
@@ -1368,7 +1368,7 @@ export type Database = {
           motorista_id?: string | null
           precisao?: number | null
           status?: boolean | null
-          timestamp?: number | null
+          timestamp?: string | null
           velocidade?: number | null
           visivel?: boolean | null
         }
