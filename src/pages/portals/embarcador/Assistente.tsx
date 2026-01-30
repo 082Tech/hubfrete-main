@@ -289,11 +289,11 @@ export default function Assistente() {
             </div>
           </motion.div>
 
-          {/* Floating hamburger menu */}
+          {/* Floating hamburger menu - left side */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="absolute top-4 right-4 z-20"
+            className="absolute top-4 left-4 z-20"
           >
             <Button
               variant="ghost"
@@ -321,9 +321,9 @@ export default function Assistente() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Main Chat Area */}
-        <div className="relative z-10 flex-1 flex flex-col h-full">
-          {/* Messages Area */}
-          <div className={`flex-1 overflow-y-auto py-6 ${isMobile ? 'pt-16' : ''}`}>
+        <div className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
+          {/* Messages Area - only scrollable part */}
+          <div className={`flex-1 overflow-y-auto py-6 ${isMobile ? 'pt-16 pb-4' : ''}`}>
             <div className="px-4 md:px-6 h-full">
               <div className="max-w-3xl mx-auto space-y-6 pb-3">
                 {messages.map((message) => (
@@ -340,8 +340,8 @@ export default function Assistente() {
             </div>
           </div>
           
-          {/* Input Area */}
-          <div className={`px-4 md:px-6 ${isMobile ? 'pb-20 pt-2' : 'py-4'}`}>
+          {/* Input Area - fixed at bottom */}
+          <div className={`flex-shrink-0 px-4 md:px-6 ${isMobile ? 'pb-20 pt-2' : 'py-4'}`}>
             <div className="max-w-3xl mx-auto">
               {/* Suggestion bubbles - only show when it's a new conversation (desktop only) */}
               {!isMobile && isFirstMessage && !isLoading && (
