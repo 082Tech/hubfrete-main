@@ -262,7 +262,13 @@ export default function EmbarcadorDashboard() {
                 <div className="flex-1 flex flex-col p-4 pt-6">
                   {/* Chat Messages Area */}
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                    <img alt="Hubinho" className="w-16 h-16 object-contain mb-4" src="/lovable-uploads/5656da6c-c2b3-468e-978e-a765b997ada1.png" />
+                    <div className="relative w-16 h-16 mb-4 group/logo">
+                      <div className="absolute inset-0 rounded-full bg-primary/0 group-hover/logo:bg-primary/20 blur-xl transition-all duration-500 group-hover/logo:scale-150" />
+                      <div className="absolute inset-0 rounded-full opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300">
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/40 via-emerald-400/40 to-primary/40 blur-lg animate-pulse" />
+                      </div>
+                      <img alt="Hubinho" className="relative w-16 h-16 object-contain transition-transform duration-300 group-hover/logo:scale-110" src="/lovable-uploads/5656da6c-c2b3-468e-978e-a765b997ada1.png" />
+                    </div>
                     <h3 className="font-semibold text-foreground mb-2">
                       Olá! Sou o Hubinho 👋
                     </h3>
