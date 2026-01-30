@@ -231,17 +231,13 @@ All colors MUST be HSL.
 }
 
 .glass-sidebar {
-  background: hsl(0 0% 100% / 0.5);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid hsl(0 0% 100% / 0.3);
+  background: hsl(var(--sidebar-background));
+  border-left: 1px solid hsl(var(--sidebar-border));
 }
 
 .dark .glass-sidebar {
   background: hsl(var(--sidebar-background));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid hsl(var(--sidebar-border));
+  border-left: 1px solid hsl(var(--sidebar-border));
 }
 
 .glass-header {
