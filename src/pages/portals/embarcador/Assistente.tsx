@@ -242,10 +242,12 @@ export default function Assistente() {
       </div>
       
       {/* Right Sidebar - Chat History */}
-      <div className={`relative z-10 h-full flex flex-col glass-sidebar transition-all duration-300 ${
-        historyCollapsed ? 'w-16' : 'w-72'
-      }`}>
-        <div className="px-4 py-4 flex items-center justify-between border-b border-white/10">
+      <div
+        className={`relative z-10 h-full flex flex-col bg-sidebar border-l border-sidebar-border transition-all duration-300 ${
+          historyCollapsed ? 'w-16' : 'w-72'
+        }`}
+      >
+        <div className="px-4 py-4 flex items-center justify-between border-b border-sidebar-border">
           <Button
             variant="ghost"
             size="icon"
