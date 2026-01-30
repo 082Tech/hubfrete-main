@@ -68,8 +68,10 @@ export function SplashScreen({
             margin: '-8px'
           }} />
               
-              {/* Truck icon */}
-              <Truck className="w-16 h-16 text-primary-foreground" strokeWidth={1.5} />
+              {/* Logo box */}
+              <div className="w-20 h-20 rounded-2xl bg-primary-foreground flex items-center justify-center shadow-2xl">
+                <Truck className="w-10 h-10 text-primary" />
+              </div>
             </motion.div>
 
             {/* Brand Text */}
