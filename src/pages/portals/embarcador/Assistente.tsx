@@ -16,6 +16,7 @@ import { ptBR } from "date-fns/locale";
 import { AnimatePresence, motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useChatView } from "@/contexts/ChatViewContext";
 
 const WELCOME_SHOWN_KEY = 'hubfrete_welcome_shown';
 
@@ -25,6 +26,13 @@ export default function Assistente() {
   const fullName = profile?.nome_completo || 'Você';
   const userId = profile?.id ? parseInt(profile.id, 10) : null;
   const isMobile = useIsMobile();
+  const { setIsInChatView } = useChatView();
+
+  // Ensure mobile portal layout behaves like a full-screen chat (no page scroll, no bottom nav)
+  useEffect(() => {
+    setIsInChatView(true);
+    return () => setIsInChatView(false);
+  }, [setIsInChatView]);
 
   // Check if welcome animation was already shown
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(() => {
@@ -59,6 +67,10 @@ export default function Assistente() {
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const [isFirstMessage, setIsFirstMessage] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const lastScrollTopRef = useRef(0);
+  const scrollRafRef = useRef<number | null>(null);
+  const [isMobileHeaderVisible, setIsMobileHeaderVisible] = useState(true);
 
   const handleWelcomeComplete = useCallback(() => {
     sessionStorage.setItem(WELCOME_SHOWN_KEY, 'true');
@@ -79,6 +91,41 @@ export default function Assistente() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    // Reset header when switching chats
+    setIsMobileHeaderVisible(true);
+    lastScrollTopRef.current = 0;
+  }, [sessionId]);
+
+  const handleMessagesScroll = useCallback(() => {
+    if (!isMobile) return;
+    const el = messagesScrollRef.current;
+    if (!el) return;
+
+    if (scrollRafRef.current) {
+      window.cancelAnimationFrame(scrollRafRef.current);
+    }
+
+    scrollRafRef.current = window.requestAnimationFrame(() => {
+      const current = el.scrollTop;
+      const last = lastScrollTopRef.current;
+      const delta = current - last;
+
+      // Always show near top
+      if (current <= 8) {
+        setIsMobileHeaderVisible(true);
+      } else if (delta > 6 && current > 24) {
+        // Scrolling down
+        setIsMobileHeaderVisible(false);
+      } else if (delta < -6) {
+        // Scrolling up
+        setIsMobileHeaderVisible(true);
+      }
+
+      lastScrollTopRef.current = current;
+    });
+  }, [isMobile]);
 
   const handleNewChat = useCallback(() => {
     sessionStorage.removeItem("hubfrete-session-id");
@@ -275,35 +322,44 @@ export default function Assistente() {
       {isMobile && (
         <>
           {/* Centered floating logo */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
-          >
-            <div className="w-10 h-10 overflow-hidden rounded-full flex items-center justify-center portal-glass-sidebar shadow-lg">
-              <img 
-                alt="Hubinho" 
-                className="w-7 h-7 object-cover" 
-                src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png" 
-              />
-            </div>
-          </motion.div>
+          <AnimatePresence>
+            {isMobileHeaderVisible && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: -8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+                >
+                  <div className="w-10 h-10 overflow-hidden rounded-full flex items-center justify-center portal-glass-sidebar shadow-lg">
+                    <img
+                      alt="Hubinho"
+                      className="w-7 h-7 object-cover"
+                      src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png"
+                    />
+                  </div>
+                </motion.div>
 
-          {/* Floating hamburger menu - left side */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="absolute top-4 left-4 z-20"
-          >
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setMobileHistoryOpen(true)}
-              className="h-10 w-10 portal-glass-sidebar shadow-lg hover:bg-primary/10 rounded-full"
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-          </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -12, y: -8 }}
+                  animate={{ opacity: 1, x: 0, y: 0 }}
+                  exit={{ opacity: 0, x: -12, y: -10 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute top-4 left-4 z-20"
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMobileHistoryOpen(true)}
+                    className="h-10 w-10 portal-glass-sidebar shadow-lg hover:bg-primary/10 rounded-full"
+                  >
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </>
       )}
 
@@ -319,11 +375,15 @@ export default function Assistente() {
         </SheetContent>
       </Sheet>
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden overscroll-none">
         {/* Main Chat Area */}
         <div className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Messages Area - only scrollable part */}
-          <div className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'pt-16 pb-2 px-4' : 'py-6 px-6'}`}>
+          <div
+            ref={messagesScrollRef}
+            onScroll={handleMessagesScroll}
+            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${isMobile ? 'pt-16 pb-2 px-4' : 'py-6 px-6'}`}
+          >
             <div className="max-w-3xl mx-auto space-y-6">
               {messages.map((message) => (
                 <ChatMessage 
