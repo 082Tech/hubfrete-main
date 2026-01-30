@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Upload, FileText, Trash2, Eye, Plus, FileUp, Receipt, ClipboardList } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, Eye, Plus, FileUp, Receipt, ClipboardList, Stamp } from 'lucide-react';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -17,6 +17,7 @@ interface AnexarDocumentosDialogProps {
     numero_cte?: string | null;
     notas_fiscais_urls?: string[] | null;
     manifesto_url?: string | null;
+    canhoto_url?: string | null;
     carga?: {
       codigo?: string;
     };
@@ -40,6 +41,10 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
   const [manifestoFile, setManifestoFile] = useState<File | null>(null);
   const [manifestoUrl, setManifestoUrl] = useState<string | null>(null);
   
+  // Canhoto state
+  const [canhotoFile, setCanhotoFile] = useState<File | null>(null);
+  const [canhotoUrl, setCanhotoUrl] = useState<string | null>(null);
+  
   // UI state
   const [isSaving, setIsSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -50,6 +55,7 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
   const cteInputRef = useRef<HTMLInputElement>(null);
   const nfInputRef = useRef<HTMLInputElement>(null);
   const manifestoInputRef = useRef<HTMLInputElement>(null);
+  const canhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Reset state when dialog opens with new entrega
   useEffect(() => {
@@ -58,9 +64,11 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
       setNumeroCte(entrega.numero_cte || '');
       setNotasFiscaisUrls(entrega.notas_fiscais_urls || []);
       setManifestoUrl(entrega.manifesto_url || null);
+      setCanhotoUrl(entrega.canhoto_url || null);
       setCteFile(null);
       setNotasFiscaisFiles([]);
       setManifestoFile(null);
+      setCanhotoFile(null);
     }
   }, [entrega, open]);
 
@@ -104,12 +112,19 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
     }
   };
 
-  const uploadFile = async (file: File, prefix: string): Promise<string> => {
+  const handleCanhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && validateFile(file)) {
+      setCanhotoFile(file);
+    }
+  };
+
+  const uploadFile = async (file: File, prefix: string, folder?: string): Promise<string> => {
     if (!entrega) throw new Error('Entrega não encontrada');
     
     const fileExt = file.name.split('.').pop();
     const fileName = `${prefix}_${entrega.id}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `${prefix}s/${fileName}`;
+    const filePath = folder ? `${folder}/${fileName}` : `${prefix}s/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('notas-fiscais')
@@ -148,6 +163,12 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
         finalManifestoUrl = await uploadFile(manifestoFile, 'manifesto');
       }
 
+      // Upload Canhoto if there's a new file
+      let finalCanhotoUrl = canhotoUrl;
+      if (canhotoFile) {
+        finalCanhotoUrl = await uploadFile(canhotoFile, 'canhoto', 'canhotos');
+      }
+
       // Update entrega
       const { error } = await supabase
         .from('entregas')
@@ -156,6 +177,7 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
           numero_cte: numeroCte || null,
           notas_fiscais_urls: finalNotasFiscaisUrls,
           manifesto_url: finalManifestoUrl,
+          canhoto_url: finalCanhotoUrl,
         })
         .eq('id', entrega.id);
 
@@ -451,6 +473,81 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
                 >
                   <FileUp className="w-4 h-4 mr-2" />
                   {manifestoUrl || manifestoFile ? 'Substituir Manifesto' : 'Anexar Manifesto'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Separator />
+
+          {/* Canhoto Section */}
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Stamp className="w-4 h-4 text-orange-600" />
+                Canhoto (Comprovante de Entrega)
+              </div>
+              
+              <div className="space-y-2">
+                {canhotoUrl && !canhotoFile && (
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-orange-500/5 border-orange-500/20">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-orange-600" />
+                      <span className="text-sm font-medium text-orange-600">Canhoto anexado</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openPreview(canhotoUrl, 'Canhoto')}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Ver
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCanhotoUrl(null)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {canhotoFile && (
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5 border-primary/20">
+                    <div className="flex items-center gap-2">
+                      <Upload className="w-4 h-4 text-primary" />
+                      <span className="text-sm truncate max-w-[200px]">{canhotoFile.name}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCanhotoFile(null)}
+                      className="text-muted-foreground"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+
+                <input
+                  ref={canhotoInputRef}
+                  type="file"
+                  accept=".pdf,.xml,.jpg,.jpeg,.png"
+                  onChange={handleCanhotoFileChange}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => canhotoInputRef.current?.click()}
+                  className="w-full"
+                >
+                  <FileUp className="w-4 h-4 mr-2" />
+                  {canhotoUrl || canhotoFile ? 'Substituir Canhoto' : 'Anexar Canhoto'}
                 </Button>
               </div>
             </CardContent>
