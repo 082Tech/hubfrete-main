@@ -1,232 +1,126 @@
 
-# Plano de Implementação - Funcionalidades Avançadas da Torre de Controle
+# Plano de Implementação - CRUDs Administrativos Complementares
 
-## Visão Geral
+## Resumo
 
-Este plano detalha a implementação de 6 módulos avançados para a Torre de Controle administrativa, indo além do CRUD básico para fornecer insights operacionais, monitoramento em tempo real e automação de processos.
+Este plano detalha a implementação dos 3 CRUDs complementares da Fase 5 do plano original, além das atualizações necessárias na navegação da Torre de Controle:
 
----
-
-## Fase 1: Monitoramento em Tempo Real (Prioridade Alta)
-
-### Objetivo
-Transformar a página de Monitoramento (atualmente placeholder) em um painel completo com mapa interativo, rastreamento de veículos e visualização de geofences.
-
-### Funcionalidades
-- **Mapa Interativo**: Visualização de todos os motoristas ativos com posição em tempo real
-- **Sidebar de Motoristas**: Lista lateral com status online/offline e última localização
-- **Geofences**: Exibição visual das cercas geográficas configuradas (coleta/entrega)
-- **Histórico de Rota**: Replay do trajeto de um motorista selecionado
-- **Filtros**: Por empresa, status, região
-
-### Componentes a Criar
-```
-src/pages/admin/Monitoramento.tsx (reescrever)
-src/components/admin/monitoring/MonitoringMap.tsx
-src/components/admin/monitoring/DriverListPanel.tsx
-src/components/admin/monitoring/GeofenceOverlay.tsx
-src/components/admin/monitoring/RoutePlayback.tsx
-```
-
-### Dados Utilizados
-- `localizações` - Posições GPS dos motoristas
-- `geofences` - Cercas geográficas por entrega
-- `motoristas` + `veiculos` - Informações do motorista/veículo
-- `entregas` - Status das entregas associadas
-
-### Integrações
-- Google Maps API (já configurado no projeto)
-- Realtime subscriptions do Supabase (hook `useRealtimeLocalizacoes` já existe)
+1. **CRUD Carrocerias** - Gestão de reboques/semirreboques
+2. **CRUD Ajudantes** - Gestão de ajudantes de motoristas  
+3. **CRUD Provas de Entrega** - Visualização de comprovantes de entrega
 
 ---
 
-## Fase 2: Dashboard de KPIs e Performance (Prioridade Alta)
+## Fase 1: CRUD de Carrocerias
 
-### Objetivo
-Criar uma página dedicada para análise de performance de motoristas e operação geral, utilizando a tabela `motorista_kpis`.
+### Página: `src/pages/admin/CarroceriasAdmin.tsx`
 
-### Funcionalidades
-- **Ranking de Motoristas**: Top performers por entregas, km rodado, taxa de atraso
-- **Gráficos de Evolução**: Entregas por período, custos, tempo médio de entrega
-- **Comparativos**: Performance entre períodos (mês atual vs anterior)
-- **Métricas Agregadas**: Volume total, custo médio por km, taxa de sucesso
-- **Filtros**: Por motorista, empresa, período
+**Funcionalidades:**
+- Tabela paginada com todas as carrocerias cadastradas
+- Stats cards: Total, Ativas, Com motorista, Por empresa
+- Busca por placa, marca ou modelo
+- Filtros por status (ativo/inativo) e tipo de carroceria
+- Dialog de detalhes com galeria de fotos
+- Ações: Ver detalhes, Ativar/Desativar, Excluir
 
-### Componentes a Criar
+**Dados da Tabela `carrocerias`:**
 ```
-src/pages/admin/PerformanceKPIs.tsx
-src/components/admin/kpis/DriverRankingTable.tsx
-src/components/admin/kpis/PerformanceCharts.tsx
-src/components/admin/kpis/KPICards.tsx
-src/components/admin/kpis/PeriodComparison.tsx
+- id, placa, tipo, marca, modelo, ano
+- renavam, capacidade_kg, capacidade_m3
+- ativo, empresa_id, motorista_id
+- foto_url, fotos_urls[]
 ```
 
-### Dados Utilizados
-- `motorista_kpis` - KPIs calculados por período
-- `entregas` - Dados brutos para cálculos adicionais
-- `motoristas` - Informações do motorista
-
-### Visualizações (Recharts)
-- Gráfico de barras: Ranking de motoristas
-- Gráfico de linha: Evolução temporal
-- Gráfico de pizza: Distribuição de status
-- Cards com sparklines: Tendências
+**Colunas da Tabela:**
+| Placa | Tipo | Marca/Modelo | Capacidade | Motorista | Empresa | Status | Ações |
 
 ---
 
-## Fase 3: Central de Validação de Documentos (Prioridade Média)
+## Fase 2: CRUD de Ajudantes
 
-### Objetivo
-Implementar um workflow completo para aprovação/rejeição de documentos de motoristas, veículos e carrocerias, com alertas de vencimento.
+### Página: `src/pages/admin/AjudantesAdmin.tsx`
 
-### Funcionalidades
-- **Fila de Pendentes**: Documentos aguardando validação
-- **Preview de Documentos**: Visualização inline (PDF/imagem)
-- **Workflow de Aprovação**: Aprovar/Rejeitar com motivo
-- **Alertas de Vencimento**: Documentos próximos do vencimento (CNH, ANTT, CRLV)
-- **Histórico**: Log de validações realizadas
-- **Notificações**: Alertar empresas/motoristas sobre documentos vencidos
-
-### Componentes a Criar
-```
-src/pages/admin/DocumentosValidacao.tsx
-src/components/admin/documentos/DocumentQueue.tsx
-src/components/admin/documentos/DocumentPreview.tsx
-src/components/admin/documentos/ValidationDialog.tsx
-src/components/admin/documentos/ExpiringDocumentsAlert.tsx
-```
-
-### Dados Utilizados
-- `documentos_validacao` - Documentos e status
-- `motoristas` - CNH e dados do motorista
-- `veiculos` - Documentos do veículo
-- `carrocerias` - Documentos da carroceria
-
-### Status de Documentos
-- `pendente` → `aprovado` | `rejeitado`
-- Campos: tipo, número, URL, data_emissao, data_vencimento
-
----
-
-## Fase 4: Relatórios Avançados com Exportação (Prioridade Média)
-
-### Objetivo
-Substituir os placeholders da página de Relatórios por relatórios funcionais com filtros avançados e exportação para PDF/Excel.
-
-### Funcionalidades
-- **Relatório Operacional**: Volume de cargas, entregas por status, SLAs
-- **Relatório de Crescimento**: Novos cadastros por período
-- **Relatório Financeiro**: Volume de frete, média por entrega
-- **Relatório de Frota**: Utilização de veículos, km rodado
-- **Exportação**: PDF (jspdf) e Excel (xlsx)
-- **Filtros**: Data, empresa, região
-
-### Componentes a Criar
-```
-src/pages/admin/Relatorios.tsx (reescrever)
-src/components/admin/relatorios/OperationalReport.tsx
-src/components/admin/relatorios/GrowthReport.tsx
-src/components/admin/relatorios/FinancialReport.tsx
-src/components/admin/relatorios/FleetReport.tsx
-src/components/admin/relatorios/ExportButtons.tsx
-src/lib/reportExport.ts
-```
-
-### Dependências Novas
-```json
-{
-  "jspdf": "^2.5.1",
-  "jspdf-autotable": "^3.8.0",
-  "xlsx": "^0.18.5"
-}
-```
-
-### Dados Utilizados
-- `cargas`, `entregas` - Dados operacionais
-- `empresas`, `motoristas` - Dados de crescimento
-- `veiculos`, `localizações` - Dados de frota
-
----
-
-## Fase 5: CRUDs Complementares (Prioridade Média)
-
-### Objetivo
-Adicionar gerenciamento para entidades que ainda não possuem interface administrativa.
-
-### 5.1 - Gestão de Carrocerias
-```
-src/pages/admin/CarroceriasAdmin.tsx
-```
-- Tabela com placa, tipo, marca, capacidade
-- Filtros por empresa, status
-- Dialog de detalhes com fotos
-- Ações: ativar/desativar, excluir
-
-### 5.2 - Gestão de Ajudantes
-```
-src/pages/admin/AjudantesAdmin.tsx
-```
-- Tabela com nome, CPF, telefone, motorista vinculado
-- Filtros por status, tipo de cadastro
-- Ações: ativar/desativar, excluir
-
-### 5.3 - Gestão de Provas de Entrega
-```
-src/pages/admin/ProvasEntregaAdmin.tsx
-```
-- Visualização de comprovantes de entrega
-- Fotos, assinaturas, checklist
-- Filtros por entrega, motorista, período
-- Modal de detalhes com galeria de imagens
-
-### Padrão de Implementação
-Todos seguirão o padrão já estabelecido em `VeiculosAdmin.tsx` e `MotoristasAdmin.tsx`:
-- Stats cards no topo
-- Barra de busca e filtros
-- Tabela paginada
+**Funcionalidades:**
+- Tabela paginada com todos os ajudantes cadastrados
+- Stats cards: Total, Ativos, Por tipo de cadastro
+- Busca por nome, CPF ou telefone
+- Filtros por status (ativo/inativo) e tipo de cadastro
 - Dialog de detalhes
-- DropdownMenu de ações
+- Ações: Ver detalhes, Ativar/Desativar, Excluir
+
+**Dados da Tabela `ajudantes`:**
+```
+- id, nome, cpf, telefone
+- ativo, tipo_cadastro
+- motorista_id (vinculado ao motorista)
+- comprovante_vinculo_url
+```
+
+**Colunas da Tabela:**
+| Nome | CPF | Telefone | Motorista Vinculado | Tipo | Status | Ações |
 
 ---
 
-## Fase 6: Atualizações na Sidebar e Navegação
+## Fase 3: CRUD de Provas de Entrega
 
-### Objetivo
-Adicionar as novas páginas ao menu administrativo.
+### Página: `src/pages/admin/ProvasEntregaAdmin.tsx`
+
+**Funcionalidades:**
+- Galeria/tabela de comprovantes de entrega
+- Stats cards: Total de provas, Por período
+- Busca por código de entrega ou nome do recebedor
+- Filtros por período (data)
+- Dialog de detalhes com:
+  - Galeria de fotos (`fotos_urls[]`)
+  - Assinatura do recebedor (`assinatura_url`)
+  - Checklist de conferência (`checklist`)
+  - Dados do recebedor
+- Preview de imagens em lightbox
+
+**Dados da Tabela `provas_entrega`:**
+```
+- id, entrega_id
+- nome_recebedor, documento_recebedor
+- assinatura_url, fotos_urls[]
+- checklist (JSON), observacoes
+- timestamp
+```
+
+**Colunas da Tabela:**
+| Entrega | Recebedor | Documento | Fotos | Assinatura | Data | Ações |
+
+---
+
+## Fase 4: Atualização da Navegação
 
 ### Alterações em `AdminSidebar.tsx`
+
+Adicionar os novos itens de menu organizados em submenus:
+
 ```typescript
-// Novos itens de menu
-{
-  title: 'Performance',
-  icon: Award,
-  href: '/admin/performance',
-  roles: ['super_admin', 'admin'],
-},
-{
-  title: 'Documentos',
-  icon: FileCheck,
-  href: '/admin/documentos',
-  roles: ['super_admin', 'admin', 'suporte'],
-},
+// Submenu Frota
 {
   title: 'Frota',
   icon: Truck,
-  roles: ['super_admin', 'admin'],
+  roles: ['super_admin', 'admin', 'suporte'],
   subItems: [
     { title: 'Veículos', href: '/admin/veiculos', icon: Truck },
     { title: 'Carrocerias', href: '/admin/carrocerias', icon: Container },
   ],
 },
+
+// Submenu Cadastros
 {
   title: 'Cadastros',
   icon: Users,
-  roles: ['super_admin', 'admin'],
+  roles: ['super_admin', 'admin', 'suporte'],
   subItems: [
     { title: 'Motoristas', href: '/admin/motoristas', icon: User },
     { title: 'Ajudantes', href: '/admin/ajudantes', icon: UserPlus },
   ],
 },
+
+// Item Comprovantes
 {
   title: 'Comprovantes',
   icon: Camera,
@@ -235,10 +129,11 @@ Adicionar as novas páginas ao menu administrativo.
 },
 ```
 
-### Rotas em `App.tsx`
+### Alterações em `App.tsx`
+
+Adicionar as novas rotas no bloco admin:
+
 ```typescript
-<Route path="performance" element={<PerformanceKPIs />} />
-<Route path="documentos" element={<DocumentosValidacao />} />
 <Route path="carrocerias" element={<CarroceriasAdmin />} />
 <Route path="ajudantes" element={<AjudantesAdmin />} />
 <Route path="provas-entrega" element={<ProvasEntregaAdmin />} />
@@ -246,84 +141,79 @@ Adicionar as novas páginas ao menu administrativo.
 
 ---
 
-## Cronograma de Implementação Sugerido
-
-| Fase | Módulo | Prioridade | Complexidade |
-|------|--------|------------|--------------|
-| 1 | Monitoramento em Tempo Real | Alta | Alta |
-| 2 | Dashboard de KPIs | Alta | Média |
-| 3 | Validação de Documentos | Média | Média |
-| 4 | Relatórios com Exportação | Média | Média |
-| 5 | CRUDs (Carrocerias, Ajudantes, Provas) | Média | Baixa |
-| 6 | Navegação e Sidebar | Baixa | Baixa |
-
----
-
 ## Detalhes Técnicos
 
-### Estrutura de Arquivos Final
+### Estrutura de Arquivos
+
 ```
 src/pages/admin/
-├── Monitoramento.tsx (reescrito)
-├── PerformanceKPIs.tsx (novo)
-├── DocumentosValidacao.tsx (novo)
-├── Relatorios.tsx (reescrito)
 ├── CarroceriasAdmin.tsx (novo)
 ├── AjudantesAdmin.tsx (novo)
 ├── ProvasEntregaAdmin.tsx (novo)
 └── ... (existentes)
-
-src/components/admin/
-├── monitoring/
-│   ├── MonitoringMap.tsx
-│   ├── DriverListPanel.tsx
-│   ├── GeofenceOverlay.tsx
-│   └── RoutePlayback.tsx
-├── kpis/
-│   ├── DriverRankingTable.tsx
-│   ├── PerformanceCharts.tsx
-│   ├── KPICards.tsx
-│   └── PeriodComparison.tsx
-├── documentos/
-│   ├── DocumentQueue.tsx
-│   ├── DocumentPreview.tsx
-│   ├── ValidationDialog.tsx
-│   └── ExpiringDocumentsAlert.tsx
-├── relatorios/
-│   ├── OperationalReport.tsx
-│   ├── GrowthReport.tsx
-│   ├── FinancialReport.tsx
-│   ├── FleetReport.tsx
-│   └── ExportButtons.tsx
-└── ... (existentes)
-
-src/lib/
-├── reportExport.ts (novo - funções de exportação PDF/Excel)
 ```
 
-### Padrões a Seguir
-- Componentes seguem padrão shadcn/ui existente
-- Gráficos usando Recharts (já instalado)
-- Mapas usando Google Maps API (já configurado)
-- Estilização com Tailwind e variáveis de tema
-- Paginação com componente `Pagination` existente
-- Dialogs de confirmação com `DeleteConfirmDialog` existente
+### Padrão de Implementação
 
-### Controle de Acesso por Role
-- `super_admin`: Acesso total
-- `admin`: Acesso a todos os módulos operacionais
-- `suporte`: Acesso de leitura a monitoramento, documentos e comprovantes
+Todos os CRUDs seguirão o padrão já estabelecido em `VeiculosAdmin.tsx` e `MotoristasAdmin.tsx`:
+
+1. **Stats Cards** no topo com métricas relevantes
+2. **Barra de busca e filtros** (Select para status e tipo)
+3. **Tabela paginada** usando componente `Pagination` existente
+4. **Dialog de detalhes** para visualização completa
+5. **DropdownMenu de ações** (Ver, Ativar/Desativar, Excluir)
+6. **DeleteConfirmDialog** para confirmação de exclusão
+
+### Componentes Reutilizados
+
+- `Card`, `CardContent` - Layout de cards
+- `Table`, `TableHeader`, `TableBody`, etc. - Tabelas
+- `Badge` - Status e tipos
+- `Dialog` - Modais de detalhes
+- `DropdownMenu` - Menu de ações
+- `Pagination` - Paginação existente
+- `DeleteConfirmDialog` - Confirmação de exclusão
+
+### Queries Supabase
+
+**Carrocerias:**
+```typescript
+supabase.from('carrocerias')
+  .select(`*, empresa:empresas(id, nome), motorista:motoristas(id, nome_completo)`)
+  .order('created_at', { ascending: false })
+```
+
+**Ajudantes:**
+```typescript
+supabase.from('ajudantes')
+  .select(`*, motorista:motoristas(id, nome_completo)`)
+  .order('created_at', { ascending: false })
+```
+
+**Provas de Entrega:**
+```typescript
+supabase.from('provas_entrega')
+  .select(`*, entrega:entregas(id, codigo, motorista:motoristas(id, nome_completo))`)
+  .order('timestamp', { ascending: false })
+```
 
 ---
 
 ## Resumo das Entregas
 
-1. **Monitoramento Real-Time** - Mapa com motoristas, geofences e histórico de rota
-2. **Performance KPIs** - Rankings, métricas e comparativos de motoristas
-3. **Central de Documentos** - Workflow de aprovação e alertas de vencimento
-4. **Relatórios Avançados** - Operacional, crescimento, financeiro com exportação PDF/Excel
-5. **CRUD Carrocerias** - Gestão de reboques/semirreboques
-6. **CRUD Ajudantes** - Gestão de ajudantes de motoristas
-7. **CRUD Provas de Entrega** - Visualização de comprovantes
-8. **Navegação Atualizada** - Sidebar reorganizada com novos módulos
+| Arquivo | Descrição | Prioridade |
+|---------|-----------|------------|
+| `CarroceriasAdmin.tsx` | CRUD completo de carrocerias/implementos | Alta |
+| `AjudantesAdmin.tsx` | CRUD completo de ajudantes de motoristas | Alta |
+| `ProvasEntregaAdmin.tsx` | Visualização de provas de entrega com galeria | Alta |
+| `AdminSidebar.tsx` | Novos itens de menu e submenus | Alta |
+| `App.tsx` | Novas rotas administrativas | Alta |
 
+---
+
+## Considerações Adicionais
+
+- **Galeria de Fotos**: O CRUD de Provas de Entrega terá um lightbox para visualização de fotos em tela cheia
+- **Checklist**: Será renderizado como uma lista de checkboxes visuais (somente leitura)
+- **Assinatura**: Será exibida como imagem quando disponível
+- **Submenus**: A sidebar será reorganizada para agrupar funcionalidades relacionadas (Frota, Cadastros)
