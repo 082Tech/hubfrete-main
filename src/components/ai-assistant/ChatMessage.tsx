@@ -17,8 +17,17 @@ export function ChatMessage({
   const initials = userInitials || userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   return <div className={`flex gap-3 animate-fade-in ${isBot ? "justify-start items-center" : "justify-end"}`}>
       {isBot && <div className="flex-shrink-0 self-center">
-          <div className="w-10 h-10 overflow-hidden rounded-full bg-[#2c0202]/0 text-[#2c0202]/0 flex items-center justify-center">
-            <img alt="Hubinho" className="w-7 h-7 object-cover" src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png" />
+          <div className="w-10 h-10 overflow-hidden rounded-full flex items-center justify-center relative group">
+            <img 
+              alt="Hubinho" 
+              className="w-7 h-7 object-cover absolute transition-opacity duration-300 group-hover:opacity-0" 
+              src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png" 
+            />
+            <img 
+              alt="Hubinho hover" 
+              className="w-7 h-7 object-cover absolute opacity-0 transition-opacity duration-300 group-hover:opacity-100" 
+              src="/lovable-uploads/cb77a8b3-7f68-4fd4-9c56-2423f32a1b6b.png" 
+            />
           </div>
         </div>}
 
