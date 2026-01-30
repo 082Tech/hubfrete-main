@@ -316,46 +316,54 @@ export default function EmbarcadorDashboard() {
 
           {/* Right Column - AI Assistant Card */}
           <div className="lg:col-span-1">
-            <Card className="border-border h-full min-h-[400px] flex flex-col bg-gradient-to-br from-accent/30 to-transparent">
-              <CardHeader className="border-b border-border/50">
+            <Card className="border-border/50 h-full min-h-[400px] flex flex-col backdrop-blur-xl bg-background/60 shadow-xl">
+              <CardHeader className="border-b border-border/30">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <div className="p-2 bg-primary rounded-lg">
-                      <MessageCircle className="w-4 h-4 text-primary-foreground" />
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary/20 to-emerald-500/20 shadow-lg">
+                      <img
+                        src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png"
+                        alt="Hubinho"
+                        className="w-7 h-7 object-cover"
+                      />
                     </div>
-                    Assistente HubFrete
+                    Hubinho
                   </CardTitle>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => navigate('/embarcador/assistente')}
-                    className="h-8 w-8"
+                    className="h-8 w-8 hover:bg-primary/10"
                     title="Abrir em tela cheia"
                   >
                     <ExternalLink className="w-4 h-4" />
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Converse sobre suas cargas e operações
+                  Seu copiloto inteligente de logística
                 </p>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col p-4">
                 {/* Chat Messages Area */}
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <Sparkles className="w-8 h-8 text-primary" />
+                  <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center mb-4 bg-gradient-to-br from-primary/10 to-emerald-500/10 shadow-lg ring-2 ring-primary/20">
+                    <img
+                      src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png"
+                      alt="Hubinho"
+                      className="w-14 h-14 object-cover"
+                    />
                   </div>
                   <h3 className="font-semibold text-foreground mb-2">
-                    Sou o Assistente HubFrete
+                    Olá! Sou o Hubinho 👋
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Converse comigo sobre suas cargas, entregas e muito mais!
+                    Posso te ajudar com cargas, entregas, relatórios e muito mais!
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center">
-                    <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
-                      "Status das minhas cargas"
+                    <span className="px-3 py-1.5 bg-primary/10 rounded-full text-xs text-foreground/80 border border-primary/20">
+                      "Resumo das minhas cargas"
                     </span>
-                    <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
+                    <span className="px-3 py-1.5 bg-primary/10 rounded-full text-xs text-foreground/80 border border-primary/20">
                       "Criar nova carga"
                     </span>
                   </div>
@@ -364,23 +372,20 @@ export default function EmbarcadorDashboard() {
                 {/* Chat Input */}
                 <div className="flex gap-2 mt-4">
                   <Input
-                    placeholder="Digite sua mensagem..."
+                    placeholder="Pergunte algo ao Hubinho..."
                     value={chatMessage}
                     onChange={(e) => setChatMessage(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="flex-1"
+                    className="flex-1 bg-background/50 border-border/50"
                   />
                   <Button 
                     size="icon" 
                     onClick={handleSendMessage}
-                    className="shrink-0"
+                    className="shrink-0 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90"
                   >
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  🚧 Em desenvolvimento
-                </p>
               </CardContent>
             </Card>
           </div>
