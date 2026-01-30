@@ -352,7 +352,7 @@ export default function GestaoCargas() {
     refetchInterval: 60000, // Refresh every 1 minute
   });
 
-  // Fetch driver locations from localizações table using motorista_id
+  // Fetch driver locations from localizacoes table using motorista_id
   const motoristaIds = useMemo(() => {
     const ids = new Set<string>();
     cargas.forEach(c => {
