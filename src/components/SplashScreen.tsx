@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Truck } from 'lucide-react';
+
+// 🔧 DEBUG MODE - Set to true to loop the animation for editing
+const DEBUG_MODE = true;
+
 interface SplashScreenProps {
   onComplete: () => void;
 }
@@ -8,19 +12,29 @@ export function SplashScreen({
   onComplete
 }: SplashScreenProps) {
   const [stage, setStage] = useState(0);
+  const [loopKey, setLoopKey] = useState(0);
+  
   useEffect(() => {
     // Stage 0: Initial fade in
     // Stage 1: Logo and text visible
     // Stage 2: Fade out
     const timer1 = setTimeout(() => setStage(1), 100);
     const timer2 = setTimeout(() => setStage(2), 1800);
-    const timer3 = setTimeout(() => onComplete(), 2400);
+    const timer3 = setTimeout(() => {
+      if (DEBUG_MODE) {
+        // Reset and loop the animation
+        setStage(0);
+        setLoopKey(k => k + 1);
+      } else {
+        onComplete();
+      }
+    }, 2400);
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
       clearTimeout(timer3);
     };
-  }, [onComplete]);
+  }, [onComplete, loopKey]);
   return <AnimatePresence>
       {stage < 2 && <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-primary" initial={{
       opacity: 1
