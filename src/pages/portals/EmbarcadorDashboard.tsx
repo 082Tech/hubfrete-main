@@ -316,34 +316,19 @@ export default function EmbarcadorDashboard() {
 
           {/* Right Column - AI Assistant Card */}
           <div className="lg:col-span-1">
-            <Card className="border-border/50 h-full min-h-[400px] flex flex-col backdrop-blur-xl bg-background/60 shadow-xl">
-              <CardHeader className="border-b border-border/30">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary/20 to-emerald-500/20 shadow-lg">
-                      <img
-                        src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png"
-                        alt="Hubinho"
-                        className="w-7 h-7 object-cover"
-                      />
-                    </div>
-                    Hubinho
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigate('/embarcador/assistente')}
-                    className="h-8 w-8 hover:bg-primary/10"
-                    title="Abrir em tela cheia"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Seu copiloto inteligente de logística
-                </p>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col p-4">
+            <Card className="border-border/50 h-full min-h-[400px] flex flex-col backdrop-blur-xl bg-background/60 shadow-xl relative">
+              {/* Floating button to open full chat */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/embarcador/assistente')}
+                className="absolute top-3 right-3 h-8 w-8 hover:bg-primary/10 z-10"
+                title="Abrir chat completo"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+
+              <CardContent className="flex-1 flex flex-col p-4 pt-6">
                 {/* Chat Messages Area */}
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
                   <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center mb-4 bg-gradient-to-br from-primary/10 to-emerald-500/10 shadow-lg ring-2 ring-primary/20">
