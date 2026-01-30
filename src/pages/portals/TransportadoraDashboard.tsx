@@ -19,6 +19,7 @@ import {
   Settings,
 } from 'lucide-react';
 import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
+import { CardImmersiveBackground } from '@/components/ai-assistant/CardImmersiveBackground';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -129,7 +130,12 @@ export default function TransportadoraDashboard() {
 
   const handleSendMessage = () => {
     if (chatMessage.trim()) {
-      navigate('/transportadora/assistente');
+      navigate('/transportadora/assistente', {
+        state: {
+          initialMessage: chatMessage.trim()
+        }
+      });
+      setChatMessage('');
     }
   };
 
@@ -277,7 +283,7 @@ export default function TransportadoraDashboard() {
                   <Button 
                     variant="outline" 
                     className="h-auto py-4 flex-col gap-2 hover:bg-chart-4/5 hover:border-chart-4/20"
-                    onClick={() => navigate('/transportadora/rastreamento')}
+                    onClick={() => navigate('/transportadora/entregas')}
                   >
                     <MapPin className="w-5 h-5 text-chart-4" />
                     <span className="text-xs">Rastreamento</span>
@@ -289,71 +295,53 @@ export default function TransportadoraDashboard() {
 
           {/* Right Column - AI Assistant Card */}
           <div className="lg:col-span-1">
-            <Card className="border-border h-full min-h-[400px] flex flex-col bg-gradient-to-br from-accent/30 to-transparent">
-              <CardHeader className="border-b border-border/50">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <div className="p-2 bg-primary rounded-lg">
-                      <MessageCircle className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                    Assistente HubFrete
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigate('/transportadora/assistente')}
-                    className="h-8 w-8"
-                    title="Abrir em tela cheia"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Tire dúvidas sobre sua frota e entregas
-                </p>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col p-4">
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <Sparkles className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    Sou o Assistente HubFrete
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Converse comigo sobre cargas, motoristas e entregas!
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
-                      "Cargas disponíveis"
-                    </span>
-                    <span className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
-                      "Status da frota"
-                    </span>
-                  </div>
-                </div>
+            <div className="animated-border-card relative h-full min-h-[400px] rounded-xl overflow-hidden shadow-xl">
+              {/* Animated Background */}
+              <CardImmersiveBackground />
+              
+              {/* Glass Card Overlay */}
+              <div className="absolute inset-0 z-10 flex flex-col backdrop-blur-md bg-background/40 border border-border/30 rounded-xl">
+                {/* Floating button to open full chat */}
+                <Button variant="ghost" size="icon" onClick={() => navigate('/transportadora/assistente')} className="absolute top-3 right-3 h-8 w-8 hover:bg-primary/20 z-20 backdrop-blur-sm bg-background/30" title="Abrir chat completo">
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
 
-                <div className="flex gap-2 mt-4">
-                  <Input
-                    placeholder="Digite sua mensagem..."
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="flex-1"
-                  />
-                  <Button 
-                    size="icon" 
-                    onClick={handleSendMessage}
-                    className="shrink-0"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
+                <div className="flex-1 flex flex-col p-4 pt-6">
+                  {/* Chat Messages Area */}
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                    <div className="relative w-16 h-16 mb-4 group/logo">
+                      <div className="absolute inset-0 rounded-full bg-primary/0 group-hover/logo:bg-primary/20 blur-xl transition-all duration-500 group-hover/logo:scale-150" />
+                      <div className="absolute inset-0 rounded-full opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300">
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/40 via-emerald-400/40 to-primary/40 blur-lg animate-pulse" />
+                      </div>
+                      <img alt="Hubinho" className="relative w-16 h-16 transition-transform duration-300 group-hover/logo:scale-110 object-cover" src="/lovable-uploads/5656da6c-c2b3-468e-978e-a765b997ada1.png" />
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-2">
+                      Olá! Sou o Hubinho 👋
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Posso te ajudar com cargas, motoristas, entregas e muito mais!
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <span className="px-3 py-1.5 backdrop-blur-sm bg-background/40 rounded-full text-xs text-foreground/80 border border-primary/30">
+                        "Status da frota"
+                      </span>
+                      <span className="px-3 py-1.5 backdrop-blur-sm bg-background/40 rounded-full text-xs text-foreground/80 border border-primary/30">
+                        "Entregas em andamento"
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Chat Input */}
+                  <div className="flex gap-2 mt-4">
+                    <Input placeholder="Pergunte algo ao Hubinho..." value={chatMessage} onChange={e => setChatMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} className="flex-1 backdrop-blur-sm bg-background/40 border-border/40" />
+                    <Button size="icon" onClick={handleSendMessage} className="shrink-0 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90">
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  🚧 Em desenvolvimento
-                </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
 
