@@ -25,12 +25,6 @@ export function ChatMessage({
         </div>}
 
       <div className={`flex flex-col ${isMobile ? 'max-w-[90%]' : 'max-w-[75%]'}`}>
-        {/* Name label - only for user */}
-        {!isBot && <div className="flex items-center gap-2 mb-1.5 justify-end">
-            <span className="text-xs font-medium text-muted-foreground">
-              {userName}
-            </span>
-          </div>}
 
         {/* Message bubble */}
         <div className={`px-4 py-3 ${isBot ? 'chat-bubble-ai' : 'chat-bubble-user rounded-2xl text-primary-foreground'}`}>
