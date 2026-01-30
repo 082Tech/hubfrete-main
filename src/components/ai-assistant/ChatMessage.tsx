@@ -20,7 +20,7 @@ export function ChatMessage({
       {isBot && !isMobile && <div className="flex-shrink-0 self-center">
           <div className="w-10 h-10 overflow-hidden rounded-full flex items-center justify-center relative group">
             <img alt="Hubinho" className="w-7 h-7 object-cover absolute transition-opacity duration-300 group-hover:opacity-0" src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png" />
-            <img alt="Hubinho hover" className="w-7 h-7 object-cover absolute opacity-0 transition-opacity duration-300 group-hover:opacity-100" src="/lovable-uploads/hubinho-hover.png" />
+            <img alt="Hubinho hover" className="w-7 h-7 object-cover absolute opacity-0 transition-opacity duration-300 group-hover:opacity-100" src="/lovable-uploads/28a1df1d-f6a4-4fa7-abf3-554bbef2e43e.png" />
           </div>
         </div>}
 
