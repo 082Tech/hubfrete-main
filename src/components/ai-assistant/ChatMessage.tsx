@@ -18,7 +18,7 @@ export function ChatMessage({
   return <div className={`flex gap-3 animate-fade-in ${isBot ? "justify-start items-center" : "justify-end"}`}>
       {isBot && <div className="flex-shrink-0 self-center">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
-            <img alt="Hubinho" className="w-7 h-7 object-cover" src="/lovable-uploads/4d050c34-1d9b-4be6-8522-adaf4653e80d.png" />
+            <img alt="Hubinho" className="w-7 h-7 object-cover" src="/lovable-uploads/cb77a8b3-7f68-4fd4-9c56-2423f32a1b6b.png" />
           </div>
         </div>}
 
