@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Send, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -12,21 +12,11 @@ export function ChatInput({ onSend, disabled, hidePoweredBy }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
-    }
-  }, [input]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim() && !disabled) {
       onSend(input.trim());
       setInput("");
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "auto";
-      }
     }
   };
 
@@ -59,7 +49,7 @@ export function ChatInput({ onSend, disabled, hidePoweredBy }: ChatInputProps) {
             placeholder="Digite sua mensagem..."
             disabled={disabled}
             rows={1}
-            className="flex-1 min-w-0 px-2 py-1.5 bg-transparent text-foreground placeholder:text-muted-foreground/60 focus:outline-none resize-none scrollbar-thin text-sm leading-5 min-h-[32px] max-h-[100px]"
+            className="flex-1 min-w-0 px-2 py-2 bg-transparent text-foreground placeholder:text-muted-foreground/60 focus:outline-none resize-none scrollbar-thin text-sm leading-5 h-10 max-h-10 overflow-y-auto"
           />
           
           <Button
