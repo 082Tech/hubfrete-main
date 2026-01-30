@@ -230,7 +230,7 @@ export default function Assistente() {
         <div className="p-3">
           <Button
             onClick={handleNewChat}
-            className={`w-full justify-start gap-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl ${
+            className={`w-full justify-start gap-2 bg-gradient-to-r from-primary via-emerald-500 to-teal-400 hover:from-primary/90 hover:via-emerald-500/90 hover:to-teal-400/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/25 ${
               historyCollapsed ? 'px-3' : ''
             }`}
           >
