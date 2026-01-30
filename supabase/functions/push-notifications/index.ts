@@ -37,7 +37,7 @@ serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
 
-    // Return VAPID public key
+    // Return VAPID public key (public endpoint)
     if (action === 'get-vapid-key') {
       const publicKey = Deno.env.get('VAPID_PUBLIC_KEY');
       if (!publicKey) {
@@ -53,12 +53,50 @@ serve(async (req) => {
       );
     }
 
-    // Send push notification (called by database trigger via pg_net or manually)
+    // Send push notification - REQUIRES AUTHENTICATION
     if (req.method === 'POST') {
-      const { userId, userIds, title, body, url: notificationUrl, data } = await req.json();
-
+      // Check for service role key (internal system calls only)
+      const authHeader = req.headers.get('Authorization');
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      
+      // Only allow calls with service role key (from database triggers or internal systems)
+      // This prevents arbitrary users from sending push notifications to anyone
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Missing authorization header' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Extract the token from the Authorization header
+      const token = authHeader.replace('Bearer ', '');
+      
+      // Check if this is a service role call (trusted internal call)
+      const isServiceRole = token === serviceRoleKey;
+      
+      if (!isServiceRole) {
+        // For non-service-role calls, verify the user and restrict what they can do
+        const supabaseClient = createClient(supabaseUrl, token);
+        const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+        
+        if (userError || !userData.user) {
+          return new Response(
+            JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Non-service calls can only send to themselves (for testing purposes)
+        // In production, you may want to completely block non-service calls
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: Only internal system calls can send push notifications' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { userId, userIds, title, body, url: notificationUrl, data } = await req.json();
+
       const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
       const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
 
