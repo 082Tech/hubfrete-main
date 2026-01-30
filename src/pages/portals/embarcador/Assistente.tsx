@@ -271,32 +271,40 @@ export default function Assistente() {
         )}
       </AnimatePresence>
 
-      {/* Mobile Header */}
+      {/* Mobile Header - Floating elements */}
       {isMobile && (
-        <motion.header
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-20 flex items-center justify-between px-4 py-3 portal-glass-sidebar border-b border-sidebar-border/50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 overflow-hidden rounded-full flex items-center justify-center">
+        <>
+          {/* Centered floating logo */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+          >
+            <div className="w-10 h-10 overflow-hidden rounded-full flex items-center justify-center portal-glass-sidebar shadow-lg">
               <img 
                 alt="Hubinho" 
-                className="w-6 h-6 object-cover" 
+                className="w-7 h-7 object-cover" 
                 src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png" 
               />
             </div>
-            <span className="font-semibold text-foreground">Hubinho</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileHistoryOpen(true)}
-            className="hover:bg-primary/10"
+          </motion.div>
+
+          {/* Floating hamburger menu */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="absolute top-4 right-4 z-20"
           >
-            <Menu className="w-5 h-5" />
-          </Button>
-        </motion.header>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileHistoryOpen(true)}
+              className="h-10 w-10 portal-glass-sidebar shadow-lg hover:bg-primary/10 rounded-full"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          </motion.div>
+        </>
       )}
 
       {/* Mobile History Sheet */}
