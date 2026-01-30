@@ -10,7 +10,7 @@ export function ChatHeader({ onNewChat }: ChatHeaderProps) {
     <header className="glass-card px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <div className="relative">
-          <div className="w-12 h-12 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center glow-border">
+          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
             <Sparkles className="w-6 h-6 text-primary" />
           </div>
           <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />

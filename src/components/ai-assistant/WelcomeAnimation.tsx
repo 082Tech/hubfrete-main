@@ -68,7 +68,7 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
               }}
               className="relative mb-6"
             >
-              <div className="w-20 h-20 rounded-2xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center glow-border shadow-lg shadow-primary/20 overflow-hidden">
+              <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center shadow-lg shadow-primary/20 overflow-hidden">
                 <img src={hubinhoLogo} alt="Hubinho" className="w-14 h-14 object-contain" />
               </div>
               
