@@ -42,10 +42,8 @@ export function useRealtimeLocalizacoes({ motoristaIds, enabled = true }: UseRea
     }
 
     try {
-      // Using type assertion to avoid deep instantiation TS error
-      // The table name has special characters (ç) which can cause type issues
-      const { data, error } = await (supabase as any)
-        .from('localizações')
+      const { data, error } = await supabase
+        .from('localizacoes')
         .select('*')
         .in('motorista_id', stableIds);
 
@@ -96,7 +94,7 @@ export function useRealtimeLocalizacoes({ motoristaIds, enabled = true }: UseRea
         {
           event: '*', // INSERT, UPDATE, DELETE
           schema: 'public',
-          table: 'localizações',
+          table: 'localizacoes',
         },
         (payload) => {
           const record = payload.new as any;
