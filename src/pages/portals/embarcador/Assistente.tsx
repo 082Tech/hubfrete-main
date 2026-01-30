@@ -208,23 +208,55 @@ export default function Assistente() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Main Chat Area */}
+      <div className="relative z-10 flex-1 flex flex-col h-full">
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto py-6">
+          <div className="px-6 h-full">
+            <div className="max-w-3xl mx-auto space-y-6 pb-3">
+              {messages.map((message) => (
+                <ChatMessage 
+                  key={message.id} 
+                  message={message} 
+                  userName={fullName}
+                  userInitials={userInitials}
+                />
+              ))}
+              {isLoading && <TypingIndicator />}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+        </div>
+        
+        {/* Input Area */}
+        <div className="px-6 py-4">
+          <div className="max-w-3xl mx-auto">
+            {/* Suggestion bubbles - only show when it's a new conversation */}
+            {isFirstMessage && !isLoading && (
+              <SuggestionBubbles onSelect={handleSend} disabled={isLoading} />
+            )}
+            <ChatInput onSend={handleSend} disabled={isLoading} />
+          </div>
+        </div>
+      </div>
       
-      {/* Left Sidebar - Chat History */}
+      {/* Right Sidebar - Chat History */}
       <div className={`relative z-10 h-full flex flex-col glass-sidebar transition-all duration-300 ${
         historyCollapsed ? 'w-16' : 'w-72'
       }`}>
         <div className="px-4 py-4 flex items-center justify-between border-b border-white/10">
-          {!historyCollapsed && (
-            <span className="font-semibold text-sm text-foreground">Histórico</span>
-          )}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setHistoryCollapsed(!historyCollapsed)}
-            className="ml-auto hover:bg-primary/10 text-muted-foreground"
+            className="hover:bg-primary/10 text-muted-foreground"
           >
-            {historyCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {historyCollapsed ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           </Button>
+          {!historyCollapsed && (
+            <span className="font-semibold text-sm text-foreground">Histórico</span>
+          )}
         </div>
 
         <div className="p-3">
@@ -285,38 +317,6 @@ export default function Assistente() {
               </button>
             ))
           )}
-        </div>
-      </div>
-
-      {/* Main Chat Area */}
-      <div className="relative z-10 flex-1 flex flex-col h-full">
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto py-6">
-          <div className="px-6 h-full">
-            <div className="max-w-3xl mx-auto space-y-6 pb-3">
-              {messages.map((message) => (
-                <ChatMessage 
-                  key={message.id} 
-                  message={message} 
-                  userName={fullName}
-                  userInitials={userInitials}
-                />
-              ))}
-              {isLoading && <TypingIndicator />}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-        </div>
-        
-        {/* Input Area */}
-        <div className="px-6 py-4">
-          <div className="max-w-3xl mx-auto">
-            {/* Suggestion bubbles - only show when it's a new conversation */}
-            {isFirstMessage && !isLoading && (
-              <SuggestionBubbles onSelect={handleSend} disabled={isLoading} />
-            )}
-            <ChatInput onSend={handleSend} disabled={isLoading} />
-          </div>
         </div>
       </div>
     </div>
