@@ -298,17 +298,6 @@ export default function Assistente() {
     <div className={`relative flex flex-col ${isMobile ? 'h-[calc(100dvh-64px)]' : 'h-[100dvh]'} overflow-hidden touch-none`}>
       <ImmersiveBackground />
       
-      {/* Welcome Animation - First visit only */}
-      <AnimatePresence mode="wait">
-        {showWelcomeAnimation && (
-          <div className="absolute inset-0 z-50">
-            <WelcomeAnimation 
-              userName={fullName} 
-              onComplete={handleWelcomeComplete} 
-            />
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Mobile Header - Floating elements */}
       {isMobile && (
@@ -374,21 +363,34 @@ export default function Assistente() {
           <div
             ref={messagesScrollRef}
             onScroll={handleMessagesScroll}
-            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-none ${isMobile ? 'pt-16 pb-2 px-4' : 'py-6 px-6'}`}
+            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-none relative ${isMobile ? 'pt-16 pb-2 px-4' : 'py-6 px-6'}`}
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            <div className="max-w-3xl mx-auto space-y-6">
-              {messages.map((message) => (
-                <ChatMessage 
-                  key={message.id} 
-                  message={message} 
-                  userName={fullName}
-                  userInitials={userInitials}
+            {/* Welcome Animation - centralizado na área do chat */}
+            <AnimatePresence mode="wait">
+              {showWelcomeAnimation && (
+                <WelcomeAnimation 
+                  userName={fullName} 
+                  onComplete={handleWelcomeComplete} 
                 />
-              ))}
-              {isLoading && <TypingIndicator />}
-              <div ref={messagesEndRef} />
-            </div>
+              )}
+            </AnimatePresence>
+
+            {/* Mensagens - só aparecem depois da animação */}
+            {!showWelcomeAnimation && (
+              <div className="max-w-3xl mx-auto space-y-6">
+                {messages.map((message) => (
+                  <ChatMessage 
+                    key={message.id} 
+                    message={message} 
+                    userName={fullName}
+                    userInitials={userInitials}
+                  />
+                ))}
+                {isLoading && <TypingIndicator />}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
           </div>
           
           {/* Input Area - fixed at bottom, never scrolls */}
