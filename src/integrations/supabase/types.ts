@@ -1336,6 +1336,7 @@ export type Database = {
         Row: {
           accuracy: number | null
           altitude: number | null
+          entrega_id: string | null
           heading: number | null
           id: number
           latitude: number | null
@@ -1347,6 +1348,7 @@ export type Database = {
         Insert: {
           accuracy?: number | null
           altitude?: number | null
+          entrega_id?: string | null
           heading?: number | null
           id?: number
           latitude?: number | null
@@ -1358,6 +1360,7 @@ export type Database = {
         Update: {
           accuracy?: number | null
           altitude?: number | null
+          entrega_id?: string | null
           heading?: number | null
           id?: number
           latitude?: number | null
@@ -1372,6 +1375,13 @@ export type Database = {
             columns: ["motorista_id"]
             isOneToOne: true
             referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
             referencedColumns: ["id"]
           },
         ]
