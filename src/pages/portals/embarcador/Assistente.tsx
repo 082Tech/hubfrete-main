@@ -78,10 +78,10 @@ export default function Assistente() {
 
   // Initialize with welcome message after animation completes
   useEffect(() => {
-    if (!showWelcomeAnimation && messages.length === 0 && !initialMessage) {
+    if (!showWelcomeAnimation && messages.length === 0) {
       setMessages([getWelcomeMessage()]);
     }
-  }, [showWelcomeAnimation, getWelcomeMessage, messages.length, initialMessage]);
+  }, [showWelcomeAnimation, getWelcomeMessage, messages.length]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -238,17 +238,26 @@ export default function Assistente() {
 
   // Process initial message from dashboard card
   useEffect(() => {
-    if (initialMessage && !initialMessageProcessedRef.current && !showWelcomeAnimation) {
-      initialMessageProcessedRef.current = true;
-      // Clear the state to prevent re-processing on re-renders
-      window.history.replaceState({}, document.title);
-      // Small delay to ensure the component is fully mounted
-      const timer = setTimeout(() => {
-        handleSend(initialMessage);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [initialMessage, showWelcomeAnimation]);
+    // Only process if we have an initial message and haven't processed it yet
+    if (!initialMessage || initialMessageProcessedRef.current) return;
+    
+    // Wait for the component to be ready (welcome animation done and messages initialized)
+    if (showWelcomeAnimation) return;
+    if (messages.length === 0) return;
+    
+    // Mark as processed immediately to prevent double execution
+    initialMessageProcessedRef.current = true;
+    
+    // Clear the navigation state to prevent re-processing on refresh
+    window.history.replaceState({}, document.title);
+    
+    // Send the message with a small delay to ensure everything is ready
+    const timer = setTimeout(() => {
+      handleSend(initialMessage);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [initialMessage, showWelcomeAnimation, messages.length]);
 
   const formatDate = (dateString: string) => {
     try {
