@@ -262,7 +262,7 @@ export default function EmbarcadorDashboard() {
                 <div className="flex-1 flex flex-col p-4 pt-6">
                   {/* Chat Messages Area */}
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                    <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center mb-4 backdrop-blur-sm shadow-lg ring-2 ring-primary/30 bg-black/0">
+                    <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center mb-4 backdrop-blur-sm shadow-lg ring-2 ring-primary/30 bg-transparent">
                       <img src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png" alt="Hubinho" className="w-14 h-14 object-cover" />
                     </div>
                     <h3 className="font-semibold text-foreground mb-2">
