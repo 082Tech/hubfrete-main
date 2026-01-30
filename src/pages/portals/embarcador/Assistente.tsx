@@ -6,14 +6,16 @@ import { ImmersiveBackground } from "@/components/ai-assistant/ImmersiveBackgrou
 import { SuggestionBubbles } from "@/components/ai-assistant/SuggestionBubbles";
 import { WelcomeAnimation } from "@/components/ai-assistant/WelcomeAnimation";
 import { sendMessage, generateSessionId, getOrCreateSessionId, type ChatMessage as ChatMessageType } from "@/lib/chatApi";
-import { Plus, MessageCircle, Clock, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Plus, MessageCircle, Clock, ChevronLeft, ChevronRight, Trash2, Menu, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useAIChatHistory } from "@/hooks/useAIChatHistory";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 const WELCOME_SHOWN_KEY = 'hubfrete_welcome_shown';
 
@@ -22,11 +24,14 @@ export default function Assistente() {
   const userName = profile?.nome_completo?.split(' ')[0] || 'Você';
   const fullName = profile?.nome_completo || 'Você';
   const userId = profile?.id ? parseInt(profile.id, 10) : null;
+  const isMobile = useIsMobile();
 
   // Check if welcome animation was already shown
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(() => {
     return !sessionStorage.getItem(WELCOME_SHOWN_KEY);
   });
+
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
 
   const {
     chatSessions,
@@ -83,6 +88,7 @@ export default function Assistente() {
     setCurrentChatId(null);
     setMessages([getWelcomeMessage()]);
     setIsFirstMessage(true);
+    setMobileHistoryOpen(false);
     toast.success("Nova conversa iniciada!");
   }, [getWelcomeMessage]);
 
@@ -91,6 +97,7 @@ export default function Assistente() {
     setSessionId(chat.sessionid);
     setCurrentChatId(chat.id);
     setIsFirstMessage(false);
+    setMobileHistoryOpen(false);
     
     const loadedMessages = await loadChatMessages(chat.sessionid);
     if (loadedMessages.length > 0) {
@@ -193,8 +200,63 @@ export default function Assistente() {
 
   const userInitials = fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
+  // Chat history content (reusable for both mobile and desktop)
+  const ChatHistoryContent = ({ onClose }: { onClose?: () => void }) => (
+    <>
+      <div className="p-3">
+        <Button
+          onClick={handleNewChat}
+          className="w-full justify-start gap-2 bg-gradient-to-r from-primary via-emerald-500 to-teal-400 hover:from-primary/90 hover:via-emerald-500/90 hover:to-teal-400/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/25"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Nova conversa</span>
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        {isLoadingHistory ? (
+          <div className="flex justify-center py-4">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+          </div>
+        ) : chatSessions.length === 0 ? (
+          <p className="text-xs text-center py-4 text-muted-foreground">
+            Nenhuma conversa ainda
+          </p>
+        ) : (
+          chatSessions.map((chat) => (
+            <button
+              key={chat.id}
+              onClick={() => handleSelectChat(chat)}
+              className={`w-full text-left rounded-xl transition-all duration-200 hover:bg-primary/10 group relative p-3 ${
+                currentChatId === chat.id ? 'bg-primary/15' : ''
+              }`}
+            >
+              <div className="pr-6">
+                <p className="text-sm truncate text-foreground">
+                  {chat.title || 'Nova conversa'}
+                </p>
+                <div className="flex items-center gap-1 mt-1">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(chat.created_at)}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => handleDeleteChat(chat.id, e)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </button>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </>
+  );
+
   return (
-    <div className="relative h-[100dvh] overflow-hidden flex">
+    <div className="relative h-[100dvh] overflow-hidden flex flex-col">
       <ImmersiveBackground />
       
       {/* Welcome Animation - First visit only */}
@@ -209,119 +271,163 @@ export default function Assistente() {
         )}
       </AnimatePresence>
 
-      {/* Main Chat Area */}
-      <div className="relative z-10 flex-1 flex flex-col h-full">
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto py-6">
-          <div className="px-6 h-full">
-            <div className="max-w-3xl mx-auto space-y-6 pb-3">
-              {messages.map((message) => (
-                <ChatMessage 
-                  key={message.id} 
-                  message={message} 
-                  userName={fullName}
-                  userInitials={userInitials}
-                />
-              ))}
-              {isLoading && <TypingIndicator />}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-        </div>
-        
-        {/* Input Area */}
-        <div className="px-6 py-4">
-          <div className="max-w-3xl mx-auto">
-            {/* Suggestion bubbles - only show when it's a new conversation */}
-            {isFirstMessage && !isLoading && (
-              <SuggestionBubbles onSelect={handleSend} disabled={isLoading} />
-            )}
-            <ChatInput onSend={handleSend} disabled={isLoading} />
-          </div>
-        </div>
-      </div>
-
-      {/* Right Sidebar - Chat History (Floating) */}
-      <div className="relative z-10 py-4 pr-4">
-        <div
-          className={`h-full flex flex-col portal-glass-sidebar rounded-2xl shadow-xl transition-all duration-300 ${
-            historyCollapsed ? 'w-16' : 'w-72'
-          }`}
+      {/* Mobile Header */}
+      {isMobile && (
+        <motion.header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-20 flex items-center justify-between px-4 py-3 portal-glass-sidebar border-b border-sidebar-border/50"
         >
-          <div className="px-4 py-4 flex items-center justify-between border-b border-sidebar-border/50 rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 overflow-hidden rounded-full flex items-center justify-center">
+              <img 
+                alt="Hubinho" 
+                className="w-6 h-6 object-cover" 
+                src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png" 
+              />
+            </div>
+            <span className="font-semibold text-foreground">Hubinho</span>
+          </div>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setHistoryCollapsed(!historyCollapsed)}
-            className="hover:bg-primary/10 text-muted-foreground"
+            onClick={() => setMobileHistoryOpen(true)}
+            className="hover:bg-primary/10"
           >
-            {historyCollapsed ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <Menu className="w-5 h-5" />
           </Button>
-          {!historyCollapsed && (
-            <span className="font-semibold text-sm text-foreground">Histórico</span>
-          )}
-        </div>
+        </motion.header>
+      )}
 
-        <div className="p-3">
-          <Button
-            onClick={handleNewChat}
-            className={`w-full justify-start gap-2 bg-gradient-to-r from-primary via-emerald-500 to-teal-400 hover:from-primary/90 hover:via-emerald-500/90 hover:to-teal-400/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/25 ${
-              historyCollapsed ? 'px-3' : ''
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            {!historyCollapsed && <span>Nova conversa</span>}
-          </Button>
-        </div>
+      {/* Mobile History Sheet */}
+      <Sheet open={mobileHistoryOpen} onOpenChange={setMobileHistoryOpen}>
+        <SheetContent side="right" className="w-[85vw] max-w-sm p-0 portal-glass-sidebar border-l border-sidebar-border/50">
+          <SheetHeader className="px-4 py-4 border-b border-sidebar-border/50">
+            <SheetTitle className="text-foreground">Histórico de Conversas</SheetTitle>
+          </SheetHeader>
+          <div className="flex flex-col h-[calc(100%-60px)]">
+            <ChatHistoryContent onClose={() => setMobileHistoryOpen(false)} />
+          </div>
+        </SheetContent>
+      </Sheet>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {isLoadingHistory ? (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-            </div>
-          ) : chatSessions.length === 0 ? (
-            !historyCollapsed && (
-              <p className="text-xs text-center py-4 text-muted-foreground">
-                Nenhuma conversa ainda
-              </p>
-            )
-          ) : (
-            chatSessions.map((chat) => (
-              <button
-                key={chat.id}
-                onClick={() => handleSelectChat(chat)}
-                className={`w-full text-left rounded-xl transition-all duration-200 hover:bg-primary/10 group relative ${
-                  historyCollapsed ? 'p-3 flex justify-center' : 'p-3'
-                } ${currentChatId === chat.id ? 'bg-primary/15' : ''}`}
-              >
-                {historyCollapsed ? (
-                  <MessageCircle 
-                    className={`w-4 h-4 ${currentChatId === chat.id ? 'text-primary' : 'text-muted-foreground'}`}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Main Chat Area */}
+        <div className="relative z-10 flex-1 flex flex-col h-full">
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto py-6">
+            <div className="px-4 md:px-6 h-full">
+              <div className="max-w-3xl mx-auto space-y-6 pb-3">
+                {messages.map((message) => (
+                  <ChatMessage 
+                    key={message.id} 
+                    message={message} 
+                    userName={fullName}
+                    userInitials={userInitials}
                   />
-                ) : (
-                  <div className="pr-6">
-                    <p className="text-sm truncate text-foreground">
-                      {chat.title || 'Nova conversa'}
-                    </p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(chat.created_at)}
-                      </span>
-                    </div>
-                    <button
-                      onClick={(e) => handleDeleteChat(chat.id, e)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                    </button>
-                  </div>
+                ))}
+                {isLoading && <TypingIndicator />}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+          </div>
+          
+          {/* Input Area */}
+          <div className="px-4 md:px-6 py-4">
+            <div className="max-w-3xl mx-auto">
+              {/* Suggestion bubbles - only show when it's a new conversation */}
+              {isFirstMessage && !isLoading && (
+                <SuggestionBubbles onSelect={handleSend} disabled={isLoading} />
+              )}
+              <ChatInput onSend={handleSend} disabled={isLoading} />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Sidebar - Chat History (Desktop Only - Floating) */}
+        {!isMobile && (
+          <div className="relative z-10 py-4 pr-4">
+            <div
+              className={`h-full flex flex-col portal-glass-sidebar rounded-2xl shadow-xl transition-all duration-300 ${
+                historyCollapsed ? 'w-16' : 'w-72'
+              }`}
+            >
+              <div className="px-4 py-4 flex items-center justify-between border-b border-sidebar-border/50 rounded-t-2xl">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setHistoryCollapsed(!historyCollapsed)}
+                  className="hover:bg-primary/10 text-muted-foreground"
+                >
+                  {historyCollapsed ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </Button>
+                {!historyCollapsed && (
+                  <span className="font-semibold text-sm text-foreground">Histórico</span>
                 )}
-              </button>
-            ))
-          )}
-        </div>
-        </div>
+              </div>
+
+              <div className="p-3">
+                <Button
+                  onClick={handleNewChat}
+                  className={`w-full justify-start gap-2 bg-gradient-to-r from-primary via-emerald-500 to-teal-400 hover:from-primary/90 hover:via-emerald-500/90 hover:to-teal-400/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/25 ${
+                    historyCollapsed ? 'px-3' : ''
+                  }`}
+                >
+                  <Plus className="w-4 h-4" />
+                  {!historyCollapsed && <span>Nova conversa</span>}
+                </Button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {isLoadingHistory ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                  </div>
+                ) : chatSessions.length === 0 ? (
+                  !historyCollapsed && (
+                    <p className="text-xs text-center py-4 text-muted-foreground">
+                      Nenhuma conversa ainda
+                    </p>
+                  )
+                ) : (
+                  chatSessions.map((chat) => (
+                    <button
+                      key={chat.id}
+                      onClick={() => handleSelectChat(chat)}
+                      className={`w-full text-left rounded-xl transition-all duration-200 hover:bg-primary/10 group relative ${
+                        historyCollapsed ? 'p-3 flex justify-center' : 'p-3'
+                      } ${currentChatId === chat.id ? 'bg-primary/15' : ''}`}
+                    >
+                      {historyCollapsed ? (
+                        <MessageCircle 
+                          className={`w-4 h-4 ${currentChatId === chat.id ? 'text-primary' : 'text-muted-foreground'}`}
+                        />
+                      ) : (
+                        <div className="pr-6">
+                          <p className="text-sm truncate text-foreground">
+                            {chat.title || 'Nova conversa'}
+                          </p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(chat.created_at)}
+                            </span>
+                          </div>
+                          <button
+                            onClick={(e) => handleDeleteChat(chat.id, e)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </button>
+                        </div>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
