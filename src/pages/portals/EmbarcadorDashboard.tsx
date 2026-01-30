@@ -168,7 +168,8 @@ export default function EmbarcadorDashboard() {
 
   const handleSendMessage = () => {
     if (chatMessage.trim()) {
-      navigate('/embarcador/assistente');
+      navigate('/embarcador/assistente', { state: { initialMessage: chatMessage.trim() } });
+      setChatMessage('');
     }
   };
 
