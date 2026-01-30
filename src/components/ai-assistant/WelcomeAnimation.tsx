@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import hubinhoLogo from '@/assets/hubinho-logo.png';
 
 interface WelcomeAnimationProps {
   userName: string;
@@ -68,7 +68,7 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
               className="relative mb-6"
             >
               <motion.div 
-                className="w-20 h-20 rounded-2xl bg-foreground flex items-center justify-center"
+                className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center overflow-hidden"
                 animate={{ 
                   opacity: [0.85, 1, 0.85]
                 }}
@@ -78,7 +78,7 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
                   ease: "easeInOut"
                 }}
               >
-                <Truck className="w-10 h-10 text-background" strokeWidth={2} />
+                <img src={hubinhoLogo} alt="Hubinho" className="w-12 h-12 object-contain" />
               </motion.div>
             </motion.div>
           )}
