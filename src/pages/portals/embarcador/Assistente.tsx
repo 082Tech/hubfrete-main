@@ -335,10 +335,10 @@ export default function Assistente() {
           {/* Input Area */}
           <div className="px-4 md:px-6 py-4">
             <div className="max-w-3xl mx-auto">
-              {/* Suggestion bubbles - only show when it's a new conversation */}
-              {isFirstMessage && !isLoading && (
-                <SuggestionBubbles onSelect={handleSend} disabled={isLoading} />
-              )}
+            {/* Suggestion bubbles - only show when it's a new conversation (desktop only) */}
+            {!isMobile && isFirstMessage && !isLoading && (
+              <SuggestionBubbles onSelect={handleSend} disabled={isLoading} />
+            )}
               <ChatInput onSend={handleSend} disabled={isLoading} />
             </div>
           </div>
