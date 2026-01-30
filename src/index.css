@@ -483,7 +483,7 @@ All colors MUST be HSL.
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: rotateBorder 4s linear infinite;
+  animation: rotateBorder 8s linear infinite;
   pointer-events: none;
   z-index: 30;
 }
@@ -505,7 +505,7 @@ All colors MUST be HSL.
     transparent 100%
   );
   filter: blur(8px);
-  animation: rotateBorder 4s linear infinite;
+  animation: rotateBorder 8s linear infinite;
   pointer-events: none;
   z-index: -1;
 }

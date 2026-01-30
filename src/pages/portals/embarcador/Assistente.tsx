@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { ChatMessage } from "@/components/ai-assistant/ChatMessage";
 import { ChatInput } from "@/components/ai-assistant/ChatInput";
 import { TypingIndicator } from "@/components/ai-assistant/TypingIndicator";
@@ -21,13 +22,19 @@ const WELCOME_SHOWN_KEY = 'hubfrete_welcome_shown';
 
 export default function Assistente() {
   const { profile, user } = useAuth();
+  const location = useLocation();
   const userName = profile?.nome_completo?.split(' ')[0] || 'Você';
   const fullName = profile?.nome_completo || 'Você';
   const userId = profile?.id ? parseInt(profile.id, 10) : null;
   const isMobile = useIsMobile();
 
-  // Check if welcome animation was already shown
+  // Get initial message from navigation state (from dashboard card)
+  const initialMessage = (location.state as { initialMessage?: string } | null)?.initialMessage;
+  const initialMessageProcessedRef = useRef(false);
+
+  // Check if welcome animation was already shown - skip if we have an initial message
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(() => {
+    if (initialMessage) return false; // Skip animation if we have a message to send
     return !sessionStorage.getItem(WELCOME_SHOWN_KEY);
   });
 
@@ -71,10 +78,10 @@ export default function Assistente() {
 
   // Initialize with welcome message after animation completes
   useEffect(() => {
-    if (!showWelcomeAnimation && messages.length === 0) {
+    if (!showWelcomeAnimation && messages.length === 0 && !initialMessage) {
       setMessages([getWelcomeMessage()]);
     }
-  }, [showWelcomeAnimation, getWelcomeMessage, messages.length]);
+  }, [showWelcomeAnimation, getWelcomeMessage, messages.length, initialMessage]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -228,6 +235,20 @@ export default function Assistente() {
       setIsLoading(false);
     }
   };
+
+  // Process initial message from dashboard card
+  useEffect(() => {
+    if (initialMessage && !initialMessageProcessedRef.current && !showWelcomeAnimation) {
+      initialMessageProcessedRef.current = true;
+      // Clear the state to prevent re-processing on re-renders
+      window.history.replaceState({}, document.title);
+      // Small delay to ensure the component is fully mounted
+      const timer = setTimeout(() => {
+        handleSend(initialMessage);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [initialMessage, showWelcomeAnimation]);
 
   const formatDate = (dateString: string) => {
     try {
