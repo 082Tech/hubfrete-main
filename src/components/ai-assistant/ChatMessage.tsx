@@ -81,7 +81,7 @@ export function ChatMessage({
       </div>
 
       {!isBot && !isMobile && <div className="flex-shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 border items-center justify-center flex flex-row px-0 mx-0 my-[25px] gap-0 border-primary-foreground">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border items-center justify-center flex flex-row px-0 mx-0 gap-0 border-primary-foreground my-[3px]">
             <span className="text-sm font-semibold text-primary">{initials}</span>
           </div>
         </div>}
