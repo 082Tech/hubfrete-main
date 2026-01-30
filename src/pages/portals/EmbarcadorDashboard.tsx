@@ -317,7 +317,7 @@ export default function EmbarcadorDashboard() {
 
           {/* Right Column - AI Assistant Card */}
           <div className="lg:col-span-1">
-            <div className="relative h-full min-h-[400px] rounded-xl overflow-hidden shadow-xl">
+            <div className="animated-border-card relative h-full min-h-[400px] rounded-xl overflow-hidden shadow-xl">
               {/* Animated Background */}
               <CardImmersiveBackground />
               
