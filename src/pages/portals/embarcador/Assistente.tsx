@@ -309,7 +309,7 @@ export default function Assistente() {
 
       {/* Mobile History Sheet */}
       <Sheet open={mobileHistoryOpen} onOpenChange={setMobileHistoryOpen}>
-        <SheetContent side="right" className="w-[85vw] max-w-sm p-0 portal-glass-sidebar border-l border-sidebar-border/50">
+        <SheetContent side="left" className="w-[85vw] max-w-sm p-0 portal-glass-sidebar border-r border-sidebar-border/50">
           <SheetHeader className="px-4 py-4 border-b border-sidebar-border/50">
             <SheetTitle className="text-foreground">Histórico de Conversas</SheetTitle>
           </SheetHeader>
