@@ -50,8 +50,8 @@ export default function Monitoramento() {
           latitude: loc.latitude,
           longitude: loc.longitude,
           timestamp: loc.timestamp,
-          velocidade: loc.velocidade,
-          heading: loc.bussola_pos,
+          velocidade: loc.speed,
+          heading: loc.heading,
         };
       }
       return driver;
@@ -112,10 +112,10 @@ export default function Monitoramento() {
           entregas?.map((e) => [e.motorista_id, e]) || []
         );
 
-        // Fetch initial locations
+        // Fetch initial locations from 'locations' table (English column names)
         const motoristaIdsList = motoristas?.map((m) => m.id) || [];
         const { data: locations } = await supabase
-          .from('localizacoes')
+          .from('locations')
           .select('*')
           .in('motorista_id', motoristaIdsList);
 
@@ -137,8 +137,8 @@ export default function Monitoramento() {
               latitude: loc?.latitude || null,
               longitude: loc?.longitude || null,
               timestamp: loc?.timestamp ? new Date(loc.timestamp).getTime() : null,
-              velocidade: loc?.velocidade || null,
-              heading: loc?.bussola_pos || null,
+              velocidade: loc?.speed || null,
+              heading: loc?.heading || null,
               entrega_ativa: !!entrega,
               entrega_codigo: entrega?.codigo || null,
               entrega_status: entrega?.status || null,
