@@ -1334,37 +1334,37 @@ export type Database = {
       }
       locations: {
         Row: {
+          accuracy: number | null
           altitude: number | null
-          bussola_pos: number | null
+          heading: number | null
           id: number
           latitude: number | null
           longitude: number | null
           motorista_id: string | null
-          precisao: number | null
+          speed: number | null
           timestamp: string | null
-          velocidade: number | null
         }
         Insert: {
+          accuracy?: number | null
           altitude?: number | null
-          bussola_pos?: number | null
+          heading?: number | null
           id?: number
           latitude?: number | null
           longitude?: number | null
           motorista_id?: string | null
-          precisao?: number | null
+          speed?: number | null
           timestamp?: string | null
-          velocidade?: number | null
         }
         Update: {
+          accuracy?: number | null
           altitude?: number | null
-          bussola_pos?: number | null
+          heading?: number | null
           id?: number
           latitude?: number | null
           longitude?: number | null
           motorista_id?: string | null
-          precisao?: number | null
+          speed?: number | null
           timestamp?: string | null
-          velocidade?: number | null
         }
         Relationships: [
           {

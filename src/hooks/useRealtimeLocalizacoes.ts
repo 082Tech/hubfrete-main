@@ -7,9 +7,9 @@ export interface MotoristaLocalizacao {
   longitude: number | null;
   timestamp: number | null;
   status: boolean | null;
-  bussola_pos: number | null;
-  velocidade: number | null;
-  precisao: number | null;
+  heading: number | null;
+  speed: number | null;
+  accuracy: number | null;
   altitude: number | null;
 }
 
@@ -21,7 +21,7 @@ interface UseRealtimeLocalizacoesOptions {
 /**
  * Hook that provides real-time driver location updates via Supabase Realtime.
  * Uses a persistent WebSocket connection - no polling needed.
- * Updated to use motorista_id (UUID) instead of email.
+ * Updated to use 'locations' table with English column names.
  */
 export function useRealtimeLocalizacoes({ motoristaIds, enabled = true }: UseRealtimeLocalizacoesOptions) {
   const [localizacoes, setLocalizacoes] = useState<MotoristaLocalizacao[]>([]);
@@ -43,7 +43,7 @@ export function useRealtimeLocalizacoes({ motoristaIds, enabled = true }: UseRea
 
     try {
       const { data, error } = await supabase
-        .from('localizacoes')
+        .from('locations')
         .select('*')
         .in('motorista_id', stableIds);
 
@@ -56,9 +56,9 @@ export function useRealtimeLocalizacoes({ motoristaIds, enabled = true }: UseRea
         longitude: row.longitude,
         timestamp: row.timestamp ? new Date(row.timestamp).getTime() : null,
         status: true, // If there's a record, driver is considered active
-        bussola_pos: row.bussola_pos,
-        velocidade: row.velocidade,
-        precisao: row.precisao,
+        heading: row.heading,
+        speed: row.speed,
+        accuracy: row.accuracy,
         altitude: row.altitude,
       }));
       setLocalizacoes(mapped);
@@ -88,13 +88,13 @@ export function useRealtimeLocalizacoes({ motoristaIds, enabled = true }: UseRea
     // Create new Realtime channel for location updates
     // Using idsKey in channel name to ensure unique channel per id set
     const channel = supabase
-      .channel(`localizacoes-realtime-${idsKey.slice(0, 50)}`)
+      .channel(`locations-realtime-${idsKey.slice(0, 50)}`)
       .on(
         'postgres_changes',
         {
           event: '*', // INSERT, UPDATE, DELETE
           schema: 'public',
-          table: 'localizacoes',
+          table: 'locations',
         },
         (payload) => {
           const record = payload.new as any;
@@ -110,9 +110,9 @@ export function useRealtimeLocalizacoes({ motoristaIds, enabled = true }: UseRea
             longitude: record.longitude,
             timestamp: record.timestamp ? new Date(record.timestamp).getTime() : null,
             status: true,
-            bussola_pos: record.bussola_pos,
-            velocidade: record.velocidade,
-            precisao: record.precisao,
+            heading: record.heading,
+            speed: record.speed,
+            accuracy: record.accuracy,
             altitude: record.altitude,
           };
 
