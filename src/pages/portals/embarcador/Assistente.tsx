@@ -16,7 +16,6 @@ import { ptBR } from "date-fns/locale";
 import { AnimatePresence, motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useChatView } from "@/contexts/ChatViewContext";
 
 const WELCOME_SHOWN_KEY = 'hubfrete_welcome_shown';
 
@@ -26,13 +25,6 @@ export default function Assistente() {
   const fullName = profile?.nome_completo || 'Você';
   const userId = profile?.id ? parseInt(profile.id, 10) : null;
   const isMobile = useIsMobile();
-  const { setIsInChatView } = useChatView();
-
-  // Ensure mobile portal layout behaves like a full-screen chat (no page scroll, no bottom nav)
-  useEffect(() => {
-    setIsInChatView(true);
-    return () => setIsInChatView(false);
-  }, [setIsInChatView]);
 
   // Check if welcome animation was already shown
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(() => {
@@ -303,7 +295,7 @@ export default function Assistente() {
   );
 
   return (
-    <div className={`relative flex flex-col ${isMobile ? 'h-[calc(100dvh-64px)]' : 'h-[100dvh]'} overflow-hidden`}>
+    <div className={`relative flex flex-col ${isMobile ? 'h-[calc(100dvh-64px)]' : 'h-[100dvh]'} overflow-hidden touch-none`}>
       <ImmersiveBackground />
       
       {/* Welcome Animation - First visit only */}
@@ -399,7 +391,7 @@ export default function Assistente() {
           </div>
           
           {/* Input Area - fixed at bottom, never scrolls */}
-          <div className={`flex-shrink-0 ${isMobile ? 'px-4 py-2' : 'px-6 py-4'}`}>
+          <div className={`flex-shrink-0 ${isMobile ? 'px-3 pb-3 pt-2' : 'px-6 py-4'}`}>
             <div className="max-w-3xl mx-auto">
               {/* Suggestion bubbles - only show when it's a new conversation (desktop only) */}
               {!isMobile && isFirstMessage && !isLoading && (

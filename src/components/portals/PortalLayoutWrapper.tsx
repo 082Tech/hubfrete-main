@@ -72,7 +72,7 @@ function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
   if (!user || !userType || userType !== expectedUserType) return null;
 
   return (
-    <div className={`${isInChatView ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'} bg-background`}>
+    <div className="min-h-screen bg-background">
       {/* Global notification toast */}
       <NotificationToast />
       
@@ -87,9 +87,9 @@ function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
       
       {/* Main content */}
       <main 
-        className={`${isInChatView ? 'h-[100dvh] overflow-hidden' : ''} transition-all duration-300 ${
+        className={`transition-all duration-300 ${
           isMobile 
-            ? isInChatView ? '' : 'pb-20' // Remove padding when in chat view
+            ? isInChatView ? '' : 'pb-20'
             : collapsed 
               ? 'ml-16' 
               : 'ml-64'
