@@ -256,7 +256,7 @@ export default function Assistente() {
   );
 
   return (
-    <div className="relative h-[100dvh] overflow-hidden flex flex-col">
+    <div className={`relative flex flex-col ${isMobile ? 'h-[calc(100dvh-64px)]' : 'h-[100dvh]'} overflow-hidden`}>
       <ImmersiveBackground />
       
       {/* Welcome Animation - First visit only */}
@@ -319,29 +319,27 @@ export default function Assistente() {
         </SheetContent>
       </Sheet>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Main Chat Area */}
-        <div className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
+        <div className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Messages Area - only scrollable part */}
-          <div className={`flex-1 overflow-y-auto py-6 ${isMobile ? 'pt-16 pb-4' : ''}`}>
-            <div className="px-4 md:px-6 h-full">
-              <div className="max-w-3xl mx-auto space-y-6 pb-3">
-                {messages.map((message) => (
-                  <ChatMessage 
-                    key={message.id} 
-                    message={message} 
-                    userName={fullName}
-                    userInitials={userInitials}
-                  />
-                ))}
-                {isLoading && <TypingIndicator />}
-                <div ref={messagesEndRef} />
-              </div>
+          <div className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? 'pt-16 pb-2 px-4' : 'py-6 px-6'}`}>
+            <div className="max-w-3xl mx-auto space-y-6">
+              {messages.map((message) => (
+                <ChatMessage 
+                  key={message.id} 
+                  message={message} 
+                  userName={fullName}
+                  userInitials={userInitials}
+                />
+              ))}
+              {isLoading && <TypingIndicator />}
+              <div ref={messagesEndRef} />
             </div>
           </div>
           
-          {/* Input Area - fixed at bottom */}
-          <div className={`flex-shrink-0 px-4 md:px-6 ${isMobile ? 'pb-20 pt-2' : 'py-4'}`}>
+          {/* Input Area - fixed at bottom, never scrolls */}
+          <div className={`flex-shrink-0 ${isMobile ? 'px-4 py-2' : 'px-6 py-4'}`}>
             <div className="max-w-3xl mx-auto">
               {/* Suggestion bubbles - only show when it's a new conversation (desktop only) */}
               {!isMobile && isFirstMessage && !isLoading && (
