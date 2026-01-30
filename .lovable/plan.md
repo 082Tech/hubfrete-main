@@ -1,108 +1,329 @@
 
+# Plano de Implementação - Funcionalidades Avançadas da Torre de Controle
 
-# Plano: Centralizar a Animação de Boas-Vindas no Chat
+## Visão Geral
 
-## Problema Identificado
+Este plano detalha a implementação de 6 módulos avançados para a Torre de Controle administrativa, indo além do CRUD básico para fornecer insights operacionais, monitoramento em tempo real e automação de processos.
 
-A animação `WelcomeAnimation` está posicionada com `absolute inset-0`, mas o container pai (`<div className="absolute inset-0 z-50">`) ocupa toda a tela, incluindo a sidebar do histórico no desktop. Isso faz com que a animação pareça deslocada para a esquerda do centro real da área de chat.
+---
 
-## Solução
+## Fase 1: Monitoramento em Tempo Real (Prioridade Alta)
 
-Mover o componente `WelcomeAnimation` para dentro da área principal do chat (onde as mensagens são exibidas), ao invés de posicioná-lo como overlay de toda a tela.
+### Objetivo
+Transformar a página de Monitoramento (atualmente placeholder) em um painel completo com mapa interativo, rastreamento de veículos e visualização de geofences.
 
-## Mudanças Técnicas
+### Funcionalidades
+- **Mapa Interativo**: Visualização de todos os motoristas ativos com posição em tempo real
+- **Sidebar de Motoristas**: Lista lateral com status online/offline e última localização
+- **Geofences**: Exibição visual das cercas geográficas configuradas (coleta/entrega)
+- **Histórico de Rota**: Replay do trajeto de um motorista selecionado
+- **Filtros**: Por empresa, status, região
 
-### Arquivo: `src/pages/portals/embarcador/Assistente.tsx`
-
-1. **Remover** o container wrapper `<div className="absolute inset-0 z-50">` que envolve a animação
-2. **Mover** o `WelcomeAnimation` para dentro da área de mensagens (`<div ref={messagesScrollRef}>`)
-3. **Renderizar condicionalmente**: quando `showWelcomeAnimation` for true, mostrar a animação ao invés das mensagens
-
-```text
-Antes:
-┌────────────────────────────────────────────┐
-│  Container Principal (toda a tela)         │
-│  ┌──────────────────────────────────────┐  │
-│  │  WelcomeAnimation (absolute inset-0) │  │  ← Centralizado aqui (errado)
-│  └──────────────────────────────────────┘  │
-│  ┌─────────────────────────┬────────────┐  │
-│  │   Área do Chat          │  Sidebar   │  │
-│  └─────────────────────────┴────────────┘  │
-└────────────────────────────────────────────┘
-
-Depois:
-┌────────────────────────────────────────────┐
-│  Container Principal                        │
-│  ┌─────────────────────────┬────────────┐  │
-│  │   Área do Chat          │  Sidebar   │  │
-│  │  ┌───────────────────┐  │            │  │
-│  │  │ WelcomeAnimation  │  │            │  │  ← Centralizado aqui (correto)
-│  │  └───────────────────┘  │            │  │
-│  └─────────────────────────┴────────────┘  │
-└────────────────────────────────────────────┘
+### Componentes a Criar
+```
+src/pages/admin/Monitoramento.tsx (reescrever)
+src/components/admin/monitoring/MonitoringMap.tsx
+src/components/admin/monitoring/DriverListPanel.tsx
+src/components/admin/monitoring/GeofenceOverlay.tsx
+src/components/admin/monitoring/RoutePlayback.tsx
 ```
 
-### Mudanças Específicas
+### Dados Utilizados
+- `localizações` - Posições GPS dos motoristas
+- `geofences` - Cercas geográficas por entrega
+- `motoristas` + `veiculos` - Informações do motorista/veículo
+- `entregas` - Status das entregas associadas
 
-**Linha ~302-311 (remover):**
-```tsx
-// REMOVER este bloco do local atual
-<AnimatePresence mode="wait">
-  {showWelcomeAnimation && (
-    <div className="absolute inset-0 z-50">
-      <WelcomeAnimation 
-        userName={fullName} 
-        onComplete={handleWelcomeComplete} 
-      />
-    </div>
-  )}
-</AnimatePresence>
+### Integrações
+- Google Maps API (já configurado no projeto)
+- Realtime subscriptions do Supabase (hook `useRealtimeLocalizacoes` já existe)
+
+---
+
+## Fase 2: Dashboard de KPIs e Performance (Prioridade Alta)
+
+### Objetivo
+Criar uma página dedicada para análise de performance de motoristas e operação geral, utilizando a tabela `motorista_kpis`.
+
+### Funcionalidades
+- **Ranking de Motoristas**: Top performers por entregas, km rodado, taxa de atraso
+- **Gráficos de Evolução**: Entregas por período, custos, tempo médio de entrega
+- **Comparativos**: Performance entre períodos (mês atual vs anterior)
+- **Métricas Agregadas**: Volume total, custo médio por km, taxa de sucesso
+- **Filtros**: Por motorista, empresa, período
+
+### Componentes a Criar
+```
+src/pages/admin/PerformanceKPIs.tsx
+src/components/admin/kpis/DriverRankingTable.tsx
+src/components/admin/kpis/PerformanceCharts.tsx
+src/components/admin/kpis/KPICards.tsx
+src/components/admin/kpis/PeriodComparison.tsx
 ```
 
-**Linha ~374-392 (modificar a área de mensagens):**
-```tsx
-<div
-  ref={messagesScrollRef}
-  onScroll={handleMessagesScroll}
-  className={`flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-none relative ${isMobile ? 'pt-16 pb-2 px-4' : 'py-6 px-6'}`}
-  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
->
-  {/* Welcome Animation - dentro da área do chat */}
-  <AnimatePresence mode="wait">
-    {showWelcomeAnimation && (
-      <WelcomeAnimation 
-        userName={fullName} 
-        onComplete={handleWelcomeComplete} 
-      />
-    )}
-  </AnimatePresence>
-  
-  {/* Mensagens - só aparecem depois da animação */}
-  {!showWelcomeAnimation && (
-    <div className="max-w-3xl mx-auto space-y-6">
-      {messages.map((message) => (
-        <ChatMessage 
-          key={message.id} 
-          message={message} 
-          userName={fullName}
-          userInitials={userInitials}
-        />
-      ))}
-      {isLoading && <TypingIndicator />}
-      <div ref={messagesEndRef} />
-    </div>
-  )}
-</div>
+### Dados Utilizados
+- `motorista_kpis` - KPIs calculados por período
+- `entregas` - Dados brutos para cálculos adicionais
+- `motoristas` - Informações do motorista
+
+### Visualizações (Recharts)
+- Gráfico de barras: Ranking de motoristas
+- Gráfico de linha: Evolução temporal
+- Gráfico de pizza: Distribuição de status
+- Cards com sparklines: Tendências
+
+---
+
+## Fase 3: Central de Validação de Documentos (Prioridade Média)
+
+### Objetivo
+Implementar um workflow completo para aprovação/rejeição de documentos de motoristas, veículos e carrocerias, com alertas de vencimento.
+
+### Funcionalidades
+- **Fila de Pendentes**: Documentos aguardando validação
+- **Preview de Documentos**: Visualização inline (PDF/imagem)
+- **Workflow de Aprovação**: Aprovar/Rejeitar com motivo
+- **Alertas de Vencimento**: Documentos próximos do vencimento (CNH, ANTT, CRLV)
+- **Histórico**: Log de validações realizadas
+- **Notificações**: Alertar empresas/motoristas sobre documentos vencidos
+
+### Componentes a Criar
+```
+src/pages/admin/DocumentosValidacao.tsx
+src/components/admin/documentos/DocumentQueue.tsx
+src/components/admin/documentos/DocumentPreview.tsx
+src/components/admin/documentos/ValidationDialog.tsx
+src/components/admin/documentos/ExpiringDocumentsAlert.tsx
 ```
 
-### Arquivo: `src/components/ai-assistant/WelcomeAnimation.tsx`
+### Dados Utilizados
+- `documentos_validacao` - Documentos e status
+- `motoristas` - CNH e dados do motorista
+- `veiculos` - Documentos do veículo
+- `carrocerias` - Documentos da carroceria
 
-O componente já usa `absolute inset-0` com `flex items-center justify-center`, o que é correto. Nenhuma mudança necessária no componente em si.
+### Status de Documentos
+- `pendente` → `aprovado` | `rejeitado`
+- Campos: tipo, número, URL, data_emissao, data_vencimento
 
-## Resultado Esperado
+---
 
-- A animação ficará centralizada exatamente no meio da área de chat
-- No desktop, a sidebar de histórico não afetará o posicionamento
-- No mobile, a animação respeitará a barra de navegação inferior
-- Transição suave entre a animação e as mensagens do chat
+## Fase 4: Relatórios Avançados com Exportação (Prioridade Média)
+
+### Objetivo
+Substituir os placeholders da página de Relatórios por relatórios funcionais com filtros avançados e exportação para PDF/Excel.
+
+### Funcionalidades
+- **Relatório Operacional**: Volume de cargas, entregas por status, SLAs
+- **Relatório de Crescimento**: Novos cadastros por período
+- **Relatório Financeiro**: Volume de frete, média por entrega
+- **Relatório de Frota**: Utilização de veículos, km rodado
+- **Exportação**: PDF (jspdf) e Excel (xlsx)
+- **Filtros**: Data, empresa, região
+
+### Componentes a Criar
+```
+src/pages/admin/Relatorios.tsx (reescrever)
+src/components/admin/relatorios/OperationalReport.tsx
+src/components/admin/relatorios/GrowthReport.tsx
+src/components/admin/relatorios/FinancialReport.tsx
+src/components/admin/relatorios/FleetReport.tsx
+src/components/admin/relatorios/ExportButtons.tsx
+src/lib/reportExport.ts
+```
+
+### Dependências Novas
+```json
+{
+  "jspdf": "^2.5.1",
+  "jspdf-autotable": "^3.8.0",
+  "xlsx": "^0.18.5"
+}
+```
+
+### Dados Utilizados
+- `cargas`, `entregas` - Dados operacionais
+- `empresas`, `motoristas` - Dados de crescimento
+- `veiculos`, `localizações` - Dados de frota
+
+---
+
+## Fase 5: CRUDs Complementares (Prioridade Média)
+
+### Objetivo
+Adicionar gerenciamento para entidades que ainda não possuem interface administrativa.
+
+### 5.1 - Gestão de Carrocerias
+```
+src/pages/admin/CarroceriasAdmin.tsx
+```
+- Tabela com placa, tipo, marca, capacidade
+- Filtros por empresa, status
+- Dialog de detalhes com fotos
+- Ações: ativar/desativar, excluir
+
+### 5.2 - Gestão de Ajudantes
+```
+src/pages/admin/AjudantesAdmin.tsx
+```
+- Tabela com nome, CPF, telefone, motorista vinculado
+- Filtros por status, tipo de cadastro
+- Ações: ativar/desativar, excluir
+
+### 5.3 - Gestão de Provas de Entrega
+```
+src/pages/admin/ProvasEntregaAdmin.tsx
+```
+- Visualização de comprovantes de entrega
+- Fotos, assinaturas, checklist
+- Filtros por entrega, motorista, período
+- Modal de detalhes com galeria de imagens
+
+### Padrão de Implementação
+Todos seguirão o padrão já estabelecido em `VeiculosAdmin.tsx` e `MotoristasAdmin.tsx`:
+- Stats cards no topo
+- Barra de busca e filtros
+- Tabela paginada
+- Dialog de detalhes
+- DropdownMenu de ações
+
+---
+
+## Fase 6: Atualizações na Sidebar e Navegação
+
+### Objetivo
+Adicionar as novas páginas ao menu administrativo.
+
+### Alterações em `AdminSidebar.tsx`
+```typescript
+// Novos itens de menu
+{
+  title: 'Performance',
+  icon: Award,
+  href: '/admin/performance',
+  roles: ['super_admin', 'admin'],
+},
+{
+  title: 'Documentos',
+  icon: FileCheck,
+  href: '/admin/documentos',
+  roles: ['super_admin', 'admin', 'suporte'],
+},
+{
+  title: 'Frota',
+  icon: Truck,
+  roles: ['super_admin', 'admin'],
+  subItems: [
+    { title: 'Veículos', href: '/admin/veiculos', icon: Truck },
+    { title: 'Carrocerias', href: '/admin/carrocerias', icon: Container },
+  ],
+},
+{
+  title: 'Cadastros',
+  icon: Users,
+  roles: ['super_admin', 'admin'],
+  subItems: [
+    { title: 'Motoristas', href: '/admin/motoristas', icon: User },
+    { title: 'Ajudantes', href: '/admin/ajudantes', icon: UserPlus },
+  ],
+},
+{
+  title: 'Comprovantes',
+  icon: Camera,
+  href: '/admin/provas-entrega',
+  roles: ['super_admin', 'admin', 'suporte'],
+},
+```
+
+### Rotas em `App.tsx`
+```typescript
+<Route path="performance" element={<PerformanceKPIs />} />
+<Route path="documentos" element={<DocumentosValidacao />} />
+<Route path="carrocerias" element={<CarroceriasAdmin />} />
+<Route path="ajudantes" element={<AjudantesAdmin />} />
+<Route path="provas-entrega" element={<ProvasEntregaAdmin />} />
+```
+
+---
+
+## Cronograma de Implementação Sugerido
+
+| Fase | Módulo | Prioridade | Complexidade |
+|------|--------|------------|--------------|
+| 1 | Monitoramento em Tempo Real | Alta | Alta |
+| 2 | Dashboard de KPIs | Alta | Média |
+| 3 | Validação de Documentos | Média | Média |
+| 4 | Relatórios com Exportação | Média | Média |
+| 5 | CRUDs (Carrocerias, Ajudantes, Provas) | Média | Baixa |
+| 6 | Navegação e Sidebar | Baixa | Baixa |
+
+---
+
+## Detalhes Técnicos
+
+### Estrutura de Arquivos Final
+```
+src/pages/admin/
+├── Monitoramento.tsx (reescrito)
+├── PerformanceKPIs.tsx (novo)
+├── DocumentosValidacao.tsx (novo)
+├── Relatorios.tsx (reescrito)
+├── CarroceriasAdmin.tsx (novo)
+├── AjudantesAdmin.tsx (novo)
+├── ProvasEntregaAdmin.tsx (novo)
+└── ... (existentes)
+
+src/components/admin/
+├── monitoring/
+│   ├── MonitoringMap.tsx
+│   ├── DriverListPanel.tsx
+│   ├── GeofenceOverlay.tsx
+│   └── RoutePlayback.tsx
+├── kpis/
+│   ├── DriverRankingTable.tsx
+│   ├── PerformanceCharts.tsx
+│   ├── KPICards.tsx
+│   └── PeriodComparison.tsx
+├── documentos/
+│   ├── DocumentQueue.tsx
+│   ├── DocumentPreview.tsx
+│   ├── ValidationDialog.tsx
+│   └── ExpiringDocumentsAlert.tsx
+├── relatorios/
+│   ├── OperationalReport.tsx
+│   ├── GrowthReport.tsx
+│   ├── FinancialReport.tsx
+│   ├── FleetReport.tsx
+│   └── ExportButtons.tsx
+└── ... (existentes)
+
+src/lib/
+├── reportExport.ts (novo - funções de exportação PDF/Excel)
+```
+
+### Padrões a Seguir
+- Componentes seguem padrão shadcn/ui existente
+- Gráficos usando Recharts (já instalado)
+- Mapas usando Google Maps API (já configurado)
+- Estilização com Tailwind e variáveis de tema
+- Paginação com componente `Pagination` existente
+- Dialogs de confirmação com `DeleteConfirmDialog` existente
+
+### Controle de Acesso por Role
+- `super_admin`: Acesso total
+- `admin`: Acesso a todos os módulos operacionais
+- `suporte`: Acesso de leitura a monitoramento, documentos e comprovantes
+
+---
+
+## Resumo das Entregas
+
+1. **Monitoramento Real-Time** - Mapa com motoristas, geofences e histórico de rota
+2. **Performance KPIs** - Rankings, métricas e comparativos de motoristas
+3. **Central de Documentos** - Workflow de aprovação e alertas de vencimento
+4. **Relatórios Avançados** - Operacional, crescimento, financeiro com exportação PDF/Excel
+5. **CRUD Carrocerias** - Gestão de reboques/semirreboques
+6. **CRUD Ajudantes** - Gestão de ajudantes de motoristas
+7. **CRUD Provas de Entrega** - Visualização de comprovantes
+8. **Navegação Atualizada** - Sidebar reorganizada com novos módulos
 
