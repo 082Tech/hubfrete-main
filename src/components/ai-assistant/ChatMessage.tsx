@@ -22,7 +22,7 @@ export function ChatMessage({ message, userName = "Você", userInitials }: ChatM
     >
       {isBot && (
         <div className="flex-shrink-0 self-center">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center glow-border overflow-hidden">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
             <img src={hubinhoLogo} alt="Hubinho" className="w-7 h-7 object-contain" />
           </div>
         </div>

@@ -102,20 +102,7 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
                 </>
               )}
               
-              {/* Pulsing ring */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ 
-                  opacity: [0.5, 0, 0.5], 
-                  scale: [1, 1.5, 1] 
-                }}
-                transition={{ 
-                  duration: 2, 
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="absolute inset-0 rounded-2xl border-2 border-primary/30"
-              />
+               {/* Pulsing ring removido para não criar “borda” ao redor do logo */}
             </motion.div>
           )}
         </AnimatePresence>
