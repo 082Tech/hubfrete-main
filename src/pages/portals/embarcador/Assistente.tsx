@@ -19,6 +19,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 
 const WELCOME_SHOWN_KEY = 'hubfrete_welcome_shown';
 
+// DEBUG MODE: Set to true to loop the welcome animation for editing
+const DEBUG_WELCOME_ANIMATION = true;
+
 export default function Assistente() {
   const { profile, user } = useAuth();
   const userName = profile?.nome_completo?.split(' ')[0] || 'Você';
@@ -26,8 +29,9 @@ export default function Assistente() {
   const userId = profile?.id ? parseInt(profile.id, 10) : null;
   const isMobile = useIsMobile();
 
-  // Check if welcome animation was already shown
+  // Check if welcome animation was already shown (bypassed in debug mode)
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(() => {
+    if (DEBUG_WELCOME_ANIMATION) return true;
     return !sessionStorage.getItem(WELCOME_SHOWN_KEY);
   });
 
@@ -65,6 +69,12 @@ export default function Assistente() {
   const [isMobileHeaderVisible, setIsMobileHeaderVisible] = useState(true);
 
   const handleWelcomeComplete = useCallback(() => {
+    if (DEBUG_WELCOME_ANIMATION) {
+      // In debug mode, restart the animation after a short delay
+      setTimeout(() => setShowWelcomeAnimation(true), 500);
+      setShowWelcomeAnimation(false);
+      return;
+    }
     sessionStorage.setItem(WELCOME_SHOWN_KEY, 'true');
     setShowWelcomeAnimation(false);
   }, []);
