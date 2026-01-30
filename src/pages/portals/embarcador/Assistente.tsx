@@ -243,7 +243,7 @@ export default function Assistente() {
       
       {/* Right Sidebar - Chat History */}
       <div
-        className={`relative z-10 h-full flex flex-col bg-sidebar border-l border-sidebar-border transition-all duration-300 ${
+        className={`relative z-10 h-full flex flex-col portal-glass-sidebar transition-all duration-300 ${
           historyCollapsed ? 'w-16' : 'w-72'
         }`}
       >

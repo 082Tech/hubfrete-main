@@ -240,6 +240,21 @@ All colors MUST be HSL.
   border-left: 1px solid hsl(var(--sidebar-border));
 }
 
+/* Portal sidebar glass variant (uses the same sidebar tokens, with transparency) */
+.portal-glass-sidebar {
+  background: hsl(var(--sidebar-background) / 0.72);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-left: 1px solid hsl(var(--sidebar-border) / 0.85);
+}
+
+.dark .portal-glass-sidebar {
+  background: hsl(var(--sidebar-background) / 0.72);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-left: 1px solid hsl(var(--sidebar-border) / 0.85);
+}
+
 .glass-header {
   background: hsl(0 0% 100% / 0.7);
   backdrop-filter: blur(16px);
