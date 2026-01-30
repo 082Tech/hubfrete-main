@@ -323,7 +323,7 @@ export default function Assistente() {
         {/* Main Chat Area */}
         <div className="relative z-10 flex-1 flex flex-col h-full">
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto py-6">
+          <div className={`flex-1 overflow-y-auto py-6 ${isMobile ? 'pt-16' : ''}`}>
             <div className="px-4 md:px-6 h-full">
               <div className="max-w-3xl mx-auto space-y-6 pb-3">
                 {messages.map((message) => (
@@ -341,13 +341,13 @@ export default function Assistente() {
           </div>
           
           {/* Input Area */}
-          <div className="px-4 md:px-6 py-4">
+          <div className={`px-4 md:px-6 ${isMobile ? 'pb-20 pt-2' : 'py-4'}`}>
             <div className="max-w-3xl mx-auto">
-            {/* Suggestion bubbles - only show when it's a new conversation (desktop only) */}
-            {!isMobile && isFirstMessage && !isLoading && (
-              <SuggestionBubbles onSelect={handleSend} disabled={isLoading} />
-            )}
-              <ChatInput onSend={handleSend} disabled={isLoading} />
+              {/* Suggestion bubbles - only show when it's a new conversation (desktop only) */}
+              {!isMobile && isFirstMessage && !isLoading && (
+                <SuggestionBubbles onSelect={handleSend} disabled={isLoading} />
+              )}
+              <ChatInput onSend={handleSend} disabled={isLoading} hidePoweredBy={isMobile} />
             </div>
           </div>
         </div>
