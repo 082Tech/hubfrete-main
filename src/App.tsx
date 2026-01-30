@@ -20,6 +20,8 @@ import PreCadastros from "./pages/admin/PreCadastros";
 import Usuarios from "./pages/admin/Usuarios";
 import Monitoramento from "./pages/admin/Monitoramento";
 import AdminRelatorios from "./pages/admin/Relatorios";
+import PerformanceKPIs from "./pages/admin/PerformanceKPIs";
+import DocumentosValidacao from "./pages/admin/DocumentosValidacao";
 import Chamados from "./pages/admin/Chamados";
 import Empresas from "./pages/admin/Empresas";
 import MotoristasAdmin from "./pages/admin/MotoristasAdmin";
@@ -101,6 +103,8 @@ const App = () => {
                   <Route path="usuarios" element={<Usuarios />} />
                   <Route path="monitoramento" element={<Monitoramento />} />
                   <Route path="relatorios" element={<AdminRelatorios />} />
+                  <Route path="performance" element={<PerformanceKPIs />} />
+                  <Route path="documentos" element={<DocumentosValidacao />} />
                   <Route path="chamados" element={<Chamados />} />
                   <Route path="empresas" element={<Empresas />} />
                   <Route path="motoristas" element={<MotoristasAdmin />} />

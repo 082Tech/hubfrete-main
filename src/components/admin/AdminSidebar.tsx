@@ -19,6 +19,8 @@ import {
   Package,
   History,
   Clock,
+  Award,
+  FileCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -177,6 +179,18 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       title: 'Monitoramento',
       icon: Activity,
       href: '/admin/monitoramento',
+      roles: ['super_admin', 'admin', 'suporte'],
+    },
+    {
+      title: 'Performance',
+      icon: Award,
+      href: '/admin/performance',
+      roles: ['super_admin', 'admin'],
+    },
+    {
+      title: 'Documentos',
+      icon: FileCheck,
+      href: '/admin/documentos',
       roles: ['super_admin', 'admin', 'suporte'],
     },
     {
