@@ -20,6 +20,9 @@ import {
   History,
   Clock,
   Award,
+  Container,
+  UserPlus as UserPlusIcon,
+  Camera,
   FileCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -151,15 +154,27 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       roles: ['super_admin', 'admin', 'suporte'],
     },
     {
-      title: 'Motoristas',
-      icon: User,
-      href: '/admin/motoristas',
+      title: 'Cadastros',
+      icon: Users,
       roles: ['super_admin', 'admin', 'suporte'],
+      subItems: [
+        { title: 'Motoristas', href: '/admin/motoristas', icon: User },
+        { title: 'Ajudantes', href: '/admin/ajudantes', icon: UserPlusIcon },
+      ],
     },
     {
-      title: 'Veículos',
+      title: 'Frota',
       icon: Truck,
-      href: '/admin/veiculos',
+      roles: ['super_admin', 'admin', 'suporte'],
+      subItems: [
+        { title: 'Veículos', href: '/admin/veiculos', icon: Truck },
+        { title: 'Carrocerias', href: '/admin/carrocerias', icon: Container },
+      ],
+    },
+    {
+      title: 'Comprovantes',
+      icon: Camera,
+      href: '/admin/provas-entrega',
       roles: ['super_admin', 'admin', 'suporte'],
     },
     {

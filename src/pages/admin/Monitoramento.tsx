@@ -112,22 +112,22 @@ export default function Monitoramento() {
           entregas?.map((e) => [e.motorista_id, e]) || []
         );
 
-        // Fetch initial locations
+        // Fetch initial locations - use type assertion for table with special chars
         const motoristaIdsList = motoristas?.map((m) => m.id) || [];
-        const { data: locations } = await supabase
+        const { data: locations } = await (supabase as any)
           .from('localizações')
           .select('*')
           .in('motorista_id', motoristaIdsList);
 
-        const locationMap = new Map(
-          locations?.map((l) => [l.motorista_id, l]) || []
+        const locationMap = new Map<string, any>(
+          (locations || []).map((l: any) => [l.motorista_id, l])
         );
 
         // Build driver list
         const driverList: DriverWithLocation[] =
           motoristas?.map((m) => {
             const entrega = entregaByMotorista.get(m.id);
-            const loc = locationMap.get(m.id);
+            const loc = locationMap.get(m.id) as any;
             return {
               motorista_id: m.id,
               nome: m.nome_completo,

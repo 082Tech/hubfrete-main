@@ -43,11 +43,11 @@ export function useRealtimeLocalizacoes({ motoristaIds, enabled = true }: UseRea
 
     try {
       // Using type assertion to avoid deep instantiation TS error
-      const query = supabase
+      // The table name has special characters (ç) which can cause type issues
+      const { data, error } = await (supabase as any)
         .from('localizações')
-        .select('*');
-      
-      const { data, error } = await (query as any).in('motorista_id', stableIds);
+        .select('*')
+        .in('motorista_id', stableIds);
 
       if (error) throw error;
       

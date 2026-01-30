@@ -29,6 +29,9 @@ import VeiculosAdmin from "./pages/admin/VeiculosAdmin";
 import CargasAdmin from "./pages/admin/CargasAdmin";
 import CargasHistoricoAdmin from "./pages/admin/CargasHistoricoAdmin";
 import EntregasAdmin from "./pages/admin/EntregasAdmin";
+import CarroceriasAdmin from "./pages/admin/CarroceriasAdmin";
+import AjudantesAdmin from "./pages/admin/AjudantesAdmin";
+import ProvasEntregaAdmin from "./pages/admin/ProvasEntregaAdmin";
 import Logs from "./pages/admin/Logs";
 import { AdminLayoutWrapper } from "./components/admin/AdminLayoutWrapper";
 import CadastroMotorista from "./pages/CadastroMotorista";
@@ -112,6 +115,9 @@ const App = () => {
                   <Route path="cargas" element={<CargasAdmin />} />
                   <Route path="cargas/historico" element={<CargasHistoricoAdmin />} />
                   <Route path="entregas" element={<EntregasAdmin />} />
+                  <Route path="carrocerias" element={<CarroceriasAdmin />} />
+                  <Route path="ajudantes" element={<AjudantesAdmin />} />
+                  <Route path="provas-entrega" element={<ProvasEntregaAdmin />} />
                   <Route path="logs" element={<Logs />} />
                 </Route>
                 <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
