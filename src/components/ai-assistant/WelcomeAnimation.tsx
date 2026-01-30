@@ -48,7 +48,7 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
   
   return (
     <motion.div 
-      className="flex flex-col items-center justify-center h-full px-6"
+      className="absolute inset-0 flex flex-col items-center justify-center px-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -68,8 +68,8 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
               }}
               className="relative mb-6"
             >
-              <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center shadow-lg shadow-primary/20 overflow-hidden">
-                <img src={hubinhoLogo} alt="Hubinho" className="w-14 h-14 object-contain" />
+              <div className="w-20 h-20 flex items-center justify-center">
+                <img src={hubinhoLogo} alt="Hubinho" className="w-16 h-16 object-contain drop-shadow-lg" />
               </div>
               
               {/* Sparkles around icon */}
