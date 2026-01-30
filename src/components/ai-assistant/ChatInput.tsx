@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
+  hidePoweredBy?: boolean;
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, hidePoweredBy }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -74,9 +75,11 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         </div>
       </div>
       
-      <p className="text-center text-xs text-muted-foreground/50 mt-2 md:mt-3">
-        Powered by <span className="text-primary/70 font-medium">Hubinho</span>
-      </p>
+      {!hidePoweredBy && (
+        <p className="text-center text-xs text-muted-foreground/50 mt-2 md:mt-3">
+          Powered by <span className="text-primary/70 font-medium">Hubinho</span>
+        </p>
+      )}
     </form>
   );
 }
