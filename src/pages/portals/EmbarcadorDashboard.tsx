@@ -1,22 +1,7 @@
 // Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Package, 
-  Truck, 
-  Clock, 
-  CheckCircle,
-  ArrowUpRight,
-  DollarSign,
-  MapPin,
-  MessageCircle,
-  BarChart3,
-  Sparkles,
-  Send,
-  ExternalLink,
-  Shield,
-  Settings
-} from 'lucide-react';
+import { Package, Truck, Clock, CheckCircle, ArrowUpRight, DollarSign, MapPin, MessageCircle, BarChart3, Sparkles, Send, ExternalLink, Shield, Settings } from 'lucide-react';
 import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
 import { CardImmersiveBackground } from '@/components/ai-assistant/CardImmersiveBackground';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
@@ -30,10 +15,14 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { Input } from '@/components/ui/input';
 import { startOfMonth, endOfMonth, parseISO, subDays } from 'date-fns';
 import { useMemo, useState } from 'react';
-
 export default function EmbarcadorDashboard() {
-  const { empresa, filialAtiva } = useUserContext();
-  const { profile } = useAuth();
+  const {
+    empresa,
+    filialAtiva
+  } = useUserContext();
+  const {
+    profile
+  } = useAuth();
   const navigate = useNavigate();
   const [chatMessage, setChatMessage] = useState('');
 
@@ -44,47 +33,47 @@ export default function EmbarcadorDashboard() {
     if (hour < 18) return 'Boa tarde';
     return 'Boa noite';
   }, []);
-
   const firstName = profile?.nome_completo?.split(' ')[0] || 'Usuário';
 
   // Fetch cargas
-  const { data: cargas = [], isLoading: loadingCargas } = useQuery({
+  const {
+    data: cargas = [],
+    isLoading: loadingCargas
+  } = useQuery({
     queryKey: ['dashboard_cargas', empresa?.id, filialAtiva?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
-
-      let query = supabase
-        .from('cargas')
-        .select(`
+      let query = supabase.from('cargas').select(`
           id,
           codigo,
           status,
           created_at,
           valor_mercadoria
-        `)
-        .eq('empresa_id', empresa.id)
-        .order('created_at', { ascending: false });
-
+        `).eq('empresa_id', empresa.id).order('created_at', {
+        ascending: false
+      });
       if (filialAtiva?.id) {
         query = query.eq('filial_id', filialAtiva.id);
       }
-
-      const { data, error } = await query;
+      const {
+        data,
+        error
+      } = await query;
       if (error) throw error;
       return data || [];
     },
-    enabled: !!empresa?.id,
+    enabled: !!empresa?.id
   });
 
   // Fetch entregas
-  const { data: entregas = [], isLoading: loadingEntregas } = useQuery({
+  const {
+    data: entregas = [],
+    isLoading: loadingEntregas
+  } = useQuery({
     queryKey: ['dashboard_entregas', empresa?.id, filialAtiva?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
-
-      let query = supabase
-        .from('entregas')
-        .select(`
+      let query = supabase.from('entregas').select(`
           id,
           status,
           entregue_em,
@@ -92,31 +81,26 @@ export default function EmbarcadorDashboard() {
             empresa_id,
             filial_id
           )
-        `)
-        .eq('cargas.empresa_id', empresa.id);
-
+        `).eq('cargas.empresa_id', empresa.id);
       if (filialAtiva?.id) {
         query = query.eq('cargas.filial_id', filialAtiva.id);
       }
-
-      const { data, error } = await query;
+      const {
+        data,
+        error
+      } = await query;
       if (error) throw error;
       return data || [];
     },
-    enabled: !!empresa?.id,
+    enabled: !!empresa?.id
   });
 
   // Calculate stats
   const stats = useMemo(() => {
-    const activeCargas = cargas.filter(c => 
-      c.status && !['entregue', 'cancelada'].includes(c.status)
-    ).length;
-    
+    const activeCargas = cargas.filter(c => c.status && !['entregue', 'cancelada'].includes(c.status)).length;
     const emTransito = entregas.filter(e => e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega').length;
-    const aguardandoColeta = entregas.filter(e => 
-      e.status === 'aguardando'
-    ).length;
-    
+    const aguardandoColeta = entregas.filter(e => e.status === 'aguardando').length;
+
     // Entregas do mês atual
     const now = new Date();
     const monthStart = startOfMonth(now);
@@ -128,24 +112,17 @@ export default function EmbarcadorDashboard() {
     }).length;
 
     // Valor total de mercadorias ativas
-    const valorTotalMercadorias = cargas
-      .filter(c => c.status && !['entregue', 'cancelada'].includes(c.status))
-      .reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0);
+    const valorTotalMercadorias = cargas.filter(c => c.status && !['entregue', 'cancelada'].includes(c.status)).reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0);
 
     // Comparação com período anterior
     const last30Days = subDays(now, 30);
     const prev30Days = subDays(now, 60);
-    
     const cargasLast30 = cargas.filter(c => parseISO(c.created_at) >= last30Days).length;
     const cargasPrev30 = cargas.filter(c => {
       const date = parseISO(c.created_at);
       return date >= prev30Days && date < last30Days;
     }).length;
-    
-    const changePercent = cargasPrev30 > 0 
-      ? Math.round(((cargasLast30 - cargasPrev30) / cargasPrev30) * 100)
-      : cargasLast30 > 0 ? 100 : 0;
-
+    const changePercent = cargasPrev30 > 0 ? Math.round((cargasLast30 - cargasPrev30) / cargasPrev30 * 100) : cargasLast30 > 0 ? 100 : 0;
     return {
       activeCargas,
       emTransito,
@@ -153,28 +130,27 @@ export default function EmbarcadorDashboard() {
       entreguesMes,
       valorTotalMercadorias,
       changePercent,
-      totalCargas: cargas.length,
+      totalCargas: cargas.length
     };
   }, [cargas, entregas]);
-
   const isLoading = loadingCargas || loadingEntregas;
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL',
+      currency: 'BRL'
     }).format(value);
   };
-
   const handleSendMessage = () => {
     if (chatMessage.trim()) {
-      navigate('/embarcador/assistente', { state: { initialMessage: chatMessage.trim() } });
+      navigate('/embarcador/assistente', {
+        state: {
+          initialMessage: chatMessage.trim()
+        }
+      });
       setChatMessage('');
     }
   };
-
-  return (
-    <div className="p-4 md:p-8">
+  return <div className="p-4 md:p-8">
       <div className="space-y-6">
         {/* Welcome Header */}
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
@@ -187,11 +163,7 @@ export default function EmbarcadorDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/embarcador/relatorios')}
-              className="gap-2"
-            >
+            <Button variant="outline" onClick={() => navigate('/embarcador/relatorios')} className="gap-2">
               <BarChart3 className="w-4 h-4" />
               Relatórios
             </Button>
@@ -204,37 +176,12 @@ export default function EmbarcadorDashboard() {
           {/* Left Column - Stats and Quick Actions */}
           <div className="lg:col-span-2 space-y-6">
             {/* Stats Cards */}
-            {isLoading ? (
-              <DashboardSkeleton />
-            ) : (
-              <>
+            {isLoading ? <DashboardSkeleton /> : <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatsCard
-                  title="Cargas Ativas"
-                  value={stats.activeCargas}
-                  change={stats.changePercent}
-                  changeLabel="vs. mês anterior"
-                  icon={<Package className="w-5 h-5" />}
-                  color="primary"
-                />
-                <StatsCard
-                  title="Em Trânsito"
-                  value={stats.emTransito}
-                  icon={<Truck className="w-5 h-5" />}
-                  color="chart1"
-                />
-                <StatsCard
-                  title="Aguardando Coleta"
-                  value={stats.aguardandoColeta}
-                  icon={<Clock className="w-5 h-5" />}
-                  color="chart4"
-                />
-                <StatsCard
-                  title="Entregues (mês)"
-                  value={stats.entreguesMes}
-                  icon={<CheckCircle className="w-5 h-5" />}
-                  color="chart2"
-                />
+                <StatsCard title="Cargas Ativas" value={stats.activeCargas} change={stats.changePercent} changeLabel="vs. mês anterior" icon={<Package className="w-5 h-5" />} color="primary" />
+                <StatsCard title="Em Trânsito" value={stats.emTransito} icon={<Truck className="w-5 h-5" />} color="chart1" />
+                <StatsCard title="Aguardando Coleta" value={stats.aguardandoColeta} icon={<Clock className="w-5 h-5" />} color="chart4" />
+                <StatsCard title="Entregues (mês)" value={stats.entreguesMes} icon={<CheckCircle className="w-5 h-5" />} color="chart2" />
               </div>
 
               {/* Summary Cards */}
@@ -266,8 +213,7 @@ export default function EmbarcadorDashboard() {
                   </CardContent>
                 </Card>
               </div>
-            </>
-            )}
+            </>}
 
             {/* Quick Actions */}
             <Card className="border-border bg-gradient-to-br from-primary/5 to-transparent">
@@ -279,35 +225,19 @@ export default function EmbarcadorDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20"
-                    onClick={() => navigate('/embarcador/cargas')}
-                  >
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20" onClick={() => navigate('/embarcador/cargas')}>
                     <Package className="w-5 h-5 text-primary" />
                     <span className="text-xs">Ver Cargas</span>
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-auto py-4 flex-col gap-2 hover:bg-chart-1/5 hover:border-chart-1/20"
-                    onClick={() => navigate('/embarcador/relatorios')}
-                  >
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-chart-1/5 hover:border-chart-1/20" onClick={() => navigate('/embarcador/relatorios')}>
                     <BarChart3 className="w-5 h-5 text-chart-1" />
                     <span className="text-xs">Relatórios</span>
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-auto py-4 flex-col gap-2 hover:bg-chart-2/5 hover:border-chart-2/20"
-                    onClick={() => navigate('/embarcador/filiais')}
-                  >
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-chart-2/5 hover:border-chart-2/20" onClick={() => navigate('/embarcador/filiais')}>
                     <MapPin className="w-5 h-5 text-chart-2" />
                     <span className="text-xs">Filiais</span>
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-auto py-4 flex-col gap-2 hover:bg-chart-4/5 hover:border-chart-4/20"
-                    onClick={() => navigate('/embarcador/configuracoes')}
-                  >
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-chart-4/5 hover:border-chart-4/20" onClick={() => navigate('/embarcador/configuracoes')}>
                     <Settings className="w-5 h-5 text-chart-4" />
                     <span className="text-xs">Configurações</span>
                   </Button>
@@ -325,25 +255,15 @@ export default function EmbarcadorDashboard() {
               {/* Glass Card Overlay */}
               <div className="absolute inset-0 z-10 flex flex-col backdrop-blur-md bg-background/40 border border-border/30 rounded-xl">
                 {/* Floating button to open full chat */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/embarcador/assistente')}
-                  className="absolute top-3 right-3 h-8 w-8 hover:bg-primary/20 z-20 backdrop-blur-sm bg-background/30"
-                  title="Abrir chat completo"
-                >
+                <Button variant="ghost" size="icon" onClick={() => navigate('/embarcador/assistente')} className="absolute top-3 right-3 h-8 w-8 hover:bg-primary/20 z-20 backdrop-blur-sm bg-background/30" title="Abrir chat completo">
                   <ExternalLink className="w-4 h-4" />
                 </Button>
 
                 <div className="flex-1 flex flex-col p-4 pt-6">
                   {/* Chat Messages Area */}
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                    <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center mb-4 backdrop-blur-sm bg-background/30 shadow-lg ring-2 ring-primary/30">
-                      <img
-                        src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png"
-                        alt="Hubinho"
-                        className="w-14 h-14 object-cover"
-                      />
+                    <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center mb-4 backdrop-blur-sm shadow-lg ring-2 ring-primary/30 bg-neutral-900/0">
+                      <img src="/lovable-uploads/0656f8e0-c1ac-4bc3-a621-a3867add5a63.png" alt="Hubinho" className="w-14 h-14 object-cover" />
                     </div>
                     <h3 className="font-semibold text-foreground mb-2">
                       Olá! Sou o Hubinho 👋
@@ -363,18 +283,8 @@ export default function EmbarcadorDashboard() {
 
                   {/* Chat Input */}
                   <div className="flex gap-2 mt-4">
-                    <Input
-                      placeholder="Pergunte algo ao Hubinho..."
-                      value={chatMessage}
-                      onChange={(e) => setChatMessage(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                      className="flex-1 backdrop-blur-sm bg-background/40 border-border/40"
-                    />
-                    <Button 
-                      size="icon" 
-                      onClick={handleSendMessage}
-                      className="shrink-0 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90"
-                    >
+                    <Input placeholder="Pergunte algo ao Hubinho..." value={chatMessage} onChange={e => setChatMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} className="flex-1 backdrop-blur-sm bg-background/40 border-border/40" />
+                    <Button size="icon" onClick={handleSendMessage} className="shrink-0 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90">
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>
@@ -388,11 +298,7 @@ export default function EmbarcadorDashboard() {
         <Card className="overflow-hidden border-border hover:shadow-lg transition-all cursor-pointer group">
           <a href="https://www.itau.com.br/seguros" target="_blank" rel="noopener noreferrer">
             <div className="relative">
-              <img 
-                src={adSeguroTransporte} 
-                alt="Seguro de Transporte de Cargas" 
-                className="w-full h-32 sm:h-40 md:h-[400px] object-cover group-hover:scale-[1.02] transition-transform duration-300"
-              />
+              <img src={adSeguroTransporte} alt="Seguro de Transporte de Cargas" className="w-full h-32 sm:h-40 md:h-[400px] object-cover group-hover:scale-[1.02] transition-transform duration-300" />
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex items-center">
                 <div className="p-6 text-white max-w-md">
                   <div className="flex items-center gap-2 mb-2">
@@ -403,11 +309,7 @@ export default function EmbarcadorDashboard() {
                   <p className="text-sm text-white/80 hidden sm:block">
                     Proteja suas mercadorias com o melhor seguro do mercado. Cobertura completa para todo tipo de transporte.
                   </p>
-                  <Button 
-                    size="sm" 
-                    className="mt-3 bg-chart-2 hover:bg-chart-2/90 text-white"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <Button size="sm" className="mt-3 bg-chart-2 hover:bg-chart-2/90 text-white" onClick={e => e.stopPropagation()}>
                     Saiba mais
                     <ArrowUpRight className="w-4 h-4 ml-1" />
                   </Button>
@@ -417,6 +319,5 @@ export default function EmbarcadorDashboard() {
           </a>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 }
