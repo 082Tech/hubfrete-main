@@ -89,7 +89,7 @@ function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
       <main 
         className={`transition-all duration-300 ${
           isMobile 
-            ? isInChatView ? '' : 'pb-20'
+            ? isInChatView ? '' : 'pb-20' // Remove padding when in chat view
             : collapsed 
               ? 'ml-16' 
               : 'ml-64'

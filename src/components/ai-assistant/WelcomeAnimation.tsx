@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Truck } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import hubinhoLogo from '@/assets/hubinho-logo.png';
 
 interface WelcomeAnimationProps {
   userName: string;
@@ -19,7 +20,7 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
   useEffect(() => {
     const timers = [
       setTimeout(() => setStage(1), 300),   // Show icon
-      setTimeout(() => setStage(2), 800),   // Show name
+      setTimeout(() => setStage(2), 800),   // Show sparkles
       setTimeout(() => setStage(3), 1200),  // Start typing
     ];
     
@@ -47,14 +48,14 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
   
   return (
     <motion.div 
-      className="absolute inset-0 flex flex-col items-center justify-center px-6"
+      className="flex flex-col items-center justify-center h-full px-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4 }}
     >
       <div className="relative flex flex-col items-center max-w-md">
-        {/* Animated Icon - Skeleton style with inverted colors */}
+        {/* Animated Icon */}
         <AnimatePresence>
           {stage >= 1 && (
             <motion.div
@@ -67,19 +68,41 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
               }}
               className="relative mb-6"
             >
-              <motion.div 
-                className="w-20 h-20 rounded-2xl bg-foreground flex items-center justify-center"
-                animate={{ 
-                  opacity: [0.85, 1, 0.85]
-                }}
-                transition={{ 
-                  duration: 2, 
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              >
-                <Truck className="w-10 h-10 text-background" strokeWidth={2} />
-              </motion.div>
+              <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center shadow-lg shadow-primary/20 overflow-hidden">
+                <img src={hubinhoLogo} alt="Hubinho" className="w-14 h-14 object-contain" />
+              </div>
+              
+              {/* Sparkles around icon */}
+              {stage >= 2 && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="absolute -top-2 -right-2"
+                  >
+                    <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="absolute -bottom-1 -left-3"
+                  >
+                    <Sparkles className="w-4 h-4 text-primary/70 animate-pulse" />
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="absolute top-1/2 -right-4"
+                  >
+                    <Sparkles className="w-3 h-3 text-primary/50 animate-pulse" />
+                  </motion.div>
+                </>
+              )}
+              
+               {/* Pulsing ring removido para não criar “borda” ao redor do logo */}
             </motion.div>
           )}
         </AnimatePresence>
@@ -93,8 +116,9 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
               transition={{ delay: 0.2 }}
               className="mb-6"
             >
-              <span className="text-2xl font-bold text-foreground">
+              <span className="text-2xl font-bold text-foreground flex items-center gap-2">
                 Hubinho
+                <Sparkles className="w-5 h-5 text-primary" />
               </span>
             </motion.div>
           )}
