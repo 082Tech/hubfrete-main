@@ -1,73 +1,97 @@
-# Plano de Implementação - CRUDs Administrativos Complementares
 
-## ✅ Status: CONCLUÍDO
+# Plano: Atualização do Nome da Tabela de Localizações
 
-Todos os 3 CRUDs complementares foram implementados com sucesso, junto com as atualizações de navegação.
+## Resumo da Mudança
 
----
-
-## Entregas Realizadas
-
-### ✅ 1. CRUD de Carrocerias (`/admin/carrocerias`)
-- Tabela paginada com busca e filtros
-- Stats cards: Total, Ativas, Com motorista, Empresas
-- Dialog de detalhes com galeria de fotos e lightbox
-- Ações: Ver detalhes, Ativar/Desativar, Excluir
-
-### ✅ 2. CRUD de Ajudantes (`/admin/ajudantes`)
-- Tabela paginada com busca e filtros
-- Stats cards: Total, Ativos, Frota, Autônomos
-- Dialog de detalhes com visualização de comprovante
-- Ações: Ver detalhes, Ativar/Desativar, Excluir
-
-### ✅ 3. CRUD de Provas de Entrega (`/admin/provas-entrega`)
-- Tabela paginada com busca e filtro por período
-- Stats cards: Total, Hoje, Com fotos, Com assinatura
-- Dialog de detalhes com galeria de fotos, assinatura e checklist
-- Lightbox para visualização de imagens em tela cheia
-
-### ✅ 4. Navegação Atualizada
-- Novo submenu "Cadastros" (Motoristas, Ajudantes)
-- Novo submenu "Frota" (Veículos, Carrocerias)
-- Novo item "Comprovantes" para Provas de Entrega
-- Rotas adicionadas ao App.tsx
+Você renomeou a tabela do banco de dados de `localizações` para `localizacoes` (removendo o cedilha). Agora precisamos atualizar todas as referências no código para refletir esse novo nome.
 
 ---
 
-## Arquivos Criados/Modificados
+## Arquivos que Precisam ser Alterados
 
-| Arquivo | Tipo | Descrição |
-|---------|------|-----------|
-| `src/pages/admin/CarroceriasAdmin.tsx` | Novo | CRUD completo de carrocerias |
-| `src/pages/admin/AjudantesAdmin.tsx` | Novo | CRUD completo de ajudantes |
-| `src/pages/admin/ProvasEntregaAdmin.tsx` | Novo | Visualização de provas de entrega |
-| `src/components/admin/AdminSidebar.tsx` | Modificado | Novos submenus e itens |
-| `src/App.tsx` | Modificado | Novas rotas administrativas |
+### 1. `src/hooks/useRealtimeLocalizacoes.ts`
+
+**Mudanças:**
+- **Linha 48**: Trocar `'localizações'` por `'localizacoes'` na query
+- **Linha 99**: Trocar `'localizações'` por `'localizacoes'` na subscription Realtime
+- **Remover workaround**: Com o nome sem caracteres especiais, podemos remover o `(supabase as any)` e usar a tipagem correta do Supabase
+
+```typescript
+// Antes (linha 47-50):
+const { data, error } = await (supabase as any)
+  .from('localizações')
+  .select('*')
+
+// Depois:
+const { data, error } = await supabase
+  .from('localizacoes')
+  .select('*')
+```
+
+```typescript
+// Antes (linha 98-100):
+schema: 'public',
+table: 'localizações',
+
+// Depois:
+schema: 'public',
+table: 'localizacoes',
+```
 
 ---
 
-## Plano Original - Fases Anteriores (Já Concluídas)
+### 2. `src/pages/admin/Monitoramento.tsx`
 
-### ✅ Fase 1: Monitoramento em Tempo Real
-- Mapa interativo com Google Maps
-- Lista de motoristas com status online/offline
-- Visualização de geofences
-- Histórico de rota com playback
+**Mudanças:**
+- **Linha 117-120**: Trocar `'localizações'` por `'localizacoes'` na query
+- **Remover workaround**: Remover o `(supabase as any)` e usar tipagem correta
 
-### ✅ Fase 2: Dashboard de KPIs e Performance
-- Ranking de motoristas
-- Gráficos de evolução (Recharts)
-- Comparativos de período
-- Cards de métricas agregadas
+```typescript
+// Antes (linha 117-120):
+const { data: locations } = await (supabase as any)
+  .from('localizações')
+  .select('*')
 
-### ✅ Fase 3: Central de Validação de Documentos
-- Fila de documentos pendentes
-- Preview de documentos (PDF/imagem)
-- Workflow de aprovação/rejeição
-- Alertas de vencimento
+// Depois:
+const { data: locations } = await supabase
+  .from('localizacoes')
+  .select('*')
+```
 
-### ✅ Fase 4: Relatórios Avançados com Exportação
-- Relatório Operacional
-- Relatório de Crescimento
-- Relatório Financeiro
-- Exportação PDF/Excel
+---
+
+### 3. `src/integrations/supabase/types.ts`
+
+**Mudança:**
+- **Linha 1371**: Atualizar o `foreignKeyName` de `"localizações_motorista_id_fkey"` para `"localizacoes_motorista_id_fkey"`
+
+> **Nota**: Esta mudança só deve ser feita se você também renomeou a foreign key no banco. Se a FK ainda tem o nome antigo no banco, esse valor precisa corresponder ao nome real da constraint.
+
+---
+
+## Resumo das Alterações
+
+| Arquivo | Linha(s) | Alteração |
+|---------|----------|-----------|
+| `useRealtimeLocalizacoes.ts` | 47-50 | `.from('localizações')` → `.from('localizacoes')` |
+| `useRealtimeLocalizacoes.ts` | 47 | Remover `(supabase as any)` - usar tipagem correta |
+| `useRealtimeLocalizacoes.ts` | 99 | `table: 'localizações'` → `table: 'localizacoes'` |
+| `Monitoramento.tsx` | 117-120 | `.from('localizações')` → `.from('localizacoes')` |
+| `Monitoramento.tsx` | 117 | Remover `(supabase as any)` - usar tipagem correta |
+| `types.ts` | 1371 | `foreignKeyName` (se a FK foi renomeada no banco) |
+
+---
+
+## Benefícios da Mudança
+
+1. **Sem workarounds**: Podemos remover os `(supabase as any)` que eram necessários por causa do cedilha
+2. **Tipagem completa**: O TypeScript agora pode inferir corretamente os tipos da tabela
+3. **Compatibilidade**: Evita problemas de encoding em diferentes ambientes
+
+---
+
+## Observações
+
+- A lógica de rastreamento **não será alterada** - apenas os nomes das referências
+- O hook `useRealtimeLocalizacoes` continuará funcionando normalmente
+- As páginas de Monitoramento (admin) e Gestão de Cargas/Entregas (portais) continuarão usando o hook que será atualizado
