@@ -57,7 +57,7 @@ const embarcadorMenuItems: MenuItem[] = [
   { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
   { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
   { icon: Bell, label: 'Notificações', href: '/embarcador/notificacoes' },
-  { icon: () => <img src="/hub-icon.svg" alt="Hubinho" className="w-5 h-5" />, label: 'Hubinho', href: '/embarcador/assistente' },
+  { icon: () => <img src="/hub-icon.svg" alt="Hubinho" className="w-7 h-7" />, label: 'Hubinho', href: '/embarcador/assistente' },
   { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
   { icon: Users, label: 'Usuários da Empresa', href: '/embarcador/usuarios', adminOnly: true },
   { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
