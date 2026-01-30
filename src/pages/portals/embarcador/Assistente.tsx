@@ -193,6 +193,9 @@ export default function Assistente() {
 
   const userInitials = fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
+  // Collapse sidebars during welcome animation
+  const sidebarsShrunk = showWelcomeAnimation;
+
   return (
     <div className="relative h-[100dvh] overflow-hidden flex">
       <ImmersiveBackground />
@@ -200,12 +203,10 @@ export default function Assistente() {
       {/* Welcome Animation - First visit only */}
       <AnimatePresence mode="wait">
         {showWelcomeAnimation && (
-          <div className="absolute inset-0 z-50">
-            <WelcomeAnimation 
-              userName={fullName} 
-              onComplete={handleWelcomeComplete} 
-            />
-          </div>
+          <WelcomeAnimation 
+            userName={fullName} 
+            onComplete={handleWelcomeComplete} 
+          />
         )}
       </AnimatePresence>
 
@@ -242,7 +243,11 @@ export default function Assistente() {
       </div>
 
       {/* Right Sidebar - Chat History (Floating) */}
-      <div className="relative z-10 py-4 pr-4">
+      <div 
+        className={`relative z-10 py-4 pr-4 transition-all duration-500 ${
+          sidebarsShrunk ? 'opacity-0 pointer-events-none translate-x-10' : 'opacity-100'
+        }`}
+      >
         <div
           className={`h-full flex flex-col portal-glass-sidebar rounded-2xl shadow-xl transition-all duration-300 ${
             historyCollapsed ? 'w-16' : 'w-72'
