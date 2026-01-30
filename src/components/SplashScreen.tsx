@@ -4,7 +4,6 @@ import { Truck } from 'lucide-react';
 
 // 🔧 DEBUG MODE - Set to true to loop the animation for editing
 const DEBUG_MODE = true;
-
 interface SplashScreenProps {
   onComplete: () => void;
 }
@@ -13,7 +12,6 @@ export function SplashScreen({
 }: SplashScreenProps) {
   const [stage, setStage] = useState(0);
   const [loopKey, setLoopKey] = useState(0);
-  
   useEffect(() => {
     // Stage 0: Initial fade in
     // Stage 1: Logo and text visible
@@ -57,7 +55,7 @@ export function SplashScreen({
           ease: [0.16, 1, 0.3, 1]
         }}>
               {/* Outer ring */}
-              <motion.div className="absolute inset-0 border-primary-foreground/20 border-0 rounded-none" initial={{
+              <motion.div className="absolute inset-0 border-0 rounded-none border-[#022c21]/0" initial={{
             scale: 1.2,
             opacity: 0
           }} animate={stage >= 1 ? {
