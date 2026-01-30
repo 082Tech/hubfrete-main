@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Truck } from 'lucide-react';
 
 // 🔧 DEBUG MODE - Set to true to loop the animation for editing
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 interface SplashScreenProps {
   onComplete: () => void;
 }
