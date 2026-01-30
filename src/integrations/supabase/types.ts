@@ -1332,7 +1332,7 @@ export type Database = {
         }
         Relationships: []
       }
-      localizacoes: {
+      locations: {
         Row: {
           altitude: number | null
           bussola_pos: number | null
