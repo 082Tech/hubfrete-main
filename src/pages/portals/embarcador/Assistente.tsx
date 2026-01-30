@@ -252,7 +252,7 @@ export default function Assistente() {
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {isLoadingHistory ? (
           <div className="flex justify-center py-4">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
@@ -374,7 +374,8 @@ export default function Assistente() {
           <div
             ref={messagesScrollRef}
             onScroll={handleMessagesScroll}
-            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${isMobile ? 'pt-16 pb-2 px-4' : 'py-6 px-6'}`}
+            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-none ${isMobile ? 'pt-16 pb-2 px-4' : 'py-6 px-6'}`}
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             <div className="max-w-3xl mx-auto space-y-6">
               {messages.map((message) => (
@@ -436,7 +437,7 @@ export default function Assistente() {
                 </Button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {isLoadingHistory ? (
                   <div className="flex justify-center py-4">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
