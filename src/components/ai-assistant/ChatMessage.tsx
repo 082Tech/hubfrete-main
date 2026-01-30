@@ -1,7 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import type { ChatMessage as ChatMessageType } from "@/lib/chatApi";
 import { useIsMobile } from "@/hooks/use-mobile";
-
 interface ChatMessageProps {
   message: ChatMessageType;
   userName?: string;
@@ -88,7 +87,7 @@ export function ChatMessage({
       </div>
 
       {!isBot && !isMobile && <div className="flex-shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-border flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border items-center justify-center flex flex-row px-0 mx-0 my-[25px] gap-0 border-primary-foreground">
             <span className="text-sm font-semibold text-primary">{initials}</span>
           </div>
         </div>}
