@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CircleMarker, Tooltip, Popup } from 'react-leaflet';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchAllTrackingHistoricoByEntregaId } from '@/lib/fetchAllTrackingHistorico';
 import { Clock, MapPin, AlertCircle, CheckCircle, Package, Truck, Route } from 'lucide-react';
 
 interface TrackingPoint {
@@ -77,15 +77,10 @@ export function TrackingHistoryMarkers({ entregaId }: TrackingHistoryMarkersProp
     const fetchTrackingHistory = async () => {
       setIsLoading(true);
       try {
-        // Fetch all tracking points without the default 1000 row limit
-        const { data, error } = await supabase
-          .from('tracking_historico')
-          .select('id, latitude, longitude, status, created_at, observacao')
-          .eq('entrega_id', entregaId)
-          .order('created_at', { ascending: true })
-          .limit(10000);
-
-        if (error) throw error;
+        const data = await fetchAllTrackingHistoricoByEntregaId(entregaId, {
+          pageSize: 1000,
+          maxRows: 50000,
+        });
         
         const validPoints: TrackingPoint[] = (data || [])
           .filter((p) => p.latitude != null && p.longitude != null)

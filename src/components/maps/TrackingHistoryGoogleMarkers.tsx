@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { OverlayView, InfoWindow } from '@react-google-maps/api';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchAllTrackingHistoricoByEntregaId } from '@/lib/fetchAllTrackingHistorico';
 import { Clock, MapPin, AlertCircle, CheckCircle, Package, Truck, Route, Loader2, MapPinOff } from 'lucide-react';
 
 interface TrackingPoint {
@@ -66,16 +66,12 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
     const fetchTrackingHistory = async () => {
       onLoadingChange?.(true);
       try {
-        // Fetch all tracking points without the default 1000 row limit
-        const { data, error } = await supabase
-          .from('tracking_historico')
-          .select('id, latitude, longitude, status, created_at, observacao')
-          .eq('entrega_id', entregaId)
-          .order('created_at', { ascending: true })
-          .limit(10000);
+        const data = await fetchAllTrackingHistoricoByEntregaId(entregaId, {
+          pageSize: 1000,
+          maxRows: 50000,
+        });
 
         if (!isMounted) return;
-        if (error) throw error;
         
         const validPoints: TrackingPoint[] = (data || [])
           .filter((p) => p.latitude != null && p.longitude != null)
