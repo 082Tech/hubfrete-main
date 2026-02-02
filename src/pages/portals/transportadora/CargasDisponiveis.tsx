@@ -1040,16 +1040,28 @@ export default function CargasDisponiveis() {
                     );
                   })}
                 </div>
-                {filterTiposVeiculo.length < tiposVeiculoFrota.length && (
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="h-auto p-0 text-xs"
-                    onClick={() => setFilterTiposVeiculo(tiposVeiculoFrota)}
-                  >
-                    Selecionar todos da minha frota
-                  </Button>
-                )}
+                <div className="flex gap-3">
+                  {filterTiposVeiculo.length < tiposVeiculoFrota.length && (
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="h-auto p-0 text-xs"
+                      onClick={() => setFilterTiposVeiculo(tiposVeiculoFrota)}
+                    >
+                      Selecionar todos da minha frota
+                    </Button>
+                  )}
+                  {filterTiposVeiculo.length > 0 && (
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="h-auto p-0 text-xs text-muted-foreground"
+                      onClick={() => setFilterTiposVeiculo([])}
+                    >
+                      Mostrar todas as cargas
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -1067,11 +1079,20 @@ export default function CargasDisponiveis() {
               <h3 className="text-lg font-semibold text-foreground mb-2">
                 Nenhuma carga disponível
               </h3>
-              <p className="text-muted-foreground">
-                {Object.values(advancedFilters).some(v => v.length > 0) || filterTipo !== 'all'
+              <p className="text-muted-foreground mb-4">
+                {Object.values(advancedFilters).some(v => v.length > 0) || filterTipo !== 'all' || filterTiposVeiculo.length > 0
                   ? 'Nenhuma carga corresponde aos filtros aplicados.'
                   : 'Não há cargas publicadas no momento. Volte mais tarde.'}
               </p>
+              {filterTiposVeiculo.length > 0 && cargas.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setFilterTiposVeiculo([])}
+                >
+                  Mostrar todas as {cargas.length} cargas
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : viewMode === 'list' ? (
