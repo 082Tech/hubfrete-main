@@ -27,8 +27,8 @@ import {
   Pin,
   Building,
   MessageSquare,
+  MoreVertical,
 } from 'lucide-react';
-import { NotificacoesDropdown } from '@/components/notificacoes';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -52,6 +52,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
 import { useTheme } from 'next-themes';
+import { useNotificacoesContext } from '@/contexts/NotificacoesContext';
 
 interface MenuItem {
   icon: React.ElementType;
@@ -101,7 +102,6 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     // Cargas is now a submenu - handled separately
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
-    { icon: Bell, label: 'Notificações', href: '/embarcador/notificacoes' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
     { icon: User, label: 'Usuários da Empresa', href: '/embarcador/usuarios', adminOnly: true },
@@ -115,7 +115,6 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     // Entregas is now a submenu - handled separately
     { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
-    { icon: Bell, label: 'Notificações', href: '/transportadora/notificacoes' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true },
     { icon: Users, label: 'Usuários da Empresa', href: '/transportadora/usuarios', adminOnly: true },
@@ -628,86 +627,185 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse }:
           )}
         </nav>
 
-        {/* Notifications */}
-        <div className={`px-2 py-2 border-t border-sidebar-border ${collapsed ? 'flex justify-center' : ''}`}>
-          {collapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <NotificacoesDropdown collapsed />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={10}>
-                Notificações
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <NotificacoesDropdown />
-          )}
-        </div>
+        {/* User Footer with 3 dots menu */}
+        <UserFooter 
+          collapsed={collapsed} 
+          profile={profile} 
+          cargo={cargo} 
+          userType={userType}
+          onLogout={handleLogout} 
+        />
+      </aside>
+    </TooltipProvider>
+  );
+}
 
-        {/* User */}
-        <div className={`p-4 border-t border-sidebar-border ${collapsed ? 'flex flex-col items-center' : ''}`}>
-          {!collapsed ? (
-            <>
-              <div className="flex items-center gap-3 mb-3">
-                {profile?.avatar_url ? (
-                  <img 
-                    src={profile.avatar_url} 
-                    alt={profile.nome_completo || 'Logo'} 
-                    className="w-10 h-10 rounded-full object-contain bg-white border border-sidebar-border shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0">
-                    <span className="text-sidebar-primary font-semibold">
-                      {(profile?.nome_completo || profile?.email || 'U').charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium text-sidebar-foreground truncate">
-                      {profile?.nome_completo || 'Usuário'}
-                    </p>
-                    {cargo && (
-                      <Badge variant="outline" className="text-[10px] py-0 px-1 h-4 shrink-0">
-                        {cargo}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-sidebar-foreground/60 truncate" title={profile?.email || ''}>
-                    {profile?.email || ''}
-                  </p>
-                </div>
+interface UserFooterProps {
+  collapsed: boolean;
+  profile: any;
+  cargo: string | null;
+  userType: SidebarUserType;
+  onLogout: () => void;
+}
+
+function UserFooter({ collapsed, profile, cargo, userType, onLogout }: UserFooterProps) {
+  const navigate = useNavigate();
+  const { unreadCount } = useNotificacoesContext();
+
+  const handleNotificacoesClick = () => {
+    navigate(`/${userType}/notificacoes`);
+  };
+
+  if (collapsed) {
+    return (
+      <div className="p-2 border-t border-sidebar-border flex flex-col items-center gap-2">
+        {/* Avatar */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {profile?.avatar_url ? (
+              <img 
+                src={profile.avatar_url} 
+                alt={profile.nome_completo || 'Logo'} 
+                className="w-8 h-8 rounded-full object-contain bg-white border border-sidebar-border shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-sidebar-primary font-semibold text-sm">
+                  {(profile?.nome_completo || profile?.email || 'U').charAt(0).toUpperCase()}
+                </span>
               </div>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
-            </>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
+            )}
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={10}>
+            {profile?.nome_completo || 'Usuário'}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* 3 dots menu */}
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
-                  onClick={handleLogout}
+                  className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent relative"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <MoreVertical className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-1 -right-1 px-1 py-0 text-[10px] min-w-[16px] h-4"
+                    >
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Badge>
+                  )}
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={10}>
-                Sair
-              </TooltipContent>
-            </Tooltip>
-          )}
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={10}>
+              Mais opções
+            </TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent side="right" align="end" className="w-48">
+            <DropdownMenuItem onClick={handleNotificacoesClick} className="gap-2">
+              <Bell className="w-4 h-4" />
+              Notificações
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-auto px-1.5 py-0 text-[10px] h-5">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Badge>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={onLogout} 
+              className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 border-t border-sidebar-border">
+      <div className="flex items-center gap-3">
+        {/* Avatar */}
+        {profile?.avatar_url ? (
+          <img 
+            src={profile.avatar_url} 
+            alt={profile.nome_completo || 'Logo'} 
+            className="w-10 h-10 rounded-full object-contain bg-white border border-sidebar-border shrink-0"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0">
+            <span className="text-sidebar-primary font-semibold">
+              {(profile?.nome_completo || profile?.email || 'U').charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
+
+        {/* User info */}
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">
+              {profile?.nome_completo || 'Usuário'}
+            </p>
+            {cargo && (
+              <Badge variant="outline" className="text-[10px] py-0 px-1 h-4 shrink-0">
+                {cargo}
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-sidebar-foreground/60 truncate" title={profile?.email || ''}>
+            {profile?.email || ''}
+          </p>
         </div>
-      </aside>
-    </TooltipProvider>
+
+        {/* 3 dots menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent relative shrink-0"
+            >
+              <MoreVertical className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 px-1 py-0 text-[10px] min-w-[16px] h-4"
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Badge>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={handleNotificacoesClick} className="gap-2">
+              <Bell className="w-4 h-4" />
+              Notificações
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-auto px-1.5 py-0 text-[10px] h-5">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Badge>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={onLogout} 
+              className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
   );
 }
