@@ -71,37 +71,26 @@ const getFileIcon = (mimetype?: string) => {
 
 const isImageFile = (mimetype?: string) => mimetype?.startsWith('image/');
 
+// Lista fixa de buckets conhecidos (API listBuckets requer service_role)
+const KNOWN_BUCKETS: Bucket[] = [
+  { id: 'chat-anexos', name: 'chat-anexos', public: true, created_at: '2026-01-26T20:49:04Z' },
+  { id: 'fotos-frota', name: 'fotos-frota', public: true, created_at: '2026-01-22T16:49:25Z' },
+  { id: 'notas-fiscais', name: 'notas-fiscais', public: false, created_at: '2026-01-14T15:49:07Z' },
+];
+
 export default function StorageExplorer() {
-  const [buckets, setBuckets] = useState<Bucket[]>([]);
+  const [buckets] = useState<Bucket[]>(KNOWN_BUCKETS);
   const [selectedBucket, setSelectedBucket] = useState<Bucket | null>(null);
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [folders, setFolders] = useState<string[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('');
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading] = useState(false);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [search, setSearch] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    fetchBuckets();
-  }, []);
-
-  const fetchBuckets = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.storage.listBuckets();
-      if (error) throw error;
-      setBuckets(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar buckets:', error);
-      toast.error('Erro ao carregar buckets de storage');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const fetchFilesInPath = useCallback(async (bucket: Bucket, path: string = '') => {
     setIsLoadingFiles(true);
@@ -254,7 +243,11 @@ export default function StorageExplorer() {
           </h1>
           <p className="text-muted-foreground">Visualização read-only dos buckets de armazenamento</p>
         </div>
-        <Button variant="outline" onClick={fetchBuckets}>
+        <Button variant="outline" onClick={() => {
+          if (selectedBucket) {
+            fetchFilesInPath(selectedBucket, currentPath);
+          }
+        }}>
           <RefreshCw className="w-4 h-4 mr-2" />
           Atualizar
         </Button>
