@@ -24,6 +24,7 @@ import {
   UserPlus as UserPlusIcon,
   Camera,
   FileCheck,
+  HardDrive,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -174,8 +175,11 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     {
       title: 'Comprovantes',
       icon: Camera,
-      href: '/admin/provas-entrega',
       roles: ['super_admin', 'admin', 'suporte'],
+      subItems: [
+        { title: 'Provas de Entrega', href: '/admin/provas-entrega', icon: Camera },
+        { title: 'Storage Explorer', href: '/admin/storage', icon: HardDrive },
+      ],
     },
     {
       title: 'Pré-Cadastros',

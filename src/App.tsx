@@ -32,6 +32,7 @@ import EntregasAdmin from "./pages/admin/EntregasAdmin";
 import CarroceriasAdmin from "./pages/admin/CarroceriasAdmin";
 import AjudantesAdmin from "./pages/admin/AjudantesAdmin";
 import ProvasEntregaAdmin from "./pages/admin/ProvasEntregaAdmin";
+import StorageExplorer from "./pages/admin/StorageExplorer";
 import Logs from "./pages/admin/Logs";
 import { AdminLayoutWrapper } from "./components/admin/AdminLayoutWrapper";
 import CadastroMotorista from "./pages/CadastroMotorista";
@@ -118,6 +119,7 @@ const App = () => {
                   <Route path="carrocerias" element={<CarroceriasAdmin />} />
                   <Route path="ajudantes" element={<AjudantesAdmin />} />
                   <Route path="provas-entrega" element={<ProvasEntregaAdmin />} />
+                  <Route path="storage" element={<StorageExplorer />} />
                   <Route path="logs" element={<Logs />} />
                 </Route>
                 <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
