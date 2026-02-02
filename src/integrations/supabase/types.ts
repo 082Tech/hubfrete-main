@@ -1343,6 +1343,7 @@ export type Database = {
           longitude: number | null
           motorista_id: string | null
           speed: number | null
+          updated_at: string | null
         }
         Insert: {
           accuracy?: number | null
@@ -1354,6 +1355,7 @@ export type Database = {
           longitude?: number | null
           motorista_id?: string | null
           speed?: number | null
+          updated_at?: string | null
         }
         Update: {
           accuracy?: number | null
@@ -1365,6 +1367,7 @@ export type Database = {
           longitude?: number | null
           motorista_id?: string | null
           speed?: number | null
+          updated_at?: string | null
         }
         Relationships: [
           {
