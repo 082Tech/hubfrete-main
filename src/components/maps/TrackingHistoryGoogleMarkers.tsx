@@ -66,11 +66,13 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
     const fetchTrackingHistory = async () => {
       onLoadingChange?.(true);
       try {
+        // Fetch all tracking points without the default 1000 row limit
         const { data, error } = await supabase
           .from('tracking_historico')
           .select('id, latitude, longitude, status, created_at, observacao')
           .eq('entrega_id', entregaId)
-          .order('created_at', { ascending: true });
+          .order('created_at', { ascending: true })
+          .limit(10000);
 
         if (!isMounted) return;
         if (error) throw error;
