@@ -2254,6 +2254,7 @@ export type Database = {
       get_user_empresa_id: { Args: { _user_id: string }; Returns: number }
       get_user_empresa_tipo: { Args: { _user_id: string }; Returns: string }
       get_user_filial_ids: { Args: { _user_id: string }; Returns: number[] }
+      get_user_motorista_id: { Args: { p_user_id: string }; Returns: string }
       has_admin_role: {
         Args: {
           _role: Database["public"]["Enums"]["admin_role"]
@@ -2267,10 +2268,6 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
-      }
-      insert_user_to_auth: {
-        Args: { email: string; password: string }
-        Returns: string
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_chat_participant: {
