@@ -1077,7 +1077,6 @@ export default function HistoricoCargas() {
                         })}
                       </TableBody>
                     </Table>
-                  </div>
                   <ScrollBar orientation="horizontal" />
                 </ScrollArea>
                 {renderPagination()}
