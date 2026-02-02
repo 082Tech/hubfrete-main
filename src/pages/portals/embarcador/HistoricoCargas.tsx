@@ -892,10 +892,10 @@ export default function HistoricoCargas() {
               </div>
             ) : (
               <>
-                <div className="flex-1 min-h-0 overflow-auto">
-                  <Table>
-                    <TableHeader className="sticky top-0 bg-card z-20 shadow-sm">
-                      <TableRow>
+                <div className="flex-1 min-h-0 overflow-auto relative">
+                  <table className="w-full caption-bottom text-sm">
+                    <thead className="sticky top-0 bg-card z-20 [&_tr]:border-b shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
+                      <tr className="border-b transition-colors">
                         {orderedColumns.map((column) => (
                           <DraggableTableHead
                             key={column.id}
@@ -911,22 +911,21 @@ export default function HistoricoCargas() {
                             onColumnDragOver={handleDragOver}
                             onColumnDragLeave={handleDragLeave}
                             onColumnDrop={handleDrop}
-                            className={`whitespace-nowrap text-xs ${column.sticky === 'left' ? 'sticky left-0 bg-muted/80 z-30' : ''} ${column.sticky === 'right' ? 'sticky right-0 bg-muted/80 z-30' : ''}`}
+                            className={`whitespace-nowrap text-xs bg-card ${column.sticky === 'left' ? 'sticky left-0 z-30' : ''} ${column.sticky === 'right' ? 'sticky right-0 z-30' : ''}`}
                           >
                             {column.label}
                           </DraggableTableHead>
                         ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                      </tr>
+                    </thead>
+                    <tbody className="[&_tr:last-child]:border-0">
                         {paginatedCargas.map((carga) => {
                           const isExpanded = expandedRows.has(carga.id);
                           
                           return (
-                            <>
-                              <TableRow 
-                                key={carga.id} 
-                                className={`cursor-pointer hover:bg-muted/50 ${isExpanded ? 'bg-muted/30' : ''}`}
+                            <React.Fragment key={carga.id}>
+                              <tr 
+                                className={`border-b transition-colors cursor-pointer hover:bg-muted/50 ${isExpanded ? 'bg-muted/30' : ''}`}
                                 onClick={() => toggleRow(carga.id)}
                               >
                                 {orderedColumns.map((column) => (
@@ -934,12 +933,12 @@ export default function HistoricoCargas() {
                                     {renderCell(column.id, carga)}
                                   </React.Fragment>
                                 ))}
-                              </TableRow>
+                              </tr>
                               
                               {/* Expanded Row - Entregas */}
                               {isExpanded && carga.entregas.length > 0 && (
-                                <TableRow className="bg-muted/20 hover:bg-muted/20">
-                                  <TableCell colSpan={orderedColumns.length} className="p-0">
+                                <tr className="bg-muted/20 hover:bg-muted/20 border-b">
+                                  <td colSpan={orderedColumns.length} className="p-0">
                                     <div className="px-8 py-4">
                                       <div className="flex items-center gap-2 mb-3">
                                         <Truck className="w-4 h-4 text-primary" />
@@ -1066,14 +1065,14 @@ export default function HistoricoCargas() {
                                         </Table>
                                       </div>
                                     </div>
-                                  </TableCell>
-                                </TableRow>
+                                  </td>
+                                </tr>
                               )}
-                            </>
+                            </React.Fragment>
                           );
                         })}
-                      </TableBody>
-                    </Table>
+                      </tbody>
+                  </table>
                 </div>
                 {renderPagination()}
               </>
