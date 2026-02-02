@@ -189,20 +189,18 @@ const statusEntregaConfig: Record<string, { label: string; color: string; icon: 
 // Filter options for Histórico - only finalized states
 type FilterStatus = 'all' | 'entregue' | 'cancelada' | 'problema';
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 20;
 
-// Column definitions for draggable table
+// Column definitions for draggable table - optimized for visibility
 const columns: ColumnDefinition[] = [
-  { id: 'expand', label: '', minWidth: '40px', sticky: 'left' },
-  { id: 'codigo', label: 'Código', minWidth: '120px', sortable: true, sortKey: 'codigo' },
-  { id: 'descricao', label: 'Descrição', minWidth: '180px' },
-  { id: 'remetente', label: 'Remetente', minWidth: '160px' },
-  { id: 'destinatario', label: 'Destinatário', minWidth: '160px' },
-  { id: 'peso', label: 'Peso', minWidth: '80px', sortable: true, sortKey: 'peso_kg' },
-  { id: 'mercadoria', label: 'Mercadoria', minWidth: '100px', sortable: true, sortKey: 'valor_mercadoria' },
-  { id: 'frete', label: 'Frete Total', minWidth: '100px', sortable: true, sortKey: 'frete_total' },
-  { id: 'status', label: 'Status', minWidth: '100px' },
-  { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
+  { id: 'expand', label: '', minWidth: '32px', sticky: 'left' },
+  { id: 'codigo', label: 'Código', minWidth: '100px', sortable: true, sortKey: 'codigo' },
+  { id: 'rota', label: 'Rota', minWidth: '200px' },
+  { id: 'peso', label: 'Peso', minWidth: '70px', sortable: true, sortKey: 'peso_kg' },
+  { id: 'frete', label: 'Frete', minWidth: '90px', sortable: true, sortKey: 'frete_total' },
+  { id: 'status', label: 'Status', minWidth: '90px' },
+  { id: 'data', label: 'Data', minWidth: '85px', sortable: true, sortKey: 'created_at' },
+  { id: 'acoes', label: '', minWidth: '40px', sticky: 'right' },
 ];
 
 export default function HistoricoCargas() {
@@ -563,7 +561,7 @@ export default function HistoricoCargas() {
     setDateTo(undefined);
   };
 
-  // Render cell based on column ID
+  // Render cell based on column ID - optimized layout
   const renderCell = (columnId: string, carga: CargaData) => {
     const isExpanded = expandedRows.has(carga.id);
     const origem = getEnderecoData(carga, 'origem');
@@ -572,107 +570,93 @@ export default function HistoricoCargas() {
     switch (columnId) {
       case 'expand':
         return (
-          <TableCell className="sticky left-0 bg-background z-10">
-            <Button variant="ghost" size="icon" className="h-6 w-6">
+          <TableCell className="sticky left-0 bg-background z-10 px-2 w-8">
+            <Button variant="ghost" size="icon" className="h-5 w-5">
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-3.5 w-3.5" />
               ) : (
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3.5 w-3.5" />
               )}
             </Button>
           </TableCell>
         );
       case 'codigo':
         return (
-          <TableCell className="font-mono text-sm font-medium text-nowrap">{carga.codigo}</TableCell>
-        );
-      case 'descricao':
-        return (
-          <TableCell>
-            <div className="max-w-[200px] truncate" title={carga.descricao}>
-              {carga.descricao}
+          <TableCell className="px-2">
+            <div className="flex flex-col">
+              <span className="font-mono text-xs font-semibold text-primary">{carga.codigo}</span>
+              <span className="text-[10px] text-muted-foreground truncate max-w-[90px]" title={carga.descricao}>
+                {carga.descricao}
+              </span>
             </div>
           </TableCell>
         );
-      case 'remetente':
+      case 'rota':
         return (
-          <TableCell>
+          <TableCell className="px-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="cursor-help">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-green-500 shrink-0" />
-                    <span className="font-medium text-sm truncate max-w-[130px]">{origem.empresa}</span>
+                <div className="flex items-center gap-1.5 cursor-help">
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <div className="w-px h-3 bg-border" />
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
                   </div>
-                  <p className="text-xs text-muted-foreground truncate max-w-[130px]">
-                    {origem.cidade}
-                  </p>
+                  <div className="flex flex-col min-w-0 text-xs">
+                    <span className="truncate font-medium" title={origem.cidade}>{origem.cidade}</span>
+                    <span className="truncate text-muted-foreground" title={destino.cidade}>{destino.cidade}</span>
+                  </div>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">
-                <p className="font-medium">{origem.empresa}</p>
-                <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TableCell>
-        );
-      case 'destinatario':
-        return (
-          <TableCell>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="cursor-help">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                    <span className="font-medium text-sm truncate max-w-[130px]">{destino.empresa}</span>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-green-600 font-medium">Origem</p>
+                    <p className="font-medium text-sm">{origem.empresa}</p>
+                    <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate max-w-[130px]">
-                    {destino.cidade}
-                  </p>
+                  <div>
+                    <p className="text-xs text-red-600 font-medium">Destino</p>
+                    <p className="font-medium text-sm">{destino.empresa}</p>
+                    <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
+                  </div>
                 </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <p className="font-medium">{destino.empresa}</p>
-                <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
               </TooltipContent>
             </Tooltip>
           </TableCell>
         );
       case 'peso':
         return (
-          <TableCell className="text-right font-medium">{formatWeight(carga.peso_kg)}</TableCell>
-        );
-      case 'mercadoria':
-        return (
-          <TableCell className="text-right">{formatCurrency(carga.valor_mercadoria)}</TableCell>
+          <TableCell className="text-right font-medium text-xs px-2">{formatWeight(carga.peso_kg)}</TableCell>
         );
       case 'frete':
         return (
-          <TableCell className="text-right font-medium text-emerald-600">
+          <TableCell className="text-right font-semibold text-emerald-600 text-xs px-2">
             {formatCurrency(getTotalFrete(carga))}
           </TableCell>
         );
       case 'status':
-        return <TableCell>{getStatusBadge(carga)}</TableCell>;
+        return <TableCell className="px-2">{getStatusBadge(carga)}</TableCell>;
+      case 'data':
+        return (
+          <TableCell className="text-xs text-muted-foreground px-2">
+            {format(new Date(carga.created_at), "dd/MM/yy", { locale: ptBR })}
+          </TableCell>
+        );
       case 'acoes':
         return (
-          <TableCell className="sticky right-0 bg-background z-10">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={(e) => {
-                  e.stopPropagation();
-                  setDetailsCarga(carga);
-                }}>
-                  <Eye className="w-4 h-4 mr-2" />
-                  Ver detalhes
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <TableCell className="sticky right-0 bg-background z-10 px-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDetailsCarga(carga);
+              }}
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
           </TableCell>
         );
       default:
@@ -680,89 +664,56 @@ export default function HistoricoCargas() {
     }
   };
 
-  // Render pagination
+  // Render compact pagination
   const renderPagination = () => {
     if (totalPages <= 1) return null;
 
-    const getPageNumbers = () => {
-      const pages: (number | 'ellipsis')[] = [];
-      
-      if (totalPages <= 7) {
-        for (let i = 1; i <= totalPages; i++) pages.push(i);
-      } else {
-        pages.push(1);
-        if (currentPage > 3) pages.push('ellipsis');
-        
-        const start = Math.max(2, currentPage - 1);
-        const end = Math.min(totalPages - 1, currentPage + 1);
-        
-        for (let i = start; i <= end; i++) pages.push(i);
-        
-        if (currentPage < totalPages - 2) pages.push('ellipsis');
-        pages.push(totalPages);
-      }
-      
-      return pages;
-    };
-
     return (
-      <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/30">
-        <div className="text-sm text-muted-foreground">
-          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length}
-        </div>
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between px-3 py-2 bg-muted/40 border-t text-xs">
+        <span className="text-muted-foreground">
+          {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length}
+        </span>
+        <div className="flex items-center gap-0.5">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-7 w-7"
             onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1}
           >
-            <ChevronsLeft className="h-4 w-4" />
+            <ChevronsLeft className="h-3.5 w-3.5" />
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-7 w-7"
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
           
-          {getPageNumbers().map((page, idx) => 
-            page === 'ellipsis' ? (
-              <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
-            ) : (
-              <Button
-                key={page}
-                variant={currentPage === page ? 'default' : 'outline'}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage(page)}
-              >
-                {page}
-              </Button>
-            )
-          )}
+          <span className="px-2 font-medium">
+            {currentPage} / {totalPages}
+          </span>
           
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-7 w-7"
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-7 w-7"
             onClick={() => setCurrentPage(totalPages)}
             disabled={currentPage === totalPages}
           >
-            <ChevronsRight className="h-4 w-4" />
+            <ChevronsRight className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
@@ -770,146 +721,110 @@ export default function HistoricoCargas() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-6 h-[calc(100vh-4rem)] flex flex-col overflow-hidden">
       <TooltipProvider>
-        <div className="space-y-6 p-1">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <History className="w-6 h-6 text-primary" />
-                Histórico de Cargas
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Cargas com todas as entregas finalizadas
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="flex flex-col h-full gap-4">
+          {/* Header + Search + Filters - Compact */}
+          <div className="flex flex-col gap-3 shrink-0">
+            {/* Title + Search */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <History className="w-5 h-5 text-primary shrink-0" />
+                <div>
+                  <h1 className="text-lg font-bold text-foreground">Histórico de Cargas</h1>
+                  <p className="text-xs text-muted-foreground">Cargas finalizadas</p>
+                </div>
+              </div>
+              <div className="relative w-full sm:w-56">
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar código ou descrição..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-8 h-8 text-sm"
                 />
               </div>
             </div>
-          </div>
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            <Card 
-              className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary' : ''}`}
-              onClick={() => setFilterStatus('all')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <History className="w-4 h-4 text-primary" />
-                  <span className="text-xs text-muted-foreground">Total</span>
-                </div>
-                <p className="text-2xl font-bold text-primary">{stats.total}</p>
-              </CardContent>
-            </Card>
+            {/* KPI Strip - Inline compact */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button 
+                onClick={() => setFilterStatus('all')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                  filterStatus === 'all' 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted hover:bg-muted/80 text-foreground"
+                )}
+              >
+                <Package className="w-3.5 h-3.5" />
+                Total: {stats.total}
+              </button>
+              <button 
+                onClick={() => setFilterStatus(filterStatus === 'entregue' ? 'all' : 'entregue')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                  filterStatus === 'entregue' 
+                    ? "bg-emerald-500 text-white" 
+                    : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700"
+                )}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Entregues: {stats.entregues}
+              </button>
+              <button 
+                onClick={() => setFilterStatus(filterStatus === 'cancelada' ? 'all' : 'cancelada')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                  filterStatus === 'cancelada' 
+                    ? "bg-gray-500 text-white" 
+                    : "bg-gray-500/10 hover:bg-gray-500/20 text-gray-700"
+                )}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Canceladas: {stats.canceladas}
+              </button>
+              {stats.comProblemas > 0 && (
+                <button 
+                  onClick={() => setFilterStatus(filterStatus === 'problema' ? 'all' : 'problema')}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                    filterStatus === 'problema' 
+                      ? "bg-destructive text-destructive-foreground" 
+                      : "bg-destructive/10 hover:bg-destructive/20 text-destructive"
+                  )}
+                >
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  Problemas: {stats.comProblemas}
+                </button>
+              )}
+              
+              <div className="h-4 w-px bg-border mx-1" />
+              
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Weight className="w-3.5 h-3.5" />
+                {formatWeight(stats.pesoTotal)}
+              </span>
+              <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                <Truck className="w-3.5 h-3.5" />
+                {formatCurrency(stats.freteTotal)}
+              </span>
+            </div>
 
-            <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'entregue' ? 'ring-2 ring-emerald-500' : ''}`}
-              onClick={() => setFilterStatus(filterStatus === 'entregue' ? 'all' : 'entregue')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-xs text-muted-foreground">Entregues</span>
-                </div>
-                <p className="text-2xl font-bold text-emerald-600">{stats.entregues}</p>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'cancelada' ? 'ring-2 ring-gray-500' : ''}`}
-              onClick={() => setFilterStatus(filterStatus === 'cancelada' ? 'all' : 'cancelada')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <RotateCcw className="w-4 h-4 text-gray-500" />
-                  <span className="text-xs text-muted-foreground">Canceladas</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-600">{stats.canceladas}</p>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'problema' ? 'ring-2 ring-destructive' : ''}`}
-              onClick={() => setFilterStatus(filterStatus === 'problema' ? 'all' : 'problema')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertCircle className="w-4 h-4 text-destructive" />
-                  <span className="text-xs text-muted-foreground">Problemas</span>
-                </div>
-                <p className="text-2xl font-bold text-destructive">{stats.comProblemas}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-sky-500/10 to-sky-500/5 border-sky-500/20">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Weight className="w-4 h-4 text-sky-500" />
-                  <span className="text-xs text-muted-foreground">Peso Total</span>
-                </div>
-                <p className="text-xl font-bold text-sky-600">{formatWeight(stats.pesoTotal)}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSign className="w-4 h-4 text-amber-600" />
-                  <span className="text-xs text-muted-foreground">Mercadoria</span>
-                </div>
-                <p className="text-lg font-bold text-amber-600">{formatCurrency(stats.valorTotal)}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Truck className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs text-muted-foreground">Frete Total</span>
-                </div>
-                <p className="text-lg font-bold text-emerald-600">{formatCurrency(stats.freteTotal)}</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Filters Row */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
-              <SelectTrigger className="w-48">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Filtrar por status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas Finalizadas</SelectItem>
-                <SelectItem value="entregue">Entregues</SelectItem>
-                <SelectItem value="cancelada">Canceladas</SelectItem>
-                <SelectItem value="problema">Com Problemas</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Date filters */}
-            <div className="flex items-center gap-2">
+            {/* Date Filters Row */}
+            <div className="flex flex-wrap items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    size="sm"
                     className={cn(
-                      "w-[160px] justify-start text-left font-normal h-9",
+                      "h-7 text-xs gap-1.5",
                       !dateFrom && "text-muted-foreground"
                     )}
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : <span>De</span>}
+                    <Calendar className="h-3 w-3" />
+                    {dateFrom ? format(dateFrom, "dd/MM/yy", { locale: ptBR }) : "De"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -928,13 +843,14 @@ export default function HistoricoCargas() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    size="sm"
                     className={cn(
-                      "w-[160px] justify-start text-left font-normal h-9",
+                      "h-7 text-xs gap-1.5",
                       !dateTo && "text-muted-foreground"
                     )}
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : <span>Até</span>}
+                    <Calendar className="h-3 w-3" />
+                    {dateTo ? format(dateTo, "dd/MM/yy", { locale: ptBR }) : "Até"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -950,21 +866,20 @@ export default function HistoricoCargas() {
               </Popover>
 
               {(dateFrom || dateTo) && (
-                <Button variant="ghost" size="sm" onClick={clearDateFilters} className="h-9 px-2">
-                  <X className="w-4 h-4" />
+                <Button variant="ghost" size="sm" onClick={clearDateFilters} className="h-7 px-2">
+                  <X className="w-3 h-3" />
                 </Button>
               )}
-            </div>
 
-            {/* Reset column order */}
-            <Button variant="ghost" size="sm" onClick={resetColumnOrder} className="ml-auto">
-              <RotateCcw className="w-4 h-4 mr-1" />
-              Resetar colunas
-            </Button>
+              <Button variant="ghost" size="sm" onClick={resetColumnOrder} className="ml-auto h-7 text-xs">
+                <RotateCcw className="w-3 h-3 mr-1" />
+                Resetar
+              </Button>
+            </div>
           </div>
 
-          {/* Table */}
-          <Card className="overflow-hidden">
+          {/* Table with fixed height and sticky pagination */}
+          <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -973,40 +888,40 @@ export default function HistoricoCargas() {
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <History className="w-12 h-12 text-muted-foreground/50 mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-1">Nenhuma carga no histórico</h3>
-                <p className="text-sm text-muted-foreground">
-                  Cargas finalizadas aparecerão aqui
-                </p>
+                <p className="text-sm text-muted-foreground">Cargas finalizadas aparecerão aqui</p>
               </div>
             ) : (
               <>
-                <ScrollArea className="w-full">
-                  <div className="max-h-[600px] overflow-y-auto">
-                    <Table>
-                      <TableHeader className="sticky top-0 bg-muted/50 z-20">
-                        <TableRow>
-                          {orderedColumns.map((column) => (
-                            <DraggableTableHead
-                              key={column.id}
-                              columnId={column.id}
-                              isDragging={draggedColumn === column.id}
-                              isDragOver={dragOverColumn === column.id}
-                              isSticky={!!column.sticky}
-                              sortable={column.sortable}
-                              sortDirection={column.sortKey ? getSortDirection(column.sortKey) : null}
-                              onSort={column.sortKey ? () => requestSort(column.sortKey!) : undefined}
-                              onColumnDragStart={handleDragStart}
-                              onColumnDragEnd={handleDragEnd}
-                              onColumnDragOver={handleDragOver}
-                              onColumnDragLeave={handleDragLeave}
-                              onColumnDrop={handleDrop}
-                              className={`whitespace-nowrap ${column.sticky === 'left' ? 'sticky left-0 bg-muted/50 z-30' : ''} ${column.sticky === 'right' ? 'sticky right-0 bg-muted/50 z-30' : ''}`}
-                            >
-                              {column.label}
-                            </DraggableTableHead>
-                          ))}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                {/* Pagination on top for visibility */}
+                {renderPagination()}
+                
+                <ScrollArea className="flex-1 min-h-0">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-muted/80 z-20">
+                      <TableRow>
+                        {orderedColumns.map((column) => (
+                          <DraggableTableHead
+                            key={column.id}
+                            columnId={column.id}
+                            isDragging={draggedColumn === column.id}
+                            isDragOver={dragOverColumn === column.id}
+                            isSticky={!!column.sticky}
+                            sortable={column.sortable}
+                            sortDirection={column.sortKey ? getSortDirection(column.sortKey) : null}
+                            onSort={column.sortKey ? () => requestSort(column.sortKey!) : undefined}
+                            onColumnDragStart={handleDragStart}
+                            onColumnDragEnd={handleDragEnd}
+                            onColumnDragOver={handleDragOver}
+                            onColumnDragLeave={handleDragLeave}
+                            onColumnDrop={handleDrop}
+                            className={`whitespace-nowrap text-xs ${column.sticky === 'left' ? 'sticky left-0 bg-muted/80 z-30' : ''} ${column.sticky === 'right' ? 'sticky right-0 bg-muted/80 z-30' : ''}`}
+                          >
+                            {column.label}
+                          </DraggableTableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {paginatedCargas.map((carga) => {
                           const isExpanded = expandedRows.has(carga.id);
                           
