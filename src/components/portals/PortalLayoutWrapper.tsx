@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { PortalSidebar } from './PortalSidebar';
 import { BottomNavigation } from './BottomNavigation';
@@ -11,6 +11,11 @@ import { NotificationToast } from '@/components/notificacoes';
 import { ChatViewProvider, useChatView } from '@/contexts/ChatViewContext';
 
 export type { UserType };
+
+const MIN_SIDEBAR_WIDTH = 64;
+const MAX_SIDEBAR_WIDTH = 400;
+const DEFAULT_SIDEBAR_WIDTH = 256;
+const COLLAPSED_WIDTH = 64;
 
 function getRedirectByUserType(tipo: UserType): string {
   switch (tipo) {
@@ -39,6 +44,12 @@ function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
     const saved = localStorage.getItem('hubfrete_sidebar_collapsed');
     return saved === 'true';
   });
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('hubfrete_sidebar_width');
+    return saved ? parseInt(saved, 10) : DEFAULT_SIDEBAR_WIDTH;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeRef = useRef<HTMLDivElement>(null);
 
   const { isInChatView } = useChatView();
 
@@ -47,6 +58,52 @@ function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
   useEffect(() => {
     localStorage.setItem('hubfrete_sidebar_collapsed', String(collapsed));
   }, [collapsed]);
+
+  useEffect(() => {
+    if (!collapsed) {
+      localStorage.setItem('hubfrete_sidebar_width', String(sidebarWidth));
+    }
+  }, [sidebarWidth, collapsed]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const newWidth = e.clientX;
+      if (newWidth >= MIN_SIDEBAR_WIDTH && newWidth <= MAX_SIDEBAR_WIDTH) {
+        setSidebarWidth(newWidth);
+        // Auto-collapse if dragged too small
+        if (newWidth <= COLLAPSED_WIDTH + 20) {
+          setCollapsed(true);
+        } else if (collapsed && newWidth > COLLAPSED_WIDTH + 20) {
+          setCollapsed(false);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, collapsed]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -76,13 +133,27 @@ function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
       {/* Global notification toast */}
       <NotificationToast />
       
-      {/* Desktop: Show sidebar */}
+      {/* Desktop: Show sidebar with resize handle */}
       {!isMobile && (
-        <PortalSidebar 
-          userType={expectedUserType} 
-          collapsed={collapsed} 
-          onToggleCollapse={() => setCollapsed(!collapsed)} 
-        />
+        <div className="relative">
+          <PortalSidebar 
+            userType={expectedUserType} 
+            collapsed={collapsed} 
+            onToggleCollapse={() => setCollapsed(!collapsed)}
+            width={collapsed ? COLLAPSED_WIDTH : sidebarWidth}
+          />
+          {/* Resize handle */}
+          {!collapsed && (
+            <div
+              ref={resizeRef}
+              onMouseDown={handleMouseDown}
+              className={`fixed top-0 bottom-0 w-1 cursor-col-resize z-50 transition-colors hover:bg-primary/50 ${
+                isResizing ? 'bg-primary/50' : 'bg-transparent'
+              }`}
+              style={{ left: sidebarWidth - 2 }}
+            />
+          )}
+        </div>
       )}
       
       {/* Main content */}
@@ -90,10 +161,9 @@ function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
         className={`transition-all duration-300 ${
           isMobile 
             ? isInChatView ? '' : 'pb-20'
-            : collapsed 
-              ? 'ml-16' 
-              : 'ml-64'
+            : ''
         }`}
+        style={!isMobile ? { marginLeft: collapsed ? COLLAPSED_WIDTH : sidebarWidth } : undefined}
       >
         <Outlet />
       </main>
