@@ -184,13 +184,50 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const onSubmit = async (values: FormValues) => {
     if (!validateLocations()) return;
 
-    setIsLoading(true);
+    // Capturar dados antes de fechar
+    const capturedOrigemData = { ...origemData };
+    const capturedDestinoData = { ...destinoData };
+    const capturedNecessidades = [...necessidadesEspeciais];
+    const capturedNotaFiscalUrl = notaFiscalUrl;
+    const capturedPesoMinimo = pesoMinimoFracionado;
+    const capturedVeiculos = [...veiculosSelecionados];
+    const capturedCarrocerias = [...carroceriasSelecionadas];
+    const capturedFilialId = filialAtiva?.id || null;
 
+    // Fechar modal imediatamente e mostrar notificação
+    resetDialogState();
+    setOpen(false);
+    toast.loading('Carga sendo criada, aguarde...', { id: 'creating-carga' });
+
+    // Executar criação em background
+    createCargaInBackground(
+      values,
+      capturedOrigemData,
+      capturedDestinoData,
+      capturedNecessidades,
+      capturedNotaFiscalUrl,
+      capturedPesoMinimo,
+      capturedVeiculos,
+      capturedCarrocerias,
+      capturedFilialId
+    );
+  };
+
+  const createCargaInBackground = async (
+    values: FormValues,
+    origemDataCaptured: LocationData,
+    destinoDataCaptured: LocationData,
+    necessidadesEspeciaisCaptured: string[],
+    notaFiscalUrlCaptured: string | null,
+    pesoMinimoFracionadoCaptured: number | null,
+    veiculosSelecionadosCaptured: string[],
+    carroceriasSelecionadasCaptured: string[],
+    filialIdCaptured: number | null
+  ) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Você precisa estar logado para criar uma carga');
-        setIsLoading(false);
+        toast.error('Você precisa estar logado para criar uma carga', { id: 'creating-carga' });
         return;
       }
 
@@ -198,28 +235,26 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         .rpc('get_user_empresa_id', { _user_id: user.id });
 
       if (empresaError || !empresaId) {
-        toast.error('Você precisa estar vinculado a uma empresa para criar cargas');
-        setIsLoading(false);
+        toast.error('Você precisa estar vinculado a uma empresa para criar cargas', { id: 'creating-carga' });
         return;
       }
 
       // Create the load with filial_id and destinatario fields
-      // NOTE: codigo is set to null so the database trigger 'generate_carga_codigo' generates it automatically
       const { data: carga, error: cargaError } = await supabase
         .from('cargas')
         .insert({
           empresa_id: empresaId,
-          filial_id: filialAtiva?.id || null,
+          filial_id: filialIdCaptured,
           descricao: values.descricao,
           tipo: values.tipo,
           peso_kg: values.peso_kg,
-          peso_disponivel_kg: values.peso_kg, // Inicialmente todo peso está disponível
+          peso_disponivel_kg: values.peso_kg,
           volume_m3: values.volume_m3 || null,
           quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
           valor_frete_tonelada: values.valor_frete_tonelada || null,
           permite_fracionado: values.permite_fracionado,
-          peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionado : null,
+          peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionadoCaptured : null,
           carga_fragil: values.carga_fragil,
           carga_perigosa: values.carga_perigosa,
           carga_viva: values.carga_viva,
@@ -232,96 +267,89 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           data_coleta_ate: values.data_coleta_ate || null,
           data_entrega_limite: values.data_entrega_limite || null,
           status: 'publicada',
-          codigo: null as unknown as string, // Trigger will generate the code
-          // New fields
-          necessidades_especiais: necessidadesEspeciais,
+          codigo: null as unknown as string,
+          necessidades_especiais: necessidadesEspeciaisCaptured,
           regras_carregamento: values.regras_carregamento || null,
-          nota_fiscal_url: notaFiscalUrl,
-          // Vehicle requirements as JSON
+          nota_fiscal_url: notaFiscalUrlCaptured,
           veiculo_requisitos: {
-            tipos_veiculo: veiculosSelecionados,
-            tipos_carroceria: carroceriasSelecionadas,
+            tipos_veiculo: veiculosSelecionadosCaptured,
+            tipos_carroceria: carroceriasSelecionadasCaptured,
           },
-          // Remetente fields from origemData
-          remetente_razao_social: origemData.razao_social || null,
-          remetente_nome_fantasia: origemData.razao_social || null,
-          remetente_cnpj: origemData.cnpj || null,
-          remetente_contato_nome: origemData.contato_nome || null,
-          remetente_contato_telefone: origemData.contato_telefone || null,
-          // Destinatário fields from destinoData
-          destinatario_razao_social: destinoData.razao_social || null,
-          destinatario_nome_fantasia: destinoData.razao_social || null, // Use razao_social as fallback
-          destinatario_cnpj: destinoData.cnpj || null,
-          destinatario_contato_nome: destinoData.contato_nome || null,
-          destinatario_contato_telefone: destinoData.contato_telefone || null,
+          remetente_razao_social: origemDataCaptured.razao_social || null,
+          remetente_nome_fantasia: origemDataCaptured.razao_social || null,
+          remetente_cnpj: origemDataCaptured.cnpj || null,
+          remetente_contato_nome: origemDataCaptured.contato_nome || null,
+          remetente_contato_telefone: origemDataCaptured.contato_telefone || null,
+          destinatario_razao_social: destinoDataCaptured.razao_social || null,
+          destinatario_nome_fantasia: destinoDataCaptured.razao_social || null,
+          destinatario_cnpj: destinoDataCaptured.cnpj || null,
+          destinatario_contato_nome: destinoDataCaptured.contato_nome || null,
+          destinatario_contato_telefone: destinoDataCaptured.contato_telefone || null,
         })
         .select()
         .single();
 
       if (cargaError) {
         console.error('Erro ao criar carga:', cargaError);
-        toast.error('Erro ao criar carga: ' + cargaError.message);
-        setIsLoading(false);
+        toast.error('Erro ao criar carga: ' + cargaError.message, { id: 'creating-carga' });
         return;
       }
 
-      // Create origin address with coordinates and get the ID
+      // Create origin address
       const { data: origemEndereco, error: origemError } = await supabase
         .from('enderecos_carga')
         .insert({
           carga_id: carga.id,
           tipo: 'origem',
-          cep: origemData.cep,
-          logradouro: origemData.logradouro,
-          numero: origemData.numero || null,
-          complemento: origemData.complemento || null,
-          bairro: origemData.bairro || null,
-          cidade: origemData.cidade,
-          estado: origemData.estado,
-          contato_nome: origemData.contato_nome || null,
-          contato_telefone: origemData.contato_telefone || null,
-          latitude: origemData.latitude || null,
-          longitude: origemData.longitude || null,
+          cep: origemDataCaptured.cep,
+          logradouro: origemDataCaptured.logradouro,
+          numero: origemDataCaptured.numero || null,
+          complemento: origemDataCaptured.complemento || null,
+          bairro: origemDataCaptured.bairro || null,
+          cidade: origemDataCaptured.cidade,
+          estado: origemDataCaptured.estado,
+          contato_nome: origemDataCaptured.contato_nome || null,
+          contato_telefone: origemDataCaptured.contato_telefone || null,
+          latitude: origemDataCaptured.latitude || null,
+          longitude: origemDataCaptured.longitude || null,
         })
         .select('id')
         .single();
 
       if (origemError || !origemEndereco) {
         console.error('Erro ao criar endereço de origem:', origemError);
-        toast.error('Erro ao criar endereço de origem');
-        setIsLoading(false);
+        toast.error('Erro ao criar endereço de origem', { id: 'creating-carga' });
         return;
       }
 
-      // Create destination address with coordinates and get the ID
+      // Create destination address
       const { data: destinoEndereco, error: destinoError } = await supabase
         .from('enderecos_carga')
         .insert({
           carga_id: carga.id,
           tipo: 'destino',
-          cep: destinoData.cep,
-          logradouro: destinoData.logradouro,
-          numero: destinoData.numero || null,
-          complemento: destinoData.complemento || null,
-          bairro: destinoData.bairro || null,
-          cidade: destinoData.cidade,
-          estado: destinoData.estado,
-          contato_nome: destinoData.contato_nome || null,
-          contato_telefone: destinoData.contato_telefone || null,
-          latitude: destinoData.latitude || null,
-          longitude: destinoData.longitude || null,
+          cep: destinoDataCaptured.cep,
+          logradouro: destinoDataCaptured.logradouro,
+          numero: destinoDataCaptured.numero || null,
+          complemento: destinoDataCaptured.complemento || null,
+          bairro: destinoDataCaptured.bairro || null,
+          cidade: destinoDataCaptured.cidade,
+          estado: destinoDataCaptured.estado,
+          contato_nome: destinoDataCaptured.contato_nome || null,
+          contato_telefone: destinoDataCaptured.contato_telefone || null,
+          latitude: destinoDataCaptured.latitude || null,
+          longitude: destinoDataCaptured.longitude || null,
         })
         .select('id')
         .single();
 
       if (destinoError || !destinoEndereco) {
         console.error('Erro ao criar endereço de destino:', destinoError);
-        toast.error('Erro ao criar endereço de destino');
-        setIsLoading(false);
+        toast.error('Erro ao criar endereço de destino', { id: 'creating-carga' });
         return;
       }
 
-      // Link the addresses to the cargo
+      // Link addresses to cargo
       const { error: updateCargaError } = await supabase
         .from('cargas')
         .update({
@@ -332,20 +360,24 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
       if (updateCargaError) {
         console.error('Erro ao vincular endereços à carga:', updateCargaError);
-        toast.error('Erro ao vincular endereços à carga');
-        setIsLoading(false);
+        toast.error('Erro ao vincular endereços à carga', { id: 'creating-carga' });
         return;
       }
 
-      toast.success('Carga criada com sucesso!');
-      resetDialogState();
-      setOpen(false);
+      // Buscar o código gerado pelo trigger
+      const { data: cargaFinal } = await supabase
+        .from('cargas')
+        .select('codigo')
+        .eq('id', carga.id)
+        .single();
+
+      const codigoCarga = cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase();
+
+      toast.success(`Carga criada com sucesso! Código: ${codigoCarga}`, { id: 'creating-carga' });
       onSuccess?.();
     } catch (error) {
       console.error('Erro inesperado:', error);
-      toast.error('Erro inesperado ao criar carga');
-    } finally {
-      setIsLoading(false);
+      toast.error('Erro inesperado ao criar carga', { id: 'creating-carga' });
     }
   };
 
