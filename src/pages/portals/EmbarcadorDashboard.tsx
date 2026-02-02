@@ -202,7 +202,7 @@ export default function EmbarcadorDashboard() {
                 <Card className="border-border">
                   <CardContent className="p-5 flex items-center gap-4">
                     <div className="p-3 bg-chart-2/10 rounded-xl">
-                      <DollarSign className="w-6 h-6 text-chart-2 text-white" />
+                      <DollarSign className="w-6 h-6 text-chart-2 text-[#059467]" />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-muted-foreground">Valor em Cargas Ativas</p>
