@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
 import { OverlayView, InfoWindow } from '@react-google-maps/api';
 import { supabase } from '@/integrations/supabase/client';
-import { Clock, MapPin, Loader2, MapPinOff, Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { TrackingReplayPlayer, TrackingPoint } from './TrackingReplayPlayer';
+import { Clock, MapPin, AlertCircle, CheckCircle, Package, Truck, Route, Loader2, MapPinOff } from 'lucide-react';
+
+interface TrackingPoint {
+  id: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+  created_at: string;
+  observacao: string | null;
+}
 
 interface TrackingHistoryGoogleMarkersProps {
   entregaId: string | null;
@@ -45,7 +52,6 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
-  const [isReplayMode, setIsReplayMode] = useState(false);
 
   useEffect(() => {
     if (!entregaId) {
@@ -60,10 +66,9 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
     const fetchTrackingHistory = async () => {
       onLoadingChange?.(true);
       try {
-        // Fetch ALL points - no limit
         const { data, error } = await supabase
           .from('tracking_historico')
-          .select('id, latitude, longitude, status, created_at, observacao, velocidade, bussola_pos')
+          .select('id, latitude, longitude, status, created_at, observacao')
           .eq('entrega_id', entregaId)
           .order('created_at', { ascending: true });
 
@@ -78,8 +83,7 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
             longitude: Number(p.longitude),
             status: p.status as string,
             created_at: p.created_at,
-            velocidade: p.velocidade,
-            bussola_pos: p.bussola_pos,
+            observacao: p.observacao,
           }));
         
         setTrackingPoints(validPoints);
@@ -114,68 +118,21 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entregaId]); // Only re-fetch when entregaId changes, callbacks are stable via useCallback in parent
 
-  // Reset replay mode when entrega changes
-  useEffect(() => {
-    setIsReplayMode(false);
-  }, [entregaId]);
-
   if (!entregaId || trackingPoints.length === 0) return null;
 
   const selectedPoint = selectedPointId ? trackingPoints.find(p => p.id === selectedPointId) : null;
 
-  // Replay mode - show only the replay player
-  if (isReplayMode) {
-    return (
-      <>
-        <TrackingReplayPlayer 
-          points={trackingPoints} 
-          isVisible={true} 
-        />
-        {/* Exit replay button */}
-        <div className="absolute top-4 right-4">
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={() => setIsReplayMode(false)}
-            className="shadow-lg"
-          >
-            Sair do Replay
-          </Button>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
-      {/* Start Replay button */}
-      <div className="absolute top-4 right-4 z-10">
-        <Button 
-          variant="default" 
-          size="sm" 
-          onClick={() => setIsReplayMode(true)}
-          className="shadow-lg gap-2"
-        >
-          <Play className="w-4 h-4" />
-          Replay ({trackingPoints.length} pontos)
-        </Button>
-      </div>
 
-      {/* Tracking point markers (static view) */}
+      {/* Tracking point markers */}
       {trackingPoints.map((point, index) => {
         const color = statusColors[point.status] || '#6b7280';
         const label = statusLabels[point.status] || point.status;
         const isFirst = index === 0;
         const isLast = index === trackingPoints.length - 1;
         const isHovered = point.id === hoveredPointId;
-        const size = isFirst || isLast ? 16 : 10;
-        
-        // Skip rendering intermediate points when there are too many
-        // Show only every Nth point based on total count
-        const skipFactor = Math.ceil(trackingPoints.length / 500);
-        if (!isFirst && !isLast && index % skipFactor !== 0) {
-          return null;
-        }
+        const size = isFirst || isLast ? 16 : 12;
         
         return (
           <OverlayView
@@ -252,9 +209,9 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
                 </span>
               </div>
               
-              {selectedPoint.velocidade != null && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <span>🚚 {Math.round(selectedPoint.velocidade)} km/h</span>
+              {selectedPoint.observacao && (
+                <div className="mt-2 p-2 bg-muted rounded text-foreground">
+                  {selectedPoint.observacao}
                 </div>
               )}
             </div>
