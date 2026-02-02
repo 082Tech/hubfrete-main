@@ -892,9 +892,6 @@ export default function HistoricoCargas() {
               </div>
             ) : (
               <>
-                {/* Pagination on top for visibility */}
-                {renderPagination()}
-                
                 <ScrollArea className="flex-1 min-h-0">
                   <Table>
                     <TableHeader className="sticky top-0 bg-muted/80 z-20">
