@@ -721,11 +721,11 @@ export default function HistoricoCargas() {
   };
 
   return (
-    <div className="p-4 md:p-6 h-[calc(100vh-4rem)] flex flex-col overflow-hidden">
+    <div className="h-[100dvh] flex flex-col overflow-hidden">
       <TooltipProvider>
-        <div className="flex flex-col h-full gap-4">
+        <div className="flex flex-col h-full">
           {/* Header + Search + Filters - Compact */}
-          <div className="flex flex-col gap-3 shrink-0">
+          <div className="flex flex-col gap-2 shrink-0 p-3 pb-0 bg-background border-b">
             {/* Title + Search */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -878,8 +878,8 @@ export default function HistoricoCargas() {
             </div>
           </div>
 
-          {/* Table with fixed height and sticky pagination */}
-          <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
+          {/* Table area - fills remaining space */}
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -1079,7 +1079,7 @@ export default function HistoricoCargas() {
                 {renderPagination()}
               </>
             )}
-          </Card>
+          </div>
         </div>
 
         {/* Details Dialog */}
