@@ -206,7 +206,7 @@ export default function EmbarcadorDashboard() {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-muted-foreground">Valor em Cargas Ativas</p>
-                      <p className="text-2xl font-bold text-foreground">
+                      <p className="text-2xl font-bold text-primary">
                         {formatCurrency(stats.valorTotalMercadorias)}
                       </p>
                     </div>
