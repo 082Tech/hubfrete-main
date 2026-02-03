@@ -4,6 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MaskedInput } from '@/components/ui/masked-input';
 import { Badge } from '@/components/ui/badge';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { 
   MapPin, 
   Plus, 
@@ -16,9 +25,13 @@ import {
   MoreVertical,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  LayoutGrid,
+  List,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +52,9 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
+const ITEMS_PER_PAGE = 12;
 
 interface Filial {
   id: number;
@@ -85,11 +101,18 @@ export default function GerenciarFiliais() {
   const [filiais, setFiliais] = useState<Filial[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingFilial, setEditingFilial] = useState<Filial | null>(null);
   const [formData, setFormData] = useState<NewFilialForm>(initialFormState);
   const [saving, setSaving] = useState(false);
+
+  const { ref: contentRef, height: contentHeight } = useRemainingViewportHeight<HTMLDivElement>({
+    bottomOffset: 32,
+    minHeight: 300,
+  });
 
   const loadFiliais = async () => {
     if (!empresa?.id) return;
@@ -119,11 +142,25 @@ export default function GerenciarFiliais() {
     }
   }, [empresa?.id]);
 
-  const filteredFiliais = filiais.filter(filial => 
-    (filial.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (filial.cidade?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (filial.estado?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  const filteredFiliais = useMemo(() => {
+    return filiais.filter(filial => 
+      (filial.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (filial.cidade?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (filial.estado?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    );
+  }, [filiais, searchTerm]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredFiliais.length / ITEMS_PER_PAGE);
+  const paginatedFiliais = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredFiliais.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredFiliais, currentPage]);
+
+  // Reset page when search changes
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleFormChange = (field: keyof NewFilialForm, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -370,6 +407,82 @@ export default function GerenciarFiliais() {
     </div>
   );
 
+  const renderFilialCard = (filial: Filial) => (
+    <Card key={filial.id} className={`border-border ${!filial.ativa ? 'opacity-60' : ''}`}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+              filial.is_matriz 
+                ? 'bg-primary/10 border border-primary/20' 
+                : 'bg-muted'
+            }`}>
+              <Building2 className={`w-5 h-5 ${filial.is_matriz ? 'text-primary' : 'text-muted-foreground'}`} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-semibold text-foreground truncate">{filial.nome || 'Sem nome'}</h3>
+                {filial.is_matriz && (
+                  <Badge variant="default" className="text-[10px]">Matriz</Badge>
+                )}
+                <Badge variant={filial.ativa ? 'outline' : 'secondary'} className={
+                  filial.ativa ? 'bg-green-500/10 text-green-600 border-green-500/20 text-[10px]' : 'text-[10px]'
+                }>
+                  {filial.ativa ? 'Ativa' : 'Inativa'}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground truncate">
+                {[filial.cidade, filial.estado].filter(Boolean).join(' - ') || 'Localização não informada'}
+              </p>
+              {filial.cnpj && (
+                <p className="text-xs text-muted-foreground truncate mt-1">CNPJ: {filial.cnpj}</p>
+              )}
+            </div>
+          </div>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem className="gap-2" onClick={() => openEditDialog(filial)}>
+                <Edit className="w-4 h-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2" onClick={() => handleToggleStatus(filial)}>
+                {filial.ativa ? (
+                  <>
+                    <XCircle className="w-4 h-4" />
+                    Desativar
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Ativar
+                  </>
+                )}
+              </DropdownMenuItem>
+              {!filial.is_matriz && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="gap-2 text-destructive focus:text-destructive"
+                    onClick={() => handleDelete(filial)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Excluir
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   if (contextLoading || loading) {
     return (
       <div className="p-4 md:p-8">
@@ -381,10 +494,10 @@ export default function GerenciarFiliais() {
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="space-y-6">
+    <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
+      <div className="flex flex-col h-full gap-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Gerenciar Filiais</h1>
             <p className="text-muted-foreground">Cadastre e gerencie as filiais da sua transportadora</p>
@@ -418,7 +531,7 @@ export default function GerenciarFiliais() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
           <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -473,22 +586,32 @@ export default function GerenciarFiliais() {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por nome, cidade ou estado..." 
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        {/* Search + View Toggle */}
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between shrink-0">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar por nome, cidade ou estado..." 
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'card' | 'list')}>
+            <ToggleGroupItem value="card" aria-label="Visualização em cards">
+              <LayoutGrid className="w-4 h-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="Visualização em lista">
+              <List className="w-4 h-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
-        {/* Filiais List */}
-        <div className="grid gap-4">
+        {/* Content with internal scroll */}
+        <Card ref={contentRef} className="flex-1 flex flex-col border-border overflow-hidden" style={{ height: contentHeight }}>
           {filteredFiliais.length === 0 ? (
-            <Card className="border-border">
-              <CardContent className="p-8 text-center">
+            <CardContent className="flex-1 flex items-center justify-center">
+              <div className="text-center">
                 <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="font-medium text-foreground mb-1">
                   {searchTerm ? 'Nenhuma filial encontrada' : 'Nenhuma filial cadastrada'}
@@ -498,110 +621,156 @@ export default function GerenciarFiliais() {
                     ? 'Tente ajustar os termos da busca' 
                     : 'Clique em "Nova Filial" para cadastrar a primeira'}
                 </p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredFiliais.map((filial) => (
-              <Card key={filial.id} className={`border-border ${!filial.ativa ? 'opacity-60' : ''}`}>
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        filial.is_matriz 
-                          ? 'bg-primary/10 border border-primary/20' 
-                          : 'bg-muted'
-                      }`}>
-                        <Building2 className={`w-6 h-6 ${filial.is_matriz ? 'text-primary' : 'text-muted-foreground'}`} />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold text-foreground">{filial.nome || 'Sem nome'}</h3>
-                          {filial.is_matriz && (
-                            <Badge variant="default" className="text-[10px]">
-                              Matriz
-                            </Badge>
-                          )}
+              </div>
+            </CardContent>
+          ) : viewMode === 'list' ? (
+            <>
+              <div className="flex-1 overflow-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-muted/50">
+                    <TableRow>
+                      <TableHead>Filial</TableHead>
+                      <TableHead>CNPJ</TableHead>
+                      <TableHead>Cidade/UF</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedFiliais.map((filial) => (
+                      <TableRow key={filial.id} className={!filial.ativa ? 'opacity-60' : ''}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              filial.is_matriz ? 'bg-primary/10' : 'bg-muted'
+                            }`}>
+                              <Building2 className={`w-4 h-4 ${filial.is_matriz ? 'text-primary' : 'text-muted-foreground'}`} />
+                            </div>
+                            <div>
+                              <span className="font-medium">{filial.nome || 'Sem nome'}</span>
+                              {filial.is_matriz && (
+                                <Badge variant="default" className="ml-2 text-[10px]">Matriz</Badge>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{filial.cnpj || '-'}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {[filial.cidade, filial.estado].filter(Boolean).join('/') || '-'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{filial.telefone || '-'}</TableCell>
+                        <TableCell>
                           <Badge variant={filial.ativa ? 'outline' : 'secondary'} className={
-                            filial.ativa 
-                              ? 'bg-green-500/10 text-green-600 border-green-500/20' 
-                              : ''
+                            filial.ativa ? 'bg-green-500/10 text-green-600 border-green-500/20' : ''
                           }>
                             {filial.ativa ? 'Ativa' : 'Inativa'}
                           </Badge>
-                        </div>
-                        {filial.cnpj && (
-                          <p className="text-sm text-muted-foreground">CNPJ: {filial.cnpj}</p>
-                        )}
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground pt-1">
-                          {(filial.cidade || filial.estado) && (
-                            <div className="flex items-center gap-1.5">
-                              <MapPin className="w-3.5 h-3.5" />
-                              {[filial.cidade, filial.estado].filter(Boolean).join(' - ')}
-                            </div>
-                          )}
-                          {filial.telefone && (
-                            <div className="flex items-center gap-1.5">
-                              <Phone className="w-3.5 h-3.5" />
-                              {filial.telefone}
-                            </div>
-                          )}
-                          {filial.email && (
-                            <div className="flex items-center gap-1.5">
-                              <Mail className="w-3.5 h-3.5" />
-                              {filial.email}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="shrink-0">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2" onClick={() => openEditDialog(filial)}>
-                          <Edit className="w-4 h-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="gap-2"
-                          onClick={() => handleToggleStatus(filial)}
-                        >
-                          {filial.ativa ? (
-                            <>
-                              <XCircle className="w-4 h-4" />
-                              Desativar
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4" />
-                              Ativar
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        {!filial.is_matriz && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="gap-2 text-destructive focus:text-destructive"
-                              onClick={() => handleDelete(filial)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem className="gap-2" onClick={() => openEditDialog(filial)}>
+                                <Edit className="w-4 h-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2" onClick={() => handleToggleStatus(filial)}>
+                                {filial.ativa ? <><XCircle className="w-4 h-4" />Desativar</> : <><CheckCircle className="w-4 h-4" />Ativar</>}
+                              </DropdownMenuItem>
+                              {!filial.is_matriz && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="gap-2 text-destructive focus:text-destructive"
+                                    onClick={() => handleDelete(filial)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t px-4 py-3 shrink-0">
+                  <p className="text-sm text-muted-foreground">
+                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredFiliais.length)} de {filteredFiliais.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Próximo
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            ))
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex-1 overflow-auto p-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {paginatedFiliais.map(renderFilialCard)}
+                </div>
+              </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t px-4 py-3 shrink-0">
+                  <p className="text-sm text-muted-foreground">
+                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredFiliais.length)} de {filteredFiliais.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Próximo
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
-        </div>
+        </Card>
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
