@@ -847,53 +847,53 @@ export default function HistoricoCargas() {
                 </div>
               ) : (
                 <div className="max-h-[500px] overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="w-10"></TableHead>
-                        <TableHead className="font-semibold min-w-[130px] cursor-pointer" onClick={() => handleSort('codigo')}>
+                  <table className="w-full caption-bottom text-sm">
+                    <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
+                      <tr className="border-b transition-colors bg-muted/50">
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-10"></th>
+                        <th className="h-12 px-4 text-left align-middle font-semibold text-muted-foreground min-w-[130px] cursor-pointer" onClick={() => handleSort('codigo')}>
                           <div className="flex items-center">
                             Código
                             <SortIcon field="codigo" />
                           </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[160px]">
+                        </th>
+                        <th className="h-12 px-4 text-left align-middle font-semibold text-muted-foreground min-w-[160px]">
                           <div className="flex items-center gap-1">
                             <Building2 className="w-3 h-3" />
                             Remetente
                           </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[160px]">
+                        </th>
+                        <th className="h-12 px-4 text-left align-middle font-semibold text-muted-foreground min-w-[160px]">
                           <div className="flex items-center gap-1">
                             <Building2 className="w-3 h-3" />
                             Destinatário
                           </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[90px] cursor-pointer text-center" onClick={() => handleSort('peso_kg')}>
+                        </th>
+                        <th className="h-12 px-4 text-center align-middle font-semibold text-muted-foreground min-w-[90px] cursor-pointer" onClick={() => handleSort('peso_kg')}>
                           <div className="flex items-center justify-center">
                             Peso
                             <SortIcon field="peso_kg" />
                           </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[100px] cursor-pointer" onClick={() => handleSort('frete_total')}>
+                        </th>
+                        <th className="h-12 px-4 text-left align-middle font-semibold text-muted-foreground min-w-[100px] cursor-pointer" onClick={() => handleSort('frete_total')}>
                           <div className="flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />
                             Frete
                             <SortIcon field="frete_total" />
                           </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[90px] text-center">Entregas</TableHead>
-                        <TableHead className="font-semibold min-w-[110px]">Status</TableHead>
-                        <TableHead className="font-semibold min-w-[100px] cursor-pointer" onClick={() => handleSort('created_at')}>
+                        </th>
+                        <th className="h-12 px-4 text-center align-middle font-semibold text-muted-foreground min-w-[90px]">Entregas</th>
+                        <th className="h-12 px-4 text-left align-middle font-semibold text-muted-foreground min-w-[110px]">Status</th>
+                        <th className="h-12 px-4 text-left align-middle font-semibold text-muted-foreground min-w-[100px] cursor-pointer" onClick={() => handleSort('created_at')}>
                           <div className="flex items-center">
                             Data
                             <SortIcon field="created_at" />
                           </div>
-                        </TableHead>
-                        <TableHead className="font-semibold w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                        </th>
+                        <th className="h-12 px-4 text-left align-middle font-semibold text-muted-foreground w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="[&_tr:last-child]:border-0">
                       {paginatedCargas.map((carga) => {
                         const isExpanded = expandedRows.has(carga.id);
                         const origem = getEnderecoData(carga, 'origem');
@@ -903,11 +903,11 @@ export default function HistoricoCargas() {
                         return (
                           <React.Fragment key={carga.id}>
                             {/* Main Row */}
-                            <TableRow 
-                              className={`hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
+                            <tr 
+                              className={`border-b transition-colors hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
                               onClick={() => hasEntregas && toggleRow(carga.id)}
                             >
-                              <TableCell className="p-2">
+                              <td className="p-2 align-middle">
                                 {hasEntregas && (
                                   <Button 
                                     variant="ghost" 
@@ -925,16 +925,16 @@ export default function HistoricoCargas() {
                                     )}
                                   </Button>
                                 )}
-                              </TableCell>
-                              <TableCell>
+                              </td>
+                              <td className="p-4 align-middle">
                                 <div>
                                   <p className="font-medium text-primary text-nowrap">{carga.codigo}</p>
                                   <p className="text-xs text-muted-foreground truncate max-w-[120px]">
                                     {carga.descricao}
                                   </p>
                                 </div>
-                              </TableCell>
-                              <TableCell>
+                              </td>
+                              <td className="p-4 align-middle">
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <div className="cursor-help">
@@ -952,8 +952,8 @@ export default function HistoricoCargas() {
                                     <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
                                   </TooltipContent>
                                 </Tooltip>
-                              </TableCell>
-                              <TableCell>
+                              </td>
+                              <td className="p-4 align-middle">
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <div className="cursor-help">
@@ -971,29 +971,29 @@ export default function HistoricoCargas() {
                                     <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
                                   </TooltipContent>
                                 </Tooltip>
-                              </TableCell>
-                              <TableCell className="text-center">
+                              </td>
+                              <td className="p-4 align-middle text-center">
                                 <span className="font-medium">{formatWeight(carga.peso_kg)}</span>
-                              </TableCell>
-                              <TableCell>
+                              </td>
+                              <td className="p-4 align-middle">
                                 <span className="font-medium text-sm text-green-600">
                                   {formatCurrency(getTotalFrete(carga))}
                                 </span>
-                              </TableCell>
-                              <TableCell className="text-center">
+                              </td>
+                              <td className="p-4 align-middle text-center">
                                 <Badge variant="outline" className="text-xs">
                                   {carga.entregas.length} {carga.entregas.length === 1 ? 'entrega' : 'entregas'}
                                 </Badge>
-                              </TableCell>
-                              <TableCell>
+                              </td>
+                              <td className="p-4 align-middle">
                                 {getStatusBadge(carga)}
-                              </TableCell>
-                              <TableCell>
+                              </td>
+                              <td className="p-4 align-middle">
                                 <span className="text-sm text-muted-foreground">
                                   {format(new Date(carga.created_at), "dd/MM/yy", { locale: ptBR })}
                                 </span>
-                              </TableCell>
-                              <TableCell>
+                              </td>
+                              <td className="p-4 align-middle">
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
@@ -1005,13 +1005,13 @@ export default function HistoricoCargas() {
                                 >
                                   <Eye className="w-4 h-4" />
                                 </Button>
-                              </TableCell>
-                            </TableRow>
+                              </td>
+                            </tr>
 
                             {/* Expanded Row - Entregas */}
                             {isExpanded && carga.entregas.length > 0 && (
-                              <TableRow className="bg-muted/20 hover:bg-muted/20">
-                                <TableCell colSpan={10} className="p-0">
+                              <tr className="border-b transition-colors bg-muted/20 hover:bg-muted/20">
+                                <td colSpan={10} className="p-0 align-middle">
                                   <div className="px-8 py-4">
                                     <div className="flex items-center gap-2 mb-3">
                                       <Truck className="w-4 h-4 text-primary" />
@@ -1138,14 +1138,14 @@ export default function HistoricoCargas() {
                                       </Table>
                                     </div>
                                   </div>
-                                </TableCell>
-                              </TableRow>
+                                </td>
+                              </tr>
                             )}
                           </React.Fragment>
                         );
                       })}
-                    </TableBody>
-                  </Table>
+                    </tbody>
+                  </table>
                 </div>
               )}
               {renderPagination()}

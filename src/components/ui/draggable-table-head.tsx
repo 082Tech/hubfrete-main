@@ -1,5 +1,4 @@
 import * as React from "react";
-import { TableHead } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 
@@ -43,7 +42,7 @@ export function DraggableTableHead({
       : ArrowUpDown;
 
   return (
-    <TableHead
+    <th
       draggable={!isSticky}
       onDragStart={(e) => onColumnDragStart?.(e, columnId)}
       onDragEnd={onColumnDragEnd}
@@ -51,7 +50,7 @@ export function DraggableTableHead({
       onDragLeave={onColumnDragLeave}
       onDrop={(e) => onColumnDrop?.(e, columnId)}
       className={cn(
-        "font-semibold select-none transition-all",
+        "h-12 px-4 text-left align-middle font-semibold text-muted-foreground select-none transition-all",
         !isSticky && "cursor-grab active:cursor-grabbing",
         isDragging && "opacity-50",
         isDragOver && "bg-primary/10 border-l-2 border-primary",
@@ -77,6 +76,6 @@ export function DraggableTableHead({
           <span className="flex items-center gap-1">{children}</span>
         )}
       </div>
-    </TableHead>
+    </th>
   );
 }
