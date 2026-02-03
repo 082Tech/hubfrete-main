@@ -1,6 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -17,12 +16,12 @@ import { useUserContext } from '@/hooks/useUserContext';
 import { useTableSort } from '@/hooks/useTableSort';
 import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColumns';
 import { DraggableTableHead } from '@/components/ui/draggable-table-head';
+import { AdvancedFiltersPopover, type AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import type { Database } from '@/integrations/supabase/types';
 import { 
   Building2, 
   Calendar, 
   Package, 
-  Search, 
   Truck, 
   CheckCircle, 
   AlertTriangle,
@@ -142,7 +141,7 @@ const columns: ColumnDefinition[] = [
 export default function HistoricoEntregas() {
   const { empresa } = useUserContext();
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedEntrega, setSelectedEntrega] = useState<EntregaHistorico | null>(null);
@@ -152,7 +151,6 @@ export default function HistoricoEntregas() {
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
   const [filePreviewTitle, setFilePreviewTitle] = useState('Documento');
   const [currentPage, setCurrentPage] = useState(1);
-  const [lastFilterKey, setLastFilterKey] = useState('');
   
   // Chat sheet state
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
@@ -240,25 +238,91 @@ export default function HistoricoEntregas() {
     };
   }, [entregas]);
 
-  const filtered = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-
-    return entregas.filter((e) => {
-      if (selectedStatus && e.status !== selectedStatus) return false;
-      if (!q) return true;
-
-      const destinatario = (e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || '').toLowerCase();
-      return (
-        e.carga.codigo.toLowerCase().includes(q) ||
-        e.carga.descricao.toLowerCase().includes(q) ||
-        destinatario.includes(q) ||
-        (e.carga.empresa?.nome || '').toLowerCase().includes(q) ||
-        (e.motorista?.nome_completo || '').toLowerCase().includes(q) ||
-        (e.veiculo?.placa || '').toLowerCase().includes(q) ||
-        (e.numero_cte || '').toLowerCase().includes(q)
-      );
+  // Get unique motoristas for filter dropdown
+  const motoristasUnicos = useMemo(() => {
+    const motoristasSet = new Map<string, string>();
+    entregas.forEach(e => {
+      if (e.motorista?.nome_completo) {
+        motoristasSet.set(e.motorista.id, e.motorista.nome_completo);
+      }
     });
-  }, [entregas, searchTerm, selectedStatus]);
+    return Array.from(motoristasSet.entries()).map(([id, nome]) => ({ id, nome }));
+  }, [entregas]);
+
+  const filtered = useMemo(() => {
+    let result = entregas;
+    
+    // Apply status filter
+    if (selectedStatus) {
+      result = result.filter(e => e.status === selectedStatus);
+    }
+
+    // Apply advanced filters
+    if (advancedFilters.codigo) {
+      const q = advancedFilters.codigo.toLowerCase();
+      result = result.filter(e => 
+        e.carga.codigo.toLowerCase().includes(q) ||
+        (e.codigo || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (advancedFilters.destinatario) {
+      const q = advancedFilters.destinatario.toLowerCase();
+      result = result.filter(e => 
+        (e.carga.destinatario_nome_fantasia || '').toLowerCase().includes(q) ||
+        (e.carga.destinatario_razao_social || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (advancedFilters.embarcador) {
+      const q = advancedFilters.embarcador.toLowerCase();
+      result = result.filter(e => 
+        (e.carga.empresa?.nome || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (advancedFilters.motorista) {
+      const q = advancedFilters.motorista.toLowerCase();
+      result = result.filter(e => 
+        (e.motorista?.nome_completo || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (advancedFilters.cidadeOrigem) {
+      const q = advancedFilters.cidadeOrigem.toLowerCase();
+      result = result.filter(e => 
+        e.carga.endereco_origem?.cidade?.toLowerCase().includes(q)
+      );
+    }
+
+    if (advancedFilters.cidadeDestino) {
+      const q = advancedFilters.cidadeDestino.toLowerCase();
+      result = result.filter(e => 
+        e.carga.endereco_destino?.cidade?.toLowerCase().includes(q)
+      );
+    }
+
+    // Apply date filters from advanced filters
+    if (advancedFilters.dateFrom) {
+      const fromDate = new Date(advancedFilters.dateFrom);
+      fromDate.setHours(0, 0, 0, 0);
+      result = result.filter(e => {
+        const entregaDate = new Date(e.entregue_em || e.updated_at || Date.now());
+        return entregaDate >= fromDate;
+      });
+    }
+    
+    if (advancedFilters.dateTo) {
+      const toDate = new Date(advancedFilters.dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      result = result.filter(e => {
+        const entregaDate = new Date(e.entregue_em || e.updated_at || Date.now());
+        return entregaDate <= toDate;
+      });
+    }
+
+    return result;
+  }, [entregas, selectedStatus, advancedFilters]);
 
   // Custom sort functions for nested/computed fields
   const sortFunctions = useMemo(() => ({
@@ -294,11 +358,9 @@ export default function HistoricoEntregas() {
   }, [sortedData, currentPage]);
 
   // Reset to page 1 when filters change
-  const filterKey = `${searchTerm}-${selectedStatus}`;
-  if (filterKey !== lastFilterKey) {
+  useEffect(() => {
     setCurrentPage(1);
-    setLastFilterKey(filterKey);
-  }
+  }, [selectedStatus, advancedFilters]);
 
   const formatPeso = (peso: number | null) => {
     if (!peso) return '-';
@@ -625,24 +687,24 @@ export default function HistoricoEntregas() {
             </Card>
           </div>
 
-          {/* Search */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              className="pl-10"
-              placeholder="Buscar por código, destinatário, embarcador, motorista..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+          {/* Filters Row */}
+          <div className="flex flex-wrap items-center gap-3">
+            <AdvancedFiltersPopover
+              filters={advancedFilters}
+              onFiltersChange={setAdvancedFilters}
+              showMotorista={true}
+              showEmbarcador={true}
+              showDestinatario={true}
+              motoristas={motoristasUnicos}
             />
-          </div>
-
-          <div className='!-mb-3'>
-            <div className='flex gap-2 items-center'>
+            
+            <div className='flex gap-2 items-center text-sm text-muted-foreground'>
               <Truck className="w-4 h-4" />
               Entregas finalizadas
             </div>
+            
             {selectedStatus && (
-              <Badge variant="outline" className="">
+              <Badge variant="outline">
                 Filtro: {statusConfig[selectedStatus]?.label}
                 <Button
                   variant="ghost"
@@ -657,6 +719,10 @@ export default function HistoricoEntregas() {
                 </Button>
               </Badge>
             )}
+            
+            <div className="ml-auto text-sm text-muted-foreground">
+              {sortedData.length} {sortedData.length === 1 ? 'entrega' : 'entregas'}
+            </div>
           </div>
 
           {/* Table */}
@@ -705,12 +771,12 @@ export default function HistoricoEntregas() {
                           <div className="flex flex-col items-center gap-2">
                             <Package className="w-10 h-10 text-muted-foreground/50" />
                             <p>Nenhum registro encontrado.</p>
-                            {(searchTerm || selectedStatus) && (
+                            {(selectedStatus || Object.keys(advancedFilters).length > 0) && (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  setSearchTerm('');
+                                  setAdvancedFilters({});
                                   setSelectedStatus(null);
                                 }}
                               >

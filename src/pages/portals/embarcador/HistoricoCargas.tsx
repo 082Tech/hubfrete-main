@@ -9,13 +9,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
+import { AdvancedFiltersPopover, type AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import type { Database } from '@/integrations/supabase/types';
 
 type StatusCarga = Database['public']['Enums']['status_carga'];
@@ -61,7 +60,6 @@ import {
   Truck,
   ChevronDown,
   ChevronRight,
-  Filter,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -77,7 +75,6 @@ import {
   Route,
   FileText,
   AlertTriangle,
-  X,
 } from 'lucide-react';
 
 // Types
@@ -184,7 +181,6 @@ const ITEMS_PER_PAGE = 15;
 export default function HistoricoCargas() {
   const { filialAtiva } = useUserContext();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState('');
   const [detailsCarga, setDetailsCarga] = useState<CargaData | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
@@ -195,9 +191,8 @@ export default function HistoricoCargas() {
   const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
   const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
   
-  // Date filters
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  // Advanced filters
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
   
   // Entrega details dialog
   const [entregaDetailsOpen, setEntregaDetailsOpen] = useState(false);
@@ -355,11 +350,45 @@ export default function HistoricoCargas() {
     // First, filter to only show finalized cargas
     let result = cargas.filter(carga => allEntregasFinalized(carga));
     
-    // Apply search
-    result = result.filter(carga => 
-      carga.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      carga.descricao.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Apply advanced filters
+    if (advancedFilters.codigo) {
+      const q = advancedFilters.codigo.toLowerCase();
+      result = result.filter(carga => 
+        carga.codigo.toLowerCase().includes(q) ||
+        carga.descricao.toLowerCase().includes(q)
+      );
+    }
+
+    if (advancedFilters.destinatario) {
+      const q = advancedFilters.destinatario.toLowerCase();
+      result = result.filter(carga => 
+        (carga.destinatario_nome_fantasia || '').toLowerCase().includes(q) ||
+        (carga.destinatario_razao_social || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (advancedFilters.motorista) {
+      const q = advancedFilters.motorista.toLowerCase();
+      result = result.filter(carga => 
+        carga.entregas.some(e => 
+          e.motoristas?.nome_completo?.toLowerCase().includes(q)
+        )
+      );
+    }
+
+    if (advancedFilters.cidadeOrigem) {
+      const q = advancedFilters.cidadeOrigem.toLowerCase();
+      result = result.filter(carga => 
+        carga.endereco_origem?.cidade?.toLowerCase().includes(q)
+      );
+    }
+
+    if (advancedFilters.cidadeDestino) {
+      const q = advancedFilters.cidadeDestino.toLowerCase();
+      result = result.filter(carga => 
+        carga.endereco_destino?.cidade?.toLowerCase().includes(q)
+      );
+    }
 
     // Apply status filter
     switch (filterStatus) {
@@ -374,9 +403,9 @@ export default function HistoricoCargas() {
         break;
     }
 
-    // Apply date filters
-    if (dateFrom) {
-      const fromDate = new Date(dateFrom);
+    // Apply date filters from advanced filters
+    if (advancedFilters.dateFrom) {
+      const fromDate = new Date(advancedFilters.dateFrom);
       fromDate.setHours(0, 0, 0, 0);
       result = result.filter(c => {
         const cargaDate = new Date(c.created_at);
@@ -384,8 +413,8 @@ export default function HistoricoCargas() {
       });
     }
     
-    if (dateTo) {
-      const toDate = new Date(dateTo);
+    if (advancedFilters.dateTo) {
+      const toDate = new Date(advancedFilters.dateTo);
       toDate.setHours(23, 59, 59, 999);
       result = result.filter(c => {
         const cargaDate = new Date(c.created_at);
@@ -414,12 +443,12 @@ export default function HistoricoCargas() {
     });
 
     return result;
-  }, [cargas, searchTerm, filterStatus, dateFrom, dateTo, sortField, sortOrder]);
+  }, [cargas, advancedFilters, filterStatus, sortField, sortOrder]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, searchTerm, dateFrom, dateTo, sortField, sortOrder]);
+  }, [filterStatus, advancedFilters, sortField, sortOrder]);
 
   // Pagination
   const totalPages = Math.ceil(filteredCargas.length / ITEMS_PER_PAGE);
@@ -520,10 +549,18 @@ export default function HistoricoCargas() {
     freteTotal: finalizedCargas.reduce((acc, c) => acc + getTotalFrete(c), 0),
   }), [finalizedCargas]);
 
-  const clearDateFilters = () => {
-    setDateFrom(undefined);
-    setDateTo(undefined);
-  };
+  // Get unique motoristas for filter dropdown
+  const motoristasUnicos = useMemo(() => {
+    const motoristasSet = new Map<string, string>();
+    cargas.forEach(carga => {
+      carga.entregas.forEach(entrega => {
+        if (entrega.motoristas?.nome_completo) {
+          motoristasSet.set(entrega.motoristas.nome_completo, entrega.motoristas.nome_completo);
+        }
+      });
+    });
+    return Array.from(motoristasSet.entries()).map(([id, nome]) => ({ id, nome }));
+  }, [cargas]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -645,15 +682,13 @@ export default function HistoricoCargas() {
                 Cargas finalizadas (entregues, canceladas ou com problemas)
               </p>
             </div>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar código ou descrição..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <AdvancedFiltersPopover
+              filters={advancedFilters}
+              onFiltersChange={setAdvancedFilters}
+              showMotorista={true}
+              showDestinatario={true}
+              motoristas={motoristasUnicos}
+            />
           </div>
 
           {/* KPI Cards */}
@@ -747,7 +782,6 @@ export default function HistoricoCargas() {
           <div className="flex flex-wrap items-center gap-3">
             <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
               <SelectTrigger className="w-48">
-                <Filter className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
               <SelectContent>
@@ -757,65 +791,6 @@ export default function HistoricoCargas() {
                 <SelectItem value="problema">Com Problemas</SelectItem>
               </SelectContent>
             </Select>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "gap-2",
-                    !dateFrom && "text-muted-foreground"
-                  )}
-                >
-                  <Calendar className="h-4 w-4" />
-                  {dateFrom ? format(dateFrom, "dd/MM/yy", { locale: ptBR }) : "De"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={dateFrom}
-                  onSelect={setDateFrom}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "gap-2",
-                    !dateTo && "text-muted-foreground"
-                  )}
-                >
-                  <Calendar className="h-4 w-4" />
-                  {dateTo ? format(dateTo, "dd/MM/yy", { locale: ptBR }) : "Até"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={dateTo}
-                  onSelect={setDateTo}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
-
-            {(dateFrom || dateTo) && (
-              <Button variant="ghost" size="sm" onClick={clearDateFilters}>
-                <X className="w-4 h-4 mr-1" />
-                Limpar datas
-              </Button>
-            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
