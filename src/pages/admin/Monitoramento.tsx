@@ -218,12 +218,24 @@ export default function Monitoramento() {
         return;
       }
 
-      // Fetch tracking history
+      // Fetch tracking history via viagem_entregas
+      // First get the viagem_id from viagem_entregas for this entrega
+      const { data: viagemEntrega, error: viagemError } = await supabase
+        .from('viagem_entregas')
+        .select('viagem_id')
+        .eq('entrega_id', entregas[0].id)
+        .maybeSingle();
+
+      if (viagemError || !viagemEntrega) {
+        setTrackingHistory([]);
+        return;
+      }
+
       const { data: history, error } = await supabase
         .from('tracking_historico')
         .select('*')
-        .eq('entrega_id', entregas[0].id)
-        .order('created_at', { ascending: true });
+        .eq('viagem_id', viagemEntrega.viagem_id)
+        .order('tracked_at', { ascending: true });
 
       if (!error && history) {
         setTrackingHistory(
@@ -231,9 +243,9 @@ export default function Monitoramento() {
             id: h.id,
             latitude: h.latitude || 0,
             longitude: h.longitude || 0,
-            timestamp: h.created_at || '',
+            timestamp: h.tracked_at || h.created_at || '',
             status: h.status,
-            velocidade: h.velocidade,
+            velocidade: h.speed,
           }))
         );
       }
