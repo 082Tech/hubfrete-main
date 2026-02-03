@@ -24,6 +24,7 @@ import {
   ChevronsRight
 } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
+import { useViewModePreference } from '@/hooks/useViewModePreference';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,7 +83,7 @@ export default function UsuariosEmpresa() {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UsuarioComFiliais | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const { viewMode, setViewMode } = useViewModePreference();
   const [currentPage, setCurrentPage] = useState(1);
 
   const { ref: contentRef, height: contentHeight } = useRemainingViewportHeight<HTMLDivElement>({

@@ -29,8 +29,11 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
+import { useViewModePreference } from '@/hooks/useViewModePreference';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,7 +89,7 @@ export default function UsuariosEmpresa() {
   const { user } = useAuth();
   const { empresa, filiais: contextFiliais } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const { viewMode, setViewMode } = useViewModePreference();
   const [currentPage, setCurrentPage] = useState(1);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UsuarioComFiliais | null>(null);
@@ -429,178 +432,165 @@ export default function UsuariosEmpresa() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'card' | 'list')}>
-            <ToggleGroupItem value="card" aria-label="Visualização em cards">
-              <LayoutGrid className="w-4 h-4" />
-            </ToggleGroupItem>
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}>
             <ToggleGroupItem value="list" aria-label="Visualização em lista">
               <List className="w-4 h-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="grid" aria-label="Visualização em cards">
+              <LayoutGrid className="w-4 h-4" />
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
 
         {/* Content with internal scroll */}
-        <Card ref={contentRef} className="flex-1 flex flex-col border-border overflow-hidden" style={{ height: contentHeight }}>
-          {loadingUsuarios ? (
-            <div className="flex items-center justify-center flex-1">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : filteredUsuarios.length === 0 ? (
-            <CardContent className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-medium text-foreground mb-1">
-                  {searchTerm ? 'Nenhum usuário encontrado' : 'Nenhum usuário cadastrado'}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {searchTerm 
-                    ? 'Tente ajustar os termos da busca' 
-                    : 'Clique em "Convidar Usuário" para adicionar o primeiro'}
-                </p>
-              </div>
+        {loadingUsuarios ? (
+          <Card ref={contentRef} className="flex-1 flex items-center justify-center border-border" style={{ height: contentHeight }}>
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </Card>
+        ) : filteredUsuarios.length === 0 ? (
+          <Card ref={contentRef} className="flex-1 flex items-center justify-center border-border" style={{ height: contentHeight }}>
+            <CardContent className="text-center">
+              <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-medium text-foreground mb-1">
+                {searchTerm ? 'Nenhum usuário encontrado' : 'Nenhum usuário cadastrado'}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {searchTerm 
+                  ? 'Tente ajustar os termos da busca' 
+                  : 'Clique em "Convidar Usuário" para adicionar o primeiro'}
+              </p>
             </CardContent>
-          ) : viewMode === 'list' ? (
-            <>
-              <div className="flex-1 overflow-auto">
-                <Table>
-                  <TableHeader className="sticky top-0 z-10 bg-muted/50">
-                    <TableRow>
-                      <TableHead>Usuário</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Cargo</TableHead>
-                      <TableHead>Filiais</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedUsuarios.map((usuario) => (
-                      <TableRow key={usuario.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Avatar className="w-8 h-8">
-                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {(usuario.nome || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{usuario.nome || 'Sem nome'}</span>
-                            {usuario.isPending && (
-                              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 text-[10px]">
-                                <Clock className="w-3 h-3" />
-                                Pendente
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{usuario.email}</TableCell>
-                        <TableCell>
-                          {usuario.cargo && (
-                            <Badge variant="outline" className={roleColors[usuario.cargo]}>
-                              {roleLabels[usuario.cargo]}
+          </Card>
+        ) : viewMode === 'list' ? (
+          <Card ref={contentRef} className="flex-1 flex flex-col border-border overflow-hidden" style={{ height: contentHeight }}>
+            <div className="flex-1 overflow-auto">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-muted/50">
+                  <TableRow>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Cargo</TableHead>
+                    <TableHead>Filiais</TableHead>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedUsuarios.map((usuario) => (
+                    <TableRow key={usuario.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                              {(usuario.nome || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{usuario.nome || 'Sem nome'}</span>
+                          {usuario.isPending && (
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 text-[10px]">
+                              <Clock className="w-3 h-3" />
+                              Pendente
                             </Badge>
                           )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                          {getFilialNomes(usuario.filiais)}
-                        </TableCell>
-                        <TableCell>
-                          {!usuario.isPending && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreVertical className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem className="gap-2" onClick={() => setEditingUser(usuario)}>
-                                  <Edit className="w-4 h-4" />
-                                  Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  className="gap-2 text-destructive focus:text-destructive"
-                                  onClick={() => setDeletingUserId(usuario.id)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  Excluir
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t px-4 py-3 shrink-0">
-                  <p className="text-sm text-muted-foreground">
-                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredUsuarios.length)} de {filteredUsuarios.length}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Próximo
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="flex-1 overflow-auto p-4">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {paginatedUsuarios.map(renderUserCard)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{usuario.email}</TableCell>
+                      <TableCell>
+                        {usuario.cargo && (
+                          <Badge variant="outline" className={roleColors[usuario.cargo]}>
+                            {roleLabels[usuario.cargo]}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                        {getFilialNomes(usuario.filiais)}
+                      </TableCell>
+                      <TableCell>
+                        {!usuario.isPending && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem className="gap-2" onClick={() => setEditingUser(usuario)}>
+                                <Edit className="w-4 h-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="gap-2 text-destructive focus:text-destructive"
+                                onClick={() => setDeletingUserId(usuario.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t px-4 py-3 shrink-0">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredUsuarios.length)} de {filteredUsuarios.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                    <ChevronsLeft className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+                    <ChevronsRight className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t px-4 py-3 shrink-0">
-                  <p className="text-sm text-muted-foreground">
-                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredUsuarios.length)} de {filteredUsuarios.length}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Próximo
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
+            )}
+          </Card>
+        ) : (
+          /* Grid View - no Card wrapper */
+          <div ref={contentRef} className="flex flex-col overflow-hidden" style={{ height: contentHeight }}>
+            <div className="flex-1 overflow-auto">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {paginatedUsuarios.map(renderUserCard)}
+              </div>
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 shrink-0 mt-4 bg-card rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredUsuarios.length)} de {filteredUsuarios.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                    <ChevronsLeft className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+                    <ChevronsRight className="w-4 h-4" />
+                  </Button>
                 </div>
-              )}
-            </>
-          )}
-        </Card>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
