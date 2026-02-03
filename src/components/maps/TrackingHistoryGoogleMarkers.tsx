@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { OverlayView, InfoWindow } from '@react-google-maps/api';
-import { fetchAllTrackingHistoricoByEntregaId } from '@/lib/fetchAllTrackingHistorico';
-import { Clock, MapPin, AlertCircle, CheckCircle, Package, Truck, Route, Loader2, MapPinOff } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
+import { Clock, MapPin, Loader2, MapPinOff } from 'lucide-react';
 
 interface TrackingPoint {
   id: string;
   latitude: number;
   longitude: number;
-  status: string;
-  created_at: string;
+  status: string | null;
+  tracked_at: string;
   observacao: string | null;
+  speed: number | null;
 }
 
 interface TrackingHistoryGoogleMarkersProps {
@@ -66,7 +68,25 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
     const fetchTrackingHistory = async () => {
       onLoadingChange?.(true);
       try {
-        const data = await fetchAllTrackingHistoricoByEntregaId(entregaId, {
+        // First, find the viagem_id for this entrega
+        const { data: viagemEntrega, error: veError } = await supabase
+          .from('viagem_entregas')
+          .select('viagem_id')
+          .eq('entrega_id', entregaId)
+          .maybeSingle();
+
+        if (veError) throw veError;
+
+        if (!viagemEntrega?.viagem_id) {
+          // No viagem found for this entrega
+          setTrackingPoints([]);
+          onEmptyChange?.(true);
+          onLoadingChange?.(false);
+          onBoundsReady?.(null);
+          return;
+        }
+
+        const data = await fetchAllTrackingHistoricoByViagemId(viagemEntrega.viagem_id, {
           pageSize: 1000,
           maxRows: 50000,
         });
@@ -79,9 +99,10 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
             id: p.id,
             latitude: Number(p.latitude),
             longitude: Number(p.longitude),
-            status: p.status as string,
-            created_at: p.created_at,
+            status: p.status,
+            tracked_at: p.tracked_at,
             observacao: p.observacao,
+            speed: p.speed,
           }));
         
         setTrackingPoints(validPoints);
@@ -114,7 +135,7 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
       isMounted = false;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entregaId]); // Only re-fetch when entregaId changes, callbacks are stable via useCallback in parent
+  }, [entregaId]); // Only re-fetch when entregaId changes
 
   if (!entregaId || trackingPoints.length === 0) return null;
 
@@ -125,8 +146,8 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
 
       {/* Tracking point markers */}
       {trackingPoints.map((point, index) => {
-        const color = statusColors[point.status] || '#6b7280';
-        const label = statusLabels[point.status] || point.status;
+        const color = statusColors[point.status || 'aguardando'] || '#6b7280';
+        const label = statusLabels[point.status || 'aguardando'] || point.status || 'Em trânsito';
         const isFirst = index === 0;
         const isLast = index === trackingPoints.length - 1;
         const isHovered = point.id === hoveredPointId;
@@ -161,7 +182,8 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
                   style={{ bottom: size + 8, left: '50%', transform: 'translateX(-50%)' }}
                 >
                   <div className="text-xs font-medium text-foreground">{label}</div>
-                  <div className="text-xs text-muted-foreground">{formatDateTime(point.created_at)}</div>
+                  <div className="text-xs text-muted-foreground">{formatDateTime(point.tracked_at)}</div>
+                  {point.speed != null && <div className="text-xs text-muted-foreground">{Math.round(point.speed)} km/h</div>}
                   {isFirst && <div className="text-xs text-green-600 font-medium mt-1">📍 Início</div>}
                   {isLast && trackingPoints.length > 1 && <div className="text-xs text-blue-600 font-medium mt-1">📍 Atual</div>}
                 </div>
@@ -182,12 +204,12 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
             <div className="flex items-center gap-2 mb-2">
               <div
                 className="w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: statusColors[selectedPoint.status] || '#6b7280' }}
+                style={{ backgroundColor: statusColors[selectedPoint.status || 'aguardando'] || '#6b7280' }}
               >
                 <MapPin className="w-3 h-3 text-white" />
               </div>
               <div>
-                <p className="font-semibold text-sm">{statusLabels[selectedPoint.status] || selectedPoint.status}</p>
+                <p className="font-semibold text-sm">{statusLabels[selectedPoint.status || 'aguardando'] || selectedPoint.status || 'Em trânsito'}</p>
                 <p className="text-xs text-muted-foreground">
                   Ponto #{trackingPoints.findIndex(p => p.id === selectedPoint.id) + 1} de {trackingPoints.length}
                 </p>
@@ -197,7 +219,7 @@ export function TrackingHistoryGoogleMarkers({ entregaId, onBoundsReady, onLoadi
             <div className="space-y-1 text-xs">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Clock className="w-3 h-3" />
-                <span>{formatDateTime(selectedPoint.created_at)}</span>
+                <span>{formatDateTime(selectedPoint.tracked_at)}</span>
               </div>
               
               <div className="flex items-center gap-2 text-muted-foreground">

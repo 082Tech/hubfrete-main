@@ -2,19 +2,21 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type TrackingHistoricoRow = {
   id: string;
-  latitude: number | null;
-  longitude: number | null;
-  status: string;
-  created_at: string;
+  latitude: number;
+  longitude: number;
+  status: string | null;
+  tracked_at: string;
   observacao: string | null;
+  speed: number | null;
+  heading: number | null;
 };
 
 /**
  * Supabase/PostgREST pode impor max-rows=1000 por request.
- * Esta função pagina via range() para buscar todos os registros.
+ * Esta função pagina via range() para buscar todos os registros por viagem.
  */
-export async function fetchAllTrackingHistoricoByEntregaId(
-  entregaId: string,
+export async function fetchAllTrackingHistoricoByViagemId(
+  viagemId: string,
   opts?: {
     pageSize?: number;
     maxRows?: number;
@@ -31,9 +33,9 @@ export async function fetchAllTrackingHistoricoByEntregaId(
 
     const { data, error } = await supabase
       .from('tracking_historico')
-      .select('id, latitude, longitude, status, created_at, observacao')
-      .eq('entrega_id', entregaId)
-      .order('created_at', { ascending: true })
+      .select('id, latitude, longitude, status, tracked_at, observacao, speed, heading')
+      .eq('viagem_id', viagemId)
+      .order('tracked_at', { ascending: true })
       .range(from, to);
 
     if (error) throw error;
