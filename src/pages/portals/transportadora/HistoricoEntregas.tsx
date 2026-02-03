@@ -151,8 +151,8 @@ export default function HistoricoEntregas() {
   const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
   const { ref: tableCardRef, height: tableCardHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    // pequeno respiro para não colar no fim do viewport quando há padding externo
-    bottomOffset: 16,
+    // desconta padding inferior da página (p-4 = 16, p-8 = 32 no md)
+    bottomOffset: 32,
     minHeight: 320,
   });
 
