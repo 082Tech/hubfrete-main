@@ -878,8 +878,8 @@ export default function HistoricoCargas() {
             </div>
           </div>
 
-          {/* Table with sticky header and floating card concept */}
-          <Card className="flex-1 flex flex-col overflow-hidden min-h-0 shadow-lg">
+          {/* Table Card */}
+          <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -892,10 +892,10 @@ export default function HistoricoCargas() {
               </div>
             ) : (
               <>
-                <div className="flex-1 min-h-0 overflow-auto relative">
-                  <table className="w-full caption-bottom text-sm">
-                    <thead className="sticky top-0 bg-card z-20 [&_tr]:border-b shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
-                      <tr className="border-b transition-colors">
+                <ScrollArea className="flex-1">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
                         {orderedColumns.map((column) => (
                           <DraggableTableHead
                             key={column.id}
@@ -911,169 +911,170 @@ export default function HistoricoCargas() {
                             onColumnDragOver={handleDragOver}
                             onColumnDragLeave={handleDragLeave}
                             onColumnDrop={handleDrop}
-                            className={`whitespace-nowrap text-xs bg-card ${column.sticky === 'left' ? 'sticky left-0 z-30' : ''} ${column.sticky === 'right' ? 'sticky right-0 z-30' : ''}`}
+                            className={`whitespace-nowrap text-xs ${column.sticky === 'left' ? 'sticky left-0 z-20 bg-background' : ''} ${column.sticky === 'right' ? 'sticky right-0 z-20 bg-background' : ''}`}
                           >
                             {column.label}
                           </DraggableTableHead>
                         ))}
-                      </tr>
-                    </thead>
-                    <tbody className="[&_tr:last-child]:border-0">
-                        {paginatedCargas.map((carga) => {
-                          const isExpanded = expandedRows.has(carga.id);
-                          
-                          return (
-                            <React.Fragment key={carga.id}>
-                              <tr 
-                                className={`border-b transition-colors cursor-pointer hover:bg-muted/50 ${isExpanded ? 'bg-muted/30' : ''}`}
-                                onClick={() => toggleRow(carga.id)}
-                              >
-                                {orderedColumns.map((column) => (
-                                  <React.Fragment key={column.id}>
-                                    {renderCell(column.id, carga)}
-                                  </React.Fragment>
-                                ))}
-                              </tr>
-                              
-                              {/* Expanded Row - Entregas */}
-                              {isExpanded && carga.entregas.length > 0 && (
-                                <tr className="bg-muted/20 hover:bg-muted/20 border-b">
-                                  <td colSpan={orderedColumns.length} className="p-0">
-                                    <div className="px-8 py-4">
-                                      <div className="flex items-center gap-2 mb-3">
-                                        <Truck className="w-4 h-4 text-primary" />
-                                        <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
-                                      </div>
-                                      <div className="bg-background rounded-lg border overflow-hidden">
-                                        <Table>
-                                          <TableHeader>
-                                            <TableRow className="bg-muted/30">
-                                              <TableHead className="text-xs">Código</TableHead>
-                                              <TableHead className="text-xs">Motorista</TableHead>
-                                              <TableHead className="text-xs">Veículo</TableHead>
-                                              <TableHead className="text-xs text-right">Peso Alocado</TableHead>
-                                              <TableHead className="text-xs text-right">Valor Frete</TableHead>
-                                              <TableHead className="text-xs">Coletado em</TableHead>
-                                              <TableHead className="text-xs">Entregue em</TableHead>
-                                              <TableHead className="text-xs">Status</TableHead>
-                                              <TableHead className="text-xs">N° CT-e</TableHead>
-                                              <TableHead className="text-xs">Docs</TableHead>
-                                              <TableHead className="text-xs w-10"></TableHead>
-                                            </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                            {carga.entregas.map((entrega) => {
-                                              const statusConfig = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando;
-                                              const StatusIcon = statusConfig.icon;
-                                              const isHighlighted = highlightedEntregaId === entrega.id;
-                                              const docsCount = getDocsCount(entrega);
-                                              const hasMissing = hasMissingCriticalDocs(entrega);
-                                              
-                                              return (
-                                                <TableRow 
-                                                  key={entrega.id} 
-                                                  className={`${isHighlighted ? 'bg-primary/10 animate-pulse' : ''}`}
-                                                >
-                                                  <TableCell className="text-xs font-mono">
-                                                    {entrega.codigo || '-'}
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                      <User className="w-3 h-3 text-muted-foreground" />
-                                                      <span className="text-sm">
-                                                        {entrega.motoristas?.nome_completo || '-'}
-                                                      </span>
-                                                    </div>
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                      <Truck className="w-3 h-3 text-muted-foreground" />
-                                                      <span className="text-sm font-mono">
-                                                        {entrega.veiculos?.placa || '-'}
-                                                      </span>
-                                                    </div>
-                                                  </TableCell>
-                                                  <TableCell className="text-right text-sm font-medium">
-                                                    {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
-                                                  </TableCell>
-                                                  <TableCell className="text-right text-sm font-medium text-emerald-600">
-                                                    {formatCurrency(entrega.valor_frete)}
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <div className="flex items-center gap-1 text-sm">
-                                                      <Calendar className="w-3 h-3 text-muted-foreground" />
-                                                      {formatDate(entrega.coletado_em)}
-                                                    </div>
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <div className="flex items-center gap-1 text-sm">
-                                                      <Calendar className="w-3 h-3 text-muted-foreground" />
-                                                      {formatDate(entrega.entregue_em)}
-                                                    </div>
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <Badge className={`${statusConfig.color} text-xs`}>
-                                                      <StatusIcon className="w-3 h-3 mr-1" />
-                                                      {statusConfig.label}
-                                                    </Badge>
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <span className="text-xs font-mono text-muted-foreground">
-                                                      {entrega.numero_cte || '-'}
-                                                    </span>
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <Button
-                                                      variant="ghost"
-                                                      size="sm"
-                                                      className={`h-7 px-2 gap-1 ${hasMissing ? 'text-amber-600' : 'text-green-600'}`}
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleOpenEntregaDetails(entrega, carga);
-                                                      }}
-                                                    >
-                                                      <FileText className="w-3 h-3" />
-                                                      {docsCount}
-                                                      {hasMissing && <AlertTriangle className="w-3 h-3" />}
-                                                    </Button>
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <DropdownMenu>
-                                                      <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                                                          <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                      </DropdownMenuTrigger>
-                                                      <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => {
-                                                          setTrackingMapEntregaId(entrega.id);
-                                                          setTrackingMapInfo({
-                                                            motorista: entrega.motoristas?.nome_completo || 'Motorista',
-                                                            placa: entrega.veiculos?.placa || '-',
-                                                          });
-                                                        }}>
-                                                          <Route className="w-4 h-4 mr-2" />
-                                                          Ver histórico no mapa
-                                                        </DropdownMenuItem>
-                                                      </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                  </TableCell>
-                                                </TableRow>
-                                              );
-                                            })}
-                                          </TableBody>
-                                        </Table>
-                                      </div>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedCargas.map((carga) => {
+                        const isExpanded = expandedRows.has(carga.id);
+                        
+                        return (
+                          <React.Fragment key={carga.id}>
+                            <TableRow 
+                              className={`cursor-pointer hover:bg-muted/50 ${isExpanded ? 'bg-muted/30' : ''}`}
+                              onClick={() => toggleRow(carga.id)}
+                            >
+                              {orderedColumns.map((column) => (
+                                <React.Fragment key={column.id}>
+                                  {renderCell(column.id, carga)}
+                                </React.Fragment>
+                              ))}
+                            </TableRow>
+                            
+                            {/* Expanded Row - Entregas */}
+                            {isExpanded && carga.entregas.length > 0 && (
+                              <TableRow className="bg-muted/20 hover:bg-muted/20">
+                                <TableCell colSpan={orderedColumns.length} className="p-0">
+                                  <div className="px-8 py-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <Truck className="w-4 h-4 text-primary" />
+                                      <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
                                     </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </tbody>
-                  </table>
-                </div>
+                                    <div className="bg-background rounded-lg border overflow-hidden">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow className="bg-muted/30">
+                                            <TableHead className="text-xs">Código</TableHead>
+                                            <TableHead className="text-xs">Motorista</TableHead>
+                                            <TableHead className="text-xs">Veículo</TableHead>
+                                            <TableHead className="text-xs text-right">Peso Alocado</TableHead>
+                                            <TableHead className="text-xs text-right">Valor Frete</TableHead>
+                                            <TableHead className="text-xs">Coletado em</TableHead>
+                                            <TableHead className="text-xs">Entregue em</TableHead>
+                                            <TableHead className="text-xs">Status</TableHead>
+                                            <TableHead className="text-xs">N° CT-e</TableHead>
+                                            <TableHead className="text-xs">Docs</TableHead>
+                                            <TableHead className="text-xs w-10"></TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {carga.entregas.map((entrega) => {
+                                            const statusConfig = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando;
+                                            const StatusIcon = statusConfig.icon;
+                                            const isHighlighted = highlightedEntregaId === entrega.id;
+                                            const docsCount = getDocsCount(entrega);
+                                            const hasMissing = hasMissingCriticalDocs(entrega);
+                                            
+                                            return (
+                                              <TableRow 
+                                                key={entrega.id} 
+                                                className={`${isHighlighted ? 'bg-primary/10 animate-pulse' : ''}`}
+                                              >
+                                                <TableCell className="text-xs font-mono">
+                                                  {entrega.codigo || '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex items-center gap-2">
+                                                    <User className="w-3 h-3 text-muted-foreground" />
+                                                    <span className="text-sm">
+                                                      {entrega.motoristas?.nome_completo || '-'}
+                                                    </span>
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex items-center gap-2">
+                                                    <Truck className="w-3 h-3 text-muted-foreground" />
+                                                    <span className="text-sm font-mono">
+                                                      {entrega.veiculos?.placa || '-'}
+                                                    </span>
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell className="text-right text-sm font-medium">
+                                                  {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
+                                                </TableCell>
+                                                <TableCell className="text-right text-sm font-medium text-emerald-600">
+                                                  {formatCurrency(entrega.valor_frete)}
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex items-center gap-1 text-sm">
+                                                    <Calendar className="w-3 h-3 text-muted-foreground" />
+                                                    {formatDate(entrega.coletado_em)}
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <div className="flex items-center gap-1 text-sm">
+                                                    <Calendar className="w-3 h-3 text-muted-foreground" />
+                                                    {formatDate(entrega.entregue_em)}
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <Badge className={`${statusConfig.color} text-xs`}>
+                                                    <StatusIcon className="w-3 h-3 mr-1" />
+                                                    {statusConfig.label}
+                                                  </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <span className="text-xs font-mono text-muted-foreground">
+                                                    {entrega.numero_cte || '-'}
+                                                  </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className={`h-7 px-2 gap-1 ${hasMissing ? 'text-amber-600' : 'text-green-600'}`}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleOpenEntregaDetails(entrega, carga);
+                                                    }}
+                                                  >
+                                                    <FileText className="w-3 h-3" />
+                                                    {docsCount}
+                                                    {hasMissing && <AlertTriangle className="w-3 h-3" />}
+                                                  </Button>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                      </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                      <DropdownMenuItem onClick={() => {
+                                                        setTrackingMapEntregaId(entrega.id);
+                                                        setTrackingMapInfo({
+                                                          motorista: entrega.motoristas?.nome_completo || 'Motorista',
+                                                          placa: entrega.veiculos?.placa || '-',
+                                                        });
+                                                      }}>
+                                                        <Route className="w-4 h-4 mr-2" />
+                                                        Ver histórico no mapa
+                                                      </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                  </DropdownMenu>
+                                                </TableCell>
+                                              </TableRow>
+                                            );
+                                          })}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
                 {renderPagination()}
               </>
             )}
