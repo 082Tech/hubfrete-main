@@ -183,7 +183,8 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    // Adiciona T00:00:00 para forçar interpretação como data local e evitar shift de timezone
+    return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
   };
 
   const formatValor = (valor: number | null) => {

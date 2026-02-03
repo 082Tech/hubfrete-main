@@ -909,9 +909,9 @@ export default function CargasDisponiveis() {
             {carga.data_coleta_de ? (
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-chart-1" />
-                <span>Coleta: {format(new Date(carga.data_coleta_de), 'dd/MM', { locale: ptBR })}</span>
+                <span>Coleta: {format(new Date(carga.data_coleta_de + 'T00:00:00'), 'dd/MM', { locale: ptBR })}</span>
                 {carga.data_coleta_ate && carga.data_coleta_ate !== carga.data_coleta_de && (
-                  <span> - {format(new Date(carga.data_coleta_ate), 'dd/MM', { locale: ptBR })}</span>
+                  <span> - {format(new Date(carga.data_coleta_ate + 'T00:00:00'), 'dd/MM', { locale: ptBR })}</span>
                 )}
               </span>
             ) : (
@@ -923,7 +923,7 @@ export default function CargasDisponiveis() {
             {carga.data_entrega_limite ? (
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-chart-2" />
-                <span>Entrega: {format(new Date(carga.data_entrega_limite), 'dd/MM', { locale: ptBR })}</span>
+                <span>Entrega: {format(new Date(carga.data_entrega_limite + 'T00:00:00'), 'dd/MM', { locale: ptBR })}</span>
               </span>
             ) : (
               <span className="flex items-center gap-1 text-muted-foreground/50">

@@ -486,12 +486,12 @@ export function ResumoSection({
           <div className="flex items-center gap-4 text-muted-foreground">
             <span className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
-              Coleta: {cargaData.data_coleta_de ? new Date(cargaData.data_coleta_de).toLocaleDateString('pt-BR') : 'Não definida'}
-              {cargaData.data_coleta_ate && ` até ${new Date(cargaData.data_coleta_ate).toLocaleDateString('pt-BR')}`}
+              Coleta: {cargaData.data_coleta_de ? new Date(cargaData.data_coleta_de + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não definida'}
+              {cargaData.data_coleta_ate && ` até ${new Date(cargaData.data_coleta_ate + 'T00:00:00').toLocaleDateString('pt-BR')}`}
             </span>
             {cargaData.data_entrega_limite && (
               <span>
-                Entrega até: {new Date(cargaData.data_entrega_limite).toLocaleDateString('pt-BR')}
+                Entrega até: {new Date(cargaData.data_entrega_limite + 'T00:00:00').toLocaleDateString('pt-BR')}
               </span>
             )}
           </div>
