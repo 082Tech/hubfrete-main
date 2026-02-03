@@ -1545,21 +1545,6 @@ export default function CargasDisponiveis() {
                         </div>
                       </div>
 
-                      {/* Capacidade Total do Conjunto */}
-                      {selectedVeiculoData && (
-                        <div className="pt-2 border-t border-primary/20">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Capacidade Total do Conjunto:</span>
-                            <span className="font-bold text-primary">
-                              {(() => {
-                                const capacidadeVeiculo = selectedVeiculoData.capacidade_kg || 0;
-                                const capacidadeCarrocerias = selectedMotoristaData.carrocerias?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
-                                return (capacidadeVeiculo + capacidadeCarrocerias).toLocaleString('pt-BR');
-                              })()} kg
-                            </span>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
 
