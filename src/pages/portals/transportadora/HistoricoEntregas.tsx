@@ -56,6 +56,7 @@ import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { useNavigate } from 'react-router-dom';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
+import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
@@ -148,6 +149,12 @@ export default function HistoricoEntregas() {
   // Chat sheet state
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
+
+  const { ref: tableCardRef, height: tableCardHeight } = useRemainingViewportHeight<HTMLDivElement>({
+    // pequeno respiro para não colar no fim do viewport quando há padding externo
+    bottomOffset: 16,
+    minHeight: 320,
+  });
 
   // Draggable columns hook
   const {
@@ -719,7 +726,11 @@ export default function HistoricoEntregas() {
           </div>
 
           {/* Table */}
-          <Card className="border-border hidden md:flex flex-1 min-h-0 flex-col">
+          <Card
+            ref={tableCardRef as any}
+            style={{ height: tableCardHeight }}
+            className="border-border hidden md:flex flex-col"
+          >
             <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
               <div className="flex-1 min-h-0 overflow-auto">
                 <table className="w-full caption-bottom text-sm">
