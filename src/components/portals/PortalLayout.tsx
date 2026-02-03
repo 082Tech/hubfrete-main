@@ -66,13 +66,13 @@ export function PortalLayout({ children, expectedUserType, fullWidth = false }: 
 
   return (
     <NotificacoesProvider>
-      <div className="min-h-screen bg-background">
+      <div className="h-screen flex bg-background overflow-hidden">
         <PortalSidebar 
           userType={expectedUserType} 
           collapsed={collapsed} 
           onToggleCollapse={() => setCollapsed(!collapsed)} 
         />
-        <main className={`transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-64'} ${fullWidth ? '' : 'p-8'}`}>
+        <main className={`flex-1 overflow-auto transition-all duration-300 ${fullWidth ? '' : ''}`}>
           {children}
         </main>
       </div>
