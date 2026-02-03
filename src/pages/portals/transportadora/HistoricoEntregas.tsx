@@ -603,11 +603,11 @@ export default function HistoricoEntregas() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
       <TooltipProvider>
-        <div className="space-y-6">
+        <div className="flex flex-col h-full gap-6">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Histórico de Entregas</h1>
               <p className="text-muted-foreground">Entregas finalizadas, devoluções e ocorrências</p>
@@ -629,7 +629,7 @@ export default function HistoricoEntregas() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
             <Card
               className={`border-border cursor-pointer transition-all ${selectedStatus === null ? 'ring-2 ring-primary' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(null)}
@@ -681,7 +681,7 @@ export default function HistoricoEntregas() {
           </div>
 
           {/* Filters Row */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
             <AdvancedFiltersPopover
               filters={advancedFilters}
               onFiltersChange={setAdvancedFilters}
@@ -719,9 +719,9 @@ export default function HistoricoEntregas() {
           </div>
 
           {/* Table */}
-          <Card className="border-border hidden md:block">
-            <CardContent className="p-0">
-              <div className="max-h-[500px] overflow-auto">
+          <Card className="border-border hidden md:flex flex-1 min-h-0 flex-col">
+            <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
+              <div className="flex-1 min-h-0 overflow-auto">
                 <table className="w-full caption-bottom text-sm">
                   <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
                     <tr className="border-b transition-colors bg-muted/50">
