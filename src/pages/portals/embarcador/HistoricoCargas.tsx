@@ -194,7 +194,8 @@ export default function HistoricoCargas() {
   const [selectedEntregaCarga, setSelectedEntregaCarga] = useState<CargaData | null>(null);
 
   const { ref: tableCardRef, height: tableCardHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    bottomOffset: 16,
+    // desconta padding inferior da página (p-4 = 16, p-8 = 32 no md)
+    bottomOffset: 32,
     minHeight: 320,
   });
 
