@@ -1884,50 +1884,56 @@ export type Database = {
       }
       tracking_historico: {
         Row: {
+          accuracy: number | null
           altitude: number | null
-          bussola_pos: number | null
-          created_at: string | null
-          entrega_id: string
+          created_at: string
+          heading: number | null
           id: string
-          latitude: number | null
-          longitude: number | null
+          latitude: number
+          longitude: number
           observacao: string | null
-          precisao: number | null
-          status: Database["public"]["Enums"]["status_entrega"]
-          velocidade: number | null
+          request_id: string | null
+          speed: number | null
+          status: Database["public"]["Enums"]["status_entrega"] | null
+          tracked_at: string
+          viagem_id: string
         }
         Insert: {
+          accuracy?: number | null
           altitude?: number | null
-          bussola_pos?: number | null
-          created_at?: string | null
-          entrega_id: string
+          created_at?: string
+          heading?: number | null
           id?: string
-          latitude?: number | null
-          longitude?: number | null
+          latitude: number
+          longitude: number
           observacao?: string | null
-          precisao?: number | null
-          status: Database["public"]["Enums"]["status_entrega"]
-          velocidade?: number | null
+          request_id?: string | null
+          speed?: number | null
+          status?: Database["public"]["Enums"]["status_entrega"] | null
+          tracked_at: string
+          viagem_id: string
         }
         Update: {
+          accuracy?: number | null
           altitude?: number | null
-          bussola_pos?: number | null
-          created_at?: string | null
-          entrega_id?: string
+          created_at?: string
+          heading?: number | null
           id?: string
-          latitude?: number | null
-          longitude?: number | null
+          latitude?: number
+          longitude?: number
           observacao?: string | null
-          precisao?: number | null
-          status?: Database["public"]["Enums"]["status_entrega"]
-          velocidade?: number | null
+          request_id?: string | null
+          speed?: number | null
+          status?: Database["public"]["Enums"]["status_entrega"] | null
+          tracked_at?: string
+          viagem_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "tracking_historico_entrega_id_fkey"
-            columns: ["entrega_id"]
+            foreignKeyName: "tracking_historico_viagem_id_fkey"
+            columns: ["viagem_id"]
             isOneToOne: false
-            referencedRelation: "entregas"
+            referencedRelation: "viagens"
             referencedColumns: ["id"]
           },
         ]
@@ -2228,6 +2234,112 @@ export type Database = {
           },
         ]
       }
+      viagem_entregas: {
+        Row: {
+          created_at: string
+          entrega_id: string
+          id: string
+          ordem: number
+          viagem_id: string
+        }
+        Insert: {
+          created_at?: string
+          entrega_id: string
+          id?: string
+          ordem?: number
+          viagem_id: string
+        }
+        Update: {
+          created_at?: string
+          entrega_id?: string
+          id?: string
+          ordem?: number
+          viagem_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "viagem_entregas_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "viagem_entregas_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: false
+            referencedRelation: "viagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      viagens: {
+        Row: {
+          carroceria_id: string | null
+          codigo: string
+          created_at: string
+          fim_em: string | null
+          id: string
+          inicio_em: string
+          km_total: number | null
+          motorista_id: string
+          status: Database["public"]["Enums"]["status_viagem"]
+          tempo_total_minutos: number | null
+          updated_at: string
+          veiculo_id: string | null
+        }
+        Insert: {
+          carroceria_id?: string | null
+          codigo: string
+          created_at?: string
+          fim_em?: string | null
+          id?: string
+          inicio_em?: string
+          km_total?: number | null
+          motorista_id: string
+          status?: Database["public"]["Enums"]["status_viagem"]
+          tempo_total_minutos?: number | null
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Update: {
+          carroceria_id?: string | null
+          codigo?: string
+          created_at?: string
+          fim_em?: string | null
+          id?: string
+          inicio_em?: string
+          km_total?: number | null
+          motorista_id?: string
+          status?: Database["public"]["Enums"]["status_viagem"]
+          tempo_total_minutos?: number | null
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "viagens_carroceria_id_fkey"
+            columns: ["carroceria_id"]
+            isOneToOne: false
+            referencedRelation: "carrocerias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "viagens_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "viagens_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2247,6 +2359,16 @@ export type Database = {
         Args: { p_entrega_id: string }
         Returns: string
       }
+      criar_viagem_para_entregas: {
+        Args: {
+          p_carroceria_id: string
+          p_entrega_ids: string[]
+          p_motorista_id: string
+          p_veiculo_id: string
+        }
+        Returns: string
+      }
+      finalizar_viagem: { Args: { p_viagem_id: string }; Returns: undefined }
       get_admin_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["admin_role"]
@@ -2255,6 +2377,7 @@ export type Database = {
       get_user_empresa_tipo: { Args: { _user_id: string }; Returns: string }
       get_user_filial_ids: { Args: { _user_id: string }; Returns: number[] }
       get_user_motorista_id: { Args: { p_user_id: string }; Returns: string }
+      get_viagem_ativa: { Args: { p_motorista_id: string }; Returns: string }
       has_admin_role: {
         Args: {
           _role: Database["public"]["Enums"]["admin_role"]
@@ -2316,6 +2439,7 @@ export type Database = {
         | "problema"
         | "cancelada"
       status_pre_cadastro: "pendente" | "aprovado" | "rejeitado"
+      status_viagem: "em_andamento" | "finalizada" | "cancelada"
       tipo_cadastro_motorista: "autonomo" | "frota"
       tipo_carga:
         | "granel_solido"
@@ -2539,6 +2663,7 @@ export const Constants = {
         "cancelada",
       ],
       status_pre_cadastro: ["pendente", "aprovado", "rejeitado"],
+      status_viagem: ["em_andamento", "finalizada", "cancelada"],
       tipo_cadastro_motorista: ["autonomo", "frota"],
       tipo_carga: [
         "granel_solido",
