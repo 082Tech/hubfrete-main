@@ -105,19 +105,21 @@ export function AdvancedFiltersPopover({
               <Label className="text-xs text-muted-foreground">Motorista</Label>
               {motoristas.length > 0 ? (
                 <Select
-                  value={filters.motorista || ''}
-                  onValueChange={(value) => updateFilter('motorista', value)}
+                  value={filters.motorista || '__all__'}
+                  onValueChange={(value) => updateFilter('motorista', value === '__all__' ? undefined : value)}
                 >
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder="Selecione um motorista" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
-                    {motoristas.map((m) => (
-                      <SelectItem key={m.id} value={m.nome}>
-                        {m.nome}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="__all__">Todos</SelectItem>
+                    {motoristas
+                      .filter((m) => m.nome && m.nome.trim() !== '')
+                      .map((m) => (
+                        <SelectItem key={m.id} value={m.nome}>
+                          {m.nome}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               ) : (
