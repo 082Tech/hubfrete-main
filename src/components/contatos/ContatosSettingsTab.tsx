@@ -1,17 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -29,7 +21,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Building2, Pencil, Trash2, Search, Plus, MapPin, Phone, Mail } from 'lucide-react';
+import { 
+  Building2, 
+  Pencil, 
+  Trash2, 
+  Search, 
+  Plus, 
+  MapPin, 
+  Phone, 
+  Mail,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { NovoContatoDialog } from './NovoContatoDialog';
@@ -57,6 +62,8 @@ interface ContatosSettingsTabProps {
   empresaId: number;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export function ContatosSettingsTab({ empresaId }: ContatosSettingsTabProps) {
   const [contatos, setContatos] = useState<Contato[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +72,7 @@ export function ContatosSettingsTab({ empresaId }: ContatosSettingsTabProps) {
   const [editingContato, setEditingContato] = useState<Contato | null>(null);
   const [editForm, setEditForm] = useState<Partial<Contato>>({});
   const [novoContatoOpen, setNovoContatoOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const loadContatos = async () => {
     if (!empresaId) return;
@@ -126,15 +134,117 @@ export function ContatosSettingsTab({ empresaId }: ContatosSettingsTabProps) {
     return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   };
 
-  const filteredContatos = contatos.filter(c => {
-    const term = searchTerm.toLowerCase();
+  const filteredContatos = useMemo(() => 
+    contatos.filter(c => {
+      const term = searchTerm.toLowerCase();
+      return (
+        c.razao_social.toLowerCase().includes(term) ||
+        (c.nome_fantasia && c.nome_fantasia.toLowerCase().includes(term)) ||
+        c.cnpj.includes(term) ||
+        (c.cidade && c.cidade.toLowerCase().includes(term))
+      );
+    }), [contatos, searchTerm]);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredContatos.length / ITEMS_PER_PAGE);
+  const paginatedContatos = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredContatos.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredContatos, currentPage]);
+
+  // Render pagination
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages: (number | 'ellipsis')[] = [];
+      
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        if (currentPage > 3) pages.push('ellipsis');
+        
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+        
+        for (let i = start; i <= end; i++) pages.push(i);
+        
+        if (currentPage < totalPages - 2) pages.push('ellipsis');
+        pages.push(totalPages);
+      }
+      
+      return pages;
+    };
+
     return (
-      c.razao_social.toLowerCase().includes(term) ||
-      (c.nome_fantasia && c.nome_fantasia.toLowerCase().includes(term)) ||
-      c.cnpj.includes(term) ||
-      (c.cidade && c.cidade.toLowerCase().includes(term))
+      <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/30">
+        <div className="text-sm text-muted-foreground">
+          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredContatos.length)} de {filteredContatos.length}
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          {getPageNumbers().map((page, idx) => 
+            page === 'ellipsis' ? (
+              <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+            ) : (
+              <Button
+                key={page}
+                variant={currentPage === page ? 'default' : 'outline'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </Button>
+            )
+          )}
+          
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
     );
-  });
+  };
 
   return (
     <div className="space-y-6">
@@ -160,7 +270,7 @@ export function ContatosSettingsTab({ empresaId }: ContatosSettingsTabProps) {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col">
           {/* Search */}
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -196,110 +306,115 @@ export function ContatosSettingsTab({ empresaId }: ContatosSettingsTabProps) {
               )}
             </div>
           ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead className="hidden md:table-cell">Localização</TableHead>
-                    <TableHead className="hidden lg:table-cell">Contato</TableHead>
-                    <TableHead className="w-[100px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredContatos.map((contato) => (
-                    <TableRow key={contato.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{contato.nome_fantasia || contato.razao_social}</p>
-                          <p className="text-xs text-muted-foreground">{formatCNPJ(contato.cnpj)}</p>
-                          {contato.nome_fantasia && (
-                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {contato.razao_social}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <div className="flex items-start gap-2">
-                          <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+            <div className="rounded-md border overflow-hidden flex flex-col">
+              <div className="overflow-auto max-h-[400px]">
+                <table className="w-full caption-bottom text-sm">
+                  <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+                    <tr className="border-b">
+                      <th className="h-12 px-4 text-left align-middle font-medium text-foreground">Empresa</th>
+                      <th className="h-12 px-4 text-left align-middle font-medium text-foreground hidden md:table-cell">Localização</th>
+                      <th className="h-12 px-4 text-left align-middle font-medium text-foreground hidden lg:table-cell">Contato</th>
+                      <th className="h-12 px-4 text-left align-middle font-medium text-foreground w-[100px]">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedContatos.map((contato) => (
+                      <tr key={contato.id} className="border-b transition-colors hover:bg-muted/50">
+                        <td className="p-4 align-middle">
                           <div>
-                            {contato.cidade && contato.estado ? (
-                              <>
-                                <p className="text-sm">{contato.cidade}/{contato.estado}</p>
-                                {contato.logradouro && (
-                                  <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                                    {contato.logradouro}{contato.numero ? `, ${contato.numero}` : ''}
-                                  </p>
-                                )}
-                              </>
-                            ) : (
+                            <p className="font-medium">{contato.nome_fantasia || contato.razao_social}</p>
+                            <p className="text-xs text-muted-foreground">{formatCNPJ(contato.cnpj)}</p>
+                            {contato.nome_fantasia && (
+                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                {contato.razao_social}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4 align-middle hidden md:table-cell">
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                            <div>
+                              {contato.cidade && contato.estado ? (
+                                <>
+                                  <p className="text-sm">{contato.cidade}/{contato.estado}</p>
+                                  {contato.logradouro && (
+                                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                      {contato.logradouro}{contato.numero ? `, ${contato.numero}` : ''}
+                                    </p>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 align-middle hidden lg:table-cell">
+                          <div className="space-y-1">
+                            {contato.contato_nome && (
+                              <p className="text-sm">{contato.contato_nome}</p>
+                            )}
+                            {contato.contato_telefone && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Phone className="w-3 h-3" />
+                                {contato.contato_telefone}
+                              </div>
+                            )}
+                            {contato.contato_email && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Mail className="w-3 h-3" />
+                                {contato.contato_email}
+                              </div>
+                            )}
+                            {!contato.contato_nome && !contato.contato_telefone && (
                               <span className="text-muted-foreground">-</span>
                             )}
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <div className="space-y-1">
-                          {contato.contato_nome && (
-                            <p className="text-sm">{contato.contato_nome}</p>
-                          )}
-                          {contato.contato_telefone && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Phone className="w-3 h-3" />
-                              {contato.contato_telefone}
-                            </div>
-                          )}
-                          {contato.contato_email && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Mail className="w-3 h-3" />
-                              {contato.contato_email}
-                            </div>
-                          )}
-                          {!contato.contato_nome && !contato.contato_telefone && (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setEditingContato(contato);
-                              setEditForm({
-                                nome_fantasia: contato.nome_fantasia || '',
-                                contato_nome: contato.contato_nome || '',
-                                contato_telefone: contato.contato_telefone || '',
-                                contato_email: contato.contato_email || '',
-                                logradouro: contato.logradouro || '',
-                                numero: contato.numero || '',
-                                complemento: contato.complemento || '',
-                                bairro: contato.bairro || '',
-                                cidade: contato.cidade || '',
-                                estado: contato.estado || '',
-                                cep: contato.cep || '',
-                              });
-                            }}
-                            className="h-8 w-8"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteConfirm(contato)}
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        </td>
+                        <td className="p-4 align-middle">
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditingContato(contato);
+                                setEditForm({
+                                  nome_fantasia: contato.nome_fantasia || '',
+                                  contato_nome: contato.contato_nome || '',
+                                  contato_telefone: contato.contato_telefone || '',
+                                  contato_email: contato.contato_email || '',
+                                  logradouro: contato.logradouro || '',
+                                  numero: contato.numero || '',
+                                  complemento: contato.complemento || '',
+                                  bairro: contato.bairro || '',
+                                  cidade: contato.cidade || '',
+                                  estado: contato.estado || '',
+                                  cep: contato.cep || '',
+                                });
+                              }}
+                              className="h-8 w-8"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteConfirm(contato)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Pagination */}
+              {renderPagination()}
             </div>
           )}
         </CardContent>

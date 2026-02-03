@@ -15,9 +15,15 @@ import {
   MoreVertical,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  LayoutGrid,
+  List,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +44,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
 
 interface Filial {
   id: number;
@@ -79,6 +86,8 @@ const initialFormState: NewFilialForm = {
   responsavel: '',
 };
 
+const ITEMS_PER_PAGE = 12;
+
 export default function GerenciarFiliais() {
   const { empresa, loading: contextLoading } = useUserContext();
   const [filiais, setFiliais] = useState<Filial[]>([]);
@@ -89,6 +98,13 @@ export default function GerenciarFiliais() {
   const [editingFilial, setEditingFilial] = useState<Filial | null>(null);
   const [formData, setFormData] = useState<NewFilialForm>(initialFormState);
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const { ref: contentRef, height: contentHeight } = useRemainingViewportHeight<HTMLDivElement>({
+    bottomOffset: 32,
+    minHeight: 300,
+  });
 
   // Carregar filiais do banco
   const loadFiliais = async () => {
@@ -119,11 +135,24 @@ export default function GerenciarFiliais() {
     }
   }, [empresa?.id]);
 
-  const filteredFiliais = filiais.filter(filial => 
-    (filial.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (filial.cidade?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (filial.estado?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  const filteredFiliais = useMemo(() => 
+    filiais.filter(filial => 
+      (filial.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (filial.cidade?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (filial.estado?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    ), [filiais, searchTerm]);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredFiliais.length / ITEMS_PER_PAGE);
+  const paginatedFiliais = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredFiliais.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredFiliais, currentPage]);
 
   const handleFormChange = (field: keyof NewFilialForm, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -369,6 +398,195 @@ export default function GerenciarFiliais() {
     </div>
   );
 
+  // Render pagination
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages: (number | 'ellipsis')[] = [];
+      
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        if (currentPage > 3) pages.push('ellipsis');
+        
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+        
+        for (let i = start; i <= end; i++) pages.push(i);
+        
+        if (currentPage < totalPages - 2) pages.push('ellipsis');
+        pages.push(totalPages);
+      }
+      
+      return pages;
+    };
+
+    return (
+      <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/30">
+        <div className="text-sm text-muted-foreground">
+          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredFiliais.length)} de {filteredFiliais.length}
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          {getPageNumbers().map((page, idx) => 
+            page === 'ellipsis' ? (
+              <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+            ) : (
+              <Button
+                key={page}
+                variant={currentPage === page ? 'default' : 'outline'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </Button>
+            )
+          )}
+          
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const FilialCard = ({ filial }: { filial: Filial }) => (
+    <Card className="border-border">
+      <CardContent className="p-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
+              filial.ativa ? 'bg-primary/10' : 'bg-muted'
+            }`}>
+              {filial.is_matriz ? (
+                <Building2 className={`w-6 h-6 ${filial.ativa ? 'text-primary' : 'text-muted-foreground'}`} />
+              ) : (
+                <MapPin className={`w-6 h-6 ${filial.ativa ? 'text-primary' : 'text-muted-foreground'}`} />
+              )}
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-semibold text-foreground">{filial.nome || 'Sem nome'}</h3>
+                {filial.is_matriz && (
+                  <Badge variant="default" className="text-xs">Matriz</Badge>
+                )}
+                <Badge variant={filial.ativa ? 'outline' : 'secondary'}>
+                  {filial.ativa ? 'Ativa' : 'Inativa'}
+                </Badge>
+              </div>
+              {(filial.endereco || filial.cidade || filial.estado) && (
+                <p className="text-sm text-muted-foreground">
+                  {[filial.endereco, filial.cidade, filial.estado].filter(Boolean).join(' - ')}
+                  {filial.cep && ` - CEP: ${filial.cep}`}
+                </p>
+              )}
+              {filial.cnpj && (
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium">CNPJ:</span> {filial.cnpj}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-4 pt-2">
+                {filial.telefone && (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Phone className="w-3.5 h-3.5" />
+                    {filial.telefone}
+                  </div>
+                )}
+                {filial.email && (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Mail className="w-3.5 h-3.5" />
+                    {filial.email}
+                  </div>
+                )}
+              </div>
+              {filial.responsavel && (
+                <p className="text-sm text-muted-foreground pt-1">
+                  <span className="font-medium">Responsável:</span> {filial.responsavel}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="shrink-0">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem className="gap-2" onClick={() => openEditDialog(filial)}>
+                <Edit className="w-4 h-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="gap-2"
+                onClick={() => handleToggleStatus(filial)}
+              >
+                {filial.ativa ? (
+                  <>
+                    <XCircle className="w-4 h-4" />
+                    Desativar
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Ativar
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="gap-2 text-destructive focus:text-destructive"
+                onClick={() => handleDelete(filial)}
+                disabled={filial.is_matriz || false}
+              >
+                <Trash2 className="w-4 h-4" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   if (contextLoading || loading) {
     return (
       <div className="p-4 md:p-8 flex items-center justify-center h-64">
@@ -378,8 +596,8 @@ export default function GerenciarFiliais() {
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="space-y-6">
+    <div className="flex flex-col h-full p-4 md:p-8">
+      <div className="flex flex-col gap-6 flex-1 min-h-0">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -470,135 +688,70 @@ export default function GerenciarFiliais() {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por nome, cidade ou estado..." 
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        {/* Search + View Toggle */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="relative max-w-md w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar por nome, cidade ou estado..." 
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        {/* Filiais List */}
-        <div className="grid gap-4">
-          {filteredFiliais.length === 0 ? (
-            <Card className="border-border">
-              <CardContent className="p-8 text-center">
-                <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-medium text-foreground mb-1">
-                  {searchTerm ? 'Nenhuma filial encontrada' : 'Nenhuma filial cadastrada'}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {searchTerm 
-                    ? 'Tente ajustar os termos da busca' 
-                    : 'Clique em "Nova Filial" para cadastrar a primeira'}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredFiliais.map((filial) => (
-              <Card key={filial.id} className="border-border">
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
-                        filial.ativa ? 'bg-primary/10' : 'bg-muted'
-                      }`}>
-                        {filial.is_matriz ? (
-                          <Building2 className={`w-6 h-6 ${filial.ativa ? 'text-primary' : 'text-muted-foreground'}`} />
-                        ) : (
-                          <MapPin className={`w-6 h-6 ${filial.ativa ? 'text-primary' : 'text-muted-foreground'}`} />
-                        )}
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold text-foreground">{filial.nome || 'Sem nome'}</h3>
-                          {filial.is_matriz && (
-                            <Badge variant="default" className="text-xs">Matriz</Badge>
-                          )}
-                          <Badge variant={filial.ativa ? 'outline' : 'secondary'}>
-                            {filial.ativa ? 'Ativa' : 'Inativa'}
-                          </Badge>
-                        </div>
-                        {(filial.endereco || filial.cidade || filial.estado) && (
-                          <p className="text-sm text-muted-foreground">
-                            {[filial.endereco, filial.cidade, filial.estado].filter(Boolean).join(' - ')}
-                            {filial.cep && ` - CEP: ${filial.cep}`}
-                          </p>
-                        )}
-                        {filial.cnpj && (
-                          <p className="text-sm text-muted-foreground">
-                            <span className="font-medium">CNPJ:</span> {filial.cnpj}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap items-center gap-4 pt-2">
-                          {filial.telefone && (
-                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                              <Phone className="w-3.5 h-3.5" />
-                              {filial.telefone}
-                            </div>
-                          )}
-                          {filial.email && (
-                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                              <Mail className="w-3.5 h-3.5" />
-                              {filial.email}
-                            </div>
-                          )}
-                        </div>
-                        {filial.responsavel && (
-                          <p className="text-sm text-muted-foreground pt-1">
-                            <span className="font-medium">Responsável:</span> {filial.responsavel}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="shrink-0">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2" onClick={() => openEditDialog(filial)}>
-                          <Edit className="w-4 h-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="gap-2"
-                          onClick={() => handleToggleStatus(filial)}
-                        >
-                          {filial.ativa ? (
-                            <>
-                              <XCircle className="w-4 h-4" />
-                              Desativar
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4" />
-                              Ativar
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="gap-2 text-destructive focus:text-destructive"
-                          onClick={() => handleDelete(filial)}
-                          disabled={filial.is_matriz || false}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
+        {/* Content with fixed height */}
+        <Card ref={contentRef} className="flex-1 flex flex-col overflow-hidden" style={{ height: contentHeight }}>
+          <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-auto p-4">
+              {paginatedFiliais.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-medium text-foreground mb-1">
+                    {searchTerm ? 'Nenhuma filial encontrada' : 'Nenhuma filial cadastrada'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {searchTerm 
+                      ? 'Tente ajustar os termos da busca' 
+                      : 'Clique em "Nova Filial" para cadastrar a primeira'}
+                  </p>
+                </div>
+              ) : viewMode === 'list' ? (
+                <div className="space-y-4">
+                  {paginatedFiliais.map((filial) => (
+                    <FilialCard key={filial.id} filial={filial} />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {paginatedFiliais.map((filial) => (
+                    <FilialCard key={filial.id} filial={filial} />
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Pagination */}
+            {renderPagination()}
+          </CardContent>
+        </Card>
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

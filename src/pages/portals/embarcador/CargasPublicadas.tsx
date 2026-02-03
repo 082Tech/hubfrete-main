@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
 // Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,15 +15,6 @@ import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { EditarCargaDialog } from '@/components/cargas/EditarCargaDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -209,6 +201,11 @@ export default function CargasPublicadas() {
   const [cargaToDelete, setCargaToDelete] = useState<CargaData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editCarga, setEditCarga] = useState<CargaData | null>(null);
+
+  const { ref: tableContainerRef, height: tableHeight } = useRemainingViewportHeight<HTMLDivElement>({
+    bottomOffset: 32,
+    minHeight: 320,
+  });
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
   useEffect(() => {
@@ -702,9 +699,9 @@ export default function CargasPublicadas() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="flex flex-col h-full p-4 md:p-8">
       <TooltipProvider>
-        <div className="space-y-6 p-1">
+        <div className="flex flex-col gap-6 flex-1 min-h-0">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -869,15 +866,15 @@ export default function CargasPublicadas() {
             </div>
           </div>
 
-          {/* Table */}
-          <Card>
-            <CardContent className="p-0">
+          {/* Table with fixed height and sticky header */}
+          <Card ref={tableContainerRef} className="flex-1 flex flex-col overflow-hidden" style={{ height: tableHeight }}>
+            <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
               {isLoading ? (
-                <div className="flex items-center justify-center py-12">
+                <div className="flex items-center justify-center py-12 flex-1">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
               ) : paginatedCargas.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="flex flex-col items-center justify-center py-12 text-center flex-1">
                   <Package className="w-12 h-12 text-muted-foreground/50 mb-4" />
                   <h3 className="text-lg font-medium text-foreground mb-2">
                     Nenhuma carga encontrada
@@ -888,355 +885,356 @@ export default function CargasPublicadas() {
                   <NovaCargaDialog onSuccess={refetch} />
                 </div>
               ) : (
-                <ScrollArea className="w-full">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="w-10"></TableHead>
-                        <TableHead className="font-semibold min-w-[130px] cursor-pointer" onClick={() => handleSort('codigo')}>
-                          <div className="flex items-center">
-                            Código
-                            <SortIcon field="codigo" />
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[160px]">
-                          <div className="flex items-center gap-1">
-                            <Building2 className="w-3 h-3" />
-                            Remetente
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[160px]">
-                          <div className="flex items-center gap-1">
-                            <Building2 className="w-3 h-3" />
-                            Destinatário
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[90px] cursor-pointer text-center" onClick={() => handleSort('peso_kg')}>
-                          <div className="flex items-center justify-center">
-                            Peso
-                            <SortIcon field="peso_kg" />
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[90px] text-center">Disponível</TableHead>
-                        <TableHead className="font-semibold min-w-[130px]">Progresso</TableHead>
-                        <TableHead className="font-semibold min-w-[110px] cursor-pointer" onClick={() => handleSort('valor_mercadoria')}>
-                          <div className="flex items-center">
-                            Mercadoria
-                            <SortIcon field="valor_mercadoria" />
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[100px]">
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="w-3 h-3" />
-                            Frete
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold min-w-[90px] text-center">Entregas</TableHead>
-                        <TableHead className="font-semibold min-w-[110px]">Status</TableHead>
-                        <TableHead className="font-semibold w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedCargas.map((carga) => {
-                        const isExpanded = expandedRows.has(carga.id);
-                        const percentual = getPercentualAlocado(carga);
-                        const origem = getEnderecoData(carga, 'origem');
-                        const destino = getEnderecoData(carga, 'destino');
-                        const hasEntregas = carga.entregas.length > 0;
-                        
-                        return (
-                          <>
-                            {/* Main Row */}
-                            <TableRow 
-                              key={carga.id}
-                              className={`hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
-                              onClick={() => hasEntregas && toggleRow(carga.id)}
-                            >
-                              <TableCell className="p-2">
-                                {hasEntregas && (
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-6 w-6"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleRow(carga.id);
-                                    }}
-                                  >
-                                    {isExpanded ? (
-                                      <ChevronDown className="w-4 h-4 text-primary" />
-                                    ) : (
-                                      <ChevronRight className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium text-primary text-nowrap">{carga.codigo}</p>
-                                  <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                                    {carga.descricao}
-                                  </p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="cursor-help">
-                                      <div className="flex items-center gap-1">
-                                        <MapPin className="w-3 h-3 text-green-500 shrink-0" />
-                                        <p className="font-medium text-sm truncate max-w-[130px]">{origem.empresa}</p>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground truncate max-w-[130px]">
-                                        {origem.cidade}
-                                      </p>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom" className="max-w-xs">
-                                    <p className="font-medium">{origem.empresa}</p>
-                                    <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TableCell>
-                              <TableCell>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="cursor-help">
-                                      <div className="flex items-center gap-1">
-                                        <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                                        <p className="font-medium text-sm truncate max-w-[130px]">{destino.empresa}</p>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground truncate max-w-[130px]">
-                                        {destino.cidade}
-                                      </p>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom" className="max-w-xs">
-                                    <p className="font-medium">{destino.empresa}</p>
-                                    <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <span className="font-medium">{formatWeight(carga.peso_kg)}</span>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <span className={`font-medium ${getPesoDisponivel(carga) === 0 ? 'text-green-500' : 'text-orange-500'}`}>
-                                  {formatWeight(getPesoDisponivel(carga))}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <div className="w-28">
-                                  <Progress value={percentual} className="h-2" />
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {percentual.toFixed(0)}% alocado
-                                  </p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <span className="font-medium text-sm">
-                                  {formatCurrency(carga.valor_mercadoria)}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-sm text-green-600">
-                                    {formatCurrency(getFreteEstimado(carga))}
-                                  </span>
-                                  {getTotalFrete(carga) > 0 && (
-                                    <span className="text-xs text-muted-foreground">
-                                      Alocado: {formatCurrency(getTotalFrete(carga))}
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Badge variant="outline" className="text-xs">
-                                  {carga.entregas.length} {carga.entregas.length === 1 ? 'entrega' : 'entregas'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {getStatusBadge(carga)}
-                              </TableCell>
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <MoreHorizontal className="w-4 h-4" />
+                <>
+                  <div className="flex-1 overflow-auto">
+                    <table className="w-full caption-bottom text-sm">
+                      <thead className="sticky top-0 z-20 bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+                        <tr className="border-b">
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground w-10"></th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[130px] cursor-pointer" onClick={() => handleSort('codigo')}>
+                            <div className="flex items-center">
+                              Código
+                              <SortIcon field="codigo" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[160px]">
+                            <div className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              Remetente
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[160px]">
+                            <div className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              Destinatário
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px] cursor-pointer" onClick={() => handleSort('peso_kg')}>
+                            <div className="flex items-center justify-center">
+                              Peso
+                              <SortIcon field="peso_kg" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px]">Disponível</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[130px]">Progresso</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[110px] cursor-pointer" onClick={() => handleSort('valor_mercadoria')}>
+                            <div className="flex items-center">
+                              Mercadoria
+                              <SortIcon field="valor_mercadoria" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[100px]">
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="w-3 h-3" />
+                              Frete
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px]">Entregas</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[110px]">Status</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedCargas.map((carga) => {
+                          const isExpanded = expandedRows.has(carga.id);
+                          const percentual = getPercentualAlocado(carga);
+                          const origem = getEnderecoData(carga, 'origem');
+                          const destino = getEnderecoData(carga, 'destino');
+                          const hasEntregas = carga.entregas.length > 0;
+                          
+                          return (
+                            <>
+                              {/* Main Row */}
+                              <tr 
+                                key={carga.id}
+                                className={`border-b transition-colors hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
+                                onClick={() => hasEntregas && toggleRow(carga.id)}
+                              >
+                                <td className="p-2 align-middle">
+                                  {hasEntregas && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-6 w-6"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleRow(carga.id);
+                                      }}
+                                    >
+                                      {isExpanded ? (
+                                        <ChevronDown className="w-4 h-4 text-primary" />
+                                      ) : (
+                                        <ChevronRight className="w-4 h-4" />
+                                      )}
                                     </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={(e) => {
-                                      e.stopPropagation();
-                                      setDetailsCarga(carga);
-                                    }}>
-                                      <Eye className="w-4 h-4 mr-2" />
-                                      Ver detalhes
-                                    </DropdownMenuItem>
-                                    {carga.entregas.length === 0 && (
+                                  )}
+                                </td>
+                                <td className="p-4 align-middle">
+                                  <div>
+                                    <p className="font-medium text-primary text-nowrap">{carga.codigo}</p>
+                                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">
+                                      {carga.descricao}
+                                    </p>
+                                  </div>
+                                </td>
+                                <td className="p-4 align-middle">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="cursor-help">
+                                        <div className="flex items-center gap-1">
+                                          <MapPin className="w-3 h-3 text-green-500 shrink-0" />
+                                          <p className="font-medium text-sm truncate max-w-[130px]">{origem.empresa}</p>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground truncate max-w-[130px]">
+                                          {origem.cidade}
+                                        </p>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="max-w-xs">
+                                      <p className="font-medium">{origem.empresa}</p>
+                                      <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </td>
+                                <td className="p-4 align-middle">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="cursor-help">
+                                        <div className="flex items-center gap-1">
+                                          <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                                          <p className="font-medium text-sm truncate max-w-[130px]">{destino.empresa}</p>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground truncate max-w-[130px]">
+                                          {destino.cidade}
+                                        </p>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="max-w-xs">
+                                      <p className="font-medium">{destino.empresa}</p>
+                                      <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </td>
+                                <td className="p-4 align-middle text-center">
+                                  <span className="font-medium">{formatWeight(carga.peso_kg)}</span>
+                                </td>
+                                <td className="p-4 align-middle text-center">
+                                  <span className={`font-medium ${getPesoDisponivel(carga) === 0 ? 'text-green-500' : 'text-orange-500'}`}>
+                                    {formatWeight(getPesoDisponivel(carga))}
+                                  </span>
+                                </td>
+                                <td className="p-4 align-middle">
+                                  <div className="w-28">
+                                    <Progress value={percentual} className="h-2" />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {percentual.toFixed(0)}% alocado
+                                    </p>
+                                  </div>
+                                </td>
+                                <td className="p-4 align-middle">
+                                  <span className="font-medium text-sm">
+                                    {formatCurrency(carga.valor_mercadoria)}
+                                  </span>
+                                </td>
+                                <td className="p-4 align-middle">
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-sm text-green-600">
+                                      {formatCurrency(getFreteEstimado(carga))}
+                                    </span>
+                                    {getTotalFrete(carga) > 0 && (
+                                      <span className="text-xs text-muted-foreground">
+                                        Alocado: {formatCurrency(getTotalFrete(carga))}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-4 align-middle text-center">
+                                  <Badge variant="outline" className="text-xs">
+                                    {carga.entregas.length} {carga.entregas.length === 1 ? 'entrega' : 'entregas'}
+                                  </Badge>
+                                </td>
+                                <td className="p-4 align-middle">
+                                  {getStatusBadge(carga)}
+                                </td>
+                                <td className="p-4 align-middle">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreHorizontal className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
                                       <DropdownMenuItem onClick={(e) => {
                                         e.stopPropagation();
-                                        setEditCarga(carga);
+                                        setDetailsCarga(carga);
                                       }}>
-                                        <Pencil className="w-4 h-4 mr-2" />
-                                        Editar
+                                        <Eye className="w-4 h-4 mr-2" />
+                                        Ver detalhes
                                       </DropdownMenuItem>
-                                    )}
-                                    {carga.entregas.length === 0 && (
-                                      <DropdownMenuItem 
-                                        onClick={(e) => {
+                                      {carga.entregas.length === 0 && (
+                                        <DropdownMenuItem onClick={(e) => {
                                           e.stopPropagation();
-                                          setCargaToDelete(carga);
-                                          setDeleteDialogOpen(true);
-                                        }}
-                                        className="text-destructive focus:text-destructive"
-                                      >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        Excluir
-                                      </DropdownMenuItem>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
+                                          setEditCarga(carga);
+                                        }}>
+                                          <Pencil className="w-4 h-4 mr-2" />
+                                          Editar
+                                        </DropdownMenuItem>
+                                      )}
+                                      {carga.entregas.length === 0 && (
+                                        <DropdownMenuItem 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCargaToDelete(carga);
+                                            setDeleteDialogOpen(true);
+                                          }}
+                                          className="text-destructive focus:text-destructive"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          Excluir
+                                        </DropdownMenuItem>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </td>
+                              </tr>
 
-                            {/* Expanded Row - Entregas com subtabela */}
-                            {isExpanded && carga.entregas.length > 0 && (
-                              <TableRow className="bg-muted/20 hover:bg-muted/20">
-                                <TableCell colSpan={12} className="p-0">
-                                  <div className="px-8 py-4">
-                                    <div className="flex items-center gap-2 mb-3">
-                                      <Truck className="w-4 h-4 text-primary" />
-                                      <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
-                                    </div>
-                                    <div className="bg-background rounded-lg border overflow-hidden">
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow className="bg-muted/30">
-                                            <TableHead className="text-xs">Código</TableHead>
-                                            <TableHead className="text-xs">Motorista</TableHead>
-                                            <TableHead className="text-xs">Veículo</TableHead>
-                                            <TableHead className="text-xs text-right">Peso Alocado</TableHead>
-                                            <TableHead className="text-xs text-right">Valor Frete</TableHead>
-                                            <TableHead className="text-xs">N° CT-e</TableHead>
-                                            <TableHead className="text-xs">Docs</TableHead>
-                                            <TableHead className="text-xs">Coletado em</TableHead>
-                                            <TableHead className="text-xs">Status</TableHead>
-                                            <TableHead className="text-xs w-10"></TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {carga.entregas.map((entrega, idx) => {
-                                            const statusConfig = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando_coleta;
-                                            const StatusIcon = statusConfig.icon;
-                                            const isHighlighted = highlightedEntregaId === entrega.id;
-                                            
-                                            // Document count logic
-                                            const hasCte = !!entrega.cte_url;
-                                            const hasManifesto = !!entrega.manifesto_url;
-                                            const hasCanhoto = !!entrega.canhoto_url;
-                                            const hasNf = entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0;
-                                            const docCount = [hasCte, hasManifesto, hasCanhoto, hasNf].filter(Boolean).length;
-                                            const missingCritical = !hasCte || !hasManifesto;
-                                            
-                                            return (
-                                              <TableRow 
-                                                key={entrega.id} 
-                                                className={`${isHighlighted ? 'bg-primary/10 animate-pulse' : ''}`}
-                                              >
-                                                <TableCell className="font-mono text-sm font-medium text-primary text-nowrap">
-                                                  {entrega.codigo || `${carga.codigo}-E${String(idx + 1).padStart(2, '0')}`}
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex items-center gap-2">
-                                                    <User className="w-3 h-3 text-muted-foreground" />
-                                                    <span className="text-sm">
-                                                      {entrega.motoristas?.nome_completo || '-'}
-                                                    </span>
-                                                  </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex items-center gap-2">
-                                                    <Truck className="w-3 h-3 text-muted-foreground" />
-                                                    <span className="text-sm font-mono">
-                                                      {entrega.veiculos?.placa || '-'}
-                                                    </span>
-                                                  </div>
-                                                </TableCell>
-                                                <TableCell className="text-right text-sm font-medium">
-                                                  {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
-                                                </TableCell>
-                                                <TableCell className="text-right text-sm font-medium text-green-600">
-                                                  {formatCurrency(entrega.valor_frete)}
-                                                </TableCell>
-                                                <TableCell className="text-sm font-mono">
-                                                  {entrega.numero_cte || '-'}
-                                                </TableCell>
-                                                <TableCell>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className={`h-7 px-2 gap-1 ${missingCritical ? 'text-amber-600' : 'text-emerald-600'}`}
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setDetailsEntrega({ entrega, carga });
-                                                    }}
-                                                  >
-                                                    <FileText className="w-3 h-3" />
-                                                    <span className="text-xs">{docCount}/4</span>
-                                                    {missingCritical && <AlertCircle className="w-3 h-3" />}
-                                                  </Button>
-                                                </TableCell>
-                                                <TableCell>
-                                                  <div className="flex items-center gap-1 text-sm">
-                                                    <Calendar className="w-3 h-3 text-muted-foreground" />
-                                                    {formatDate(entrega.coletado_em)}
-                                                  </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                  <Badge className={`${statusConfig.color} text-xs`}>
-                                                    <StatusIcon className="w-3 h-3 mr-1" />
-                                                    {statusConfig.label}
-                                                  </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                  <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                      <Button variant="ghost" size="icon" className="h-7 w-7">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                      </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                      <DropdownMenuItem onClick={() => {
+                              {/* Expanded Row - Entregas com subtabela */}
+                              {isExpanded && carga.entregas.length > 0 && (
+                                <tr className="bg-muted/20 hover:bg-muted/20">
+                                  <td colSpan={12} className="p-0">
+                                    <div className="px-8 py-4">
+                                      <div className="flex items-center gap-2 mb-3">
+                                        <Truck className="w-4 h-4 text-primary" />
+                                        <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
+                                      </div>
+                                      <div className="bg-background rounded-lg border overflow-hidden">
+                                        <table className="w-full text-sm">
+                                          <thead>
+                                            <tr className="border-b bg-muted/30">
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Código</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Motorista</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Veículo</th>
+                                              <th className="h-10 px-4 text-right align-middle font-medium text-xs">Peso Alocado</th>
+                                              <th className="h-10 px-4 text-right align-middle font-medium text-xs">Valor Frete</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">N° CT-e</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Docs</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Coletado em</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Status</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs w-10"></th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {carga.entregas.map((entrega, idx) => {
+                                              const statusConfig = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando;
+                                              const StatusIcon = statusConfig.icon;
+                                              const isHighlighted = highlightedEntregaId === entrega.id;
+                                              
+                                              // Document count logic
+                                              const hasCte = !!entrega.cte_url;
+                                              const hasManifesto = !!entrega.manifesto_url;
+                                              const hasCanhoto = !!entrega.canhoto_url;
+                                              const hasNf = entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0;
+                                              const docCount = [hasCte, hasManifesto, hasCanhoto, hasNf].filter(Boolean).length;
+                                              const missingCritical = !hasCte || !hasManifesto;
+                                              
+                                              return (
+                                                <tr 
+                                                  key={entrega.id} 
+                                                  className={`border-b last:border-0 ${isHighlighted ? 'bg-primary/10 animate-pulse' : ''}`}
+                                                >
+                                                  <td className="p-4 align-middle font-mono text-sm font-medium text-primary text-nowrap">
+                                                    {entrega.codigo || `${carga.codigo}-E${String(idx + 1).padStart(2, '0')}`}
+                                                  </td>
+                                                  <td className="p-4 align-middle">
+                                                    <div className="flex items-center gap-2">
+                                                      <User className="w-3 h-3 text-muted-foreground" />
+                                                      <span className="text-sm">
+                                                        {entrega.motoristas?.nome_completo || '-'}
+                                                      </span>
+                                                    </div>
+                                                  </td>
+                                                  <td className="p-4 align-middle">
+                                                    <div className="flex items-center gap-2">
+                                                      <Truck className="w-3 h-3 text-muted-foreground" />
+                                                      <span className="text-sm font-mono">
+                                                        {entrega.veiculos?.placa || '-'}
+                                                      </span>
+                                                    </div>
+                                                  </td>
+                                                  <td className="p-4 align-middle text-right text-sm font-medium">
+                                                    {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
+                                                  </td>
+                                                  <td className="p-4 align-middle text-right text-sm font-medium text-green-600">
+                                                    {formatCurrency(entrega.valor_frete)}
+                                                  </td>
+                                                  <td className="p-4 align-middle text-sm font-mono">
+                                                    {entrega.numero_cte || '-'}
+                                                  </td>
+                                                  <td className="p-4 align-middle">
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      className={`h-7 px-2 gap-1 ${missingCritical ? 'text-amber-600' : 'text-emerald-600'}`}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
                                                         setDetailsEntrega({ entrega, carga });
-                                                      }}>
-                                                        <Eye className="w-4 h-4 mr-2" />
-                                                        Ver detalhes
-                                                      </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                  </DropdownMenu>
-                                                </TableCell>
-                                              </TableRow>
-                                            );
-                                          })}
-                                        </TableBody>
-                                      </Table>
+                                                      }}
+                                                    >
+                                                      <FileText className="w-3 h-3" />
+                                                      <span className="text-xs">{docCount}/4</span>
+                                                      {missingCritical && <AlertCircle className="w-3 h-3" />}
+                                                    </Button>
+                                                  </td>
+                                                  <td className="p-4 align-middle">
+                                                    <div className="flex items-center gap-1 text-sm">
+                                                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                                                      {formatDate(entrega.coletado_em)}
+                                                    </div>
+                                                  </td>
+                                                  <td className="p-4 align-middle">
+                                                    <Badge className={`${statusConfig.color} text-xs`}>
+                                                      <StatusIcon className="w-3 h-3 mr-1" />
+                                                      {statusConfig.label}
+                                                    </Badge>
+                                                  </td>
+                                                  <td className="p-4 align-middle">
+                                                    <DropdownMenu>
+                                                      <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                          <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => {
+                                                          setDetailsEntrega({ entrega, carga });
+                                                        }}>
+                                                          <Eye className="w-4 h-4 mr-2" />
+                                                          Ver detalhes
+                                                        </DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
                                     </div>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              )}
+                                  </td>
+                                </tr>
+                              )}
+                            </>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
 
-              {/* Pagination */}
-              {renderPagination()}
+                  {/* Pagination */}
+                  {renderPagination()}
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
