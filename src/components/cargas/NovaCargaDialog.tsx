@@ -263,6 +263,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           temperatura_min: values.temperatura_min || null,
           temperatura_max: values.temperatura_max || null,
           numero_onu: values.numero_onu || null,
+          // Anexar T12:00:00 para evitar shift de timezone ao salvar em colunas do tipo date
           data_coleta_de: values.data_coleta_de ? `${values.data_coleta_de}T12:00:00` : values.data_coleta_de,
           data_coleta_ate: values.data_coleta_ate ? `${values.data_coleta_ate}T12:00:00` : null,
           data_entrega_limite: values.data_entrega_limite ? `${values.data_entrega_limite}T12:00:00` : null,
