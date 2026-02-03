@@ -661,11 +661,11 @@ export default function HistoricoCargas() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
       <TooltipProvider>
-        <div className="space-y-6 p-1">
+        <div className="flex flex-col h-full gap-6">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <History className="w-6 h-6 text-primary" />
@@ -682,7 +682,7 @@ export default function HistoricoCargas() {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 shrink-0">
             <Card 
               className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary' : ''}`}
               onClick={() => setFilterStatus('all')}
@@ -769,7 +769,7 @@ export default function HistoricoCargas() {
           </div>
 
           {/* Filters Row */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
             <AdvancedFiltersPopover
               filters={advancedFilters}
               onFiltersChange={setAdvancedFilters}
@@ -829,8 +829,8 @@ export default function HistoricoCargas() {
           </div>
 
           {/* Table */}
-          <Card>
-            <CardContent className="p-0">
+          <Card className="flex-1 min-h-0 flex flex-col">
+            <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -846,7 +846,7 @@ export default function HistoricoCargas() {
                   </p>
                 </div>
               ) : (
-                <div className="max-h-[500px] overflow-auto">
+                <div className="flex-1 min-h-0 overflow-auto">
                   <table className="w-full caption-bottom text-sm">
                     <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
                       <tr className="border-b transition-colors bg-muted/50">
