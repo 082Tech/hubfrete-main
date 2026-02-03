@@ -1628,10 +1628,7 @@ export default function CargasDisponiveis() {
                       <ViagemSelector
                         motoristaId={selectedMotorista}
                         onViagemSelect={setSelectedViagemId}
-                        onNewViagem={(viagemId) => setSelectedViagemId(viagemId)}
                         selectedViagemId={selectedViagemId}
-                        isCreatingViagem={isCreatingViagem}
-                        onCreateViagemClick={() => setIsCreatingViagem(true)}
                       />
                     </div>
                   )}
