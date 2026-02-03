@@ -1,3 +1,4 @@
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,15 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { 
-  Users, 
+  Users,
   Search,
   Mail,
   Edit,
@@ -29,11 +22,8 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
+  RotateCcw,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
-import { useViewModePreference } from '@/hooks/useViewModePreference';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +50,10 @@ import { ManageInvitesCard } from '@/components/users/ManageInvitesCard';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+import { useViewModePreference } from '@/hooks/useViewModePreference';
+import { useTableSort } from '@/hooks/useTableSort';
+import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColumns';
+import { DraggableTableHead } from '@/components/ui/draggable-table-head';
 
 type UserRole = 'ADMIN' | 'OPERADOR';
 
@@ -85,6 +79,16 @@ const roleColors: Record<UserRole, string> = {
   OPERADOR: 'bg-green-500/10 text-green-600 border-green-500/20',
 };
 
+// Column definitions
+const columns: ColumnDefinition[] = [
+  { id: 'usuario', label: 'Usuário', minWidth: '200px', sticky: 'left', sortable: true, sortKey: 'nome' },
+  { id: 'email', label: 'E-mail', minWidth: '200px', sortable: true, sortKey: 'email' },
+  { id: 'cargo', label: 'Cargo', minWidth: '120px', sortable: true, sortKey: 'cargo' },
+  { id: 'filiais', label: 'Filiais', minWidth: '180px' },
+  { id: 'status', label: 'Status', minWidth: '100px' },
+  { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
+];
+
 export default function UsuariosEmpresa() {
   const { user } = useAuth();
   const { empresa, filiais: contextFiliais } = useUserContext();
@@ -95,9 +99,25 @@ export default function UsuariosEmpresa() {
   const [editingUser, setEditingUser] = useState<UsuarioComFiliais | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
 
-  const { ref: contentRef, height: contentHeight } = useRemainingViewportHeight<HTMLDivElement>({
+  const { ref: tableCardRef, height: tableCardHeight } = useRemainingViewportHeight<HTMLDivElement>({
     bottomOffset: 32,
-    minHeight: 300,
+    minHeight: 320,
+  });
+
+  // Draggable columns hook
+  const {
+    orderedColumns,
+    draggedColumn,
+    dragOverColumn,
+    handleDragStart,
+    handleDragEnd,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    resetColumnOrder,
+  } = useDraggableColumns({
+    columns,
+    persistKey: 'usuarios-empresa-transportadora-columns',
   });
 
   // Fetch usuarios from the company
@@ -194,15 +214,32 @@ export default function UsuariosEmpresa() {
     return filtered;
   }, [allUsuarios, searchTerm]);
 
+  // Custom sort functions
+  const sortFunctions = useMemo(() => ({
+    nome: (a: UsuarioComFiliais, b: UsuarioComFiliais) =>
+      (a.nome || '').localeCompare(b.nome || '', 'pt-BR'),
+    email: (a: UsuarioComFiliais, b: UsuarioComFiliais) =>
+      (a.email || '').localeCompare(b.email || '', 'pt-BR'),
+    cargo: (a: UsuarioComFiliais, b: UsuarioComFiliais) =>
+      (a.cargo || '').localeCompare(b.cargo || '', 'pt-BR'),
+  }), []);
+
+  const { sortedData, requestSort, getSortDirection } = useTableSort({
+    data: filteredUsuarios,
+    defaultSort: { key: 'nome', direction: 'asc' },
+    persistKey: 'usuarios-empresa-transportadora',
+    sortFunctions,
+  });
+
   // Pagination
-  const totalPages = Math.ceil(filteredUsuarios.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
   const paginatedUsuarios = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredUsuarios.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredUsuarios, currentPage]);
+    return sortedData.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedData, currentPage]);
 
   // Reset page when search changes
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
@@ -239,6 +276,106 @@ export default function UsuariosEmpresa() {
     admins: usuarios.filter(u => u.cargo === 'ADMIN').length,
     operadores: usuarios.filter(u => u.cargo === 'OPERADOR').length,
     pendingInvites: invites.filter(i => i.status === 'pending').length,
+  };
+
+  // Get column icon
+  const getColumnIcon = (columnId: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      usuario: <Users className="w-3.5 h-3.5" />,
+      email: <Mail className="w-3.5 h-3.5" />,
+      cargo: <Shield className="w-3.5 h-3.5" />,
+      filiais: <MapPin className="w-3.5 h-3.5" />,
+    };
+    return icons[columnId] || null;
+  };
+
+  // Render cell based on column ID
+  const renderCell = (columnId: string, usuario: UsuarioComFiliais) => {
+    switch (columnId) {
+      case 'usuario':
+        return (
+          <td className="p-4 align-middle sticky left-0 bg-background z-10">
+            <div className="flex items-center gap-3">
+              <Avatar className="w-8 h-8">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  {(usuario.nome || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-medium text-nowrap">{usuario.nome || 'Sem nome'}</span>
+            </div>
+          </td>
+        );
+      case 'email':
+        return (
+          <td className="p-4 align-middle text-muted-foreground text-nowrap">
+            {usuario.email || '-'}
+          </td>
+        );
+      case 'cargo':
+        return (
+          <td className="p-4 align-middle">
+            {usuario.cargo && !usuario.isPending && (
+              <Badge variant="outline" className={roleColors[usuario.cargo]}>
+                {roleLabels[usuario.cargo]}
+              </Badge>
+            )}
+            {usuario.isPending && usuario.cargo && (
+              <Badge variant="outline" className={roleColors[usuario.cargo]}>
+                {roleLabels[usuario.cargo]}
+              </Badge>
+            )}
+          </td>
+        );
+      case 'filiais':
+        return (
+          <td className="p-4 align-middle text-muted-foreground">
+            <span className="truncate max-w-[180px] block">{getFilialNomes(usuario.filiais)}</span>
+          </td>
+        );
+      case 'status':
+        return (
+          <td className="p-4 align-middle">
+            {usuario.isPending ? (
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1">
+                <Clock className="w-3 h-3" />
+                Pendente
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                Ativo
+              </Badge>
+            )}
+          </td>
+        );
+      case 'acoes':
+        return (
+          <td className="p-4 align-middle sticky right-0 bg-background z-10">
+            {!usuario.isPending && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditingUser(usuario)}>
+                    <Edit className="w-4 h-4 mr-2" />Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDeletingUserId(usuario.id)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </td>
+        );
+      default:
+        return <td className="p-4 align-middle">-</td>;
+    }
   };
 
   const renderUserCard = (usuario: UsuarioComFiliais) => (
@@ -432,23 +569,36 @@ export default function UsuariosEmpresa() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}>
-            <ToggleGroupItem value="list" aria-label="Visualização em lista">
-              <List className="w-4 h-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="grid" aria-label="Visualização em cards">
-              <LayoutGrid className="w-4 h-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <div className="flex items-center gap-2">
+            {viewMode === 'list' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={resetColumnOrder}
+                title="Restaurar ordem das colunas"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+            )}
+            <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}>
+              <ToggleGroupItem value="list" aria-label="Visualização em lista">
+                <List className="w-4 h-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="grid" aria-label="Visualização em cards">
+                <LayoutGrid className="w-4 h-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         </div>
 
-        {/* Content with internal scroll */}
+        {/* Content */}
         {loadingUsuarios ? (
-          <Card ref={contentRef} className="flex-1 flex items-center justify-center border-border" style={{ height: contentHeight }}>
+          <Card className="flex-1 flex items-center justify-center border-border">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </Card>
-        ) : filteredUsuarios.length === 0 ? (
-          <Card ref={contentRef} className="flex-1 flex items-center justify-center border-border" style={{ height: contentHeight }}>
+        ) : sortedData.length === 0 ? (
+          <Card className="flex-1 flex items-center justify-center border-border">
             <CardContent className="text-center">
               <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="font-medium text-foreground mb-1">
@@ -462,129 +612,173 @@ export default function UsuariosEmpresa() {
             </CardContent>
           </Card>
         ) : viewMode === 'list' ? (
-          <Card ref={contentRef} className="flex-1 flex flex-col border-border overflow-hidden" style={{ height: contentHeight }}>
-            <div className="flex-1 overflow-auto">
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-muted/50">
-                  <TableRow>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Cargo</TableHead>
-                    <TableHead>Filiais</TableHead>
-                    <TableHead className="w-12"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedUsuarios.map((usuario) => (
-                    <TableRow key={usuario.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                              {(usuario.nome || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{usuario.nome || 'Sem nome'}</span>
-                          {usuario.isPending && (
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 text-[10px]">
-                              <Clock className="w-3 h-3" />
-                              Pendente
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{usuario.email}</TableCell>
-                      <TableCell>
-                        {usuario.cargo && (
-                          <Badge variant="outline" className={roleColors[usuario.cargo]}>
-                            {roleLabels[usuario.cargo]}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                        {getFilialNomes(usuario.filiais)}
-                      </TableCell>
-                      <TableCell>
-                        {!usuario.isPending && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="gap-2" onClick={() => setEditingUser(usuario)}>
-                                <Edit className="w-4 h-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                className="gap-2 text-destructive focus:text-destructive"
-                                onClick={() => setDeletingUserId(usuario.id)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t px-4 py-3 shrink-0">
-                <p className="text-sm text-muted-foreground">
-                  Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredUsuarios.length)} de {filteredUsuarios.length}
-                </p>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
-                    <ChevronsLeft className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
-                    <ChevronsRight className="w-4 h-4" />
-                  </Button>
-                </div>
+          <Card
+            ref={tableCardRef}
+            style={{ height: tableCardHeight }}
+            className="border-border flex flex-col"
+          >
+            <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
+              <div className="flex-1 min-h-0 overflow-auto">
+                <table className="w-full caption-bottom text-sm">
+                  <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
+                    <tr className="border-b transition-colors bg-muted/50">
+                      {orderedColumns.map((col) => (
+                        <DraggableTableHead
+                          key={col.id}
+                          columnId={col.id}
+                          isDragging={draggedColumn === col.id}
+                          isDragOver={dragOverColumn === col.id}
+                          isSticky={!!col.sticky}
+                          sortable={col.sortable}
+                          sortDirection={col.sortKey ? getSortDirection(col.sortKey) : null}
+                          onSort={col.sortKey ? () => requestSort(col.sortKey!) : undefined}
+                          onColumnDragStart={handleDragStart}
+                          onColumnDragEnd={handleDragEnd}
+                          onColumnDragOver={handleDragOver}
+                          onColumnDragLeave={handleDragLeave}
+                          onColumnDrop={handleDrop}
+                          className={`min-w-[${col.minWidth}] ${
+                            col.sticky === 'left' ? 'sticky left-0 bg-muted/50 z-10' :
+                            col.sticky === 'right' ? 'sticky right-0 bg-muted/50 z-10' : ''
+                          }`}
+                        >
+                          {getColumnIcon(col.id)}
+                          {col.label}
+                        </DraggableTableHead>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="[&_tr:last-child]:border-0">
+                    {paginatedUsuarios.map((usuario) => (
+                      <tr key={usuario.id} className="border-b transition-colors hover:bg-muted/30">
+                        {orderedColumns.map((col) => (
+                          <React.Fragment key={col.id}>
+                            {renderCell(col.id, usuario)}
+                          </React.Fragment>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t px-4 py-3">
+                  <p className="text-sm text-muted-foreground">
+                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length} registros
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Anterior
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? 'default' : 'outline'}
+                            size="sm"
+                            className="w-8 h-8 p-0"
+                            onClick={() => setCurrentPage(pageNum)}
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Próximo
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
           </Card>
         ) : (
-          /* Grid View - no Card wrapper */
-          <div ref={contentRef} className="flex flex-col overflow-hidden" style={{ height: contentHeight }}>
+          /* Grid View */
+          <div 
+            ref={tableCardRef}
+            style={{ height: tableCardHeight }}
+            className="flex flex-col overflow-hidden"
+          >
             <div className="flex-1 overflow-auto">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {paginatedUsuarios.map(renderUserCard)}
               </div>
             </div>
             
-            {/* Pagination */}
+            {/* Pagination for Grid */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 shrink-0 mt-4 bg-card rounded-lg border">
+              <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4">
                 <p className="text-sm text-muted-foreground">
-                  Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredUsuarios.length)} de {filteredUsuarios.length}
+                  Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length} registros
                 </p>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
-                    <ChevronsLeft className="w-4 h-4" />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Anterior
                   </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
-                    <ChevronsRight className="w-4 h-4" />
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? 'default' : 'outline'}
+                          size="sm"
+                          className="w-8 h-8 p-0"
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próximo
+                    <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
               </div>
