@@ -1,13 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+// Table components not used - using native HTML for sticky headers
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -406,16 +399,16 @@ export default function HistoricoEntregas() {
     switch (columnId) {
       case 'codigo':
         return (
-          <TableCell className="sticky left-0 bg-background z-10">
+          <td className="p-4 align-middle sticky left-0 bg-background z-10">
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="font-medium text-nowrap">{e.codigo || e.carga.codigo}</span>
             </div>
-          </TableCell>
+          </td>
         );
       case 'remetente':
         return (
-          <TableCell className="text-nowrap">
+          <td className="p-4 align-middle text-nowrap">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="cursor-help">
@@ -437,11 +430,11 @@ export default function HistoricoEntregas() {
                 )}
               </TooltipContent>
             </Tooltip>
-          </TableCell>
+          </td>
         );
       case 'destinatario':
         return (
-          <TableCell className="text-nowrap">
+          <td className="p-4 align-middle text-nowrap">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="cursor-help">
@@ -463,27 +456,27 @@ export default function HistoricoEntregas() {
                 )}
               </TooltipContent>
             </Tooltip>
-          </TableCell>
+          </td>
         );
       case 'rota':
         return (
-          <TableCell className="text-nowrap">
+          <td className="p-4 align-middle text-nowrap">
             <div className="flex items-center gap-1 text-sm">
               <span className="truncate max-w-[50px]">{origem?.cidade || '-'}</span>
               <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
               <span className="truncate max-w-[50px]">{destino?.cidade || '-'}</span>
             </div>
-          </TableCell>
+          </td>
         );
       case 'peso':
         return (
-          <TableCell className="text-sm text-nowrap">
+          <td className="p-4 align-middle text-sm text-nowrap">
             {formatPeso(e.peso_alocado_kg || e.carga.peso_kg)}
-          </TableCell>
+          </td>
         );
       case 'motorista':
         return (
-          <TableCell className="text-nowrap">
+          <td className="p-4 align-middle text-nowrap">
             {e.motorista ? (
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -504,30 +497,30 @@ export default function HistoricoEntregas() {
             ) : (
               <span className="text-sm text-muted-foreground">-</span>
             )}
-          </TableCell>
+          </td>
         );
       case 'status':
         return (
-          <TableCell className="text-nowrap">
+          <td className="p-4 align-middle text-nowrap">
             <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
               <StatusIcon className="w-3 h-3" />
               {config?.label || status}
             </Badge>
-          </TableCell>
+          </td>
         );
       case 'numero_cte':
         return (
-          <TableCell className="text-nowrap">
+          <td className="p-4 align-middle text-nowrap">
             <span className="text-xs font-mono text-muted-foreground">
               {e.numero_cte || '-'}
             </span>
-          </TableCell>
+          </td>
         );
       case 'docs':
         const docsCount = getDocsCount(e);
         const hasMissing = hasMissingCriticalDocs(e);
         return (
-          <TableCell className="text-nowrap">
+          <td className="p-4 align-middle text-nowrap">
             <Button
               variant="ghost"
               size="sm"
@@ -538,21 +531,21 @@ export default function HistoricoEntregas() {
               {docsCount}
               {hasMissing && <AlertTriangle className="w-3 h-3" />}
             </Button>
-          </TableCell>
+          </td>
         );
       case 'encerrada_em':
         return (
-          <TableCell className="text-sm text-muted-foreground text-nowrap">
+          <td className="p-4 align-middle text-sm text-muted-foreground text-nowrap">
             {new Date(e.entregue_em || e.updated_at || Date.now()).toLocaleDateString('pt-BR', {
               day: '2-digit',
               month: 'short',
               year: 'numeric',
             })}
-          </TableCell>
+          </td>
         );
       case 'acoes':
         return (
-          <TableCell className="sticky right-0 bg-background z-10">
+          <td className="p-4 align-middle sticky right-0 bg-background z-10">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -589,10 +582,10 @@ export default function HistoricoEntregas() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </TableCell>
+          </td>
         );
       default:
-        return <TableCell>-</TableCell>;
+        return <td className="p-4 align-middle">-</td>;
     }
   };
 
@@ -729,9 +722,9 @@ export default function HistoricoEntregas() {
           <Card className="border-border hidden md:block">
             <CardContent className="p-0">
               <div className="max-h-[500px] overflow-auto">
-                <Table>
-                  <TableHeader className="sticky top-0 z-20 bg-background">
-                    <TableRow className="bg-muted/50">
+                <table className="w-full caption-bottom text-sm">
+                  <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
+                    <tr className="border-b transition-colors bg-muted/50">
                       {orderedColumns.map((col) => (
                         <DraggableTableHead
                           key={col.id}
@@ -756,18 +749,18 @@ export default function HistoricoEntregas() {
                           {col.label}
                         </DraggableTableHead>
                       ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                    </tr>
+                  </thead>
+                  <tbody className="[&_tr:last-child]:border-0">
                     {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={orderedColumns.length} className="py-10 text-center text-muted-foreground">
+                      <tr className="border-b transition-colors">
+                        <td colSpan={orderedColumns.length} className="p-4 align-middle py-10 text-center text-muted-foreground">
                           Carregando...
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ) : paginatedData.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={orderedColumns.length} className="py-10 text-center text-muted-foreground">
+                      <tr className="border-b transition-colors">
+                        <td colSpan={orderedColumns.length} className="p-4 align-middle py-10 text-center text-muted-foreground">
                           <div className="flex flex-col items-center gap-2">
                             <Package className="w-10 h-10 text-muted-foreground/50" />
                             <p>Nenhum registro encontrado.</p>
@@ -784,21 +777,21 @@ export default function HistoricoEntregas() {
                               </Button>
                             )}
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ) : (
                       paginatedData.map((e) => (
-                        <TableRow key={e.id} className="hover:bg-muted/30">
+                        <tr key={e.id} className="border-b transition-colors hover:bg-muted/30">
                           {orderedColumns.map((col) => (
                             <React.Fragment key={col.id}>
                               {renderCell(col.id, e)}
                             </React.Fragment>
                           ))}
-                        </TableRow>
+                        </tr>
                       ))
                     )}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
               
               {/* Pagination */}
