@@ -24,6 +24,7 @@ import {
   ChevronsRight
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
+import { useViewModePreference } from '@/hooks/useViewModePreference';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,7 +99,7 @@ export default function GerenciarFiliais() {
   const [editingFilial, setEditingFilial] = useState<Filial | null>(null);
   const [formData, setFormData] = useState<NewFilialForm>(initialFormState);
   const [saving, setSaving] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const { viewMode, setViewMode } = useViewModePreference();
   const [currentPage, setCurrentPage] = useState(1);
 
   const { ref: contentRef, height: contentHeight } = useRemainingViewportHeight<HTMLDivElement>({

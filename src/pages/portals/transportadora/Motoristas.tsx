@@ -42,6 +42,10 @@ import {
   Share2,
   LayoutGrid,
   List,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -54,6 +58,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useState, useMemo } from 'react';
+import { useViewModePreference } from '@/hooks/useViewModePreference';
 import { toast } from 'sonner';
 import { format, isValid, parseISO } from 'date-fns';
 
@@ -75,7 +80,7 @@ export default function Motoristas() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const { viewMode, setViewMode } = useViewModePreference();
   const [currentPage, setCurrentPage] = useState(1);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -303,12 +308,12 @@ export default function Motoristas() {
               className="pl-9"
             />
           </div>
-          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'card' | 'list')}>
-            <ToggleGroupItem value="card" aria-label="Visualização em cards">
-              <LayoutGrid className="w-4 h-4" />
-            </ToggleGroupItem>
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}>
             <ToggleGroupItem value="list" aria-label="Visualização em lista">
               <List className="w-4 h-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="grid" aria-label="Visualização em cards">
+              <LayoutGrid className="w-4 h-4" />
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
@@ -429,7 +434,7 @@ export default function Motoristas() {
             </div>
           </Card>
         ) : (
-          /* Card View */
+          /* Grid View - no Card wrapper */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {paginatedMotoristas.map((motorista) => {
               const cnhStatus = getCNHStatus(motorista.validade_cnh);
@@ -506,7 +511,6 @@ export default function Motoristas() {
                       </div>
                     </div>
 
-                    {/* Spacer to push equipment to bottom */}
                     <div className="flex-1 min-h-4" />
 
                     <div className="pt-3 border-t border-border space-y-2 mt-4">
@@ -540,33 +544,25 @@ export default function Motoristas() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    isActive={currentPage === page}
-                    onClick={() => setCurrentPage(page)}
-                    className="cursor-pointer"
-                  >
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+          <div className="flex items-center justify-between py-3 mt-4 bg-card rounded-lg border px-4">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredMotoristas.length)} de {filteredMotoristas.length}
+            </p>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                <ChevronsLeft className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+                <ChevronsRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 

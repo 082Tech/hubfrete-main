@@ -76,6 +76,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useState, useMemo, useRef } from 'react';
+import { useViewModePreference } from '@/hooks/useViewModePreference';
 import { toast } from 'sonner';
 import { VeiculoEditDialog, CarroceriaEditDialog } from '@/components/frota';
 
@@ -207,7 +208,7 @@ export default function MinhaFrota() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'veiculos' | 'carrocerias'>('veiculos');
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const { viewMode, setViewMode } = useViewModePreference();
   const [currentPageVeiculos, setCurrentPageVeiculos] = useState(1);
   const [currentPageCarrocerias, setCurrentPageCarrocerias] = useState(1);
   const [isVeiculoDialogOpen, setIsVeiculoDialogOpen] = useState(false);
@@ -1427,12 +1428,12 @@ export default function MinhaFrota() {
                   className="pl-9"
                 />
               </div>
-              <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'card' | 'list')}>
-                <ToggleGroupItem value="card" aria-label="Visualização em cards">
-                  <LayoutGrid className="w-4 h-4" />
-                </ToggleGroupItem>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}>
                 <ToggleGroupItem value="list" aria-label="Visualização em lista">
                   <List className="w-4 h-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="grid" aria-label="Visualização em cards">
+                  <LayoutGrid className="w-4 h-4" />
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
@@ -1802,12 +1803,12 @@ export default function MinhaFrota() {
                   className="pl-9"
                 />
               </div>
-              <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'card' | 'list')}>
-                <ToggleGroupItem value="card" aria-label="Visualização em cards">
-                  <LayoutGrid className="w-4 h-4" />
-                </ToggleGroupItem>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}>
                 <ToggleGroupItem value="list" aria-label="Visualização em lista">
                   <List className="w-4 h-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="grid" aria-label="Visualização em cards">
+                  <LayoutGrid className="w-4 h-4" />
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
