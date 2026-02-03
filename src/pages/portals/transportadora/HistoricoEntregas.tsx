@@ -571,12 +571,10 @@ export default function HistoricoEntregas() {
                   <Eye className="w-4 h-4 mr-2" />
                   Ver detalhes
                 </DropdownMenuItem>
-                {e.cte_url && (
-                  <DropdownMenuItem onClick={() => handleOpenFile(e.cte_url!, 'CT-e')}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Ver CT-e
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem onClick={() => handleOpenDetails(e)}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Ver documentos
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => {
                   setTrackingMapEntregaId(e.id);
                   setTrackingMapInfo({

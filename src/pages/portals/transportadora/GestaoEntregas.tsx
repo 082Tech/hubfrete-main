@@ -944,8 +944,8 @@ export default function GestaoEntregas() {
                 className="text-destructive focus:text-destructive"
                 onClick={() => handleDeleteClick(entrega)}
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Excluir entrega
+                <XCircle className="w-4 h-4 mr-2" />
+                Cancelar entrega
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1836,10 +1836,10 @@ export default function GestaoEntregas() {
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
                                     onClick={() => handleDeleteClick(entrega)}
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Excluir entrega
-                                  </DropdownMenuItem>
+                                    >
+                                      <XCircle className="w-4 h-4 mr-2" />
+                                      Cancelar entrega
+                                    </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -1916,23 +1916,23 @@ export default function GestaoEntregas() {
         title="CT-e"
       />
 
-      {/* Delete Confirmation Dialog */}
+      {/* Cancel Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir entrega?</AlertDialogTitle>
+            <AlertDialogTitle>Cancelar entrega?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a entrega <strong>{entregaToDelete?.carga.codigo}</strong>?
+              Tem certeza que deseja cancelar a entrega <strong>{entregaToDelete?.carga.codigo}</strong>?
               O peso alocado será liberado na carga original.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Excluir
+              Cancelar Entrega
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
