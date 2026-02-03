@@ -7,12 +7,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 import { AdvancedFiltersPopover, type AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import type { Database } from '@/integrations/supabase/types';
@@ -39,13 +39,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Package,
   Search,
@@ -682,13 +675,10 @@ export default function HistoricoCargas() {
                 Cargas finalizadas (entregues, canceladas ou com problemas)
               </p>
             </div>
-            <AdvancedFiltersPopover
-              filters={advancedFilters}
-              onFiltersChange={setAdvancedFilters}
-              showMotorista={true}
-              showDestinatario={true}
-              motoristas={motoristasUnicos}
-            />
+            <Badge variant="outline" className="w-fit">
+              <Clock className="w-3 h-3 mr-1" />
+              {filteredCargas.length} registros
+            </Badge>
           </div>
 
           {/* KPI Cards */}
@@ -780,17 +770,13 @@ export default function HistoricoCargas() {
 
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3">
-            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrar por status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas Finalizadas</SelectItem>
-                <SelectItem value="entregue">Entregues</SelectItem>
-                <SelectItem value="cancelada">Canceladas</SelectItem>
-                <SelectItem value="problema">Com Problemas</SelectItem>
-              </SelectContent>
-            </Select>
+            <AdvancedFiltersPopover
+              filters={advancedFilters}
+              onFiltersChange={setAdvancedFilters}
+              showMotorista={true}
+              showDestinatario={true}
+              motoristas={motoristasUnicos}
+            />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -814,11 +800,27 @@ export default function HistoricoCargas() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            <div className='flex gap-2 items-center text-sm text-muted-foreground'>
+              <Package className="w-4 h-4" />
+              Cargas finalizadas
+            </div>
 
             {filterStatus !== 'all' && (
-              <Button variant="ghost" size="sm" onClick={() => setFilterStatus('all')}>
-                Limpar filtros
-              </Button>
+              <Badge variant="outline">
+                Filtro: {filterStatus === 'entregue' ? 'Entregues' : filterStatus === 'cancelada' ? 'Canceladas' : 'Com Problemas'}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 ml-1 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilterStatus('all');
+                  }}
+                >
+                  ×
+                </Button>
+              </Badge>
             )}
 
             <div className="ml-auto text-sm text-muted-foreground">
@@ -844,7 +846,7 @@ export default function HistoricoCargas() {
                   </p>
                 </div>
               ) : (
-                <ScrollArea className="w-full">
+                <div className="max-h-[500px] overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
@@ -1144,8 +1146,7 @@ export default function HistoricoCargas() {
                       })}
                     </TableBody>
                   </Table>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
+                </div>
               )}
               {renderPagination()}
             </CardContent>
