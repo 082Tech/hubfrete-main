@@ -65,9 +65,11 @@ import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 
 // Status definitions - apenas os status válidos
+// Coluna 1 (pending): APENAS 'aguardando'
+// Coluna 2 (inRoute/done): 'saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
   aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock, column: 'pending' },
-  saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200', icon: Truck, column: 'pending' },
+  saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200', icon: Truck, column: 'inRoute' },
   saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: MapPin, column: 'inRoute' },
   entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle, column: 'done' },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle, column: 'done' },
