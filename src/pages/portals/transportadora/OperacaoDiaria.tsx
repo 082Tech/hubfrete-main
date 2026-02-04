@@ -28,11 +28,13 @@ import {
   Printer,
   X,
   ArrowUpRight,
+  Map,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleMapsLoader, useGoogleMaps } from '@/components/maps/GoogleMapsLoader';
 import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
+import { AdvancedSearchPopover } from '@/components/cargas/AdvancedSearchPopover';
 
 // Status definitions - incluindo todos os status possíveis
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
@@ -44,7 +46,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   em_entrega: { label: 'Em Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: MapPin, column: 'inRoute' },
   entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle, column: 'done' },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle, column: 'done' },
-};
+}; // Lovable: Apenas temos os status, aguardando, saiu para coleta, saiu para entrega, entregue, cancelada, corrige isso
 
 type EntregaStatus = string;
 
@@ -82,26 +84,25 @@ interface Entrega {
 }
 
 // Delivery list item component (iFood style)
-function EntregaListItem({ 
-  entrega, 
-  isSelected, 
+function EntregaListItem({
+  entrega,
+  isSelected,
   onClick,
-}: { 
-  entrega: Entrega; 
+}: {
+  entrega: Entrega;
   isSelected: boolean;
   onClick: () => void;
 }) {
   const statusInfo = statusConfig[entrega.status] || statusConfig.aguardando_coleta;
-  const tempoDecorrido = formatDistanceToNow(new Date(entrega.updated_at || entrega.created_at), { 
-    addSuffix: false, 
-    locale: ptBR 
+  const tempoDecorrido = formatDistanceToNow(new Date(entrega.updated_at || entrega.created_at), {
+    addSuffix: false,
+    locale: ptBR
   });
-  
+
   return (
-    <div 
-      className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b last:border-b-0 ${
-        isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
-      }`}
+    <div
+      className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b last:border-b-0 ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
+        }`}
       onClick={onClick}
     >
       {/* Avatar/Icon */}
@@ -113,7 +114,7 @@ function EntregaListItem({
           {entrega.motorista?.nome_completo?.[0] || <Truck className="w-4 h-4" />}
         </AvatarFallback>
       </Avatar>
-      
+
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
@@ -132,7 +133,7 @@ function EntregaListItem({
           )}
         </div>
       </div>
-      
+
       {/* Time & Status */}
       <div className="text-right shrink-0">
         <p className="text-xs text-muted-foreground mb-1">cerca de {tempoDecorrido}</p>
@@ -155,13 +156,13 @@ function EmptyColumnPlaceholder({ message }: { message: string }) {
 }
 
 // Detail panel (right side) - more compact
-function DetailPanel({ 
-  entrega, 
+function DetailPanel({
+  entrega,
   onClose,
   onStatusChange,
   isChangingStatus,
   driverLocation
-}: { 
+}: {
   entrega: Entrega | null;
   onClose: () => void;
   onStatusChange: (newStatus: EntregaStatus) => void;
@@ -171,7 +172,7 @@ function DetailPanel({
   if (!entrega) {
     return (
       <div className="flex items-center justify-center h-full">
-        <EmptyColumnPlaceholder 
+        <EmptyColumnPlaceholder
           message="Selecione uma entrega para ver os detalhes"
         />
       </div>
@@ -232,11 +233,11 @@ function DetailPanel({
             </Button>
           </div>
         </div>
-        
+
         <p className="text-xs text-muted-foreground mb-2">
           {format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })} • {entrega.carga.codigo}
         </p>
-        
+
         {/* Status banner */}
         <div className={`rounded-md px-3 py-1.5 text-center text-sm ${statusInfo.color}`}>
           <span className="font-semibold flex items-center justify-center gap-2">
@@ -255,11 +256,11 @@ function DetailPanel({
               {entrega.carga.endereco_origem?.cidade} → {entrega.carga.endereco_destino?.cidade}
             </p>
           </div>
-          
+
           <Separator />
-          
+
           {/* Mini Map - aspect ratio mais quadrado */}
-          <div className="rounded-lg overflow-hidden border aspect-square max-h-40">
+          <div className="rounded-lg overflow-hidden border w-full h-[300px]">
             <GoogleMapsLoader>
               <GoogleMap
                 mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -365,15 +366,14 @@ function DetailPanel({
               <History className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="font-medium text-xs">Histórico</span>
             </div>
-            
+
             {entrega.eventos && entrega.eventos.length > 0 ? (
               <div className="relative pl-3 space-y-2">
                 <div className="absolute left-1 top-1.5 bottom-1.5 w-0.5 bg-purple-200" />
                 {entrega.eventos.slice(0, 5).map((evento, idx) => (
                   <div key={evento.id} className="relative">
-                    <div className={`absolute -left-2 top-0.5 w-2 h-2 rounded-full border-2 border-background ${
-                      idx === 0 ? 'bg-purple-500' : 'bg-purple-200'
-                    }`} />
+                    <div className={`absolute -left-2 top-0.5 w-2 h-2 rounded-full border-2 border-background ${idx === 0 ? 'bg-purple-500' : 'bg-purple-200'
+                      }`} />
                     <div className="ml-2">
                       <span className="text-xs">
                         {evento.tipo.replace(/status_/g, '').replace(/_/g, ' ')}
@@ -393,12 +393,12 @@ function DetailPanel({
           </div>
         </div>
       </ScrollArea>
-      
+
       {/* Footer actions */}
       {!isFinalized && nextStatuses.length > 0 && (
         <div className="p-3 border-t bg-muted/20">
           <div className="flex gap-2">
-            {nextStatuses.map((status) => {
+            {nextStatuses.map((status) => { // Lovable: Mudar para os status corretos e aqui só vai precisar de um botão de ação mesmo, eu quero que tenha o icone de 3 pontos verticais no canto esquerdo desse botão, esse sim que vai abrir um dialog com mais ações, caso o usuário precisa cancelar aquela entrega, etc. 
               const config = statusConfig[status];
               if (!config) return null;
               const Icon = config.icon;
@@ -430,10 +430,10 @@ function DetailPanel({
 
 // ==================== Gestão Dialog com Mapa + Lista Motoristas ====================
 
-function GestaoEntregasDialogContent({ 
+function GestaoEntregasDialogContent({
   entregas,
   localizacoes,
-}: { 
+}: {
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null }>;
 }) {
@@ -444,7 +444,7 @@ function GestaoEntregasDialogContent({
   // Agrupar entregas por motorista
   const motoristaGroups = useMemo(() => {
     const groups: Record<string, { motorista: Entrega['motorista']; entregas: Entrega[] }> = {};
-    
+
     entregas.forEach(e => {
       if (!e.motorista_id || !e.motorista) return;
       if (!groups[e.motorista_id]) {
@@ -452,7 +452,7 @@ function GestaoEntregasDialogContent({
       }
       groups[e.motorista_id].entregas.push(e);
     });
-    
+
     return Object.entries(groups).map(([id, data]) => ({
       id,
       ...data,
@@ -460,7 +460,7 @@ function GestaoEntregasDialogContent({
   }, [entregas]);
 
   // Lista de motoristas para o filtro
-  const motoristasList = useMemo(() => 
+  const motoristasList = useMemo(() =>
     motoristaGroups.map(g => ({ id: g.id, nome: g.motorista?.nome_completo || '' })),
     [motoristaGroups]
   );
@@ -470,12 +470,12 @@ function GestaoEntregasDialogContent({
     if (!filters.motorista && !filters.codigo && !filters.cidadeOrigem && !filters.cidadeDestino) {
       return motoristaGroups;
     }
-    
+
     return motoristaGroups.filter(group => {
       if (filters.motorista && !group.motorista?.nome_completo.toLowerCase().includes(filters.motorista.toLowerCase())) {
         return false;
       }
-      
+
       // Verifica se alguma entrega do grupo atende aos filtros
       const hasMatchingEntrega = group.entregas.some(e => {
         if (filters.codigo && !e.codigo?.toLowerCase().includes(filters.codigo.toLowerCase())) {
@@ -489,7 +489,7 @@ function GestaoEntregasDialogContent({
         }
         return true;
       });
-      
+
       return hasMatchingEntrega;
     });
   }, [motoristaGroups, filters]);
@@ -497,7 +497,7 @@ function GestaoEntregasDialogContent({
   // Handler para clicar no motorista na lista
   const handleMotoristaClick = useCallback((motoristaId: string) => {
     setSelectedMotoristaId(motoristaId);
-    
+
     // Centralizar no mapa
     const loc = localizacoes.find(l => l.motorista_id === motoristaId);
     if (loc?.latitude && loc?.longitude && mapRef) {
@@ -510,7 +510,7 @@ function GestaoEntregasDialogContent({
   const mapBounds = useMemo(() => {
     const validLocs = localizacoes.filter(l => l.latitude && l.longitude);
     if (validLocs.length === 0) return null;
-    
+
     const bounds = new google.maps.LatLngBounds();
     validLocs.forEach(l => {
       if (l.latitude && l.longitude) {
@@ -542,138 +542,136 @@ function GestaoEntregasDialogContent({
           />
         </div>
       </DialogHeader>
-      
-        <div className="flex-1 flex overflow-hidden">
-          {/* Mapa grande à esquerda (70%) */}
-          <div className="flex-[7] relative">
-            <GoogleMapsLoader>
-              <GoogleMap
-                mapContainerStyle={{ width: '100%', height: '100%' }}
-                center={{ lat: -14.24, lng: -51.93 }}
-                zoom={4}
-                onLoad={handleMapLoad}
-                options={{
-                  disableDefaultUI: false,
-                  zoomControl: true,
-                  mapTypeControl: false,
-                  streetViewControl: false,
-                  fullscreenControl: true,
-                }}
-              >
-                {filteredGroups.map(group => {
-                  const loc = localizacoes.find(l => l.motorista_id === group.id);
-                  if (!loc?.latitude || !loc?.longitude) return null;
-                  
-                  const isSelected = selectedMotoristaId === group.id;
-                  
-                  return (
-                    <Marker
-                      key={group.id}
-                      position={{ lat: loc.latitude, lng: loc.longitude }}
-                      onClick={() => handleMotoristaClick(group.id)}
-                      icon={{
-                        path: 'M 0,-10 L 6,10 L 0,5 L -6,10 Z',
-                        scale: isSelected ? 2.5 : 2,
-                        fillColor: isSelected ? '#22c55e' : '#3b82f6',
-                        fillOpacity: 1,
-                        strokeColor: '#fff',
-                        strokeWeight: 2,
-                        rotation: 0,
-                      }}
-                      title={group.motorista?.nome_completo || 'Motorista'}
-                    />
-                  );
-                })}
-              </GoogleMap>
-            </GoogleMapsLoader>
-          </div>
-          
-          {/* Lista de motoristas à direita (30%) */}
-          <div className="flex-[3] border-l flex flex-col bg-background">
-            <div className="px-3 py-2 border-b bg-muted/30">
-              <span className="text-sm font-medium">Motoristas ({filteredGroups.length})</span>
-            </div>
-            
-            <ScrollArea className="flex-1">
-              {filteredGroups.length === 0 ? (
-                <EmptyColumnPlaceholder message="Nenhum motorista encontrado" />
-              ) : (
-                filteredGroups.map(group => {
-                  const loc = localizacoes.find(l => l.motorista_id === group.id);
-                  const isOnline = !!(loc?.latitude && loc?.longitude);
-                  const isSelected = selectedMotoristaId === group.id;
-                  
-                  return (
-                    <div 
-                      key={group.id}
-                      className={`px-3 py-2.5 border-b cursor-pointer transition-all hover:bg-muted/50 ${
-                        isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
-                      }`}
-                      onClick={() => handleMotoristaClick(group.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="relative">
-                          <Avatar className="h-8 w-8">
-                            {group.motorista?.foto_url && <AvatarImage src={group.motorista.foto_url} />}
-                            <AvatarFallback className="text-xs">{group.motorista?.nome_completo?.[0]}</AvatarFallback>
-                          </Avatar>
-                          <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${
-                            isOnline ? 'bg-green-500' : 'bg-gray-400'
-                          }`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Entregas do motorista */}
-                      {isSelected && group.entregas.length > 0 && (
-                        <div className="mt-2 pl-10 space-y-1">
-                          {group.entregas.slice(0, 3).map(e => (
-                            <div key={e.id} className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Badge variant="outline" className="text-[9px] px-1 font-mono">
-                                {e.codigo?.slice(-4)}
-                              </Badge>
-                              <span className="truncate">
-                                {e.carga.endereco_origem?.cidade} → {e.carga.endereco_destino?.cidade}
-                              </span>
-                            </div>
-                          ))}
-                          {group.entregas.length > 3 && (
-                            <span className="text-[10px] text-muted-foreground">
-                              +{group.entregas.length - 3} mais
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </ScrollArea>
-          </div>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Mapa grande à esquerda (70%) */}
+        <div className="flex-[7] relative">
+          <GoogleMapsLoader>
+            <GoogleMap
+              mapContainerStyle={{ width: '100%', height: '100%' }}
+              center={{ lat: -14.24, lng: -51.93 }}
+              zoom={4}
+              onLoad={handleMapLoad}
+              options={{
+                disableDefaultUI: false,
+                zoomControl: true,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true,
+              }}
+            >
+              {filteredGroups.map(group => {
+                const loc = localizacoes.find(l => l.motorista_id === group.id);
+                if (!loc?.latitude || !loc?.longitude) return null;
+
+                const isSelected = selectedMotoristaId === group.id;
+
+                return (
+                  <Marker
+                    key={group.id}
+                    position={{ lat: loc.latitude, lng: loc.longitude }}
+                    onClick={() => handleMotoristaClick(group.id)}
+                    icon={{
+                      path: 'M 0,-10 L 6,10 L 0,5 L -6,10 Z',
+                      scale: isSelected ? 2.5 : 2,
+                      fillColor: isSelected ? '#22c55e' : '#3b82f6',
+                      fillOpacity: 1,
+                      strokeColor: '#fff',
+                      strokeWeight: 2,
+                      rotation: 0,
+                    }}
+                    title={group.motorista?.nome_completo || 'Motorista'}
+                  />
+                );
+              })}
+            </GoogleMap>
+          </GoogleMapsLoader>
         </div>
+
+        {/* Lista de motoristas à direita (30%) */}
+        <div className="flex-[3] border-l flex flex-col bg-background">
+          <div className="px-3 py-2 border-b bg-muted/30">
+            <span className="text-sm font-medium">Motoristas ({filteredGroups.length})</span>
+          </div>
+
+          <ScrollArea className="flex-1">
+            {filteredGroups.length === 0 ? (
+              <EmptyColumnPlaceholder message="Nenhum motorista encontrado" />
+            ) : (
+              filteredGroups.map(group => {
+                const loc = localizacoes.find(l => l.motorista_id === group.id);
+                const isOnline = !!(loc?.latitude && loc?.longitude);
+                const isSelected = selectedMotoristaId === group.id;
+
+                return (
+                  <div
+                    key={group.id}
+                    className={`px-3 py-2.5 border-b cursor-pointer transition-all hover:bg-muted/50 ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
+                      }`}
+                    onClick={() => handleMotoristaClick(group.id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Avatar className="h-8 w-8">
+                          {group.motorista?.foto_url && <AvatarImage src={group.motorista.foto_url} />}
+                          <AvatarFallback className="text-xs">{group.motorista?.nome_completo?.[0]}</AvatarFallback>
+                        </Avatar>
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-gray-400'
+                          }`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Entregas do motorista */}
+                    {isSelected && group.entregas.length > 0 && (
+                      <div className="mt-2 pl-10 space-y-1">
+                        {group.entregas.slice(0, 3).map(e => (
+                          <div key={e.id} className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Badge variant="outline" className="text-[9px] px-1 font-mono">
+                              {e.codigo?.slice(-4)}
+                            </Badge>
+                            <span className="truncate">
+                              {e.carga.endereco_origem?.cidade} → {e.carga.endereco_destino?.cidade}
+                            </span>
+                          </div>
+                        ))}
+                        {group.entregas.length > 3 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            +{group.entregas.length - 3} mais
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </ScrollArea>
+        </div>
+      </div>
     </>
   );
 }
 
 // Wrapper com Dialog
-function GestaoEntregasDialog({ 
-  open, 
+function GestaoEntregasDialog({
+  open,
   onOpenChange,
   entregas,
   localizacoes,
-}: { 
+}: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null }>;
 }) {
   const { isLoaded } = useGoogleMaps();
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0">
@@ -697,9 +695,9 @@ export default function OperacaoDiaria() {
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
 
-  const { localizacoes } = useRealtimeLocalizacoes({ 
-    motoristaIds, 
-    enabled: motoristaIds.length > 0 
+  const { localizacoes } = useRealtimeLocalizacoes({
+    motoristaIds,
+    enabled: motoristaIds.length > 0
   });
 
   // Fetch today's deliveries (by created_at) OR pending from previous days
@@ -707,10 +705,10 @@ export default function OperacaoDiaria() {
     queryKey: ['operacao-diaria', empresa?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
-      
+
       const today = new Date();
       const startOfToday = startOfDay(today).toISOString();
-      
+
       // First get motoristas for this empresa
       const { data: motoristas } = await supabase
         .from('motoristas')
@@ -723,12 +721,12 @@ export default function OperacaoDiaria() {
       }
 
       const motoristaIdsList = motoristas.map(m => m.id);
-      
+
       // Fetch deliveries:
       // - All created today (any status)
       // - OR pending from previous days (not finalized)
       const pendingStatuses = ['aguardando_coleta', 'em_coleta', 'em_transito', 'saiu_para_coleta', 'saiu_para_entrega', 'em_entrega'];
-      
+
       const { data, error } = await supabase
         .from('entregas')
         .select(`
@@ -768,7 +766,7 @@ export default function OperacaoDiaria() {
             .eq('entrega_id', entrega.id)
             .order('timestamp', { ascending: false })
             .limit(10);
-          
+
           return { ...entrega, eventos: eventos || [] };
         })
       );
@@ -790,7 +788,7 @@ export default function OperacaoDiaria() {
   const statusMutation = useMutation({
     mutationFn: async ({ entregaId, newStatus }: { entregaId: string; newStatus: string }) => {
       const updates: Record<string, any> = { status: newStatus, updated_at: new Date().toISOString() };
-      
+
       if (newStatus === 'entregue') {
         updates.entregue_em = new Date().toISOString();
       } else if (newStatus === 'em_coleta' || newStatus === 'saiu_para_coleta') {
@@ -823,10 +821,10 @@ export default function OperacaoDiaria() {
 
   // Separar entregas por status para as colunas
   const { aguardandoEntregas, emRotaEntregas } = useMemo(() => {
-    const aguardando = entregas.filter(e => 
+    const aguardando = entregas.filter(e =>
       ['aguardando_coleta', 'em_coleta', 'saiu_para_coleta'].includes(e.status)
     );
-    const emRota = entregas.filter(e => 
+    const emRota = entregas.filter(e =>
       ['em_transito', 'saiu_para_entrega', 'em_entrega', 'entregue', 'cancelada'].includes(e.status)
     );
     return { aguardandoEntregas: aguardando, emRotaEntregas: emRota };
@@ -850,32 +848,35 @@ export default function OperacaoDiaria() {
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ height: 'calc(100dvh - 64px)' }}>
-      {/* Header */}
-      <div className="px-6 py-3 border-b bg-background">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold">Últimas entregas</h1>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="gap-2"
-              onClick={() => setGestaoDialogOpen(true)}
-            >
-              <LayoutList className="w-4 h-4" />
-              Gestão de Entregas
-            </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
+    <div className="flex flex-col h-full" style={{ height: 'calc(100dvh)' }}>
+      <div className='px-10 flex justify-between items-center my-4'>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Gestão Entregas</h1>
+          <p className="text-muted-foreground">
+            Visualize sua operação
+          </p>
+        </div>
+        <div className='flex items-center gap-4'>
+          <AdvancedSearchPopover
+            filters={{codigo: '', motorista: '', cidadeOrigem: '', cidadeDestino: ''}}
+            onFiltersChange={() => {}}
+          />  // Lovable: Mudar para um filtro que faça sentido nessa página (esse foi só exemplo)
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setGestaoDialogOpen(true)}
+          >
+            <Map className="w-4 h-4" />
+            Gestão da operação
+          </Button>
         </div>
       </div>
 
       {/* Main content - 3 columns: 30% 30% 40% */}
-      <div className="flex-1 grid overflow-hidden" style={{ gridTemplateColumns: '30% 30% 40%' }}>
+      <div className="flex-1 p-10 pt-0 grid overflow-hidden" style={{ gridTemplateColumns: '30% 30% 40%' }}>
         {/* Column 1: Entregas Aguardando (30%) */}
-        <div className="border-r bg-muted/20 flex flex-col min-w-0 overflow-hidden">
+        <div className="border rounded-l-md bg-muted/20 flex flex-col min-w-0 overflow-hidden">
           <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
             <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
           </div>
@@ -902,7 +903,7 @@ export default function OperacaoDiaria() {
         </div>
 
         {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
-        <div className="border-r flex flex-col bg-background min-w-0 overflow-hidden">
+        <div className="border border-l-0 flex flex-col bg-background min-w-0 overflow-hidden">
           <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
             <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
           </div>
@@ -929,7 +930,7 @@ export default function OperacaoDiaria() {
         </div>
 
         {/* Column 3: Detail Panel (40%) */}
-        <div className="min-w-0 overflow-hidden flex flex-col">
+        <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col">
           <DetailPanel
             entrega={selectedEntrega}
             onClose={() => setSelectedEntrega(null)}
@@ -939,7 +940,7 @@ export default function OperacaoDiaria() {
           />
         </div>
       </div>
-      
+
       {/* Gestão de Entregas Dialog com Mapa + Motoristas */}
       <GestaoEntregasDialog
         open={gestaoDialogOpen}
