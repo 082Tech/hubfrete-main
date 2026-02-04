@@ -186,6 +186,7 @@ export default function CargasDisponiveis() {
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
   const [selectedMotorista, setSelectedMotorista] = useState<string>('');
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('');
+  const [selectedCarroceria, setSelectedCarroceria] = useState<string | null>(null);
   const [selectedViagemId, setSelectedViagemId] = useState<string | null>(null);
   const [isCreatingViagem, setIsCreatingViagem] = useState(false);
   const [pesoAlocadoInput, setPesoAlocadoInput] = useState<number>(0);
@@ -390,6 +391,7 @@ export default function CargasDisponiveis() {
       cargaId,
       motoristaId,
       veiculoId,
+      carroceriaId,
       pesoAlocadoKg,
       valorFrete,
       embarcadorEmpresaId,
@@ -398,6 +400,7 @@ export default function CargasDisponiveis() {
     }: {
       cargaId: string;
       motoristaId: string;
+      carroceriaId: string | null;
       veiculoId: string;
       pesoAlocadoKg: number;
       valorFrete: number;
@@ -436,6 +439,7 @@ export default function CargasDisponiveis() {
           carga_id: cargaId,
           motorista_id: motoristaId,
           veiculo_id: veiculoId,
+          carroceria_id: carroceriaId,
           peso_alocado_kg: pesoAlocadoKg,
           valor_frete: valorFrete,
           status: 'aguardando' as const,
@@ -455,6 +459,8 @@ export default function CargasDisponiveis() {
           .from('viagens')
           .insert({
             motorista_id: motoristaId,
+            veiculo_id: veiculoId,
+            carroceria_id: carroceriaId,
             status: 'em_andamento' as const,
             codigo: '', // Will be overwritten by trigger
           })
@@ -526,6 +532,7 @@ export default function CargasDisponiveis() {
       setSelectedCarga(null);
       setSelectedMotorista('');
       setSelectedVeiculo('');
+      setSelectedCarroceria(null);
       setSelectedViagemId(null);
     },
     onError: (error) => {
@@ -720,6 +727,7 @@ export default function CargasDisponiveis() {
       cargaId: selectedCarga.id,
       motoristaId: selectedMotorista,
       veiculoId: selectedVeiculo,
+      carroceriaId: selectedCarroceria,
       pesoAlocadoKg: pesoAlocadoInput,
       valorFrete: calculatedFrete,
       embarcadorEmpresaId: selectedCarga.empresa_id,
@@ -1444,9 +1452,19 @@ export default function CargasDisponiveis() {
                         // Auto-select the first vehicle if available
                         const motorista = motoristas.find(m => m.id === value);
                         if (motorista?.veiculos?.length === 1) {
-                          setSelectedVeiculo(motorista.veiculos[0].id);
+                          const veiculo = motorista.veiculos[0] as any;
+                          setSelectedVeiculo(veiculo.id);
+                          // If vehicle has integrated body, no carroceria. Otherwise, auto-select first carroceria
+                          if (veiculo.carroceria_integrada) {
+                            setSelectedCarroceria(null);
+                          } else if (motorista.carrocerias?.length === 1) {
+                            setSelectedCarroceria(motorista.carrocerias[0].id);
+                          } else {
+                            setSelectedCarroceria(null);
+                          }
                         } else {
                           setSelectedVeiculo('');
+                          setSelectedCarroceria(null);
                         }
                         setPesoAlocadoInput(0);
                         setSelectedViagemId(null); // Reset viagem when driver changes
@@ -1528,7 +1546,21 @@ export default function CargasDisponiveis() {
                               </p>
                             </div>
                           ) : (
-                            <Select value={selectedVeiculo} onValueChange={setSelectedVeiculo}>
+                            <Select 
+                              value={selectedVeiculo} 
+                              onValueChange={(value) => {
+                                setSelectedVeiculo(value);
+                                // Handle carroceria selection based on vehicle type
+                                const veiculo = selectedMotoristaData?.veiculos?.find(v => v.id === value) as any;
+                                if (veiculo?.carroceria_integrada) {
+                                  setSelectedCarroceria(null);
+                                } else if (selectedMotoristaData?.carrocerias?.length === 1) {
+                                  setSelectedCarroceria(selectedMotoristaData.carrocerias[0].id);
+                                } else {
+                                  setSelectedCarroceria(null);
+                                }
+                              }}
+                            >
                               <SelectTrigger className="bg-background">
                                 <SelectValue placeholder="Selecione o veículo" />
                               </SelectTrigger>
@@ -1596,9 +1628,58 @@ export default function CargasDisponiveis() {
                             Nenhuma carroceria vinculada
                           </p>
                         </div>
+                      ) : selectedMotoristaData.carrocerias?.length === 1 ? (
+                        // Single carroceria - just display it
+                        <div className="p-2 bg-background rounded-md border space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Placa:</span>
+                            <span className="text-sm font-mono font-semibold">{selectedMotoristaData.carrocerias[0].placa}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Tipo:</span>
+                            <span className="text-sm">{tipoCarroceriaLabels[selectedMotoristaData.carrocerias[0].tipo] || selectedMotoristaData.carrocerias[0].tipo}</span>
+                          </div>
+                          {selectedMotoristaData.carrocerias[0].capacidade_kg && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Capacidade:</span>
+                              <span className="text-sm font-medium">{selectedMotoristaData.carrocerias[0].capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                            selectedMotoristaData.carrocerias?.map((carroceria) => (
-                              <div key={carroceria.id} className="p-2 bg-background rounded-md border space-y-1">
+                        // Multiple carrocerias - show Select
+                        <>
+                          <Select 
+                            value={selectedCarroceria || ''} 
+                            onValueChange={(value) => setSelectedCarroceria(value || null)}
+                          >
+                            <SelectTrigger className="bg-background">
+                              <SelectValue placeholder="Selecione a carroceria" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {selectedMotoristaData.carrocerias?.map((carroceria) => (
+                                <SelectItem key={carroceria.id} value={carroceria.id}>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{carroceria.placa}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}
+                                    </span>
+                                    {carroceria.capacidade_kg && (
+                                      <span className="text-xs text-primary">
+                                        {carroceria.capacidade_kg.toLocaleString('pt-BR')} kg
+                                      </span>
+                                    )}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {/* Show selected carroceria details */}
+                          {selectedCarroceria && (() => {
+                            const carroceria = selectedMotoristaData.carrocerias?.find(c => c.id === selectedCarroceria);
+                            if (!carroceria) return null;
+                            return (
+                              <div className="p-2 bg-background rounded-md border space-y-1">
                                 <div className="flex items-center justify-between">
                                   <span className="text-xs text-muted-foreground">Placa:</span>
                                   <span className="text-sm font-mono font-semibold">{carroceria.placa}</span>
@@ -1614,8 +1695,10 @@ export default function CargasDisponiveis() {
                                   </div>
                                 )}
                               </div>
-                            ))
-                          )}
+                            );
+                          })()}
+                        </>
+                      )}
                         </div>
                       </div>
 
