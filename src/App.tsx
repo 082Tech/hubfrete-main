@@ -59,7 +59,7 @@ import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraCargas from "./pages/portals/transportadora/CargasDisponiveis";
 import TransportadoraFrota from "./pages/portals/transportadora/MinhaFrota";
 import TransportadoraMotoristas from "./pages/portals/transportadora/Motoristas";
-import TransportadoraGestaoEntregas from "./pages/portals/transportadora/GestaoEntregas";
+// GestaoEntregas removed - replaced by OperacaoDiaria
 import TransportadoraHistoricoEntregas from "./pages/portals/transportadora/HistoricoEntregas";
 import TransportadoraAssistente from "./pages/portals/transportadora/Assistente";
 import TransportadoraConfiguracoes from "./pages/portals/transportadora/Configuracoes";
