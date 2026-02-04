@@ -936,9 +936,11 @@ function GestaoEntregasDialogContent({
             selectedMotoristaId={selectedMotoristaId}
             selectedEntregaId={selectedEntregaId}
             onMotoristaClick={handleMotoristaClick}
+            onEntregaDeselect={() => setSelectedEntregaId(null)}
             motoristaNames={motoristaNames}
             motoristaInfo={motoristaInfo}
             statusCounts={statusCounts}
+            selectedEntregaData={selectedEntregaData}
           />
         </div>
 
