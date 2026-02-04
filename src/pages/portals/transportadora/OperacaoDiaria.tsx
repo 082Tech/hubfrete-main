@@ -813,6 +813,7 @@ function GestaoEntregasDialogContent({
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean }>;
 }) {
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
+  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Agrupar entregas por motorista
@@ -858,23 +859,63 @@ function GestaoEntregasDialogContent({
     return names;
   }, [motoristaGroups]);
 
-  // Informações extras para tooltip do mapa
+  // Informações extras para tooltip do mapa (com entregas completas)
   const motoristaInfo = useMemo(() => {
-    const info: Record<string, { nome: string; entregas: number; isOnline: boolean }> = {};
+    const info: Record<string, { nome: string; entregas: Array<{ id: string; codigo: string; status: string; origemCidade: string; destinoCidade: string; origemCoords: { lat: number; lng: number } | null; destinoCoords: { lat: number; lng: number } | null }>; isOnline: boolean }> = {};
     motoristaGroups.forEach(g => {
       const loc = localizacoes.find(l => l.motorista_id === g.id);
       info[g.id] = {
         nome: g.motorista?.nome_completo || 'Motorista',
-        entregas: g.entregas.length,
+        entregas: g.entregas.map(e => ({
+          id: e.id,
+          codigo: e.codigo || e.id.slice(0, 6),
+          status: e.status,
+          origemCidade: e.carga.endereco_origem?.cidade || 'N/A',
+          destinoCidade: e.carga.endereco_destino?.cidade || 'N/A',
+          origemCoords: e.carga.endereco_origem?.latitude && e.carga.endereco_origem?.longitude 
+            ? { lat: e.carga.endereco_origem.latitude, lng: e.carga.endereco_origem.longitude } 
+            : null,
+          destinoCoords: e.carga.endereco_destino?.latitude && e.carga.endereco_destino?.longitude 
+            ? { lat: e.carga.endereco_destino.latitude, lng: e.carga.endereco_destino.longitude } 
+            : null,
+        })),
         isOnline: loc?.isOnline ?? false,
       };
     });
     return info;
   }, [motoristaGroups, localizacoes]);
 
+  // Contagem de status para os indicadores
+  const statusCounts = useMemo(() => {
+    let aguardando = 0, emRota = 0, entregue = 0, cancelada = 0;
+    entregas.forEach(e => {
+      if (e.status === 'aguardando') aguardando++;
+      else if (e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega') emRota++;
+      else if (e.status === 'entregue') entregue++;
+      else if (e.status === 'cancelada') cancelada++;
+    });
+    return { aguardando, emRota, entregue, cancelada };
+  }, [entregas]);
+
   // Handler para clicar no motorista
   const handleMotoristaClick = useCallback((motoristaId: string) => {
-    setSelectedMotoristaId(prev => prev === motoristaId ? null : motoristaId);
+    setSelectedMotoristaId(prev => {
+      if (prev === motoristaId) {
+        setSelectedEntregaId(null);
+        return null;
+      }
+      // Ao selecionar motorista, auto-selecionar primeira entrega
+      const group = motoristaGroups.find(g => g.id === motoristaId);
+      if (group?.entregas.length) {
+        setSelectedEntregaId(group.entregas[0].id);
+      }
+      return motoristaId;
+    });
+  }, [motoristaGroups]);
+
+  // Handler para selecionar entrega específica
+  const handleEntregaSelect = useCallback((entregaId: string) => {
+    setSelectedEntregaId(entregaId);
   }, []);
 
   return (
@@ -891,9 +932,11 @@ function GestaoEntregasDialogContent({
           <GestaoLeafletMap
             localizacoes={localizacoes}
             selectedMotoristaId={selectedMotoristaId}
+            selectedEntregaId={selectedEntregaId}
             onMotoristaClick={handleMotoristaClick}
             motoristaNames={motoristaNames}
             motoristaInfo={motoristaInfo}
+            statusCounts={statusCounts}
           />
         </div>
 
