@@ -187,8 +187,29 @@ function FitBounds({
   const map = useMap();
   const prevSelectedIdRef = useRef<string | null | undefined>(undefined);
   const hasInitialFit = useRef(false);
+  const isMountedRef = useRef(true);
+  
+  // Track mounted state to prevent operations during unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   useEffect(() => {
+    // Prevent map operations if component is unmounting or map container is invalid
+    if (!isMountedRef.current) return;
+    
+    try {
+      // Check if map container is still valid
+      const container = map.getContainer();
+      if (!container || !document.body.contains(container)) return;
+    } catch {
+      // Map is likely being destroyed, exit early
+      return;
+    }
+    
     // Only fit bounds when selection actually changes (ID change), not on location updates
     const selectionChanged = prevSelectedIdRef.current !== selectedId;
     
@@ -201,37 +222,47 @@ function FitBounds({
     
     prevSelectedIdRef.current = selectedId;
     
-    if (selectedEntrega) {
-      // Fit bounds to show the route when selecting a delivery
-      const points: [number, number][] = [];
+    // Use requestAnimationFrame to ensure map is fully ready
+    requestAnimationFrame(() => {
+      if (!isMountedRef.current) return;
       
-      if (selectedEntrega.latitude && selectedEntrega.longitude) {
-        points.push([selectedEntrega.latitude, selectedEntrega.longitude]);
+      try {
+        if (selectedEntrega) {
+          // Fit bounds to show the route when selecting a delivery
+          const points: [number, number][] = [];
+          
+          if (selectedEntrega.latitude && selectedEntrega.longitude) {
+            points.push([selectedEntrega.latitude, selectedEntrega.longitude]);
+          }
+          if (selectedEntrega.origemCoords) {
+            points.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
+          }
+          if (selectedEntrega.destinoCoords) {
+            points.push([selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]);
+          }
+          
+          if (points.length > 1) {
+            const bounds = L.latLngBounds(points);
+            map.fitBounds(bounds, { padding: [80, 80], maxZoom: 12 });
+          } else if (points.length === 1) {
+            map.setView(points[0], 10);
+          }
+        } else if (needsInitialFit || selectionChanged) {
+          // Only fit all entregas on initial load or when deselecting
+          const validEntregas = entregas.filter(e => e.latitude && e.longitude);
+          if (validEntregas.length > 0) {
+            const bounds = L.latLngBounds(
+              validEntregas.map(e => [e.latitude!, e.longitude!] as [number, number])
+            );
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+            hasInitialFit.current = true;
+          }
+        }
+      } catch (error) {
+        // Silently handle map operation errors during teardown
+        console.debug('Map operation skipped:', error);
       }
-      if (selectedEntrega.origemCoords) {
-        points.push([selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]);
-      }
-      if (selectedEntrega.destinoCoords) {
-        points.push([selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]);
-      }
-      
-      if (points.length > 1) {
-        const bounds = L.latLngBounds(points);
-        map.fitBounds(bounds, { padding: [80, 80], maxZoom: 12 });
-      } else if (points.length === 1) {
-        map.setView(points[0], 10);
-      }
-    } else if (needsInitialFit || selectionChanged) {
-      // Only fit all entregas on initial load or when deselecting
-      const validEntregas = entregas.filter(e => e.latitude && e.longitude);
-      if (validEntregas.length > 0) {
-        const bounds = L.latLngBounds(
-          validEntregas.map(e => [e.latitude!, e.longitude!] as [number, number])
-        );
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
-        hasInitialFit.current = true;
-      }
-    }
+    });
   }, [selectedId, entregas.length, map]); // Only depend on selectedId, not the full objects
   
   return null;
