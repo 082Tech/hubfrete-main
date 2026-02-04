@@ -59,12 +59,11 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { GoogleMapsLoader, useGoogleMaps } from '@/components/maps/GoogleMapsLoader';
-import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
-import { DetailPanelMap } from '@/components/maps/DetailPanelMap';
+import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
+import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 
 // Status definitions - apenas os status válidos
 // Coluna 1 (pending): APENAS 'aguardando'
@@ -557,15 +556,13 @@ function DetailPanel({
           <Separator />
 
           {/* Mapa com rotas condicionais */}
-          <GoogleMapsLoader>
-            <DetailPanelMap
-              origemCoords={origemCoords}
-              destinoCoords={destinoCoords}
-              driverLocation={driverLocation}
-              status={entrega.status}
-              height={300}
-            />
-          </GoogleMapsLoader>
+          <DetailPanelLeafletMap
+            origemCoords={origemCoords}
+            destinoCoords={destinoCoords}
+            driverLocation={driverLocation}
+            status={entrega.status}
+            height={300}
+          />
 
           {/* Driver & Vehicle */}
           {entrega.motorista && (
@@ -814,7 +811,6 @@ function GestaoEntregasDialogContent({
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null }>;
 }) {
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
-  const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
 
   // Agrupar entregas por motorista
   const motoristaGroups = useMemo(() => {
@@ -834,38 +830,19 @@ function GestaoEntregasDialogContent({
     }));
   }, [entregas]);
 
-  // Handler para clicar no motorista na lista
-  const handleMotoristaClick = useCallback((motoristaId: string) => {
-    setSelectedMotoristaId(motoristaId);
-
-    // Centralizar no mapa
-    const loc = localizacoes.find(l => l.motorista_id === motoristaId);
-    if (loc?.latitude && loc?.longitude && mapRef) {
-      mapRef.panTo({ lat: loc.latitude, lng: loc.longitude });
-      mapRef.setZoom(13);
-    }
-  }, [localizacoes, mapRef]);
-
-  // Calcula bounds para todos os motoristas
-  const mapBounds = useMemo(() => {
-    const validLocs = localizacoes.filter(l => l.latitude && l.longitude);
-    if (validLocs.length === 0) return null;
-
-    const bounds = new google.maps.LatLngBounds();
-    validLocs.forEach(l => {
-      if (l.latitude && l.longitude) {
-        bounds.extend({ lat: l.latitude, lng: l.longitude });
-      }
+  // Mapa de nomes dos motoristas para o componente de mapa
+  const motoristaNames = useMemo(() => {
+    const names: Record<string, string> = {};
+    motoristaGroups.forEach(g => {
+      names[g.id] = g.motorista?.nome_completo || 'Motorista';
     });
-    return bounds;
-  }, [localizacoes]);
+    return names;
+  }, [motoristaGroups]);
 
-  const handleMapLoad = useCallback((map: google.maps.Map) => {
-    setMapRef(map);
-    if (mapBounds) {
-      setTimeout(() => map.fitBounds(mapBounds, { top: 50, right: 50, bottom: 50, left: 50 }), 100);
-    }
-  }, [mapBounds]);
+  // Handler para clicar no motorista
+  const handleMotoristaClick = useCallback((motoristaId: string) => {
+    setSelectedMotoristaId(prev => prev === motoristaId ? null : motoristaId);
+  }, []);
 
   return (
     <>
@@ -878,46 +855,12 @@ function GestaoEntregasDialogContent({
       <div className="flex-1 flex overflow-hidden">
         {/* Mapa grande à esquerda (70%) */}
         <div className="flex-[7] relative">
-          <GoogleMapsLoader>
-            <GoogleMap
-              mapContainerStyle={{ width: '100%', height: '100%' }}
-              center={{ lat: -14.24, lng: -51.93 }}
-              zoom={4}
-              onLoad={handleMapLoad}
-              options={{
-                disableDefaultUI: false,
-                zoomControl: true,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true,
-              }}
-            >
-              {motoristaGroups.map(group => {
-                const loc = localizacoes.find(l => l.motorista_id === group.id);
-                if (!loc?.latitude || !loc?.longitude) return null;
-
-                const isSelected = selectedMotoristaId === group.id;
-
-                return (
-                  <Marker
-                    key={group.id}
-                    position={{ lat: loc.latitude, lng: loc.longitude }}
-                    onClick={() => handleMotoristaClick(group.id)}
-                    icon={{
-                      path: 'M 0,-10 L 6,10 L 0,5 L -6,10 Z',
-                      scale: isSelected ? 2.5 : 2,
-                      fillColor: isSelected ? '#22c55e' : '#3b82f6',
-                      fillOpacity: 1,
-                      strokeColor: '#fff',
-                      strokeWeight: 2,
-                      rotation: 0,
-                    }}
-                    title={group.motorista?.nome_completo || 'Motorista'}
-                  />
-                );
-              })}
-            </GoogleMap>
-          </GoogleMapsLoader>
+          <GestaoLeafletMap
+            localizacoes={localizacoes}
+            selectedMotoristaId={selectedMotoristaId}
+            onMotoristaClick={handleMotoristaClick}
+            motoristaNames={motoristaNames}
+          />
         </div>
 
         {/* Lista de motoristas à direita (30%) */}
@@ -1002,18 +945,10 @@ function GestaoEntregasDialog({
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null }>;
 }) {
-  const { isLoaded } = useGoogleMaps();
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0">
-        {isLoaded ? (
-          <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          </div>
-        )}
+        <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} />
       </DialogContent>
     </Dialog>
   );
