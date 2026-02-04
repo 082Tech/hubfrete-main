@@ -1491,9 +1491,18 @@ export default function OperacaoDiaria() {
             onFiltersChange={setFilters}
             showMotorista
             showEmbarcador={false}
-            showDestinatario={false}
+            showDestinatario
             motoristas={motoristasList}
           />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setPerformanceDialogOpen(true)}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Desempenho Diário
+          </Button>
           <Button
             variant="default"
             size="sm"
@@ -1501,7 +1510,7 @@ export default function OperacaoDiaria() {
             onClick={() => setGestaoDialogOpen(true)}
           >
             <Map className="w-4 h-4" />
-            Gestão da operação
+            Visualização Geral em Mapa
           </Button>
         </div>
       </div>
