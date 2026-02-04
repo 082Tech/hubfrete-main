@@ -1084,6 +1084,12 @@ function GestaoEntregasDialogContent({
                 const loc = localizacoes.find(l => l.motorista_id === group.id);
                 const isOnline = loc?.isOnline ?? false;
                 const isSelected = selectedMotoristaId === group.id;
+                
+                // Calcular tempo desde última atualização
+                const lastSeenAt = (loc as any)?.updated_at;
+                const lastSeenText = lastSeenAt 
+                  ? formatDistanceToNow(new Date(lastSeenAt), { locale: ptBR, addSuffix: false })
+                  : null;
 
                 return (
                   <div
@@ -1098,11 +1104,22 @@ function GestaoEntregasDialogContent({
                           {group.motorista?.foto_url && <AvatarImage src={group.motorista.foto_url} />}
                           <AvatarFallback className="text-xs">{group.motorista?.nome_completo?.[0]}</AvatarFallback>
                         </Avatar>
-                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-gray-400'
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'
                           }`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
+                          {/* Badge de status Online/Offline com tempo */}
+                          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
+                            isOnline 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                            {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
+                          </span>
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
                         </p>
