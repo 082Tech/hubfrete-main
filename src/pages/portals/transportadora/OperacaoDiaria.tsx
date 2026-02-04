@@ -556,15 +556,13 @@ function DetailPanel({
           <Separator />
 
           {/* Mapa com rotas condicionais */}
-          <GoogleMapsLoader>
-            <DetailPanelMap
-              origemCoords={origemCoords}
-              destinoCoords={destinoCoords}
-              driverLocation={driverLocation}
-              status={entrega.status}
-              height={300}
-            />
-          </GoogleMapsLoader>
+          <DetailPanelLeafletMap
+            origemCoords={origemCoords}
+            destinoCoords={destinoCoords}
+            driverLocation={driverLocation}
+            status={entrega.status}
+            height={300}
+          />
 
           {/* Driver & Vehicle */}
           {entrega.motorista && (
