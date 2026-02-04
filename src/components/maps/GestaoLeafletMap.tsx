@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from 'reac
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getTruckIconHtml } from './TruckIcon';
+import { useOSRMRoute } from '@/hooks/useOSRMRoute';
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
