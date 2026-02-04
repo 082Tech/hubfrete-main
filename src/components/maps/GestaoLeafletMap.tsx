@@ -44,8 +44,7 @@ interface GestaoLeafletMapProps {
   onMotoristaClick: (motoristaId: string) => void;
   motoristaNames: Record<string, string>;
   motoristaInfo?: Record<string, MotoristaInfo>;
-  statusCounts?: { aguardando: number; emRota: number; entregue: number; cancelada: number };
-}
+  statusCounts?: { aguardando: number; coleta: number; entrega: number; entregue: number; cancelada: number };
 
 // Create truck icon
 const createTruckIcon = (heading: number = 0, isOnline: boolean = false, isSelected: boolean = false) => {
