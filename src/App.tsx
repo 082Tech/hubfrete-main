@@ -68,6 +68,7 @@ import TransportadoraUsuarios from "./pages/portals/transportadora/UsuariosEmpre
 import TransportadoraMensagens from "./pages/portals/transportadora/Mensagens";
 import TransportadoraRelatorios from "./pages/portals/transportadora/Relatorios";
 import TransportadoraNotificacoes from "./pages/portals/transportadora/Notificacoes";
+import TransportadoraOperacaoDiaria from "./pages/portals/transportadora/OperacaoDiaria";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -152,6 +153,7 @@ const App = () => {
                 {/* Portal Transportadora - Nested routes with shared layout */}
                 <Route path="/transportadora" element={<PortalLayoutWrapper expectedUserType="transportadora" />}>
                   <Route index element={<TransportadoraDashboard />} />
+                  <Route path="operacao" element={<TransportadoraOperacaoDiaria />} />
                   <Route path="cargas" element={<TransportadoraCargas />} />
                   <Route path="frota" element={<TransportadoraFrota />} />
                   <Route path="motoristas" element={<TransportadoraMotoristas />} />
