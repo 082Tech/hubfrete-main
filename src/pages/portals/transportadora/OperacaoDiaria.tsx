@@ -1200,12 +1200,17 @@ export default function OperacaoDiaria() {
     return { aguardandoEntregas: aguardando, emRotaEntregas: emRota };
   }, [entregas]);
 
-  // Get driver location for selected delivery
+  // Get driver location for selected delivery (includes heading and online status)
   const driverLocation = useMemo(() => {
     if (!selectedEntrega?.motorista_id) return null;
     const loc = localizacoes.find(l => l.motorista_id === selectedEntrega.motorista_id);
     if (loc?.latitude && loc?.longitude) {
-      return { lat: loc.latitude, lng: loc.longitude };
+      return { 
+        lat: loc.latitude, 
+        lng: loc.longitude,
+        heading: loc.heading,
+        isOnline: loc.isOnline,
+      };
     }
     return null;
   }, [selectedEntrega, localizacoes]);
