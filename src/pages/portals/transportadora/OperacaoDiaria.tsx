@@ -287,8 +287,6 @@ function DetailPanel({
     ? { lat: entrega.carga.endereco_destino.latitude, lng: entrega.carga.endereco_destino.longitude }
     : null;
 
-  const mapCenter = driverLocation || origemCoords || destinoCoords || { lat: -23.55, lng: -46.63 };
-
   // Determine next status based on current status
   const getNextStatus = (): { status: string; label: string; icon: React.ElementType } | null => {
     switch (entrega.status) {
