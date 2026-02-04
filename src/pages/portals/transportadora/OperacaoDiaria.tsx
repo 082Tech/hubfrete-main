@@ -40,7 +40,6 @@ import {
   RefreshCw,
   Phone,
   History,
-  LayoutList,
   Share,
   Printer,
   X,
@@ -51,11 +50,19 @@ import {
   ArrowRight,
   Upload,
   Download,
+  FileText,
+  Building2,
+  Calendar,
+  Weight,
+  DollarSign,
+  Paperclip,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleMapsLoader, useGoogleMaps } from '@/components/maps/GoogleMapsLoader';
 import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
+import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 
 // Status definitions - apenas os status válidos
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
@@ -81,6 +88,12 @@ interface Entrega {
   valor_frete: number | null;
   coletado_em: string | null;
   entregue_em: string | null;
+  // Documentos
+  cte_url: string | null;
+  numero_cte: string | null;
+  notas_fiscais_urls: string[] | null;
+  manifesto_url: string | null;
+  canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
   carga: {
@@ -89,8 +102,16 @@ interface Entrega {
     descricao: string;
     peso_kg: number;
     tipo: string;
-    endereco_origem?: { cidade: string; estado: string; logradouro: string; latitude: number | null; longitude: number | null } | null;
-    endereco_destino?: { cidade: string; estado: string; logradouro: string; latitude: number | null; longitude: number | null } | null;
+    quantidade: number | null;
+    remetente_razao_social: string | null;
+    remetente_nome_fantasia: string | null;
+    destinatario_razao_social: string | null;
+    destinatario_nome_fantasia: string | null;
+    data_coleta_de: string | null;
+    data_entrega_limite: string | null;
+    endereco_origem?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
+    endereco_destino?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
+    empresa?: { id: number; nome: string | null } | null;
   };
   eventos?: Array<{
     id: string;
@@ -99,6 +120,18 @@ interface Entrega {
     observacao: string | null;
     user_nome: string | null;
   }>;
+}
+
+// Helper para verificar documentos obrigatórios
+function checkRequiredDocuments(entrega: Entrega): { complete: boolean; missing: string[] } {
+  const missing: string[] = [];
+  
+  if (!entrega.cte_url) missing.push('CT-e');
+  if (!entrega.manifesto_url) missing.push('Manifesto');
+  if (!entrega.canhoto_url) missing.push('Canhoto');
+  if (!entrega.notas_fiscais_urls || entrega.notas_fiscais_urls.length === 0) missing.push('Nota Fiscal');
+
+  return { complete: missing.length === 0, missing };
 }
 
 // Delivery list item component (iFood style)
@@ -116,6 +149,9 @@ function EntregaListItem({
     addSuffix: false,
     locale: ptBR
   });
+
+  const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social || 'Remetente não informado';
+  const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário não informado';
 
   return (
     <div
@@ -136,38 +172,36 @@ function EntregaListItem({
       {/* Content */}
       <div className="flex-1 min-w-0 space-y-1">
         {/* Motorista */}
-        <span className="font-medium text-sm truncate">
+        <span className="font-medium text-sm truncate block">
           {entrega.motorista?.nome_completo || 'Sem motorista'}
         </span>
 
         {/* Origem → Destino */}
         <div className="flex items-center gap-1 text-sm font-semibold">
           <span className="truncate">
-            {entrega.carga.endereco_origem?.cidade}
+            {entrega.carga.endereco_origem?.cidade || 'N/A'}
           </span>
           <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
           <span className="truncate">
-            {entrega.carga.endereco_destino?.cidade}
+            {entrega.carga.endereco_destino?.cidade || 'N/A'}
           </span>
         </div>
 
         {/* Remetente / Destinatário */}
         <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
-          <span className="flex items-center gap-1 truncate">
-            <Upload className="w-3 h-3" />
-            {/* {entrega.carga.remetente_nome} */}
-            Teste
+          <span className="flex items-center gap-1 truncate max-w-[120px]" title={remetenteNome}>
+            <Upload className="w-3 h-3 shrink-0" />
+            {remetenteNome}
           </span>
-          <span className="flex items-center gap-1 truncate">
-            <Download className="w-3 h-3" />
-            {/* {entrega.carga.destinatario_nome} */}
-            Teste
+          <span className="flex items-center gap-1 truncate max-w-[120px]" title={destinatarioNome}>
+            <Download className="w-3 h-3 shrink-0" />
+            {destinatarioNome}
           </span>
         </div>
 
         {/* Descrição da entrega */}
         {entrega.carga.descricao && (
-          <p className="text-xs text-muted-foreground line-clamp-2">
+          <p className="text-xs text-muted-foreground line-clamp-1">
             {entrega.carga.descricao}
           </p>
         )}
@@ -175,7 +209,7 @@ function EntregaListItem({
         {/* Código + Valor */}
         <div className="flex items-center gap-2 text-xs">
           <Badge variant="outline" className="font-mono text-[10px] px-1.5">
-            #{entrega.codigo || entrega.id}
+            #{entrega.codigo || entrega.id.slice(0, 6)}
           </Badge>
           {entrega.valor_frete && (
             <span className="text-primary font-semibold">
@@ -206,21 +240,25 @@ function EmptyColumnPlaceholder({ message }: { message: string }) {
   );
 }
 
-// Detail panel (right side) - more compact
+// Detail panel (right side) - with full information
 function DetailPanel({
   entrega,
   onClose,
   onStatusChange,
   isChangingStatus,
-  driverLocation
+  driverLocation,
+  onRefresh,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
   onStatusChange: (newStatus: EntregaStatus) => void;
   isChangingStatus: boolean;
   driverLocation: { lat: number; lng: number } | null;
+  onRefresh: () => void;
 }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
+  const [anexarDocumentosOpen, setAnexarDocumentosOpen] = useState(false);
 
   if (!entrega) {
     return (
@@ -262,6 +300,35 @@ function DetailPanel({
     setCancelDialogOpen(false);
   };
 
+  const handleEntregueConfirm = () => {
+    onStatusChange('entregue');
+    setEntregueDialogOpen(false);
+  };
+
+  const handleActionClick = () => {
+    if (!nextStatus) return;
+    
+    if (nextStatus.status === 'entregue') {
+      // Precisa verificar documentos antes de marcar como entregue
+      setEntregueDialogOpen(true);
+    } else {
+      onStatusChange(nextStatus.status);
+    }
+  };
+
+  const docsCheck = checkRequiredDocuments(entrega);
+
+  const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
+  const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
+
+  // Contagem de documentos anexados
+  const docsCount = [
+    entrega.cte_url ? 1 : 0,
+    entrega.manifesto_url ? 1 : 0,
+    entrega.canhoto_url ? 1 : 0,
+    (entrega.notas_fiscais_urls?.length || 0) > 0 ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
+
   return (
     <div className="h-full flex flex-col bg-white border-l">
       {/* Header with code and actions */}
@@ -290,7 +357,7 @@ function DetailPanel({
         </div>
 
         <p className="text-xs text-muted-foreground mb-2">
-          {format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })} • {entrega.carga.codigo}
+          {format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })} • Carga {entrega.carga.codigo}
         </p>
 
         {/* Status banner */}
@@ -303,19 +370,159 @@ function DetailPanel({
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-3">
+        <div className="p-3 space-y-4">
+          {/* Empresa que publicou */}
+          {entrega.carga.empresa && (
+            <div className="flex items-center gap-2 text-sm">
+              <Building2 className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Publicado por:</span>
+              <span className="font-medium">{entrega.carga.empresa.nome || 'Empresa não identificada'}</span>
+            </div>
+          )}
+
           {/* Cargo description */}
           <div className="text-sm">
-            <p className="font-medium text-xs">{entrega.carga.descricao}</p>
-            <p className="text-muted-foreground text-xs mt-0.5">
-              {entrega.carga.endereco_origem?.cidade} → {entrega.carga.endereco_destino?.cidade}
-            </p>
+            <p className="font-medium">{entrega.carga.descricao}</p>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+              <span className="flex items-center gap-1">
+                <Weight className="w-3 h-3" />
+                {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+              </span>
+              {entrega.carga.quantidade && (
+                <span className="flex items-center gap-1">
+                  <Package className="w-3 h-3" />
+                  {entrega.carga.quantidade} un
+                </span>
+              )}
+              {entrega.valor_frete && (
+                <span className="flex items-center gap-1 text-primary font-semibold">
+                  <DollarSign className="w-3 h-3" />
+                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              )}
+            </div>
           </div>
 
           <Separator />
 
-          {/* Mini Map - aspect ratio mais quadrado */}
-          <div className="rounded-lg overflow-hidden border h-[300px]">
+          {/* Origem */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              ORIGEM / REMETENTE
+            </div>
+            <div className="pl-4 text-sm">
+              {remetenteNome && <p className="font-medium">{remetenteNome}</p>}
+              {entrega.carga.endereco_origem && (
+                <>
+                  <p className="text-muted-foreground">
+                    {entrega.carga.endereco_origem.logradouro}
+                    {entrega.carga.endereco_origem.numero && `, ${entrega.carga.endereco_origem.numero}`}
+                    {entrega.carga.endereco_origem.bairro && ` - ${entrega.carga.endereco_origem.bairro}`}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {entrega.carga.endereco_origem.cidade}/{entrega.carga.endereco_origem.estado} - CEP {entrega.carga.endereco_origem.cep}
+                  </p>
+                </>
+              )}
+              {entrega.carga.data_coleta_de && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                  <Calendar className="w-3 h-3" />
+                  Coleta: {format(new Date(entrega.carga.data_coleta_de), "dd/MM/yyyy", { locale: ptBR })}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Destino */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <div className="w-2 h-2 rounded-full bg-red-500" />
+              DESTINO / DESTINATÁRIO
+            </div>
+            <div className="pl-4 text-sm">
+              {destinatarioNome && <p className="font-medium">{destinatarioNome}</p>}
+              {entrega.carga.endereco_destino && (
+                <>
+                  <p className="text-muted-foreground">
+                    {entrega.carga.endereco_destino.logradouro}
+                    {entrega.carga.endereco_destino.numero && `, ${entrega.carga.endereco_destino.numero}`}
+                    {entrega.carga.endereco_destino.bairro && ` - ${entrega.carga.endereco_destino.bairro}`}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {entrega.carga.endereco_destino.cidade}/{entrega.carga.endereco_destino.estado} - CEP {entrega.carga.endereco_destino.cep}
+                  </p>
+                </>
+              )}
+              {entrega.carga.data_entrega_limite && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                  <Calendar className="w-3 h-3" />
+                  Prazo: {format(new Date(entrega.carga.data_entrega_limite), "dd/MM/yyyy", { locale: ptBR })}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Datas da entrega */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-muted/30 rounded-md p-2">
+              <p className="text-muted-foreground">Data Coleta</p>
+              <p className="font-medium">
+                {entrega.coletado_em 
+                  ? format(new Date(entrega.coletado_em), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                  : 'Pendente'}
+              </p>
+            </div>
+            <div className="bg-muted/30 rounded-md p-2">
+              <p className="text-muted-foreground">Data Entrega</p>
+              <p className="font-medium">
+                {entrega.entregue_em 
+                  ? format(new Date(entrega.entregue_em), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                  : 'Pendente'}
+              </p>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Documentos */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-medium text-xs">Documentos</span>
+              </div>
+              <Badge variant={docsCheck.complete ? "default" : "secondary"} className="text-[10px]">
+                {docsCount}/4 anexados
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${entrega.cte_url ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+                {entrega.cte_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                <span>CT-e</span>
+              </div>
+              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${entrega.manifesto_url ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+                {entrega.manifesto_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                <span>Manifesto</span>
+              </div>
+              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${entrega.canhoto_url ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+                {entrega.canhoto_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                <span>Canhoto</span>
+              </div>
+              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${(entrega.notas_fiscais_urls?.length || 0) > 0 ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+                {(entrega.notas_fiscais_urls?.length || 0) > 0 ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                <span>NF ({entrega.notas_fiscais_urls?.length || 0})</span>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Mini Map */}
+          <div className="rounded-lg overflow-hidden border h-[200px]">
             <GoogleMapsLoader>
               <GoogleMap
                 mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -461,6 +668,11 @@ function DetailPanel({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setAnexarDocumentosOpen(true)}>
+                  <Paperclip className="w-4 h-4 mr-2" />
+                  Anexar documentos
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-destructive focus:text-destructive">
                   <Ban className="w-4 h-4 mr-2" />
                   Cancelar entrega
@@ -473,7 +685,7 @@ function DetailPanel({
               variant="default"
               size="sm"
               className="flex-1 text-xs"
-              onClick={() => onStatusChange(nextStatus.status)}
+              onClick={handleActionClick}
               disabled={isChangingStatus}
             >
               {isChangingStatus ? (
@@ -491,9 +703,13 @@ function DetailPanel({
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar entrega?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Cancelar entrega?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação irá cancelar a entrega {entrega.codigo}. O peso será devolvido para a carga original. Esta ação não pode ser desfeita.
+              Esta ação irá cancelar a entrega <span className="font-semibold">{entrega.codigo}</span>. 
+              O peso será devolvido para a carga original. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -504,6 +720,80 @@ function DetailPanel({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Alert Dialog para confirmar entrega */}
+      <AlertDialog open={entregueDialogOpen} onOpenChange={setEntregueDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {docsCheck.complete ? (
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              ) : (
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              )}
+              Marcar como entregue?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                {docsCheck.complete ? (
+                  <p>
+                    Todos os documentos obrigatórios estão anexados. Deseja confirmar a entrega <span className="font-semibold">{entrega.codigo}</span>?
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-amber-600">
+                      Atenção: Os seguintes documentos obrigatórios ainda não foram anexados:
+                    </p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {docsCheck.missing.map((doc) => (
+                        <li key={doc} className="text-amber-600 font-medium">{doc}</li>
+                      ))}
+                    </ul>
+                    <p className="text-sm">
+                      Você pode anexar os documentos agora ou confirmar mesmo assim.
+                    </p>
+                  </>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            {!docsCheck.complete && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setEntregueDialogOpen(false);
+                  setAnexarDocumentosOpen(true);
+                }}
+              >
+                <Paperclip className="w-4 h-4 mr-2" />
+                Anexar documentos
+              </Button>
+            )}
+            <AlertDialogAction onClick={handleEntregueConfirm} className="bg-green-600 hover:bg-green-700">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Confirmar entrega
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog para anexar documentos */}
+      <AnexarDocumentosDialog
+        entrega={{
+          id: entrega.id,
+          cte_url: entrega.cte_url,
+          numero_cte: entrega.numero_cte,
+          notas_fiscais_urls: entrega.notas_fiscais_urls,
+          manifesto_url: entrega.manifesto_url,
+          canhoto_url: entrega.canhoto_url,
+          carga: { codigo: entrega.carga.codigo },
+        }}
+        open={anexarDocumentosOpen}
+        onOpenChange={setAnexarDocumentosOpen}
+        onSuccess={onRefresh}
+      />
     </div>
   );
 }
@@ -517,7 +807,6 @@ function GestaoEntregasDialogContent({
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null }>;
 }) {
-  const [filters, setFilters] = useState<AdvancedFilters>({});
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
 
@@ -538,41 +827,6 @@ function GestaoEntregasDialogContent({
       ...data,
     }));
   }, [entregas]);
-
-  // Lista de motoristas para o filtro
-  const motoristasList = useMemo(() =>
-    motoristaGroups.map(g => ({ id: g.id, nome: g.motorista?.nome_completo || '' })),
-    [motoristaGroups]
-  );
-
-  // Filtrar baseado nos filtros avançados
-  const filteredGroups = useMemo(() => {
-    if (!filters.motorista && !filters.codigo && !filters.cidadeOrigem && !filters.cidadeDestino) {
-      return motoristaGroups;
-    }
-
-    return motoristaGroups.filter(group => {
-      if (filters.motorista && !group.motorista?.nome_completo.toLowerCase().includes(filters.motorista.toLowerCase())) {
-        return false;
-      }
-
-      // Verifica se alguma entrega do grupo atende aos filtros
-      const hasMatchingEntrega = group.entregas.some(e => {
-        if (filters.codigo && !e.codigo?.toLowerCase().includes(filters.codigo.toLowerCase())) {
-          return false;
-        }
-        if (filters.cidadeOrigem && !e.carga.endereco_origem?.cidade?.toLowerCase().includes(filters.cidadeOrigem.toLowerCase())) {
-          return false;
-        }
-        if (filters.cidadeDestino && !e.carga.endereco_destino?.cidade?.toLowerCase().includes(filters.cidadeDestino.toLowerCase())) {
-          return false;
-        }
-        return true;
-      });
-
-      return hasMatchingEntrega;
-    });
-  }, [motoristaGroups, filters]);
 
   // Handler para clicar no motorista na lista
   const handleMotoristaClick = useCallback((motoristaId: string) => {
@@ -632,7 +886,7 @@ function GestaoEntregasDialogContent({
                 fullscreenControl: true,
               }}
             >
-              {filteredGroups.map(group => {
+              {motoristaGroups.map(group => {
                 const loc = localizacoes.find(l => l.motorista_id === group.id);
                 if (!loc?.latitude || !loc?.longitude) return null;
 
@@ -663,14 +917,14 @@ function GestaoEntregasDialogContent({
         {/* Lista de motoristas à direita (30%) */}
         <div className="flex-[3] border-l flex flex-col bg-background">
           <div className="px-3 py-2 border-b bg-muted/30">
-            <span className="text-sm font-medium">Motoristas ({filteredGroups.length})</span>
+            <span className="text-sm font-medium">Motoristas ({motoristaGroups.length})</span>
           </div>
 
           <ScrollArea className="flex-1">
-            {filteredGroups.length === 0 ? (
+            {motoristaGroups.length === 0 ? (
               <EmptyColumnPlaceholder message="Nenhum motorista encontrado" />
             ) : (
-              filteredGroups.map(group => {
+              motoristaGroups.map(group => {
                 const loc = localizacoes.find(l => l.motorista_id === group.id);
                 const isOnline = !!(loc?.latitude && loc?.longitude);
                 const isSelected = selectedMotoristaId === group.id;
@@ -799,19 +1053,22 @@ export default function OperacaoDiaria() {
           id, codigo, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em,
+          cte_url, numero_cte, notas_fiscais_urls, manifesto_url, canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!inner(
-            id, codigo, descricao, peso_kg, tipo,
-            endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro, latitude, longitude),
-            endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro, latitude, longitude)
+            id, codigo, descricao, peso_kg, tipo, quantidade,
+            remetente_razao_social, remetente_nome_fantasia,
+            destinatario_razao_social, destinatario_nome_fantasia,
+            data_coleta_de, data_entrega_limite,
+            endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
+            endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
+            empresa:empresas(id, nome)
           )
         `)
         .in('motorista_id', motoristaIdsList)
         .not('status', 'is', null)
         .order('updated_at', { ascending: false });
-
-      console.log(data);
 
       if (error) {
         console.error('Error fetching entregas:', error);
@@ -880,6 +1137,16 @@ export default function OperacaoDiaria() {
     setMotoristaIds([...new Set(ids)]);
   }, [entregas]);
 
+  // Atualizar selectedEntrega quando os dados mudarem
+  useEffect(() => {
+    if (selectedEntrega) {
+      const updated = entregas.find(e => e.id === selectedEntrega.id);
+      if (updated) {
+        setSelectedEntrega(updated);
+      }
+    }
+  }, [entregas]);
+
   const statusMutation = useMutation({
     mutationFn: async ({ entregaId, newStatus }: { entregaId: string; newStatus: string }) => {
       const updates: Record<string, any> = { status: newStatus, updated_at: new Date().toISOString() };
@@ -940,6 +1207,10 @@ export default function OperacaoDiaria() {
       statusMutation.mutate({ entregaId: selectedEntrega.id, newStatus });
       setSelectedEntrega(prev => prev ? { ...prev, status: newStatus } : null);
     }
+  };
+
+  const handleRefresh = () => {
+    refetch();
   };
 
   return (
@@ -1039,6 +1310,7 @@ export default function OperacaoDiaria() {
             onStatusChange={handleStatusChange}
             isChangingStatus={statusMutation.isPending}
             driverLocation={driverLocation}
+            onRefresh={handleRefresh}
           />
         </div>
       </div>
