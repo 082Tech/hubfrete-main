@@ -811,7 +811,6 @@ function GestaoEntregasDialogContent({
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null }>;
 }) {
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
-  const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
 
   // Agrupar entregas por motorista
   const motoristaGroups = useMemo(() => {
@@ -831,38 +830,19 @@ function GestaoEntregasDialogContent({
     }));
   }, [entregas]);
 
-  // Handler para clicar no motorista na lista
-  const handleMotoristaClick = useCallback((motoristaId: string) => {
-    setSelectedMotoristaId(motoristaId);
-
-    // Centralizar no mapa
-    const loc = localizacoes.find(l => l.motorista_id === motoristaId);
-    if (loc?.latitude && loc?.longitude && mapRef) {
-      mapRef.panTo({ lat: loc.latitude, lng: loc.longitude });
-      mapRef.setZoom(13);
-    }
-  }, [localizacoes, mapRef]);
-
-  // Calcula bounds para todos os motoristas
-  const mapBounds = useMemo(() => {
-    const validLocs = localizacoes.filter(l => l.latitude && l.longitude);
-    if (validLocs.length === 0) return null;
-
-    const bounds = new google.maps.LatLngBounds();
-    validLocs.forEach(l => {
-      if (l.latitude && l.longitude) {
-        bounds.extend({ lat: l.latitude, lng: l.longitude });
-      }
+  // Mapa de nomes dos motoristas para o componente de mapa
+  const motoristaNames = useMemo(() => {
+    const names: Record<string, string> = {};
+    motoristaGroups.forEach(g => {
+      names[g.id] = g.motorista?.nome_completo || 'Motorista';
     });
-    return bounds;
-  }, [localizacoes]);
+    return names;
+  }, [motoristaGroups]);
 
-  const handleMapLoad = useCallback((map: google.maps.Map) => {
-    setMapRef(map);
-    if (mapBounds) {
-      setTimeout(() => map.fitBounds(mapBounds, { top: 50, right: 50, bottom: 50, left: 50 }), 100);
-    }
-  }, [mapBounds]);
+  // Handler para clicar no motorista
+  const handleMotoristaClick = useCallback((motoristaId: string) => {
+    setSelectedMotoristaId(prev => prev === motoristaId ? null : motoristaId);
+  }, []);
 
   return (
     <>
