@@ -435,26 +435,12 @@ export default function GestaoEntregas() {
   };
 
   // Delete entrega mutation
+  // Note: Weight release and viagem_entregas cleanup are handled by database triggers
   const deleteEntrega = useMutation({
     mutationFn: async (entrega: EntregaCompleta) => {
       const pesoAlocado = entrega.peso_alocado_kg || 0;
-      const cargaId = entrega.carga.id;
 
-      const { data: cargaAtual, error: fetchError } = await supabase
-        .from('cargas')
-        .select('peso_disponivel_kg, peso_kg, status')
-        .eq('id', cargaId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const pesoDisponivelAtual = cargaAtual.peso_disponivel_kg ?? 0;
-      const novoPesoDisponivel = pesoDisponivelAtual + pesoAlocado;
-
-      const novoStatus = novoPesoDisponivel >= cargaAtual.peso_kg
-        ? 'publicada'
-        : 'parcialmente_alocada';
-
+      // Delete associated chat first (cascade won't work due to RLS)
       const { data: chat } = await supabase
         .from('chats')
         .select('id')
@@ -467,6 +453,9 @@ export default function GestaoEntregas() {
         await supabase.from('chats').delete().eq('id', chat.id);
       }
 
+      // Delete entrega - triggers will handle:
+      // 1. trigger_release_weight_on_entrega_delete: releases weight back to carga
+      // 2. trigger_cleanup_viagem_entrega_on_delete: removes viagem_entregas link
       const { error: deleteError } = await supabase
         .from('entregas')
         .delete()
@@ -474,21 +463,12 @@ export default function GestaoEntregas() {
 
       if (deleteError) throw deleteError;
 
-      const { error: updateError } = await supabase
-        .from('cargas')
-        .update({
-          peso_disponivel_kg: Math.min(novoPesoDisponivel, cargaAtual.peso_kg),
-          status: novoStatus
-        })
-        .eq('id', cargaId);
-
-      if (updateError) throw updateError;
-
-      return { pesoRestaurado: pesoAlocado, novoStatus };
+      return { pesoRestaurado: pesoAlocado };
     },
     onSuccess: (result) => {
       toast.success(`Entrega excluída. ${result.pesoRestaurado.toLocaleString('pt-BR')} kg liberados na carga.`);
       queryClient.invalidateQueries({ queryKey: ['gestao_entregas_transportadora'] });
+      queryClient.invalidateQueries({ queryKey: ['cargas_disponiveis'] });
       setDeleteDialogOpen(false);
       setEntregaToDelete(null);
     },
