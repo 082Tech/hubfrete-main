@@ -1336,35 +1336,44 @@ export type Database = {
         Row: {
           accuracy: number | null
           altitude: number | null
+          gps_quality: number | null
           heading: number | null
           id: number
           latitude: number | null
           longitude: number | null
+          motivo_coleta: string | null
           motorista_id: string | null
           speed: number | null
           updated_at: string | null
+          viagem_id: string | null
         }
         Insert: {
           accuracy?: number | null
           altitude?: number | null
+          gps_quality?: number | null
           heading?: number | null
           id?: number
           latitude?: number | null
           longitude?: number | null
+          motivo_coleta?: string | null
           motorista_id?: string | null
           speed?: number | null
           updated_at?: string | null
+          viagem_id?: string | null
         }
         Update: {
           accuracy?: number | null
           altitude?: number | null
+          gps_quality?: number | null
           heading?: number | null
           id?: number
           latitude?: number | null
           longitude?: number | null
+          motivo_coleta?: string | null
           motorista_id?: string | null
           speed?: number | null
           updated_at?: string | null
+          viagem_id?: string | null
         }
         Relationships: [
           {
@@ -1372,6 +1381,13 @@ export type Database = {
             columns: ["motorista_id"]
             isOneToOne: true
             referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: false
+            referencedRelation: "viagens"
             referencedColumns: ["id"]
           },
         ]
@@ -1877,10 +1893,12 @@ export type Database = {
           accuracy: number | null
           altitude: number | null
           created_at: string
+          gps_quality: number | null
           heading: number | null
           id: string
           latitude: number
           longitude: number
+          motivo_coleta: string | null
           observacao: string | null
           request_id: string | null
           speed: number | null
@@ -1892,10 +1910,12 @@ export type Database = {
           accuracy?: number | null
           altitude?: number | null
           created_at?: string
+          gps_quality?: number | null
           heading?: number | null
           id?: string
           latitude: number
           longitude: number
+          motivo_coleta?: string | null
           observacao?: string | null
           request_id?: string | null
           speed?: number | null
@@ -1907,10 +1927,12 @@ export type Database = {
           accuracy?: number | null
           altitude?: number | null
           created_at?: string
+          gps_quality?: number | null
           heading?: number | null
           id?: string
           latitude?: number
           longitude?: number
+          motivo_coleta?: string | null
           observacao?: string | null
           request_id?: string | null
           speed?: number | null
@@ -2278,13 +2300,18 @@ export type Database = {
           carroceria_id: string | null
           codigo: string
           created_at: string
+          ended_at: string | null
           fim_em: string | null
           id: string
           inicio_em: string
           km_total: number | null
+          metadata: Json | null
           motorista_id: string
+          started_at: string | null
           status: Database["public"]["Enums"]["status_viagem"]
           tempo_total_minutos: number | null
+          tipo: Database["public"]["Enums"]["tipo_viagem"]
+          total_distance_km: number | null
           updated_at: string
           veiculo_id: string | null
         }
@@ -2292,13 +2319,18 @@ export type Database = {
           carroceria_id?: string | null
           codigo: string
           created_at?: string
+          ended_at?: string | null
           fim_em?: string | null
           id?: string
           inicio_em?: string
           km_total?: number | null
+          metadata?: Json | null
           motorista_id: string
+          started_at?: string | null
           status?: Database["public"]["Enums"]["status_viagem"]
           tempo_total_minutos?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_viagem"]
+          total_distance_km?: number | null
           updated_at?: string
           veiculo_id?: string | null
         }
@@ -2306,13 +2338,18 @@ export type Database = {
           carroceria_id?: string | null
           codigo?: string
           created_at?: string
+          ended_at?: string | null
           fim_em?: string | null
           id?: string
           inicio_em?: string
           km_total?: number | null
+          metadata?: Json | null
           motorista_id?: string
+          started_at?: string | null
           status?: Database["public"]["Enums"]["status_viagem"]
           tempo_total_minutos?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_viagem"]
+          total_distance_km?: number | null
           updated_at?: string
           veiculo_id?: string | null
         }
@@ -2439,7 +2476,12 @@ export type Database = {
         | "problema"
         | "cancelada"
       status_pre_cadastro: "pendente" | "aprovado" | "rejeitado"
-      status_viagem: "em_andamento" | "finalizada" | "cancelada"
+      status_viagem:
+        | "em_andamento"
+        | "finalizada"
+        | "cancelada"
+        | "programada"
+        | "concluida"
       tipo_cadastro_motorista: "autonomo" | "frota"
       tipo_carga:
         | "granel_solido"
@@ -2498,6 +2540,7 @@ export type Database = {
         | "rodotrem"
         | "vanderleia"
         | "bitruck"
+      tipo_viagem: "urbano" | "rodovia"
       user_ai: "ai" | "user"
       usuario_cargo: "ADMIN" | "OPERADOR"
     }
@@ -2663,7 +2706,13 @@ export const Constants = {
         "cancelada",
       ],
       status_pre_cadastro: ["pendente", "aprovado", "rejeitado"],
-      status_viagem: ["em_andamento", "finalizada", "cancelada"],
+      status_viagem: [
+        "em_andamento",
+        "finalizada",
+        "cancelada",
+        "programada",
+        "concluida",
+      ],
       tipo_cadastro_motorista: ["autonomo", "frota"],
       tipo_carga: [
         "granel_solido",
@@ -2726,6 +2775,7 @@ export const Constants = {
         "vanderleia",
         "bitruck",
       ],
+      tipo_viagem: ["urbano", "rodovia"],
       user_ai: ["ai", "user"],
       usuario_cargo: ["ADMIN", "OPERADOR"],
     },
