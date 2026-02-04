@@ -63,11 +63,14 @@ import { GoogleMapsLoader, useGoogleMaps } from '@/components/maps/GoogleMapsLoa
 import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
+import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 
 // Status definitions - apenas os status válidos
+// Coluna 1 (pending): APENAS 'aguardando'
+// Coluna 2 (inRoute/done): 'saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
   aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock, column: 'pending' },
-  saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200', icon: Truck, column: 'pending' },
+  saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200', icon: Truck, column: 'inRoute' },
   saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: MapPin, column: 'inRoute' },
   entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle, column: 'done' },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle, column: 'done' },
@@ -259,6 +262,9 @@ function DetailPanel({
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
   const [anexarDocumentosOpen, setAnexarDocumentosOpen] = useState(false);
+  const [actionConfirmDialogOpen, setActionConfirmDialogOpen] = useState(false);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewDocTitle, setPreviewDocTitle] = useState<string>('');
 
   if (!entrega) {
     return (
@@ -305,6 +311,12 @@ function DetailPanel({
     setEntregueDialogOpen(false);
   };
 
+  const handleActionConfirm = () => {
+    if (!nextStatus) return;
+    onStatusChange(nextStatus.status);
+    setActionConfirmDialogOpen(false);
+  };
+
   const handleActionClick = () => {
     if (!nextStatus) return;
     
@@ -312,7 +324,15 @@ function DetailPanel({
       // Precisa verificar documentos antes de marcar como entregue
       setEntregueDialogOpen(true);
     } else {
-      onStatusChange(nextStatus.status);
+      // Todas as ações precisam de confirmação
+      setActionConfirmDialogOpen(true);
+    }
+  };
+
+  const handleDocClick = (url: string | null, title: string) => {
+    if (url) {
+      setPreviewDocUrl(url);
+      setPreviewDocTitle(title);
     }
   };
 
@@ -500,22 +520,38 @@ function DetailPanel({
             </div>
             
             <div className="grid grid-cols-2 gap-2">
-              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${entrega.cte_url ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+              <button 
+                onClick={() => handleDocClick(entrega.cte_url, 'CT-e')}
+                disabled={!entrega.cte_url}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.cte_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
                 {entrega.cte_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>CT-e</span>
-              </div>
-              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${entrega.manifesto_url ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+              </button>
+              <button 
+                onClick={() => handleDocClick(entrega.manifesto_url, 'Manifesto')}
+                disabled={!entrega.manifesto_url}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.manifesto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
                 {entrega.manifesto_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>Manifesto</span>
-              </div>
-              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${entrega.canhoto_url ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+              </button>
+              <button 
+                onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}
+                disabled={!entrega.canhoto_url}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.canhoto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
                 {entrega.canhoto_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>Canhoto</span>
-              </div>
-              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${(entrega.notas_fiscais_urls?.length || 0) > 0 ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+              </button>
+              <button 
+                onClick={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
+                disabled={!(entrega.notas_fiscais_urls?.length)}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${(entrega.notas_fiscais_urls?.length || 0) > 0 ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
                 {(entrega.notas_fiscais_urls?.length || 0) > 0 ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>NF ({entrega.notas_fiscais_urls?.length || 0})</span>
-              </div>
+              </button>
             </div>
           </div>
 
@@ -779,6 +815,28 @@ function DetailPanel({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Alert Dialog para confirmar ação de status (não-entregue) */}
+      <AlertDialog open={actionConfirmDialogOpen} onOpenChange={setActionConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {nextStatus && <nextStatus.icon className="w-5 h-5 text-primary" />}
+              Confirmar ação?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a alterar o status da entrega <span className="font-semibold">{entrega.codigo}</span> para <span className="font-semibold">{nextStatus?.label}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleActionConfirm}>
+              {nextStatus && <nextStatus.icon className="w-4 h-4 mr-2" />}
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Dialog para anexar documentos */}
       <AnexarDocumentosDialog
         entrega={{
@@ -793,6 +851,14 @@ function DetailPanel({
         open={anexarDocumentosOpen}
         onOpenChange={setAnexarDocumentosOpen}
         onSuccess={onRefresh}
+      />
+
+      {/* Dialog para preview de documento */}
+      <FilePreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => !open && setPreviewDocUrl(null)}
+        fileUrl={previewDocUrl}
+        title={previewDocTitle}
       />
     </div>
   );
@@ -1182,12 +1248,12 @@ export default function OperacaoDiaria() {
   });
 
   // Separar entregas por status para as colunas
+  // Coluna 1: APENAS 'aguardando'
+  // Coluna 2: 'saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'
   const { aguardandoEntregas, emRotaEntregas } = useMemo(() => {
-    const aguardando = entregas.filter(e =>
-      ['aguardando', 'saiu_para_coleta'].includes(e.status)
-    );
+    const aguardando = entregas.filter(e => e.status === 'aguardando');
     const emRota = entregas.filter(e =>
-      ['saiu_para_entrega', 'entregue', 'cancelada'].includes(e.status)
+      ['saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'].includes(e.status)
     );
     return { aguardandoEntregas: aguardando, emRotaEntregas: emRota };
   }, [entregas]);
