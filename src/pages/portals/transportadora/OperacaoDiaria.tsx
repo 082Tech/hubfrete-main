@@ -519,22 +519,38 @@ function DetailPanel({
             </div>
             
             <div className="grid grid-cols-2 gap-2">
-              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${entrega.cte_url ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+              <button 
+                onClick={() => handleDocClick(entrega.cte_url, 'CT-e')}
+                disabled={!entrega.cte_url}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.cte_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
                 {entrega.cte_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>CT-e</span>
-              </div>
-              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${entrega.manifesto_url ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+              </button>
+              <button 
+                onClick={() => handleDocClick(entrega.manifesto_url, 'Manifesto')}
+                disabled={!entrega.manifesto_url}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.manifesto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
                 {entrega.manifesto_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>Manifesto</span>
-              </div>
-              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${entrega.canhoto_url ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+              </button>
+              <button 
+                onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}
+                disabled={!entrega.canhoto_url}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.canhoto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
                 {entrega.canhoto_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>Canhoto</span>
-              </div>
-              <div className={`flex items-center gap-2 p-2 rounded-md border text-xs ${(entrega.notas_fiscais_urls?.length || 0) > 0 ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-muted'}`}>
+              </button>
+              <button 
+                onClick={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
+                disabled={!(entrega.notas_fiscais_urls?.length)}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${(entrega.notas_fiscais_urls?.length || 0) > 0 ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
                 {(entrega.notas_fiscais_urls?.length || 0) > 0 ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>NF ({entrega.notas_fiscais_urls?.length || 0})</span>
-              </div>
+              </button>
             </div>
           </div>
 
