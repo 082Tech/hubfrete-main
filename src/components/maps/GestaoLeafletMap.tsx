@@ -321,47 +321,33 @@ export function GestaoLeafletMap({
         <MapController selectedMotoristaId={selectedMotoristaId} localizacoes={localizacoes} />
 
         {/* Marcadores de origem e destino da entrega selecionada */}
-        {selectedEntrega?.origemCoords && (
+        {origemCoords && (
           <Marker
-            position={[selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]}
+            position={[origemCoords.lat, origemCoords.lng]}
             icon={createLocationIcon('origem')}
           />
         )}
-        {selectedEntrega?.destinoCoords && (
+        {destinoCoords && (
           <Marker
-            position={[selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]}
+            position={[destinoCoords.lat, destinoCoords.lng]}
             icon={createLocationIcon('destino')}
           />
         )}
 
-        {/* Rota tracejada: Caminhão → Origem */}
-        {routeToOrigin && (
-          <Polyline
-            positions={routeToOrigin}
-            pathOptions={{
-              color: '#3b82f6',
-              weight: 4,
-              opacity: 0.8,
-              dashArray: '8, 12',
-              lineCap: 'round',
-              lineJoin: 'round',
-            }}
-          />
-        )}
+        {/* Rota OSRM tracejada: Caminhão → Origem */}
+        <OSRMRoutePolyline
+          origin={driverLocation}
+          destination={origemCoords}
+          color="#06b6d4"
+          dashArray="8, 12"
+        />
 
-        {/* Rota sólida: Origem → Destino */}
-        {routeOriginToDest && (
-          <Polyline
-            positions={routeOriginToDest}
-            pathOptions={{
-              color: '#6366f1',
-              weight: 4,
-              opacity: 0.9,
-              lineCap: 'round',
-              lineJoin: 'round',
-            }}
-          />
-        )}
+        {/* Rota OSRM sólida: Origem → Destino */}
+        <OSRMRoutePolyline
+          origin={origemCoords}
+          destination={destinoCoords}
+          color="#a855f7"
+        />
 
         {localizacoes.map(loc => {
           if (!loc.latitude || !loc.longitude) return null;
