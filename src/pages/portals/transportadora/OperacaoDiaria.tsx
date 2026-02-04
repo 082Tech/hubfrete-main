@@ -144,10 +144,10 @@ function EntregaListItem({
   );
 }
 
-// Empty column placeholder
+// Empty column placeholder - centered both vertically and horizontally
 function EmptyColumnPlaceholder({ message }: { message: string }) {
   return (
-    <div className="h-full flex flex-col items-center justify-center text-muted-foreground px-8">
+    <div className="flex flex-col items-center justify-center text-muted-foreground px-8 py-12 h-full min-h-[200px]">
       <Package className="w-12 h-12 mb-3 opacity-30" />
       <p className="text-sm text-center">{message}</p>
     </div>
@@ -170,9 +170,11 @@ function DetailPanel({
 }) {
   if (!entrega) {
     return (
-      <EmptyColumnPlaceholder 
-        message="Selecione uma entrega para ver os detalhes"
-      />
+      <div className="flex items-center justify-center h-full">
+        <EmptyColumnPlaceholder 
+          message="Selecione uma entrega para ver os detalhes"
+        />
+      </div>
     );
   }
 
@@ -848,7 +850,7 @@ export default function OperacaoDiaria() {
   };
 
   return (
-    <div className="h-[calc(100dvh-64px)] flex flex-col">
+    <div className="flex flex-col h-full" style={{ height: 'calc(100dvh - 64px)' }}>
       {/* Header */}
       <div className="px-6 py-3 border-b bg-background">
         <div className="flex items-center justify-between">
@@ -871,19 +873,21 @@ export default function OperacaoDiaria() {
       </div>
 
       {/* Main content - 3 columns: 30% 30% 40% */}
-      <div className="flex-1 flex overflow-hidden" style={{ display: 'grid', gridTemplateColumns: '30% 30% 40%' }}>
+      <div className="flex-1 grid overflow-hidden" style={{ gridTemplateColumns: '30% 30% 40%' }}>
         {/* Column 1: Entregas Aguardando (30%) */}
-        <div className="border-r bg-muted/20 flex flex-col min-w-0">
-          <div className="px-3 py-2 border-b bg-muted/30">
+        <div className="border-r bg-muted/20 flex flex-col min-w-0 overflow-hidden">
+          <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
             <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
           </div>
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             ) : aguardandoEntregas.length === 0 ? (
-              <EmptyColumnPlaceholder message="Suas entregas aparecerão aqui" />
+              <div className="flex items-center justify-center h-full">
+                <EmptyColumnPlaceholder message="Suas entregas aparecerão aqui" />
+              </div>
             ) : (
               aguardandoEntregas.map((entrega) => (
                 <EntregaListItem
@@ -894,21 +898,23 @@ export default function OperacaoDiaria() {
                 />
               ))
             )}
-          </ScrollArea>
+          </div>
         </div>
 
         {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
-        <div className="border-r flex flex-col bg-background min-w-0">
-          <div className="px-3 py-2 border-b bg-muted/30">
+        <div className="border-r flex flex-col bg-background min-w-0 overflow-hidden">
+          <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
             <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
           </div>
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             ) : emRotaEntregas.length === 0 ? (
-              <EmptyColumnPlaceholder message="Entregas em rota aparecerão aqui" />
+              <div className="flex items-center justify-center h-full">
+                <EmptyColumnPlaceholder message="Entregas em rota aparecerão aqui" />
+              </div>
             ) : (
               emRotaEntregas.map((entrega) => (
                 <EntregaListItem
@@ -919,11 +925,11 @@ export default function OperacaoDiaria() {
                 />
               ))
             )}
-          </ScrollArea>
+          </div>
         </div>
 
         {/* Column 3: Detail Panel (40%) */}
-        <div className="min-w-0">
+        <div className="min-w-0 overflow-hidden flex flex-col">
           <DetailPanel
             entrega={selectedEntrega}
             onClose={() => setSelectedEntrega(null)}
