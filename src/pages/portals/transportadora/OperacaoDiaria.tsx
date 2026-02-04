@@ -1289,10 +1289,21 @@ export default function OperacaoDiaria() {
 
       if (error) throw error;
 
+      // Mapear status para tipos de evento válidos na constraint do DB
+      const statusToEventoTipo: Record<string, string> = {
+        aguardando: 'aceite',
+        saiu_para_coleta: 'inicio_coleta',
+        saiu_para_entrega: 'inicio_rota',
+        entregue: 'finalizado',
+        cancelada: 'cancelado',
+      };
+
+      const eventoTipo = statusToEventoTipo[newStatus] || 'aceite';
+
       // Registrar evento com auditoria (user_id e user_nome)
       const { error: eventoError } = await supabase.from('entrega_eventos').insert({
         entrega_id: entregaId,
-        tipo: `status_${newStatus}`,
+        tipo: eventoTipo,
         timestamp: new Date().toISOString(),
         observacao: `Status alterado para ${statusConfig[newStatus]?.label || newStatus}`,
         user_id: user?.id ?? null,
