@@ -189,7 +189,24 @@ function OSRMRoutePolyline({
   );
 }
 
-// Custom Marker component with hover tooltip
+// Status colors for tooltip
+const statusColors: Record<string, string> = {
+  aguardando: 'bg-amber-500',
+  saiu_para_coleta: 'bg-cyan-500',
+  saiu_para_entrega: 'bg-purple-500',
+  entregue: 'bg-emerald-500',
+  cancelada: 'bg-destructive',
+};
+
+const statusLabels: Record<string, string> = {
+  aguardando: 'Aguardando',
+  saiu_para_coleta: 'Em Coleta',
+  saiu_para_entrega: 'Em Entrega',
+  entregue: 'Entregue',
+  cancelada: 'Cancelada',
+};
+
+// Custom Marker component with rich hover tooltip
 function DriverMarkerWithTooltip({
   loc,
   isSelected,
@@ -206,7 +223,8 @@ function DriverMarkerWithTooltip({
   if (!loc.latitude || !loc.longitude) return null;
 
   const isOnline = loc.isOnline ?? motoristaInfo?.isOnline ?? true;
-  const entregasCount = motoristaInfo?.entregas?.length ?? 0;
+  const entregas = motoristaInfo?.entregas || [];
+  const entregasCount = entregas.length;
 
   return (
     <Marker
@@ -222,17 +240,46 @@ function DriverMarkerWithTooltip({
         opacity={1}
         className="driver-tooltip"
       >
-        <div className="px-2 py-1.5 min-w-[120px]">
-          <p className="font-semibold text-sm mb-0.5">{motoristaName}</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className={`inline-flex items-center gap-1 ${isOnline ? 'text-green-600' : 'text-gray-500'}`}>
-              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
+        <div className="px-3 py-2.5 min-w-[240px] max-w-[300px]">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-semibold text-sm">{motoristaName}</p>
+            <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full ${
+              isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
               {isOnline ? 'Online' : 'Offline'}
             </span>
-            {entregasCount > 0 && (
-              <span>• {entregasCount} entrega{entregasCount !== 1 ? 's' : ''}</span>
-            )}
           </div>
+          
+          {/* Entregas list */}
+          {entregasCount > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                {entregasCount} entrega{entregasCount !== 1 ? 's' : ''} em andamento
+              </span>
+              {entregas.slice(0, 3).map((e, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded-md px-2 py-1.5">
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusColors[e.status] || 'bg-muted-foreground'}`} 
+                    title={statusLabels[e.status] || e.status} 
+                  />
+                  <span className="font-mono text-[10px] text-muted-foreground shrink-0">{e.codigo}</span>
+                  <span className="truncate text-foreground">{e.origemCidade} → {e.destinoCidade}</span>
+                </div>
+              ))}
+              {entregasCount > 3 && (
+                <p className="text-[10px] text-muted-foreground text-center pt-1">
+                  +{entregasCount - 3} mais entregas
+                </p>
+              )}
+            </div>
+          )}
+          
+          {entregasCount === 0 && (
+            <p className="text-xs text-muted-foreground">Sem entregas ativas</p>
+          )}
+          
+          <p className="text-[10px] text-primary mt-2 text-center">Clique para ver detalhes</p>
         </div>
       </Tooltip>
     </Marker>
