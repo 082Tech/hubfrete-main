@@ -39,8 +39,9 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  ArrowLeftRight,
+  MessageCircle,
   RefreshCw,
-  Phone,
   History,
   Share,
   Printer,
@@ -67,6 +68,7 @@ import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDi
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
+import { ChatSheet } from '@/components/mensagens/ChatSheet';
 
 // Status definitions - apenas os status válidos
 // Coluna 1 (pending): APENAS 'aguardando'
@@ -268,6 +270,7 @@ function DetailPanel({
   const [actionConfirmDialogOpen, setActionConfirmDialogOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState<string>('');
+  const [chatSheetOpen, setChatSheetOpen] = useState(false);
 
   if (!entrega) {
     return (
@@ -567,7 +570,7 @@ function DetailPanel({
             height={300}
           />
 
-          {/* Driver & Vehicle */}
+          {/* Driver & Vehicle + Chat Button */}
           {entrega.motorista && (
             <Card className="shadow-none border">
               <CardContent className="p-2">
@@ -577,22 +580,23 @@ function DetailPanel({
                     <AvatarFallback className="text-xs">{entrega.motorista.nome_completo?.[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-xs truncate">{entrega.motorista.nome_completo}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {entrega.motorista.telefone && (
-                        <span className="flex items-center gap-0.5">
-                          <Phone className="w-2.5 h-2.5" />
-                          {entrega.motorista.telefone}
-                        </span>
-                      )}
-                      {entrega.veiculo && (
-                        <span className="flex items-center gap-0.5">
-                          <Truck className="w-2.5 h-2.5" />
-                          {entrega.veiculo.placa}
-                        </span>
-                      )}
-                    </div>
+                    <p className="font-medium text-sm truncate">{entrega.motorista.nome_completo}</p>
+                    {entrega.veiculo && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Truck className="w-3 h-3" />
+                        <span>{entrega.veiculo.placa}</span>
+                      </div>
+                    )}
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => setChatSheetOpen(true)}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-1.5" />
+                    Chat
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -600,31 +604,46 @@ function DetailPanel({
 
           {/* History Timeline */}
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <History className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="font-medium text-xs">Histórico</span>
+            <div className="flex items-center gap-2 mb-3">
+              <History className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium text-sm">Histórico</span>
             </div>
 
             {entrega.eventos && entrega.eventos.length > 0 ? (
-              <div className="relative pl-3 space-y-2">
-                <div className="absolute left-1 top-1.5 bottom-1.5 w-0.5 bg-purple-200" />
-                {entrega.eventos.slice(0, 5).map((evento, idx) => (
-                  <div key={evento.id} className="relative">
-                    <div className={`absolute -left-2 top-0.5 w-2 h-2 rounded-full border-2 border-background ${idx === 0 ? 'bg-purple-500' : 'bg-purple-200'
-                      }`} />
-                    <div className="ml-2">
-                      <span className="text-xs">
-                        {evento.tipo.replace(/status_/g, '').replace(/_/g, ' ')}
-                      </span>
-                      <div className="text-[10px] text-muted-foreground">
-                        {format(new Date(evento.timestamp), "dd/MM HH:mm", { locale: ptBR })}
+              <div className="space-y-3">
+                {entrega.eventos.slice(0, 5).map((evento) => {
+                  // Mapear tipo do evento para label legível
+                  const tipoToLabel: Record<string, string> = {
+                    aceite: 'Aguardando',
+                    inicio_coleta: 'Saiu para Coleta',
+                    inicio_rota: 'Saiu para Entrega',
+                    finalizado: 'Entregue',
+                    cancelado: 'Cancelada',
+                  };
+                  const statusLabel = tipoToLabel[evento.tipo] || evento.tipo.replace(/_/g, ' ');
+                  const userName = evento.user_nome || 'Sistema';
+                  
+                  return (
+                    <div key={evento.id} className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+                        <ArrowLeftRight className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm">
+                          <span className="font-medium">{userName}</span>
+                          <span className="text-muted-foreground"> alterou o status para </span>
+                          <span className="font-medium">{statusLabel}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {format(new Date(evento.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-2">
+              <p className="text-sm text-muted-foreground text-center py-3">
                 Nenhum evento registrado
               </p>
             )}
@@ -799,6 +818,14 @@ function DetailPanel({
         onOpenChange={(open) => !open && setPreviewDocUrl(null)}
         fileUrl={previewDocUrl}
         title={previewDocTitle}
+      />
+
+      {/* Chat Sheet */}
+      <ChatSheet
+        open={chatSheetOpen}
+        onOpenChange={setChatSheetOpen}
+        entregaId={entrega.id}
+        userType="transportadora"
       />
     </div>
   );
