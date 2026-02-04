@@ -558,75 +558,16 @@ function DetailPanel({
 
           <Separator />
 
-          {/* Mini Map */}
-          <div className="rounded-lg overflow-hidden border h-[200px]">
-            <GoogleMapsLoader>
-              <GoogleMap
-                mapContainerStyle={{ width: '100%', height: '100%' }}
-                center={mapCenter}
-                zoom={10}
-                options={{
-                  disableDefaultUI: true,
-                  zoomControl: true,
-                }}
-              >
-                {origemCoords && (
-                  <Marker
-                    position={origemCoords}
-                    icon={{
-                      path: google.maps.SymbolPath.CIRCLE,
-                      scale: 7,
-                      fillColor: '#22c55e',
-                      fillOpacity: 1,
-                      strokeColor: '#fff',
-                      strokeWeight: 2,
-                    }}
-                    title="Origem"
-                  />
-                )}
-                {destinoCoords && (
-                  <Marker
-                    position={destinoCoords}
-                    icon={{
-                      path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-                      scale: 5,
-                      fillColor: '#ef4444',
-                      fillOpacity: 1,
-                      strokeColor: '#fff',
-                      strokeWeight: 2,
-                    }}
-                    title="Destino"
-                  />
-                )}
-                {driverLocation && (
-                  <Marker
-                    position={driverLocation}
-                    icon={{
-                      path: 'M 0,-8 L 5,8 L 0,4 L -5,8 Z',
-                      scale: 1.5,
-                      fillColor: '#3b82f6',
-                      fillOpacity: 1,
-                      strokeColor: '#fff',
-                      strokeWeight: 2,
-                      rotation: 0,
-                    }}
-                    title="Motorista"
-                  />
-                )}
-                {origemCoords && destinoCoords && (
-                  <Polyline
-                    path={[origemCoords, driverLocation || origemCoords, destinoCoords].filter(Boolean) as google.maps.LatLngLiteral[]}
-                    options={{
-                      strokeColor: '#6366f1',
-                      strokeOpacity: 0.6,
-                      strokeWeight: 2,
-                      geodesic: true,
-                    }}
-                  />
-                )}
-              </GoogleMap>
-            </GoogleMapsLoader>
-          </div>
+          {/* Mapa com rotas condicionais */}
+          <GoogleMapsLoader>
+            <DetailPanelMap
+              origemCoords={origemCoords}
+              destinoCoords={destinoCoords}
+              driverLocation={driverLocation}
+              status={entrega.status}
+              height={300}
+            />
+          </GoogleMapsLoader>
 
           {/* Driver & Vehicle */}
           {entrega.motorista && (
