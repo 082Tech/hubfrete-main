@@ -1,5 +1,5 @@
-import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { useMemo, useCallback, useEffect, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getTruckIconHtml } from './TruckIcon';
@@ -20,11 +20,18 @@ interface MotoristaLocation {
   isOnline?: boolean;
 }
 
+interface MotoristaInfo {
+  nome: string;
+  entregas: number;
+  isOnline: boolean;
+}
+
 interface GestaoLeafletMapProps {
   localizacoes: MotoristaLocation[];
   selectedMotoristaId: string | null;
   onMotoristaClick: (motoristaId: string) => void;
   motoristaNames: Record<string, string>;
+  motoristaInfo?: Record<string, MotoristaInfo>;
 }
 
 // Create truck icon
@@ -39,7 +46,7 @@ const createTruckIcon = (heading: number = 0, isOnline: boolean = false, isSelec
   });
 };
 
-// Component to fit bounds to all points
+// Component to fit bounds to all points - ONLY ONCE
 function FitBounds({ points }: { points: [number, number][] }) {
   const map = useMap();
   const hasFitted = useRef(false);
@@ -59,7 +66,7 @@ function FitBounds({ points }: { points: [number, number][] }) {
   return null;
 }
 
-// Controller component for map operations
+// Controller component for map operations - pan to selected driver
 function MapController({
   selectedMotoristaId,
   localizacoes,
@@ -83,16 +90,68 @@ function MapController({
   return null;
 }
 
+// Custom Marker component with hover tooltip
+function DriverMarkerWithTooltip({
+  loc,
+  isSelected,
+  motoristaName,
+  motoristaInfo,
+  onMotoristaClick,
+}: {
+  loc: MotoristaLocation;
+  isSelected: boolean;
+  motoristaName: string;
+  motoristaInfo?: MotoristaInfo;
+  onMotoristaClick: (motoristaId: string) => void;
+}) {
+  if (!loc.latitude || !loc.longitude) return null;
+
+  const isOnline = loc.isOnline ?? motoristaInfo?.isOnline ?? true;
+  const entregasCount = motoristaInfo?.entregas ?? 0;
+
+  return (
+    <Marker
+      position={[loc.latitude, loc.longitude]}
+      icon={createTruckIcon(loc.heading ?? 0, isOnline, isSelected)}
+      eventHandlers={{
+        click: () => onMotoristaClick(loc.motorista_id),
+      }}
+    >
+      <Tooltip 
+        direction="top" 
+        offset={[0, -30]} 
+        opacity={1}
+        className="driver-tooltip"
+      >
+        <div className="px-2 py-1.5 min-w-[120px]">
+          <p className="font-semibold text-sm mb-0.5">{motoristaName}</p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className={`inline-flex items-center gap-1 ${isOnline ? 'text-green-600' : 'text-gray-500'}`}>
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
+              {isOnline ? 'Online' : 'Offline'}
+            </span>
+            {entregasCount > 0 && (
+              <span>• {entregasCount} entrega{entregasCount !== 1 ? 's' : ''}</span>
+            )}
+          </div>
+        </div>
+      </Tooltip>
+    </Marker>
+  );
+}
+
 /**
  * Mapa Leaflet para o Dialog de Gestão de Entregas
  * - Mostra todos os motoristas com seus ícones de caminhão
  * - Permite clicar para selecionar um motorista
+ * - Tooltip no hover mostrando nome e status
  */
 export function GestaoLeafletMap({
   localizacoes,
   selectedMotoristaId,
   onMotoristaClick,
   motoristaNames,
+  motoristaInfo,
 }: GestaoLeafletMapProps) {
   // Collect all valid points
   const allPoints = useMemo(() => {
@@ -131,21 +190,38 @@ export function GestaoLeafletMap({
           if (!loc.latitude || !loc.longitude) return null;
 
           const isSelected = selectedMotoristaId === loc.motorista_id;
-          const isOnline = loc.isOnline ?? true; // Default to online if not specified
+          const name = motoristaNames[loc.motorista_id] || 'Motorista';
+          const info = motoristaInfo?.[loc.motorista_id];
 
           return (
-            <Marker
+            <DriverMarkerWithTooltip
               key={loc.motorista_id}
-              position={[loc.latitude, loc.longitude]}
-              icon={createTruckIcon(loc.heading ?? 0, isOnline, isSelected)}
-              eventHandlers={{
-                click: () => onMotoristaClick(loc.motorista_id),
-              }}
-              title={motoristaNames[loc.motorista_id] || 'Motorista'}
+              loc={loc}
+              isSelected={isSelected}
+              motoristaName={name}
+              motoristaInfo={info}
+              onMotoristaClick={onMotoristaClick}
             />
           );
         })}
       </MapContainer>
+      
+      {/* Custom tooltip styles */}
+      <style>{`
+        .driver-tooltip {
+          background: white !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 8px !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+          padding: 0 !important;
+        }
+        .driver-tooltip::before {
+          border-top-color: #e2e8f0 !important;
+        }
+        .leaflet-tooltip-top:before {
+          border-top-color: white !important;
+        }
+      `}</style>
     </div>
   );
 }
