@@ -13,6 +13,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Package,
   Truck,
   MapPin,
@@ -29,24 +46,22 @@ import {
   X,
   ArrowUpRight,
   Map,
+  MoreVertical,
+  Ban,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleMapsLoader, useGoogleMaps } from '@/components/maps/GoogleMapsLoader';
 import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
-import { AdvancedSearchPopover } from '@/components/cargas/AdvancedSearchPopover';
 
-// Status definitions - incluindo todos os status possíveis
+// Status definitions - apenas os status válidos
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
-  aguardando_coleta: { label: 'Aguardando Coleta', color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock, column: 'pending' },
-  em_coleta: { label: 'Em Coleta', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: Package, column: 'pending' },
-  em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-800 border-indigo-200', icon: Truck, column: 'inRoute' },
+  aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock, column: 'pending' },
   saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200', icon: Truck, column: 'pending' },
   saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: MapPin, column: 'inRoute' },
-  em_entrega: { label: 'Em Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: MapPin, column: 'inRoute' },
   entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle, column: 'done' },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle, column: 'done' },
-}; // Lovable: Apenas temos os status, aguardando, saiu para coleta, saiu para entrega, entregue, cancelada, corrige isso
+};
 
 type EntregaStatus = string;
 
@@ -93,7 +108,7 @@ function EntregaListItem({
   isSelected: boolean;
   onClick: () => void;
 }) {
-  const statusInfo = statusConfig[entrega.status] || statusConfig.aguardando_coleta;
+  const statusInfo = statusConfig[entrega.status] || statusConfig.aguardando;
   const tempoDecorrido = formatDistanceToNow(new Date(entrega.updated_at || entrega.created_at), {
     addSuffix: false,
     locale: ptBR
@@ -169,6 +184,8 @@ function DetailPanel({
   isChangingStatus: boolean;
   driverLocation: { lat: number; lng: number } | null;
 }) {
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+
   if (!entrega) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -179,7 +196,7 @@ function DetailPanel({
     );
   }
 
-  const statusInfo = statusConfig[entrega.status] || statusConfig.aguardando_coleta;
+  const statusInfo = statusConfig[entrega.status] || statusConfig.aguardando;
   const StatusIcon = statusInfo.icon;
 
   const origemCoords = entrega.carga.endereco_origem?.latitude && entrega.carga.endereco_origem?.longitude
@@ -191,21 +208,23 @@ function DetailPanel({
 
   const mapCenter = driverLocation || origemCoords || destinoCoords || { lat: -23.55, lng: -46.63 };
 
-  // Determine next possible statuses based on current status
-  const getNextStatuses = (): string[] => {
+  // Determine next status based on current status
+  const getNextStatus = (): { status: string; label: string; icon: React.ElementType } | null => {
     switch (entrega.status) {
-      case 'aguardando_coleta': return ['saiu_para_coleta', 'cancelada'];
-      case 'saiu_para_coleta': return ['em_coleta', 'cancelada'];
-      case 'em_coleta': return ['em_transito', 'cancelada'];
-      case 'em_transito': return ['saiu_para_entrega', 'cancelada'];
-      case 'saiu_para_entrega': return ['em_entrega', 'cancelada'];
-      case 'em_entrega': return ['entregue', 'cancelada'];
-      default: return [];
+      case 'aguardando': return { status: 'saiu_para_coleta', label: 'Saiu para Coleta', icon: Truck };
+      case 'saiu_para_coleta': return { status: 'saiu_para_entrega', label: 'Saiu para Entrega', icon: MapPin };
+      case 'saiu_para_entrega': return { status: 'entregue', label: 'Marcar como Entregue', icon: CheckCircle };
+      default: return null;
     }
   };
 
-  const nextStatuses = getNextStatuses();
+  const nextStatus = getNextStatus();
   const isFinalized = entrega.status === 'entregue' || entrega.status === 'cancelada';
+
+  const handleCancelConfirm = () => {
+    onStatusChange('cancelada');
+    setCancelDialogOpen(false);
+  };
 
   return (
     <div className="h-full flex flex-col bg-background border-l">
@@ -260,7 +279,7 @@ function DetailPanel({
           <Separator />
 
           {/* Mini Map - aspect ratio mais quadrado */}
-          <div className="rounded-lg overflow-hidden border w-full h-[300px]">
+          <div className="rounded-lg overflow-hidden border aspect-square max-h-40">
             <GoogleMapsLoader>
               <GoogleMap
                 mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -394,36 +413,61 @@ function DetailPanel({
         </div>
       </ScrollArea>
 
-      {/* Footer actions */}
-      {!isFinalized && nextStatuses.length > 0 && (
+      {/* Footer actions - botão principal + menu de 3 pontos */}
+      {!isFinalized && nextStatus && (
         <div className="p-3 border-t bg-muted/20">
           <div className="flex gap-2">
-            {nextStatuses.map((status) => { // Lovable: Mudar para os status corretos e aqui só vai precisar de um botão de ação mesmo, eu quero que tenha o icone de 3 pontos verticais no canto esquerdo desse botão, esse sim que vai abrir um dialog com mais ações, caso o usuário precisa cancelar aquela entrega, etc. 
-              const config = statusConfig[status];
-              if (!config) return null;
-              const Icon = config.icon;
-              const isPrimary = status !== 'cancelada';
-              return (
-                <Button
-                  key={status}
-                  variant={isPrimary ? 'default' : 'outline'}
-                  size="sm"
-                  className={`flex-1 text-xs ${!isPrimary ? 'text-destructive border-destructive hover:bg-destructive/10' : ''}`}
-                  onClick={() => onStatusChange(status)}
-                  disabled={isChangingStatus}
-                >
-                  {isChangingStatus ? (
-                    <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-                  ) : (
-                    <Icon className="w-3.5 h-3.5 mr-1" />
-                  )}
-                  {config.label}
+            {/* Menu de mais ações (3 pontos) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="px-2">
+                  <MoreVertical className="w-4 h-4" />
                 </Button>
-              );
-            })}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-destructive focus:text-destructive">
+                  <Ban className="w-4 h-4 mr-2" />
+                  Cancelar entrega
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Botão de ação principal */}
+            <Button
+              variant="default"
+              size="sm"
+              className="flex-1 text-xs"
+              onClick={() => onStatusChange(nextStatus.status)}
+              disabled={isChangingStatus}
+            >
+              {isChangingStatus ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+              ) : (
+                <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
+              )}
+              {nextStatus.label}
+            </Button>
           </div>
         </div>
       )}
+
+      {/* Alert Dialog para confirmar cancelamento */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar entrega?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá cancelar a entrega {entrega.codigo}. O peso será devolvido para a carga original. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Confirmar cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -722,10 +766,8 @@ export default function OperacaoDiaria() {
 
       const motoristaIdsList = motoristas.map(m => m.id);
 
-      // Fetch deliveries:
-      // - All created today (any status)
-      // - OR pending from previous days (not finalized)
-      const pendingStatuses = ['aguardando_coleta', 'em_coleta', 'em_transito', 'saiu_para_coleta', 'saiu_para_entrega', 'em_entrega'];
+      // Fetch deliveries - usando apenas os status válidos
+      const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'];
 
       const { data, error } = await supabase
         .from('entregas')
@@ -791,7 +833,7 @@ export default function OperacaoDiaria() {
 
       if (newStatus === 'entregue') {
         updates.entregue_em = new Date().toISOString();
-      } else if (newStatus === 'em_coleta' || newStatus === 'saiu_para_coleta') {
+      } else if (newStatus === 'saiu_para_coleta') {
         updates.coletado_em = new Date().toISOString();
       }
 
@@ -822,10 +864,10 @@ export default function OperacaoDiaria() {
   // Separar entregas por status para as colunas
   const { aguardandoEntregas, emRotaEntregas } = useMemo(() => {
     const aguardando = entregas.filter(e =>
-      ['aguardando_coleta', 'em_coleta', 'saiu_para_coleta'].includes(e.status)
+      ['aguardando', 'saiu_para_coleta'].includes(e.status)
     );
     const emRota = entregas.filter(e =>
-      ['em_transito', 'saiu_para_entrega', 'em_entrega', 'entregue', 'cancelada'].includes(e.status)
+      ['saiu_para_entrega', 'entregue', 'cancelada'].includes(e.status)
     );
     return { aguardandoEntregas: aguardando, emRotaEntregas: emRota };
   }, [entregas]);
@@ -848,35 +890,36 @@ export default function OperacaoDiaria() {
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ height: 'calc(100dvh)' }}>
-      <div className='px-10 flex justify-between items-center my-4'>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Gestão Entregas</h1>
-          <p className="text-muted-foreground">
-            Visualize sua operação
-          </p>
-        </div>
-        <div className='flex items-center gap-4'>
-          <AdvancedSearchPopover
-            filters={{codigo: '', motorista: '', cidadeOrigem: '', cidadeDestino: ''}}
-            onFiltersChange={() => {}}
-          />  // Lovable: Mudar para um filtro que faça sentido nessa página (esse foi só exemplo)
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => setGestaoDialogOpen(true)}
-          >
-            <Map className="w-4 h-4" />
-            Gestão da operação
-          </Button>
+    <div className="flex flex-col h-full" style={{ height: 'calc(100dvh - 64px)' }}>
+      <div className="px-6 py-3 border-b bg-background">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold">Gestão Entregas</h1>
+            <p className="text-xs text-muted-foreground">
+              Visualize sua operação
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-2"
+              onClick={() => setGestaoDialogOpen(true)}
+            >
+              <Map className="w-4 h-4" />
+              Gestão da operação
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Main content - 3 columns: 30% 30% 40% */}
-      <div className="flex-1 p-10 pt-0 grid overflow-hidden" style={{ gridTemplateColumns: '30% 30% 40%' }}>
+      <div className="flex-1 grid overflow-hidden" style={{ gridTemplateColumns: '30% 30% 40%' }}>
         {/* Column 1: Entregas Aguardando (30%) */}
-        <div className="border rounded-l-md bg-muted/20 flex flex-col min-w-0 overflow-hidden">
+        <div className="border-r bg-muted/20 flex flex-col min-w-0 overflow-hidden">
           <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
             <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
           </div>
@@ -903,7 +946,7 @@ export default function OperacaoDiaria() {
         </div>
 
         {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
-        <div className="border border-l-0 flex flex-col bg-background min-w-0 overflow-hidden">
+        <div className="border-r flex flex-col bg-background min-w-0 overflow-hidden">
           <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
             <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
           </div>
@@ -930,7 +973,7 @@ export default function OperacaoDiaria() {
         </div>
 
         {/* Column 3: Detail Panel (40%) */}
-        <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col">
+        <div className="min-w-0 overflow-hidden flex flex-col">
           <DetailPanel
             entrega={selectedEntrega}
             onClose={() => setSelectedEntrega(null)}
