@@ -59,7 +59,7 @@ import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraCargas from "./pages/portals/transportadora/CargasDisponiveis";
 import TransportadoraFrota from "./pages/portals/transportadora/MinhaFrota";
 import TransportadoraMotoristas from "./pages/portals/transportadora/Motoristas";
-import TransportadoraGestaoEntregas from "./pages/portals/transportadora/GestaoEntregas";
+// GestaoEntregas removed - replaced by OperacaoDiaria
 import TransportadoraHistoricoEntregas from "./pages/portals/transportadora/HistoricoEntregas";
 import TransportadoraAssistente from "./pages/portals/transportadora/Assistente";
 import TransportadoraConfiguracoes from "./pages/portals/transportadora/Configuracoes";
@@ -153,12 +153,11 @@ const App = () => {
                 {/* Portal Transportadora - Nested routes with shared layout */}
                 <Route path="/transportadora" element={<PortalLayoutWrapper expectedUserType="transportadora" />}>
                   <Route index element={<TransportadoraDashboard />} />
-                  <Route path="operacao" element={<TransportadoraOperacaoDiaria />} />
                   <Route path="cargas" element={<TransportadoraCargas />} />
+                  <Route path="entregas" element={<TransportadoraOperacaoDiaria />} />
+                  <Route path="entregas/historico" element={<TransportadoraHistoricoEntregas />} />
                   <Route path="frota" element={<TransportadoraFrota />} />
                   <Route path="motoristas" element={<TransportadoraMotoristas />} />
-                  <Route path="entregas" element={<TransportadoraGestaoEntregas />} />
-                  <Route path="entregas/historico" element={<TransportadoraHistoricoEntregas />} />
                   <Route path="relatorios" element={<TransportadoraRelatorios />} />
                   <Route path="assistente" element={<TransportadoraAssistente />} />
                   <Route path="mensagens" element={<TransportadoraMensagens />} />
