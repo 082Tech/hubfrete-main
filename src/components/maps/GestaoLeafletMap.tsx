@@ -33,6 +33,7 @@ interface MotoristaLocation {
   longitude: number | null;
   heading?: number | null;
   isOnline?: boolean;
+  updated_at?: string | null;
 }
 
 interface MotoristaInfo {
