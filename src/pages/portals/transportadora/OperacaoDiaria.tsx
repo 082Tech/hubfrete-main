@@ -1202,6 +1202,7 @@ export default function OperacaoDiaria() {
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
+  const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
   const [filters, setFilters] = useState<AdvancedFilters>({});
 
   // Fetch today's deliveries (by created_at) OR pending from previous days
