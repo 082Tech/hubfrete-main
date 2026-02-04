@@ -855,46 +855,12 @@ function GestaoEntregasDialogContent({
       <div className="flex-1 flex overflow-hidden">
         {/* Mapa grande à esquerda (70%) */}
         <div className="flex-[7] relative">
-          <GoogleMapsLoader>
-            <GoogleMap
-              mapContainerStyle={{ width: '100%', height: '100%' }}
-              center={{ lat: -14.24, lng: -51.93 }}
-              zoom={4}
-              onLoad={handleMapLoad}
-              options={{
-                disableDefaultUI: false,
-                zoomControl: true,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true,
-              }}
-            >
-              {motoristaGroups.map(group => {
-                const loc = localizacoes.find(l => l.motorista_id === group.id);
-                if (!loc?.latitude || !loc?.longitude) return null;
-
-                const isSelected = selectedMotoristaId === group.id;
-
-                return (
-                  <Marker
-                    key={group.id}
-                    position={{ lat: loc.latitude, lng: loc.longitude }}
-                    onClick={() => handleMotoristaClick(group.id)}
-                    icon={{
-                      path: 'M 0,-10 L 6,10 L 0,5 L -6,10 Z',
-                      scale: isSelected ? 2.5 : 2,
-                      fillColor: isSelected ? '#22c55e' : '#3b82f6',
-                      fillOpacity: 1,
-                      strokeColor: '#fff',
-                      strokeWeight: 2,
-                      rotation: 0,
-                    }}
-                    title={group.motorista?.nome_completo || 'Motorista'}
-                  />
-                );
-              })}
-            </GoogleMap>
-          </GoogleMapsLoader>
+          <GestaoLeafletMap
+            localizacoes={localizacoes}
+            selectedMotoristaId={selectedMotoristaId}
+            onMotoristaClick={handleMotoristaClick}
+            motoristaNames={motoristaNames}
+          />
         </div>
 
         {/* Lista de motoristas à direita (30%) */}
