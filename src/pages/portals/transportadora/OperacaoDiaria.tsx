@@ -271,6 +271,7 @@ function DetailPanel({
   const [actionConfirmDialogOpen, setActionConfirmDialogOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState<string>('');
+  const [chatSheetOpen, setChatSheetOpen] = useState(false);
 
   if (!entrega) {
     return (
