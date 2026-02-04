@@ -1591,6 +1591,13 @@ export default function OperacaoDiaria() {
         entregas={entregas}
         localizacoes={localizacoes}
       />
+
+      {/* Daily Performance Dialog */}
+      <DailyPerformanceDialog
+        open={performanceDialogOpen}
+        onOpenChange={setPerformanceDialogOpen}
+        entregas={filteredEntregas}
+      />
     </div>
   );
 }
