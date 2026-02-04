@@ -69,6 +69,8 @@ import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
+import { DailyPerformanceDialog } from '@/components/admin/relatorios/DailyPerformanceDialog';
+import { BarChart3 } from 'lucide-react';
 
 // Status definitions - apenas os status válidos
 // Coluna 1 (pending): APENAS 'aguardando'
