@@ -86,15 +86,11 @@ const cargasSubmenu: MenuGroup = {
   ],
 };
 
-// Submenu for Entregas (transportadora only)
-const entregasSubmenu: MenuGroup = {
-  icon: MapPin,
-  label: 'Entregas',
-  subItems: [
-    { icon: Route, label: 'Gestão', href: '/transportadora/entregas' },
-    { icon: History, label: 'Histórico', href: '/transportadora/entregas/historico' },
-  ],
-};
+// Entregas items for transportadora (no longer a submenu)
+const entregasItems = [
+  { icon: MapPin, label: 'Gestão de Entregas', href: '/transportadora/entregas' },
+  { icon: History, label: 'Histórico de Entregas', href: '/transportadora/entregas/historico' },
+];
 
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
