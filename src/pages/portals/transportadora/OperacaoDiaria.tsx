@@ -42,7 +42,6 @@ import {
   ArrowLeftRight,
   MessageCircle,
   RefreshCw,
-  Phone,
   History,
   Share,
   Printer,
