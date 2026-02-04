@@ -37,14 +37,38 @@ interface MotoristaInfo {
   isOnline: boolean;
 }
 
+interface SelectedEntregaData {
+  id: string;
+  codigo: string;
+  status: string;
+  motoristaNome: string;
+  motoristaFoto?: string | null;
+  carga: {
+    descricao: string;
+    peso: number;
+    tipo: string;
+    remetente?: string | null;
+    destinatario?: string | null;
+    origemCidade?: string;
+    origemEstado?: string;
+    destinoCidade?: string;
+    destinoEstado?: string;
+  };
+  pesoAlocado?: number | null;
+  valorFrete?: number | null;
+  numeroCte?: string | null;
+}
+
 interface GestaoLeafletMapProps {
   localizacoes: MotoristaLocation[];
   selectedMotoristaId: string | null;
   selectedEntregaId: string | null;
   onMotoristaClick: (motoristaId: string) => void;
+  onEntregaDeselect?: () => void;
   motoristaNames: Record<string, string>;
   motoristaInfo?: Record<string, MotoristaInfo>;
   statusCounts?: { aguardando: number; coleta: number; entrega: number; entregue: number; cancelada: number };
+  selectedEntregaData?: SelectedEntregaData | null;
 }
 
 // Create truck icon

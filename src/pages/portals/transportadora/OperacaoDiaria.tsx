@@ -920,6 +920,34 @@ function GestaoEntregasDialogContent({
     setSelectedEntregaId(entregaId);
   }, []);
 
+  // Dados da entrega selecionada para o painel flutuante
+  const selectedEntregaData = useMemo(() => {
+    if (!selectedEntregaId) return null;
+    const entrega = entregas.find(e => e.id === selectedEntregaId);
+    if (!entrega) return null;
+    return {
+      id: entrega.id,
+      codigo: entrega.codigo,
+      status: entrega.status,
+      motoristaNome: entrega.motorista?.nome_completo || 'Motorista',
+      motoristaFoto: entrega.motorista?.foto_url,
+      carga: {
+        descricao: entrega.carga.descricao,
+        peso: entrega.carga.peso_kg,
+        tipo: entrega.carga.tipo,
+        remetente: entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social,
+        destinatario: entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social,
+        origemCidade: entrega.carga.endereco_origem?.cidade,
+        origemEstado: entrega.carga.endereco_origem?.estado,
+        destinoCidade: entrega.carga.endereco_destino?.cidade,
+        destinoEstado: entrega.carga.endereco_destino?.estado,
+      },
+      pesoAlocado: entrega.peso_alocado_kg,
+      valorFrete: entrega.valor_frete,
+      numeroCte: entrega.numero_cte,
+    };
+  }, [selectedEntregaId, entregas]);
+
   return (
     <>
       <DialogHeader className="px-4 py-3 border-b">
