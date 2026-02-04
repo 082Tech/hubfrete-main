@@ -945,18 +945,10 @@ function GestaoEntregasDialog({
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null }>;
 }) {
-  const { isLoaded } = useGoogleMaps();
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0">
-        {isLoaded ? (
-          <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          </div>
-        )}
+        <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} />
       </DialogContent>
     </Dialog>
   );
