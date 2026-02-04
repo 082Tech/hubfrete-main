@@ -279,7 +279,7 @@ function DetailPanel({
           <Separator />
 
           {/* Mini Map - aspect ratio mais quadrado */}
-          <div className="rounded-lg overflow-hidden border aspect-square max-h-40">
+          <div className="rounded-lg overflow-hidden border h-[300px]">
             <GoogleMapsLoader>
               <GoogleMap
                 mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -576,14 +576,6 @@ function GestaoEntregasDialogContent({
       <DialogHeader className="px-4 py-3 border-b">
         <div className="flex items-center justify-between">
           <DialogTitle className="text-lg font-bold">Gestão de Entregas</DialogTitle>
-          <AdvancedFiltersPopover
-            filters={filters}
-            onFiltersChange={setFilters}
-            showMotorista
-            showEmbarcador={false}
-            showDestinatario={false}
-            motoristas={motoristasList}
-          />
         </div>
       </DialogHeader>
 
@@ -738,11 +730,7 @@ export default function OperacaoDiaria() {
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
-
-  const { localizacoes } = useRealtimeLocalizacoes({
-    motoristaIds,
-    enabled: motoristaIds.length > 0
-  });
+  const [filters, setFilters] = useState<AdvancedFilters>({});
 
   // Fetch today's deliveries (by created_at) OR pending from previous days
   const { data: entregas = [], isLoading, refetch } = useQuery({
@@ -819,6 +807,33 @@ export default function OperacaoDiaria() {
     refetchInterval: 30000,
   });
 
+  const motoristaGroups = useMemo(() => {
+    const groups: Record<string, { motorista: Entrega['motorista']; entregas: Entrega[] }> = {};
+
+    entregas.forEach(e => {
+      if (!e.motorista_id || !e.motorista) return;
+      if (!groups[e.motorista_id]) {
+        groups[e.motorista_id] = { motorista: e.motorista, entregas: [] };
+      }
+      groups[e.motorista_id].entregas.push(e);
+    });
+
+    return Object.entries(groups).map(([id, data]) => ({
+      id,
+      ...data,
+    }));
+  }, [entregas]);
+
+  const motoristasList = useMemo(() =>
+    motoristaGroups.map(g => ({ id: g.id, nome: g.motorista?.nome_completo || '' })),
+    [motoristaGroups]
+  );
+
+  const { localizacoes } = useRealtimeLocalizacoes({
+    motoristaIds,
+    enabled: motoristaIds.length > 0
+  });
+
   // Update motorista IDs when entregas change
   useEffect(() => {
     const ids = entregas
@@ -890,36 +905,42 @@ export default function OperacaoDiaria() {
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ height: 'calc(100dvh - 64px)' }}>
-      <div className="px-6 py-3 border-b bg-background">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold">Gestão Entregas</h1>
-            <p className="text-xs text-muted-foreground">
-              Visualize sua operação
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              className="gap-2"
-              onClick={() => setGestaoDialogOpen(true)}
-            >
-              <Map className="w-4 h-4" />
-              Gestão da operação
-            </Button>
-          </div>
+    <div className="flex flex-col" style={{ height: 'calc(100dvh)' }}>
+      <div className="flex items-center justify-between p-4 !pb-0 md:p-8 ">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Gestão Entregas</h1>
+          <p className="text-muted-foreground">
+            Visualize sua operação
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+          <AdvancedFiltersPopover
+            filters={filters}
+            onFiltersChange={setFilters}
+            showMotorista
+            showEmbarcador={false}
+            showDestinatario={false}
+            motoristas={motoristasList}
+          />
+          <Button
+            variant="default"
+            size="sm"
+            className="gap-2"
+            onClick={() => setGestaoDialogOpen(true)}
+          >
+            <Map className="w-4 h-4" />
+            Gestão da operação
+          </Button>
         </div>
       </div>
 
       {/* Main content - 3 columns: 30% 30% 40% */}
-      <div className="flex-1 grid overflow-hidden" style={{ gridTemplateColumns: '30% 30% 40%' }}>
+      <div className="flex-1 grid overflow-hidden p-4 !pt-4 md:p-8" style={{ gridTemplateColumns: '30% 30% 40%' }}>
         {/* Column 1: Entregas Aguardando (30%) */}
-        <div className="border-r bg-muted/20 flex flex-col min-w-0 overflow-hidden">
+        <div className="border rounded-l-md bg-muted/20 flex flex-col min-w-0 overflow-hidden">
           <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
             <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
           </div>
@@ -946,7 +967,7 @@ export default function OperacaoDiaria() {
         </div>
 
         {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
-        <div className="border-r flex flex-col bg-background min-w-0 overflow-hidden">
+        <div className="border border-l-0 flex flex-col bg-background min-w-0 overflow-hidden">
           <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
             <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
           </div>
@@ -973,7 +994,7 @@ export default function OperacaoDiaria() {
         </div>
 
         {/* Column 3: Detail Panel (40%) */}
-        <div className="min-w-0 overflow-hidden flex flex-col">
+        <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col">
           <DetailPanel
             entrega={selectedEntrega}
             onClose={() => setSelectedEntrega(null)}
