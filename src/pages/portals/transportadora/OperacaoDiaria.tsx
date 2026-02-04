@@ -886,16 +886,17 @@ function GestaoEntregasDialogContent({
     return info;
   }, [motoristaGroups, localizacoes]);
 
-  // Contagem de status para os indicadores
+  // Contagem de status para os indicadores - cores padronizadas
   const statusCounts = useMemo(() => {
-    let aguardando = 0, emRota = 0, entregue = 0, cancelada = 0;
+    let aguardando = 0, coleta = 0, entrega = 0, entregue = 0, cancelada = 0;
     entregas.forEach(e => {
       if (e.status === 'aguardando') aguardando++;
-      else if (e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega') emRota++;
+      else if (e.status === 'saiu_para_coleta') coleta++;
+      else if (e.status === 'saiu_para_entrega') entrega++;
       else if (e.status === 'entregue') entregue++;
       else if (e.status === 'cancelada') cancelada++;
     });
-    return { aguardando, emRota, entregue, cancelada };
+    return { aguardando, coleta, entrega, entregue, cancelada };
   }, [entregas]);
 
   // Handler para clicar no motorista

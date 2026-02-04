@@ -284,6 +284,14 @@ export function GestaoLeafletMap({
     return [-14.24, -51.93];
   }, [allPoints]);
 
+  // Encontrar a entrega selecionada para mostrar a rota
+  const selectedEntrega = useMemo(() => {
+    if (!selectedMotoristaId || !selectedEntregaId || !motoristaInfo) return null;
+    const info = motoristaInfo[selectedMotoristaId];
+    if (!info) return null;
+    return info.entregas.find(e => e.id === selectedEntregaId) || null;
+  }, [selectedMotoristaId, selectedEntregaId, motoristaInfo]);
+
   // Coordenadas para rotas OSRM
   const driverLocation = useMemo(() => {
     if (!selectedMotoristaId) return null;
