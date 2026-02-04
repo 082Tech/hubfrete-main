@@ -574,17 +574,39 @@ function DetailPanel({
             height={300}
           />
 
-          {/* Driver & Vehicle + Chat Button */}
+          {/* Driver & Vehicle + Chat Button + Status Online/Offline */}
           {entrega.motorista && (
             <Card className="shadow-none border">
               <CardContent className="p-2">
                 <div className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8">
-                    {entrega.motorista.foto_url && <AvatarImage src={entrega.motorista.foto_url} />}
-                    <AvatarFallback className="text-xs">{entrega.motorista.nome_completo?.[0]}</AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-8 w-8">
+                      {entrega.motorista.foto_url && <AvatarImage src={entrega.motorista.foto_url} />}
+                      <AvatarFallback className="text-xs">{entrega.motorista.nome_completo?.[0]}</AvatarFallback>
+                    </Avatar>
+                    {/* Indicador visual de online/offline no avatar */}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${
+                      driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'
+                    }`} />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{entrega.motorista.nome_completo}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm truncate">{entrega.motorista.nome_completo}</p>
+                      {/* Badge de status Online/Offline com tempo */}
+                      <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
+                        driverLocation?.isOnline 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                        {driverLocation?.isOnline ? 'Online' : (() => {
+                          const lastSeen = (driverLocation as any)?.updated_at;
+                          if (!lastSeen) return 'Offline';
+                          const text = formatDistanceToNow(new Date(lastSeen), { locale: ptBR, addSuffix: false });
+                          return `Offline há ${text}`;
+                        })()}
+                      </span>
+                    </div>
                     {entrega.veiculo && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Truck className="w-3 h-3" />
