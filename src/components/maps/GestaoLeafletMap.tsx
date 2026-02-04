@@ -395,6 +395,12 @@ export function GestaoLeafletMap({
     return selectedEntrega?.destinoCoords || null;
   }, [selectedEntrega]);
 
+  // Determinar quais rotas mostrar baseado no status da entrega selecionada
+  const selectedStatus = selectedEntrega?.status;
+  const showRouteToOrigin = selectedStatus === 'aguardando' || selectedStatus === 'saiu_para_coleta';
+  const showRouteOriginToDestino = selectedStatus === 'aguardando' || selectedStatus === 'saiu_para_coleta';
+  const showRouteToDestino = selectedStatus === 'saiu_para_entrega';
+
   return (
     <div className="w-full h-full relative">
       {/* Status indicators no topo */}
@@ -428,23 +434,43 @@ export function GestaoLeafletMap({
           />
         )}
 
-        {/* Rota OSRM tracejada: Caminhão → Origem */}
-        <OSRMRoutePolyline
-          origin={driverLocation}
-          destination={origemCoords}
-          color="#06b6d4"
-          dashArray="8, 12"
-        />
+        {/* Rota OSRM tracejada: Caminhão → Origem (quando aguardando ou saiu_para_coleta) */}
+        {showRouteToOrigin && (
+          <OSRMRoutePolyline
+            origin={driverLocation}
+            destination={origemCoords}
+            color="#06b6d4"
+            dashArray="8, 12"
+          />
+        )}
 
-        {/* Rota OSRM sólida: Origem → Destino */}
-        <OSRMRoutePolyline
-          origin={origemCoords}
-          destination={destinoCoords}
-          color="#a855f7"
-        />
+        {/* Rota OSRM sólida: Origem → Destino (quando aguardando ou saiu_para_coleta) */}
+        {showRouteOriginToDestino && (
+          <OSRMRoutePolyline
+            origin={origemCoords}
+            destination={destinoCoords}
+            color="#a855f7"
+          />
+        )}
 
+        {/* Rota OSRM tracejada: Caminhão → Destino (quando saiu_para_entrega) */}
+        {showRouteToDestino && (
+          <OSRMRoutePolyline
+            origin={driverLocation}
+            destination={destinoCoords}
+            color="#22c55e"
+            dashArray="8, 12"
+          />
+        )}
+
+        {/* Caminhões - quando uma entrega é selecionada, mostrar apenas o motorista dessa entrega */}
         {localizacoes.map(loc => {
           if (!loc.latitude || !loc.longitude) return null;
+
+          // Se há uma entrega selecionada, esconder outros motoristas
+          if (selectedEntregaId && loc.motorista_id !== selectedMotoristaId) {
+            return null;
+          }
 
           const isSelected = selectedMotoristaId === loc.motorista_id;
           const name = motoristaNames[loc.motorista_id] || 'Motorista';
