@@ -137,7 +137,7 @@ interface Entrega {
 // Helper para verificar documentos obrigatórios
 function checkRequiredDocuments(entrega: Entrega): { complete: boolean; missing: string[] } {
   const missing: string[] = [];
-  
+
   if (!entrega.cte_url) missing.push('CT-e');
   if (!entrega.manifesto_url) missing.push('Manifesto');
   if (!entrega.canhoto_url) missing.push('Canhoto');
@@ -327,7 +327,7 @@ function DetailPanel({
 
   const handleActionClick = () => {
     if (!nextStatus) return;
-    
+
     if (nextStatus.status === 'entregue') {
       // Precisa verificar documentos antes de marcar como entregue
       setEntregueDialogOpen(true);
@@ -498,7 +498,7 @@ function DetailPanel({
             <div className="bg-muted/30 rounded-md p-2">
               <p className="text-muted-foreground">Data Coleta</p>
               <p className="font-medium">
-                {entrega.coletado_em 
+                {entrega.coletado_em
                   ? format(new Date(entrega.coletado_em), "dd/MM/yyyy HH:mm", { locale: ptBR })
                   : 'Pendente'}
               </p>
@@ -506,7 +506,7 @@ function DetailPanel({
             <div className="bg-muted/30 rounded-md p-2">
               <p className="text-muted-foreground">Data Entrega</p>
               <p className="font-medium">
-                {entrega.entregue_em 
+                {entrega.entregue_em
                   ? format(new Date(entrega.entregue_em), "dd/MM/yyyy HH:mm", { locale: ptBR })
                   : 'Pendente'}
               </p>
@@ -526,9 +526,9 @@ function DetailPanel({
                 {docsCount}/4 anexados
               </Badge>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-2">
-              <button 
+              <button
                 onClick={() => handleDocClick(entrega.cte_url, 'CT-e')}
                 disabled={!entrega.cte_url}
                 className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.cte_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
@@ -536,7 +536,7 @@ function DetailPanel({
                 {entrega.cte_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>CT-e</span>
               </button>
-              <button 
+              <button
                 onClick={() => handleDocClick(entrega.manifesto_url, 'Manifesto')}
                 disabled={!entrega.manifesto_url}
                 className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.manifesto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
@@ -544,7 +544,7 @@ function DetailPanel({
                 {entrega.manifesto_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>Manifesto</span>
               </button>
-              <button 
+              <button
                 onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}
                 disabled={!entrega.canhoto_url}
                 className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.canhoto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
@@ -552,7 +552,7 @@ function DetailPanel({
                 {entrega.canhoto_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>Canhoto</span>
               </button>
-              <button 
+              <button
                 onClick={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
                 disabled={!(entrega.notas_fiscais_urls?.length)}
                 className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${(entrega.notas_fiscais_urls?.length || 0) > 0 ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
@@ -639,7 +639,7 @@ function DetailPanel({
               <div className="relative">
                 {/* Linha vertical de timeline */}
                 <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-border" />
-                
+
                 <div className="space-y-4">
                   {entrega.eventos.slice(0, 5).map((evento, idx) => {
                     // Mapear tipo do evento para label legível e cor
@@ -655,12 +655,12 @@ function DetailPanel({
                       canhoto_anexado: { label: 'Canhoto anexado', bgColor: 'bg-blue-100', isDocument: true },
                       nf_anexada: { label: 'Nota Fiscal anexada', bgColor: 'bg-blue-100', isDocument: true },
                     };
-                    
+
                     const config = tipoConfig[evento.tipo] || { label: evento.tipo.replace(/_/g, ' '), bgColor: 'bg-muted' };
                     const userName = evento.user_nome || 'Sistema';
                     const isDocument = config.isDocument || evento.tipo.includes('documento') || evento.tipo.includes('anexa');
                     const isLast = idx === entrega.eventos!.slice(0, 5).length - 1;
-                    
+
                     return (
                       <div key={evento.id} className="relative flex items-start gap-3">
                         {/* Ícone com cor de fundo baseada no status */}
@@ -668,17 +668,16 @@ function DetailPanel({
                           {isDocument ? (
                             <FileText className="w-4 h-4 text-blue-600" />
                           ) : (
-                            <ArrowLeftRight className={`w-4 h-4 ${
-                              evento.tipo === 'aceite' ? 'text-amber-600' :
+                            <ArrowLeftRight className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600' :
                               evento.tipo === 'inicio_coleta' ? 'text-cyan-600' :
-                              evento.tipo === 'inicio_rota' ? 'text-purple-600' :
-                              evento.tipo === 'finalizado' ? 'text-green-600' :
-                              evento.tipo === 'cancelado' ? 'text-red-600' :
-                              'text-muted-foreground'
-                            }`} />
+                                evento.tipo === 'inicio_rota' ? 'text-purple-600' :
+                                  evento.tipo === 'finalizado' ? 'text-green-600' :
+                                    evento.tipo === 'cancelado' ? 'text-red-600' :
+                                      'text-muted-foreground'
+                              }`} />
                           )}
                         </div>
-                        
+
                         <div className="flex-1 min-w-0 pt-1">
                           <p className="text-sm">
                             <span className="font-medium">{userName}</span>
@@ -757,7 +756,7 @@ function DetailPanel({
               Cancelar entrega?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação irá cancelar a entrega <span className="font-semibold">{entrega.codigo}</span>. 
+              Esta ação irá cancelar a entrega <span className="font-semibold">{entrega.codigo}</span>.
               O peso será devolvido para a carga original. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -814,7 +813,7 @@ function DetailPanel({
                 Confirmar entrega
               </AlertDialogAction>
             ) : (
-              <Button 
+              <Button
                 onClick={() => {
                   setEntregueDialogOpen(false);
                   setAnexarDocumentosOpen(true);
@@ -919,11 +918,11 @@ function GestaoEntregasDialogContent({
   // Filtrar motoristas pelo termo de busca
   const filteredMotoristaGroups = useMemo(() => {
     if (!searchTerm.trim()) return motoristaGroups;
-    
+
     const term = searchTerm.toLowerCase();
     return motoristaGroups.filter(g => {
       const nome = g.motorista?.nome_completo?.toLowerCase() || '';
-      const temEntregaMatch = g.entregas.some(e => 
+      const temEntregaMatch = g.entregas.some(e =>
         e.codigo?.toLowerCase().includes(term) ||
         e.carga.endereco_origem?.cidade?.toLowerCase().includes(term) ||
         e.carga.endereco_destino?.cidade?.toLowerCase().includes(term)
@@ -954,11 +953,11 @@ function GestaoEntregasDialogContent({
           status: e.status,
           origemCidade: e.carga.endereco_origem?.cidade || 'N/A',
           destinoCidade: e.carga.endereco_destino?.cidade || 'N/A',
-          origemCoords: e.carga.endereco_origem?.latitude && e.carga.endereco_origem?.longitude 
-            ? { lat: e.carga.endereco_origem.latitude, lng: e.carga.endereco_origem.longitude } 
+          origemCoords: e.carga.endereco_origem?.latitude && e.carga.endereco_origem?.longitude
+            ? { lat: e.carga.endereco_origem.latitude, lng: e.carga.endereco_origem.longitude }
             : null,
-          destinoCoords: e.carga.endereco_destino?.latitude && e.carga.endereco_destino?.longitude 
-            ? { lat: e.carga.endereco_destino.latitude, lng: e.carga.endereco_destino.longitude } 
+          destinoCoords: e.carga.endereco_destino?.latitude && e.carga.endereco_destino?.longitude
+            ? { lat: e.carga.endereco_destino.latitude, lng: e.carga.endereco_destino.longitude }
             : null,
         })),
         isOnline: loc?.isOnline ?? false,
@@ -1134,15 +1133,14 @@ function GestaoEntregasDialogContent({
                           const isEntregaSelected = selectedEntregaId === e.id;
                           const statusInfo = statusConfig[e.status];
                           const StatusIcon = statusInfo?.icon || Package;
-                          
+
                           return (
-                            <div 
-                              key={e.id} 
-                              className={`p-2.5 rounded-lg cursor-pointer transition-all border ${
-                                isEntregaSelected 
-                                  ? 'bg-primary/5 border-primary/40 shadow-sm' 
-                                  : 'bg-muted/30 border-transparent hover:bg-muted/60 hover:border-muted'
-                              }`}
+                            <div
+                              key={e.id}
+                              className={`p-2.5 rounded-lg cursor-pointer transition-all border ${isEntregaSelected
+                                ? 'bg-primary/5 border-primary/40 shadow-sm'
+                                : 'bg-muted/30 border-transparent hover:bg-muted/60 hover:border-muted'
+                                }`}
                               onClick={(ev) => {
                                 ev.stopPropagation();
                                 handleEntregaSelect(e.id);
@@ -1150,17 +1148,16 @@ function GestaoEntregasDialogContent({
                             >
                               {/* Header: Código + Status */}
                               <div className="flex items-center justify-between mb-1.5">
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-[10px] px-2 py-0.5 font-mono ${
-                                    isEntregaSelected ? 'border-primary text-primary bg-primary/5' : ''
-                                  }`}
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] px-2 py-0.5 font-mono ${isEntregaSelected ? 'border-primary text-primary bg-primary/5' : ''
+                                    }`}
                                 >
                                   {e.codigo}
                                 </Badge>
                                 {statusInfo && (
-                                  <Badge 
-                                    variant="secondary" 
+                                  <Badge
+                                    variant="secondary"
                                     className={`text-[9px] px-1.5 py-0 gap-1 ${statusInfo.color}`}
                                   >
                                     <StatusIcon className="w-2.5 h-2.5" />
@@ -1168,7 +1165,7 @@ function GestaoEntregasDialogContent({
                                   </Badge>
                                 )}
                               </div>
-                              
+
                               {/* Rota */}
                               <div className="flex items-center gap-1.5 text-xs text-foreground">
                                 <MapPin className="w-3 h-3 text-green-600 shrink-0" />
@@ -1177,7 +1174,7 @@ function GestaoEntregasDialogContent({
                                 <MapPin className="w-3 h-3 text-red-500 shrink-0" />
                                 <span className="truncate">{e.carga.endereco_destino?.cidade}/{e.carga.endereco_destino?.estado}</span>
                               </div>
-                              
+
                               {/* Info adicional: Peso + Valor */}
                               <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
                                 {e.peso_alocado_kg && (
@@ -1433,43 +1430,43 @@ export default function OperacaoDiaria() {
 
     if (filters.codigo) {
       const term = filters.codigo.toLowerCase();
-      filtered = filtered.filter(e => 
-        e.codigo?.toLowerCase().includes(term) || 
+      filtered = filtered.filter(e =>
+        e.codigo?.toLowerCase().includes(term) ||
         e.carga.codigo?.toLowerCase().includes(term)
       );
     }
 
     if (filters.motorista) {
       const term = filters.motorista.toLowerCase();
-      filtered = filtered.filter(e => 
+      filtered = filtered.filter(e =>
         e.motorista?.nome_completo?.toLowerCase().includes(term)
       );
     }
 
     if (filters.cidadeOrigem) {
       const term = filters.cidadeOrigem.toLowerCase();
-      filtered = filtered.filter(e => 
+      filtered = filtered.filter(e =>
         e.carga.endereco_origem?.cidade?.toLowerCase().includes(term)
       );
     }
 
     if (filters.cidadeDestino) {
       const term = filters.cidadeDestino.toLowerCase();
-      filtered = filtered.filter(e => 
+      filtered = filtered.filter(e =>
         e.carga.endereco_destino?.cidade?.toLowerCase().includes(term)
       );
     }
 
     if (filters.destinatario) {
       const term = filters.destinatario.toLowerCase();
-      filtered = filtered.filter(e => 
+      filtered = filtered.filter(e =>
         e.carga.destinatario_nome_fantasia?.toLowerCase().includes(term) ||
         e.carga.destinatario_razao_social?.toLowerCase().includes(term)
       );
     }
 
     if (filters.dateFrom) {
-      filtered = filtered.filter(e => 
+      filtered = filtered.filter(e =>
         new Date(e.created_at) >= filters.dateFrom!
       );
     }
@@ -1477,7 +1474,7 @@ export default function OperacaoDiaria() {
     if (filters.dateTo) {
       const endOfDay = new Date(filters.dateTo);
       endOfDay.setHours(23, 59, 59, 999);
-      filtered = filtered.filter(e => 
+      filtered = filtered.filter(e =>
         new Date(e.created_at) <= endOfDay
       );
     }
@@ -1494,8 +1491,8 @@ export default function OperacaoDiaria() {
     if (!selectedEntrega?.motorista_id) return null;
     const loc = localizacoes.find(l => l.motorista_id === selectedEntrega.motorista_id);
     if (loc?.latitude && loc?.longitude) {
-      return { 
-        lat: loc.latitude, 
+      return {
+        lat: loc.latitude,
         lng: loc.longitude,
         heading: loc.heading,
         isOnline: loc.isOnline,
@@ -1524,17 +1521,21 @@ export default function OperacaoDiaria() {
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button className="w-5 h-5 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
-                    <HelpCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                  <button className="w-5 h-5 rounded-full mt-1 ml-1 bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
+                    <HelpCircle className="w-5 h-5 text-muted-foreground" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs text-sm p-3">
                   <p className="font-medium mb-1">Central de Operações Diárias</p>
-                  <p className="text-muted-foreground text-xs leading-relaxed">
-                    Acompanhe em tempo real todas as entregas do dia. As entregas finalizadas 
-                    (entregues ou canceladas) permanecem visíveis até o fim do dia, quando são 
-                    automaticamente movidas para o Histórico de Entregas.
-                  </p>
+                  <ul className='list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed'>
+                    <li>
+                      Acompanhe em tempo real todas as entregas do dia.
+                    </li>
+                    <li>
+                      As entregas finalizadas (entregues ou canceladas) permanecem visíveis até o fim do dia, quando são
+                      automaticamente movidas para o Histórico de Entregas.
+                    </li>
+                  </ul>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
