@@ -287,9 +287,11 @@ export function GestaoLeafletMap({
   selectedMotoristaId,
   selectedEntregaId,
   onMotoristaClick,
+  onEntregaDeselect,
   motoristaNames,
   motoristaInfo,
   statusCounts,
+  selectedEntregaData,
 }: GestaoLeafletMapProps) {
   // Collect all valid points
   const allPoints = useMemo(() => {
