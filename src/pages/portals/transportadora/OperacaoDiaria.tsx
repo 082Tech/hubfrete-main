@@ -48,6 +48,9 @@ import {
   Map,
   MoreVertical,
   Ban,
+  ArrowRight,
+  Upload,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleMapsLoader, useGoogleMaps } from '@/components/maps/GoogleMapsLoader';
@@ -116,31 +119,64 @@ function EntregaListItem({
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b last:border-b-0 ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
+      className={`flex items-start gap-3 bg-white px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
         }`}
       onClick={onClick}
     >
       {/* Avatar/Icon */}
       <Avatar className="h-9 w-9 shrink-0">
-        {entrega.motorista?.foto_url ? (
+        {entrega.motorista?.foto_url && (
           <AvatarImage src={entrega.motorista.foto_url} />
-        ) : null}
+        )}
         <AvatarFallback className="bg-muted text-muted-foreground text-sm">
           {entrega.motorista?.nome_completo?.[0] || <Truck className="w-4 h-4" />}
         </AvatarFallback>
       </Avatar>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <span className="font-medium text-sm truncate">
-            {entrega.motorista?.nome_completo || 'Sem motorista'}
+      <div className="flex-1 min-w-0 space-y-1">
+        {/* Motorista */}
+        <span className="font-medium text-sm truncate">
+          {entrega.motorista?.nome_completo || 'Sem motorista'}
+        </span>
+
+        {/* Origem → Destino */}
+        <div className="flex items-center gap-1 text-sm font-semibold">
+          <span className="truncate">
+            {entrega.carga.endereco_origem?.cidade}
           </span>
-          <Badge variant="outline" className="font-mono text-[10px] px-1.5 shrink-0">
-            #{entrega.codigo?.slice(-4) || entrega.id.slice(0, 4)}
-          </Badge>
+          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <span className="truncate">
+            {entrega.carga.endereco_destino?.cidade}
+          </span>
         </div>
-        <div className="text-xs text-muted-foreground flex items-center gap-1">
+
+        {/* Remetente / Destinatário */}
+        <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+          <span className="flex items-center gap-1 truncate">
+            <Upload className="w-3 h-3" />
+            {/* {entrega.carga.remetente_nome} */}
+            Teste
+          </span>
+          <span className="flex items-center gap-1 truncate">
+            <Download className="w-3 h-3" />
+            {/* {entrega.carga.destinatario_nome} */}
+            Teste
+          </span>
+        </div>
+
+        {/* Descrição da entrega */}
+        {entrega.carga.descricao && (
+          <p className="text-xs text-muted-foreground line-clamp-2">
+            {entrega.carga.descricao}
+          </p>
+        )}
+
+        {/* Código + Valor */}
+        <div className="flex items-center gap-2 text-xs">
+          <Badge variant="outline" className="font-mono text-[10px] px-1.5">
+            #{entrega.codigo || entrega.id}
+          </Badge>
           {entrega.valor_frete && (
             <span className="text-primary font-semibold">
               R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -151,7 +187,7 @@ function EntregaListItem({
 
       {/* Time & Status */}
       <div className="text-right shrink-0">
-        <p className="text-xs text-muted-foreground mb-1">cerca de {tempoDecorrido}</p>
+        <p className="text-xs text-muted-foreground mb-1">{tempoDecorrido}</p>
         <Badge className={`text-[10px] ${statusInfo.color}`}>
           {statusInfo.label}
         </Badge>
@@ -227,7 +263,7 @@ function DetailPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-background border-l">
+    <div className="h-full flex flex-col bg-white border-l">
       {/* Header with code and actions */}
       <div className="p-3 border-b">
         <div className="flex items-center justify-between mb-2">
@@ -774,6 +810,8 @@ export default function OperacaoDiaria() {
         .in('motorista_id', motoristaIdsList)
         .not('status', 'is', null)
         .order('updated_at', { ascending: false });
+
+      console.log(data);
 
       if (error) {
         console.error('Error fetching entregas:', error);
