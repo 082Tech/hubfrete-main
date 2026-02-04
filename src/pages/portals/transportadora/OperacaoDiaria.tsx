@@ -261,6 +261,9 @@ function DetailPanel({
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
   const [anexarDocumentosOpen, setAnexarDocumentosOpen] = useState(false);
+  const [actionConfirmDialogOpen, setActionConfirmDialogOpen] = useState(false);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewDocTitle, setPreviewDocTitle] = useState<string>('');
 
   if (!entrega) {
     return (
