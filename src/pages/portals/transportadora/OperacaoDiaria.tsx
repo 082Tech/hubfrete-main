@@ -574,17 +574,39 @@ function DetailPanel({
             height={300}
           />
 
-          {/* Driver & Vehicle + Chat Button */}
+          {/* Driver & Vehicle + Chat Button + Status Online/Offline */}
           {entrega.motorista && (
             <Card className="shadow-none border">
               <CardContent className="p-2">
                 <div className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8">
-                    {entrega.motorista.foto_url && <AvatarImage src={entrega.motorista.foto_url} />}
-                    <AvatarFallback className="text-xs">{entrega.motorista.nome_completo?.[0]}</AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-8 w-8">
+                      {entrega.motorista.foto_url && <AvatarImage src={entrega.motorista.foto_url} />}
+                      <AvatarFallback className="text-xs">{entrega.motorista.nome_completo?.[0]}</AvatarFallback>
+                    </Avatar>
+                    {/* Indicador visual de online/offline no avatar */}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${
+                      driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'
+                    }`} />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{entrega.motorista.nome_completo}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm truncate">{entrega.motorista.nome_completo}</p>
+                      {/* Badge de status Online/Offline com tempo */}
+                      <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
+                        driverLocation?.isOnline 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                        {driverLocation?.isOnline ? 'Online' : (() => {
+                          const lastSeen = (driverLocation as any)?.updated_at;
+                          if (!lastSeen) return 'Offline';
+                          const text = formatDistanceToNow(new Date(lastSeen), { locale: ptBR, addSuffix: false });
+                          return `Offline há ${text}`;
+                        })()}
+                      </span>
+                    </div>
                     {entrega.veiculo && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Truck className="w-3 h-3" />
@@ -870,7 +892,7 @@ function GestaoEntregasDialogContent({
   localizacoes,
 }: {
   entregas: Entrega[];
-  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean }>;
+  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
 }) {
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
@@ -919,9 +941,9 @@ function GestaoEntregasDialogContent({
     return names;
   }, [motoristaGroups]);
 
-  // Informações extras para tooltip do mapa (com entregas completas)
+  // Informações extras para tooltip do mapa (com entregas completas e lastSeenAt)
   const motoristaInfo = useMemo(() => {
-    const info: Record<string, { nome: string; entregas: Array<{ id: string; codigo: string; status: string; origemCidade: string; destinoCidade: string; origemCoords: { lat: number; lng: number } | null; destinoCoords: { lat: number; lng: number } | null }>; isOnline: boolean }> = {};
+    const info: Record<string, { nome: string; entregas: Array<{ id: string; codigo: string; status: string; origemCidade: string; destinoCidade: string; origemCoords: { lat: number; lng: number } | null; destinoCoords: { lat: number; lng: number } | null }>; isOnline: boolean; lastSeenAt?: string | null }> = {};
     motoristaGroups.forEach(g => {
       const loc = localizacoes.find(l => l.motorista_id === g.id);
       info[g.id] = {
@@ -940,6 +962,7 @@ function GestaoEntregasDialogContent({
             : null,
         })),
         isOnline: loc?.isOnline ?? false,
+        lastSeenAt: (loc as any)?.updated_at ?? null,
       };
     });
     return info;
@@ -1062,6 +1085,12 @@ function GestaoEntregasDialogContent({
                 const loc = localizacoes.find(l => l.motorista_id === group.id);
                 const isOnline = loc?.isOnline ?? false;
                 const isSelected = selectedMotoristaId === group.id;
+                
+                // Calcular tempo desde última atualização
+                const lastSeenAt = (loc as any)?.updated_at;
+                const lastSeenText = lastSeenAt 
+                  ? formatDistanceToNow(new Date(lastSeenAt), { locale: ptBR, addSuffix: false })
+                  : null;
 
                 return (
                   <div
@@ -1076,11 +1105,22 @@ function GestaoEntregasDialogContent({
                           {group.motorista?.foto_url && <AvatarImage src={group.motorista.foto_url} />}
                           <AvatarFallback className="text-xs">{group.motorista?.nome_completo?.[0]}</AvatarFallback>
                         </Avatar>
-                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-gray-400'
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'
                           }`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
+                          {/* Badge de status Online/Offline com tempo */}
+                          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
+                            isOnline 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                            {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
+                          </span>
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
                         </p>
@@ -1185,7 +1225,7 @@ function GestaoEntregasDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entregas: Entrega[];
-  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean }>;
+  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

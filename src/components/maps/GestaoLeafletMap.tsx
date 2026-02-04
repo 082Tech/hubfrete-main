@@ -2,6 +2,8 @@ import { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { getTruckIconHtml } from './TruckIcon';
 import { useOSRMRoute } from '@/hooks/useOSRMRoute';
 import { Badge } from '@/components/ui/badge';
@@ -31,12 +33,14 @@ interface MotoristaLocation {
   longitude: number | null;
   heading?: number | null;
   isOnline?: boolean;
+  updated_at?: string | null;
 }
 
 interface MotoristaInfo {
   nome: string;
   entregas: EntregaInfo[];
   isOnline: boolean;
+  lastSeenAt?: string | null;
 }
 
 interface SelectedEntregaData {
@@ -225,6 +229,12 @@ function DriverMarkerWithTooltip({
   const isOnline = loc.isOnline ?? motoristaInfo?.isOnline ?? true;
   const entregas = motoristaInfo?.entregas || [];
   const entregasCount = entregas.length;
+  
+  // Calcular tempo desde última atualização para exibir "Offline há X"
+  const lastSeenAt = loc.updated_at || motoristaInfo?.lastSeenAt;
+  const lastSeenText = lastSeenAt 
+    ? formatDistanceToNow(new Date(lastSeenAt), { locale: ptBR, addSuffix: false })
+    : null;
 
   return (
     <Marker
@@ -245,10 +255,10 @@ function DriverMarkerWithTooltip({
           <div className="flex items-center justify-between mb-2">
             <p className="font-semibold text-sm">{motoristaName}</p>
             <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full ${
-              isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'
+              isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
             }`}>
-              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-              {isOnline ? 'Online' : 'Offline'}
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
             </span>
           </div>
           
@@ -385,6 +395,12 @@ export function GestaoLeafletMap({
     return selectedEntrega?.destinoCoords || null;
   }, [selectedEntrega]);
 
+  // Determinar quais rotas mostrar baseado no status da entrega selecionada
+  const selectedStatus = selectedEntrega?.status;
+  const showRouteToOrigin = selectedStatus === 'aguardando' || selectedStatus === 'saiu_para_coleta';
+  const showRouteOriginToDestino = selectedStatus === 'aguardando' || selectedStatus === 'saiu_para_coleta';
+  const showRouteToDestino = selectedStatus === 'saiu_para_entrega';
+
   return (
     <div className="w-full h-full relative">
       {/* Status indicators no topo */}
@@ -418,23 +434,43 @@ export function GestaoLeafletMap({
           />
         )}
 
-        {/* Rota OSRM tracejada: Caminhão → Origem */}
-        <OSRMRoutePolyline
-          origin={driverLocation}
-          destination={origemCoords}
-          color="#06b6d4"
-          dashArray="8, 12"
-        />
+        {/* Rota OSRM tracejada: Caminhão → Origem (quando aguardando ou saiu_para_coleta) */}
+        {showRouteToOrigin && (
+          <OSRMRoutePolyline
+            origin={driverLocation}
+            destination={origemCoords}
+            color="#06b6d4"
+            dashArray="8, 12"
+          />
+        )}
 
-        {/* Rota OSRM sólida: Origem → Destino */}
-        <OSRMRoutePolyline
-          origin={origemCoords}
-          destination={destinoCoords}
-          color="#a855f7"
-        />
+        {/* Rota OSRM sólida: Origem → Destino (quando aguardando ou saiu_para_coleta) */}
+        {showRouteOriginToDestino && (
+          <OSRMRoutePolyline
+            origin={origemCoords}
+            destination={destinoCoords}
+            color="#a855f7"
+          />
+        )}
 
+        {/* Rota OSRM tracejada: Caminhão → Destino (quando saiu_para_entrega) */}
+        {showRouteToDestino && (
+          <OSRMRoutePolyline
+            origin={driverLocation}
+            destination={destinoCoords}
+            color="#22c55e"
+            dashArray="8, 12"
+          />
+        )}
+
+        {/* Caminhões - quando uma entrega é selecionada, mostrar apenas o motorista dessa entrega */}
         {localizacoes.map(loc => {
           if (!loc.latitude || !loc.longitude) return null;
+
+          // Se há uma entrega selecionada, esconder outros motoristas
+          if (selectedEntregaId && loc.motorista_id !== selectedMotoristaId) {
+            return null;
+          }
 
           const isSelected = selectedMotoristaId === loc.motorista_id;
           const name = motoristaNames[loc.motorista_id] || 'Motorista';
