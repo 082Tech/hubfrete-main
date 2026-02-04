@@ -153,11 +153,7 @@ const App = () => {
                 {/* Portal Transportadora - Nested routes with shared layout */}
                 <Route path="/transportadora" element={<PortalLayoutWrapper expectedUserType="transportadora" />}>
                   <Route index element={<TransportadoraDashboard />} />
-                  <Route path="operacao" element={<TransportadoraOperacaoDiaria />} />
-                  <Route path="cargas" element={<TransportadoraCargas />} />
-                  <Route path="frota" element={<TransportadoraFrota />} />
-                  <Route path="motoristas" element={<TransportadoraMotoristas />} />
-                  <Route path="entregas" element={<TransportadoraGestaoEntregas />} />
+                  <Route path="entregas" element={<TransportadoraOperacaoDiaria />} />
                   <Route path="entregas/historico" element={<TransportadoraHistoricoEntregas />} />
                   <Route path="relatorios" element={<TransportadoraRelatorios />} />
                   <Route path="assistente" element={<TransportadoraAssistente />} />
