@@ -63,6 +63,7 @@ import { GoogleMapsLoader, useGoogleMaps } from '@/components/maps/GoogleMapsLoa
 import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
+import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 
 // Status definitions - apenas os status válidos
 // Coluna 1 (pending): APENAS 'aguardando'
