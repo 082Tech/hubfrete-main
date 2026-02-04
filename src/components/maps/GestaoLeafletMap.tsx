@@ -1,5 +1,5 @@
 import { useMemo, useCallback, useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getTruckIconHtml } from './TruckIcon';
@@ -12,6 +12,16 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
+interface EntregaInfo {
+  id: string;
+  codigo: string;
+  status: string;
+  origemCidade: string;
+  destinoCidade: string;
+  origemCoords: { lat: number; lng: number } | null;
+  destinoCoords: { lat: number; lng: number } | null;
+}
+
 interface MotoristaLocation {
   motorista_id: string;
   latitude: number | null;
@@ -22,16 +32,18 @@ interface MotoristaLocation {
 
 interface MotoristaInfo {
   nome: string;
-  entregas: number;
+  entregas: EntregaInfo[];
   isOnline: boolean;
 }
 
 interface GestaoLeafletMapProps {
   localizacoes: MotoristaLocation[];
   selectedMotoristaId: string | null;
+  selectedEntregaId: string | null;
   onMotoristaClick: (motoristaId: string) => void;
   motoristaNames: Record<string, string>;
   motoristaInfo?: Record<string, MotoristaInfo>;
+  statusCounts?: { aguardando: number; emRota: number; entregue: number; cancelada: number };
 }
 
 // Create truck icon
@@ -43,6 +55,35 @@ const createTruckIcon = (heading: number = 0, isOnline: boolean = false, isSelec
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -size / 2],
+  });
+};
+
+// Create location marker icon (origin/destination)
+const createLocationIcon = (type: 'origem' | 'destino') => {
+  const color = type === 'origem' ? '#22c55e' : '#ef4444';
+  const letter = type === 'origem' ? 'O' : 'D';
+  return new L.DivIcon({
+    className: 'location-marker',
+    html: `
+      <div style="
+        background-color: ${color};
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+      ">
+        ${letter}
+      </div>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 };
 
@@ -90,6 +131,42 @@ function MapController({
   return null;
 }
 
+// Cria caminho curvo entre dois pontos
+function createCurvedPath(
+  start: [number, number],
+  end: [number, number],
+  numPoints: number = 10
+): [number, number][] {
+  const points: [number, number][] = [];
+  
+  const latDiff = end[0] - start[0];
+  const lngDiff = end[1] - start[1];
+  
+  const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+  const curveIntensity = Math.min(distance * 0.12, 0.4);
+  
+  for (let i = 0; i <= numPoints; i++) {
+    const t = i / numPoints;
+    let lat = start[0] + latDiff * t;
+    let lng = start[1] + lngDiff * t;
+    
+    const curveFactor = Math.sin(t * Math.PI) * curveIntensity;
+    
+    const perpLat = -lngDiff;
+    const perpLng = latDiff;
+    const perpLength = Math.sqrt(perpLat * perpLat + perpLng * perpLng);
+    
+    if (perpLength > 0) {
+      lat += (perpLat / perpLength) * curveFactor;
+      lng += (perpLng / perpLength) * curveFactor;
+    }
+    
+    points.push([lat, lng]);
+  }
+  
+  return points;
+}
+
 // Custom Marker component with hover tooltip
 function DriverMarkerWithTooltip({
   loc,
@@ -107,7 +184,7 @@ function DriverMarkerWithTooltip({
   if (!loc.latitude || !loc.longitude) return null;
 
   const isOnline = loc.isOnline ?? motoristaInfo?.isOnline ?? true;
-  const entregasCount = motoristaInfo?.entregas ?? 0;
+  const entregasCount = motoristaInfo?.entregas?.length ?? 0;
 
   return (
     <Marker
@@ -140,18 +217,54 @@ function DriverMarkerWithTooltip({
   );
 }
 
+// Status indicator badges no topo do mapa
+function StatusIndicators({ statusCounts }: { statusCounts: GestaoLeafletMapProps['statusCounts'] }) {
+  if (!statusCounts) return null;
+
+  return (
+    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg border">
+      <div className="flex items-center gap-1.5">
+        <span className="w-3 h-3 rounded-full bg-amber-500" />
+        <span className="text-xs font-medium">{statusCounts.aguardando}</span>
+      </div>
+      <div className="w-px h-4 bg-border" />
+      <div className="flex items-center gap-1.5">
+        <span className="w-3 h-3 rounded-full bg-blue-500" />
+        <span className="text-xs font-medium">{statusCounts.emRota}</span>
+      </div>
+      <div className="w-px h-4 bg-border" />
+      <div className="flex items-center gap-1.5">
+        <span className="w-3 h-3 rounded-full bg-green-500" />
+        <span className="text-xs font-medium">{statusCounts.entregue}</span>
+      </div>
+      {statusCounts.cancelada > 0 && (
+        <>
+          <div className="w-px h-4 bg-border" />
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-red-500" />
+            <span className="text-xs font-medium">{statusCounts.cancelada}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
  * Mapa Leaflet para o Dialog de Gestão de Entregas
  * - Mostra todos os motoristas com seus ícones de caminhão
  * - Permite clicar para selecionar um motorista
  * - Tooltip no hover mostrando nome e status
+ * - Mostra rota da entrega selecionada (origem + destino)
  */
 export function GestaoLeafletMap({
   localizacoes,
   selectedMotoristaId,
+  selectedEntregaId,
   onMotoristaClick,
   motoristaNames,
   motoristaInfo,
+  statusCounts,
 }: GestaoLeafletMapProps) {
   // Collect all valid points
   const allPoints = useMemo(() => {
@@ -170,8 +283,46 @@ export function GestaoLeafletMap({
     return [-14.24, -51.93];
   }, [allPoints]);
 
+  // Encontrar a entrega selecionada para mostrar a rota
+  const selectedEntrega = useMemo(() => {
+    if (!selectedMotoristaId || !selectedEntregaId || !motoristaInfo) return null;
+    const info = motoristaInfo[selectedMotoristaId];
+    if (!info) return null;
+    return info.entregas.find(e => e.id === selectedEntregaId) || null;
+  }, [selectedMotoristaId, selectedEntregaId, motoristaInfo]);
+
+  // Coordenadas da rota selecionada
+  const driverLocation = useMemo(() => {
+    if (!selectedMotoristaId) return null;
+    const loc = localizacoes.find(l => l.motorista_id === selectedMotoristaId);
+    if (loc?.latitude && loc?.longitude) {
+      return { lat: loc.latitude, lng: loc.longitude };
+    }
+    return null;
+  }, [selectedMotoristaId, localizacoes]);
+
+  // Rotas curvas
+  const routeToOrigin = useMemo(() => {
+    if (!driverLocation || !selectedEntrega?.origemCoords) return null;
+    return createCurvedPath(
+      [driverLocation.lat, driverLocation.lng],
+      [selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]
+    );
+  }, [driverLocation, selectedEntrega]);
+
+  const routeOriginToDest = useMemo(() => {
+    if (!selectedEntrega?.origemCoords || !selectedEntrega?.destinoCoords) return null;
+    return createCurvedPath(
+      [selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng],
+      [selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]
+    );
+  }, [selectedEntrega]);
+
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
+      {/* Status indicators no topo */}
+      <StatusIndicators statusCounts={statusCounts} />
+
       <MapContainer
         center={mapCenter}
         zoom={4}
@@ -185,6 +336,49 @@ export function GestaoLeafletMap({
         
         <FitBounds points={allPoints} />
         <MapController selectedMotoristaId={selectedMotoristaId} localizacoes={localizacoes} />
+
+        {/* Marcadores de origem e destino da entrega selecionada */}
+        {selectedEntrega?.origemCoords && (
+          <Marker
+            position={[selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]}
+            icon={createLocationIcon('origem')}
+          />
+        )}
+        {selectedEntrega?.destinoCoords && (
+          <Marker
+            position={[selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]}
+            icon={createLocationIcon('destino')}
+          />
+        )}
+
+        {/* Rota tracejada: Caminhão → Origem */}
+        {routeToOrigin && (
+          <Polyline
+            positions={routeToOrigin}
+            pathOptions={{
+              color: '#3b82f6',
+              weight: 4,
+              opacity: 0.8,
+              dashArray: '8, 12',
+              lineCap: 'round',
+              lineJoin: 'round',
+            }}
+          />
+        )}
+
+        {/* Rota sólida: Origem → Destino */}
+        {routeOriginToDest && (
+          <Polyline
+            positions={routeOriginToDest}
+            pathOptions={{
+              color: '#6366f1',
+              weight: 4,
+              opacity: 0.9,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }}
+          />
+        )}
 
         {localizacoes.map(loc => {
           if (!loc.latitude || !loc.longitude) return null;

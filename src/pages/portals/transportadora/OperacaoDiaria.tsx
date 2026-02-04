@@ -813,6 +813,7 @@ function GestaoEntregasDialogContent({
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean }>;
 }) {
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
+  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Agrupar entregas por motorista
@@ -858,23 +859,63 @@ function GestaoEntregasDialogContent({
     return names;
   }, [motoristaGroups]);
 
-  // Informações extras para tooltip do mapa
+  // Informações extras para tooltip do mapa (com entregas completas)
   const motoristaInfo = useMemo(() => {
-    const info: Record<string, { nome: string; entregas: number; isOnline: boolean }> = {};
+    const info: Record<string, { nome: string; entregas: Array<{ id: string; codigo: string; status: string; origemCidade: string; destinoCidade: string; origemCoords: { lat: number; lng: number } | null; destinoCoords: { lat: number; lng: number } | null }>; isOnline: boolean }> = {};
     motoristaGroups.forEach(g => {
       const loc = localizacoes.find(l => l.motorista_id === g.id);
       info[g.id] = {
         nome: g.motorista?.nome_completo || 'Motorista',
-        entregas: g.entregas.length,
+        entregas: g.entregas.map(e => ({
+          id: e.id,
+          codigo: e.codigo || e.id.slice(0, 6),
+          status: e.status,
+          origemCidade: e.carga.endereco_origem?.cidade || 'N/A',
+          destinoCidade: e.carga.endereco_destino?.cidade || 'N/A',
+          origemCoords: e.carga.endereco_origem?.latitude && e.carga.endereco_origem?.longitude 
+            ? { lat: e.carga.endereco_origem.latitude, lng: e.carga.endereco_origem.longitude } 
+            : null,
+          destinoCoords: e.carga.endereco_destino?.latitude && e.carga.endereco_destino?.longitude 
+            ? { lat: e.carga.endereco_destino.latitude, lng: e.carga.endereco_destino.longitude } 
+            : null,
+        })),
         isOnline: loc?.isOnline ?? false,
       };
     });
     return info;
   }, [motoristaGroups, localizacoes]);
 
+  // Contagem de status para os indicadores
+  const statusCounts = useMemo(() => {
+    let aguardando = 0, emRota = 0, entregue = 0, cancelada = 0;
+    entregas.forEach(e => {
+      if (e.status === 'aguardando') aguardando++;
+      else if (e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega') emRota++;
+      else if (e.status === 'entregue') entregue++;
+      else if (e.status === 'cancelada') cancelada++;
+    });
+    return { aguardando, emRota, entregue, cancelada };
+  }, [entregas]);
+
   // Handler para clicar no motorista
   const handleMotoristaClick = useCallback((motoristaId: string) => {
-    setSelectedMotoristaId(prev => prev === motoristaId ? null : motoristaId);
+    setSelectedMotoristaId(prev => {
+      if (prev === motoristaId) {
+        setSelectedEntregaId(null);
+        return null;
+      }
+      // Ao selecionar motorista, auto-selecionar primeira entrega
+      const group = motoristaGroups.find(g => g.id === motoristaId);
+      if (group?.entregas.length) {
+        setSelectedEntregaId(group.entregas[0].id);
+      }
+      return motoristaId;
+    });
+  }, [motoristaGroups]);
+
+  // Handler para selecionar entrega específica
+  const handleEntregaSelect = useCallback((entregaId: string) => {
+    setSelectedEntregaId(entregaId);
   }, []);
 
   return (
@@ -891,9 +932,11 @@ function GestaoEntregasDialogContent({
           <GestaoLeafletMap
             localizacoes={localizacoes}
             selectedMotoristaId={selectedMotoristaId}
+            selectedEntregaId={selectedEntregaId}
             onMotoristaClick={handleMotoristaClick}
             motoristaNames={motoristaNames}
             motoristaInfo={motoristaInfo}
+            statusCounts={statusCounts}
           />
         </div>
 
@@ -953,24 +996,47 @@ function GestaoEntregasDialogContent({
                       </div>
                     </div>
 
-                    {/* Entregas do motorista */}
+                    {/* Entregas do motorista - com dropdown para seleção */}
                     {isSelected && group.entregas.length > 0 && (
-                      <div className="mt-2 pl-10 space-y-1">
-                        {group.entregas.slice(0, 3).map(e => (
-                          <div key={e.id} className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Badge variant="outline" className="text-[9px] px-1 font-mono">
-                              {e.codigo?.slice(-4)}
-                            </Badge>
-                            <span className="truncate">
-                              {e.carga.endereco_origem?.cidade} → {e.carga.endereco_destino?.cidade}
-                            </span>
-                          </div>
-                        ))}
-                        {group.entregas.length > 3 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            +{group.entregas.length - 3} mais
-                          </span>
-                        )}
+                      <div className="mt-2 pl-10 space-y-1.5">
+                        {group.entregas.map(e => {
+                          const isEntregaSelected = selectedEntregaId === e.id;
+                          const statusInfo = statusConfig[e.status];
+                          return (
+                            <div 
+                              key={e.id} 
+                              className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer transition-colors ${
+                                isEntregaSelected 
+                                  ? 'bg-primary/10 ring-1 ring-primary/30' 
+                                  : 'hover:bg-muted/60'
+                              }`}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                handleEntregaSelect(e.id);
+                              }}
+                            >
+                              <Badge 
+                                variant="outline" 
+                                className={`text-[9px] px-1.5 font-mono shrink-0 ${
+                                  isEntregaSelected ? 'border-primary text-primary' : ''
+                                }`}
+                              >
+                                #{e.codigo?.slice(-4)}
+                              </Badge>
+                              <span className="text-xs truncate flex-1">
+                                {e.carga.endereco_origem?.cidade} → {e.carga.endereco_destino?.cidade}
+                              </span>
+                              {statusInfo && (
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                                  e.status === 'aguardando' ? 'bg-amber-500' :
+                                  e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega' ? 'bg-blue-500' :
+                                  e.status === 'entregue' ? 'bg-green-500' :
+                                  e.status === 'cancelada' ? 'bg-red-500' : 'bg-gray-400'
+                                }`} title={statusInfo.label} />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

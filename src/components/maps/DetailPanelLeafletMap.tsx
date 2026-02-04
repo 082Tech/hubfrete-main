@@ -159,7 +159,7 @@ export function DetailPanelLeafletMap({
   const isDriverOnline = driverLocation?.isOnline ?? false;
 
   return (
-    <div className="rounded-lg overflow-hidden border" style={{ height }}>
+    <div className="rounded-lg overflow-hidden border relative z-0" style={{ height }}>
       <MapContainer
         center={mapCenter}
         zoom={10}
