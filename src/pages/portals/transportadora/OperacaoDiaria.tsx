@@ -1030,7 +1030,8 @@ function GestaoEntregasDialogContent({
                               {statusInfo && (
                                 <span className={`w-2 h-2 rounded-full shrink-0 ${
                                   e.status === 'aguardando' ? 'bg-amber-500' :
-                                  e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega' ? 'bg-blue-500' :
+                                  e.status === 'saiu_para_coleta' ? 'bg-cyan-500' :
+                                  e.status === 'saiu_para_entrega' ? 'bg-purple-500' :
                                   e.status === 'entregue' ? 'bg-green-500' :
                                   e.status === 'cancelada' ? 'bg-red-500' : 'bg-gray-400'
                                 }`} title={statusInfo.label} />
