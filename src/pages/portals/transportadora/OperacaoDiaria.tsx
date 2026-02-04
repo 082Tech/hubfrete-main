@@ -5,7 +5,6 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Package,
   Truck,
@@ -23,16 +23,13 @@ import {
   Search,
   Loader2,
   RefreshCw,
-  User,
-  Calendar,
-  Route,
   Phone,
   History,
-  Circle,
   LayoutList,
   Share,
   Printer,
   X,
+  ArrowUpRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleMapsLoader } from '@/components/maps/GoogleMapsLoader';
@@ -41,17 +38,19 @@ import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 // Lazy load GestaoEntregas for the dialog
 import GestaoEntregas from './GestaoEntregas';
 
-// Status definitions
-const statusConfig = {
-  aguardando_coleta: { label: 'Aguardando Coleta', color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock },
-  em_coleta: { label: 'Em Coleta', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: Package },
-  em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-800 border-indigo-200', icon: Truck },
-  em_entrega: { label: 'Em Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: MapPin },
-  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
-  cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle },
+// Status definitions - incluindo todos os status possíveis
+const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
+  aguardando_coleta: { label: 'Aguardando Coleta', color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock, column: 'pending' },
+  em_coleta: { label: 'Em Coleta', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: Package, column: 'pending' },
+  em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-800 border-indigo-200', icon: Truck, column: 'inRoute' },
+  saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200', icon: Truck, column: 'pending' },
+  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: MapPin, column: 'inRoute' },
+  em_entrega: { label: 'Em Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: MapPin, column: 'inRoute' },
+  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle, column: 'done' },
+  cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle, column: 'done' },
 };
 
-type EntregaStatus = keyof typeof statusConfig;
+type EntregaStatus = string;
 
 interface Entrega {
   id: string;
@@ -104,42 +103,36 @@ function EntregaListItem({
   
   return (
     <div 
-      className={`flex items-center gap-4 p-4 cursor-pointer transition-all hover:bg-muted/50 border-b ${
+      className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b last:border-b-0 ${
         isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
       }`}
       onClick={onClick}
     >
       {/* Avatar/Icon */}
-      <Avatar className="h-10 w-10 shrink-0">
+      <Avatar className="h-9 w-9 shrink-0">
         {entrega.motorista?.foto_url ? (
           <AvatarImage src={entrega.motorista.foto_url} />
         ) : null}
-        <AvatarFallback className="bg-primary/10 text-primary">
-          {entrega.motorista?.nome_completo?.[0] || <Truck className="w-5 h-5" />}
+        <AvatarFallback className="bg-muted text-muted-foreground text-sm">
+          {entrega.motorista?.nome_completo?.[0] || <Truck className="w-4 h-4" />}
         </AvatarFallback>
       </Avatar>
       
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-sm">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="font-medium text-sm truncate">
             {entrega.motorista?.nome_completo || 'Sem motorista'}
           </span>
-          <Badge variant="outline" className="font-mono text-[10px] px-1.5">
+          <Badge variant="outline" className="font-mono text-[10px] px-1.5 shrink-0">
             #{entrega.codigo?.slice(-4) || entrega.id.slice(0, 4)}
           </Badge>
         </div>
         <div className="text-xs text-muted-foreground flex items-center gap-1">
-          <span className="truncate max-w-[180px]">
-            {entrega.carga.endereco_origem?.cidade || 'Origem'} → {entrega.carga.endereco_destino?.cidade || 'Destino'}
-          </span>
           {entrega.valor_frete && (
-            <>
-              <span className="mx-1">•</span>
-              <span className="text-green-600 font-medium">
-                R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </span>
-            </>
+            <span className="text-primary font-semibold">
+              R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
           )}
         </div>
       </div>
@@ -151,6 +144,17 @@ function EntregaListItem({
           {statusInfo.label}
         </Badge>
       </div>
+    </div>
+  );
+}
+
+// Empty column placeholder
+function EmptyColumnPlaceholder({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="h-full flex flex-col items-center justify-center text-muted-foreground px-8">
+      <Package className="w-12 h-12 mb-3 opacity-30" />
+      <p className="font-medium text-center">{title}</p>
+      <p className="text-sm text-center">{message}</p>
     </div>
   );
 }
@@ -171,11 +175,10 @@ function DetailPanel({
 }) {
   if (!entrega) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/20">
-        <Package className="w-16 h-16 mb-4 opacity-30" />
-        <p className="text-lg font-medium">Selecione uma entrega</p>
-        <p className="text-sm">Clique em uma entrega para ver os detalhes</p>
-      </div>
+      <EmptyColumnPlaceholder 
+        title="Selecione uma entrega" 
+        message="Clique em uma entrega para ver os detalhes"
+      />
     );
   }
 
@@ -191,12 +194,14 @@ function DetailPanel({
 
   const mapCenter = driverLocation || origemCoords || destinoCoords || { lat: -23.55, lng: -46.63 };
 
-  // Determine next possible statuses
-  const getNextStatuses = (): EntregaStatus[] => {
+  // Determine next possible statuses based on current status
+  const getNextStatuses = (): string[] => {
     switch (entrega.status) {
-      case 'aguardando_coleta': return ['em_coleta', 'cancelada'];
+      case 'aguardando_coleta': return ['saiu_para_coleta', 'cancelada'];
+      case 'saiu_para_coleta': return ['em_coleta', 'cancelada'];
       case 'em_coleta': return ['em_transito', 'cancelada'];
-      case 'em_transito': return ['em_entrega', 'cancelada'];
+      case 'em_transito': return ['saiu_para_entrega', 'cancelada'];
+      case 'saiu_para_entrega': return ['em_entrega', 'cancelada'];
       case 'em_entrega': return ['entregue', 'cancelada'];
       default: return [];
     }
@@ -208,17 +213,20 @@ function DetailPanel({
   return (
     <div className="h-full flex flex-col bg-background border-l">
       {/* Header with code and actions */}
-      <div className="p-4 border-b bg-muted/30">
+      <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Entrega Nº</span>
-            <Badge variant="outline" className="font-mono font-bold text-base px-2">
+            <Badge variant="outline" className="font-mono font-bold px-2 border-primary text-primary">
               {entrega.codigo || entrega.id.slice(0, 8)}
             </Badge>
           </div>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Share className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <ArrowUpRight className="w-4 h-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Printer className="w-4 h-4" />
@@ -246,14 +254,16 @@ function DetailPanel({
         <div className="p-4 space-y-4">
           {/* Cargo description */}
           <div className="text-sm">
-            <p className="text-muted-foreground text-xs mb-1">Descrição da carga:</p>
             <p className="font-medium">{entrega.carga.descricao}</p>
+            <p className="text-muted-foreground text-xs mt-1">
+              {entrega.carga.endereco_origem?.cidade} → {entrega.carga.endereco_destino?.cidade}
+            </p>
           </div>
           
           <Separator />
           
           {/* Mini Map */}
-          <div className="rounded-lg overflow-hidden border h-40">
+          <div className="rounded-lg overflow-hidden border h-36">
             <GoogleMapsLoader>
               <GoogleMap
                 mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -321,33 +331,6 @@ function DetailPanel({
               </GoogleMap>
             </GoogleMapsLoader>
           </div>
-
-          {/* Route Info */}
-          <Card className="shadow-none border">
-            <CardContent className="p-3 space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Origem</p>
-                  <p className="text-sm font-medium">
-                    {entrega.carga.endereco_origem?.cidade}, {entrega.carga.endereco_origem?.estado}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">{entrega.carga.endereco_origem?.logradouro}</p>
-                </div>
-              </div>
-              <div className="ml-1.5 h-4 border-l-2 border-dashed border-muted-foreground/30" />
-              <div className="flex items-start gap-3">
-                <MapPin className="w-3 h-3 text-red-500 mt-1 shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Destino</p>
-                  <p className="text-sm font-medium">
-                    {entrega.carga.endereco_destino?.cidade}, {entrega.carga.endereco_destino?.estado}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">{entrega.carga.endereco_destino?.logradouro}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Driver & Vehicle */}
           {entrega.motorista && (
@@ -424,6 +407,7 @@ function DetailPanel({
           <div className="flex gap-2">
             {nextStatuses.map((status) => {
               const config = statusConfig[status];
+              if (!config) return null;
               const Icon = config.icon;
               const isPrimary = status !== 'cancelada';
               return (
@@ -465,7 +449,7 @@ export default function OperacaoDiaria() {
     enabled: motoristaIds.length > 0 
   });
 
-  // Fetch today's deliveries (or pending from previous days)
+  // Fetch today's deliveries (by created_at) OR pending from previous days
   const { data: entregas = [], isLoading, refetch } = useQuery({
     queryKey: ['operacao-diaria', empresa?.id],
     queryFn: async () => {
@@ -481,14 +465,18 @@ export default function OperacaoDiaria() {
         .eq('empresa_id', empresa.id);
 
       if (!motoristas || motoristas.length === 0) {
+        console.log('No motoristas found for empresa:', empresa.id);
         return [];
       }
 
       const motoristaIdsList = motoristas.map(m => m.id);
+      console.log('Motorista IDs:', motoristaIdsList);
       
       // Fetch deliveries:
-      // - All from today (any status)
+      // - All created today (any status)
       // - OR pending from previous days (not finalized)
+      const pendingStatuses = ['aguardando_coleta', 'em_coleta', 'em_transito', 'saiu_para_coleta', 'saiu_para_entrega', 'em_entrega'];
+      
       const { data, error } = await supabase
         .from('entregas')
         .select(`
@@ -505,7 +493,6 @@ export default function OperacaoDiaria() {
         `)
         .in('motorista_id', motoristaIdsList)
         .not('status', 'is', null)
-        .or(`updated_at.gte.${startOfToday},and(status.in.(aguardando_coleta,em_coleta,em_transito,em_entrega))`)
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -513,9 +500,20 @@ export default function OperacaoDiaria() {
         throw error;
       }
 
+      console.log('Raw entregas data:', data?.length);
+
+      // Filter: created today OR still pending
+      const filtered = (data || []).filter(e => {
+        const createdToday = new Date(e.created_at) >= new Date(startOfToday);
+        const isPending = pendingStatuses.includes(e.status);
+        return createdToday || isPending;
+      });
+
+      console.log('Filtered entregas:', filtered.length);
+
       // Fetch eventos for each entrega
       const entregasWithEvents = await Promise.all(
-        (data || []).map(async (entrega) => {
+        filtered.map(async (entrega) => {
           const { data: eventos } = await supabase
             .from('entrega_eventos')
             .select('id, tipo, timestamp, observacao, user_nome')
@@ -542,12 +540,12 @@ export default function OperacaoDiaria() {
   }, [entregas]);
 
   const statusMutation = useMutation({
-    mutationFn: async ({ entregaId, newStatus }: { entregaId: string; newStatus: EntregaStatus }) => {
+    mutationFn: async ({ entregaId, newStatus }: { entregaId: string; newStatus: string }) => {
       const updates: Record<string, any> = { status: newStatus, updated_at: new Date().toISOString() };
       
       if (newStatus === 'entregue') {
         updates.entregue_em = new Date().toISOString();
-      } else if (newStatus === 'em_coleta') {
+      } else if (newStatus === 'em_coleta' || newStatus === 'saiu_para_coleta') {
         updates.coletado_em = new Date().toISOString();
       }
 
@@ -598,30 +596,19 @@ export default function OperacaoDiaria() {
     return null;
   }, [selectedEntrega, localizacoes]);
 
-  const handleStatusChange = (newStatus: EntregaStatus) => {
+  const handleStatusChange = (newStatus: string) => {
     if (selectedEntrega) {
       statusMutation.mutate({ entregaId: selectedEntrega.id, newStatus });
       setSelectedEntrega(prev => prev ? { ...prev, status: newStatus } : null);
     }
   };
 
-  // Stats
-  const stats = useMemo(() => {
-    const pending = entregas.filter(e => ['aguardando_coleta', 'em_coleta'].includes(e.status)).length;
-    const inRoute = entregas.filter(e => ['em_transito', 'em_entrega'].includes(e.status)).length;
-    const completed = entregas.filter(e => e.status === 'entregue').length;
-    const cancelled = entregas.filter(e => e.status === 'cancelada').length;
-    return { pending, inRoute, completed, cancelled };
-  }, [entregas]);
-
   return (
     <div className="h-[calc(100dvh-64px)] flex flex-col">
       {/* Header */}
       <div className="px-6 py-4 border-b bg-background">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">Últimas entregas</h1>
-          </div>
+          <h1 className="text-xl font-bold">Últimas entregas</h1>
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -647,41 +634,28 @@ export default function OperacaoDiaria() {
         </div>
       </div>
 
-      {/* Main content */}
+      {/* Main content - 3 columns */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: Delivery List */}
-        <div className="w-[480px] border-r flex flex-col shrink-0">
-          {/* Stats bar */}
-          <div className="px-4 py-3 border-b bg-muted/30 flex items-center gap-4 text-sm">
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-amber-500" />
-              <span className="font-medium">{stats.pending}</span>
-              <span className="text-muted-foreground">aguardando</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Truck className="w-4 h-4 text-blue-500" />
-              <span className="font-medium">{stats.inRoute}</span>
-              <span className="text-muted-foreground">em rota</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="font-medium">{stats.completed}</span>
-              <span className="text-muted-foreground">concluídos</span>
-            </span>
-          </div>
-          
-          {/* List */}
+        {/* Column 1: Empty placeholder */}
+        <div className="w-80 border-r bg-muted/20 shrink-0">
+          <EmptyColumnPlaceholder 
+            title="Seus pedidos aparecerão aqui"
+            message=""
+          />
+        </div>
+
+        {/* Column 2: Delivery List */}
+        <div className="w-96 border-r flex flex-col shrink-0 bg-background">
           <ScrollArea className="flex-1">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             ) : filteredEntregas.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="font-medium">Nenhuma entrega hoje</p>
-                <p className="text-sm">As entregas do dia aparecerão aqui</p>
-              </div>
+              <EmptyColumnPlaceholder 
+                title="Nenhuma entrega hoje"
+                message="As entregas do dia aparecerão aqui"
+              />
             ) : (
               filteredEntregas.map((entrega) => (
                 <EntregaListItem
@@ -695,8 +669,8 @@ export default function OperacaoDiaria() {
           </ScrollArea>
         </div>
 
-        {/* Right: Detail Panel */}
-        <div className="flex-1 min-w-[400px]">
+        {/* Column 3: Detail Panel */}
+        <div className="flex-1 min-w-[380px]">
           <DetailPanel
             entrega={selectedEntrega}
             onClose={() => setSelectedEntrega(null)}
