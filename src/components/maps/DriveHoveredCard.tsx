@@ -127,10 +127,10 @@ export function DriverHoverCard({
       {!hasMultipleDeliveries && entrega.destino && (
         <div className="mt-3 pt-3 border-t">
           <div className="flex items-center gap-2 text-xs text-foreground">
-            <MapPin className="w-3 h-3 text-green-600 shrink-0" />
-            <span className="truncate">{entrega.origem || 'Origem'}</span>
+            <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+            <span className="truncate">Origem</span>
             <ArrowRight className="w-3 h-3 text-muted-foreground" />
-            <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+            <MapPin className="w-3 h-3 text-destructive shrink-0" />
             <span className="truncate">{entrega.destino}</span>
           </div>
           {entrega.codigo && (
