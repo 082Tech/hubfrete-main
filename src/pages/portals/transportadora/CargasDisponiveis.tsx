@@ -360,7 +360,7 @@ export default function CargasDisponiveis() {
 
       const { data, error } = await supabase
         .from('entregas')
-        .select('motorista_id, peso_alocado_kg')
+        .select('motorista_id, veiculo_id, carroceria_id, peso_alocado_kg')
         .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
         .not('motorista_id', 'is', null);
 
@@ -380,6 +380,27 @@ export default function CargasDisponiveis() {
       }
     });
     return pesoMap;
+  }, [entregasAtivas]);
+
+  // Peso em uso por equipamento (para abater capacidade corretamente)
+  const pesoEmUsoPorVeiculo = useMemo(() => {
+    const map = new Map<string, number>();
+    entregasAtivas.forEach((e: any) => {
+      if (!e.veiculo_id) return;
+      const atual = map.get(e.veiculo_id) || 0;
+      map.set(e.veiculo_id, atual + (e.peso_alocado_kg || 0));
+    });
+    return map;
+  }, [entregasAtivas]);
+
+  const pesoEmUsoPorCarroceria = useMemo(() => {
+    const map = new Map<string, number>();
+    entregasAtivas.forEach((e: any) => {
+      if (!e.carroceria_id) return;
+      const atual = map.get(e.carroceria_id) || 0;
+      map.set(e.carroceria_id, atual + (e.peso_alocado_kg || 0));
+    });
+    return map;
   }, [entregasAtivas]);
 
   // All drivers are now available (no filter by active deliveries)
@@ -528,6 +549,7 @@ export default function CargasDisponiveis() {
       toast.success(`Carga aceita com sucesso${viagemMsg}!`);
       queryClient.invalidateQueries({ queryKey: ['cargas_disponiveis'] });
       queryClient.invalidateQueries({ queryKey: ['viagens_motorista'] });
+      queryClient.invalidateQueries({ queryKey: ['entregas_ativas_motoristas', empresa?.id] });
       setIsAcceptDialogOpen(false);
       setSelectedCarga(null);
       setSelectedMotorista('');
@@ -631,42 +653,60 @@ export default function CargasDisponiveis() {
     return selectedMotoristaData?.veiculos?.find((v) => v.id === selectedVeiculo);
   }, [selectedMotoristaData, selectedVeiculo]);
 
-  // Calculate total capacity based on carrocerias linked to driver AND integrated vehicles
-  const capacidadeTotal = useMemo(() => {
-    if (!selectedMotoristaData) return 0;
-    
-    // Capacidade de veículos com carroceria integrada
-    const capacidadeVeiculosIntegrados = selectedMotoristaData.veiculos
-      ?.filter((v: any) => v.carroceria_integrada)
-      ?.reduce((acc: number, v: any) => acc + (v.capacidade_kg || 0), 0) || 0;
-    
-    // Capacidade de carrocerias separadas
-    const capacidadeCarrocerias = selectedMotoristaData.carrocerias
-      ?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
-    
-    return capacidadeVeiculosIntegrados + capacidadeCarrocerias;
-  }, [selectedMotoristaData]);
+  const selectedCarroceriaData = useMemo(() => {
+    if (!selectedMotoristaData || !selectedCarroceria) return null;
+    return selectedMotoristaData.carrocerias?.find((c) => c.id === selectedCarroceria) || null;
+  }, [selectedMotoristaData, selectedCarroceria]);
 
-  // For backwards compatibility, keep this as alias
-  const capacidadeCarroceriaTotal = capacidadeTotal;
+  // Garantia: se só existe 1 carroceria e o veículo NÃO é integrado, seleciona automaticamente.
+  useEffect(() => {
+    if (!selectedMotoristaData || !selectedVeiculoData) return;
 
-  // Calculate already used capacity (active deliveries)
-  const capacidadeEmUso = useMemo(() => {
-    if (!selectedMotorista) return 0;
-    return pesoEmUsoPorMotorista.get(selectedMotorista) || 0;
-  }, [selectedMotorista, pesoEmUsoPorMotorista]);
+    const veiculo = selectedVeiculoData as any;
+    if (veiculo?.carroceria_integrada) {
+      if (selectedCarroceria !== null) setSelectedCarroceria(null);
+      return;
+    }
 
-  // Available capacity = total - in use
-  const capacidadeDisponivel = useMemo(() => {
-    return Math.max(0, capacidadeTotal - capacidadeEmUso);
-  }, [capacidadeTotal, capacidadeEmUso]);
+    if ((selectedMotoristaData.carrocerias?.length || 0) === 1 && !selectedCarroceria) {
+      setSelectedCarroceria(selectedMotoristaData.carrocerias[0].id);
+    }
+  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceria]);
+
+  // Capacidade baseada no equipamento selecionado (carroceria OU veículo integrado)
+  const capacidadeEquipamentoTotal = useMemo(() => {
+    if (!selectedMotoristaData || !selectedVeiculoData) return 0;
+
+    const veiculo = selectedVeiculoData as any;
+    if (veiculo?.carroceria_integrada) {
+      return veiculo.capacidade_kg || 0;
+    }
+
+    return selectedCarroceriaData?.capacidade_kg || 0;
+  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceriaData]);
+
+  const capacidadeEquipamentoEmUso = useMemo(() => {
+    if (!selectedMotoristaData || !selectedVeiculoData) return 0;
+
+    const veiculo = selectedVeiculoData as any;
+    if (veiculo?.carroceria_integrada) {
+      return pesoEmUsoPorVeiculo.get(selectedVeiculoData.id) || 0;
+    }
+
+    if (!selectedCarroceria) return 0;
+    return pesoEmUsoPorCarroceria.get(selectedCarroceria) || 0;
+  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceria, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
+
+  const capacidadeEquipamentoDisponivel = useMemo(() => {
+    return Math.max(0, capacidadeEquipamentoTotal - capacidadeEquipamentoEmUso);
+  }, [capacidadeEquipamentoTotal, capacidadeEquipamentoEmUso]);
 
   // Calculate max weight that can be allocated
   const pesoMaximoAlocar = useMemo(() => {
     if (!selectedCarga) return 0;
     const pesoDisponivel = selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg;
-    return Math.min(capacidadeDisponivel, pesoDisponivel);
-  }, [selectedCarga, capacidadeDisponivel]);
+    return Math.min(capacidadeEquipamentoDisponivel, pesoDisponivel);
+  }, [selectedCarga, capacidadeEquipamentoDisponivel]);
 
   // Calculate minimum weight required
   const pesoMinimoRequirido = useMemo(() => {
@@ -711,6 +751,20 @@ export default function CargasDisponiveis() {
     if (!selectedCarga || !selectedMotorista || !selectedVeiculo) {
       toast.error('Selecione motorista e veículo');
       return;
+    }
+
+    // Se o veículo NÃO tem carroceria integrada, é obrigatório definir a carroceria (quando existir)
+    const veiculo = selectedVeiculoData as any;
+    if (!veiculo?.carroceria_integrada) {
+      const qtdeCarrocerias = selectedMotoristaData?.carrocerias?.length || 0;
+      if (qtdeCarrocerias > 0 && !selectedCarroceria) {
+        toast.error('Selecione a carroceria');
+        return;
+      }
+      if (qtdeCarrocerias === 0) {
+        toast.error('Motorista sem carroceria vinculada');
+        return;
+      }
     }
 
     if (pesoValidationError) {
@@ -1729,18 +1783,18 @@ export default function CargasDisponiveis() {
                         {/* Capacity Info */}
                         <div className="text-xs text-muted-foreground space-y-1">
                           <div className="flex justify-between">
-                            <span>Capacidade total da carroceria:</span>
-                            <span className="font-medium">{capacidadeCarroceriaTotal.toLocaleString('pt-BR')} kg</span>
+                             <span>Capacidade total do equipamento:</span>
+                             <span className="font-medium">{capacidadeEquipamentoTotal.toLocaleString('pt-BR')} kg</span>
                           </div>
-                          {capacidadeEmUso > 0 && (
-                            <div className="flex justify-between text-amber-600">
+                           {capacidadeEquipamentoEmUso > 0 && (
+                             <div className="flex justify-between text-amber-600">
                               <span>Em uso (outras entregas):</span>
-                              <span className="font-medium">-{capacidadeEmUso.toLocaleString('pt-BR')} kg</span>
+                               <span className="font-medium">-{capacidadeEquipamentoEmUso.toLocaleString('pt-BR')} kg</span>
                             </div>
                           )}
                           <div className="flex justify-between text-primary font-medium">
                             <span>Capacidade disponível:</span>
-                            <span>{capacidadeDisponivel.toLocaleString('pt-BR')} kg</span>
+                             <span>{capacidadeEquipamentoDisponivel.toLocaleString('pt-BR')} kg</span>
                           </div>
                         </div>
 
@@ -1773,7 +1827,7 @@ export default function CargasDisponiveis() {
                           )}
                         </div>
 
-                        {capacidadeDisponivel <= 0 && (
+                        {capacidadeEquipamentoDisponivel <= 0 && (
                           <p className="text-xs text-destructive flex items-center gap-1">
                             <AlertTriangle className="w-3.5 h-3.5" />
                             Motorista não possui capacidade disponível
