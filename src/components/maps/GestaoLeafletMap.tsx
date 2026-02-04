@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from 'reac
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getTruckIconHtml } from './TruckIcon';
+import { useOSRMRoute } from '@/hooks/useOSRMRoute';
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -43,7 +44,7 @@ interface GestaoLeafletMapProps {
   onMotoristaClick: (motoristaId: string) => void;
   motoristaNames: Record<string, string>;
   motoristaInfo?: Record<string, MotoristaInfo>;
-  statusCounts?: { aguardando: number; emRota: number; entregue: number; cancelada: number };
+  statusCounts?: { aguardando: number; coleta: number; entrega: number; entregue: number; cancelada: number };
 }
 
 // Create truck icon
@@ -131,40 +132,35 @@ function MapController({
   return null;
 }
 
-// Cria caminho curvo entre dois pontos
-function createCurvedPath(
-  start: [number, number],
-  end: [number, number],
-  numPoints: number = 10
-): [number, number][] {
-  const points: [number, number][] = [];
-  
-  const latDiff = end[0] - start[0];
-  const lngDiff = end[1] - start[1];
-  
-  const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-  const curveIntensity = Math.min(distance * 0.12, 0.4);
-  
-  for (let i = 0; i <= numPoints; i++) {
-    const t = i / numPoints;
-    let lat = start[0] + latDiff * t;
-    let lng = start[1] + lngDiff * t;
-    
-    const curveFactor = Math.sin(t * Math.PI) * curveIntensity;
-    
-    const perpLat = -lngDiff;
-    const perpLng = latDiff;
-    const perpLength = Math.sqrt(perpLat * perpLat + perpLng * perpLng);
-    
-    if (perpLength > 0) {
-      lat += (perpLat / perpLength) * curveFactor;
-      lng += (perpLng / perpLength) * curveFactor;
-    }
-    
-    points.push([lat, lng]);
-  }
-  
-  return points;
+// Component to render route polyline with OSRM data
+function OSRMRoutePolyline({
+  origin,
+  destination,
+  color,
+  dashArray,
+}: {
+  origin: { lat: number; lng: number } | null;
+  destination: { lat: number; lng: number } | null;
+  color: string;
+  dashArray?: string;
+}) {
+  const { route } = useOSRMRoute(origin, destination);
+
+  if (!route || route.length === 0) return null;
+
+  return (
+    <Polyline
+      positions={route}
+      pathOptions={{
+        color,
+        weight: 4,
+        opacity: 0.9,
+        dashArray,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }}
+    />
+  );
 }
 
 // Custom Marker component with hover tooltip
@@ -217,30 +213,35 @@ function DriverMarkerWithTooltip({
   );
 }
 
-// Status indicator badges no topo do mapa
+// Status indicator badges no topo do mapa - cores padronizadas
 function StatusIndicators({ statusCounts }: { statusCounts: GestaoLeafletMapProps['statusCounts'] }) {
   if (!statusCounts) return null;
 
   return (
     <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg border">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5" title="Aguardando">
         <span className="w-3 h-3 rounded-full bg-amber-500" />
         <span className="text-xs font-medium">{statusCounts.aguardando}</span>
       </div>
       <div className="w-px h-4 bg-border" />
-      <div className="flex items-center gap-1.5">
-        <span className="w-3 h-3 rounded-full bg-blue-500" />
-        <span className="text-xs font-medium">{statusCounts.emRota}</span>
+      <div className="flex items-center gap-1.5" title="Saiu p/ Coleta">
+        <span className="w-3 h-3 rounded-full bg-cyan-500" />
+        <span className="text-xs font-medium">{statusCounts.coleta}</span>
       </div>
       <div className="w-px h-4 bg-border" />
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5" title="Saiu p/ Entrega">
+        <span className="w-3 h-3 rounded-full bg-purple-500" />
+        <span className="text-xs font-medium">{statusCounts.entrega}</span>
+      </div>
+      <div className="w-px h-4 bg-border" />
+      <div className="flex items-center gap-1.5" title="Entregue">
         <span className="w-3 h-3 rounded-full bg-green-500" />
         <span className="text-xs font-medium">{statusCounts.entregue}</span>
       </div>
       {statusCounts.cancelada > 0 && (
         <>
           <div className="w-px h-4 bg-border" />
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" title="Cancelada">
             <span className="w-3 h-3 rounded-full bg-red-500" />
             <span className="text-xs font-medium">{statusCounts.cancelada}</span>
           </div>
@@ -291,7 +292,7 @@ export function GestaoLeafletMap({
     return info.entregas.find(e => e.id === selectedEntregaId) || null;
   }, [selectedMotoristaId, selectedEntregaId, motoristaInfo]);
 
-  // Coordenadas da rota selecionada
+  // Coordenadas para rotas OSRM
   const driverLocation = useMemo(() => {
     if (!selectedMotoristaId) return null;
     const loc = localizacoes.find(l => l.motorista_id === selectedMotoristaId);
@@ -301,21 +302,12 @@ export function GestaoLeafletMap({
     return null;
   }, [selectedMotoristaId, localizacoes]);
 
-  // Rotas curvas
-  const routeToOrigin = useMemo(() => {
-    if (!driverLocation || !selectedEntrega?.origemCoords) return null;
-    return createCurvedPath(
-      [driverLocation.lat, driverLocation.lng],
-      [selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]
-    );
-  }, [driverLocation, selectedEntrega]);
+  const origemCoords = useMemo(() => {
+    return selectedEntrega?.origemCoords || null;
+  }, [selectedEntrega]);
 
-  const routeOriginToDest = useMemo(() => {
-    if (!selectedEntrega?.origemCoords || !selectedEntrega?.destinoCoords) return null;
-    return createCurvedPath(
-      [selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng],
-      [selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]
-    );
+  const destinoCoords = useMemo(() => {
+    return selectedEntrega?.destinoCoords || null;
   }, [selectedEntrega]);
 
   return (
@@ -338,47 +330,33 @@ export function GestaoLeafletMap({
         <MapController selectedMotoristaId={selectedMotoristaId} localizacoes={localizacoes} />
 
         {/* Marcadores de origem e destino da entrega selecionada */}
-        {selectedEntrega?.origemCoords && (
+        {origemCoords && (
           <Marker
-            position={[selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]}
+            position={[origemCoords.lat, origemCoords.lng]}
             icon={createLocationIcon('origem')}
           />
         )}
-        {selectedEntrega?.destinoCoords && (
+        {destinoCoords && (
           <Marker
-            position={[selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]}
+            position={[destinoCoords.lat, destinoCoords.lng]}
             icon={createLocationIcon('destino')}
           />
         )}
 
-        {/* Rota tracejada: Caminhão → Origem */}
-        {routeToOrigin && (
-          <Polyline
-            positions={routeToOrigin}
-            pathOptions={{
-              color: '#3b82f6',
-              weight: 4,
-              opacity: 0.8,
-              dashArray: '8, 12',
-              lineCap: 'round',
-              lineJoin: 'round',
-            }}
-          />
-        )}
+        {/* Rota OSRM tracejada: Caminhão → Origem */}
+        <OSRMRoutePolyline
+          origin={driverLocation}
+          destination={origemCoords}
+          color="#06b6d4"
+          dashArray="8, 12"
+        />
 
-        {/* Rota sólida: Origem → Destino */}
-        {routeOriginToDest && (
-          <Polyline
-            positions={routeOriginToDest}
-            pathOptions={{
-              color: '#6366f1',
-              weight: 4,
-              opacity: 0.9,
-              lineCap: 'round',
-              lineJoin: 'round',
-            }}
-          />
-        )}
+        {/* Rota OSRM sólida: Origem → Destino */}
+        <OSRMRoutePolyline
+          origin={origemCoords}
+          destination={destinoCoords}
+          color="#a855f7"
+        />
 
         {localizacoes.map(loc => {
           if (!loc.latitude || !loc.longitude) return null;

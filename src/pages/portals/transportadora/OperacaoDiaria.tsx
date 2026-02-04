@@ -4,6 +4,7 @@ import { format, formatDistanceToNow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -885,16 +886,17 @@ function GestaoEntregasDialogContent({
     return info;
   }, [motoristaGroups, localizacoes]);
 
-  // Contagem de status para os indicadores
+  // Contagem de status para os indicadores - cores padronizadas
   const statusCounts = useMemo(() => {
-    let aguardando = 0, emRota = 0, entregue = 0, cancelada = 0;
+    let aguardando = 0, coleta = 0, entrega = 0, entregue = 0, cancelada = 0;
     entregas.forEach(e => {
       if (e.status === 'aguardando') aguardando++;
-      else if (e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega') emRota++;
+      else if (e.status === 'saiu_para_coleta') coleta++;
+      else if (e.status === 'saiu_para_entrega') entrega++;
       else if (e.status === 'entregue') entregue++;
       else if (e.status === 'cancelada') cancelada++;
     });
-    return { aguardando, emRota, entregue, cancelada };
+    return { aguardando, coleta, entrega, entregue, cancelada };
   }, [entregas]);
 
   // Handler para clicar no motorista
@@ -1029,7 +1031,8 @@ function GestaoEntregasDialogContent({
                               {statusInfo && (
                                 <span className={`w-2 h-2 rounded-full shrink-0 ${
                                   e.status === 'aguardando' ? 'bg-amber-500' :
-                                  e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega' ? 'bg-blue-500' :
+                                  e.status === 'saiu_para_coleta' ? 'bg-cyan-500' :
+                                  e.status === 'saiu_para_entrega' ? 'bg-purple-500' :
                                   e.status === 'entregue' ? 'bg-green-500' :
                                   e.status === 'cancelada' ? 'bg-red-500' : 'bg-gray-400'
                                 }`} title={statusInfo.label} />
@@ -1074,6 +1077,7 @@ function GestaoEntregasDialog({
 // Main component
 export default function OperacaoDiaria() {
   const { empresa } = useUserContext();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
@@ -1222,11 +1226,14 @@ export default function OperacaoDiaria() {
 
       if (error) throw error;
 
+      // Registrar evento com auditoria (user_id e user_nome)
       await supabase.from('entrega_eventos').insert({
         entrega_id: entregaId,
         tipo: `status_${newStatus}`,
         timestamp: new Date().toISOString(),
         observacao: `Status alterado para ${statusConfig[newStatus]?.label || newStatus}`,
+        user_id: user?.id || null,
+        user_nome: profile?.nome_completo || user?.email || 'Sistema',
       });
     },
     onSuccess: () => {
