@@ -310,6 +310,12 @@ function DetailPanel({
     setEntregueDialogOpen(false);
   };
 
+  const handleActionConfirm = () => {
+    if (!nextStatus) return;
+    onStatusChange(nextStatus.status);
+    setActionConfirmDialogOpen(false);
+  };
+
   const handleActionClick = () => {
     if (!nextStatus) return;
     
@@ -317,7 +323,15 @@ function DetailPanel({
       // Precisa verificar documentos antes de marcar como entregue
       setEntregueDialogOpen(true);
     } else {
-      onStatusChange(nextStatus.status);
+      // Todas as ações precisam de confirmação
+      setActionConfirmDialogOpen(true);
+    }
+  };
+
+  const handleDocClick = (url: string | null, title: string) => {
+    if (url) {
+      setPreviewDocUrl(url);
+      setPreviewDocTitle(title);
     }
   };
 
