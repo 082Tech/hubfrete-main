@@ -814,6 +814,28 @@ function DetailPanel({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Alert Dialog para confirmar ação de status (não-entregue) */}
+      <AlertDialog open={actionConfirmDialogOpen} onOpenChange={setActionConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {nextStatus && <nextStatus.icon className="w-5 h-5 text-primary" />}
+              Confirmar ação?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a alterar o status da entrega <span className="font-semibold">{entrega.codigo}</span> para <span className="font-semibold">{nextStatus?.label}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleActionConfirm}>
+              {nextStatus && <nextStatus.icon className="w-4 h-4 mr-2" />}
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Dialog para anexar documentos */}
       <AnexarDocumentosDialog
         entrega={{
@@ -828,6 +850,14 @@ function DetailPanel({
         open={anexarDocumentosOpen}
         onOpenChange={setAnexarDocumentosOpen}
         onSuccess={onRefresh}
+      />
+
+      {/* Dialog para preview de documento */}
+      <FilePreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => !open && setPreviewDocUrl(null)}
+        fileUrl={previewDocUrl}
+        title={previewDocTitle}
       />
     </div>
   );
