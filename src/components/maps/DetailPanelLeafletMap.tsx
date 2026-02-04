@@ -204,95 +204,35 @@ export function DetailPanelLeafletMap({
           />
         )}
 
-        {/* Rota tracejada: Caminhão → Origem (quando aguardando ou saiu_para_coleta) */}
-        {truckToOriginPath && (
-          <Polyline
-            positions={truckToOriginPath}
-            pathOptions={{
-              color: '#3b82f6',
-              weight: 4,
-              opacity: 0.8,
-              dashArray: '8, 12',
-              lineCap: 'round',
-              lineJoin: 'round',
-            }}
+        {/* Rota OSRM tracejada: Caminhão → Origem (quando aguardando ou saiu_para_coleta) */}
+        {showRouteToOrigin && (
+          <OSRMRoutePolyline
+            origin={driverLocation}
+            destination={origemCoords}
+            color="#06b6d4"
+            dashArray="8, 12"
           />
         )}
 
-        {/* Rota sólida: Origem → Destino (quando aguardando ou saiu_para_coleta) */}
-        {originToDestinoPath && (
-          <Polyline
-            positions={originToDestinoPath}
-            pathOptions={{
-              color: '#6366f1',
-              weight: 4,
-              opacity: 0.9,
-              lineCap: 'round',
-              lineJoin: 'round',
-            }}
+        {/* Rota OSRM sólida: Origem → Destino (quando aguardando ou saiu_para_coleta) */}
+        {showRouteOriginToDestino && (
+          <OSRMRoutePolyline
+            origin={origemCoords}
+            destination={destinoCoords}
+            color="#a855f7"
           />
         )}
 
-        {/* Rota tracejada: Caminhão → Destino (quando saiu_para_entrega) */}
-        {truckToDestinoPath && (
-          <Polyline
-            positions={truckToDestinoPath}
-            pathOptions={{
-              color: '#22c55e',
-              weight: 4,
-              opacity: 0.8,
-              dashArray: '8, 12',
-              lineCap: 'round',
-              lineJoin: 'round',
-            }}
+        {/* Rota OSRM tracejada: Caminhão → Destino (quando saiu_para_entrega) */}
+        {showRouteToDestino && (
+          <OSRMRoutePolyline
+            origin={driverLocation}
+            destination={destinoCoords}
+            color="#22c55e"
+            dashArray="8, 12"
           />
         )}
       </MapContainer>
     </div>
   );
-}
-
-/**
- * Cria um caminho curvo entre dois pontos para simular uma rota real
- * Adiciona pontos intermediários com leve desvio para criar uma curva natural
- */
-function createCurvedPath(
-  start: [number, number],
-  end: [number, number],
-  numPoints: number = 10
-): [number, number][] {
-  const points: [number, number][] = [];
-  
-  const latDiff = end[0] - start[0];
-  const lngDiff = end[1] - start[1];
-  
-  // Calcular a distância para determinar a intensidade da curva
-  const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-  const curveIntensity = Math.min(distance * 0.15, 0.5); // Limitar a curva máxima
-  
-  for (let i = 0; i <= numPoints; i++) {
-    const t = i / numPoints;
-    
-    // Interpolação linear base
-    let lat = start[0] + latDiff * t;
-    let lng = start[1] + lngDiff * t;
-    
-    // Adicionar curva usando uma função senoidal
-    // A curva é mais pronunciada no meio do caminho
-    const curveFactor = Math.sin(t * Math.PI) * curveIntensity;
-    
-    // Perpendicular à direção da rota
-    const perpLat = -lngDiff;
-    const perpLng = latDiff;
-    const perpLength = Math.sqrt(perpLat * perpLat + perpLng * perpLng);
-    
-    if (perpLength > 0) {
-      lat += (perpLat / perpLength) * curveFactor;
-      lng += (perpLng / perpLength) * curveFactor;
-    }
-    
-    points.push([lat, lng]);
-  }
-  
-  return points;
 }
