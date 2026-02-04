@@ -892,7 +892,7 @@ function GestaoEntregasDialogContent({
   localizacoes,
 }: {
   entregas: Entrega[];
-  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean }>;
+  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
 }) {
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
