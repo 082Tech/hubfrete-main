@@ -1225,7 +1225,7 @@ function GestaoEntregasDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entregas: Entrega[];
-  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean }>;
+  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
