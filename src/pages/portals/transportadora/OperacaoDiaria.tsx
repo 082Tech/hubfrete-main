@@ -69,6 +69,7 @@ import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDi
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
+import { ChatSheet } from '@/components/mensagens/ChatSheet';
 
 // Status definitions - apenas os status válidos
 // Coluna 1 (pending): APENAS 'aguardando'
