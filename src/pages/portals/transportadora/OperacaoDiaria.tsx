@@ -803,9 +803,6 @@ function DetailPanel({
 
 // ==================== Gestão Dialog com Mapa + Lista Motoristas ====================
 
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
-
 function GestaoEntregasDialogContent({
   entregas,
   localizacoes,
