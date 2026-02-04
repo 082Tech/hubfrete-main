@@ -1385,13 +1385,67 @@ export default function OperacaoDiaria() {
   // Separar entregas por status para as colunas
   // Coluna 1: APENAS 'aguardando'
   // Coluna 2: 'saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'
-  const { aguardandoEntregas, emRotaEntregas } = useMemo(() => {
-    const aguardando = entregas.filter(e => e.status === 'aguardando');
-    const emRota = entregas.filter(e =>
+  const { aguardandoEntregas, emRotaEntregas, filteredEntregas } = useMemo(() => {
+    // Aplicar filtros avançados
+    let filtered = entregas;
+
+    if (filters.codigo) {
+      const term = filters.codigo.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.codigo?.toLowerCase().includes(term) || 
+        e.carga.codigo?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.motorista) {
+      const term = filters.motorista.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.motorista?.nome_completo?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.cidadeOrigem) {
+      const term = filters.cidadeOrigem.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.carga.endereco_origem?.cidade?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.cidadeDestino) {
+      const term = filters.cidadeDestino.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.carga.endereco_destino?.cidade?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.destinatario) {
+      const term = filters.destinatario.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.carga.destinatario_nome_fantasia?.toLowerCase().includes(term) ||
+        e.carga.destinatario_razao_social?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.dateFrom) {
+      filtered = filtered.filter(e => 
+        new Date(e.created_at) >= filters.dateFrom!
+      );
+    }
+
+    if (filters.dateTo) {
+      const endOfDay = new Date(filters.dateTo);
+      endOfDay.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(e => 
+        new Date(e.created_at) <= endOfDay
+      );
+    }
+
+    const aguardando = filtered.filter(e => e.status === 'aguardando');
+    const emRota = filtered.filter(e =>
       ['saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'].includes(e.status)
     );
-    return { aguardandoEntregas: aguardando, emRotaEntregas: emRota };
-  }, [entregas]);
+    return { aguardandoEntregas: aguardando, emRotaEntregas: emRota, filteredEntregas: filtered };
+  }, [entregas, filters]);
 
   // Get driver location for selected delivery (includes heading and online status)
   const driverLocation = useMemo(() => {
