@@ -4,7 +4,9 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getTruckIconHtml } from './TruckIcon';
 import { useOSRMRoute } from '@/hooks/useOSRMRoute';
-
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { X, MapPin, ArrowRight, Package, Weight, DollarSign, FileText, Building2 } from 'lucide-react';
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -37,14 +39,38 @@ interface MotoristaInfo {
   isOnline: boolean;
 }
 
+interface SelectedEntregaData {
+  id: string;
+  codigo: string;
+  status: string;
+  motoristaNome: string;
+  motoristaFoto?: string | null;
+  carga: {
+    descricao: string;
+    peso: number;
+    tipo: string;
+    remetente?: string | null;
+    destinatario?: string | null;
+    origemCidade?: string;
+    origemEstado?: string;
+    destinoCidade?: string;
+    destinoEstado?: string;
+  };
+  pesoAlocado?: number | null;
+  valorFrete?: number | null;
+  numeroCte?: string | null;
+}
+
 interface GestaoLeafletMapProps {
   localizacoes: MotoristaLocation[];
   selectedMotoristaId: string | null;
   selectedEntregaId: string | null;
   onMotoristaClick: (motoristaId: string) => void;
+  onEntregaDeselect?: () => void;
   motoristaNames: Record<string, string>;
   motoristaInfo?: Record<string, MotoristaInfo>;
   statusCounts?: { aguardando: number; coleta: number; entrega: number; entregue: number; cancelada: number };
+  selectedEntregaData?: SelectedEntregaData | null;
 }
 
 // Create truck icon
@@ -163,7 +189,24 @@ function OSRMRoutePolyline({
   );
 }
 
-// Custom Marker component with hover tooltip
+// Status colors for tooltip
+const statusColors: Record<string, string> = {
+  aguardando: 'bg-amber-500',
+  saiu_para_coleta: 'bg-cyan-500',
+  saiu_para_entrega: 'bg-purple-500',
+  entregue: 'bg-emerald-500',
+  cancelada: 'bg-destructive',
+};
+
+const statusLabels: Record<string, string> = {
+  aguardando: 'Aguardando',
+  saiu_para_coleta: 'Em Coleta',
+  saiu_para_entrega: 'Em Entrega',
+  entregue: 'Entregue',
+  cancelada: 'Cancelada',
+};
+
+// Custom Marker component with rich hover tooltip
 function DriverMarkerWithTooltip({
   loc,
   isSelected,
@@ -180,7 +223,8 @@ function DriverMarkerWithTooltip({
   if (!loc.latitude || !loc.longitude) return null;
 
   const isOnline = loc.isOnline ?? motoristaInfo?.isOnline ?? true;
-  const entregasCount = motoristaInfo?.entregas?.length ?? 0;
+  const entregas = motoristaInfo?.entregas || [];
+  const entregasCount = entregas.length;
 
   return (
     <Marker
@@ -196,17 +240,46 @@ function DriverMarkerWithTooltip({
         opacity={1}
         className="driver-tooltip"
       >
-        <div className="px-2 py-1.5 min-w-[120px]">
-          <p className="font-semibold text-sm mb-0.5">{motoristaName}</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className={`inline-flex items-center gap-1 ${isOnline ? 'text-green-600' : 'text-gray-500'}`}>
-              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
+        <div className="px-3 py-2.5 min-w-[240px] max-w-[300px]">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-semibold text-sm">{motoristaName}</p>
+            <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full ${
+              isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
               {isOnline ? 'Online' : 'Offline'}
             </span>
-            {entregasCount > 0 && (
-              <span>• {entregasCount} entrega{entregasCount !== 1 ? 's' : ''}</span>
-            )}
           </div>
+          
+          {/* Entregas list */}
+          {entregasCount > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                {entregasCount} entrega{entregasCount !== 1 ? 's' : ''} em andamento
+              </span>
+              {entregas.slice(0, 3).map((e, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded-md px-2 py-1.5">
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusColors[e.status] || 'bg-muted-foreground'}`} 
+                    title={statusLabels[e.status] || e.status} 
+                  />
+                  <span className="font-mono text-[10px] text-muted-foreground shrink-0">{e.codigo}</span>
+                  <span className="truncate text-foreground">{e.origemCidade} → {e.destinoCidade}</span>
+                </div>
+              ))}
+              {entregasCount > 3 && (
+                <p className="text-[10px] text-muted-foreground text-center pt-1">
+                  +{entregasCount - 3} mais entregas
+                </p>
+              )}
+            </div>
+          )}
+          
+          {entregasCount === 0 && (
+            <p className="text-xs text-muted-foreground">Sem entregas ativas</p>
+          )}
+          
+          <p className="text-[10px] text-primary mt-2 text-center">Clique para ver detalhes</p>
         </div>
       </Tooltip>
     </Marker>
@@ -263,9 +336,11 @@ export function GestaoLeafletMap({
   selectedMotoristaId,
   selectedEntregaId,
   onMotoristaClick,
+  onEntregaDeselect,
   motoristaNames,
   motoristaInfo,
   statusCounts,
+  selectedEntregaData,
 }: GestaoLeafletMapProps) {
   // Collect all valid points
   const allPoints = useMemo(() => {
@@ -377,6 +452,90 @@ export function GestaoLeafletMap({
           );
         })}
       </MapContainer>
+
+      {/* Painel de detalhes da entrega selecionada - canto inferior esquerdo */}
+      {selectedEntregaData && (
+        <div className="absolute bottom-4 left-4 z-[1000] bg-popover border rounded-xl shadow-xl p-4 min-w-[320px] max-w-[380px] animate-in slide-in-from-left-4 duration-200">
+          {/* Header com botão de fechar */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Avatar className="h-9 w-9">
+                {selectedEntregaData.motoristaFoto && <AvatarImage src={selectedEntregaData.motoristaFoto} />}
+                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                  {selectedEntregaData.motoristaNome?.[0] || 'M'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium text-sm">{selectedEntregaData.motoristaNome}</p>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
+                  {selectedEntregaData.codigo}
+                </Badge>
+              </div>
+            </div>
+            <button 
+              onClick={onEntregaDeselect}
+              className="p-1.5 rounded-full hover:bg-muted transition-colors"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
+
+          {/* Rota */}
+          <div className="flex items-center gap-2 text-sm mb-3 bg-muted/40 rounded-lg p-2">
+            <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="truncate">{selectedEntregaData.carga.origemCidade}/{selectedEntregaData.carga.origemEstado}</span>
+            <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            <MapPin className="w-4 h-4 text-destructive shrink-0" />
+            <span className="truncate">{selectedEntregaData.carga.destinoCidade}/{selectedEntregaData.carga.destinoEstado}</span>
+          </div>
+
+          {/* Info da carga */}
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center gap-2">
+              <Package className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground">Carga:</span>
+              <span className="font-medium truncate">{selectedEntregaData.carga.descricao}</span>
+            </div>
+            
+            {selectedEntregaData.carga.remetente && (
+              <div className="flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Remetente:</span>
+                <span className="font-medium truncate">{selectedEntregaData.carga.remetente}</span>
+              </div>
+            )}
+            
+            {selectedEntregaData.carga.destinatario && (
+              <div className="flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Destinatário:</span>
+                <span className="font-medium truncate">{selectedEntregaData.carga.destinatario}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-4 pt-2 border-t mt-2">
+              {selectedEntregaData.pesoAlocado && (
+                <span className="flex items-center gap-1.5">
+                  <Weight className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium">{selectedEntregaData.pesoAlocado.toLocaleString('pt-BR')} kg</span>
+                </span>
+              )}
+              {selectedEntregaData.valorFrete && (
+                <span className="flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium">R$ {selectedEntregaData.valorFrete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </span>
+              )}
+              {selectedEntregaData.numeroCte && (
+                <span className="flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium">CT-e {selectedEntregaData.numeroCte}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Custom tooltip styles */}
       <style>{`
