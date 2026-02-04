@@ -4,6 +4,7 @@ import { format, formatDistanceToNow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
