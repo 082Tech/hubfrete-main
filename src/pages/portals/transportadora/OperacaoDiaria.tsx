@@ -998,45 +998,78 @@ function GestaoEntregasDialogContent({
                       </div>
                     </div>
 
-                    {/* Entregas do motorista - com dropdown para seleção */}
+                    {/* Entregas do motorista - lista expandida mais informativa */}
                     {isSelected && group.entregas.length > 0 && (
-                      <div className="mt-2 pl-10 space-y-1.5">
+                      <div className="mt-2 pl-10 space-y-2">
                         {group.entregas.map(e => {
                           const isEntregaSelected = selectedEntregaId === e.id;
                           const statusInfo = statusConfig[e.status];
+                          const StatusIcon = statusInfo?.icon || Package;
+                          
                           return (
                             <div 
                               key={e.id} 
-                              className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer transition-colors ${
+                              className={`p-2.5 rounded-lg cursor-pointer transition-all border ${
                                 isEntregaSelected 
-                                  ? 'bg-primary/10 ring-1 ring-primary/30' 
-                                  : 'hover:bg-muted/60'
+                                  ? 'bg-primary/5 border-primary/40 shadow-sm' 
+                                  : 'bg-muted/30 border-transparent hover:bg-muted/60 hover:border-muted'
                               }`}
                               onClick={(ev) => {
                                 ev.stopPropagation();
                                 handleEntregaSelect(e.id);
                               }}
                             >
-                              <Badge 
-                                variant="outline" 
-                                className={`text-[9px] px-1.5 font-mono shrink-0 ${
-                                  isEntregaSelected ? 'border-primary text-primary' : ''
-                                }`}
-                              >
-                                #{e.codigo?.slice(-4)}
-                              </Badge>
-                              <span className="text-xs truncate flex-1">
-                                {e.carga.endereco_origem?.cidade} → {e.carga.endereco_destino?.cidade}
-                              </span>
-                              {statusInfo && (
-                                <span className={`w-2 h-2 rounded-full shrink-0 ${
-                                  e.status === 'aguardando' ? 'bg-amber-500' :
-                                  e.status === 'saiu_para_coleta' ? 'bg-cyan-500' :
-                                  e.status === 'saiu_para_entrega' ? 'bg-purple-500' :
-                                  e.status === 'entregue' ? 'bg-green-500' :
-                                  e.status === 'cancelada' ? 'bg-red-500' : 'bg-gray-400'
-                                }`} title={statusInfo.label} />
-                              )}
+                              {/* Header: Código + Status */}
+                              <div className="flex items-center justify-between mb-1.5">
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-[10px] px-2 py-0.5 font-mono ${
+                                    isEntregaSelected ? 'border-primary text-primary bg-primary/5' : ''
+                                  }`}
+                                >
+                                  {e.codigo}
+                                </Badge>
+                                {statusInfo && (
+                                  <Badge 
+                                    variant="secondary" 
+                                    className={`text-[9px] px-1.5 py-0 gap-1 ${statusInfo.color}`}
+                                  >
+                                    <StatusIcon className="w-2.5 h-2.5" />
+                                    {statusInfo.label}
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              {/* Rota */}
+                              <div className="flex items-center gap-1.5 text-xs text-foreground">
+                                <MapPin className="w-3 h-3 text-green-600 shrink-0" />
+                                <span className="truncate">{e.carga.endereco_origem?.cidade}/{e.carga.endereco_origem?.estado}</span>
+                                <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                                <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                                <span className="truncate">{e.carga.endereco_destino?.cidade}/{e.carga.endereco_destino?.estado}</span>
+                              </div>
+                              
+                              {/* Info adicional: Peso + Valor */}
+                              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
+                                {e.peso_alocado_kg && (
+                                  <span className="flex items-center gap-1">
+                                    <Weight className="w-3 h-3" />
+                                    {e.peso_alocado_kg.toLocaleString('pt-BR')} kg
+                                  </span>
+                                )}
+                                {e.valor_frete && (
+                                  <span className="flex items-center gap-1">
+                                    <DollarSign className="w-3 h-3" />
+                                    R$ {e.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                )}
+                                {e.carga.descricao && (
+                                  <span className="flex items-center gap-1 truncate flex-1">
+                                    <Package className="w-3 h-3" />
+                                    {e.carga.descricao.slice(0, 30)}{e.carga.descricao.length > 30 ? '...' : ''}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           );
                         })}
