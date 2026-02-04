@@ -1249,7 +1249,7 @@ export default function OperacaoDiaria() {
       {/* Main content - 3 columns: 30% 30% 40% */}
       <div className="flex-1 grid overflow-hidden p-4 !pt-4 md:p-8" style={{ gridTemplateColumns: '30% 30% 40%' }}>
         {/* Column 1: Entregas Aguardando (30%) */}
-        <div className="border rounded-l-md bg-muted/20 flex flex-col min-w-0 overflow-hidden">
+        <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
           <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
             <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
           </div>
@@ -1276,7 +1276,7 @@ export default function OperacaoDiaria() {
         </div>
 
         {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
-        <div className="border border-l-0 flex flex-col bg-background min-w-0 overflow-hidden">
+        <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
           <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
             <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
           </div>
@@ -1303,7 +1303,7 @@ export default function OperacaoDiaria() {
         </div>
 
         {/* Column 3: Detail Panel (40%) */}
-        <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col">
+        <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
           <DetailPanel
             entrega={selectedEntrega}
             onClose={() => setSelectedEntrega(null)}
