@@ -30,7 +30,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { GoogleMapsLoader } from '@/components/maps/GoogleMapsLoader';
+import { GoogleMapsLoader, useGoogleMaps } from '@/components/maps/GoogleMapsLoader';
 import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 
@@ -428,14 +428,10 @@ function DetailPanel({
 
 // ==================== Gestão Dialog com Mapa + Lista Motoristas ====================
 
-function GestaoEntregasDialog({ 
-  open, 
-  onOpenChange,
+function GestaoEntregasDialogContent({ 
   entregas,
   localizacoes,
 }: { 
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null }>;
 }) {
@@ -530,22 +526,21 @@ function GestaoEntregasDialog({
   }, [mapBounds]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0">
-        <DialogHeader className="px-4 py-3 border-b">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-bold">Gestão de Entregas</DialogTitle>
-            <AdvancedFiltersPopover
-              filters={filters}
-              onFiltersChange={setFilters}
-              showMotorista
-              showEmbarcador={false}
-              showDestinatario={false}
-              motoristas={motoristasList}
-            />
-          </div>
-        </DialogHeader>
-        
+    <>
+      <DialogHeader className="px-4 py-3 border-b">
+        <div className="flex items-center justify-between">
+          <DialogTitle className="text-lg font-bold">Gestão de Entregas</DialogTitle>
+          <AdvancedFiltersPopover
+            filters={filters}
+            onFiltersChange={setFilters}
+            showMotorista
+            showEmbarcador={false}
+            showDestinatario={false}
+            motoristas={motoristasList}
+          />
+        </div>
+      </DialogHeader>
+      
         <div className="flex-1 flex overflow-hidden">
           {/* Mapa grande à esquerda (70%) */}
           <div className="flex-[7] relative">
@@ -659,6 +654,34 @@ function GestaoEntregasDialog({
             </ScrollArea>
           </div>
         </div>
+    </>
+  );
+}
+
+// Wrapper com Dialog
+function GestaoEntregasDialog({ 
+  open, 
+  onOpenChange,
+  entregas,
+  localizacoes,
+}: { 
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  entregas: Entrega[];
+  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null }>;
+}) {
+  const { isLoaded } = useGoogleMaps();
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0">
+        {isLoaded ? (
+          <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -847,10 +870,10 @@ export default function OperacaoDiaria() {
         </div>
       </div>
 
-      {/* Main content - 3 columns com proporções ajustadas */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Column 1: Entregas Aguardando (mesmo tamanho que col 2) */}
-        <div className="flex-1 border-r bg-muted/20 flex flex-col">
+      {/* Main content - 3 columns: 30% 30% 40% */}
+      <div className="flex-1 flex overflow-hidden" style={{ display: 'grid', gridTemplateColumns: '30% 30% 40%' }}>
+        {/* Column 1: Entregas Aguardando (30%) */}
+        <div className="border-r bg-muted/20 flex flex-col min-w-0">
           <div className="px-3 py-2 border-b bg-muted/30">
             <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
           </div>
@@ -874,8 +897,8 @@ export default function OperacaoDiaria() {
           </ScrollArea>
         </div>
 
-        {/* Column 2: Entregas em Rota/Finalizadas (mesmo tamanho que col 1) */}
-        <div className="flex-1 border-r flex flex-col bg-background">
+        {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
+        <div className="border-r flex flex-col bg-background min-w-0">
           <div className="px-3 py-2 border-b bg-muted/30">
             <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
           </div>
@@ -899,8 +922,8 @@ export default function OperacaoDiaria() {
           </ScrollArea>
         </div>
 
-        {/* Column 3: Detail Panel (menor - w-80) */}
-        <div className="w-80 shrink-0">
+        {/* Column 3: Detail Panel (40%) */}
+        <div className="min-w-0">
           <DetailPanel
             entrega={selectedEntrega}
             onClose={() => setSelectedEntrega(null)}
