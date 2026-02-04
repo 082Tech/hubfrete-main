@@ -748,15 +748,15 @@ function DetailPanel({
 
       {/* Alert Dialog para confirmar entrega */}
       <AlertDialog open={entregueDialogOpen} onOpenChange={setEntregueDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               {docsCheck.complete ? (
                 <CheckCircle className="w-5 h-5 text-green-600" />
               ) : (
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                <AlertTriangle className="w-5 h-5 text-destructive" />
               )}
-              Marcar como entregue?
+              {docsCheck.complete ? 'Confirmar entrega?' : 'Documentos obrigatórios pendentes'}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
@@ -766,27 +766,31 @@ function DetailPanel({
                   </p>
                 ) : (
                   <>
-                    <p className="text-amber-600">
-                      Atenção: Os seguintes documentos obrigatórios ainda não foram anexados:
+                    <p className="text-destructive font-medium">
+                      Não é possível confirmar a entrega. Os seguintes documentos são obrigatórios:
                     </p>
                     <ul className="list-disc list-inside text-sm space-y-1">
                       {docsCheck.missing.map((doc) => (
-                        <li key={doc} className="text-amber-600 font-medium">{doc}</li>
+                        <li key={doc} className="text-destructive">{doc}</li>
                       ))}
                     </ul>
-                    <p className="text-sm">
-                      Você pode anexar os documentos agora ou confirmar mesmo assim.
+                    <p className="text-sm text-muted-foreground">
+                      Anexe todos os documentos obrigatórios para poder finalizar a entrega.
                     </p>
                   </>
                 )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+          <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
-            {!docsCheck.complete && (
+            {docsCheck.complete ? (
+              <AlertDialogAction onClick={handleEntregueConfirm} className="bg-green-600 hover:bg-green-700">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Confirmar entrega
+              </AlertDialogAction>
+            ) : (
               <Button 
-                variant="outline" 
                 onClick={() => {
                   setEntregueDialogOpen(false);
                   setAnexarDocumentosOpen(true);
@@ -796,10 +800,6 @@ function DetailPanel({
                 Anexar documentos
               </Button>
             )}
-            <AlertDialogAction onClick={handleEntregueConfirm} className="bg-green-600 hover:bg-green-700">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Confirmar entrega
-            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
