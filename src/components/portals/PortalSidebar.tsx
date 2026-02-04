@@ -156,10 +156,9 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   );
   const [cargasOpen, setCargasOpen] = useState(isCargasSubmenuActive);
 
-  const isEntregasSubmenuActive = entregasSubmenu.subItems.some(
-    (sub) => location.pathname === sub.href
+  const isEntregasActive = entregasItems.some(
+    (item) => location.pathname === item.href
   );
-  const [entregasOpen, setEntregasOpen] = useState(isEntregasSubmenuActive);
 
   const handleLogout = async () => {
     await signOut();
