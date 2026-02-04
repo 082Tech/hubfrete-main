@@ -69,6 +69,8 @@ import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
+import { DailyPerformanceDialog } from '@/components/admin/relatorios/DailyPerformanceDialog';
+import { BarChart3 } from 'lucide-react';
 
 // Status definitions - apenas os status válidos
 // Coluna 1 (pending): APENAS 'aguardando'
@@ -1200,6 +1202,7 @@ export default function OperacaoDiaria() {
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
+  const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
   const [filters, setFilters] = useState<AdvancedFilters>({});
 
   // Fetch today's deliveries (by created_at) OR pending from previous days
@@ -1382,13 +1385,67 @@ export default function OperacaoDiaria() {
   // Separar entregas por status para as colunas
   // Coluna 1: APENAS 'aguardando'
   // Coluna 2: 'saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'
-  const { aguardandoEntregas, emRotaEntregas } = useMemo(() => {
-    const aguardando = entregas.filter(e => e.status === 'aguardando');
-    const emRota = entregas.filter(e =>
+  const { aguardandoEntregas, emRotaEntregas, filteredEntregas } = useMemo(() => {
+    // Aplicar filtros avançados
+    let filtered = entregas;
+
+    if (filters.codigo) {
+      const term = filters.codigo.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.codigo?.toLowerCase().includes(term) || 
+        e.carga.codigo?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.motorista) {
+      const term = filters.motorista.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.motorista?.nome_completo?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.cidadeOrigem) {
+      const term = filters.cidadeOrigem.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.carga.endereco_origem?.cidade?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.cidadeDestino) {
+      const term = filters.cidadeDestino.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.carga.endereco_destino?.cidade?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.destinatario) {
+      const term = filters.destinatario.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.carga.destinatario_nome_fantasia?.toLowerCase().includes(term) ||
+        e.carga.destinatario_razao_social?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.dateFrom) {
+      filtered = filtered.filter(e => 
+        new Date(e.created_at) >= filters.dateFrom!
+      );
+    }
+
+    if (filters.dateTo) {
+      const endOfDay = new Date(filters.dateTo);
+      endOfDay.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(e => 
+        new Date(e.created_at) <= endOfDay
+      );
+    }
+
+    const aguardando = filtered.filter(e => e.status === 'aguardando');
+    const emRota = filtered.filter(e =>
       ['saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'].includes(e.status)
     );
-    return { aguardandoEntregas: aguardando, emRotaEntregas: emRota };
-  }, [entregas]);
+    return { aguardandoEntregas: aguardando, emRotaEntregas: emRota, filteredEntregas: filtered };
+  }, [entregas, filters]);
 
   // Get driver location for selected delivery (includes heading and online status)
   const driverLocation = useMemo(() => {
@@ -1434,9 +1491,18 @@ export default function OperacaoDiaria() {
             onFiltersChange={setFilters}
             showMotorista
             showEmbarcador={false}
-            showDestinatario={false}
+            showDestinatario
             motoristas={motoristasList}
           />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setPerformanceDialogOpen(true)}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Desempenho Diário
+          </Button>
           <Button
             variant="default"
             size="sm"
@@ -1444,7 +1510,7 @@ export default function OperacaoDiaria() {
             onClick={() => setGestaoDialogOpen(true)}
           >
             <Map className="w-4 h-4" />
-            Gestão da operação
+            Visualização Geral em Mapa
           </Button>
         </div>
       </div>
@@ -1524,6 +1590,13 @@ export default function OperacaoDiaria() {
         onOpenChange={setGestaoDialogOpen}
         entregas={entregas}
         localizacoes={localizacoes}
+      />
+
+      {/* Daily Performance Dialog */}
+      <DailyPerformanceDialog
+        open={performanceDialogOpen}
+        onOpenChange={setPerformanceDialogOpen}
+        entregas={filteredEntregas}
       />
     </div>
   );
