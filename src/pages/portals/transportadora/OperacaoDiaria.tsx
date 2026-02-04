@@ -64,6 +64,7 @@ import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
+import { DetailPanelMap } from '@/components/maps/DetailPanelMap';
 
 // Status definitions - apenas os status válidos
 // Coluna 1 (pending): APENAS 'aguardando'
@@ -256,7 +257,7 @@ function DetailPanel({
   onClose: () => void;
   onStatusChange: (newStatus: EntregaStatus) => void;
   isChangingStatus: boolean;
-  driverLocation: { lat: number; lng: number } | null;
+  driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
   onRefresh: () => void;
 }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -285,8 +286,6 @@ function DetailPanel({
   const destinoCoords = entrega.carga.endereco_destino?.latitude && entrega.carga.endereco_destino?.longitude
     ? { lat: entrega.carga.endereco_destino.latitude, lng: entrega.carga.endereco_destino.longitude }
     : null;
-
-  const mapCenter = driverLocation || origemCoords || destinoCoords || { lat: -23.55, lng: -46.63 };
 
   // Determine next status based on current status
   const getNextStatus = (): { status: string; label: string; icon: React.ElementType } | null => {
@@ -557,75 +556,16 @@ function DetailPanel({
 
           <Separator />
 
-          {/* Mini Map */}
-          <div className="rounded-lg overflow-hidden border h-[200px]">
-            <GoogleMapsLoader>
-              <GoogleMap
-                mapContainerStyle={{ width: '100%', height: '100%' }}
-                center={mapCenter}
-                zoom={10}
-                options={{
-                  disableDefaultUI: true,
-                  zoomControl: true,
-                }}
-              >
-                {origemCoords && (
-                  <Marker
-                    position={origemCoords}
-                    icon={{
-                      path: google.maps.SymbolPath.CIRCLE,
-                      scale: 7,
-                      fillColor: '#22c55e',
-                      fillOpacity: 1,
-                      strokeColor: '#fff',
-                      strokeWeight: 2,
-                    }}
-                    title="Origem"
-                  />
-                )}
-                {destinoCoords && (
-                  <Marker
-                    position={destinoCoords}
-                    icon={{
-                      path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-                      scale: 5,
-                      fillColor: '#ef4444',
-                      fillOpacity: 1,
-                      strokeColor: '#fff',
-                      strokeWeight: 2,
-                    }}
-                    title="Destino"
-                  />
-                )}
-                {driverLocation && (
-                  <Marker
-                    position={driverLocation}
-                    icon={{
-                      path: 'M 0,-8 L 5,8 L 0,4 L -5,8 Z',
-                      scale: 1.5,
-                      fillColor: '#3b82f6',
-                      fillOpacity: 1,
-                      strokeColor: '#fff',
-                      strokeWeight: 2,
-                      rotation: 0,
-                    }}
-                    title="Motorista"
-                  />
-                )}
-                {origemCoords && destinoCoords && (
-                  <Polyline
-                    path={[origemCoords, driverLocation || origemCoords, destinoCoords].filter(Boolean) as google.maps.LatLngLiteral[]}
-                    options={{
-                      strokeColor: '#6366f1',
-                      strokeOpacity: 0.6,
-                      strokeWeight: 2,
-                      geodesic: true,
-                    }}
-                  />
-                )}
-              </GoogleMap>
-            </GoogleMapsLoader>
-          </div>
+          {/* Mapa com rotas condicionais */}
+          <GoogleMapsLoader>
+            <DetailPanelMap
+              origemCoords={origemCoords}
+              destinoCoords={destinoCoords}
+              driverLocation={driverLocation}
+              status={entrega.status}
+              height={300}
+            />
+          </GoogleMapsLoader>
 
           {/* Driver & Vehicle */}
           {entrega.motorista && (
@@ -1258,12 +1198,17 @@ export default function OperacaoDiaria() {
     return { aguardandoEntregas: aguardando, emRotaEntregas: emRota };
   }, [entregas]);
 
-  // Get driver location for selected delivery
+  // Get driver location for selected delivery (includes heading and online status)
   const driverLocation = useMemo(() => {
     if (!selectedEntrega?.motorista_id) return null;
     const loc = localizacoes.find(l => l.motorista_id === selectedEntrega.motorista_id);
     if (loc?.latitude && loc?.longitude) {
-      return { lat: loc.latitude, lng: loc.longitude };
+      return { 
+        lat: loc.latitude, 
+        lng: loc.longitude,
+        heading: loc.heading,
+        isOnline: loc.isOnline,
+      };
     }
     return null;
   }, [selectedEntrega, localizacoes]);
