@@ -229,6 +229,12 @@ function DriverMarkerWithTooltip({
   const isOnline = loc.isOnline ?? motoristaInfo?.isOnline ?? true;
   const entregas = motoristaInfo?.entregas || [];
   const entregasCount = entregas.length;
+  
+  // Calcular tempo desde última atualização para exibir "Offline há X"
+  const lastSeenAt = loc.updated_at || motoristaInfo?.lastSeenAt;
+  const lastSeenText = lastSeenAt 
+    ? formatDistanceToNow(new Date(lastSeenAt), { locale: ptBR, addSuffix: false })
+    : null;
 
   return (
     <Marker
@@ -249,10 +255,10 @@ function DriverMarkerWithTooltip({
           <div className="flex items-center justify-between mb-2">
             <p className="font-semibold text-sm">{motoristaName}</p>
             <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full ${
-              isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'
+              isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
             }`}>
-              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-              {isOnline ? 'Online' : 'Offline'}
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
             </span>
           </div>
           
