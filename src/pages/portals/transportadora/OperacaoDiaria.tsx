@@ -1248,12 +1248,12 @@ export default function OperacaoDiaria() {
   });
 
   // Separar entregas por status para as colunas
+  // Coluna 1: APENAS 'aguardando'
+  // Coluna 2: 'saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'
   const { aguardandoEntregas, emRotaEntregas } = useMemo(() => {
-    const aguardando = entregas.filter(e =>
-      ['aguardando', 'saiu_para_coleta'].includes(e.status)
-    );
+    const aguardando = entregas.filter(e => e.status === 'aguardando');
     const emRota = entregas.filter(e =>
-      ['saiu_para_entrega', 'entregue', 'cancelada'].includes(e.status)
+      ['saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'].includes(e.status)
     );
     return { aguardandoEntregas: aguardando, emRotaEntregas: emRota };
   }, [entregas]);
