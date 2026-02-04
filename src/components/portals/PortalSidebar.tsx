@@ -109,6 +109,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
   ],
   transportadora: [
     { icon: Home, label: 'Home', href: '/transportadora' },
+    { icon: Calendar, label: 'Operação Diária', href: '/transportadora/operacao' },
     { icon: Package, label: 'Cargas Disponíveis', href: '/transportadora/cargas' },
     { icon: Truck, label: 'Minha Frota', href: '/transportadora/frota' },
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },

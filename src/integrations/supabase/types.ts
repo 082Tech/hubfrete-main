@@ -1336,7 +1336,6 @@ export type Database = {
         Row: {
           accuracy: number | null
           altitude: number | null
-          entrega_id: string | null
           heading: number | null
           id: number
           latitude: number | null
@@ -1348,7 +1347,6 @@ export type Database = {
         Insert: {
           accuracy?: number | null
           altitude?: number | null
-          entrega_id?: string | null
           heading?: number | null
           id?: number
           latitude?: number | null
@@ -1360,7 +1358,6 @@ export type Database = {
         Update: {
           accuracy?: number | null
           altitude?: number | null
-          entrega_id?: string | null
           heading?: number | null
           id?: number
           latitude?: number | null
@@ -1375,13 +1372,6 @@ export type Database = {
             columns: ["motorista_id"]
             isOneToOne: true
             referencedRelation: "motoristas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "locations_entrega_id_fkey"
-            columns: ["entrega_id"]
-            isOneToOne: false
-            referencedRelation: "entregas"
             referencedColumns: ["id"]
           },
         ]
@@ -2125,6 +2115,7 @@ export type Database = {
           capacidade_kg: number | null
           capacidade_m3: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
+          carroceria_id: string | null
           carroceria_integrada: boolean | null
           comprovante_endereco_proprietario_url: string | null
           created_at: string | null
@@ -2158,6 +2149,7 @@ export type Database = {
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
+          carroceria_id?: string | null
           carroceria_integrada?: boolean | null
           comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
@@ -2191,6 +2183,7 @@ export type Database = {
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria?: Database["public"]["Enums"]["tipo_carroceria"]
+          carroceria_id?: string | null
           carroceria_integrada?: boolean | null
           comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
@@ -2218,6 +2211,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "veiculos_carroceria_id_fkey"
+            columns: ["carroceria_id"]
+            isOneToOne: false
+            referencedRelation: "carrocerias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "veiculos_empresa_id_fkey"
             columns: ["empresa_id"]
