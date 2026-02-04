@@ -257,7 +257,7 @@ function DetailPanel({
   onClose: () => void;
   onStatusChange: (newStatus: EntregaStatus) => void;
   isChangingStatus: boolean;
-  driverLocation: { lat: number; lng: number } | null;
+  driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
   onRefresh: () => void;
 }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
