@@ -39,6 +39,8 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  ArrowLeftRight,
+  MessageCircle,
   RefreshCw,
   Phone,
   History,
