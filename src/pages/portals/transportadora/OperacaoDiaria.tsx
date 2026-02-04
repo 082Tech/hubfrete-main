@@ -996,24 +996,47 @@ function GestaoEntregasDialogContent({
                       </div>
                     </div>
 
-                    {/* Entregas do motorista */}
+                    {/* Entregas do motorista - com dropdown para seleção */}
                     {isSelected && group.entregas.length > 0 && (
-                      <div className="mt-2 pl-10 space-y-1">
-                        {group.entregas.slice(0, 3).map(e => (
-                          <div key={e.id} className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Badge variant="outline" className="text-[9px] px-1 font-mono">
-                              {e.codigo?.slice(-4)}
-                            </Badge>
-                            <span className="truncate">
-                              {e.carga.endereco_origem?.cidade} → {e.carga.endereco_destino?.cidade}
-                            </span>
-                          </div>
-                        ))}
-                        {group.entregas.length > 3 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            +{group.entregas.length - 3} mais
-                          </span>
-                        )}
+                      <div className="mt-2 pl-10 space-y-1.5">
+                        {group.entregas.map(e => {
+                          const isEntregaSelected = selectedEntregaId === e.id;
+                          const statusInfo = statusConfig[e.status];
+                          return (
+                            <div 
+                              key={e.id} 
+                              className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer transition-colors ${
+                                isEntregaSelected 
+                                  ? 'bg-primary/10 ring-1 ring-primary/30' 
+                                  : 'hover:bg-muted/60'
+                              }`}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                handleEntregaSelect(e.id);
+                              }}
+                            >
+                              <Badge 
+                                variant="outline" 
+                                className={`text-[9px] px-1.5 font-mono shrink-0 ${
+                                  isEntregaSelected ? 'border-primary text-primary' : ''
+                                }`}
+                              >
+                                #{e.codigo?.slice(-4)}
+                              </Badge>
+                              <span className="text-xs truncate flex-1">
+                                {e.carga.endereco_origem?.cidade} → {e.carga.endereco_destino?.cidade}
+                              </span>
+                              {statusInfo && (
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                                  e.status === 'aguardando' ? 'bg-amber-500' :
+                                  e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega' ? 'bg-blue-500' :
+                                  e.status === 'entregue' ? 'bg-green-500' :
+                                  e.status === 'cancelada' ? 'bg-red-500' : 'bg-gray-400'
+                                }`} title={statusInfo.label} />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
