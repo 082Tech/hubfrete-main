@@ -820,6 +820,14 @@ function DetailPanel({
         fileUrl={previewDocUrl}
         title={previewDocTitle}
       />
+
+      {/* Chat Sheet */}
+      <ChatSheet
+        open={chatSheetOpen}
+        onOpenChange={setChatSheetOpen}
+        entregaId={entrega.id}
+        userType="transportadora"
+      />
     </div>
   );
 }
