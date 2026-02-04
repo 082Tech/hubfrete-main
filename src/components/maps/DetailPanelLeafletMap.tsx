@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -69,8 +69,8 @@ const createTruckIcon = (heading: number = 0, isOnline: boolean = false) => {
   });
 };
 
-// Component to fit bounds to all points
-function FitBounds({
+// Component to fit bounds ONLY ONCE on initial mount
+function FitBoundsOnce({
   points,
 }: {
   points: [number, number][];
@@ -79,6 +79,7 @@ function FitBounds({
   const hasFitted = useRef(false);
 
   useEffect(() => {
+    // Só faz o fit uma vez, no primeiro render quando temos pontos
     if (points.length === 0 || hasFitted.current) return;
 
     if (points.length === 1) {
@@ -88,12 +89,7 @@ function FitBounds({
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     }
     hasFitted.current = true;
-  }, [points, map]);
-
-  // Reset fit flag when points change significantly
-  useEffect(() => {
-    hasFitted.current = false;
-  }, [points.length]);
+  }, [map]); // Apenas map como dependência - não reagir a mudanças de points
 
   return null;
 }
@@ -104,6 +100,7 @@ function FitBounds({
  * - Rotas tracejadas baseadas no status:
  *   - aguardando/saiu_para_coleta: caminhão → origem (tracejado) + origem → destino (sólido)
  *   - saiu_para_entrega: caminhão → destino (tracejado)
+ * - O zoom automático só acontece UMA VEZ ao abrir o mapa
  */
 export function DetailPanelLeafletMap({
   origemCoords,
@@ -134,20 +131,29 @@ export function DetailPanelLeafletMap({
   const showRouteOriginToDestino = status === 'aguardando' || status === 'saiu_para_coleta';
   const showRouteToDestino = status === 'saiu_para_entrega';
 
-  // Rotas
+  // Rotas com estilo de curva (simular rota real com pontos intermediários)
   const truckToOriginPath = useMemo((): [number, number][] | null => {
     if (!showRouteToOrigin || !driverLocation || !origemCoords) return null;
-    return [[driverLocation.lat, driverLocation.lng], [origemCoords.lat, origemCoords.lng]];
+    return createCurvedPath(
+      [driverLocation.lat, driverLocation.lng],
+      [origemCoords.lat, origemCoords.lng]
+    );
   }, [showRouteToOrigin, driverLocation, origemCoords]);
 
   const originToDestinoPath = useMemo((): [number, number][] | null => {
     if (!showRouteOriginToDestino || !origemCoords || !destinoCoords) return null;
-    return [[origemCoords.lat, origemCoords.lng], [destinoCoords.lat, destinoCoords.lng]];
+    return createCurvedPath(
+      [origemCoords.lat, origemCoords.lng],
+      [destinoCoords.lat, destinoCoords.lng]
+    );
   }, [showRouteOriginToDestino, origemCoords, destinoCoords]);
 
   const truckToDestinoPath = useMemo((): [number, number][] | null => {
     if (!showRouteToDestino || !driverLocation || !destinoCoords) return null;
-    return [[driverLocation.lat, driverLocation.lng], [destinoCoords.lat, destinoCoords.lng]];
+    return createCurvedPath(
+      [driverLocation.lat, driverLocation.lng],
+      [destinoCoords.lat, destinoCoords.lng]
+    );
   }, [showRouteToDestino, driverLocation, destinoCoords]);
 
   const isDriverOnline = driverLocation?.isOnline ?? false;
@@ -165,7 +171,7 @@ export function DetailPanelLeafletMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        <FitBounds points={allPoints} />
+        <FitBoundsOnce points={allPoints} />
 
         {/* Origem - Marcador verde */}
         {origemCoords && (
@@ -197,9 +203,11 @@ export function DetailPanelLeafletMap({
             positions={truckToOriginPath}
             pathOptions={{
               color: '#3b82f6',
-              weight: 3,
+              weight: 4,
               opacity: 0.8,
-              dashArray: '10, 10',
+              dashArray: '8, 12',
+              lineCap: 'round',
+              lineJoin: 'round',
             }}
           />
         )}
@@ -210,8 +218,10 @@ export function DetailPanelLeafletMap({
             positions={originToDestinoPath}
             pathOptions={{
               color: '#6366f1',
-              weight: 3,
-              opacity: 0.8,
+              weight: 4,
+              opacity: 0.9,
+              lineCap: 'round',
+              lineJoin: 'round',
             }}
           />
         )}
@@ -222,13 +232,60 @@ export function DetailPanelLeafletMap({
             positions={truckToDestinoPath}
             pathOptions={{
               color: '#22c55e',
-              weight: 3,
+              weight: 4,
               opacity: 0.8,
-              dashArray: '10, 10',
+              dashArray: '8, 12',
+              lineCap: 'round',
+              lineJoin: 'round',
             }}
           />
         )}
       </MapContainer>
     </div>
   );
+}
+
+/**
+ * Cria um caminho curvo entre dois pontos para simular uma rota real
+ * Adiciona pontos intermediários com leve desvio para criar uma curva natural
+ */
+function createCurvedPath(
+  start: [number, number],
+  end: [number, number],
+  numPoints: number = 10
+): [number, number][] {
+  const points: [number, number][] = [];
+  
+  const latDiff = end[0] - start[0];
+  const lngDiff = end[1] - start[1];
+  
+  // Calcular a distância para determinar a intensidade da curva
+  const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+  const curveIntensity = Math.min(distance * 0.15, 0.5); // Limitar a curva máxima
+  
+  for (let i = 0; i <= numPoints; i++) {
+    const t = i / numPoints;
+    
+    // Interpolação linear base
+    let lat = start[0] + latDiff * t;
+    let lng = start[1] + lngDiff * t;
+    
+    // Adicionar curva usando uma função senoidal
+    // A curva é mais pronunciada no meio do caminho
+    const curveFactor = Math.sin(t * Math.PI) * curveIntensity;
+    
+    // Perpendicular à direção da rota
+    const perpLat = -lngDiff;
+    const perpLng = latDiff;
+    const perpLength = Math.sqrt(perpLat * perpLat + perpLng * perpLng);
+    
+    if (perpLength > 0) {
+      lat += (perpLat / perpLength) * curveFactor;
+      lng += (perpLng / perpLength) * curveFactor;
+    }
+    
+    points.push([lat, lng]);
+  }
+  
+  return points;
 }
