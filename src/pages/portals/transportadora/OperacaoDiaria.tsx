@@ -941,9 +941,9 @@ function GestaoEntregasDialogContent({
     return names;
   }, [motoristaGroups]);
 
-  // Informações extras para tooltip do mapa (com entregas completas)
+  // Informações extras para tooltip do mapa (com entregas completas e lastSeenAt)
   const motoristaInfo = useMemo(() => {
-    const info: Record<string, { nome: string; entregas: Array<{ id: string; codigo: string; status: string; origemCidade: string; destinoCidade: string; origemCoords: { lat: number; lng: number } | null; destinoCoords: { lat: number; lng: number } | null }>; isOnline: boolean }> = {};
+    const info: Record<string, { nome: string; entregas: Array<{ id: string; codigo: string; status: string; origemCidade: string; destinoCidade: string; origemCoords: { lat: number; lng: number } | null; destinoCoords: { lat: number; lng: number } | null }>; isOnline: boolean; lastSeenAt?: string | null }> = {};
     motoristaGroups.forEach(g => {
       const loc = localizacoes.find(l => l.motorista_id === g.id);
       info[g.id] = {
@@ -962,6 +962,7 @@ function GestaoEntregasDialogContent({
             : null,
         })),
         isOnline: loc?.isOnline ?? false,
+        lastSeenAt: (loc as any)?.updated_at ?? null,
       };
     });
     return info;
