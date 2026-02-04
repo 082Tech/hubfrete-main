@@ -212,30 +212,35 @@ function DriverMarkerWithTooltip({
   );
 }
 
-// Status indicator badges no topo do mapa
+// Status indicator badges no topo do mapa - cores padronizadas
 function StatusIndicators({ statusCounts }: { statusCounts: GestaoLeafletMapProps['statusCounts'] }) {
   if (!statusCounts) return null;
 
   return (
     <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg border">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5" title="Aguardando">
         <span className="w-3 h-3 rounded-full bg-amber-500" />
         <span className="text-xs font-medium">{statusCounts.aguardando}</span>
       </div>
       <div className="w-px h-4 bg-border" />
-      <div className="flex items-center gap-1.5">
-        <span className="w-3 h-3 rounded-full bg-blue-500" />
-        <span className="text-xs font-medium">{statusCounts.emRota}</span>
+      <div className="flex items-center gap-1.5" title="Saiu p/ Coleta">
+        <span className="w-3 h-3 rounded-full bg-cyan-500" />
+        <span className="text-xs font-medium">{statusCounts.coleta}</span>
       </div>
       <div className="w-px h-4 bg-border" />
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5" title="Saiu p/ Entrega">
+        <span className="w-3 h-3 rounded-full bg-purple-500" />
+        <span className="text-xs font-medium">{statusCounts.entrega}</span>
+      </div>
+      <div className="w-px h-4 bg-border" />
+      <div className="flex items-center gap-1.5" title="Entregue">
         <span className="w-3 h-3 rounded-full bg-green-500" />
         <span className="text-xs font-medium">{statusCounts.entregue}</span>
       </div>
       {statusCounts.cancelada > 0 && (
         <>
           <div className="w-px h-4 bg-border" />
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" title="Cancelada">
             <span className="w-3 h-3 rounded-full bg-red-500" />
             <span className="text-xs font-medium">{statusCounts.cancelada}</span>
           </div>
