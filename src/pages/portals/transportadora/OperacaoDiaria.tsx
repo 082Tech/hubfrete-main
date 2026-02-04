@@ -1225,11 +1225,14 @@ export default function OperacaoDiaria() {
 
       if (error) throw error;
 
+      // Registrar evento com auditoria (user_id e user_nome)
       await supabase.from('entrega_eventos').insert({
         entrega_id: entregaId,
         tipo: `status_${newStatus}`,
         timestamp: new Date().toISOString(),
         observacao: `Status alterado para ${statusConfig[newStatus]?.label || newStatus}`,
+        user_id: user?.id || null,
+        user_nome: profile?.nome_completo || user?.email || 'Sistema',
       });
     },
     onSuccess: () => {
