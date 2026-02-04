@@ -58,6 +58,7 @@ import {
   DollarSign,
   Paperclip,
   AlertTriangle,
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
