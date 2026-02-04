@@ -803,14 +803,18 @@ function DetailPanel({
 
 // ==================== Gestão Dialog com Mapa + Lista Motoristas ====================
 
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
+
 function GestaoEntregasDialogContent({
   entregas,
   localizacoes,
 }: {
   entregas: Entrega[];
-  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null }>;
+  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean }>;
 }) {
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Agrupar entregas por motorista
   const motoristaGroups = useMemo(() => {
@@ -830,6 +834,22 @@ function GestaoEntregasDialogContent({
     }));
   }, [entregas]);
 
+  // Filtrar motoristas pelo termo de busca
+  const filteredMotoristaGroups = useMemo(() => {
+    if (!searchTerm.trim()) return motoristaGroups;
+    
+    const term = searchTerm.toLowerCase();
+    return motoristaGroups.filter(g => {
+      const nome = g.motorista?.nome_completo?.toLowerCase() || '';
+      const temEntregaMatch = g.entregas.some(e => 
+        e.codigo?.toLowerCase().includes(term) ||
+        e.carga.endereco_origem?.cidade?.toLowerCase().includes(term) ||
+        e.carga.endereco_destino?.cidade?.toLowerCase().includes(term)
+      );
+      return nome.includes(term) || temEntregaMatch;
+    });
+  }, [motoristaGroups, searchTerm]);
+
   // Mapa de nomes dos motoristas para o componente de mapa
   const motoristaNames = useMemo(() => {
     const names: Record<string, string> = {};
@@ -838,6 +858,20 @@ function GestaoEntregasDialogContent({
     });
     return names;
   }, [motoristaGroups]);
+
+  // Informações extras para tooltip do mapa
+  const motoristaInfo = useMemo(() => {
+    const info: Record<string, { nome: string; entregas: number; isOnline: boolean }> = {};
+    motoristaGroups.forEach(g => {
+      const loc = localizacoes.find(l => l.motorista_id === g.id);
+      info[g.id] = {
+        nome: g.motorista?.nome_completo || 'Motorista',
+        entregas: g.entregas.length,
+        isOnline: loc?.isOnline ?? false,
+      };
+    });
+    return info;
+  }, [motoristaGroups, localizacoes]);
 
   // Handler para clicar no motorista
   const handleMotoristaClick = useCallback((motoristaId: string) => {
@@ -860,22 +894,40 @@ function GestaoEntregasDialogContent({
             selectedMotoristaId={selectedMotoristaId}
             onMotoristaClick={handleMotoristaClick}
             motoristaNames={motoristaNames}
+            motoristaInfo={motoristaInfo}
           />
         </div>
 
         {/* Lista de motoristas à direita (30%) */}
         <div className="flex-[3] border-l flex flex-col bg-background">
-          <div className="px-3 py-2 border-b bg-muted/30">
-            <span className="text-sm font-medium">Motoristas ({motoristaGroups.length})</span>
+          {/* Header com busca */}
+          <div className="px-3 py-2 border-b bg-muted/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Motoristas ({filteredMotoristaGroups.length})</span>
+              {searchTerm && (
+                <span className="text-xs text-muted-foreground">
+                  de {motoristaGroups.length} total
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar motorista, código, cidade..."
+                className="pl-8 h-8 text-xs bg-background"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
 
           <ScrollArea className="flex-1">
-            {motoristaGroups.length === 0 ? (
-              <EmptyColumnPlaceholder message="Nenhum motorista encontrado" />
+            {filteredMotoristaGroups.length === 0 ? (
+              <EmptyColumnPlaceholder message={searchTerm ? "Nenhum motorista encontrado" : "Nenhum motorista disponível"} />
             ) : (
-              motoristaGroups.map(group => {
+              filteredMotoristaGroups.map(group => {
                 const loc = localizacoes.find(l => l.motorista_id === group.id);
-                const isOnline = !!(loc?.latitude && loc?.longitude);
+                const isOnline = loc?.isOnline ?? false;
                 const isSelected = selectedMotoristaId === group.id;
 
                 return (
