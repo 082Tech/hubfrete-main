@@ -1076,6 +1076,7 @@ function GestaoEntregasDialog({
 // Main component
 export default function OperacaoDiaria() {
   const { empresa } = useUserContext();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
