@@ -131,40 +131,35 @@ function MapController({
   return null;
 }
 
-// Cria caminho curvo entre dois pontos
-function createCurvedPath(
-  start: [number, number],
-  end: [number, number],
-  numPoints: number = 10
-): [number, number][] {
-  const points: [number, number][] = [];
-  
-  const latDiff = end[0] - start[0];
-  const lngDiff = end[1] - start[1];
-  
-  const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-  const curveIntensity = Math.min(distance * 0.12, 0.4);
-  
-  for (let i = 0; i <= numPoints; i++) {
-    const t = i / numPoints;
-    let lat = start[0] + latDiff * t;
-    let lng = start[1] + lngDiff * t;
-    
-    const curveFactor = Math.sin(t * Math.PI) * curveIntensity;
-    
-    const perpLat = -lngDiff;
-    const perpLng = latDiff;
-    const perpLength = Math.sqrt(perpLat * perpLat + perpLng * perpLng);
-    
-    if (perpLength > 0) {
-      lat += (perpLat / perpLength) * curveFactor;
-      lng += (perpLng / perpLength) * curveFactor;
-    }
-    
-    points.push([lat, lng]);
-  }
-  
-  return points;
+// Component to render route polyline with OSRM data
+function OSRMRoutePolyline({
+  origin,
+  destination,
+  color,
+  dashArray,
+}: {
+  origin: { lat: number; lng: number } | null;
+  destination: { lat: number; lng: number } | null;
+  color: string;
+  dashArray?: string;
+}) {
+  const { route } = useOSRMRoute(origin, destination);
+
+  if (!route || route.length === 0) return null;
+
+  return (
+    <Polyline
+      positions={route}
+      pathOptions={{
+        color,
+        weight: 4,
+        opacity: 0.9,
+        dashArray,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }}
+    />
+  );
 }
 
 // Custom Marker component with hover tooltip
