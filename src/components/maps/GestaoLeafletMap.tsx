@@ -40,6 +40,7 @@ interface MotoristaInfo {
   nome: string;
   entregas: EntregaInfo[];
   isOnline: boolean;
+  lastSeenAt?: string | null;
 }
 
 interface SelectedEntregaData {
