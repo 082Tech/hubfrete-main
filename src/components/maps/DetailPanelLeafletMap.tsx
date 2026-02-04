@@ -95,12 +95,43 @@ function FitBoundsOnce({
   return null;
 }
 
+// Component to render route polyline with OSRM data
+function OSRMRoutePolyline({
+  origin,
+  destination,
+  color,
+  dashArray,
+}: {
+  origin: { lat: number; lng: number } | null;
+  destination: { lat: number; lng: number } | null;
+  color: string;
+  dashArray?: string;
+}) {
+  const { route } = useOSRMRoute(origin, destination);
+
+  if (!route || route.length === 0) return null;
+
+  return (
+    <Polyline
+      positions={route}
+      pathOptions={{
+        color,
+        weight: 4,
+        opacity: 0.9,
+        dashArray,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }}
+    />
+  );
+}
+
 /**
  * Mapa Leaflet do painel de detalhes da Operação Diária
  * - Mostra origem (verde), destino (vermelho) e motorista (TruckIcon)
- * - Rotas tracejadas baseadas no status:
- *   - aguardando/saiu_para_coleta: caminhão → origem (tracejado) + origem → destino (sólido)
- *   - saiu_para_entrega: caminhão → destino (tracejado)
+ * - Rotas OSRM reais baseadas no status:
+ *   - aguardando/saiu_para_coleta: caminhão → origem (tracejado cyan) + origem → destino (sólido purple)
+ *   - saiu_para_entrega: caminhão → destino (tracejado green)
  * - O zoom automático só acontece UMA VEZ ao abrir o mapa
  */
 export function DetailPanelLeafletMap({
@@ -131,31 +162,6 @@ export function DetailPanelLeafletMap({
   const showRouteToOrigin = status === 'aguardando' || status === 'saiu_para_coleta';
   const showRouteOriginToDestino = status === 'aguardando' || status === 'saiu_para_coleta';
   const showRouteToDestino = status === 'saiu_para_entrega';
-
-  // Rotas com estilo de curva (simular rota real com pontos intermediários)
-  const truckToOriginPath = useMemo((): [number, number][] | null => {
-    if (!showRouteToOrigin || !driverLocation || !origemCoords) return null;
-    return createCurvedPath(
-      [driverLocation.lat, driverLocation.lng],
-      [origemCoords.lat, origemCoords.lng]
-    );
-  }, [showRouteToOrigin, driverLocation, origemCoords]);
-
-  const originToDestinoPath = useMemo((): [number, number][] | null => {
-    if (!showRouteOriginToDestino || !origemCoords || !destinoCoords) return null;
-    return createCurvedPath(
-      [origemCoords.lat, origemCoords.lng],
-      [destinoCoords.lat, destinoCoords.lng]
-    );
-  }, [showRouteOriginToDestino, origemCoords, destinoCoords]);
-
-  const truckToDestinoPath = useMemo((): [number, number][] | null => {
-    if (!showRouteToDestino || !driverLocation || !destinoCoords) return null;
-    return createCurvedPath(
-      [driverLocation.lat, driverLocation.lng],
-      [destinoCoords.lat, destinoCoords.lng]
-    );
-  }, [showRouteToDestino, driverLocation, destinoCoords]);
 
   const isDriverOnline = driverLocation?.isOnline ?? false;
 
