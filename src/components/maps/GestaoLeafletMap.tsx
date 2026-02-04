@@ -283,15 +283,7 @@ export function GestaoLeafletMap({
     return [-14.24, -51.93];
   }, [allPoints]);
 
-  // Encontrar a entrega selecionada para mostrar a rota
-  const selectedEntrega = useMemo(() => {
-    if (!selectedMotoristaId || !selectedEntregaId || !motoristaInfo) return null;
-    const info = motoristaInfo[selectedMotoristaId];
-    if (!info) return null;
-    return info.entregas.find(e => e.id === selectedEntregaId) || null;
-  }, [selectedMotoristaId, selectedEntregaId, motoristaInfo]);
-
-  // Coordenadas da rota selecionada
+  // Coordenadas para rotas OSRM
   const driverLocation = useMemo(() => {
     if (!selectedMotoristaId) return null;
     const loc = localizacoes.find(l => l.motorista_id === selectedMotoristaId);
@@ -301,21 +293,12 @@ export function GestaoLeafletMap({
     return null;
   }, [selectedMotoristaId, localizacoes]);
 
-  // Rotas curvas
-  const routeToOrigin = useMemo(() => {
-    if (!driverLocation || !selectedEntrega?.origemCoords) return null;
-    return createCurvedPath(
-      [driverLocation.lat, driverLocation.lng],
-      [selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng]
-    );
-  }, [driverLocation, selectedEntrega]);
+  const origemCoords = useMemo(() => {
+    return selectedEntrega?.origemCoords || null;
+  }, [selectedEntrega]);
 
-  const routeOriginToDest = useMemo(() => {
-    if (!selectedEntrega?.origemCoords || !selectedEntrega?.destinoCoords) return null;
-    return createCurvedPath(
-      [selectedEntrega.origemCoords.lat, selectedEntrega.origemCoords.lng],
-      [selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]
-    );
+  const destinoCoords = useMemo(() => {
+    return selectedEntrega?.destinoCoords || null;
   }, [selectedEntrega]);
 
   return (
