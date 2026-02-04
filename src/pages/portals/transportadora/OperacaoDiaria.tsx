@@ -610,37 +610,65 @@ function DetailPanel({
             </div>
 
             {entrega.eventos && entrega.eventos.length > 0 ? (
-              <div className="space-y-3">
-                {entrega.eventos.slice(0, 5).map((evento) => {
-                  // Mapear tipo do evento para label legível
-                  const tipoToLabel: Record<string, string> = {
-                    aceite: 'Aguardando',
-                    inicio_coleta: 'Saiu para Coleta',
-                    inicio_rota: 'Saiu para Entrega',
-                    finalizado: 'Entregue',
-                    cancelado: 'Cancelada',
-                  };
-                  const statusLabel = tipoToLabel[evento.tipo] || evento.tipo.replace(/_/g, ' ');
-                  const userName = evento.user_nome || 'Sistema';
-                  
-                  return (
-                    <div key={evento.id} className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center shrink-0">
-                        <ArrowLeftRight className="w-4 h-4 text-muted-foreground" />
+              <div className="relative">
+                {/* Linha vertical de timeline */}
+                <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-border" />
+                
+                <div className="space-y-4">
+                  {entrega.eventos.slice(0, 5).map((evento, idx) => {
+                    // Mapear tipo do evento para label legível e cor
+                    const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean }> = {
+                      aceite: { label: 'Aguardando', bgColor: 'bg-amber-100' },
+                      inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100' },
+                      inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100' },
+                      finalizado: { label: 'Entregue', bgColor: 'bg-green-100' },
+                      cancelado: { label: 'Cancelada', bgColor: 'bg-red-100' },
+                      documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100', isDocument: true },
+                      cte_anexado: { label: 'CT-e anexado', bgColor: 'bg-blue-100', isDocument: true },
+                      manifesto_anexado: { label: 'Manifesto anexado', bgColor: 'bg-blue-100', isDocument: true },
+                      canhoto_anexado: { label: 'Canhoto anexado', bgColor: 'bg-blue-100', isDocument: true },
+                      nf_anexada: { label: 'Nota Fiscal anexada', bgColor: 'bg-blue-100', isDocument: true },
+                    };
+                    
+                    const config = tipoConfig[evento.tipo] || { label: evento.tipo.replace(/_/g, ' '), bgColor: 'bg-muted' };
+                    const userName = evento.user_nome || 'Sistema';
+                    const isDocument = config.isDocument || evento.tipo.includes('documento') || evento.tipo.includes('anexa');
+                    const isLast = idx === entrega.eventos!.slice(0, 5).length - 1;
+                    
+                    return (
+                      <div key={evento.id} className="relative flex items-start gap-3">
+                        {/* Ícone com cor de fundo baseada no status */}
+                        <div className={`relative z-10 w-8 h-8 rounded-md ${config.bgColor} flex items-center justify-center shrink-0`}>
+                          {isDocument ? (
+                            <FileText className="w-4 h-4 text-blue-600" />
+                          ) : (
+                            <ArrowLeftRight className={`w-4 h-4 ${
+                              evento.tipo === 'aceite' ? 'text-amber-600' :
+                              evento.tipo === 'inicio_coleta' ? 'text-cyan-600' :
+                              evento.tipo === 'inicio_rota' ? 'text-purple-600' :
+                              evento.tipo === 'finalizado' ? 'text-green-600' :
+                              evento.tipo === 'cancelado' ? 'text-red-600' :
+                              'text-muted-foreground'
+                            }`} />
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0 pt-1">
+                          <p className="text-sm">
+                            <span className="font-medium">{userName}</span>
+                            <span className="text-muted-foreground">
+                              {isDocument ? ' anexou ' : ' alterou o status para '}
+                            </span>
+                            <span className="font-medium">{config.label}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {format(new Date(evento.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm">
-                          <span className="font-medium">{userName}</span>
-                          <span className="text-muted-foreground"> alterou o status para </span>
-                          <span className="font-medium">{statusLabel}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {format(new Date(evento.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-3">
