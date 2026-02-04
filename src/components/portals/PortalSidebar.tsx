@@ -154,10 +154,6 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   );
   const [cargasOpen, setCargasOpen] = useState(isCargasSubmenuActive);
 
-  const isEntregasActive = entregasItems.some(
-    (item) => location.pathname === item.href
-  );
-
   const handleLogout = async () => {
     await signOut();
     localStorage.removeItem('hubfrete_filial_ativa');
