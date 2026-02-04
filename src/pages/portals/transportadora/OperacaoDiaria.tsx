@@ -61,7 +61,9 @@ import {
   Paperclip,
   AlertTriangle,
   Search,
+  HelpCircle,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
@@ -1477,10 +1479,27 @@ export default function OperacaoDiaria() {
     <div className="flex flex-col" style={{ height: 'calc(100dvh)' }}>
       <div className="flex items-center justify-between p-4 !pb-0 md:p-8 ">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Gestão Entregas</h1>
-          <p className="text-muted-foreground">
-            Visualize sua operação
-          </p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-foreground">Gestão de Entregas</h1>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="w-5 h-5 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
+                    <HelpCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-sm p-3">
+                  <p className="font-medium mb-1">Central de Operações Diárias</p>
+                  <p className="text-muted-foreground text-xs leading-relaxed">
+                    Acompanhe em tempo real todas as entregas do dia. As entregas finalizadas 
+                    (entregues ou canceladas) permanecem visíveis até o fim do dia, quando são 
+                    automaticamente movidas para o Histórico de Entregas.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <p className="text-muted-foreground">Visualize sua operação diária</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
