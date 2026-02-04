@@ -405,6 +405,90 @@ export function GestaoLeafletMap({
           );
         })}
       </MapContainer>
+
+      {/* Painel de detalhes da entrega selecionada - canto inferior esquerdo */}
+      {selectedEntregaData && (
+        <div className="absolute bottom-4 left-4 z-[1000] bg-popover border rounded-xl shadow-xl p-4 min-w-[320px] max-w-[380px] animate-in slide-in-from-left-4 duration-200">
+          {/* Header com botão de fechar */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Avatar className="h-9 w-9">
+                {selectedEntregaData.motoristaFoto && <AvatarImage src={selectedEntregaData.motoristaFoto} />}
+                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                  {selectedEntregaData.motoristaNome?.[0] || 'M'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium text-sm">{selectedEntregaData.motoristaNome}</p>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
+                  {selectedEntregaData.codigo}
+                </Badge>
+              </div>
+            </div>
+            <button 
+              onClick={onEntregaDeselect}
+              className="p-1.5 rounded-full hover:bg-muted transition-colors"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
+
+          {/* Rota */}
+          <div className="flex items-center gap-2 text-sm mb-3 bg-muted/40 rounded-lg p-2">
+            <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="truncate">{selectedEntregaData.carga.origemCidade}/{selectedEntregaData.carga.origemEstado}</span>
+            <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            <MapPin className="w-4 h-4 text-destructive shrink-0" />
+            <span className="truncate">{selectedEntregaData.carga.destinoCidade}/{selectedEntregaData.carga.destinoEstado}</span>
+          </div>
+
+          {/* Info da carga */}
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center gap-2">
+              <Package className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground">Carga:</span>
+              <span className="font-medium truncate">{selectedEntregaData.carga.descricao}</span>
+            </div>
+            
+            {selectedEntregaData.carga.remetente && (
+              <div className="flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Remetente:</span>
+                <span className="font-medium truncate">{selectedEntregaData.carga.remetente}</span>
+              </div>
+            )}
+            
+            {selectedEntregaData.carga.destinatario && (
+              <div className="flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Destinatário:</span>
+                <span className="font-medium truncate">{selectedEntregaData.carga.destinatario}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-4 pt-2 border-t mt-2">
+              {selectedEntregaData.pesoAlocado && (
+                <span className="flex items-center gap-1.5">
+                  <Weight className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium">{selectedEntregaData.pesoAlocado.toLocaleString('pt-BR')} kg</span>
+                </span>
+              )}
+              {selectedEntregaData.valorFrete && (
+                <span className="flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium">R$ {selectedEntregaData.valorFrete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </span>
+              )}
+              {selectedEntregaData.numeroCte && (
+                <span className="flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium">CT-e {selectedEntregaData.numeroCte}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Custom tooltip styles */}
       <style>{`
