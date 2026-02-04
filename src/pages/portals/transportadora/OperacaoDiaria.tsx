@@ -408,6 +408,15 @@ function DetailPanel({
             </div>
           )}
 
+          {/* Mapa com rotas condicionais */}
+          <DetailPanelLeafletMap
+            origemCoords={origemCoords}
+            destinoCoords={destinoCoords}
+            driverLocation={driverLocation}
+            status={entrega.status}
+            height={300}
+          />
+
           {/* Cargo description */}
           <div className="text-sm">
             <p className="font-medium">{entrega.carga.descricao}</p>
@@ -565,15 +574,6 @@ function DetailPanel({
 
           <Separator />
 
-          {/* Mapa com rotas condicionais */}
-          <DetailPanelLeafletMap
-            origemCoords={origemCoords}
-            destinoCoords={destinoCoords}
-            driverLocation={driverLocation}
-            status={entrega.status}
-            height={300}
-          />
-
           {/* Driver & Vehicle + Chat Button + Status Online/Offline */}
           {entrega.motorista && (
             <Card className="shadow-none border">
@@ -585,19 +585,17 @@ function DetailPanel({
                       <AvatarFallback className="text-xs">{entrega.motorista.nome_completo?.[0]}</AvatarFallback>
                     </Avatar>
                     {/* Indicador visual de online/offline no avatar */}
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${
-                      driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'
-                    }`} />
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'
+                      }`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm truncate">{entrega.motorista.nome_completo}</p>
                       {/* Badge de status Online/Offline com tempo */}
-                      <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
-                        driverLocation?.isOnline 
-                          ? 'bg-green-100 text-green-700' 
+                      <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${driverLocation?.isOnline
+                          ? 'bg-green-100 text-green-700'
                           : 'bg-red-100 text-red-700'
-                      }`}>
+                        }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                         {driverLocation?.isOnline ? 'Online' : (() => {
                           const lastSeen = (driverLocation as any)?.updated_at;
@@ -1084,10 +1082,10 @@ function GestaoEntregasDialogContent({
                 const loc = localizacoes.find(l => l.motorista_id === group.id);
                 const isOnline = loc?.isOnline ?? false;
                 const isSelected = selectedMotoristaId === group.id;
-                
+
                 // Calcular tempo desde última atualização
                 const lastSeenAt = (loc as any)?.updated_at;
-                const lastSeenText = lastSeenAt 
+                const lastSeenText = lastSeenAt
                   ? formatDistanceToNow(new Date(lastSeenAt), { locale: ptBR, addSuffix: false })
                   : null;
 
@@ -1111,11 +1109,10 @@ function GestaoEntregasDialogContent({
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
                           {/* Badge de status Online/Offline com tempo */}
-                          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
-                            isOnline 
-                              ? 'bg-green-100 text-green-700' 
+                          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isOnline
+                              ? 'bg-green-100 text-green-700'
                               : 'bg-red-100 text-red-700'
-                          }`}>
+                            }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                             {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
                           </span>
