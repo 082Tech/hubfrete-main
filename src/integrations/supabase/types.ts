@@ -2275,6 +2275,7 @@ export type Database = {
           id: string
           inicio_em: string
           km_total: number | null
+          manifesto_url: string | null
           metadata: Json | null
           motorista_id: string
           started_at: string | null
@@ -2294,6 +2295,7 @@ export type Database = {
           id?: string
           inicio_em?: string
           km_total?: number | null
+          manifesto_url?: string | null
           metadata?: Json | null
           motorista_id: string
           started_at?: string | null
@@ -2313,6 +2315,7 @@ export type Database = {
           id?: string
           inicio_em?: string
           km_total?: number | null
+          manifesto_url?: string | null
           metadata?: Json | null
           motorista_id?: string
           started_at?: string | null

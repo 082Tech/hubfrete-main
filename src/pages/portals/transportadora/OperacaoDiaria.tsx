@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +64,7 @@ import {
   AlertTriangle,
   Search,
   HelpCircle,
+  Route,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -73,6 +76,9 @@ import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { DailyPerformanceDialog } from '@/components/admin/relatorios/DailyPerformanceDialog';
 import { BarChart3 } from 'lucide-react';
+import { ViagemListItem, ViagemDetailPanel } from '@/components/viagens';
+
+type ViewMode = 'entregas' | 'viagens';
 
 // Status definitions - apenas os status válidos
 // Coluna 1 (pending): APENAS 'aguardando'
@@ -1237,12 +1243,48 @@ function GestaoEntregasDialog({
   );
 }
 
+// Viagem type for the viagens view
+interface ViagemWithEntregas {
+  id: string;
+  codigo: string;
+  status: string;
+  created_at: string;
+  manifesto_url: string | null;
+  motorista_id: string;
+  motorista: {
+    id: string;
+    nome_completo: string;
+    foto_url: string | null;
+  } | null;
+  veiculo: {
+    placa: string;
+    modelo: string | null;
+  } | null;
+  entregas: Array<{
+    id: string;
+    codigo: string;
+    status: string;
+    peso_alocado_kg: number | null;
+    valor_frete: number | null;
+    notas_fiscais_urls: string[] | null;
+    cte_url: string | null;
+    canhoto_url: string | null;
+    carga: {
+      descricao: string;
+      endereco_origem: { cidade: string; estado: string } | null;
+      endereco_destino: { cidade: string; estado: string } | null;
+    };
+  }>;
+}
+
 // Main component
 export default function OperacaoDiaria() {
   const { empresa } = useUserContext();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
+  const [viewMode, setViewMode] = useState<ViewMode>('entregas');
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
+  const [selectedViagem, setSelectedViagem] = useState<ViagemWithEntregas | null>(null);
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
   const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
@@ -1325,6 +1367,83 @@ export default function OperacaoDiaria() {
       return entregasWithEvents as Entrega[];
     },
     enabled: !!empresa?.id,
+    refetchInterval: 30000,
+  });
+
+  // Fetch viagens when in viagens view mode
+  const { data: viagens = [], isLoading: isLoadingViagens, refetch: refetchViagens } = useQuery({
+    queryKey: ['gestao-viagens', empresa?.id],
+    queryFn: async (): Promise<ViagemWithEntregas[]> => {
+      if (!empresa?.id) return [];
+
+      // First get motoristas for this empresa
+      const { data: motoristas } = await supabase
+        .from('motoristas')
+        .select('id')
+        .eq('empresa_id', empresa.id);
+
+      if (!motoristas || motoristas.length === 0) return [];
+
+      const motoristaIdsList = motoristas.map(m => m.id);
+
+      // Fetch viagens em andamento
+      const { data: viagensData, error: viagensError } = await supabase
+        .from('viagens')
+        .select(`
+          id, codigo, status, created_at, manifesto_url, motorista_id,
+          motorista:motoristas(id, nome_completo, foto_url),
+          veiculo:veiculos(placa, modelo)
+        `)
+        .in('motorista_id', motoristaIdsList)
+        .in('status', ['em_andamento', 'finalizada'])
+        .order('created_at', { ascending: false });
+
+      if (viagensError) throw viagensError;
+
+      // Fetch entregas for each viagem via viagem_entregas
+      const viagensWithEntregas = await Promise.all(
+        (viagensData || []).map(async (viagem) => {
+          const { data: viagemEntregas } = await supabase
+            .from('viagem_entregas')
+            .select(`
+              entrega:entregas(
+                id, codigo, status, peso_alocado_kg, valor_frete,
+                notas_fiscais_urls, cte_url, canhoto_url,
+                carga:cargas(
+                  descricao,
+                  endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado),
+                  endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado)
+                )
+              )
+            `)
+            .eq('viagem_id', viagem.id)
+            .order('ordem', { ascending: true });
+
+          const entregas = (viagemEntregas || [])
+            .map(ve => ve.entrega)
+            .filter(Boolean)
+            .map(e => ({
+              ...e,
+              carga: {
+                ...e.carga,
+                endereco_origem: e.carga.endereco_origem,
+                endereco_destino: e.carga.endereco_destino,
+              }
+            }));
+
+          return {
+            ...viagem,
+            motorista: viagem.motorista,
+            veiculo: viagem.veiculo,
+            entregas,
+          };
+        })
+      );
+
+      // Filter to show only viagens with entregas
+      return viagensWithEntregas.filter(v => v.entregas.length > 0) as ViagemWithEntregas[];
+    },
+    enabled: viewMode === 'viagens' && !!empresa?.id,
     refetchInterval: 30000,
   });
 
@@ -1546,9 +1665,31 @@ export default function OperacaoDiaria() {
           </div>
           <p className="text-muted-foreground">Visualize sua operação diária</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+        <div className="flex items-center gap-4">
+          {/* Switch de Visualização */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
+            <Label htmlFor="view-mode-switch" className={`text-sm font-medium transition-colors ${viewMode === 'entregas' ? 'text-foreground' : 'text-muted-foreground'}`}>
+              Entregas
+            </Label>
+            <Switch
+              id="view-mode-switch"
+              checked={viewMode === 'viagens'}
+              onCheckedChange={(checked) => {
+                setViewMode(checked ? 'viagens' : 'entregas');
+                setSelectedEntrega(null);
+                setSelectedViagem(null);
+              }}
+            />
+            <Label htmlFor="view-mode-switch" className={`text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === 'viagens' ? 'text-foreground' : 'text-muted-foreground'}`}>
+              <Route className="w-3.5 h-3.5" />
+              Viagens
+            </Label>
+          </div>
+
+          <Separator orientation="vertical" className="h-8" />
+
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => viewMode === 'viagens' ? refetchViagens() : refetch()}>
+            <RefreshCw className={`w-4 h-4 ${(isLoading || isLoadingViagens) ? 'animate-spin' : ''}`} />
           </Button>
           <AdvancedFiltersPopover
             filters={filters}
@@ -1581,71 +1722,170 @@ export default function OperacaoDiaria() {
 
       {/* Main content - 3 columns: 30% 30% 40% */}
       <div className="flex-1 grid overflow-hidden p-4 !pt-4 md:p-8" style={{ gridTemplateColumns: '30% 30% 40%' }}>
-        {/* Column 1: Entregas Aguardando (30%) */}
-        <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
-          <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-            <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        {viewMode === 'entregas' ? (
+          <>
+            {/* Column 1: Entregas Aguardando (30%) */}
+            <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
+              <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+                <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
               </div>
-            ) : aguardandoEntregas.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <EmptyColumnPlaceholder message="Suas entregas aparecerão aqui" />
+              <div className="flex-1 overflow-y-auto">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : aguardandoEntregas.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <EmptyColumnPlaceholder message="Suas entregas aparecerão aqui" />
+                  </div>
+                ) : (
+                  aguardandoEntregas.map((entrega) => (
+                    <EntregaListItem
+                      key={entrega.id}
+                      entrega={entrega}
+                      isSelected={selectedEntrega?.id === entrega.id}
+                      onClick={() => setSelectedEntrega(entrega)}
+                    />
+                  ))
+                )}
               </div>
-            ) : (
-              aguardandoEntregas.map((entrega) => (
-                <EntregaListItem
-                  key={entrega.id}
-                  entrega={entrega}
-                  isSelected={selectedEntrega?.id === entrega.id}
-                  onClick={() => setSelectedEntrega(entrega)}
-                />
-              ))
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
-        <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
-          <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-            <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
+            <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
+              <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+                <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
               </div>
-            ) : emRotaEntregas.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <EmptyColumnPlaceholder message="Entregas em rota aparecerão aqui" />
+              <div className="flex-1 overflow-y-auto">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : emRotaEntregas.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <EmptyColumnPlaceholder message="Entregas em rota aparecerão aqui" />
+                  </div>
+                ) : (
+                  emRotaEntregas.map((entrega) => (
+                    <EntregaListItem
+                      key={entrega.id}
+                      entrega={entrega}
+                      isSelected={selectedEntrega?.id === entrega.id}
+                      onClick={() => setSelectedEntrega(entrega)}
+                    />
+                  ))
+                )}
               </div>
-            ) : (
-              emRotaEntregas.map((entrega) => (
-                <EntregaListItem
-                  key={entrega.id}
-                  entrega={entrega}
-                  isSelected={selectedEntrega?.id === entrega.id}
-                  onClick={() => setSelectedEntrega(entrega)}
-                />
-              ))
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Column 3: Detail Panel (40%) */}
-        <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
-          <DetailPanel
-            entrega={selectedEntrega}
-            onClose={() => setSelectedEntrega(null)}
-            onStatusChange={handleStatusChange}
-            isChangingStatus={statusMutation.isPending}
-            driverLocation={driverLocation}
-            onRefresh={handleRefresh}
-          />
-        </div>
+            {/* Column 3: Detail Panel (40%) */}
+            <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
+              <DetailPanel
+                entrega={selectedEntrega}
+                onClose={() => setSelectedEntrega(null)}
+                onStatusChange={handleStatusChange}
+                isChangingStatus={statusMutation.isPending}
+                driverLocation={driverLocation}
+                onRefresh={handleRefresh}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* VIAGENS VIEW */}
+            {/* Column 1: Viagens Em Andamento */}
+            <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
+              <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+                <span className="text-sm font-medium text-muted-foreground">Em Andamento ({viagens.filter(v => v.status === 'em_andamento').length})</span>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {isLoadingViagens ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : viagens.filter(v => v.status === 'em_andamento').length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <EmptyColumnPlaceholder message="Viagens em andamento aparecerão aqui" />
+                  </div>
+                ) : (
+                  viagens.filter(v => v.status === 'em_andamento').map((viagem) => (
+                    <ViagemListItem
+                      key={viagem.id}
+                      viagem={{
+                        ...viagem,
+                        entregas: viagem.entregas.map(e => ({
+                          id: e.id,
+                          codigo: e.codigo,
+                          status: e.status,
+                          origemCidade: e.carga.endereco_origem?.cidade,
+                          destinoCidade: e.carga.endereco_destino?.cidade,
+                        })),
+                      }}
+                      isSelected={selectedViagem?.id === viagem.id}
+                      onClick={() => setSelectedViagem(viagem)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Column 2: Viagens Finalizadas */}
+            <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
+              <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+                <span className="text-sm font-medium text-muted-foreground">Finalizadas ({viagens.filter(v => v.status === 'finalizada').length})</span>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {isLoadingViagens ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : viagens.filter(v => v.status === 'finalizada').length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <EmptyColumnPlaceholder message="Viagens finalizadas aparecerão aqui" />
+                  </div>
+                ) : (
+                  viagens.filter(v => v.status === 'finalizada').map((viagem) => (
+                    <ViagemListItem
+                      key={viagem.id}
+                      viagem={{
+                        ...viagem,
+                        entregas: viagem.entregas.map(e => ({
+                          id: e.id,
+                          codigo: e.codigo,
+                          status: e.status,
+                          origemCidade: e.carga.endereco_origem?.cidade,
+                          destinoCidade: e.carga.endereco_destino?.cidade,
+                        })),
+                      }}
+                      isSelected={selectedViagem?.id === viagem.id}
+                      onClick={() => setSelectedViagem(viagem)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
+              <ViagemDetailPanel
+                viagem={selectedViagem}
+                onClose={() => setSelectedViagem(null)}
+                onSelectEntrega={(entregaId) => {
+                  const entrega = entregas.find(e => e.id === entregaId);
+                  if (entrega) {
+                    setViewMode('entregas');
+                    setSelectedViagem(null);
+                    setSelectedEntrega(entrega);
+                  }
+                }}
+                onRefresh={() => refetchViagens()}
+                driverLocation={selectedViagem?.motorista_id ? (() => {
+                  const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
+                  return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, isOnline: loc.isOnline } : null;
+                })() : null}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Gestão de Entregas Dialog com Mapa + Motoristas */}
