@@ -1722,71 +1722,168 @@ export default function OperacaoDiaria() {
 
       {/* Main content - 3 columns: 30% 30% 40% */}
       <div className="flex-1 grid overflow-hidden p-4 !pt-4 md:p-8" style={{ gridTemplateColumns: '30% 30% 40%' }}>
-        {/* Column 1: Entregas Aguardando (30%) */}
-        <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
-          <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-            <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        {viewMode === 'entregas' ? (
+          <>
+            {/* Column 1: Entregas Aguardando (30%) */}
+            <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
+              <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+                <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
               </div>
-            ) : aguardandoEntregas.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <EmptyColumnPlaceholder message="Suas entregas aparecerão aqui" />
+              <div className="flex-1 overflow-y-auto">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : aguardandoEntregas.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <EmptyColumnPlaceholder message="Suas entregas aparecerão aqui" />
+                  </div>
+                ) : (
+                  aguardandoEntregas.map((entrega) => (
+                    <EntregaListItem
+                      key={entrega.id}
+                      entrega={entrega}
+                      isSelected={selectedEntrega?.id === entrega.id}
+                      onClick={() => setSelectedEntrega(entrega)}
+                    />
+                  ))
+                )}
               </div>
-            ) : (
-              aguardandoEntregas.map((entrega) => (
-                <EntregaListItem
-                  key={entrega.id}
-                  entrega={entrega}
-                  isSelected={selectedEntrega?.id === entrega.id}
-                  onClick={() => setSelectedEntrega(entrega)}
-                />
-              ))
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
-        <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
-          <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-            <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
+            <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
+              <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+                <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
               </div>
-            ) : emRotaEntregas.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <EmptyColumnPlaceholder message="Entregas em rota aparecerão aqui" />
+              <div className="flex-1 overflow-y-auto">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : emRotaEntregas.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <EmptyColumnPlaceholder message="Entregas em rota aparecerão aqui" />
+                  </div>
+                ) : (
+                  emRotaEntregas.map((entrega) => (
+                    <EntregaListItem
+                      key={entrega.id}
+                      entrega={entrega}
+                      isSelected={selectedEntrega?.id === entrega.id}
+                      onClick={() => setSelectedEntrega(entrega)}
+                    />
+                  ))
+                )}
               </div>
-            ) : (
-              emRotaEntregas.map((entrega) => (
-                <EntregaListItem
-                  key={entrega.id}
-                  entrega={entrega}
-                  isSelected={selectedEntrega?.id === entrega.id}
-                  onClick={() => setSelectedEntrega(entrega)}
-                />
-              ))
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Column 3: Detail Panel (40%) */}
-        <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
-          <DetailPanel
-            entrega={selectedEntrega}
-            onClose={() => setSelectedEntrega(null)}
-            onStatusChange={handleStatusChange}
-            isChangingStatus={statusMutation.isPending}
-            driverLocation={driverLocation}
-            onRefresh={handleRefresh}
-          />
-        </div>
+            {/* Column 3: Detail Panel (40%) */}
+            <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
+              <DetailPanel
+                entrega={selectedEntrega}
+                onClose={() => setSelectedEntrega(null)}
+                onStatusChange={handleStatusChange}
+                isChangingStatus={statusMutation.isPending}
+                driverLocation={driverLocation}
+                onRefresh={handleRefresh}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* VIAGENS VIEW */}
+            {/* Column 1: Viagens Em Andamento */}
+            <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
+              <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+                <span className="text-sm font-medium text-muted-foreground">Em Andamento ({viagens.filter(v => v.status === 'em_andamento').length})</span>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {isLoadingViagens ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : viagens.filter(v => v.status === 'em_andamento').length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <EmptyColumnPlaceholder message="Viagens em andamento aparecerão aqui" />
+                  </div>
+                ) : (
+                  viagens.filter(v => v.status === 'em_andamento').map((viagem) => (
+                    <ViagemListItem
+                      key={viagem.id}
+                      viagem={{
+                        ...viagem,
+                        entregas: viagem.entregas.map(e => ({
+                          id: e.id,
+                          codigo: e.codigo,
+                          status: e.status,
+                          origemCidade: e.carga.endereco_origem?.cidade,
+                          destinoCidade: e.carga.endereco_destino?.cidade,
+                        })),
+                      }}
+                      isSelected={selectedViagem?.id === viagem.id}
+                      onClick={() => setSelectedViagem(viagem)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Column 2: Viagens Finalizadas */}
+            <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
+              <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+                <span className="text-sm font-medium text-muted-foreground">Finalizadas ({viagens.filter(v => v.status === 'finalizada').length})</span>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {isLoadingViagens ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : viagens.filter(v => v.status === 'finalizada').length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <EmptyColumnPlaceholder message="Viagens finalizadas aparecerão aqui" />
+                  </div>
+                ) : (
+                  viagens.filter(v => v.status === 'finalizada').map((viagem) => (
+                    <ViagemListItem
+                      key={viagem.id}
+                      viagem={{
+                        ...viagem,
+                        entregas: viagem.entregas.map(e => ({
+                          id: e.id,
+                          codigo: e.codigo,
+                          status: e.status,
+                          origemCidade: e.carga.endereco_origem?.cidade,
+                          destinoCidade: e.carga.endereco_destino?.cidade,
+                        })),
+                      }}
+                      isSelected={selectedViagem?.id === viagem.id}
+                      onClick={() => setSelectedViagem(viagem)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Column 3: Viagem Detail Panel */}
+            <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
+              <ViagemDetailPanel
+                viagem={selectedViagem}
+                onClose={() => setSelectedViagem(null)}
+                onSelectEntrega={(entregaId) => {
+                  const entrega = entregas.find(e => e.id === entregaId);
+                  if (entrega) {
+                    setViewMode('entregas');
+                    setSelectedViagem(null);
+                    setSelectedEntrega(entrega);
+                  }
+                }}
+                onRefresh={() => refetchViagens()}
+                driverLocation={selectedViagem?.motorista_id ? localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id) : null}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Gestão de Entregas Dialog com Mapa + Motoristas */}
