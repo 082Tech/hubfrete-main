@@ -452,6 +452,130 @@ export function ViagemDetailPanel({
         </div>
       </ScrollArea>
 
+      {/* Footer com botões de ação - igual ao painel de entrega */}
+      {!isViagemFinalized && (
+        <div className="p-3 border-t bg-muted/30 flex items-center justify-between gap-2">
+          {/* Menu de ações secundárias */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="h-9 w-9">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setAnexarManifestoOpen(true)}>
+                <Paperclip className="w-4 h-4 mr-2" />
+                Anexar Manifesto
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setCancelDialogOpen(true)}
+              >
+                <Ban className="w-4 h-4 mr-2" />
+                Cancelar viagem
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Botão principal de finalizar */}
+          <Button
+            className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
+            disabled={!entregasValidation.canFinalize || isFinalizingViagem}
+            onClick={() => setFinalizarDialogOpen(true)}
+          >
+            {isFinalizingViagem ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <CheckCircle className="w-4 h-4" />
+            )}
+            Finalizar Viagem
+          </Button>
+        </div>
+      )}
+
+      {/* Aviso de entregas pendentes */}
+      {!isViagemFinalized && !entregasValidation.canFinalize && (
+        <div className="px-3 pb-3 -mt-1">
+          <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-300">
+                {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}
+              </p>
+              <p className="text-amber-700 dark:text-amber-400">
+                Finalize ou cancele as entregas antes de finalizar a viagem.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog de confirmação para finalizar viagem */}
+      <AlertDialog open={finalizarDialogOpen} onOpenChange={setFinalizarDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalizar Viagem</AlertDialogTitle>
+            <AlertDialogDescription>
+              {entregasValidation.canFinalize ? (
+                <>
+                  Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
+                  <br /><br />
+                  Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas.
+                </>
+              ) : (
+                <>
+                  Não é possível finalizar a viagem.
+                  <br /><br />
+                  Existem {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}: {entregasValidation.pendingEntregas.join(', ')}
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isFinalizingViagem}>Cancelar</AlertDialogCancel>
+            {entregasValidation.canFinalize && (
+              <AlertDialogAction
+                onClick={handleFinalizarViagem}
+                disabled={isFinalizingViagem}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isFinalizingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Confirmar Finalização
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de confirmação para cancelar viagem */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Cancelar Viagem
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja cancelar a viagem <strong>{viagem.codigo}</strong>?
+              <br /><br />
+              Esta ação é irreversível e todas as entregas associadas permanecerão em seus status atuais.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isFinalizingViagem}>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelarViagem}
+              disabled={isFinalizingViagem}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isFinalizingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Sim, Cancelar Viagem
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Dialog para anexar Manifesto */}
       <AnexarManifestoViagemDialog
         open={anexarManifestoOpen}
