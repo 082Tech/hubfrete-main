@@ -466,6 +466,9 @@ export function GestaoLeafletMap({
           />
         )}
 
+        {/* Histórico de rastreamento - mostra apenas quando uma entrega está selecionada */}
+        {selectedEntregaId && <TrackingHistoryMarkers entregaId={selectedEntregaId} />}
+
         {/* Caminhões - quando uma entrega é selecionada, mostrar apenas o motorista dessa entrega */}
         {localizacoes.map(loc => {
           if (!loc.latitude || !loc.longitude) return null;
