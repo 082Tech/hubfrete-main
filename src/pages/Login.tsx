@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Truck, Mail, Lock, Loader2, CheckCircle, KeyRound, ShieldCheck, UserPlus } from 'lucide-react';
@@ -274,10 +275,9 @@ export default function Login({ setShowSplash }: { setShowSplash: (show: boolean
       <div className="space-y-2">
         <Label htmlFor="senha">Senha</Label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+          <PasswordInput
             id="senha"
-            type="password"
             placeholder="••••••••"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
