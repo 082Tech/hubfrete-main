@@ -269,6 +269,7 @@ function DetailPanel({
   onRefresh,
   showBackButton = false,
   onBack,
+  viagemStatus,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
@@ -278,6 +279,7 @@ function DetailPanel({
   onRefresh: () => void;
   showBackButton?: boolean;
   onBack?: () => void;
+  viagemStatus?: string | null;
 }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
