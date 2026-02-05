@@ -1292,7 +1292,7 @@ export default function OperacaoDiaria() {
   const { empresa } = useUserContext();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
-  const [viewMode, setViewMode] = useState<ViewMode>('entregas');
+  const [viewMode, setViewMode] = useState<ViewMode>('viagens');
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [selectedViagem, setSelectedViagem] = useState<ViagemWithEntregas | null>(null);
   const [selectedEntregaInViagem, setSelectedEntregaInViagem] = useState<Entrega | null>(null); // Stack navigation for viagem view

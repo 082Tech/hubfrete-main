@@ -109,10 +109,62 @@ export function ViagemDetailPanel({
   onSelectEntrega,
   onRefresh,
   driverLocation,
+  onFinalize,
+  onCancel,
 }: ViagemDetailPanelProps) {
   const [anexarManifestoOpen, setAnexarManifestoOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [trackingMapOpen, setTrackingMapOpen] = useState(false);
+  const [finalizarDialogOpen, setFinalizarDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [isFinalizingViagem, setIsFinalizingViagem] = useState(false);
+
+  // Verificar se todas as entregas estão finalizadas (entregue ou cancelada)
+  const entregasValidation = useMemo(() => {
+    if (!viagem) return { canFinalize: false, pendingCount: 0, pendingEntregas: [] };
+
+    const pendingEntregas = viagem.entregas.filter(
+      e => e.status !== 'entregue' && e.status !== 'cancelada'
+    );
+
+    return {
+      canFinalize: pendingEntregas.length === 0,
+      pendingCount: pendingEntregas.length,
+      pendingEntregas: pendingEntregas.map(e => e.codigo),
+    };
+  }, [viagem]);
+
+  const handleFinalizarViagem = async () => {
+    if (!viagem || !onFinalize) return;
+    
+    setIsFinalizingViagem(true);
+    try {
+      await onFinalize(viagem.id);
+      toast.success('Viagem finalizada com sucesso');
+      setFinalizarDialogOpen(false);
+    } catch (error) {
+      toast.error('Erro ao finalizar viagem');
+    } finally {
+      setIsFinalizingViagem(false);
+    }
+  };
+
+  const handleCancelarViagem = async () => {
+    if (!viagem || !onCancel) return;
+    
+    setIsFinalizingViagem(true);
+    try {
+      await onCancel(viagem.id);
+      toast.success('Viagem cancelada');
+      setCancelDialogOpen(false);
+    } catch (error) {
+      toast.error('Erro ao cancelar viagem');
+    } finally {
+      setIsFinalizingViagem(false);
+    }
+  };
+
+  const isViagemFinalized = viagem?.status === 'finalizada' || viagem?.status === 'cancelada';
 
   if (!viagem) {
     return (
