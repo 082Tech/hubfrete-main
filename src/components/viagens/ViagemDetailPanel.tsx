@@ -474,7 +474,7 @@ export function ViagemDetailPanel({
         </div>
       </ScrollArea>
 
-      {/* Footer com botões de ação - igual ao painel de entrega */}
+      {/* Footer com botões de ação - baseado no status da viagem */}
       {!isViagemFinalized && (
         <div className="p-3 border-t bg-muted/30 flex items-center justify-between gap-2">
           {/* Menu de ações secundárias */}
@@ -500,24 +500,56 @@ export function ViagemDetailPanel({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Botão principal de finalizar */}
-          <Button
-            className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
-            disabled={!entregasValidation.canFinalize || isFinalizingViagem}
-            onClick={() => setFinalizarDialogOpen(true)}
-          >
-            {isFinalizingViagem ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <CheckCircle className="w-4 h-4" />
-            )}
-            Finalizar Viagem
-          </Button>
+          {/* Botão principal: Iniciar ou Finalizar dependendo do status */}
+          {isViagemProgramada ? (
+            <Button
+              className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={isProcessingViagem}
+              onClick={() => setIniciarDialogOpen(true)}
+            >
+              {isProcessingViagem ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Truck className="w-4 h-4" />
+              )}
+              Iniciar Viagem
+            </Button>
+          ) : isViagemEmAndamento ? (
+            <Button
+              className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
+              disabled={!entregasValidation.canFinalize || isProcessingViagem}
+              onClick={() => setFinalizarDialogOpen(true)}
+            >
+              {isProcessingViagem ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4" />
+              )}
+              Finalizar Viagem
+            </Button>
+          ) : null}
         </div>
       )}
 
-      {/* Aviso de entregas pendentes */}
-      {!isViagemFinalized && !entregasValidation.canFinalize && (
+      {/* Aviso de viagem não iniciada */}
+      {isViagemProgramada && (
+        <div className="px-3 pb-3 -mt-1">
+          <div className="flex items-start gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-blue-800 dark:text-blue-300">
+                Viagem programada
+              </p>
+              <p className="text-blue-700 dark:text-blue-400">
+                Inicie a viagem para liberar as entregas ao motorista. Após iniciar, não será possível adicionar mais entregas.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Aviso de entregas pendentes (apenas em andamento) */}
+      {isViagemEmAndamento && !entregasValidation.canFinalize && (
         <div className="px-3 pb-3 -mt-1">
           <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
@@ -532,6 +564,39 @@ export function ViagemDetailPanel({
           </div>
         </div>
       )}
+
+      {/* Dialog de confirmação para iniciar viagem */}
+      <AlertDialog open={iniciarDialogOpen} onOpenChange={setIniciarDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Truck className="w-5 h-5 text-blue-600" />
+              Iniciar Viagem
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja iniciar a viagem <strong>{viagem.codigo}</strong>?
+              <br /><br />
+              <strong>Após iniciar:</strong>
+              <ul className="list-disc ml-4 mt-2 space-y-1">
+                <li>O motorista poderá executar as entregas</li>
+                <li>Novas entregas não poderão ser adicionadas a esta viagem</li>
+                <li>O rastreamento será ativado</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessingViagem}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleIniciarViagem}
+              disabled={isProcessingViagem}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isProcessingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Confirmar Início
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Dialog de confirmação para finalizar viagem */}
       <AlertDialog open={finalizarDialogOpen} onOpenChange={setFinalizarDialogOpen}>
@@ -555,14 +620,14 @@ export function ViagemDetailPanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isFinalizingViagem}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isProcessingViagem}>Cancelar</AlertDialogCancel>
             {entregasValidation.canFinalize && (
               <AlertDialogAction
                 onClick={handleFinalizarViagem}
-                disabled={isFinalizingViagem}
+                disabled={isProcessingViagem}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {isFinalizingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {isProcessingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Confirmar Finalização
               </AlertDialogAction>
             )}
@@ -585,13 +650,13 @@ export function ViagemDetailPanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isFinalizingViagem}>Voltar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isProcessingViagem}>Voltar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancelarViagem}
-              disabled={isFinalizingViagem}
+              disabled={isProcessingViagem}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {isFinalizingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isProcessingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Sim, Cancelar Viagem
             </AlertDialogAction>
           </AlertDialogFooter>
