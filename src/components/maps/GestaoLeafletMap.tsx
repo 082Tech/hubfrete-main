@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getTruckIconHtml } from './TruckIcon';
 import { useOSRMRoute } from '@/hooks/useOSRMRoute';
+import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { X, MapPin, ArrowRight, Package, Weight, DollarSign, FileText, Building2 } from 'lucide-react';
