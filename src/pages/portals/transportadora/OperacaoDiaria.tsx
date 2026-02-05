@@ -1995,6 +1995,7 @@ export default function OperacaoDiaria() {
                   onRefresh={handleRefresh}
                   showBackButton
                   onBack={() => setSelectedEntregaInViagem(null)}
+                  viagemStatus={selectedViagem?.status}
                 />
               ) : (
                 /* Mostrar ViagemDetailPanel */
