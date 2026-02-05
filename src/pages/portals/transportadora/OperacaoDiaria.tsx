@@ -1963,6 +1963,12 @@ export default function OperacaoDiaria() {
                     const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
                     return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, heading: loc.heading, isOnline: loc.isOnline } : null;
                   })() : null}
+                  onFinalize={async (viagemId) => {
+                    await finalizarViagemMutation.mutateAsync(viagemId);
+                  }}
+                  onCancel={async (viagemId) => {
+                    await cancelarViagemMutation.mutateAsync(viagemId);
+                  }}
                 />
               )}
             </div>
