@@ -372,7 +372,22 @@ export default function CargasDisponiveis() {
     enabled: !!empresa?.id,
   });
 
-  // Calculate peso em uso por motorista (soma de entregas ativas)
+  // Fetch nome do usuário logado para registrar eventos
+  const { data: usuarioLogado } = useQuery({
+    queryKey: ['usuario_logado_nome', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data } = await supabase
+        .from('usuarios')
+        .select('nome')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+      
+      return data;
+    },
+    enabled: !!user?.id,
+  });
   const pesoEmUsoPorMotorista = useMemo(() => {
     const pesoMap = new Map<string, number>();
     entregasAtivas.forEach(e => {
