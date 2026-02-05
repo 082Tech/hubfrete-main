@@ -15,7 +15,7 @@ import { AnexarManifestoViagemDialog } from './AnexarManifestoViagemDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
-import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
+import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
 interface ViagemEntregaEvento {
   id: string;
   tipo: string;
