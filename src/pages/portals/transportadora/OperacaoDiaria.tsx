@@ -1557,6 +1557,31 @@ export default function OperacaoDiaria() {
     },
   });
 
+  // Mutation para iniciar viagem (programada -> em_andamento)
+  const iniciarViagemMutation = useMutation({
+    mutationFn: async (viagemId: string) => {
+      const { error } = await supabase
+        .from('viagens')
+        .update({ 
+          status: 'em_andamento', 
+          inicio_em: new Date().toISOString(),
+          started_at: new Date().toISOString(),
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', viagemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gestao-viagens'] });
+      refetchViagens();
+    },
+    onError: (error) => {
+      console.error('Erro ao iniciar viagem:', error);
+      throw error;
+    },
+  });
+
   // Mutation para finalizar viagem
   const finalizarViagemMutation = useMutation({
     mutationFn: async (viagemId: string) => {
