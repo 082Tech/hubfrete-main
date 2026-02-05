@@ -3,7 +3,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
-  Share, Printer, X, Weight, DollarSign, Clock, Upload
+  Share, Printer, X, Weight, DollarSign, Clock, Upload, History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,16 +14,28 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AnexarManifestoViagemDialog } from './AnexarManifestoViagemDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
+import { ViagemHistorico } from './ViagemHistorico';
+
+interface ViagemEntregaEvento {
+  id: string;
+  tipo: string;
+  timestamp: string;
+  observacao: string | null;
+  user_nome: string | null;
+}
 
 interface ViagemEntrega {
   id: string;
   codigo: string;
   status: string;
+  created_at?: string;
+  updated_at?: string;
   peso_alocado_kg?: number | null;
   valor_frete?: number | null;
   notas_fiscais_urls?: string[] | null;
   cte_url?: string | null;
   canhoto_url?: string | null;
+  eventos?: ViagemEntregaEvento[];
   carga: {
     descricao: string;
     endereco_origem?: { cidade: string; estado: string; latitude?: number | null; longitude?: number | null } | null;
@@ -318,6 +330,26 @@ export function ViagemDetailPanel({
                 );
               })}
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Histórico da Viagem */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <History className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium text-sm">Histórico da Viagem</span>
+            </div>
+            
+            <ViagemHistorico
+              viagem={{
+                id: viagem.id,
+                codigo: viagem.codigo,
+                status: viagem.status,
+                created_at: viagem.created_at,
+              }}
+              entregas={viagem.entregas}
+            />
           </div>
         </div>
       </ScrollArea>
