@@ -420,6 +420,8 @@ export default function CargasDisponiveis() {
       embarcadorEmpresaId,
       transportadoraEmpresaId,
       viagemId,
+      userId,
+      userName,
     }: {
       cargaId: string;
       motoristaId: string;
@@ -430,6 +432,8 @@ export default function CargasDisponiveis() {
       embarcadorEmpresaId: number;
       transportadoraEmpresaId: number;
       viagemId: string | null;
+      userId: string | null;
+      userName: string;
     }) => {
       // Get current cargo to update peso_disponivel_kg
       const { data: cargaAtual, error: fetchError } = await supabase
