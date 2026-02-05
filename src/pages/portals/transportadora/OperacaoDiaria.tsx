@@ -42,6 +42,7 @@ import {
   XCircle,
   Loader2,
   ArrowLeftRight,
+  ArrowLeft,
   MessageCircle,
   RefreshCw,
   History,
