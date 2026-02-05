@@ -85,6 +85,7 @@ interface ViagemDetailPanelProps {
   onSelectEntrega: (entregaId: string) => void;
   onRefresh: () => void;
   driverLocation?: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
+  onStart?: (viagemId: string) => Promise<void>;
   onFinalize?: (viagemId: string) => Promise<void>;
   onCancel?: (viagemId: string) => Promise<void>;
 }
