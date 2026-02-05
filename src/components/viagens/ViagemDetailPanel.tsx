@@ -85,6 +85,8 @@ interface ViagemDetailPanelProps {
   onSelectEntrega: (entregaId: string) => void;
   onRefresh: () => void;
   driverLocation?: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
+  onFinalize?: (viagemId: string) => Promise<void>;
+  onCancel?: (viagemId: string) => Promise<void>;
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
