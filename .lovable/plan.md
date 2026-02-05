@@ -1,264 +1,135 @@
 
+# Plano: Adicionar botões de ação no painel de viagem e definir viagens como modo padrão
 
-# Plano: Refatoração do Fluxo Operacional - Viagens e Documentação Fiscal
+## Resumo
 
-## Resumo Executivo
-
-Implementar o novo modelo operacional onde:
-1. **Manifesto (MDF-e)** é anexado à **Viagem** (não à Entrega)
-2. **NF-e** é obrigatória antes de "Saiu para Entrega"
-3. **Switch de visualização** no topo da tela para alternar entre "Por Entregas" (atual) e "Por Viagens"
-4. Quando na visualização por viagens, ao clicar numa viagem, a terceira coluna mostra uma lista de entregas para escolher qual abrir
+Adicionar o mesmo padrão de botões de ação que existe no painel de detalhes de entrega ao painel de detalhes de viagem, com a funcionalidade de "Finalizar Viagem". Também alterar o modo de visualização padrão de "entregas" para "viagens".
 
 ---
 
-## Arquitetura de Dados (Já Existente)
+## Mudanças a implementar
+
+### 1. Alterar modo padrão para "viagens"
+
+No arquivo `src/pages/portals/transportadora/OperacaoDiaria.tsx`, alterar o estado inicial de `viewMode`:
+
+```
+De: const [viewMode, setViewMode] = useState<ViewMode>('entregas');
+Para: const [viewMode, setViewMode] = useState<ViewMode>('viagens');
+```
+
+### 2. Adicionar footer com botoes de acao no ViagemDetailPanel
+
+No arquivo `src/components/viagens/ViagemDetailPanel.tsx`, adicionar:
+
+**Novos imports necessarios:**
+- `Loader2`, `MoreVertical`, `Ban`, `Paperclip`, `AlertTriangle` do lucide-react
+- `DropdownMenu`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuSeparator`, `DropdownMenuTrigger`
+- `AlertDialog`, `AlertDialogAction`, `AlertDialogCancel`, `AlertDialogContent`, `AlertDialogDescription`, `AlertDialogFooter`, `AlertDialogHeader`, `AlertDialogTitle`
+- `toast` do sonner
+
+**Novos estados:**
+- `finalizarDialogOpen` - controla o dialog de confirmacao de finalizacao
+- `cancelDialogOpen` - controla o dialog de confirmacao de cancelamento
+- `isFinalizingViagem` - estado de loading durante a operacao
+
+**Logica de validacao:**
+- Verificar se todas as entregas estao com status `entregue` ou `cancelada`
+- Se houver entregas pendentes, mostrar alerta e bloquear finalizacao
+- Criar funcao `checkAllEntregasFinalized()` que retorna:
+  - `canFinalize: boolean`
+  - `pendingCount: number`
+  - `pendingEntregas: string[]` (codigos das entregas pendentes)
+
+**Novo footer (apos o ScrollArea):**
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                        ESTRUTURA ATUAL                          │
-├─────────────────────────────────────────────────────────────────┤
-│  viagens                                                        │
-│  ├── id, codigo (VGM-YYYY-NNNN)                                │
-│  ├── motorista_id, veiculo_id, carroceria_id                   │
-│  ├── status (em_andamento, finalizada, cancelada)              │
-│  └── manifesto_url (NOVO CAMPO NECESSÁRIO)                     │
-│                                                                 │
-│  viagem_entregas (tabela de junção)                            │
-│  ├── viagem_id, entrega_id, ordem                              │
-│                                                                 │
-│  entregas                                                       │
-│  ├── cte_url, notas_fiscais_urls, canhoto_url                  │
-│  └── manifesto_url (mover para viagens)                        │
-└─────────────────────────────────────────────────────────────────┘
++-------------------------------------------+
+|  [...]  |     [Finalizar Viagem]          |
++-------------------------------------------+
 ```
+
+- Botao de 3 pontinhos (esquerda):
+  - "Anexar Manifesto" -> abre o dialog existente
+  - Separador
+  - "Cancelar viagem" -> abre dialog de confirmacao
+
+- Botao principal "Finalizar Viagem" (direita):
+  - Icone: CheckCircle
+  - Cor: verde (bg-green-600)
+  - Desabilitado quando ha entregas pendentes
+  - Ao clicar: abre dialog de confirmacao
+
+**Dialogs de confirmacao:**
+
+1. Dialog de finalizacao:
+   - Se todas entregas finalizadas: confirmar finalizacao
+   - Se ha entregas pendentes: mostrar lista das pendentes e bloquear
+
+2. Dialog de cancelamento:
+   - Aviso de que a acao e irreversivel
+   - Confirmar para cancelar a viagem
+
+**Prop adicional necessaria:**
+- `onFinalize?: (viagemId: string) => Promise<void>` - callback para finalizar a viagem
+- `onCancel?: (viagemId: string) => Promise<void>` - callback para cancelar a viagem
+
+### 3. Implementar callbacks no OperacaoDiaria
+
+No arquivo `src/pages/portals/transportadora/OperacaoDiaria.tsx`:
+
+- Criar mutation `finalizarViagemMutation` que atualiza o status da viagem para `finalizada`
+- Criar mutation `cancelarViagemMutation` que atualiza o status da viagem para `cancelada`
+- Passar os callbacks como props para o `ViagemDetailPanel`
 
 ---
 
-## Alterações Necessárias
+## Secao Tecnica
 
-### 1. Banco de Dados (Migration)
+### Arquivos a modificar:
 
-**Adicionar campo `manifesto_url` na tabela `viagens`:**
+1. **`src/pages/portals/transportadora/OperacaoDiaria.tsx`**
+   - Linha 1295: Alterar estado inicial de `viewMode` para `'viagens'`
+   - Adicionar mutations para finalizar/cancelar viagem
+   - Passar callbacks para ViagemDetailPanel
 
-```sql
--- Adicionar manifesto_url à viagem
-ALTER TABLE viagens ADD COLUMN IF NOT EXISTS manifesto_url TEXT;
+2. **`src/components/viagens/ViagemDetailPanel.tsx`**
+   - Adicionar imports de componentes de UI
+   - Adicionar estados para dialogs
+   - Adicionar funcao de validacao de entregas
+   - Adicionar footer com botoes de acao
+   - Adicionar AlertDialogs de confirmacao
 
--- Opcional: migrar manifestos existentes de entregas para viagens
--- (depende da lógica de negócio desejada)
-```
-
-### 2. Interface - Switch de Visualização
-
-**Arquivo:** `src/pages/portals/transportadora/OperacaoDiaria.tsx`
-
-Adicionar no header, após os botões existentes:
+### Fluxo de finalizacao:
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│  Gestão de Entregas [?]                                              │
-│  Visualize sua operação diária                                       │
-│                                                                      │
-│  [🔄] [Filtros] [Desempenho] [Mapa]    [Por Entregas ◦──● Por Viagens]│
-└──────────────────────────────────────────────────────────────────────┘
+Usuario clica "Finalizar Viagem"
+        |
+        v
+Verifica entregas pendentes
+        |
+   +----+----+
+   |         |
+   v         v
+Ha pendentes  Todas OK
+   |            |
+   v            v
+Mostra     Abre dialog
+alerta     de confirmacao
+   |            |
+   X            v
+            Atualiza status
+            para "finalizada"
+                |
+                v
+            Refetch dados
+            Toast sucesso
 ```
 
-**Estado novo:**
-```typescript
-const [viewMode, setViewMode] = useState<'entregas' | 'viagens'>('entregas');
-```
+### Regra de negocio:
 
-### 3. Nova Query para Viagens
+A viagem so pode ser finalizada quando **TODAS** as entregas dentro dela estiverem com status:
+- `entregue` (entrega concluida com sucesso)
+- `cancelada` (entrega foi cancelada)
 
-Quando `viewMode === 'viagens'`, buscar viagens em andamento da empresa com suas entregas:
-
-```typescript
-const { data: viagens = [] } = useQuery({
-  queryKey: ['gestao-viagens', empresa?.id],
-  queryFn: async () => {
-    // 1. Buscar motoristas da empresa
-    // 2. Buscar viagens em_andamento desses motoristas
-    // 3. Para cada viagem, buscar entregas via viagem_entregas
-    // 4. Retornar estrutura agrupada
-  },
-  enabled: viewMode === 'viagens' && !!empresa?.id,
-});
-```
-
-### 4. Componentes Novos
-
-#### ViagemListItem (análogo ao EntregaListItem)
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│  [Avatar Motorista]  João Silva                         │
-│                      VGM-2026-0042                      │
-│                      3 entregas • Em andamento          │
-│                      São Paulo → Campinas → Ribeirão    │
-│                                            há 2h        │
-└─────────────────────────────────────────────────────────┘
-```
-
-#### ViagemDetailPanel (terceira coluna)
-
-Quando uma viagem é selecionada, a terceira coluna mostra:
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│  Viagem VGM-2026-0042                    [📤 📤 🖨️ ✕]  │
-│  Criada 05/02/2026 às 08:30                             │
-│                                                         │
-│  ▌ Em Andamento há 4h                                   │
-│                                                         │
-│  ────────────────────────────────────────────────────   │
-│  MOTORISTA                                              │
-│  [Avatar] João Silva   ● Online                         │
-│           Placa ABC-1234                                │
-│                                                         │
-│  ────────────────────────────────────────────────────   │
-│  DOCUMENTOS DA VIAGEM                                   │
-│  [✓] Manifesto (MDF-e)     [✗] POD Digital              │
-│                                                         │
-│  ────────────────────────────────────────────────────   │
-│  ENTREGAS DESTA VIAGEM (3)                              │
-│                                                         │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │ #ENT-001   Aguardando                             │  │
-│  │ SP → Campinas • 500kg • R$ 1.200                  │  │
-│  │                           [Ver Detalhes →]        │  │
-│  └───────────────────────────────────────────────────┘  │
-│                                                         │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │ #ENT-002   Saiu para Coleta                       │  │
-│  │ Campinas → Ribeirão • 300kg • R$ 800              │  │
-│  │                           [Ver Detalhes →]        │  │
-│  └───────────────────────────────────────────────────┘  │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-```
-
-Ao clicar em "Ver Detalhes", abre o **DetailPanel** atual da entrega.
-
-### 5. Validação de NF-e antes de "Saiu para Entrega"
-
-**Arquivo:** `src/pages/portals/transportadora/OperacaoDiaria.tsx` (DetailPanel)
-
-Na função `getNextStatus` e `handleActionClick`, adicionar verificação:
-
-```typescript
-// Ao tentar mudar para 'saiu_para_entrega'
-if (nextStatus.status === 'saiu_para_entrega') {
-  if (!entrega.notas_fiscais_urls?.length) {
-    toast.error('Para sair para entrega, anexe a NF-e desta entrega');
-    return;
-  }
-}
-```
-
-**Também adicionar validação visual:**
-- Destacar o campo NF-e como obrigatório quando status = `saiu_para_coleta`
-- Exibir banner de alerta se NF-e estiver faltando
-
-### 6. Anexar Manifesto na Viagem
-
-**Novo Dialog:** `AnexarManifestoViagemDialog.tsx`
-
-- Acessível via menu de ações da viagem
-- Faz upload para bucket `manifestos/` com path `{viagem_id}/manifesto.pdf`
-- Atualiza `viagens.manifesto_url`
-
-### 7. Ajustes na Checklist de Documentos
-
-**Na visualização por entrega:**
-```text
-Documentos da Entrega:
-[✓/✗] CT-e           (emitido pelo HubFrete por entrega)
-[✓/✗] NF-e           (anexado pelo embarcador, obrigatório antes de sair)
-[✓/✗] Canhoto/POD    (coletado na entrega)
-
-Documento da Viagem:
-[✓/✗] Manifesto      (link para ver na viagem)
-```
-
-**Na visualização por viagem:**
-```text
-Documentos da Viagem:
-[✓/✗] Manifesto (MDF-e)
-
-Documentos das Entregas: (resumo)
-ENT-001: CT-e ✓, NF-e ✓, POD ✗
-ENT-002: CT-e ✗, NF-e ✓, POD ✗
-```
-
----
-
-## Fluxo Visual
-
-```text
-┌────────────────────────────────────────────────────────────────────────────┐
-│                         MODO: POR ENTREGAS (Atual)                         │
-├────────────────────────────────────────────────────────────────────────────┤
-│  Coluna 1          │  Coluna 2              │  Coluna 3                    │
-│  Aguardando        │  Em Rota/Finalizadas   │  Detalhes da Entrega         │
-│                    │                        │                              │
-│  [Entrega 1]       │  [Entrega 3]           │  #ENT-001                    │
-│  [Entrega 2]       │  [Entrega 4]           │  Status, Mapa, Docs, Chat    │
-└────────────────────────────────────────────────────────────────────────────┘
-
-┌────────────────────────────────────────────────────────────────────────────┐
-│                         MODO: POR VIAGENS (Novo)                           │
-├────────────────────────────────────────────────────────────────────────────┤
-│  Coluna 1          │  Coluna 2              │  Coluna 3                    │
-│  Em Andamento      │  Finalizadas           │  Detalhes da Viagem          │
-│                    │                        │                              │
-│  [Viagem 1]        │  [Viagem 3]            │  VGM-2026-0042               │
-│  [Viagem 2]        │                        │  Motorista, Manifesto        │
-│                    │                        │  Lista de Entregas:          │
-│                    │                        │    → [ENT-001] Ver Detalhes  │
-│                    │                        │    → [ENT-002] Ver Detalhes  │
-└────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Arquivos a Criar/Modificar
-
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `src/pages/portals/transportadora/OperacaoDiaria.tsx` | Modificar | Switch de visualização, nova query de viagens, componentes condicionais |
-| `src/components/viagens/ViagemListItem.tsx` | Criar | Item de lista para viagens (similar ao EntregaListItem) |
-| `src/components/viagens/ViagemDetailPanel.tsx` | Criar | Painel de detalhes da viagem com lista de entregas |
-| `src/components/viagens/AnexarManifestoViagemDialog.tsx` | Criar | Dialog para anexar manifesto na viagem |
-| `src/components/viagens/index.ts` | Modificar | Exportar novos componentes |
-| `supabase/migrations/XXXXXX_add_manifesto_to_viagens.sql` | Criar | Adicionar campo manifesto_url |
-
----
-
-## Validações de Negócio Implementadas
-
-1. **NF-e obrigatória para "Saiu para Entrega"**
-   - Bloqueia transição se `notas_fiscais_urls` estiver vazio
-   - Exibe toast de erro explicativo
-
-2. **Manifesto vinculado à Viagem**
-   - Removido de `entregas` (visualmente), mantido no DB por compatibilidade
-   - Novo campo em `viagens.manifesto_url`
-
-3. **Validação de documentos por contexto**
-   - Entrega: CT-e, NF-e, Canhoto/POD
-   - Viagem: Manifesto (MDF-e)
-
----
-
-## Sequência de Implementação
-
-1. **Migration de banco** - Adicionar `manifesto_url` em `viagens`
-2. **Switch de visualização** - Estado e toggle no header
-3. **Query de viagens** - Buscar viagens com entregas agrupadas
-4. **ViagemListItem** - Componente de lista
-5. **ViagemDetailPanel** - Painel com lista de entregas clicáveis
-6. **AnexarManifestoViagemDialog** - Upload de manifesto
-7. **Validação NF-e** - Bloquear "Saiu para Entrega" sem NF
-8. **Ajustes visuais** - Indicadores, alertas, checklist atualizada
-
+Qualquer entrega com status `aguardando`, `saiu_para_coleta` ou `saiu_para_entrega` bloqueia a finalizacao.
