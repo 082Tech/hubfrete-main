@@ -78,11 +78,11 @@ import { BarChart3 } from 'lucide-react';
 // Coluna 1 (pending): APENAS 'aguardando'
 // Coluna 2 (inRoute/done): 'saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
-  aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock, column: 'pending' },
-  saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200', icon: Truck, column: 'inRoute' },
-  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: MapPin, column: 'inRoute' },
-  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle, column: 'done' },
-  cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle, column: 'done' },
+  aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800', icon: Clock, column: 'pending' },
+  saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800', icon: Truck, column: 'inRoute' },
+  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin, column: 'inRoute' },
+  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', icon: CheckCircle, column: 'done' },
+  cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle, column: 'done' },
 };
 
 type EntregaStatus = string;
@@ -167,7 +167,7 @@ function EntregaListItem({
 
   return (
     <div
-      className={`flex items-start gap-3 bg-white px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
+      className={`flex items-start gap-3 bg-card px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
         }`}
       onClick={onClick}
     >
@@ -358,7 +358,7 @@ function DetailPanel({
   ].reduce((a, b) => a + b, 0);
 
   return (
-    <div className="h-full flex flex-col bg-white border-l">
+    <div className="h-full flex flex-col bg-card border-l">
       {/* Header with code and actions */}
       <div className="p-3 border-b">
         <div className="flex items-center justify-between mb-2">
@@ -540,33 +540,33 @@ function DetailPanel({
               <button
                 onClick={() => handleDocClick(entrega.cte_url, 'CT-e')}
                 disabled={!entrega.cte_url}
-                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.cte_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.cte_url ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
               >
-                {entrega.cte_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                {entrega.cte_url ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>CT-e</span>
               </button>
               <button
                 onClick={() => handleDocClick(entrega.manifesto_url, 'Manifesto')}
                 disabled={!entrega.manifesto_url}
-                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.manifesto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.manifesto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
               >
-                {entrega.manifesto_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                {entrega.manifesto_url ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>Manifesto</span>
               </button>
               <button
                 onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}
                 disabled={!entrega.canhoto_url}
-                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.canhoto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.canhoto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
               >
-                {entrega.canhoto_url ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                {entrega.canhoto_url ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>Canhoto</span>
               </button>
               <button
                 onClick={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
                 disabled={!(entrega.notas_fiscais_urls?.length)}
-                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${(entrega.notas_fiscais_urls?.length || 0) > 0 ? 'bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${(entrega.notas_fiscais_urls?.length || 0) > 0 ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
               >
-                {(entrega.notas_fiscais_urls?.length || 0) > 0 ? <CheckCircle className="w-3 h-3 text-green-600" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                {(entrega.notas_fiscais_urls?.length || 0) > 0 ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>NF ({entrega.notas_fiscais_urls?.length || 0})</span>
               </button>
             </div>
@@ -593,8 +593,8 @@ function DetailPanel({
                       <p className="font-medium text-sm truncate">{entrega.motorista.nome_completo}</p>
                       {/* Badge de status Online/Offline com tempo */}
                       <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${driverLocation?.isOnline
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-red-100 text-red-700'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                         {driverLocation?.isOnline ? 'Online' : (() => {
@@ -642,19 +642,19 @@ function DetailPanel({
                   {entrega.eventos.slice(0, 5).map((evento, idx) => {
                     // Mapear tipo do evento para label legível e cor
                     const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean }> = {
-                      aceite: { label: 'Aguardando', bgColor: 'bg-amber-100' },
-                      inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100' },
-                      inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100' },
-                      finalizado: { label: 'Entregue', bgColor: 'bg-green-100' },
-                      cancelado: { label: 'Cancelada', bgColor: 'bg-red-100' },
-                      documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100', isDocument: true },
-                      cte_anexado: { label: 'CT-e anexado', bgColor: 'bg-blue-100', isDocument: true },
-                      manifesto_anexado: { label: 'Manifesto anexado', bgColor: 'bg-blue-100', isDocument: true },
-                      canhoto_anexado: { label: 'Canhoto anexado', bgColor: 'bg-blue-100', isDocument: true },
-                      nf_anexada: { label: 'Nota Fiscal anexada', bgColor: 'bg-blue-100', isDocument: true },
+                      aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
+                      inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
+                      inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+                      finalizado: { label: 'Entregue', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+                      cancelado: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+                      documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
+                      cte_anexado: { label: 'CT-e anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
+                      manifesto_anexado: { label: 'Manifesto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
+                      canhoto_anexado: { label: 'Canhoto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
+                      nf_anexada: { label: 'Nota Fiscal anexada', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
                     };
 
-                    const config = tipoConfig[evento.tipo] || { label: evento.tipo.replace(/_/g, ' '), bgColor: 'bg-muted' };
+                    const config = tipoConfig[evento.tipo] || { label: evento.tipo.replace(/_/g, ' '), bgColor: 'bg-muted dark:bg-muted/50' };
                     const userName = evento.user_nome || 'Sistema';
                     const isDocument = config.isDocument || evento.tipo.includes('documento') || evento.tipo.includes('anexa');
                     const isLast = idx === entrega.eventos!.slice(0, 5).length - 1;
@@ -664,13 +664,13 @@ function DetailPanel({
                         {/* Ícone com cor de fundo baseada no status */}
                         <div className={`relative z-10 w-8 h-8 rounded-md ${config.bgColor} flex items-center justify-center shrink-0`}>
                           {isDocument ? (
-                            <FileText className="w-4 h-4 text-blue-600" />
+                          <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           ) : (
-                            <ArrowLeftRight className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600' :
-                              evento.tipo === 'inicio_coleta' ? 'text-cyan-600' :
-                                evento.tipo === 'inicio_rota' ? 'text-purple-600' :
-                                  evento.tipo === 'finalizado' ? 'text-green-600' :
-                                    evento.tipo === 'cancelado' ? 'text-red-600' :
+                            <ArrowLeftRight className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
+                              evento.tipo === 'inicio_coleta' ? 'text-cyan-600 dark:text-cyan-400' :
+                                evento.tipo === 'inicio_rota' ? 'text-purple-600 dark:text-purple-400' :
+                                  evento.tipo === 'finalizado' ? 'text-green-600 dark:text-green-400' :
+                                    evento.tipo === 'cancelado' ? 'text-red-600 dark:text-red-400' :
                                       'text-muted-foreground'
                               }`} />
                           )}
@@ -1110,8 +1110,8 @@ function GestaoEntregasDialogContent({
                           <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
                           {/* Badge de status Online/Offline com tempo */}
                           <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isOnline
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-red-100 text-red-700'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                             }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                             {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
@@ -1165,10 +1165,10 @@ function GestaoEntregasDialogContent({
 
                               {/* Rota */}
                               <div className="flex items-center gap-1.5 text-xs text-foreground">
-                                <MapPin className="w-3 h-3 text-green-600 shrink-0" />
+                <MapPin className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
                                 <span className="truncate">{e.carga.endereco_origem?.cidade}/{e.carga.endereco_origem?.estado}</span>
                                 <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                                <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                <MapPin className="w-3 h-3 text-red-500 dark:text-red-400 shrink-0" />
                                 <span className="truncate">{e.carga.endereco_destino?.cidade}/{e.carga.endereco_destino?.estado}</span>
                               </div>
 
