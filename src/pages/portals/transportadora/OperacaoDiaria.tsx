@@ -266,6 +266,8 @@ function DetailPanel({
   isChangingStatus,
   driverLocation,
   onRefresh,
+  showBackButton = false,
+  onBack,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
@@ -273,6 +275,8 @@ function DetailPanel({
   isChangingStatus: boolean;
   driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
   onRefresh: () => void;
+  showBackButton?: boolean;
+  onBack?: () => void;
 }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
