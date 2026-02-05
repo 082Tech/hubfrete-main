@@ -141,6 +141,7 @@ export function DetailPanelLeafletMap({
   driverLocation,
   status,
   height = 300,
+  entregaId,
 }: DetailPanelLeafletMapProps) {
   // Collect all points for bounds calculation
   const allPoints = useMemo(() => {
