@@ -1689,6 +1689,7 @@ export default function OperacaoDiaria() {
                 setViewMode(checked ? 'viagens' : 'entregas');
                 setSelectedEntrega(null);
                 setSelectedViagem(null);
+                setSelectedEntregaInViagem(null);
               }}
             />
             <Label htmlFor="view-mode-switch" className={`text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === 'viagens' ? 'text-foreground' : 'text-muted-foreground'}`}>
