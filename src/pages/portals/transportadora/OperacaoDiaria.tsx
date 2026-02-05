@@ -1557,6 +1557,54 @@ export default function OperacaoDiaria() {
     },
   });
 
+  // Mutation para finalizar viagem
+  const finalizarViagemMutation = useMutation({
+    mutationFn: async (viagemId: string) => {
+      const { error } = await supabase
+        .from('viagens')
+        .update({ 
+          status: 'finalizada', 
+          fim_em: new Date().toISOString(),
+          ended_at: new Date().toISOString(),
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', viagemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gestao-viagens'] });
+      setSelectedViagem(null);
+    },
+    onError: (error) => {
+      console.error('Erro ao finalizar viagem:', error);
+      throw error;
+    },
+  });
+
+  // Mutation para cancelar viagem
+  const cancelarViagemMutation = useMutation({
+    mutationFn: async (viagemId: string) => {
+      const { error } = await supabase
+        .from('viagens')
+        .update({ 
+          status: 'cancelada', 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', viagemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gestao-viagens'] });
+      setSelectedViagem(null);
+    },
+    onError: (error) => {
+      console.error('Erro ao cancelar viagem:', error);
+      throw error;
+    },
+  });
+
   // Separar entregas por status para as colunas
   // Coluna 1: APENAS 'aguardando'
   // Coluna 2: 'saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'
