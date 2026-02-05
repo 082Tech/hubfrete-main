@@ -3,7 +3,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
-  Share, Printer, X, Weight, DollarSign, Clock, Upload, History
+  Share, Printer, X, Weight, DollarSign, Clock, Upload, History, Route
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import { AnexarManifestoViagemDialog } from './AnexarManifestoViagemDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
-
+import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 interface ViagemEntregaEvento {
   id: string;
   tipo: string;
