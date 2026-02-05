@@ -99,6 +99,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 };
 
 const viagemStatusConfig: Record<string, { label: string; color: string }> = {
+  programada: { label: 'Programada', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
   em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
   finalizada: { label: 'Finalizada', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
@@ -110,15 +111,22 @@ export function ViagemDetailPanel({
   onSelectEntrega,
   onRefresh,
   driverLocation,
+  onStart,
   onFinalize,
   onCancel,
 }: ViagemDetailPanelProps) {
   const [anexarManifestoOpen, setAnexarManifestoOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [trackingMapOpen, setTrackingMapOpen] = useState(false);
+  const [iniciarDialogOpen, setIniciarDialogOpen] = useState(false);
   const [finalizarDialogOpen, setFinalizarDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [isFinalizingViagem, setIsFinalizingViagem] = useState(false);
+  const [isProcessingViagem, setIsProcessingViagem] = useState(false);
+
+  // Status flags
+  const isViagemProgramada = viagem?.status === 'programada';
+  const isViagemEmAndamento = viagem?.status === 'em_andamento';
+  const isViagemFinalized = viagem?.status === 'finalizada' || viagem?.status === 'cancelada';
 
   // Verificar se todas as entregas estão finalizadas (entregue ou cancelada)
   const entregasValidation = useMemo(() => {
@@ -135,10 +143,25 @@ export function ViagemDetailPanel({
     };
   }, [viagem]);
 
+  const handleIniciarViagem = async () => {
+    if (!viagem || !onStart) return;
+    
+    setIsProcessingViagem(true);
+    try {
+      await onStart(viagem.id);
+      toast.success('Viagem iniciada! O motorista agora pode executar as entregas.');
+      setIniciarDialogOpen(false);
+    } catch (error) {
+      toast.error('Erro ao iniciar viagem');
+    } finally {
+      setIsProcessingViagem(false);
+    }
+  };
+
   const handleFinalizarViagem = async () => {
     if (!viagem || !onFinalize) return;
     
-    setIsFinalizingViagem(true);
+    setIsProcessingViagem(true);
     try {
       await onFinalize(viagem.id);
       toast.success('Viagem finalizada com sucesso');
@@ -146,14 +169,14 @@ export function ViagemDetailPanel({
     } catch (error) {
       toast.error('Erro ao finalizar viagem');
     } finally {
-      setIsFinalizingViagem(false);
+      setIsProcessingViagem(false);
     }
   };
 
   const handleCancelarViagem = async () => {
     if (!viagem || !onCancel) return;
     
-    setIsFinalizingViagem(true);
+    setIsProcessingViagem(true);
     try {
       await onCancel(viagem.id);
       toast.success('Viagem cancelada');
@@ -161,11 +184,9 @@ export function ViagemDetailPanel({
     } catch (error) {
       toast.error('Erro ao cancelar viagem');
     } finally {
-      setIsFinalizingViagem(false);
+      setIsProcessingViagem(false);
     }
   };
-
-  const isViagemFinalized = viagem?.status === 'finalizada' || viagem?.status === 'cancelada';
 
   if (!viagem) {
     return (
