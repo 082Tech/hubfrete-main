@@ -255,7 +255,9 @@ function DriverMarkerWithTooltip({
           <div className="flex items-center justify-between mb-2">
             <p className="font-semibold text-sm">{motoristaName}</p>
             <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full ${
-              isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+              isOnline 
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' 
+                : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
             }`}>
               <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
               {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
@@ -270,7 +272,7 @@ function DriverMarkerWithTooltip({
               </span>
               {entregas.slice(0, 3).map((e, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded-md px-2 py-1.5">
-                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusColors[e.status] || 'bg-muted-foreground'}`} 
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusColors[e.status] || 'bg-muted-foreground'}`}
                     title={statusLabels[e.status] || e.status} 
                   />
                   <span className="font-mono text-[10px] text-muted-foreground shrink-0">{e.codigo}</span>
@@ -301,31 +303,31 @@ function StatusIndicators({ statusCounts }: { statusCounts: GestaoLeafletMapProp
   if (!statusCounts) return null;
 
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg border">
+    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg border">
       <div className="flex items-center gap-1.5" title="Aguardando">
-        <span className="w-3 h-3 rounded-full bg-amber-500" />
+        <span className="w-3 h-3 rounded-full bg-amber-500 dark:bg-amber-400" />
         <span className="text-xs font-medium">{statusCounts.aguardando}</span>
       </div>
       <div className="w-px h-4 bg-border" />
       <div className="flex items-center gap-1.5" title="Saiu p/ Coleta">
-        <span className="w-3 h-3 rounded-full bg-cyan-500" />
+        <span className="w-3 h-3 rounded-full bg-cyan-500 dark:bg-cyan-400" />
         <span className="text-xs font-medium">{statusCounts.coleta}</span>
       </div>
       <div className="w-px h-4 bg-border" />
       <div className="flex items-center gap-1.5" title="Saiu p/ Entrega">
-        <span className="w-3 h-3 rounded-full bg-purple-500" />
+        <span className="w-3 h-3 rounded-full bg-purple-500 dark:bg-purple-400" />
         <span className="text-xs font-medium">{statusCounts.entrega}</span>
       </div>
       <div className="w-px h-4 bg-border" />
       <div className="flex items-center gap-1.5" title="Entregue">
-        <span className="w-3 h-3 rounded-full bg-green-500" />
+        <span className="w-3 h-3 rounded-full bg-green-500 dark:bg-green-400" />
         <span className="text-xs font-medium">{statusCounts.entregue}</span>
       </div>
       {statusCounts.cancelada > 0 && (
         <>
           <div className="w-px h-4 bg-border" />
           <div className="flex items-center gap-1.5" title="Cancelada">
-            <span className="w-3 h-3 rounded-full bg-red-500" />
+            <span className="w-3 h-3 rounded-full bg-red-500 dark:bg-red-400" />
             <span className="text-xs font-medium">{statusCounts.cancelada}</span>
           </div>
         </>
@@ -576,17 +578,19 @@ export function GestaoLeafletMap({
       {/* Custom tooltip styles */}
       <style>{`
         .driver-tooltip {
-          background: white !important;
+          background: hsl(var(--popover)) !important;
+          color: hsl(var(--popover-foreground)) !important;
           border: 1px solid #e2e8f0 !important;
+          border-color: hsl(var(--border)) !important;
           border-radius: 8px !important;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
           padding: 0 !important;
         }
         .driver-tooltip::before {
-          border-top-color: #e2e8f0 !important;
+          border-top-color: hsl(var(--border)) !important;
         }
         .leaflet-tooltip-top:before {
-          border-top-color: white !important;
+          border-top-color: hsl(var(--popover)) !important;
         }
       `}</style>
     </div>
