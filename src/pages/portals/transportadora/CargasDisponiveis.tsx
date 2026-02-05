@@ -53,6 +53,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AdvancedSearchPopover, AdvancedSearchFilters, emptyFilters } from '@/components/cargas/AdvancedSearchPopover';
