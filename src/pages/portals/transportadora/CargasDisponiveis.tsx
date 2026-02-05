@@ -832,6 +832,8 @@ export default function CargasDisponiveis() {
       embarcadorEmpresaId: selectedCarga.empresa_id,
       transportadoraEmpresaId: empresa.id,
       viagemId: selectedViagemId,
+      userId: user?.id ?? null,
+      userName: usuarioLogado?.nome || user?.email || 'Sistema',
     });
   };
 
