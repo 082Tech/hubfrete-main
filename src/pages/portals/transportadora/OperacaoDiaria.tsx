@@ -373,6 +373,11 @@ function DetailPanel({
       <div className="p-3 border-b">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
+            {showBackButton && onBack && (
+              <Button variant="ghost" size="icon" className="h-7 w-7 mr-1" onClick={onBack}>
+                <ArrowLeftRight className="w-3.5 h-3.5 rotate-180" />
+              </Button>
+            )}
             <span className="text-xs text-muted-foreground">Entrega Nº</span>
             <Badge variant="outline" className="font-mono font-bold text-xs px-2 border-primary text-primary">
               {entrega.codigo || entrega.id.slice(0, 8)}
