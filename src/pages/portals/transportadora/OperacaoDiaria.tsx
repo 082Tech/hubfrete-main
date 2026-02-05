@@ -269,6 +269,7 @@ function DetailPanel({
   onRefresh,
   showBackButton = false,
   onBack,
+  viagemStatus,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
@@ -278,6 +279,7 @@ function DetailPanel({
   onRefresh: () => void;
   showBackButton?: boolean;
   onBack?: () => void;
+  viagemStatus?: string | null;
 }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
@@ -319,6 +321,9 @@ function DetailPanel({
 
   const nextStatus = getNextStatus();
   const isFinalized = entrega.status === 'entregue' || entrega.status === 'cancelada';
+  
+  // Verificar se a viagem está iniciada (programada = não iniciada)
+  const isViagemNotStarted = viagemStatus === 'programada';
 
   const handleCancelConfirm = () => {
     onStatusChange('cancelada');
@@ -725,6 +730,23 @@ function DetailPanel({
         </div>
       </ScrollArea>
 
+      {/* Alerta de viagem não iniciada */}
+      {isViagemNotStarted && !isFinalized && (
+        <div className="px-3 pt-3">
+          <div className="flex items-start gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-blue-800 dark:text-blue-300">
+                Viagem não iniciada
+              </p>
+              <p className="text-blue-700 dark:text-blue-400">
+                Inicie a viagem primeiro para liberar as ações de entrega.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer actions - botão principal + menu de 3 pontos */}
       {!isFinalized && nextStatus && (
         <div className="p-3 border-t bg-muted/20">
@@ -732,7 +754,7 @@ function DetailPanel({
             {/* Menu de mais ações (3 pontos) */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="px-2">
+                <Button variant="outline" size="sm" className="px-2" disabled={isViagemNotStarted}>
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -755,7 +777,7 @@ function DetailPanel({
               size="sm"
               className="flex-1 text-xs"
               onClick={handleActionClick}
-              disabled={isChangingStatus}
+              disabled={isChangingStatus || isViagemNotStarted}
             >
               {isChangingStatus ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
@@ -1406,7 +1428,7 @@ export default function OperacaoDiaria() {
           veiculo:veiculos(placa, modelo)
         `)
         .in('motorista_id', motoristaIdsList)
-        .in('status', ['em_andamento', 'finalizada'])
+        .in('status', ['programada', 'em_andamento', 'finalizada'])
         .order('created_at', { ascending: false });
 
       if (viagensError) throw viagensError;
@@ -1554,6 +1576,31 @@ export default function OperacaoDiaria() {
     onError: (error) => {
       toast.error('Erro ao atualizar status');
       console.error(error);
+    },
+  });
+
+  // Mutation para iniciar viagem (programada -> em_andamento)
+  const iniciarViagemMutation = useMutation({
+    mutationFn: async (viagemId: string) => {
+      const { error } = await supabase
+        .from('viagens')
+        .update({ 
+          status: 'em_andamento', 
+          inicio_em: new Date().toISOString(),
+          started_at: new Date().toISOString(),
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', viagemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gestao-viagens'] });
+      refetchViagens();
+    },
+    onError: (error) => {
+      console.error('Erro ao iniciar viagem:', error);
+      throw error;
     },
   });
 
@@ -1855,22 +1902,24 @@ export default function OperacaoDiaria() {
         ) : (
           <>
             {/* VIAGENS VIEW */}
-            {/* Column 1: Viagens Em Andamento */}
+            {/* Column 1: Viagens Programadas + Em Andamento */}
             <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-                <span className="text-sm font-medium text-muted-foreground">Em Andamento ({viagens.filter(v => v.status === 'em_andamento').length})</span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Ativas ({viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').length})
+                </span>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {isLoadingViagens ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : viagens.filter(v => v.status === 'em_andamento').length === 0 ? (
+                ) : viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <EmptyColumnPlaceholder message="Viagens em andamento aparecerão aqui" />
+                    <EmptyColumnPlaceholder message="Viagens ativas aparecerão aqui" />
                   </div>
                 ) : (
-                  viagens.filter(v => v.status === 'em_andamento').map((viagem) => (
+                  viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').map((viagem) => (
                     <ViagemListItem
                       key={viagem.id}
                       viagem={{
@@ -1946,6 +1995,7 @@ export default function OperacaoDiaria() {
                   onRefresh={handleRefresh}
                   showBackButton
                   onBack={() => setSelectedEntregaInViagem(null)}
+                  viagemStatus={selectedViagem?.status}
                 />
               ) : (
                 /* Mostrar ViagemDetailPanel */
@@ -1963,6 +2013,9 @@ export default function OperacaoDiaria() {
                     const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
                     return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, heading: loc.heading, isOnline: loc.isOnline } : null;
                   })() : null}
+                  onStart={async (viagemId) => {
+                    await iniciarViagemMutation.mutateAsync(viagemId);
+                  }}
                   onFinalize={async (viagemId) => {
                     await finalizarViagemMutation.mutateAsync(viagemId);
                   }}
