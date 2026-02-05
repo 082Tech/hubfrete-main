@@ -75,10 +75,9 @@ export function EtapaCredenciais({ formData, updateFormData }: EtapaCredenciaisP
           <div className="space-y-2">
             <Label htmlFor="auth_password_confirm">Confirmar Senha *</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+              <PasswordInput
                 id="auth_password_confirm"
-                type="password"
                 placeholder="Repita a senha"
                 value={formData.auth_password_confirm}
                 onChange={(e) => updateFormData({ auth_password_confirm: e.target.value })}
