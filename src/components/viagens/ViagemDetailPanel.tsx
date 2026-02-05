@@ -91,6 +91,7 @@ export function ViagemDetailPanel({
 }: ViagemDetailPanelProps) {
   const [anexarManifestoOpen, setAnexarManifestoOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [trackingMapOpen, setTrackingMapOpen] = useState(false);
 
   if (!viagem) {
     return (
