@@ -3,7 +3,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
-  Share, Printer, X, Weight, DollarSign, Clock, Upload, History
+  Share, Printer, X, Weight, DollarSign, Clock, Upload, History, Route
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import { AnexarManifestoViagemDialog } from './AnexarManifestoViagemDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
-
+import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
 interface ViagemEntregaEvento {
   id: string;
   tipo: string;
@@ -91,6 +91,7 @@ export function ViagemDetailPanel({
 }: ViagemDetailPanelProps) {
   const [anexarManifestoOpen, setAnexarManifestoOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [trackingMapOpen, setTrackingMapOpen] = useState(false);
 
   if (!viagem) {
     return (
@@ -334,6 +335,30 @@ export function ViagemDetailPanel({
 
           <Separator />
 
+          {/* Track History */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Route className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium text-sm">Rastreamento da Viagem</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={() => setTrackingMapOpen(true)}
+              >
+                <Route className="w-3 h-3" />
+                Ver Trajeto
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Visualize o histórico completo de localização desta viagem.
+            </p>
+          </div>
+
+          <Separator />
+
           {/* Histórico da Viagem */}
           <div>
             <div className="flex items-center gap-2 mb-3">
@@ -369,6 +394,17 @@ export function ViagemDetailPanel({
         onOpenChange={() => setPreviewDocUrl(null)}
         fileUrl={previewDocUrl}
         title="Manifesto (MDF-e)"
+      />
+
+      {/* Track History Dialog - usa o viagem_id diretamente */}
+      <ViagemTrackingMapDialog
+        viagemId={trackingMapOpen ? viagem.id : null}
+        info={viagem.motorista ? {
+          codigo: viagem.codigo,
+          motorista: viagem.motorista.nome_completo,
+          placa: viagem.veiculo?.placa || 'N/A'
+        } : null}
+        onClose={() => setTrackingMapOpen(false)}
       />
     </div>
   );
