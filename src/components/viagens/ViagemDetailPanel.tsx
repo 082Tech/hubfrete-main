@@ -311,14 +311,12 @@ export function ViagemDetailPanel({
       />
 
       {/* Preview de documento */}
-      {previewDocUrl && (
-        <FilePreviewDialog
-          open={!!previewDocUrl}
-          onOpenChange={() => setPreviewDocUrl(null)}
-          url={previewDocUrl}
-          title="Manifesto (MDF-e)"
-        />
-      )}
+      <FilePreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={() => setPreviewDocUrl(null)}
+        fileUrl={previewDocUrl}
+        title="Manifesto (MDF-e)"
+      />
     </div>
   );
 }
