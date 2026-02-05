@@ -26,6 +26,7 @@ interface DetailPanelLeafletMapProps {
   driverLocation: DriverLocation | null;
   status: string;
   height?: number;
+  entregaId?: string | null;
 }
 
 // Create location marker icon (origin/destination)
