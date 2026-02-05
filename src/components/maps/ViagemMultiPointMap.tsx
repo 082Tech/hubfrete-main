@@ -195,26 +195,32 @@ export function ViagemMultiPointMap({
         <FitBoundsToPoints points={allPoints} />
 
         {/* Origens - Marcadores verdes */}
-        {entregas.map((entrega, index) => (
+        {entregas.map((entrega) => (
           entrega.origem && (
             <Marker
               key={`origem-${entrega.id}`}
               position={[entrega.origem.lat, entrega.origem.lng]}
-              icon={createOrigemIcon(index)}
-              title={`Origem: ${entrega.codigo}`}
-            />
+              icon={createOrigemIcon()}
+            >
+              <Popup>
+                <div className="text-xs font-medium">Origem: {entrega.codigo}</div>
+              </Popup>
+            </Marker>
           )
         ))}
 
         {/* Destinos - Marcadores vermelhos */}
-        {entregas.map((entrega, index) => (
+        {entregas.map((entrega) => (
           entrega.destino && (
             <Marker
               key={`destino-${entrega.id}`}
               position={[entrega.destino.lat, entrega.destino.lng]}
-              icon={createDestinoIcon(index)}
-              title={`Destino: ${entrega.codigo}`}
-            />
+              icon={createDestinoIcon()}
+            >
+              <Popup>
+                <div className="text-xs font-medium">Destino: {entrega.codigo}</div>
+              </Popup>
+            </Marker>
           )
         ))}
 
@@ -222,7 +228,7 @@ export function ViagemMultiPointMap({
         {driverLocation && (
           <Marker
             position={[driverLocation.lat, driverLocation.lng]}
-            icon={createTruckIcon(driverLocation.heading ?? 0, isDriverOnline)}
+            icon={createTruckLeafletIcon(driverLocation.heading ?? 0, isDriverOnline)}
           />
         )}
 

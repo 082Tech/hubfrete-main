@@ -395,6 +395,18 @@ export function ViagemDetailPanel({
         fileUrl={previewDocUrl}
         title="Manifesto (MDF-e)"
       />
+
+      {/* Track History Dialog - usa a primeira entrega como referência */}
+      {viagem.entregas.length > 0 && (
+        <TrackingMapDialog
+          entregaId={trackingMapOpen ? viagem.entregas[0].id : null}
+          info={viagem.motorista ? {
+            motorista: viagem.motorista.nome_completo,
+            placa: viagem.veiculo?.placa || 'N/A'
+          } : null}
+          onClose={() => setTrackingMapOpen(false)}
+        />
+      )}
     </div>
   );
 }

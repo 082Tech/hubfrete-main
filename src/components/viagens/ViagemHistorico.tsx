@@ -34,10 +34,10 @@ interface ViagemHistoricoProps {
 
 const eventoConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   criado: { label: 'Criado', icon: Package, color: 'bg-blue-500' },
-  aceite: { label: 'Aceite', icon: CheckCircle, color: 'bg-green-500' },
-  inicio_coleta: { label: 'Saiu p/ Coleta', icon: Truck, color: 'bg-cyan-500' },
-  inicio_rota: { label: 'Saiu p/ Entrega', icon: MapPin, color: 'bg-purple-500' },
-  finalizado: { label: 'Entregue', icon: CheckCircle, color: 'bg-green-600' },
+  aceite: { label: 'Aceite', icon: ArrowLeftRight, color: 'bg-green-500' },
+  inicio_coleta: { label: 'Saiu p/ Coleta', icon: ArrowLeftRight, color: 'bg-cyan-500' },
+  inicio_rota: { label: 'Saiu p/ Entrega', icon: ArrowLeftRight, color: 'bg-purple-500' },
+  finalizado: { label: 'Entregue', icon: ArrowLeftRight, color: 'bg-green-600' },
   problema: { label: 'Problema', icon: XCircle, color: 'bg-red-500' },
   cancelado: { label: 'Cancelado', icon: XCircle, color: 'bg-red-600' },
   documento: { label: 'Documento', icon: FileText, color: 'bg-gray-500' },
