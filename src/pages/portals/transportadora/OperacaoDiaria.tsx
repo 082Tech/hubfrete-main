@@ -1865,7 +1865,6 @@ export default function OperacaoDiaria() {
               </div>
             </div>
 
-            {/* Column 3: Viagem Detail Panel */}
             <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
               <ViagemDetailPanel
                 viagem={selectedViagem}
@@ -1879,7 +1878,10 @@ export default function OperacaoDiaria() {
                   }
                 }}
                 onRefresh={() => refetchViagens()}
-                driverLocation={selectedViagem?.motorista_id ? localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id) : null}
+                driverLocation={selectedViagem?.motorista_id ? (() => {
+                  const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
+                  return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, isOnline: loc.isOnline } : null;
+                })() : null}
               />
             </div>
           </>
