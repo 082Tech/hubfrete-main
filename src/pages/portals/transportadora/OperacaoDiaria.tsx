@@ -1834,7 +1834,10 @@ export default function OperacaoDiaria() {
                         })),
                       }}
                       isSelected={selectedViagem?.id === viagem.id}
-                      onClick={() => setSelectedViagem(viagem)}
+                      onClick={() => {
+                        setSelectedViagem(viagem);
+                        setSelectedEntregaInViagem(null);
+                      }}
                     />
                   ))
                 )}
