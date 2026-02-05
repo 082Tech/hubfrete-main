@@ -466,11 +466,35 @@ export default function CargasDisponiveis() {
           peso_alocado_kg: pesoAlocadoKg,
           valor_frete: valorFrete,
           status: 'aguardando' as const,
+          created_by: userId,
         })
         .select('id')
         .single();
 
       if (entregaError) throw entregaError;
+
+      // Registrar eventos iniciais na timeline
+      const now = new Date();
+      
+      // Evento 1: Criação da entrega (pelo usuário)
+      await supabase.from('entrega_eventos').insert({
+        entrega_id: entregaData.id,
+        tipo: 'criado',
+        timestamp: now.toISOString(),
+        observacao: 'Entrega criada',
+        user_id: userId,
+        user_nome: userName,
+      });
+
+      // Evento 2: Status inicial "Aguardando" (pelo Sistema)
+      await supabase.from('entrega_eventos').insert({
+        entrega_id: entregaData.id,
+        tipo: 'aceite',
+        timestamp: new Date(now.getTime() + 1).toISOString(), // +1ms para ordenação
+        observacao: 'Status inicial definido automaticamente',
+        user_id: null,
+        user_nome: 'Sistema',
+      });
 
       // Handle viagem - create new or add to existing
       let finalViagemId = viagemId;
