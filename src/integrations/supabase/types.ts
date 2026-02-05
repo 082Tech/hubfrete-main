@@ -2375,6 +2375,15 @@ export type Database = {
         }
         Returns: string
       }
+      finalizar_entrega_e_verificar_viagem: {
+        Args: {
+          p_documento_recebedor?: string
+          p_entrega_id: string
+          p_nome_recebedor?: string
+          p_observacoes?: string
+        }
+        Returns: Json
+      }
       finalizar_viagem: { Args: { p_viagem_id: string }; Returns: undefined }
       get_admin_role: {
         Args: { _user_id: string }
