@@ -178,6 +178,7 @@ const getEmpresaInitials = (nome: string | undefined | null): string => {
 
 export default function CargasDisponiveis() {
   const { empresa } = useUserContext();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedSearchFilters>(emptyFilters);
