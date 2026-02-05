@@ -1370,6 +1370,83 @@ export default function OperacaoDiaria() {
     refetchInterval: 30000,
   });
 
+  // Fetch viagens when in viagens view mode
+  const { data: viagens = [], isLoading: isLoadingViagens, refetch: refetchViagens } = useQuery({
+    queryKey: ['gestao-viagens', empresa?.id],
+    queryFn: async (): Promise<ViagemWithEntregas[]> => {
+      if (!empresa?.id) return [];
+
+      // First get motoristas for this empresa
+      const { data: motoristas } = await supabase
+        .from('motoristas')
+        .select('id')
+        .eq('empresa_id', empresa.id);
+
+      if (!motoristas || motoristas.length === 0) return [];
+
+      const motoristaIdsList = motoristas.map(m => m.id);
+
+      // Fetch viagens em andamento
+      const { data: viagensData, error: viagensError } = await supabase
+        .from('viagens')
+        .select(`
+          id, codigo, status, created_at, manifesto_url, motorista_id,
+          motorista:motoristas(id, nome_completo, foto_url),
+          veiculo:veiculos(placa, modelo)
+        `)
+        .in('motorista_id', motoristaIdsList)
+        .in('status', ['em_andamento', 'finalizada'])
+        .order('created_at', { ascending: false });
+
+      if (viagensError) throw viagensError;
+
+      // Fetch entregas for each viagem via viagem_entregas
+      const viagensWithEntregas = await Promise.all(
+        (viagensData || []).map(async (viagem) => {
+          const { data: viagemEntregas } = await supabase
+            .from('viagem_entregas')
+            .select(`
+              entrega:entregas(
+                id, codigo, status, peso_alocado_kg, valor_frete,
+                notas_fiscais_urls, cte_url, canhoto_url,
+                carga:cargas(
+                  descricao,
+                  endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado),
+                  endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado)
+                )
+              )
+            `)
+            .eq('viagem_id', viagem.id)
+            .order('ordem', { ascending: true });
+
+          const entregas = (viagemEntregas || [])
+            .map(ve => ve.entrega)
+            .filter(Boolean)
+            .map(e => ({
+              ...e,
+              carga: {
+                ...e.carga,
+                endereco_origem: e.carga.endereco_origem,
+                endereco_destino: e.carga.endereco_destino,
+              }
+            }));
+
+          return {
+            ...viagem,
+            motorista: viagem.motorista,
+            veiculo: viagem.veiculo,
+            entregas,
+          };
+        })
+      );
+
+      // Filter to show only viagens with entregas
+      return viagensWithEntregas.filter(v => v.entregas.length > 0) as ViagemWithEntregas[];
+    },
+    enabled: viewMode === 'viagens' && !!empresa?.id,
+    refetchInterval: 30000,
+  });
+
   const motoristaGroups = useMemo(() => {
     const groups: Record<string, { motorista: Entrega['motorista']; entregas: Entrega[] }> = {};
 
