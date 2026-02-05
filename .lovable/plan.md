@@ -1,135 +1,94 @@
 
-# Plano: Adicionar botões de ação no painel de viagem e definir viagens como modo padrão
+# Plano: Fluxo de Iniciar/Finalizar Viagem - IMPLEMENTADO ✓
 
 ## Resumo
 
-Adicionar o mesmo padrão de botões de ação que existe no painel de detalhes de entrega ao painel de detalhes de viagem, com a funcionalidade de "Finalizar Viagem". Também alterar o modo de visualização padrão de "entregas" para "viagens".
+Implementado o ciclo de vida completo da viagem com os status: `programada` → `em_andamento` → `finalizada/cancelada`.
 
 ---
 
-## Mudanças a implementar
+## Mudanças implementadas
 
-### 1. Alterar modo padrão para "viagens"
+### 1. Status de Viagem
 
-No arquivo `src/pages/portals/transportadora/OperacaoDiaria.tsx`, alterar o estado inicial de `viewMode`:
+- **programada**: Viagem criada, aguardando início (entregas bloqueadas)
+- **em_andamento**: Viagem em execução (entregas liberadas)
+- **finalizada**: Viagem concluída (todas entregas finalizadas)
+- **cancelada**: Viagem cancelada
 
-```
-De: const [viewMode, setViewMode] = useState<ViewMode>('entregas');
-Para: const [viewMode, setViewMode] = useState<ViewMode>('viagens');
-```
+### 2. Criação de Viagem
 
-### 2. Adicionar footer com botoes de acao no ViagemDetailPanel
+Ao alocar uma carga para um motorista, a viagem é criada com status `programada` em vez de `em_andamento`. Isso bloqueia automaticamente que novas entregas sejam adicionadas após o início.
 
-No arquivo `src/components/viagens/ViagemDetailPanel.tsx`, adicionar:
+### 3. Botões de Ação no ViagemDetailPanel
 
-**Novos imports necessarios:**
-- `Loader2`, `MoreVertical`, `Ban`, `Paperclip`, `AlertTriangle` do lucide-react
-- `DropdownMenu`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuSeparator`, `DropdownMenuTrigger`
-- `AlertDialog`, `AlertDialogAction`, `AlertDialogCancel`, `AlertDialogContent`, `AlertDialogDescription`, `AlertDialogFooter`, `AlertDialogHeader`, `AlertDialogTitle`
-- `toast` do sonner
+- **"Iniciar Viagem"**: Exibido quando status = `programada`
+  - Muda status para `em_andamento`
+  - Atualiza `inicio_em` e `started_at`
+  - Libera as entregas para execução
 
-**Novos estados:**
-- `finalizarDialogOpen` - controla o dialog de confirmacao de finalizacao
-- `cancelDialogOpen` - controla o dialog de confirmacao de cancelamento
-- `isFinalizingViagem` - estado de loading durante a operacao
+- **"Finalizar Viagem"**: Exibido quando status = `em_andamento`
+  - Só habilitado quando todas entregas estão `entregue` ou `cancelada`
+  - Muda status para `finalizada`
 
-**Logica de validacao:**
-- Verificar se todas as entregas estao com status `entregue` ou `cancelada`
-- Se houver entregas pendentes, mostrar alerta e bloquear finalizacao
-- Criar funcao `checkAllEntregasFinalized()` que retorna:
-  - `canFinalize: boolean`
-  - `pendingCount: number`
-  - `pendingEntregas: string[]` (codigos das entregas pendentes)
+- Menu de 3 pontos: Anexar Manifesto e Cancelar Viagem
 
-**Novo footer (apos o ScrollArea):**
+### 4. Bloqueio de Status nas Entregas
 
-```text
-+-------------------------------------------+
-|  [...]  |     [Finalizar Viagem]          |
-+-------------------------------------------+
-```
+Quando a viagem está com status `programada`:
+- Os botões de ação no DetailPanel ficam desabilitados
+- Um alerta azul é exibido: "Viagem não iniciada. Inicie a viagem primeiro para liberar as ações de entrega."
 
-- Botao de 3 pontinhos (esquerda):
-  - "Anexar Manifesto" -> abre o dialog existente
-  - Separador
-  - "Cancelar viagem" -> abre dialog de confirmacao
+### 5. Colunas na Tela de Gestão (Modo Viagens)
 
-- Botao principal "Finalizar Viagem" (direita):
-  - Icone: CheckCircle
-  - Cor: verde (bg-green-600)
-  - Desabilitado quando ha entregas pendentes
-  - Ao clicar: abre dialog de confirmacao
-
-**Dialogs de confirmacao:**
-
-1. Dialog de finalizacao:
-   - Se todas entregas finalizadas: confirmar finalizacao
-   - Se ha entregas pendentes: mostrar lista das pendentes e bloquear
-
-2. Dialog de cancelamento:
-   - Aviso de que a acao e irreversivel
-   - Confirmar para cancelar a viagem
-
-**Prop adicional necessaria:**
-- `onFinalize?: (viagemId: string) => Promise<void>` - callback para finalizar a viagem
-- `onCancel?: (viagemId: string) => Promise<void>` - callback para cancelar a viagem
-
-### 3. Implementar callbacks no OperacaoDiaria
-
-No arquivo `src/pages/portals/transportadora/OperacaoDiaria.tsx`:
-
-- Criar mutation `finalizarViagemMutation` que atualiza o status da viagem para `finalizada`
-- Criar mutation `cancelarViagemMutation` que atualiza o status da viagem para `cancelada`
-- Passar os callbacks como props para o `ViagemDetailPanel`
+- **Coluna 1 - Ativas**: Viagens `programada` + `em_andamento`
+- **Coluna 2 - Finalizadas**: Viagens `finalizada`
+- **Coluna 3 - Detalhes**: ViagemDetailPanel com ações
 
 ---
 
-## Secao Tecnica
+## Arquivos modificados
 
-### Arquivos a modificar:
+1. `src/pages/portals/transportadora/CargasDisponiveis.tsx`
+   - Criação de viagem com status `programada`
 
-1. **`src/pages/portals/transportadora/OperacaoDiaria.tsx`**
-   - Linha 1295: Alterar estado inicial de `viewMode` para `'viagens'`
-   - Adicionar mutations para finalizar/cancelar viagem
-   - Passar callbacks para ViagemDetailPanel
+2. `src/pages/portals/transportadora/OperacaoDiaria.tsx`
+   - Query atualizada para incluir status `programada`
+   - Nova mutation `iniciarViagemMutation`
+   - Prop `viagemStatus` no DetailPanel
+   - Lógica de bloqueio quando viagem não iniciada
+   - Colunas atualizadas para mostrar viagens ativas
 
-2. **`src/components/viagens/ViagemDetailPanel.tsx`**
-   - Adicionar imports de componentes de UI
-   - Adicionar estados para dialogs
-   - Adicionar funcao de validacao de entregas
-   - Adicionar footer com botoes de acao
-   - Adicionar AlertDialogs de confirmacao
+3. `src/components/viagens/ViagemDetailPanel.tsx`
+   - Nova prop `onStart`
+   - Botão "Iniciar Viagem" condicional
+   - Alertas informativos para cada estado
+   - Dialog de confirmação para iniciar viagem
 
-### Fluxo de finalizacao:
+4. `src/components/viagens/ViagemListItem.tsx`
+   - Status `programada` adicionado ao config
 
-```text
-Usuario clica "Finalizar Viagem"
-        |
-        v
-Verifica entregas pendentes
-        |
-   +----+----+
-   |         |
-   v         v
-Ha pendentes  Todas OK
-   |            |
-   v            v
-Mostra     Abre dialog
-alerta     de confirmacao
-   |            |
-   X            v
-            Atualiza status
-            para "finalizada"
-                |
-                v
-            Refetch dados
-            Toast sucesso
+---
+
+## Fluxo Operacional
+
 ```
-
-### Regra de negocio:
-
-A viagem so pode ser finalizada quando **TODAS** as entregas dentro dela estiverem com status:
-- `entregue` (entrega concluida com sucesso)
-- `cancelada` (entrega foi cancelada)
-
-Qualquer entrega com status `aguardando`, `saiu_para_coleta` ou `saiu_para_entrega` bloqueia a finalizacao.
+Carga Alocada
+      ↓
+Viagem Criada (programada)
+      ↓
+   [Operador pode adicionar mais entregas]
+      ↓
+Clica "Iniciar Viagem"
+      ↓
+Viagem Em Andamento
+      ↓
+   [Motorista executa entregas]
+   [Não pode adicionar mais entregas]
+      ↓
+Todas entregas finalizadas
+      ↓
+Clica "Finalizar Viagem"
+      ↓
+Viagem Finalizada
+```
