@@ -1285,6 +1285,7 @@ export default function OperacaoDiaria() {
   const [viewMode, setViewMode] = useState<ViewMode>('entregas');
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [selectedViagem, setSelectedViagem] = useState<ViagemWithEntregas | null>(null);
+  const [selectedEntregaInViagem, setSelectedEntregaInViagem] = useState<Entrega | null>(null); // Stack navigation for viagem view
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
   const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
