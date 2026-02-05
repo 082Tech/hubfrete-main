@@ -331,6 +331,26 @@ export function ViagemDetailPanel({
               })}
             </div>
           </div>
+
+          <Separator />
+
+          {/* Histórico da Viagem */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <History className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium text-sm">Histórico da Viagem</span>
+            </div>
+            
+            <ViagemHistorico
+              viagem={{
+                id: viagem.id,
+                codigo: viagem.codigo,
+                status: viagem.status,
+                created_at: viagem.created_at,
+              }}
+              entregas={viagem.entregas}
+            />
+          </div>
         </div>
       </ScrollArea>
 
