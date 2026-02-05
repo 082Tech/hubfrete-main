@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
-  Share, Printer, X, Weight, DollarSign, Clock, Upload, History, Route
+  Share, Printer, X, Weight, DollarSign, Clock, Upload, History, Route,
+  Loader2, MoreVertical, Ban, Paperclip, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,24 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 import { AnexarManifestoViagemDialog } from './AnexarManifestoViagemDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
@@ -66,6 +85,8 @@ interface ViagemDetailPanelProps {
   onSelectEntrega: (entregaId: string) => void;
   onRefresh: () => void;
   driverLocation?: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
+  onFinalize?: (viagemId: string) => Promise<void>;
+  onCancel?: (viagemId: string) => Promise<void>;
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -88,10 +109,62 @@ export function ViagemDetailPanel({
   onSelectEntrega,
   onRefresh,
   driverLocation,
+  onFinalize,
+  onCancel,
 }: ViagemDetailPanelProps) {
   const [anexarManifestoOpen, setAnexarManifestoOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [trackingMapOpen, setTrackingMapOpen] = useState(false);
+  const [finalizarDialogOpen, setFinalizarDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [isFinalizingViagem, setIsFinalizingViagem] = useState(false);
+
+  // Verificar se todas as entregas estão finalizadas (entregue ou cancelada)
+  const entregasValidation = useMemo(() => {
+    if (!viagem) return { canFinalize: false, pendingCount: 0, pendingEntregas: [] };
+
+    const pendingEntregas = viagem.entregas.filter(
+      e => e.status !== 'entregue' && e.status !== 'cancelada'
+    );
+
+    return {
+      canFinalize: pendingEntregas.length === 0,
+      pendingCount: pendingEntregas.length,
+      pendingEntregas: pendingEntregas.map(e => e.codigo),
+    };
+  }, [viagem]);
+
+  const handleFinalizarViagem = async () => {
+    if (!viagem || !onFinalize) return;
+    
+    setIsFinalizingViagem(true);
+    try {
+      await onFinalize(viagem.id);
+      toast.success('Viagem finalizada com sucesso');
+      setFinalizarDialogOpen(false);
+    } catch (error) {
+      toast.error('Erro ao finalizar viagem');
+    } finally {
+      setIsFinalizingViagem(false);
+    }
+  };
+
+  const handleCancelarViagem = async () => {
+    if (!viagem || !onCancel) return;
+    
+    setIsFinalizingViagem(true);
+    try {
+      await onCancel(viagem.id);
+      toast.success('Viagem cancelada');
+      setCancelDialogOpen(false);
+    } catch (error) {
+      toast.error('Erro ao cancelar viagem');
+    } finally {
+      setIsFinalizingViagem(false);
+    }
+  };
+
+  const isViagemFinalized = viagem?.status === 'finalizada' || viagem?.status === 'cancelada';
 
   if (!viagem) {
     return (
@@ -378,6 +451,130 @@ export function ViagemDetailPanel({
           </div>
         </div>
       </ScrollArea>
+
+      {/* Footer com botões de ação - igual ao painel de entrega */}
+      {!isViagemFinalized && (
+        <div className="p-3 border-t bg-muted/30 flex items-center justify-between gap-2">
+          {/* Menu de ações secundárias */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="h-9 w-9">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setAnexarManifestoOpen(true)}>
+                <Paperclip className="w-4 h-4 mr-2" />
+                Anexar Manifesto
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setCancelDialogOpen(true)}
+              >
+                <Ban className="w-4 h-4 mr-2" />
+                Cancelar viagem
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Botão principal de finalizar */}
+          <Button
+            className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
+            disabled={!entregasValidation.canFinalize || isFinalizingViagem}
+            onClick={() => setFinalizarDialogOpen(true)}
+          >
+            {isFinalizingViagem ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <CheckCircle className="w-4 h-4" />
+            )}
+            Finalizar Viagem
+          </Button>
+        </div>
+      )}
+
+      {/* Aviso de entregas pendentes */}
+      {!isViagemFinalized && !entregasValidation.canFinalize && (
+        <div className="px-3 pb-3 -mt-1">
+          <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-300">
+                {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}
+              </p>
+              <p className="text-amber-700 dark:text-amber-400">
+                Finalize ou cancele as entregas antes de finalizar a viagem.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog de confirmação para finalizar viagem */}
+      <AlertDialog open={finalizarDialogOpen} onOpenChange={setFinalizarDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalizar Viagem</AlertDialogTitle>
+            <AlertDialogDescription>
+              {entregasValidation.canFinalize ? (
+                <>
+                  Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
+                  <br /><br />
+                  Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas.
+                </>
+              ) : (
+                <>
+                  Não é possível finalizar a viagem.
+                  <br /><br />
+                  Existem {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}: {entregasValidation.pendingEntregas.join(', ')}
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isFinalizingViagem}>Cancelar</AlertDialogCancel>
+            {entregasValidation.canFinalize && (
+              <AlertDialogAction
+                onClick={handleFinalizarViagem}
+                disabled={isFinalizingViagem}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isFinalizingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Confirmar Finalização
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de confirmação para cancelar viagem */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Cancelar Viagem
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja cancelar a viagem <strong>{viagem.codigo}</strong>?
+              <br /><br />
+              Esta ação é irreversível e todas as entregas associadas permanecerão em seus status atuais.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isFinalizingViagem}>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelarViagem}
+              disabled={isFinalizingViagem}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isFinalizingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Sim, Cancelar Viagem
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Dialog para anexar Manifesto */}
       <AnexarManifestoViagemDialog

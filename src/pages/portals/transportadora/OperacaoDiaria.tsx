@@ -1292,7 +1292,7 @@ export default function OperacaoDiaria() {
   const { empresa } = useUserContext();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
-  const [viewMode, setViewMode] = useState<ViewMode>('entregas');
+  const [viewMode, setViewMode] = useState<ViewMode>('viagens');
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [selectedViagem, setSelectedViagem] = useState<ViagemWithEntregas | null>(null);
   const [selectedEntregaInViagem, setSelectedEntregaInViagem] = useState<Entrega | null>(null); // Stack navigation for viagem view
@@ -1554,6 +1554,54 @@ export default function OperacaoDiaria() {
     onError: (error) => {
       toast.error('Erro ao atualizar status');
       console.error(error);
+    },
+  });
+
+  // Mutation para finalizar viagem
+  const finalizarViagemMutation = useMutation({
+    mutationFn: async (viagemId: string) => {
+      const { error } = await supabase
+        .from('viagens')
+        .update({ 
+          status: 'finalizada', 
+          fim_em: new Date().toISOString(),
+          ended_at: new Date().toISOString(),
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', viagemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gestao-viagens'] });
+      setSelectedViagem(null);
+    },
+    onError: (error) => {
+      console.error('Erro ao finalizar viagem:', error);
+      throw error;
+    },
+  });
+
+  // Mutation para cancelar viagem
+  const cancelarViagemMutation = useMutation({
+    mutationFn: async (viagemId: string) => {
+      const { error } = await supabase
+        .from('viagens')
+        .update({ 
+          status: 'cancelada', 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', viagemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gestao-viagens'] });
+      setSelectedViagem(null);
+    },
+    onError: (error) => {
+      console.error('Erro ao cancelar viagem:', error);
+      throw error;
     },
   });
 
@@ -1915,6 +1963,12 @@ export default function OperacaoDiaria() {
                     const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
                     return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, heading: loc.heading, isOnline: loc.isOnline } : null;
                   })() : null}
+                  onFinalize={async (viagemId) => {
+                    await finalizarViagemMutation.mutateAsync(viagemId);
+                  }}
+                  onCancel={async (viagemId) => {
+                    await cancelarViagemMutation.mutateAsync(viagemId);
+                  }}
                 />
               )}
             </div>
