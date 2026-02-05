@@ -28,12 +28,12 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  'aguardando': '#6b7280',
-  'saiu_para_coleta': '#3b82f6',
+  'aguardando': '#f59e0b',
+  'saiu_para_coleta': '#06b6d4',
   'saiu_para_entrega': '#a855f7',
   'entregue': '#22c55e',
   'problema': '#ef4444',
-  'cancelada': '#6b7280',
+  'cancelada': '#ef4444',
 };
 
 const StatusIcon = ({ status }: { status: string | null }) => {
