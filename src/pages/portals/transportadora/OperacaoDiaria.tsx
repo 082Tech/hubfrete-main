@@ -1406,7 +1406,7 @@ export default function OperacaoDiaria() {
           veiculo:veiculos(placa, modelo)
         `)
         .in('motorista_id', motoristaIdsList)
-        .in('status', ['em_andamento', 'finalizada'])
+        .in('status', ['programada', 'em_andamento', 'finalizada'])
         .order('created_at', { ascending: false });
 
       if (viagensError) throw viagensError;
