@@ -1243,12 +1243,48 @@ function GestaoEntregasDialog({
   );
 }
 
+// Viagem type for the viagens view
+interface ViagemWithEntregas {
+  id: string;
+  codigo: string;
+  status: string;
+  created_at: string;
+  manifesto_url: string | null;
+  motorista_id: string;
+  motorista: {
+    id: string;
+    nome_completo: string;
+    foto_url: string | null;
+  } | null;
+  veiculo: {
+    placa: string;
+    modelo: string | null;
+  } | null;
+  entregas: Array<{
+    id: string;
+    codigo: string;
+    status: string;
+    peso_alocado_kg: number | null;
+    valor_frete: number | null;
+    notas_fiscais_urls: string[] | null;
+    cte_url: string | null;
+    canhoto_url: string | null;
+    carga: {
+      descricao: string;
+      endereco_origem: { cidade: string; estado: string } | null;
+      endereco_destino: { cidade: string; estado: string } | null;
+    };
+  }>;
+}
+
 // Main component
 export default function OperacaoDiaria() {
   const { empresa } = useUserContext();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
+  const [viewMode, setViewMode] = useState<ViewMode>('entregas');
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
+  const [selectedViagem, setSelectedViagem] = useState<ViagemWithEntregas | null>(null);
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
   const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
