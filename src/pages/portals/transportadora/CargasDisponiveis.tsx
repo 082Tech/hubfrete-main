@@ -53,6 +53,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AdvancedSearchPopover, AdvancedSearchFilters, emptyFilters } from '@/components/cargas/AdvancedSearchPopover';
@@ -177,6 +178,7 @@ const getEmpresaInitials = (nome: string | undefined | null): string => {
 
 export default function CargasDisponiveis() {
   const { empresa } = useUserContext();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedSearchFilters>(emptyFilters);
@@ -370,7 +372,22 @@ export default function CargasDisponiveis() {
     enabled: !!empresa?.id,
   });
 
-  // Calculate peso em uso por motorista (soma de entregas ativas)
+  // Fetch nome do usuário logado para registrar eventos
+  const { data: usuarioLogado } = useQuery({
+    queryKey: ['usuario_logado_nome', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data } = await supabase
+        .from('usuarios')
+        .select('nome')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+      
+      return data;
+    },
+    enabled: !!user?.id,
+  });
   const pesoEmUsoPorMotorista = useMemo(() => {
     const pesoMap = new Map<string, number>();
     entregasAtivas.forEach(e => {
@@ -418,6 +435,8 @@ export default function CargasDisponiveis() {
       embarcadorEmpresaId,
       transportadoraEmpresaId,
       viagemId,
+      userId,
+      userName,
     }: {
       cargaId: string;
       motoristaId: string;
@@ -428,6 +447,8 @@ export default function CargasDisponiveis() {
       embarcadorEmpresaId: number;
       transportadoraEmpresaId: number;
       viagemId: string | null;
+      userId: string | null;
+      userName: string;
     }) => {
       // Get current cargo to update peso_disponivel_kg
       const { data: cargaAtual, error: fetchError } = await supabase
@@ -464,11 +485,35 @@ export default function CargasDisponiveis() {
           peso_alocado_kg: pesoAlocadoKg,
           valor_frete: valorFrete,
           status: 'aguardando' as const,
+          created_by: userId,
         })
         .select('id')
         .single();
 
       if (entregaError) throw entregaError;
+
+      // Registrar eventos iniciais na timeline
+      const now = new Date();
+      
+      // Evento 1: Criação da entrega (pelo usuário)
+      await supabase.from('entrega_eventos').insert({
+        entrega_id: entregaData.id,
+        tipo: 'criado',
+        timestamp: now.toISOString(),
+        observacao: 'Entrega criada',
+        user_id: userId,
+        user_nome: userName,
+      });
+
+      // Evento 2: Status inicial "Aguardando" (pelo Sistema)
+      await supabase.from('entrega_eventos').insert({
+        entrega_id: entregaData.id,
+        tipo: 'aceite',
+        timestamp: new Date(now.getTime() + 1).toISOString(), // +1ms para ordenação
+        observacao: 'Status inicial definido automaticamente',
+        user_id: null,
+        user_nome: 'Sistema',
+      });
 
       // Handle viagem - create new or add to existing
       let finalViagemId = viagemId;
@@ -787,6 +832,8 @@ export default function CargasDisponiveis() {
       embarcadorEmpresaId: selectedCarga.empresa_id,
       transportadoraEmpresaId: empresa.id,
       viagemId: selectedViagemId,
+      userId: user?.id ?? null,
+      userName: usuarioLogado?.nome || user?.email || 'Sistema',
     });
   };
 

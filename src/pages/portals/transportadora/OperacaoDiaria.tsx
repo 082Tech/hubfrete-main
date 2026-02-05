@@ -641,12 +641,14 @@ function DetailPanel({
                 <div className="space-y-4">
                   {entrega.eventos.slice(0, 5).map((evento, idx) => {
                     // Mapear tipo do evento para label legível e cor
-                    const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean }> = {
+                    const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean; isCreation?: boolean }> = {
+                      criado: { label: 'Entrega criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
                       aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
                       inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
                       inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
                       finalizado: { label: 'Entregue', bgColor: 'bg-green-100 dark:bg-green-900/30' },
                       cancelado: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+                      problema: { label: 'Problema', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
                       documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
                       cte_anexado: { label: 'CT-e anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
                       manifesto_anexado: { label: 'Manifesto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
@@ -657,6 +659,7 @@ function DetailPanel({
                     const config = tipoConfig[evento.tipo] || { label: evento.tipo.replace(/_/g, ' '), bgColor: 'bg-muted dark:bg-muted/50' };
                     const userName = evento.user_nome || 'Sistema';
                     const isDocument = config.isDocument || evento.tipo.includes('documento') || evento.tipo.includes('anexa');
+                    const isCreation = config.isCreation;
                     const isLast = idx === entrega.eventos!.slice(0, 5).length - 1;
 
                     return (
@@ -665,13 +668,16 @@ function DetailPanel({
                         <div className={`relative z-10 w-8 h-8 rounded-md ${config.bgColor} flex items-center justify-center shrink-0`}>
                           {isDocument ? (
                           <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          ) : isCreation ? (
+                            <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                           ) : (
                             <ArrowLeftRight className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
                               evento.tipo === 'inicio_coleta' ? 'text-cyan-600 dark:text-cyan-400' :
                                 evento.tipo === 'inicio_rota' ? 'text-purple-600 dark:text-purple-400' :
                                   evento.tipo === 'finalizado' ? 'text-green-600 dark:text-green-400' :
                                     evento.tipo === 'cancelado' ? 'text-red-600 dark:text-red-400' :
-                                      'text-muted-foreground'
+                                      evento.tipo === 'problema' ? 'text-orange-600 dark:text-orange-400' :
+                                        'text-muted-foreground'
                               }`} />
                           )}
                         </div>
@@ -680,9 +686,9 @@ function DetailPanel({
                           <p className="text-sm">
                             <span className="font-medium">{userName}</span>
                             <span className="text-muted-foreground">
-                              {isDocument ? ' anexou ' : ' alterou o status para '}
+                              {isCreation ? ' criou esta entrega' : isDocument ? ' anexou ' : ' definiu o status como '}
                             </span>
-                            <span className="font-medium">{config.label}</span>
+                            {!isCreation && <span className="font-medium">{config.label}</span>}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {format(new Date(evento.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
