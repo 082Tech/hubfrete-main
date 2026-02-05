@@ -1,96 +1,76 @@
 
+## Objetivo
+Ajustar o “hover” (tooltip) dos pontinhos do histórico de rastreamento (Leaflet) para mostrar telemetria completa: velocidade, horário e observações — sem depender do clique (Popup).
 
-# Plano: Ajustar Cores e Tooltip do Histórico de Rastreamento
+## O que encontrei no código atual
+- O arquivo **`src/components/maps/TrackingHistoryMarkers.tsx`** já:
+  - Busca `speed` e `observacao` do `tracking_historico` (campos existem no estado `TrackingPoint`).
+  - Renderiza **Tooltip** no hover, mas hoje o Tooltip mostra somente **status + data/hora + Início/Atual**.
+  - Renderiza **Popup** no clique e nele aparece `observacao`, porém **não aparece velocidade** e **não aparece observação no hover**.
+- Em outros pontos do app (ex.: `GestaoLeafletMap.tsx` e `EntregasMap.tsx`) os Tooltips são usados com configurações de apresentação mais “fortes” (`opacity={1}`, classes, etc.). Isso é um bom padrão para copiarmos.
 
-## Resumo
+## Mudanças propostas (implementação)
+### 1) Enriquecer o Tooltip dos pontos (hover)
+No **`src/components/maps/TrackingHistoryMarkers.tsx`**, dentro do `<Tooltip>...</Tooltip>` de cada `<CircleMarker>`:
+- Adicionar linhas para:
+  - **Velocidade**: exibir “Velocidade: XX km/h” quando `point.speed != null`.
+    - Formatação sugerida: `Math.round(point.speed)` (ou `point.speed.toFixed(0)`).
+  - **Observação**: exibir bloco/linha quando `point.observacao` existir.
+- Manter os indicadores de **Início** e **Atual**, mas com texto alinhado ao que você pediu (“Início da viagem” / “Posição atual”), se você quiser padronizar.
 
-Atualizar os marcadores do histórico de rastreamento para usar as cores padrão da plataforma e melhorar o tooltip com informações de velocidade.
+### 2) Fazer o Tooltip “segurar melhor” no hover (evitar sumir fácil)
+Ainda no Tooltip do histórico, adicionar propriedades do `react-leaflet`/Leaflet Tooltip para melhorar usabilidade:
+- `sticky` (o tooltip acompanha melhor o mouse enquanto você está sobre o ponto)
+- `interactive` (permite interação/seleção sem fechar imediatamente)
+- Ajustar `opacity` para `1` (mais legível e consistente com outros tooltips)
 
----
+Observação: essas props dependem da versão do `react-leaflet`, mas no seu projeto já existe uso avançado de Tooltip em outros mapas; caso alguma dessas props não seja suportada pela tipagem, a alternativa é passar via `...`/cast ou usar `className` + apenas `opacity={1}` (eu vou seguir o caminho mais compatível com seu setup após checar o TypeScript na implementação).
 
-## Alterações Necessárias
+### 3) (Opcional, mas recomendado) Levar a velocidade também para o Popup (clique)
+Mesmo que o foco seja hover, é coerente o Popup também mostrar:
+- velocidade (se disponível)
+- observação (já mostra)
+Isso evita inconsistência: hover mostra mais/menos que o clique.
 
-### 1. Corrigir Paleta de Cores
+### 4) Garantir que o hover não “brigue” com o caminhão
+Você comentou “a não ser que o caminhão esteja em cima”.
+Hoje o histórico é desenhado como `CircleMarker` e o caminhão é `Marker`. Em Leaflet, ordem de renderização e pane/zIndex podem fazer o caminhão capturar o hover.
+Se acontecer na prática:
+- Opção A (simples): aumentar a “hit area” do `CircleMarker` (ex.: `radius` um pouco maior) para facilitar hover.
+- Opção B (mais precisa): definir `pane`/`zIndexOffset` ou usar `interactive={false}` no caminhão quando o usuário estiver no modo “ver histórico”, para priorizar os pontos.  
+Eu só aplico isso se você confirmar que realmente está ocorrendo conflito de hover; senão, mantemos simples.
 
-Atualizar `statusColors` no arquivo `TrackingHistoryMarkers.tsx` para seguir o padrão da plataforma:
+## Arquivos a alterar
+- **`src/components/maps/TrackingHistoryMarkers.tsx`** (principal)
+  - Tooltip: adicionar velocidade + observação + melhorar configuração de hover
+  - (Opcional) Popup: incluir velocidade
 
-| Status | Cor Atual | Cor Correta |
-|--------|-----------|-------------|
-| aguardando | Cinza (#6b7280) | **Laranja (#f59e0b)** |
-| saiu_para_coleta | Azul (#3b82f6) | **Ciano (#06b6d4)** |
-| saiu_para_entrega | Roxo (#a855f7) | Roxo (#a855f7) ✓ |
-| entregue | Verde (#22c55e) | Verde (#22c55e) ✓ |
-| problema | Vermelho (#ef4444) | Vermelho (#ef4444) ✓ |
-| cancelada | Cinza (#6b7280) | **Vermelho (#ef4444)** |
+## Critérios de aceite (como você valida no Preview)
+1. Abrir um mapa que renderize o histórico:
+   - `GestaoLeafletMap` (quando uma entrega está selecionada), ou
+   - `DetailPanelLeafletMap`, ou
+   - `EntregasMap` (quando seleciona uma entrega)
+2. Passar o mouse em cima de um pontinho do histórico.
+3. Tooltip aparece mostrando:
+   - Status + horário
+   - **Velocidade (km/h)** quando existir
+   - **Observação** quando existir
+   - Indicador de “Início da viagem” e “Posição atual” nos pontos correspondentes
+4. Em pontos sem velocidade/observação, o tooltip não quebra layout (apenas omite os campos).
 
-### 2. Adicionar Velocidade no Tooltip
+## Nota importante sobre “deploy do preview / github”
+- O “Preview” atualiza automaticamente quando o código é salvo/compilado, mas pode precisar de refresh se o navegador estiver com cache/estado antigo.
+- Envio para GitHub/publicação depende de você estar com a integração de GitHub habilitada ou usar o fluxo de **Publish** (se for Lovable Cloud).  
+Na implementação, eu vou:
+- Checar o console (erros de TypeScript/Leaflet) para garantir que o preview realmente consegue compilar.
+- Se houver erro impedindo build (o que faz parecer “não fez deploy”), eu ajusto tipagens/props do Tooltip para uma versão compatível.
 
-Atualizar o `Tooltip` para exibir:
-- Status com ícone
-- Horário do ponto
-- **Velocidade em km/h** (novo)
-- Observações (se houver)
+## Riscos / pontos de atenção técnicos
+- `react-leaflet` Tooltip vs Radix Tooltip: aqui estamos usando corretamente `Tooltip` do `react-leaflet` (já importado de `react-leaflet`), então não vamos misturar com `src/components/ui/tooltip.tsx`.
+- Tipagem de props (`sticky`, `interactive`): se o TS reclamar, ajustaremos para o conjunto suportado pela versão instalada, mantendo o comportamento de hover.
 
----
-
-## Arquivo Modificado
-
-**`src/components/maps/TrackingHistoryMarkers.tsx`**
-
-```typescript
-// Cores corrigidas para o padrão da plataforma
-const statusColors: Record<string, string> = {
-  'aguardando': '#f59e0b',      // Laranja (era cinza)
-  'saiu_para_coleta': '#06b6d4', // Ciano (era azul)
-  'saiu_para_entrega': '#a855f7', // Roxo (mantido)
-  'entregue': '#22c55e',         // Verde (mantido)
-  'problema': '#ef4444',         // Vermelho (mantido)
-  'cancelada': '#ef4444',        // Vermelho (era cinza)
-};
-
-// Tooltip atualizado com velocidade
-<Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-  <div className="text-xs min-w-[140px]">
-    <div className="flex items-center gap-1 font-medium">
-      <StatusIcon status={point.status} />
-      <span>{label}</span>
-    </div>
-    <div className="text-gray-500 mt-0.5">
-      {formatDateTime(point.tracked_at)}
-    </div>
-    {point.speed != null && (
-      <div className="text-gray-600 mt-0.5">
-        🚗 {point.speed.toFixed(0)} km/h
-      </div>
-    )}
-    {point.observacao && (
-      <div className="mt-1 text-gray-600 italic">
-        💬 {point.observacao}
-      </div>
-    )}
-    {isFirst && (
-      <div className="mt-1 text-green-600 font-medium">📍 Início da viagem</div>
-    )}
-    {isLast && trackingPoints.length > 1 && (
-      <div className="mt-1 text-blue-600 font-medium">📍 Posição atual</div>
-    )}
-  </div>
-</Tooltip>
-```
-
----
-
-## Resultado Visual
-
-Ao passar o mouse sobre cada pontinho:
-
-```
-┌─────────────────────────┐
-│ 🚚 Saiu para Entrega    │  ← Status com ícone
-│ 05/02/2026, 14:32       │  ← Horário
-│ 🚗 65 km/h              │  ← Velocidade (novo!)
-│ 💬 Parou para almoço    │  ← Observação (se houver)
-│ 📍 Posição atual        │  ← Indicador especial
-└─────────────────────────┘
-```
-
+## Sequência de execução
+1. Ajustar tooltip do histórico no `TrackingHistoryMarkers.tsx` para renderizar `speed` e `observacao`.
+2. Melhorar comportamento de hover (opacity=1, sticky/interactive se compatível).
+3. (Opcional) Replicar velocidade no Popup.
+4. Validar no Preview navegando até uma tela com histórico e testando hover em 3–5 pontos.
