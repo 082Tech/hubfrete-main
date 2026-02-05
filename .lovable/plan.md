@@ -1,90 +1,111 @@
 
-# Plano: Adicionar Tooltip de Ajuda e Atualizar Legenda na Gestão de Entregas
 
-## Resumo
-Vou adicionar um ícone de interrogação ao lado do título "Gestão de Entregas" que, ao passar o mouse, exibe uma explicação sobre a funcionalidade da página. Também vou atualizar a legenda para "Visualize sua operação diária".
+# Plano: Registrar Eventos de Criação de Entrega na Timeline
 
-## Alterações
+## Visão Geral
+Quando uma entrega é criada, atualmente não há nenhum evento registrado na timeline. O histórico só começa quando alguém muda o status manualmente. Este plano implementa o registro automático de dois eventos iniciais:
 
-### 1. Atualizar Header da Página
-**Arquivo:** `src/pages/portals/transportadora/OperacaoDiaria.tsx`
+1. **"Entrega criada por Pessoa X"** - registro da criação
+2. **"Status Aguardando"** - definido automaticamente pelo sistema
 
-- Adicionar imports do Tooltip: `Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger`
-- Adicionar import do ícone `HelpCircle` (já existe outros ícones do lucide-react)
-- Modificar o título de "Gestão Entregas" para "Gestão de Entregas"
-- Adicionar ícone de interrogação em círculo ao lado do título
-- Configurar o tooltip com explicação da página
-- Atualizar legenda para "Visualize sua operação diária"
+---
 
-### 2. Conteúdo do Tooltip
-O tooltip vai explicar de forma clara:
-- Que esta é a central de operações diárias em tempo real
-- Que as entregas finalizadas (entregues ou canceladas) permanecem visíveis até o fim do dia
-- Que na virada do dia, as entregas concluídas são movidas automaticamente para o Histórico de Entregas
-- Que entregas pendentes e em andamento continuam visíveis até serem finalizadas
+## O que será feito
 
-### 3. Resultado Visual Esperado
+### Para o usuário
+- Ao abrir uma entrega recém-criada na tela de Gestão de Entregas, a timeline mostrará:
+  - "Sistema definiu o status como Aguardando"
+  - "Fulano criou esta entrega"
+- Os eventos ficarão ordenados cronologicamente (mais recentes primeiro)
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│  Gestão de Entregas (?)   [Refresh] [Filtros] [Desempenho] [Mapa]
-│  Visualize sua operação diária                                  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-                          │
-                          ▼ (hover no ?)
-         ┌────────────────────────────────────────┐
-         │ Central de Operações Diárias           │
-         │                                        │
-         │ Acompanhe em tempo real todas as       │
-         │ entregas do dia atual.                 │
-         │                                        │
-         │ • Entregas finalizadas permanecem      │
-         │   visíveis até a virada do dia         │
-         │ • Na virada do dia, são movidas        │
-         │   automaticamente para o Histórico     │
-         │ • Entregas pendentes continuam até     │
-         │   serem concluídas                     │
-         └────────────────────────────────────────┘
+### Mudanças técnicas
+
+#### 1. Atualização da Constraint do Banco de Dados
+A constraint `entrega_eventos_tipo_check` precisa incluir um novo tipo: **`criado`**
+
+Os tipos permitidos passarão a ser:
+```
+'criado', 'aceite', 'inicio_coleta', 'chegada_coleta', 'carregou', 
+'inicio_rota', 'parada', 'chegada_destino', 'descarregou', 'finalizado', 
+'problema', 'cancelado', 'desvio_rota', 'parada_prolongada', 
+'velocidade_anormal', 'perda_sinal', 'recuperacao_sinal', 
+'entrada_geofence', 'saida_geofence'
+```
+
+#### 2. Modificação do Fluxo de Criação de Entrega
+No arquivo `CargasDisponiveis.tsx`, após criar a entrega com sucesso, inserir dois eventos:
+
+```typescript
+// Evento 1: Criação da entrega
+await supabase.from('entrega_eventos').insert({
+  entrega_id: entregaData.id,
+  tipo: 'criado',
+  timestamp: new Date().toISOString(),
+  observacao: 'Entrega criada',
+  user_id: user?.id ?? null,
+  user_nome: profile?.nome_completo || user?.email || 'Sistema',
+});
+
+// Evento 2: Status inicial "Aguardando" pelo Sistema
+await supabase.from('entrega_eventos').insert({
+  entrega_id: entregaData.id,
+  tipo: 'aceite',
+  timestamp: new Date(Date.now() + 1).toISOString(), // +1ms para ordenação
+  observacao: 'Status inicial definido automaticamente',
+  user_id: null,
+  user_nome: 'Sistema',
+});
+```
+
+#### 3. Atualização da Timeline no Painel de Detalhes
+No arquivo `OperacaoDiaria.tsx`, adicionar configuração visual para o novo tipo:
+
+```typescript
+const tipoConfig = {
+  criado: { 
+    label: 'Entrega criada', 
+    bgColor: 'bg-gray-100 dark:bg-gray-900/30',
+    isCreation: true 
+  },
+  aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
+  // ... demais tipos
+};
+```
+
+E ajustar a lógica de exibição para diferenciar:
+- **Evento de criação**: "Fulano **criou esta entrega**"
+- **Evento de status sistema**: "Sistema **definiu o status como** Aguardando"
+
+#### 4. (Opcional) Preencher o campo `created_by`
+O campo já existe na tabela `entregas` mas não está sendo utilizado. Aproveitaremos para preenchê-lo durante a criação:
+
+```typescript
+.insert({
+  // ... outros campos
+  created_by: user?.id ?? null,
+})
 ```
 
 ---
 
-## Detalhes Técnicos
+## Arquivos a serem modificados
 
-### Imports a Adicionar
-```typescript
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { HelpCircle } from 'lucide-react';
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/pages/portals/transportadora/CargasDisponiveis.tsx` | Inserir eventos de criação após criar entrega |
+| `src/pages/portals/transportadora/OperacaoDiaria.tsx` | Adicionar tipo 'criado' na timeline com ícone e texto adequados |
+| Nova migração SQL | Atualizar constraint para incluir tipo 'criado' |
+
+---
+
+## Resultado Esperado na Timeline
+
+Ordenação (mais recente primeiro):
+```
+🔄 Sistema definiu o status como Aguardando
+   05/02/2026 às 14:30
+
+📝 Luis Sales criou esta entrega  
+   05/02/2026 às 14:30
 ```
 
-### Estrutura do Header
-```typescript
-<div>
-  <div className="flex items-center gap-2">
-    <h1 className="text-3xl font-bold text-foreground">Gestão de Entregas</h1>
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button className="w-5 h-5 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
-            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-xs text-sm p-3">
-          <p className="font-medium mb-1">Central de Operações Diárias</p>
-          <p className="text-muted-foreground text-xs leading-relaxed">
-            Acompanhe em tempo real todas as entregas do dia. As entregas finalizadas 
-            (entregues ou canceladas) permanecem visíveis até o fim do dia, quando são 
-            automaticamente movidas para o Histórico de Entregas.
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  </div>
-  <p className="text-muted-foreground">Visualize sua operação diária</p>
-</div>
-```
-
-### Arquivo Modificado
-- `src/pages/portals/transportadora/OperacaoDiaria.tsx`
