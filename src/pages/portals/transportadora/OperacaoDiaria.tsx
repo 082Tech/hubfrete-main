@@ -376,7 +376,7 @@ function DetailPanel({
           <div className="flex items-center gap-2">
             {showBackButton && onBack && (
               <Button variant="ghost" size="icon" className="h-7 w-7 mr-1" onClick={onBack}>
-                <ArrowLeftRight className="w-3.5 h-3.5 rotate-180" />
+                <ArrowLeft className="w-3.5 h-3.5" />
               </Button>
             )}
             <span className="text-xs text-muted-foreground">Entrega Nº</span>
