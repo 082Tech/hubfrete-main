@@ -1865,24 +1865,38 @@ export default function OperacaoDiaria() {
               </div>
             </div>
 
+            {/* Column 3: Detail Panel with Stack Navigation */}
             <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
-              <ViagemDetailPanel
-                viagem={selectedViagem}
-                onClose={() => setSelectedViagem(null)}
-                onSelectEntrega={(entregaId) => {
-                  const entrega = entregas.find(e => e.id === entregaId);
-                  if (entrega) {
-                    setViewMode('entregas');
-                    setSelectedViagem(null);
-                    setSelectedEntrega(entrega);
-                  }
-                }}
-                onRefresh={() => refetchViagens()}
-                driverLocation={selectedViagem?.motorista_id ? (() => {
-                  const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
-                  return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, isOnline: loc.isOnline } : null;
-                })() : null}
-              />
+              {selectedEntregaInViagem ? (
+                /* Mostrar DetailPanel da entrega com botão voltar */
+                <DetailPanel
+                  entrega={selectedEntregaInViagem}
+                  onClose={() => setSelectedEntregaInViagem(null)}
+                  onStatusChange={handleStatusChange}
+                  isChangingStatus={statusMutation.isPending}
+                  driverLocation={driverLocation}
+                  onRefresh={handleRefresh}
+                  showBackButton
+                  onBack={() => setSelectedEntregaInViagem(null)}
+                />
+              ) : (
+                /* Mostrar ViagemDetailPanel */
+                <ViagemDetailPanel
+                  viagem={selectedViagem}
+                  onClose={() => setSelectedViagem(null)}
+                  onSelectEntrega={(entregaId) => {
+                    const entrega = entregas.find(e => e.id === entregaId);
+                    if (entrega) {
+                      setSelectedEntregaInViagem(entrega);
+                    }
+                  }}
+                  onRefresh={() => refetchViagens()}
+                  driverLocation={selectedViagem?.motorista_id ? (() => {
+                    const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
+                    return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, heading: loc.heading, isOnline: loc.isOnline } : null;
+                  })() : null}
+                />
+              )}
             </div>
           </>
         )}

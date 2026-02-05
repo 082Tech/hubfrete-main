@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { AnexarManifestoViagemDialog } from './AnexarManifestoViagemDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
+import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 
 interface ViagemEntrega {
   id: string;
@@ -25,8 +26,8 @@ interface ViagemEntrega {
   canhoto_url?: string | null;
   carga: {
     descricao: string;
-    endereco_origem?: { cidade: string; estado: string } | null;
-    endereco_destino?: { cidade: string; estado: string } | null;
+    endereco_origem?: { cidade: string; estado: string; latitude?: number | null; longitude?: number | null } | null;
+    endereco_destino?: { cidade: string; estado: string; latitude?: number | null; longitude?: number | null } | null;
   };
 }
 
@@ -52,7 +53,7 @@ interface ViagemDetailPanelProps {
   onClose: () => void;
   onSelectEntrega: (entregaId: string) => void;
   onRefresh: () => void;
-  driverLocation?: { lat: number; lng: number; isOnline?: boolean } | null;
+  driverLocation?: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -100,6 +101,19 @@ export function ViagemDetailPanel({
     pod: !!e.canhoto_url,
   }));
 
+  // Preparar pontos para o mapa multi-ponto
+  const mapEntregas = viagem.entregas.map(e => ({
+    id: e.id,
+    codigo: e.codigo,
+    status: e.status,
+    origem: e.carga.endereco_origem?.latitude && e.carga.endereco_origem?.longitude
+      ? { lat: e.carga.endereco_origem.latitude, lng: e.carga.endereco_origem.longitude }
+      : null,
+    destino: e.carga.endereco_destino?.latitude && e.carga.endereco_destino?.longitude
+      ? { lat: e.carga.endereco_destino.latitude, lng: e.carga.endereco_destino.longitude }
+      : null,
+  }));
+
   return (
     <div className="h-full flex flex-col bg-card border-l">
       {/* Header */}
@@ -139,6 +153,13 @@ export function ViagemDetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
+          {/* Mapa Multi-Ponto */}
+          <ViagemMultiPointMap
+            entregas={mapEntregas}
+            driverLocation={driverLocation}
+            height={260}
+          />
+
           {/* Motorista & Veículo */}
           {viagem.motorista && (
             <Card className="shadow-none border">
