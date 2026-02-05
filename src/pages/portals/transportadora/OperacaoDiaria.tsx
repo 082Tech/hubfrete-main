@@ -42,6 +42,7 @@ import {
   XCircle,
   Loader2,
   ArrowLeftRight,
+  ArrowLeft,
   MessageCircle,
   RefreshCw,
   History,
@@ -266,6 +267,8 @@ function DetailPanel({
   isChangingStatus,
   driverLocation,
   onRefresh,
+  showBackButton = false,
+  onBack,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
@@ -273,6 +276,8 @@ function DetailPanel({
   isChangingStatus: boolean;
   driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
   onRefresh: () => void;
+  showBackButton?: boolean;
+  onBack?: () => void;
 }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
@@ -369,6 +374,11 @@ function DetailPanel({
       <div className="p-3 border-b">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
+            {showBackButton && onBack && (
+              <Button variant="ghost" size="icon" className="h-7 w-7 mr-1" onClick={onBack}>
+                <ArrowLeft className="w-3.5 h-3.5" />
+              </Button>
+            )}
             <span className="text-xs text-muted-foreground">Entrega Nº</span>
             <Badge variant="outline" className="font-mono font-bold text-xs px-2 border-primary text-primary">
               {entrega.codigo || entrega.id.slice(0, 8)}
@@ -1285,6 +1295,7 @@ export default function OperacaoDiaria() {
   const [viewMode, setViewMode] = useState<ViewMode>('entregas');
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [selectedViagem, setSelectedViagem] = useState<ViagemWithEntregas | null>(null);
+  const [selectedEntregaInViagem, setSelectedEntregaInViagem] = useState<Entrega | null>(null); // Stack navigation for viagem view
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
   const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
@@ -1678,6 +1689,7 @@ export default function OperacaoDiaria() {
                 setViewMode(checked ? 'viagens' : 'entregas');
                 setSelectedEntrega(null);
                 setSelectedViagem(null);
+                setSelectedEntregaInViagem(null);
               }}
             />
             <Label htmlFor="view-mode-switch" className={`text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === 'viagens' ? 'text-foreground' : 'text-muted-foreground'}`}>
@@ -1822,7 +1834,10 @@ export default function OperacaoDiaria() {
                         })),
                       }}
                       isSelected={selectedViagem?.id === viagem.id}
-                      onClick={() => setSelectedViagem(viagem)}
+                      onClick={() => {
+                        setSelectedViagem(viagem);
+                        setSelectedEntregaInViagem(null);
+                      }}
                     />
                   ))
                 )}
@@ -1858,31 +1873,48 @@ export default function OperacaoDiaria() {
                         })),
                       }}
                       isSelected={selectedViagem?.id === viagem.id}
-                      onClick={() => setSelectedViagem(viagem)}
+                      onClick={() => {
+                        setSelectedViagem(viagem);
+                        setSelectedEntregaInViagem(null);
+                      }}
                     />
                   ))
                 )}
               </div>
             </div>
 
+            {/* Column 3: Detail Panel with Stack Navigation */}
             <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
-              <ViagemDetailPanel
-                viagem={selectedViagem}
-                onClose={() => setSelectedViagem(null)}
-                onSelectEntrega={(entregaId) => {
-                  const entrega = entregas.find(e => e.id === entregaId);
-                  if (entrega) {
-                    setViewMode('entregas');
-                    setSelectedViagem(null);
-                    setSelectedEntrega(entrega);
-                  }
-                }}
-                onRefresh={() => refetchViagens()}
-                driverLocation={selectedViagem?.motorista_id ? (() => {
-                  const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
-                  return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, isOnline: loc.isOnline } : null;
-                })() : null}
-              />
+              {selectedEntregaInViagem ? (
+                /* Mostrar DetailPanel da entrega com botão voltar */
+                <DetailPanel
+                  entrega={selectedEntregaInViagem}
+                  onClose={() => setSelectedEntregaInViagem(null)}
+                  onStatusChange={handleStatusChange}
+                  isChangingStatus={statusMutation.isPending}
+                  driverLocation={driverLocation}
+                  onRefresh={handleRefresh}
+                  showBackButton
+                  onBack={() => setSelectedEntregaInViagem(null)}
+                />
+              ) : (
+                /* Mostrar ViagemDetailPanel */
+                <ViagemDetailPanel
+                  viagem={selectedViagem}
+                  onClose={() => setSelectedViagem(null)}
+                  onSelectEntrega={(entregaId) => {
+                    const entrega = entregas.find(e => e.id === entregaId);
+                    if (entrega) {
+                      setSelectedEntregaInViagem(entrega);
+                    }
+                  }}
+                  onRefresh={() => refetchViagens()}
+                  driverLocation={selectedViagem?.motorista_id ? (() => {
+                    const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
+                    return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, heading: loc.heading, isOnline: loc.isOnline } : null;
+                  })() : null}
+                />
+              )}
             </div>
           </>
         )}
