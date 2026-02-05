@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +64,7 @@ import {
   AlertTriangle,
   Search,
   HelpCircle,
+  Route,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -73,6 +76,9 @@ import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { DailyPerformanceDialog } from '@/components/admin/relatorios/DailyPerformanceDialog';
 import { BarChart3 } from 'lucide-react';
+import { ViagemListItem, ViagemDetailPanel } from '@/components/viagens';
+
+type ViewMode = 'entregas' | 'viagens';
 
 // Status definitions - apenas os status válidos
 // Coluna 1 (pending): APENAS 'aguardando'
