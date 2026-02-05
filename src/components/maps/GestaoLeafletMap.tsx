@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getTruckIconHtml } from './TruckIcon';
 import { useOSRMRoute } from '@/hooks/useOSRMRoute';
+import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { X, MapPin, ArrowRight, Package, Weight, DollarSign, FileText, Building2 } from 'lucide-react';
@@ -464,6 +465,9 @@ export function GestaoLeafletMap({
             dashArray="8, 12"
           />
         )}
+
+        {/* Histórico de rastreamento - mostra apenas quando uma entrega está selecionada */}
+        {selectedEntregaId && <TrackingHistoryMarkers entregaId={selectedEntregaId} />}
 
         {/* Caminhões - quando uma entrega é selecionada, mostrar apenas o motorista dessa entrega */}
         {localizacoes.map(loc => {

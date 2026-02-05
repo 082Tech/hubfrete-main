@@ -408,13 +408,14 @@ function DetailPanel({
             </div>
           )}
 
-          {/* Mapa com rotas condicionais */}
+          {/* Mapa com rotas condicionais e histórico de rastreamento */}
           <DetailPanelLeafletMap
             origemCoords={origemCoords}
             destinoCoords={destinoCoords}
             driverLocation={driverLocation}
             status={entrega.status}
             height={300}
+            entregaId={entrega.id}
           />
 
           {/* Cargo description */}

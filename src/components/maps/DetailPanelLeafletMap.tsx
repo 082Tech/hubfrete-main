@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getTruckIconHtml } from './TruckIcon';
 import { useOSRMRoute } from '@/hooks/useOSRMRoute';
-
+import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -26,6 +26,7 @@ interface DetailPanelLeafletMapProps {
   driverLocation: DriverLocation | null;
   status: string;
   height?: number;
+  entregaId?: string | null;
 }
 
 // Create location marker icon (origin/destination)
@@ -140,6 +141,7 @@ export function DetailPanelLeafletMap({
   driverLocation,
   status,
   height = 300,
+  entregaId,
 }: DetailPanelLeafletMapProps) {
   // Collect all points for bounds calculation
   const allPoints = useMemo(() => {
@@ -222,6 +224,9 @@ export function DetailPanelLeafletMap({
             color="#a855f7"
           />
         )}
+
+        {/* Histórico de rastreamento */}
+        {entregaId && <TrackingHistoryMarkers entregaId={entregaId} />}
 
         {/* Rota OSRM tracejada: Caminhão → Destino (quando saiu_para_entrega) */}
         {showRouteToDestino && (
