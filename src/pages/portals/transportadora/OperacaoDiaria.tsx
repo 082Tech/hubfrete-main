@@ -1880,22 +1880,24 @@ export default function OperacaoDiaria() {
         ) : (
           <>
             {/* VIAGENS VIEW */}
-            {/* Column 1: Viagens Em Andamento */}
+            {/* Column 1: Viagens Programadas + Em Andamento */}
             <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-                <span className="text-sm font-medium text-muted-foreground">Em Andamento ({viagens.filter(v => v.status === 'em_andamento').length})</span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Ativas ({viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').length})
+                </span>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {isLoadingViagens ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : viagens.filter(v => v.status === 'em_andamento').length === 0 ? (
+                ) : viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <EmptyColumnPlaceholder message="Viagens em andamento aparecerão aqui" />
+                    <EmptyColumnPlaceholder message="Viagens ativas aparecerão aqui" />
                   </div>
                 ) : (
-                  viagens.filter(v => v.status === 'em_andamento').map((viagem) => (
+                  viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').map((viagem) => (
                     <ViagemListItem
                       key={viagem.id}
                       viagem={{
