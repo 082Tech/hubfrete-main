@@ -730,6 +730,23 @@ function DetailPanel({
         </div>
       </ScrollArea>
 
+      {/* Alerta de viagem não iniciada */}
+      {isViagemNotStarted && !isFinalized && (
+        <div className="px-3 pt-3">
+          <div className="flex items-start gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-blue-800 dark:text-blue-300">
+                Viagem não iniciada
+              </p>
+              <p className="text-blue-700 dark:text-blue-400">
+                Inicie a viagem primeiro para liberar as ações de entrega.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer actions - botão principal + menu de 3 pontos */}
       {!isFinalized && nextStatus && (
         <div className="p-3 border-t bg-muted/20">
@@ -737,7 +754,7 @@ function DetailPanel({
             {/* Menu de mais ações (3 pontos) */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="px-2">
+                <Button variant="outline" size="sm" className="px-2" disabled={isViagemNotStarted}>
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -760,7 +777,7 @@ function DetailPanel({
               size="sm"
               className="flex-1 text-xs"
               onClick={handleActionClick}
-              disabled={isChangingStatus}
+              disabled={isChangingStatus || isViagemNotStarted}
             >
               {isChangingStatus ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
