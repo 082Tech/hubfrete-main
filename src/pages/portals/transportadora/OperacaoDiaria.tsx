@@ -668,13 +668,16 @@ function DetailPanel({
                         <div className={`relative z-10 w-8 h-8 rounded-md ${config.bgColor} flex items-center justify-center shrink-0`}>
                           {isDocument ? (
                           <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          ) : isCreation ? (
+                            <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                           ) : (
                             <ArrowLeftRight className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
                               evento.tipo === 'inicio_coleta' ? 'text-cyan-600 dark:text-cyan-400' :
                                 evento.tipo === 'inicio_rota' ? 'text-purple-600 dark:text-purple-400' :
                                   evento.tipo === 'finalizado' ? 'text-green-600 dark:text-green-400' :
                                     evento.tipo === 'cancelado' ? 'text-red-600 dark:text-red-400' :
-                                      'text-muted-foreground'
+                                      evento.tipo === 'problema' ? 'text-orange-600 dark:text-orange-400' :
+                                        'text-muted-foreground'
                               }`} />
                           )}
                         </div>
@@ -683,9 +686,9 @@ function DetailPanel({
                           <p className="text-sm">
                             <span className="font-medium">{userName}</span>
                             <span className="text-muted-foreground">
-                              {isDocument ? ' anexou ' : ' alterou o status para '}
+                              {isCreation ? ' criou esta entrega' : isDocument ? ' anexou ' : ' definiu o status como '}
                             </span>
-                            <span className="font-medium">{config.label}</span>
+                            {!isCreation && <span className="font-medium">{config.label}</span>}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {format(new Date(evento.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
