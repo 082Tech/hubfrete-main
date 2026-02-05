@@ -1665,9 +1665,31 @@ export default function OperacaoDiaria() {
           </div>
           <p className="text-muted-foreground">Visualize sua operação diária</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+        <div className="flex items-center gap-4">
+          {/* Switch de Visualização */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
+            <Label htmlFor="view-mode-switch" className={`text-sm font-medium transition-colors ${viewMode === 'entregas' ? 'text-foreground' : 'text-muted-foreground'}`}>
+              Entregas
+            </Label>
+            <Switch
+              id="view-mode-switch"
+              checked={viewMode === 'viagens'}
+              onCheckedChange={(checked) => {
+                setViewMode(checked ? 'viagens' : 'entregas');
+                setSelectedEntrega(null);
+                setSelectedViagem(null);
+              }}
+            />
+            <Label htmlFor="view-mode-switch" className={`text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === 'viagens' ? 'text-foreground' : 'text-muted-foreground'}`}>
+              <Route className="w-3.5 h-3.5" />
+              Viagens
+            </Label>
+          </div>
+
+          <Separator orientation="vertical" className="h-8" />
+
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => viewMode === 'viagens' ? refetchViagens() : refetch()}>
+            <RefreshCw className={`w-4 h-4 ${(isLoading || isLoadingViagens) ? 'animate-spin' : ''}`} />
           </Button>
           <AdvancedFiltersPopover
             filters={filters}
