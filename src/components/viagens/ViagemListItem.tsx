@@ -1,0 +1,119 @@
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { ArrowRight, Truck, FileText } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+
+interface ViagemEntrega {
+  id: string;
+  codigo: string;
+  status: string;
+  origemCidade?: string;
+  destinoCidade?: string;
+}
+
+interface ViagemListItemProps {
+  viagem: {
+    id: string;
+    codigo: string;
+    status: string;
+    created_at: string;
+    manifesto_url?: string | null;
+    motorista?: {
+      id: string;
+      nome_completo: string;
+      foto_url?: string | null;
+    } | null;
+    veiculo?: {
+      placa: string;
+    } | null;
+    entregas: ViagemEntrega[];
+  };
+  isSelected: boolean;
+  onClick: () => void;
+}
+
+const statusConfig: Record<string, { label: string; color: string }> = {
+  em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' },
+  finalizada: { label: 'Finalizada', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800' },
+  cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' },
+};
+
+export function ViagemListItem({ viagem, isSelected, onClick }: ViagemListItemProps) {
+  const statusInfo = statusConfig[viagem.status] || statusConfig.em_andamento;
+  const tempoDecorrido = formatDistanceToNow(new Date(viagem.created_at), {
+    addSuffix: false,
+    locale: ptBR
+  });
+
+  // Construir rota a partir das entregas
+  const cidades = viagem.entregas
+    .map(e => e.destinoCidade)
+    .filter((c, idx, arr) => c && arr.indexOf(c) === idx)
+    .slice(0, 3);
+
+  const rotaTexto = cidades.length > 0 ? cidades.join(' → ') : 'Sem destinos';
+
+  return (
+    <div
+      className={`flex items-start gap-3 bg-card px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${
+        isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
+      }`}
+      onClick={onClick}
+    >
+      {/* Avatar do Motorista */}
+      <Avatar className="h-9 w-9 shrink-0">
+        {viagem.motorista?.foto_url && (
+          <AvatarImage src={viagem.motorista.foto_url} />
+        )}
+        <AvatarFallback className="bg-muted text-muted-foreground text-sm">
+          {viagem.motorista?.nome_completo?.[0] || <Truck className="w-4 h-4" />}
+        </AvatarFallback>
+      </Avatar>
+
+      {/* Conteúdo */}
+      <div className="flex-1 min-w-0 space-y-1">
+        {/* Motorista */}
+        <span className="font-medium text-sm truncate block">
+          {viagem.motorista?.nome_completo || 'Sem motorista'}
+        </span>
+
+        {/* Código da Viagem */}
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="font-mono text-[10px] px-1.5">
+            {viagem.codigo}
+          </Badge>
+          <span className="text-xs text-muted-foreground">
+            {viagem.entregas.length} entrega{viagem.entregas.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {/* Rota */}
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <span className="truncate">{rotaTexto}</span>
+        </div>
+
+        {/* Indicador de Manifesto */}
+        <div className="flex items-center gap-2 text-xs">
+          <span className={`flex items-center gap-1 ${viagem.manifesto_url ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+            <FileText className="w-3 h-3" />
+            {viagem.manifesto_url ? 'MDF-e ✓' : 'MDF-e pendente'}
+          </span>
+          {viagem.veiculo && (
+            <span className="text-muted-foreground">
+              • {viagem.veiculo.placa}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Tempo & Status */}
+      <div className="text-right shrink-0">
+        <p className="text-xs text-muted-foreground mb-1">{tempoDecorrido}</p>
+        <Badge className={`text-[10px] ${statusInfo.color}`}>
+          {statusInfo.label}
+        </Badge>
+      </div>
+    </div>
+  );
+}
