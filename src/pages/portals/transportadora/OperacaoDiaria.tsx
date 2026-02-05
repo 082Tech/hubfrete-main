@@ -1418,13 +1418,14 @@ export default function OperacaoDiaria() {
             .from('viagem_entregas')
             .select(`
               entrega:entregas(
-                id, codigo, status, peso_alocado_kg, valor_frete,
+                id, codigo, status, peso_alocado_kg, valor_frete, created_at, updated_at,
                 notas_fiscais_urls, cte_url, canhoto_url,
                 carga:cargas(
                   descricao,
-                  endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado),
-                  endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado)
-                )
+                  endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
+                  endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude)
+                ),
+                eventos:entrega_eventos(id, tipo, timestamp, observacao, user_nome)
               )
             `)
             .eq('viagem_id', viagem.id)
@@ -1439,7 +1440,8 @@ export default function OperacaoDiaria() {
                 ...e.carga,
                 endereco_origem: e.carga.endereco_origem,
                 endereco_destino: e.carga.endereco_destino,
-              }
+              },
+              eventos: e.eventos || [],
             }));
 
           return {
