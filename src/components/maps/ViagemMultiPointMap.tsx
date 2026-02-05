@@ -1,7 +1,8 @@
-import { useMemo, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
+import { useMemo, useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { getTruckIconHtml } from './TruckIcon';
 
 interface Coordinate {
   lat: number;
@@ -22,44 +23,68 @@ interface ViagemMultiPointMapProps {
   height?: number;
 }
 
-// Ícone de origem (círculo verde)
-const createOrigemIcon = (index: number) => {
-  const colors = ['#22c55e', '#10b981', '#059669', '#047857'];
-  const color = colors[index % colors.length];
+// Ícone de origem (círculo com "O")
+const createOrigemIcon = () => {
   return L.divIcon({
-    className: 'custom-marker',
-    html: `<div style="width: 20px; height: 20px; background: ${color}; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-  });
-};
-
-// Ícone de destino (seta vermelha)
-const createDestinoIcon = (index: number) => {
-  const colors = ['#ef4444', '#dc2626', '#b91c1c', '#991b1b'];
-  const color = colors[index % colors.length];
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `<div style="width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 16px solid ${color}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));"></div>`,
-    iconSize: [20, 16],
-    iconAnchor: [10, 8],
-  });
-};
-
-// Ícone do caminhão
-const createTruckIcon = (heading: number, isOnline: boolean) => {
-  const color = isOnline ? '#3b82f6' : '#6b7280';
-  return L.divIcon({
-    className: 'truck-marker',
+    className: 'custom-origin-marker',
     html: `
-      <div style="transform: rotate(${heading}deg); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1">
-          <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+      <div style="
+        width: 28px;
+        height: 28px;
+        background: #22c55e;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(34, 197, 94, 0.4);
+        border: 2px solid white;
+      ">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
         </svg>
       </div>
     `,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+};
+
+// Ícone de destino (círculo com bandeira)
+const createDestinoIcon = () => {
+  return L.divIcon({
+    className: 'custom-destination-marker',
+    html: `
+      <div style="
+        width: 28px;
+        height: 28px;
+        background: #ef4444;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+        border: 2px solid white;
+      ">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+          <line x1="4" y1="22" x2="4" y2="15"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+};
+
+// Ícone do caminhão usando o mesmo padrão do TruckIcon
+const createTruckLeafletIcon = (heading: number, isOnline: boolean) => {
+  const truckHtml = getTruckIconHtml(heading, isOnline, false, 48);
+  return L.divIcon({
+    className: 'truck-marker',
+    html: truckHtml,
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
   });
 };
 
