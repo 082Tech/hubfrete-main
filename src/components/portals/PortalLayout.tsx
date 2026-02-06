@@ -72,7 +72,7 @@ export function PortalLayout({ children, expectedUserType, fullWidth = false }: 
           collapsed={collapsed} 
           onToggleCollapse={() => setCollapsed(!collapsed)} 
         />
-        <main className={`flex-1 overflow-auto transition-all duration-300 ${fullWidth ? '' : ''}`}>
+        <main className={`flex-1 overflow-hidden transition-all duration-300 ${fullWidth ? '' : ''}`}>
           {children}
         </main>
       </div>
