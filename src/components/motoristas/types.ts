@@ -12,7 +12,7 @@ export interface MotoristaFormData {
   email: string;
   telefone: string;
   uf: string;
-  tipo_cadastro: 'autonomo' | 'frota';
+  tipo_cadastro: 'autonomo' | 'frota' | 'terceirizado';
   foto_url: string | null;
   
   // CNH
@@ -71,7 +71,7 @@ export interface MotoristaCompleto {
   email: string | null;
   telefone: string | null;
   uf: string | null;
-  tipo_cadastro: 'autonomo' | 'frota' | null;
+  tipo_cadastro: 'autonomo' | 'frota' | 'terceirizado' | null;
   cnh: string;
   categoria_cnh: string;
   validade_cnh: string;

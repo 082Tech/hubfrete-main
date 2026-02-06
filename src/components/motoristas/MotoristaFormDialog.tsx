@@ -35,6 +35,13 @@ const STEPS = [
   { id: 4, title: 'Resumo', description: 'Confirme as informações' },
 ];
 
+const getVisibleSteps = (isTerceirizado: boolean) => {
+  if (isTerceirizado) {
+    return STEPS.filter(s => s.id !== 2); // Skip credentials step
+  }
+  return STEPS;
+};
+
 export function MotoristaFormDialog({
   open,
   onOpenChange,
@@ -61,8 +68,8 @@ export function MotoristaFormDialog({
       // References and comprovante_vinculo are optional in web registration
     }
 
-    if (currentStep === 2) {
-      // Validate credentials
+    if (currentStep === 2 && formData.tipo_cadastro !== 'terceirizado') {
+      // Validate credentials (only for non-terceirizado)
       if (!formData.auth_email || !formData.auth_password) {
         toast.error('E-mail e senha são obrigatórios para acesso ao app');
         return;
@@ -91,125 +98,146 @@ export function MotoristaFormDialog({
       }
     }
 
-    if (currentStep < STEPS.length) {
-      setCurrentStep(prev => prev + 1);
+    const isTerceirizado = formData.tipo_cadastro === 'terceirizado';
+    const visibleSteps = getVisibleSteps(isTerceirizado);
+    const currentIndex = visibleSteps.findIndex(s => s.id === currentStep);
+    const nextStep = visibleSteps[currentIndex + 1];
+    if (nextStep) {
+      setCurrentStep(nextStep.id);
     }
   };
 
   const handlePrev = () => {
-    if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
+    const isTerceirizado = formData.tipo_cadastro === 'terceirizado';
+    const visibleSteps = getVisibleSteps(isTerceirizado);
+    const currentIndex = visibleSteps.findIndex(s => s.id === currentStep);
+    const prevStep = visibleSteps[currentIndex - 1];
+    if (prevStep) {
+      setCurrentStep(prevStep.id);
     }
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Use Edge Function to create driver with authentication
-      const response = await supabase.functions.invoke('create-driver-auth', {
-        body: {
-          email: formData.auth_email,
-          password: formData.auth_password,
-          nome_completo: formData.nome_completo,
-          cpf: formData.cpf.replace(/\D/g, ''),
-          telefone: formData.telefone || null,
-          uf: formData.uf,
-          tipo_cadastro: formData.tipo_cadastro,
-          foto_url: formData.foto_url,
-          cnh: formData.cnh,
-          categoria_cnh: formData.categoria_cnh,
-          validade_cnh: formData.validade_cnh,
-          cnh_tem_qrcode: formData.cnh_tem_qrcode,
-          cnh_digital_url: formData.cnh_digital_url,
-          comprovante_endereco_url: formData.comprovante_endereco_url,
-          comprovante_endereco_titular_nome: formData.comprovante_endereco_titular_nome || null,
-          comprovante_endereco_titular_doc_url: formData.comprovante_endereco_titular_doc_url,
-          comprovante_vinculo_url: formData.comprovante_vinculo_url,
-          possui_ajudante: formData.possui_ajudante,
-          empresa_id: empresaId,
-          ajudante_nome: formData.ajudante_nome,
-          ajudante_cpf: formData.ajudante_cpf,
-          ajudante_telefone: formData.ajudante_telefone,
-          ajudante_tipo_cadastro: formData.ajudante_tipo_cadastro,
-          ajudante_comprovante_vinculo_url: formData.ajudante_comprovante_vinculo_url,
-          referencias: formData.referencias.filter(r => r.nome && r.telefone),
-        },
-      });
+      const isTerceirizadoSubmit = formData.tipo_cadastro === 'terceirizado';
 
-      // When the Edge Function returns non-2xx, Supabase SDK provides a FunctionsHttpError.
-      // The useful message is in the JSON body (e.g. { error: "Este email já está cadastrado no sistema" }).
-      if (response.error instanceof FunctionsHttpError) {
-        const context = response.error.context;
+      if (isTerceirizadoSubmit) {
+        // Terceirizado: create motorista directly without auth
+        // Generate a placeholder user_id (no auth account)
+        const placeholderUserId = crypto.randomUUID();
+        
+        const { data: motoristaData, error: motoristaError } = await supabase
+          .from('motoristas')
+          .insert({
+            user_id: placeholderUserId,
+            nome_completo: formData.nome_completo,
+            cpf: formData.cpf.replace(/\D/g, ''),
+            telefone: formData.telefone || null,
+            email: formData.email || null,
+            uf: formData.uf,
+            tipo_cadastro: 'terceirizado',
+            foto_url: formData.foto_url,
+            cnh: formData.cnh,
+            categoria_cnh: formData.categoria_cnh,
+            validade_cnh: formData.validade_cnh,
+            cnh_tem_qrcode: formData.cnh_tem_qrcode,
+            cnh_digital_url: formData.cnh_digital_url,
+            comprovante_endereco_url: formData.comprovante_endereco_url,
+            comprovante_endereco_titular_nome: formData.comprovante_endereco_titular_nome || null,
+            comprovante_endereco_titular_doc_url: formData.comprovante_endereco_titular_doc_url,
+            comprovante_vinculo_url: formData.comprovante_vinculo_url,
+            possui_ajudante: formData.possui_ajudante,
+            empresa_id: empresaId,
+          })
+          .select('id')
+          .single();
 
-        if (context) {
-          const text = await context.text();
+        if (motoristaError) throw motoristaError;
 
-          // tenta interpretar como JSON
-          let parsed: any = null;
-          try {
-            parsed = JSON.parse(text);
-          } catch {
-            parsed = null;
-          }
-
-          // 1️⃣ JSON com erro
-          if (parsed) {
-            if (typeof parsed.error === 'string') {
-              throw new Error(parsed.error);
-            }
-
-            if (typeof parsed.error === 'object') {
-              throw new Error(
-                parsed.error.message ||
-                parsed.error.cpf ||
-                parsed.error.email ||
-                Object.values(parsed.error)[0] ||
-                'Erro ao criar motorista'
-              );
-            }
-
-            if (typeof parsed.message === 'string') {
-              throw new Error(parsed.message);
-            }
-          }
-
-          // 2️⃣ não era JSON → usa texto cru
-          if (text) {
-            throw new Error(text);
-          }
+        // Create ajudante if needed
+        if (formData.possui_ajudante && formData.ajudante_nome && formData.ajudante_cpf) {
+          await supabase.from('ajudantes').insert({
+            motorista_id: motoristaData.id,
+            nome: formData.ajudante_nome,
+            cpf: formData.ajudante_cpf.replace(/\D/g, ''),
+            telefone: formData.ajudante_telefone || null,
+            tipo_cadastro: formData.ajudante_tipo_cadastro,
+            comprovante_vinculo_url: formData.ajudante_comprovante_vinculo_url,
+          });
         }
 
-        throw new Error('Erro retornado pela função');
-      }
-
-      /* ================================
-         Caso 3: Edge retornou 200 com erro
-      ================================ */
-
-      const dataError = (response.data as any)?.error;
-
-      if (dataError) {
-        if (typeof dataError === 'string') {
-          throw new Error(dataError);
-        }
-
-        if (typeof dataError === 'object') {
-          throw new Error(
-            dataError.message ||
-            dataError.cpf ||
-            dataError.email ||
-            Object.values(dataError)[0] ||
-            'Erro ao criar motorista'
+        // Create referencias
+        const refs = formData.referencias.filter(r => r.nome && r.telefone);
+        if (refs.length > 0) {
+          await supabase.from('motorista_referencias').insert(
+            refs.map(r => ({ ...r, motorista_id: motoristaData.id }))
           );
         }
+
+        toast.success('Motorista terceirizado cadastrado com sucesso!');
+      } else {
+        // Non-terceirizado: use Edge Function for auth creation
+        const response = await supabase.functions.invoke('create-driver-auth', {
+          body: {
+            email: formData.auth_email,
+            password: formData.auth_password,
+            nome_completo: formData.nome_completo,
+            cpf: formData.cpf.replace(/\D/g, ''),
+            telefone: formData.telefone || null,
+            uf: formData.uf,
+            tipo_cadastro: formData.tipo_cadastro,
+            foto_url: formData.foto_url,
+            cnh: formData.cnh,
+            categoria_cnh: formData.categoria_cnh,
+            validade_cnh: formData.validade_cnh,
+            cnh_tem_qrcode: formData.cnh_tem_qrcode,
+            cnh_digital_url: formData.cnh_digital_url,
+            comprovante_endereco_url: formData.comprovante_endereco_url,
+            comprovante_endereco_titular_nome: formData.comprovante_endereco_titular_nome || null,
+            comprovante_endereco_titular_doc_url: formData.comprovante_endereco_titular_doc_url,
+            comprovante_vinculo_url: formData.comprovante_vinculo_url,
+            possui_ajudante: formData.possui_ajudante,
+            empresa_id: empresaId,
+            ajudante_nome: formData.ajudante_nome,
+            ajudante_cpf: formData.ajudante_cpf,
+            ajudante_telefone: formData.ajudante_telefone,
+            ajudante_tipo_cadastro: formData.ajudante_tipo_cadastro,
+            ajudante_comprovante_vinculo_url: formData.ajudante_comprovante_vinculo_url,
+            referencias: formData.referencias.filter(r => r.nome && r.telefone),
+          },
+        });
+
+        if (response.error instanceof FunctionsHttpError) {
+          const context = response.error.context;
+          if (context) {
+            const text = await context.text();
+            let parsed: any = null;
+            try { parsed = JSON.parse(text); } catch { parsed = null; }
+            if (parsed) {
+              if (typeof parsed.error === 'string') throw new Error(parsed.error);
+              if (typeof parsed.error === 'object') {
+                throw new Error(parsed.error.message || parsed.error.cpf || parsed.error.email || Object.values(parsed.error)[0] as string || 'Erro ao criar motorista');
+              }
+              if (typeof parsed.message === 'string') throw new Error(parsed.message);
+            }
+            if (text) throw new Error(text);
+          }
+          throw new Error('Erro retornado pela função');
+        }
+
+        const dataError = (response.data as any)?.error;
+        if (dataError) {
+          if (typeof dataError === 'string') throw new Error(dataError);
+          if (typeof dataError === 'object') {
+            throw new Error(dataError.message || dataError.cpf || dataError.email || Object.values(dataError)[0] as string || 'Erro ao criar motorista');
+          }
+        }
+
+        toast.success('Motorista cadastrado com sucesso! Credenciais: ' + formData.auth_email);
       }
 
-      // Edge function handles referencias and ajudante creation
-
-      toast.success('Motorista cadastrado com sucesso! Credenciais: ' + formData.auth_email);
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
-
-      // Reset and close
       setFormData(getInitialFormData());
       setCurrentStep(1);
       onOpenChange(false);
@@ -228,7 +256,12 @@ export function MotoristaFormDialog({
     onOpenChange(false);
   };
 
-  const progress = (currentStep / STEPS.length) * 100;
+  const isTerceirizado = formData.tipo_cadastro === 'terceirizado';
+  const visibleSteps = getVisibleSteps(isTerceirizado);
+  const currentStepIndex = visibleSteps.findIndex(s => s.id === currentStep);
+  const currentStepData = STEPS.find(s => s.id === currentStep);
+  const isLastStep = currentStepIndex === visibleSteps.length - 1;
+  const progress = ((currentStepIndex + 1) / visibleSteps.length) * 100;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -238,7 +271,7 @@ export function MotoristaFormDialog({
             {editingMotorista ? 'Editar Motorista' : 'Cadastrar Motorista'}
           </DialogTitle>
           <DialogDescription>
-            Etapa {currentStep} de {STEPS.length}: {STEPS[currentStep - 1].description}
+            Etapa {currentStepIndex + 1} de {visibleSteps.length}: {currentStepData?.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -246,7 +279,7 @@ export function MotoristaFormDialog({
         <div className="space-y-2">
           <Progress value={progress} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
-            {STEPS.map((step) => (
+            {visibleSteps.map((step) => (
               <button
                 key={step.id}
                 type="button"
@@ -288,7 +321,7 @@ export function MotoristaFormDialog({
             {currentStep === 1 ? 'Cancelar' : 'Voltar'}
           </Button>
 
-          {currentStep < STEPS.length ? (
+          {!isLastStep ? (
             <Button onClick={handleNext} disabled={isSubmitting}>
               Próximo
               <ChevronRight className="w-4 h-4 ml-1" />
