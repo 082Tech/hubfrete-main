@@ -131,8 +131,11 @@ export function ViagemMultiPointMap({
     if (driverLocation) {
       points.push({ lat: driverLocation.lat, lng: driverLocation.lng });
     }
+    trackingPoints.forEach(tp => {
+      points.push({ lat: tp.lat, lng: tp.lng });
+    });
     return points;
-  }, [entregas, driverLocation]);
+  }, [entregas, driverLocation, trackingPoints]);
 
   // Centro padrão se não houver coordenadas
   const mapCenter = useMemo((): [number, number] => {
