@@ -1477,8 +1477,24 @@ export default function OperacaoDiaria() {
         })
       );
 
-      // Filter to show only viagens with entregas
-      return viagensWithEntregas.filter(v => v.entregas.length > 0) as ViagemWithEntregas[];
+      // Filter: active viagens always show, terminal viagens only if finalized today
+      const today = new Date();
+      const startOfTodayViagem = startOfDay(today).toISOString();
+      const activeViagemStatuses = ['programada', 'aguardando', 'em_andamento'];
+      const terminalViagemStatuses = ['finalizada', 'cancelada'];
+      
+      return viagensWithEntregas.filter(v => {
+        if (v.entregas.length === 0) return false;
+        if (activeViagemStatuses.includes(v.status)) return true;
+        if (terminalViagemStatuses.includes(v.status)) {
+          // Show terminal viagens only if they were updated today
+          const updatedToday = new Date(v.created_at) >= new Date(startOfTodayViagem);
+          // For viagens we don't have updated_at, use entregas' updated_at as proxy
+          const anyEntregaUpdatedToday = v.entregas.some(e => new Date(e.updated_at) >= new Date(startOfTodayViagem));
+          return updatedToday || anyEntregaUpdatedToday;
+        }
+        return false;
+      }) as ViagemWithEntregas[];
     },
     enabled: viewMode === 'viagens' && !!empresa?.id,
     refetchInterval: 30000,
