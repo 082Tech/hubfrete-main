@@ -56,7 +56,7 @@ import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { useNavigate } from 'react-router-dom';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
@@ -150,11 +150,6 @@ export default function HistoricoEntregas() {
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
-  const { ref: tableCardRef, height: tableCardHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    // desconta padding inferior da página (p-4 = 16, p-8 = 32 no md)
-    bottomOffset: 32,
-    minHeight: 320,
-  });
 
   // Draggable columns hook
   const {
@@ -610,7 +605,7 @@ export default function HistoricoEntregas() {
   return (
     <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
       <TooltipProvider>
-        <div className="flex flex-col h-full gap-6">
+        <div className="flex flex-col h-full gap-6 overflow-hidden">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
             <div>
@@ -725,9 +720,7 @@ export default function HistoricoEntregas() {
 
           {/* Table */}
           <Card
-            ref={tableCardRef as any}
-            style={{ height: tableCardHeight }}
-            className="border-border hidden md:flex flex-col"
+            className="border-border hidden md:flex flex-col flex-1 min-h-0"
           >
             <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
               <div className="flex-1 min-h-0 overflow-auto">

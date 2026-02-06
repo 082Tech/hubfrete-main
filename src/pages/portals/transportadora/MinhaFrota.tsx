@@ -1767,7 +1767,6 @@ export default function MinhaFrota() {
                 ))}
               </div>
             )}
-            )
           </TabsContent>
 
           <TabsContent value="carrocerias" className="flex flex-col flex-1 min-h-0 gap-6 mt-6">
