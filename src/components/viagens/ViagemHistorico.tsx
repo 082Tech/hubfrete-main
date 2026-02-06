@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  Package, FileText, ArrowLeftRight, Clock, History
+  Package, FileText, ArrowLeftRight, Clock, History, Truck
 } from 'lucide-react';
 
 interface Evento {
@@ -27,11 +27,14 @@ interface ViagemHistoricoProps {
     codigo: string;
     status: string;
     created_at: string;
+    updated_at?: string;
+    started_at?: string | null;
+    ended_at?: string | null;
   };
   entregas: ViagemEntrega[];
 }
 
-const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean; isCreation?: boolean }> = {
+const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean; isCreation?: boolean; isTrip?: boolean }> = {
   criado: { label: 'Entrega criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
   aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
   inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
@@ -44,8 +47,12 @@ const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: 
   manifesto_anexado: { label: 'Manifesto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
   canhoto_anexado: { label: 'Canhoto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
   nf_anexada: { label: 'Nota Fiscal anexada', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-  viagem_criada: { label: 'Viagem iniciada', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isCreation: true },
-  viagem_finalizada: { label: 'Viagem finalizada', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+  // Trip lifecycle events
+  viagem_criada: { label: 'Viagem criada', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isCreation: true, isTrip: true },
+  viagem_aguardando: { label: 'Aguardando', bgColor: 'bg-sky-100 dark:bg-sky-900/30', isTrip: true },
+  viagem_em_andamento: { label: 'Em Andamento', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isTrip: true },
+  viagem_finalizada: { label: 'Finalizada', bgColor: 'bg-green-100 dark:bg-green-900/30', isTrip: true },
+  viagem_cancelada: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30', isTrip: true },
 };
 
 const iconColor: Record<string, string> = {
@@ -57,46 +64,84 @@ const iconColor: Record<string, string> = {
   cancelado: 'text-red-600 dark:text-red-400',
   problema: 'text-orange-600 dark:text-orange-400',
   viagem_criada: 'text-blue-600 dark:text-blue-400',
+  viagem_aguardando: 'text-sky-600 dark:text-sky-400',
+  viagem_em_andamento: 'text-blue-600 dark:text-blue-400',
   viagem_finalizada: 'text-green-600 dark:text-green-400',
+  viagem_cancelada: 'text-red-600 dark:text-red-400',
 };
+
+interface TimelineItem {
+  id: string;
+  timestamp: string;
+  tipo: string;
+  user_nome: string;
+  entityCodigo?: string;
+  entityType: 'viagem' | 'entrega';
+}
 
 export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
   // Build unified timeline
-  const timelineItems: Array<{
-    id: string;
-    timestamp: string;
-    tipo: string;
-    user_nome: string;
-    entityCodigo?: string;
-  }> = [];
+  const timelineItems: TimelineItem[] = [];
 
-  // Trip creation event
+  // 1. Trip creation event
   timelineItems.push({
     id: `viagem-created-${viagem.id}`,
     timestamp: viagem.created_at,
     tipo: 'viagem_criada',
     user_nome: 'Sistema',
     entityCodigo: viagem.codigo,
+    entityType: 'viagem',
   });
 
-  // Trip finalization event
-  if (viagem.status === 'finalizada') {
-    const lastFinalized = entregas
-      .filter(e => e.status === 'entregue')
-      .sort((a, b) => new Date(b.updated_at || '').getTime() - new Date(a.updated_at || '').getTime())[0];
-    
-    if (lastFinalized) {
-      timelineItems.push({
-        id: `viagem-finished-${viagem.id}`,
-        timestamp: lastFinalized.updated_at || viagem.created_at,
-        tipo: 'viagem_finalizada',
-        user_nome: 'Sistema',
-        entityCodigo: viagem.codigo,
-      });
-    }
+  // 2. Trip started (aguardando) — use started_at if available
+  // When the operator clicks "Iniciar Viagem", status goes to aguardando and started_at is set
+  if (viagem.started_at) {
+    timelineItems.push({
+      id: `viagem-started-${viagem.id}`,
+      timestamp: viagem.started_at,
+      tipo: 'viagem_aguardando',
+      user_nome: 'Sistema',
+      entityCodigo: viagem.codigo,
+      entityType: 'viagem',
+    });
   }
 
-  // Delivery events
+  // 3. Trip in progress (em_andamento) — if status is em_andamento or beyond
+  // We approximate this timestamp; if started_at exists and status >= em_andamento
+  if (['em_andamento', 'finalizada', 'cancelada'].includes(viagem.status) && viagem.started_at) {
+    // Use started_at + small offset or updated_at as approximation
+    timelineItems.push({
+      id: `viagem-em-andamento-${viagem.id}`,
+      timestamp: viagem.started_at, // same moment as start for now
+      tipo: 'viagem_em_andamento',
+      user_nome: 'Sistema',
+      entityCodigo: viagem.codigo,
+      entityType: 'viagem',
+    });
+  }
+
+  // 4. Trip finalization/cancellation
+  if (viagem.status === 'finalizada') {
+    timelineItems.push({
+      id: `viagem-finished-${viagem.id}`,
+      timestamp: viagem.ended_at || viagem.updated_at || viagem.created_at,
+      tipo: 'viagem_finalizada',
+      user_nome: 'Sistema',
+      entityCodigo: viagem.codigo,
+      entityType: 'viagem',
+    });
+  } else if (viagem.status === 'cancelada') {
+    timelineItems.push({
+      id: `viagem-cancelled-${viagem.id}`,
+      timestamp: viagem.updated_at || viagem.created_at,
+      tipo: 'viagem_cancelada',
+      user_nome: 'Sistema',
+      entityCodigo: viagem.codigo,
+      entityType: 'viagem',
+    });
+  }
+
+  // 5. Delivery events
   entregas.forEach(entrega => {
     (entrega.eventos || []).forEach(evento => {
       timelineItems.push({
@@ -105,6 +150,7 @@ export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
         tipo: evento.tipo,
         user_nome: evento.user_nome || 'Sistema',
         entityCodigo: entrega.codigo,
+        entityType: 'entrega',
       });
     });
   });
@@ -133,7 +179,30 @@ export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
           const config = tipoConfig[item.tipo] || { label: item.tipo.replace(/_/g, ' '), bgColor: 'bg-muted dark:bg-muted/50' };
           const isDocument = config.isDocument || item.tipo.includes('documento') || item.tipo.includes('anexa');
           const isCreation = config.isCreation;
+          const isTrip = config.isTrip;
           const color = iconColor[item.tipo] || 'text-muted-foreground';
+
+          // Build descriptive text
+          let actionText: string;
+          let labelText: string | null = null;
+
+          if (isCreation) {
+            actionText = item.tipo === 'viagem_criada'
+              ? ' criou esta viagem'
+              : ' criou esta entrega';
+          } else if (isDocument) {
+            actionText = ' anexou ';
+            labelText = config.label;
+          } else if (isTrip) {
+            actionText = ' definiu o status como ';
+            labelText = config.label;
+          } else {
+            actionText = ' definiu o status como ';
+            labelText = config.label;
+          }
+
+          // Context suffix
+          const contextSuffix = isTrip ? ' (viagem)' : item.entityType === 'entrega' ? ' (entrega)' : '';
 
           return (
             <div key={item.id} className="relative flex items-start gap-3">
@@ -143,23 +212,24 @@ export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
                   <FileText className={`w-4 h-4 text-blue-600 dark:text-blue-400`} />
                 ) : isCreation ? (
                   <Package className={`w-4 h-4 ${color}`} />
+                ) : isTrip ? (
+                  <Truck className={`w-4 h-4 ${color}`} />
                 ) : (
                   <ArrowLeftRight className={`w-4 h-4 ${color}`} />
                 )}
               </div>
 
-              {/* Content - matches delivery history style */}
+              {/* Content */}
               <div className="flex-1 min-w-0 pt-1">
                 <p className="text-sm">
                   <span className="font-medium">{item.user_nome}</span>
-                  <span className="text-muted-foreground">
-                    {isCreation
-                      ? (item.tipo === 'viagem_criada' ? ' iniciou esta viagem' : ' criou esta entrega')
-                      : isDocument
-                        ? ' anexou '
-                        : ' definiu o status como '}
-                  </span>
-                  {!isCreation && <span className="font-medium">{config.label}</span>}
+                  <span className="text-muted-foreground">{actionText}</span>
+                  {labelText && (
+                    <>
+                      <span className="font-medium">{labelText}</span>
+                      <span className="text-muted-foreground text-xs">{contextSuffix}</span>
+                    </>
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {format(new Date(item.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
