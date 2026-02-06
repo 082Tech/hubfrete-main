@@ -1596,19 +1596,19 @@ export default function MinhaFrota() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'veiculos' | 'carrocerias')} className="flex flex-col flex-1 min-h-0">
+        <div className="flex flex-col flex-1 min-h-0">
           <TabsList className="grid w-full max-w-md grid-cols-2 shrink-0">
-            <TabsTrigger value="veiculos" className="gap-2">
+            <TabsTrigger value="veiculos" className="gap-2" onClick={() => setActiveTab('veiculos')} data-state={activeTab === 'veiculos' ? 'active' : 'inactive'}>
               <Car className="w-4 h-4" />
               Veículos ({veiculos.length})
             </TabsTrigger>
-            <TabsTrigger value="carrocerias" className="gap-2">
+            <TabsTrigger value="carrocerias" className="gap-2" onClick={() => setActiveTab('carrocerias')} data-state={activeTab === 'carrocerias' ? 'active' : 'inactive'}>
               <Container className="w-4 h-4" />
               Carrocerias ({carrocerias.length})
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="veiculos" className="flex flex-col flex-1 min-h-0 gap-6 mt-6">
+          {activeTab === 'veiculos' && <div className="flex flex-col flex-1 min-h-0 gap-6 mt-6">
             {/* Veículos Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
               <Card className="border-border">
@@ -2015,9 +2015,9 @@ export default function MinhaFrota() {
               )}
             </div>
             )}
-          </TabsContent>
+          </div>}
 
-          <TabsContent value="carrocerias" className="flex flex-col flex-1 min-h-0 gap-6 mt-6">
+          {activeTab === 'carrocerias' && <div className="flex flex-col flex-1 min-h-0 gap-6 mt-6">
             {/* Carrocerias Stats */}
             <div className="grid grid-cols-2 gap-4 max-w-md shrink-0">
               <Card className="border-border">
@@ -2380,8 +2380,8 @@ export default function MinhaFrota() {
             </div>
             )}
 
-          </TabsContent>
-        </Tabs>
+          </div>}
+        </div>
 
         {/* Edit Dialogs */}
         <VeiculoEditDialog
