@@ -258,6 +258,28 @@ export function ViagemMultiPointMap({
             }}
           />
         ))}
+
+        {/* Tracking history dots */}
+        {trackingPoints.map((point, idx) => (
+          <CircleMarker
+            key={`track-${idx}`}
+            center={[point.lat, point.lng]}
+            radius={3}
+            pathOptions={{
+              color: '#6366f1',
+              fillColor: '#6366f1',
+              fillOpacity: 0.7,
+              weight: 1,
+            }}
+          >
+            <Tooltip direction="top" offset={[0, -5]}>
+              <div className="text-[10px]">
+                <div>{new Date(point.tracked_at).toLocaleString('pt-BR')}</div>
+                {point.speed != null && <div>{Math.round(point.speed)} km/h</div>}
+              </div>
+            </Tooltip>
+          </CircleMarker>
+        ))}
       </MapContainer>
     </div>
   );
