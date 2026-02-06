@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup, CircleMarker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getTruckIconHtml } from './TruckIcon';
@@ -17,10 +17,19 @@ interface EntregaPoint {
   status: string;
 }
 
+interface TrackingPoint {
+  lat: number;
+  lng: number;
+  tracked_at: string;
+  speed: number | null;
+  status: string | null;
+}
+
 interface ViagemMultiPointMapProps {
   entregas: EntregaPoint[];
   driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
   height?: number;
+  trackingPoints?: TrackingPoint[];
 }
 
 // Ícone de origem (círculo com "O")
