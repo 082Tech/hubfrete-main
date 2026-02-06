@@ -75,7 +75,7 @@ function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
   if (!user || !userType || userType !== expectedUserType) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-dvh bg-background flex overflow-hidden">
       {/* Global notification toast */}
       <NotificationToast />
       
@@ -91,12 +91,11 @@ function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
       
       {/* Main content */}
       <main 
-        className={`transition-all duration-300 ${
+        className={`flex-1 min-w-0 h-full overflow-hidden transition-all duration-300 ${
           isMobile 
             ? isInChatView ? '' : 'pb-20'
             : ''
         }`}
-        style={!isMobile ? { marginLeft: collapsed ? COLLAPSED_WIDTH : SIDEBAR_WIDTH } : undefined}
       >
         <Outlet />
       </main>
