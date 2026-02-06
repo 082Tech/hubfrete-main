@@ -67,7 +67,7 @@ import { useTableSort } from '@/hooks/useTableSort';
 import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColumns';
 import { DraggableTableHead } from '@/components/ui/draggable-table-head';
 import { toast } from 'sonner';
-import { VeiculoEditDialog, CarroceriaEditDialog } from '@/components/frota';
+import { VeiculoEditDialog, CarroceriaEditDialog, VeiculoDetailDialog, CarroceriaDetailDialog } from '@/components/frota';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -230,6 +230,8 @@ export default function MinhaFrota() {
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [editingVeiculo, setEditingVeiculo] = useState<Veiculo | null>(null);
   const [editingCarroceria, setEditingCarroceria] = useState<Carroceria | null>(null);
+  const [viewingVeiculo, setViewingVeiculo] = useState<Veiculo | null>(null);
+  const [viewingCarroceria, setViewingCarroceria] = useState<Carroceria | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentoInputRef = useRef<HTMLInputElement>(null);
   const enderecoProprietarioInputRef = useRef<HTMLInputElement>(null);
@@ -913,7 +915,7 @@ export default function MinhaFrota() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
+                <DropdownMenuItem onClick={() => setViewingVeiculo(veiculo)}>
                   <Search className="w-4 h-4 mr-2" />Ver mais
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
@@ -1015,6 +1017,9 @@ export default function MinhaFrota() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setViewingCarroceria(carroceria)}>
+                  <Search className="w-4 h-4 mr-2" />Ver mais
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setEditingCarroceria(carroceria)}>
                   <Edit className="w-4 h-4 mr-2" />Editar
                 </DropdownMenuItem>
@@ -1877,7 +1882,7 @@ export default function MinhaFrota() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
+                            <DropdownMenuItem onClick={() => setViewingVeiculo(veiculo)}>
                               <Search className="w-4 h-4 mr-2" />Ver mais
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => cardFileInputRefs.current[veiculo.id]?.click()}>
@@ -2157,7 +2162,7 @@ export default function MinhaFrota() {
                             <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setEditingCarroceria(carroceria)}>
+                            <DropdownMenuItem onClick={() => setViewingCarroceria(carroceria)}>
                               <Search className="w-4 h-4 mr-2" />Ver mais
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => cardFileInputRefs.current[carroceria.id]?.click()}>
@@ -2220,6 +2225,19 @@ export default function MinhaFrota() {
 
           </div>}
         </Tabs>
+
+        {/* Detail Dialogs (read-only) */}
+        <VeiculoDetailDialog
+          veiculo={viewingVeiculo}
+          open={!!viewingVeiculo}
+          onOpenChange={(open) => !open && setViewingVeiculo(null)}
+        />
+        <CarroceriaDetailDialog
+          carroceria={viewingCarroceria}
+          open={!!viewingCarroceria}
+          onOpenChange={(open) => !open && setViewingCarroceria(null)}
+          veiculoAtrelado={viewingCarroceria?.motorista ? veiculos.find(v => v.motorista?.id === viewingCarroceria.motorista?.id) : null}
+        />
 
         {/* Edit Dialogs */}
         <VeiculoEditDialog

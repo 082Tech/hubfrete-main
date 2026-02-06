@@ -629,9 +629,9 @@ export default function HistoricoEntregas() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0 px-px">
             <Card
-              className={`border-border cursor-pointer transition-all ${selectedStatus === null ? 'ring-2 ring-primary' : 'hover:bg-muted/30'}`}
+              className={`border-border cursor-pointer transition-all ${selectedStatus === null ? 'ring-2 ring-primary ring-inset' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(null)}
             >
               <CardContent className="p-4 text-center">
@@ -643,7 +643,7 @@ export default function HistoricoEntregas() {
               </CardContent>
             </Card>
             <Card
-              className={`border-border cursor-pointer transition-all ${selectedStatus === 'entregue' ? 'ring-2 ring-green-500' : 'hover:bg-muted/30'}`}
+              className={`border-border cursor-pointer transition-all ${selectedStatus === 'entregue' ? 'ring-2 ring-green-500 ring-inset' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(selectedStatus === 'entregue' ? null : 'entregue')}
             >
               <CardContent className="p-4 text-center">
@@ -655,7 +655,7 @@ export default function HistoricoEntregas() {
               </CardContent>
             </Card>
             <Card
-              className={`border-border cursor-pointer transition-all ${selectedStatus === 'cancelada' ? 'ring-2 ring-gray-500' : 'hover:bg-muted/30'}`}
+              className={`border-border cursor-pointer transition-all ${selectedStatus === 'cancelada' ? 'ring-2 ring-gray-500 ring-inset' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(selectedStatus === 'cancelada' ? null : 'cancelada')}
             >
               <CardContent className="p-4 text-center">
@@ -667,7 +667,7 @@ export default function HistoricoEntregas() {
               </CardContent>
             </Card>
             <Card
-              className={`border-border cursor-pointer transition-all ${selectedStatus === 'problema' ? 'ring-2 ring-destructive' : 'hover:bg-muted/30'}`}
+              className={`border-border cursor-pointer transition-all ${selectedStatus === 'problema' ? 'ring-2 ring-destructive ring-inset' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(selectedStatus === 'problema' ? null : 'problema')}
             >
               <CardContent className="p-4 text-center">

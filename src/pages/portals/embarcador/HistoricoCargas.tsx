@@ -691,7 +691,7 @@ export default function HistoricoCargas() {
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 shrink-0">
             <Card 
-              className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary' : ''}`}
+              className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary ring-inset' : ''}`}
               onClick={() => setFilterStatus('all')}
             >
               <CardContent className="p-4">
@@ -704,7 +704,7 @@ export default function HistoricoCargas() {
             </Card>
 
             <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'entregue' ? 'ring-2 ring-emerald-500' : ''}`}
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'entregue' ? 'ring-2 ring-emerald-500 ring-inset' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'entregue' ? 'all' : 'entregue')}
             >
               <CardContent className="p-4">
@@ -717,7 +717,7 @@ export default function HistoricoCargas() {
             </Card>
 
             <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'cancelada' ? 'ring-2 ring-gray-500' : ''}`}
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'cancelada' ? 'ring-2 ring-gray-500 ring-inset' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'cancelada' ? 'all' : 'cancelada')}
             >
               <CardContent className="p-4">
@@ -731,7 +731,7 @@ export default function HistoricoCargas() {
 
             {stats.comProblemas > 0 && (
               <Card 
-                className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'problema' ? 'ring-2 ring-destructive' : ''}`}
+                className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'problema' ? 'ring-2 ring-destructive ring-inset' : ''}`}
                 onClick={() => setFilterStatus(filterStatus === 'problema' ? 'all' : 'problema')}
               >
                 <CardContent className="p-4">
