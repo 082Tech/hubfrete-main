@@ -262,11 +262,13 @@ export function ViagemDetailPanel({
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
           {/* Mapa Multi-Ponto */}
-          <ViagemMultiPointMap
-            entregas={mapEntregas}
-            driverLocation={driverLocation}
-            height={260}
-          />
+          <div className="relative z-0">
+            <ViagemMultiPointMap
+              entregas={mapEntregas}
+              driverLocation={driverLocation}
+              height={260}
+            />
+          </div>
 
           {/* Motorista & Veículo */}
           {viagem.motorista && (
