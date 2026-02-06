@@ -1738,11 +1738,9 @@ export default function OperacaoDiaria() {
       );
     }
 
-    const aguardando = filtered.filter(e => e.status === 'aguardando');
-    const emRota = filtered.filter(e =>
-      ['saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'].includes(e.status)
-    );
-    return { aguardandoEntregas: aguardando, emRotaEntregas: emRota, filteredEntregas: filtered };
+    const ativas = filtered.filter(e => ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'].includes(e.status));
+    const finalizadas = filtered.filter(e => ['entregue', 'cancelada'].includes(e.status));
+    return { aguardandoEntregas: ativas, emRotaEntregas: finalizadas, filteredEntregas: filtered };
   }, [entregas, filters]);
 
   // Get driver location for selected delivery (includes heading and online status)
