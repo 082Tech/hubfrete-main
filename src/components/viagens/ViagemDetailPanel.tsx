@@ -120,11 +120,25 @@ export function ViagemDetailPanel({
 }: ViagemDetailPanelProps) {
   const [anexarManifestoOpen, setAnexarManifestoOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
-  const [trackingMapOpen, setTrackingMapOpen] = useState(false);
   const [iniciarDialogOpen, setIniciarDialogOpen] = useState(false);
   const [finalizarDialogOpen, setFinalizarDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [isProcessingViagem, setIsProcessingViagem] = useState(false);
+  const [trackingPoints, setTrackingPoints] = useState<Array<{ lat: number; lng: number; tracked_at: string; speed: number | null; status: string | null }>>([]);
+
+  // Fetch tracking history for map dots
+  useEffect(() => {
+    if (!viagem?.id) return;
+    fetchAllTrackingHistoricoByViagemId(viagem.id, { maxRows: 5000 })
+      .then(rows => setTrackingPoints(rows.map(r => ({
+        lat: r.latitude,
+        lng: r.longitude,
+        tracked_at: r.tracked_at,
+        speed: r.speed,
+        status: r.status,
+      }))))
+      .catch(() => setTrackingPoints([]));
+  }, [viagem?.id]);
 
   // Status flags
   const isViagemProgramada = viagem?.status === 'programada';
