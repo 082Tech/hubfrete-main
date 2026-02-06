@@ -148,7 +148,7 @@ export default function TransportadoraDashboard() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 h-full overflow-auto">
       <div className="space-y-6">
         {/* Welcome Header */}
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">

@@ -49,7 +49,7 @@ import { EditUserDialog } from '@/components/users/EditUserDialog';
 import { ManageInvitesCard } from '@/components/users/ManageInvitesCard';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
 import { useViewModePreference } from '@/hooks/useViewModePreference';
 import { useTableSort } from '@/hooks/useTableSort';
 import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColumns';
@@ -99,10 +99,6 @@ export default function UsuariosEmpresa() {
   const [editingUser, setEditingUser] = useState<UsuarioComFiliais | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
 
-  const { ref: tableCardRef, height: tableCardHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    bottomOffset: 32,
-    minHeight: 320,
-  });
 
   // Draggable columns hook
   const {
@@ -438,7 +434,7 @@ export default function UsuariosEmpresa() {
 
   return (
     <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
-      <div className="flex flex-col h-full gap-6">
+      <div className="flex flex-col h-full gap-6 overflow-hidden">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
           <div>
@@ -613,9 +609,7 @@ export default function UsuariosEmpresa() {
           </Card>
         ) : viewMode === 'list' ? (
           <Card
-            ref={tableCardRef}
-            style={{ height: tableCardHeight }}
-            className="border-border flex flex-col"
+            className="border-border flex flex-col flex-1 min-h-0"
           >
             <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
               <div className="flex-1 min-h-0 overflow-auto">
@@ -720,9 +714,7 @@ export default function UsuariosEmpresa() {
         ) : (
           /* Grid View */
           <div 
-            ref={tableCardRef}
-            style={{ height: tableCardHeight }}
-            className="flex flex-col overflow-hidden"
+            className="flex flex-col flex-1 min-h-0 overflow-auto"
           >
             <div className="flex-1 overflow-auto">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
