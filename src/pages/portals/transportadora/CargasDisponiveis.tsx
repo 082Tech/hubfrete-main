@@ -193,18 +193,23 @@ export default function CargasDisponiveis() {
   const [isCreatingViagem, setIsCreatingViagem] = useState(false);
   const [pesoAlocadoInput, setPesoAlocadoInput] = useState<number>(0);
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'map' | undefined>(undefined);
+  const [viewMode, setViewModeState] = useState<'list' | 'map'>(() => {
+    try {
+      const saved = localStorage.getItem('hubfrete_cargas_view_mode');
+      if (saved === 'list' || saved === 'map') return saved;
+    } catch {}
+    return isMobile ? 'list' : 'map';
+  });
+  const setViewMode = (mode: 'list' | 'map') => {
+    setViewModeState(mode);
+    try { localStorage.setItem('hubfrete_cargas_view_mode', mode); } catch {}
+  };
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
   const [distancias, setDistancias] = useState<Map<string, { distance: string; duration: string }>>(new Map());
   const equipmentSectionRef = useRef<HTMLDivElement>(null);
   const viagemSectionRef = useRef<HTMLDivElement>(null);
-
-  // Set default view mode based on device
-  useEffect(() => {
-    if (viewMode === undefined) {
-      setViewMode(isMobile ? 'list' : 'map');
-    }
-  }, [isMobile, viewMode]);
+  const [visibleCount, setVisibleCount] = useState(15);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch cargas publicadas
   const { data: cargas = [], isLoading } = useQuery({
@@ -679,6 +684,19 @@ export default function CargasDisponiveis() {
              matchesDestinatario && matchesCnpjDestinatario && matchesTipo && matchesTipoVeiculo;
     });
   }, [cargas, advancedFilters, filterTipo, filterTiposVeiculo]);
+
+  // Reset visible count when filters change
+  useEffect(() => { setVisibleCount(15); }, [advancedFilters, filterTipo, filterTiposVeiculo]);
+
+  const visibleCargas = useMemo(() => filteredCargas.slice(0, visibleCount), [filteredCargas, visibleCount]);
+  const hasMore = visibleCount < filteredCargas.length;
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 300 && hasMore) {
+      setVisibleCount(prev => Math.min(prev + 15, filteredCargas.length));
+    }
+  };
 
   // Map bounds removed - now handled by Google Maps component
 
@@ -1281,10 +1299,15 @@ export default function CargasDisponiveis() {
           </Card>
         ) : viewMode === 'list' ? (
           /* List View */
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20 md:pb-0 items-stretch">
-            {filteredCargas.map((carga) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20 md:pb-0 items-stretch" style={{ overflow: 'visible' }}>
+            {visibleCargas.map((carga) => (
               <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} uniformHeight />
             ))}
+            {hasMore && (
+              <div className="col-span-full flex justify-center py-4">
+                <Button variant="outline" onClick={() => setVisibleCount(prev => prev + 15)}>Carregar mais</Button>
+              </div>
+            )}
           </div>
         ) : isMobile ? (
           /* Mobile Map View - Full screen Airbnb style */
@@ -1300,10 +1323,15 @@ export default function CargasDisponiveis() {
           /* Desktop Split View - List + Map (Airbnb style) */
           <div className="flex gap-4 h-[calc(100vh-300px)] min-h-[500px]">
             {/* Left - Scrollable List */}
-            <div className="w-1/2 lg:w-2/5 overflow-y-auto px-1 py-1 space-y-3">
-              {filteredCargas.map((carga) => (
+            <div className="w-1/2 lg:w-2/5 overflow-y-auto px-1 py-1 space-y-3" onScroll={handleScroll}>
+              {visibleCargas.map((carga) => (
                 <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} />
               ))}
+              {hasMore && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
             </div>
 
             {/* Right - Map */}

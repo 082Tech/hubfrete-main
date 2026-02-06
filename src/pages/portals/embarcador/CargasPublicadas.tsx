@@ -730,7 +730,7 @@ export default function CargasPublicadas() {
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <Card 
-              className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary' : ''}`}
+              className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary ring-inset' : ''}`}
               onClick={() => setFilterStatus('all')}
             >
               <CardContent className="p-4">
@@ -743,7 +743,7 @@ export default function CargasPublicadas() {
             </Card>
 
             <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'awaiting' ? 'ring-2 ring-amber-500' : ''}`}
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'awaiting' ? 'ring-2 ring-amber-500 ring-inset' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'awaiting' ? 'all' : 'awaiting')}
             >
               <CardContent className="p-4">
@@ -756,7 +756,7 @@ export default function CargasPublicadas() {
             </Card>
 
             <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'partial' ? 'ring-2 ring-sky-500' : ''}`}
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'partial' ? 'ring-2 ring-sky-500 ring-inset' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'partial' ? 'all' : 'partial')}
             >
               <CardContent className="p-4">
@@ -769,7 +769,7 @@ export default function CargasPublicadas() {
             </Card>
 
             <Card 
-              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'allocated' ? 'ring-2 ring-emerald-500' : ''}`}
+              className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'allocated' ? 'ring-2 ring-emerald-500 ring-inset' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'allocated' ? 'all' : 'allocated')}
             >
               <CardContent className="p-4">
