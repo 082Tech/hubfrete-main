@@ -15,6 +15,8 @@ import {
   CheckCheck,
   Loader2,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -23,7 +25,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +39,8 @@ import {
 import { useNotificacoesContext, type Notificacao } from '@/contexts/NotificacoesContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { cn } from '@/lib/utils';
+
+const ITEMS_PER_PAGE = 15;
 
 const tipoConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
   status_entrega_alterado: { icon: Truck, color: 'text-blue-500', label: 'Status de Entrega' },
@@ -62,10 +65,23 @@ export default function NotificacoesTransportadora() {
   } = useNotificacoesContext();
   const push = usePushNotifications();
   const [activeTab, setActiveTab] = useState<'todas' | 'nao_lidas'>('todas');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filteredNotificacoes = activeTab === 'nao_lidas' 
     ? notificacoes.filter(n => !n.lida)
     : notificacoes;
+
+  const totalPages = Math.max(1, Math.ceil(filteredNotificacoes.length / ITEMS_PER_PAGE));
+  const paginatedNotificacoes = filteredNotificacoes.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Reset page when tab changes
+  const handleTabChange = (v: string) => {
+    setActiveTab(v as 'todas' | 'nao_lidas');
+    setCurrentPage(1);
+  };
 
   const handleNotificationClick = (notificacao: Notificacao) => {
     if (!notificacao.lida) {
@@ -81,10 +97,10 @@ export default function NotificacoesTransportadora() {
   };
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="h-full flex flex-col gap-6">
+    <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
+      <div className="flex flex-col h-full gap-6 overflow-hidden">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Bell className="h-6 w-6" />
@@ -103,7 +119,7 @@ export default function NotificacoesTransportadora() {
         </div>
 
         {/* Push Notifications Card */}
-        <Card>
+        <Card className="shrink-0">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <BellRing className="h-5 w-5" />
@@ -140,7 +156,7 @@ export default function NotificacoesTransportadora() {
                     <p className="text-sm text-muted-foreground">
                       {push.isSubscribed 
                         ? 'Você receberá alertas em tempo real'
-                        : 'Ative para receber alertas importantes'}
+                        : 'Ative para receber alertos importantes'}
                     </p>
                   </div>
                 </div>
@@ -194,9 +210,9 @@ export default function NotificacoesTransportadora() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 min-h-0">
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'todas' | 'nao_lidas')} className="h-full">
-              <TabsList className="mb-4">
+          <CardContent className="flex-1 min-h-0 flex flex-col p-0">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col flex-1 min-h-0">
+              <TabsList className="mx-6 mb-4 shrink-0 w-fit">
                 <TabsTrigger value="todas">Todas</TabsTrigger>
                 <TabsTrigger value="nao_lidas">
                   Não lidas
@@ -208,7 +224,7 @@ export default function NotificacoesTransportadora() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value={activeTab} className="mt-0 flex-1 min-h-0">
+              <TabsContent value={activeTab} className="mt-0 flex-1 min-h-0 flex flex-col">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -224,68 +240,98 @@ export default function NotificacoesTransportadora() {
                     </p>
                   </div>
                 ) : (
-                  <ScrollArea className="h-full">
-                    <div className="space-y-2 pr-4">
-                      {filteredNotificacoes.map((notificacao) => {
-                        const { icon: Icon, color, label } = getIcon(notificacao.tipo);
-                        return (
-                          <div
-                            key={notificacao.id}
-                            className={cn(
-                              'flex items-start gap-4 p-4 rounded-lg cursor-pointer transition-colors hover:bg-muted/50 group',
-                              !notificacao.lida && 'bg-accent/50'
-                            )}
-                            onClick={() => handleNotificationClick(notificacao)}
-                          >
-                            <div className={cn('mt-0.5 shrink-0', color)}>
-                              <Icon className="h-5 w-5" />
-                            </div>
-                            <div className="flex-1 min-w-0 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <p className={cn(
-                                  'text-sm',
-                                  !notificacao.lida && 'font-semibold'
-                                )}>
-                                  {notificacao.titulo}
-                                </p>
-                                {!notificacao.lida && (
-                                  <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground">
-                                {notificacao.mensagem}
-                              </p>
-                              <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
-                                <Badge variant="outline" className="text-[10px] py-0">
-                                  {label}
-                                </Badge>
-                                <span>
-                                  {formatDistanceToNow(new Date(notificacao.created_at), {
-                                    addSuffix: true,
-                                    locale: ptBR,
-                                  })}
-                                </span>
-                                <span className="hidden sm:inline">
-                                  {format(new Date(notificacao.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                </span>
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-destructive/10 hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteNotification(notificacao.id);
-                              }}
+                  <>
+                    <div className="flex-1 min-h-0 overflow-auto px-6">
+                      <div className="space-y-2">
+                        {paginatedNotificacoes.map((notificacao) => {
+                          const { icon: Icon, color, label } = getIcon(notificacao.tipo);
+                          return (
+                            <div
+                              key={notificacao.id}
+                              className={cn(
+                                'flex items-start gap-4 p-4 rounded-lg cursor-pointer transition-colors hover:bg-muted/50 group',
+                                !notificacao.lida && 'bg-accent/50'
+                              )}
+                              onClick={() => handleNotificationClick(notificacao)}
                             >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        );
-                      })}
+                              <div className={cn('mt-0.5 shrink-0', color)}>
+                                <Icon className="h-5 w-5" />
+                              </div>
+                              <div className="flex-1 min-w-0 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <p className={cn(
+                                    'text-sm',
+                                    !notificacao.lida && 'font-semibold'
+                                  )}>
+                                    {notificacao.titulo}
+                                  </p>
+                                  {!notificacao.lida && (
+                                    <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {notificacao.mensagem}
+                                </p>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
+                                  <Badge variant="outline" className="text-[10px] py-0">
+                                    {label}
+                                  </Badge>
+                                  <span>
+                                    {formatDistanceToNow(new Date(notificacao.created_at), {
+                                      addSuffix: true,
+                                      locale: ptBR,
+                                    })}
+                                  </span>
+                                  <span className="hidden sm:inline">
+                                    {format(new Date(notificacao.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                  </span>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-destructive/10 hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(notificacao.id);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </ScrollArea>
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between border-t px-6 py-3 shrink-0">
+                        <p className="text-sm text-muted-foreground">
+                          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredNotificacoes.length)} de {filteredNotificacoes.length}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                            <ChevronLeft className="w-4 h-4 mr-1" />Anterior
+                          </Button>
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum: number;
+                            if (totalPages <= 5) pageNum = i + 1;
+                            else if (currentPage <= 3) pageNum = i + 1;
+                            else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                            else pageNum = currentPage - 2 + i;
+                            return (
+                              <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPage(pageNum)}>
+                                {pageNum}
+                              </Button>
+                            );
+                          })}
+                          <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                            Próximo<ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </TabsContent>
             </Tabs>
