@@ -190,6 +190,7 @@ export default function CargasDisponiveis() {
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('');
   const [selectedCarroceria, setSelectedCarroceria] = useState<string | null>(null);
   const [selectedViagemId, setSelectedViagemId] = useState<string | null>(null);
+  const [isViagemBlocked, setIsViagemBlocked] = useState(false);
   const [isCreatingViagem, setIsCreatingViagem] = useState(false);
   const [pesoAlocadoInput, setPesoAlocadoInput] = useState<number>(0);
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
@@ -1617,7 +1618,8 @@ export default function CargasDisponiveis() {
                           setSelectedCarroceria(null);
                         }
                         setPesoAlocadoInput(0);
-                        setSelectedViagemId(null); // Reset viagem when driver changes
+                        setSelectedViagemId(null);
+                        setIsViagemBlocked(false);
                         // Scroll to equipment section after driver selection
                         setTimeout(() => {
                           equipmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1862,6 +1864,7 @@ export default function CargasDisponiveis() {
                         motoristaId={selectedMotorista}
                         onViagemSelect={setSelectedViagemId}
                         selectedViagemId={selectedViagemId}
+                        onBlockedChange={setIsViagemBlocked}
                       />
                     </div>
                   )}
@@ -2020,7 +2023,7 @@ export default function CargasDisponiveis() {
               </Button>
               <Button
                 onClick={handleConfirmAccept}
-                disabled={!selectedMotorista || !selectedVeiculo || pesoAlocadoInput <= 0 || !!pesoValidationError || acceptCarga.isPending}
+                disabled={!selectedMotorista || !selectedVeiculo || pesoAlocadoInput <= 0 || !!pesoValidationError || isViagemBlocked || acceptCarga.isPending}
                 className="gap-2"
               >
                 {acceptCarga.isPending ? (
