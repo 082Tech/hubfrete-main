@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, X, Headset } from 'lucide-react';
+import { MessageCircle, Headset, Search, Filter, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ChatList } from '@/components/mensagens';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ChatListItem } from '@/components/mensagens/ChatListItem';
 import { useChats } from '@/hooks/useChats';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [empresaId, setEmpresaId] = useState<number | undefined>();
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Hide on mensagens page (already has full chat UI)
   const isOnMessagesPage = location.pathname.includes('/mensagens');
@@ -44,9 +46,18 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
   // Count total unread
   const totalUnread = chats.reduce((sum, chat) => sum + (chat.mensagens_nao_lidas || 0), 0);
 
+  // Filter chats by search
+  const filteredChats = chats.filter(chat => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    const codigo = chat.entrega?.carga?.codigo?.toLowerCase() || '';
+    const motorista = chat.entrega?.motorista?.nome_completo?.toLowerCase() || '';
+    const empresa = chat.entrega?.carga?.empresa?.nome?.toLowerCase() || '';
+    return codigo.includes(searchLower) || motorista.includes(searchLower) || empresa.includes(searchLower);
+  });
+
   const handleSelectChat = (chatId: string) => {
     setOpen(false);
-    // Find the chat to get entrega_id for URL param
     const chat = chats.find(c => c.id === chatId);
     if (chat) {
       navigate(`/${userType}/mensagens?entrega=${chat.entrega_id}`);
@@ -55,7 +66,6 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
 
   const handleOpenSupport = () => {
     setOpen(false);
-    // Navigate to support/chamados - could be extended later
     navigate(`/${userType}/configuracoes`);
   };
 
@@ -65,10 +75,11 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
     <>
       {/* Floating Button */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen(!open)}
         className={cn(
-          'fixed bottom-6 right-6 z-50 md:bottom-8 md:right-8',
-          'h-14 w-14 rounded-full shadow-lg',
+          'fixed z-50',
+          'bottom-4 right-4 md:bottom-6 md:right-6',
+          'h-12 w-12 rounded-full shadow-lg',
           'bg-primary text-primary-foreground',
           'hover:scale-105 active:scale-95 transition-all duration-200',
           'flex items-center justify-center',
@@ -77,8 +88,12 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
         )}
         aria-label="Abrir mensagens"
       >
-        <MessageCircle className="h-6 w-6" />
-        {totalUnread > 0 && (
+        {open ? (
+          <X className="h-5 w-5" />
+        ) : (
+          <MessageCircle className="h-5 w-5" />
+        )}
+        {!open && totalUnread > 0 && (
           <Badge 
             className="absolute -top-1 -right-1 h-5 min-w-5 px-1.5 text-[10px] font-bold bg-destructive text-destructive-foreground border-2 border-background"
           >
@@ -87,52 +102,78 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
         )}
       </button>
 
-      {/* Chat List Sheet */}
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
-          <SheetHeader className="p-4 border-b border-border shrink-0">
-            <div className="flex items-center justify-between">
-              <SheetTitle className="text-lg">Mensagens</SheetTitle>
+      {/* Floating Popover */}
+      {open && (
+        <div
+          className={cn(
+            'fixed z-50 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden',
+            'flex flex-col',
+            'w-80 h-[28rem]',
+            'bottom-20 right-4 md:bottom-20 md:right-6',
+            // On mobile, raise above bottom nav
+            'mb-16 md:mb-0'
+          )}
+        >
+          {/* Header */}
+          <div className="p-3 border-b border-border shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold">Mensagens</h3>
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-xs"
+                className="gap-1.5 text-xs h-7 px-2"
                 onClick={handleOpenSupport}
               >
-                <Headset className="h-3.5 w-3.5" />
+                <Headset className="h-3 w-3" />
                 Suporte
               </Button>
             </div>
-          </SheetHeader>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar conversa..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+          </div>
           
-          <div className="flex-1 overflow-hidden">
-            <ChatList
-              chats={chats}
-              selectedChatId={null}
-              onSelectChat={handleSelectChat}
-              isLoading={isLoadingChats}
-              isLoadingMore={isLoadingMoreChats}
-              hasMore={hasMoreChats}
-              onLoadMore={loadMoreChats}
-              userType={userType}
-            />
-          </div>
+          {/* Chat List */}
+          <ScrollArea className="flex-1">
+            {isLoadingChats ? (
+              <div className="flex items-center justify-center p-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredChats.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-6 text-center">
+                <MessageCircle className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-xs text-muted-foreground">
+                  {searchTerm ? 'Nenhuma conversa encontrada' : 'Nenhuma conversa ativa'}
+                </p>
+              </div>
+            ) : (
+              filteredChats.map(chat => (
+                <ChatListItem
+                  key={chat.id}
+                  chat={chat}
+                  isSelected={false}
+                  onClick={() => handleSelectChat(chat.id)}
+                  userType={userType}
+                />
+              ))
+            )}
+          </ScrollArea>
+        </div>
+      )}
 
-          {/* Footer with link to full messages page */}
-          <div className="p-3 border-t border-border shrink-0">
-            <Button
-              variant="ghost"
-              className="w-full text-sm text-muted-foreground"
-              onClick={() => {
-                setOpen(false);
-                navigate(`/${userType}/mensagens`);
-              }}
-            >
-              Ver todas as conversas
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Backdrop for mobile */}
+      {open && (
+        <div 
+          className="fixed inset-0 z-40 md:hidden" 
+          onClick={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }

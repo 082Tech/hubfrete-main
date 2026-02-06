@@ -48,7 +48,7 @@ export function useChatSheet({ userType, empresaId }: UseChatSheetOptions) {
 
   // Open chat by entrega ID
   const openChatByEntregaId = useCallback(async (entregaId: string) => {
-    if (!empresaId || !currentUserId) return null;
+    if (!currentUserId) return null;
     
     setIsLoadingChat(true);
     setChat(null);
