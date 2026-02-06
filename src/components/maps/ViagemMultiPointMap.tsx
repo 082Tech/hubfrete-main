@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup, CircleMarker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getTruckIconHtml } from './TruckIcon';
@@ -17,10 +17,19 @@ interface EntregaPoint {
   status: string;
 }
 
+interface TrackingPoint {
+  lat: number;
+  lng: number;
+  tracked_at: string;
+  speed: number | null;
+  status: string | null;
+}
+
 interface ViagemMultiPointMapProps {
   entregas: EntregaPoint[];
   driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
   height?: number;
+  trackingPoints?: TrackingPoint[];
 }
 
 // Ícone de origem (círculo com "O")
@@ -110,6 +119,7 @@ export function ViagemMultiPointMap({
   entregas,
   driverLocation,
   height = 280,
+  trackingPoints = [],
 }: ViagemMultiPointMapProps) {
   // Coletar todos os pontos para calcular bounds
   const allPoints = useMemo(() => {
@@ -121,8 +131,11 @@ export function ViagemMultiPointMap({
     if (driverLocation) {
       points.push({ lat: driverLocation.lat, lng: driverLocation.lng });
     }
+    trackingPoints.forEach(tp => {
+      points.push({ lat: tp.lat, lng: tp.lng });
+    });
     return points;
-  }, [entregas, driverLocation]);
+  }, [entregas, driverLocation, trackingPoints]);
 
   // Centro padrão se não houver coordenadas
   const mapCenter = useMemo((): [number, number] => {
@@ -244,6 +257,28 @@ export function ViagemMultiPointMap({
               dashArray: line.dashed ? '10, 10' : undefined,
             }}
           />
+        ))}
+
+        {/* Tracking history dots */}
+        {trackingPoints.map((point, idx) => (
+          <CircleMarker
+            key={`track-${idx}`}
+            center={[point.lat, point.lng]}
+            radius={3}
+            pathOptions={{
+              color: '#6366f1',
+              fillColor: '#6366f1',
+              fillOpacity: 0.7,
+              weight: 1,
+            }}
+          >
+            <Tooltip direction="top" offset={[0, -5]}>
+              <div className="text-[10px]">
+                <div>{new Date(point.tracked_at).toLocaleString('pt-BR')}</div>
+                {point.speed != null && <div>{Math.round(point.speed)} km/h</div>}
+              </div>
+            </Tooltip>
+          </CircleMarker>
         ))}
       </MapContainer>
     </div>

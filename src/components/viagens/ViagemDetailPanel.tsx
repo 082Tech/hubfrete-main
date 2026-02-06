@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
-  Share, Printer, X, Weight, DollarSign, Clock, Upload, History, Route,
+  Share, Printer, X, Weight, DollarSign, Clock, Upload, History,
   Loader2, MoreVertical, Ban, Paperclip, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,8 @@ import { AnexarManifestoViagemDialog } from './AnexarManifestoViagemDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
-import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
+import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
+import { supabase } from '@/integrations/supabase/client';
 interface ViagemEntregaEvento {
   id: string;
   tipo: string;
@@ -119,11 +120,25 @@ export function ViagemDetailPanel({
 }: ViagemDetailPanelProps) {
   const [anexarManifestoOpen, setAnexarManifestoOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
-  const [trackingMapOpen, setTrackingMapOpen] = useState(false);
   const [iniciarDialogOpen, setIniciarDialogOpen] = useState(false);
   const [finalizarDialogOpen, setFinalizarDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [isProcessingViagem, setIsProcessingViagem] = useState(false);
+  const [trackingPoints, setTrackingPoints] = useState<Array<{ lat: number; lng: number; tracked_at: string; speed: number | null; status: string | null }>>([]);
+
+  // Fetch tracking history for map dots
+  useEffect(() => {
+    if (!viagem?.id) return;
+    fetchAllTrackingHistoricoByViagemId(viagem.id, { maxRows: 5000 })
+      .then(rows => setTrackingPoints(rows.map(r => ({
+        lat: r.latitude,
+        lng: r.longitude,
+        tracked_at: r.tracked_at,
+        speed: r.speed,
+        status: r.status,
+      }))))
+      .catch(() => setTrackingPoints([]));
+  }, [viagem?.id]);
 
   // Status flags
   const isViagemProgramada = viagem?.status === 'programada';
@@ -268,11 +283,46 @@ export function ViagemDetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Mapa Multi-Ponto */}
+          {/* Entregas desta Viagem (above map for context) */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Package className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="font-medium text-xs">Entregas desta Viagem ({viagem.entregas.length})</span>
+            </div>
+            <div className="space-y-1">
+              {viagem.entregas.map(entrega => {
+                const eStatusInfo = statusConfig[entrega.status] || statusConfig.aguardando;
+                const StatusIcon = eStatusInfo.icon;
+                return (
+                  <div
+                    key={`summary-${entrega.id}`}
+                    className="flex items-center justify-between gap-2 p-1.5 rounded-md border bg-muted/30 hover:bg-muted/60 transition-all cursor-pointer text-xs"
+                    onClick={() => onSelectEntrega(entrega.id)}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-mono shrink-0">
+                        {entrega.codigo}
+                      </Badge>
+                      <span className="truncate text-muted-foreground">
+                        {entrega.carga.endereco_origem?.cidade} → {entrega.carga.endereco_destino?.cidade}
+                      </span>
+                    </div>
+                    <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 gap-1 shrink-0 ${eStatusInfo.color}`}>
+                      <StatusIcon className="w-2.5 h-2.5" />
+                      {eStatusInfo.label}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Mapa Multi-Ponto with tracking dots */}
           <div className="relative z-0">
             <ViagemMultiPointMap
               entregas={mapEntregas}
               driverLocation={driverLocation}
+              trackingPoints={trackingPoints}
               height={260}
             />
           </div>
@@ -369,99 +419,7 @@ export function ViagemDetailPanel({
             </div>
           </div>
 
-          <Separator />
 
-          {/* Lista de Entregas */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Package className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium text-sm">Entregas desta Viagem ({viagem.entregas.length})</span>
-            </div>
-
-            <div className="space-y-2">
-              {viagem.entregas.map(entrega => {
-                const eStatusInfo = statusConfig[entrega.status] || statusConfig.aguardando;
-                const StatusIcon = eStatusInfo.icon;
-
-                return (
-                  <div
-                    key={entrega.id}
-                    className="p-2.5 rounded-lg border bg-muted/30 hover:bg-muted/60 transition-all cursor-pointer"
-                    onClick={() => onSelectEntrega(entrega.id)}
-                  >
-                    {/* Header: Código + Status */}
-                    <div className="flex items-center justify-between mb-1.5">
-                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono">
-                        {entrega.codigo}
-                      </Badge>
-                      <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 gap-1 ${eStatusInfo.color}`}>
-                        <StatusIcon className="w-2.5 h-2.5" />
-                        {eStatusInfo.label}
-                      </Badge>
-                    </div>
-
-                    {/* Rota */}
-                    <div className="flex items-center gap-1.5 text-xs text-foreground">
-                      <MapPin className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
-                      <span className="truncate">{entrega.carga.endereco_origem?.cidade}/{entrega.carga.endereco_origem?.estado}</span>
-                      <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <MapPin className="w-3 h-3 text-red-500 dark:text-red-400 shrink-0" />
-                      <span className="truncate">{entrega.carga.endereco_destino?.cidade}/{entrega.carga.endereco_destino?.estado}</span>
-                    </div>
-
-                    {/* Info adicional */}
-                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
-                      {entrega.peso_alocado_kg && (
-                        <span className="flex items-center gap-1">
-                          <Weight className="w-3 h-3" />
-                          {entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg
-                        </span>
-                      )}
-                      {entrega.valor_frete && (
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="w-3 h-3" />
-                          R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Link Ver Detalhes */}
-                    <div className="mt-2 text-right">
-                      <Button variant="link" size="sm" className="h-auto p-0 text-xs text-primary">
-                        Ver Detalhes →
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Track History */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Route className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium text-sm">Rastreamento da Viagem</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1"
-                onClick={() => setTrackingMapOpen(true)}
-              >
-                <Route className="w-3 h-3" />
-                Ver Trajeto
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Visualize o histórico completo de localização desta viagem.
-            </p>
-          </div>
-
-          <Separator />
 
           {/* Histórico da Viagem */}
           <div>
@@ -687,17 +645,6 @@ export function ViagemDetailPanel({
         onOpenChange={() => setPreviewDocUrl(null)}
         fileUrl={previewDocUrl}
         title="Manifesto (MDF-e)"
-      />
-
-      {/* Track History Dialog - usa o viagem_id diretamente */}
-      <ViagemTrackingMapDialog
-        viagemId={trackingMapOpen ? viagem.id : null}
-        info={viagem.motorista ? {
-          codigo: viagem.codigo,
-          motorista: viagem.motorista.nome_completo,
-          placa: viagem.veiculo?.placa || 'N/A'
-        } : null}
-        onClose={() => setTrackingMapOpen(false)}
       />
     </div>
   );
