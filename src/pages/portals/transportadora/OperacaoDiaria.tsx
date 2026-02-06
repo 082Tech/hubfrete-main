@@ -936,79 +936,171 @@ function GestaoEntregasDialogContent({
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
 }) {
+  const { empresa } = useUserContext();
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Agrupar entregas por motorista
-  const motoristaGroups = useMemo(() => {
-    const groups: Record<string, { motorista: Entrega['motorista']; entregas: Entrega[] }> = {};
+  // Fetch viagens ativas para agrupar entregas por viagem
+  type ViagemMapEntry = { viagem_id: string; codigo: string; status: string; motorista_id: string };
+  const { data: entregaViagemMap = {} as Record<string, ViagemMapEntry> } = useQuery({
+    queryKey: ['gestao-map-viagens', empresa?.id],
+    queryFn: async (): Promise<Record<string, ViagemMapEntry>> => {
+      if (!empresa?.id) return {};
+
+      const { data: motoristas } = await supabase
+        .from('motoristas')
+        .select('id')
+        .eq('empresa_id', empresa.id);
+
+      if (!motoristas?.length) return {};
+
+      const motoristaIds = motoristas.map(m => m.id);
+
+      // Fetch active viagens
+      const { data: viagensData } = await supabase
+        .from('viagens')
+        .select('id, codigo, status, motorista_id')
+        .in('motorista_id', motoristaIds)
+        .in('status', ['aguardando', 'programada', 'em_andamento']);
+
+      if (!viagensData?.length) return {};
+
+      // Fetch viagem_entregas to map entrega_id -> viagem
+      const viagemIds = viagensData.map(v => v.id);
+      const { data: veLinks } = await supabase
+        .from('viagem_entregas')
+        .select('viagem_id, entrega_id')
+        .in('viagem_id', viagemIds);
+
+      // Build map: entrega_id -> viagem info
+      const result: Record<string, ViagemMapEntry> = {};
+      (veLinks || []).forEach(link => {
+        const viagem = viagensData.find(v => v.id === link.viagem_id);
+        if (viagem) {
+          result[link.entrega_id] = {
+            viagem_id: viagem.id,
+            codigo: viagem.codigo,
+            status: viagem.status,
+            motorista_id: viagem.motorista_id,
+          };
+        }
+      });
+
+      return result;
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Agrupar entregas por viagem (e motorista sem viagem como grupo separado)
+  const viagemGroups = useMemo(() => {
+    type ViagemGroup = {
+      id: string; // viagem_id or motorista_id fallback
+      tipo: 'viagem' | 'sem_viagem';
+      viagemCodigo?: string;
+      viagemStatus?: string;
+      motorista: Entrega['motorista'];
+      motorista_id: string;
+      entregas: Entrega[];
+    };
+
+    const groups: Record<string, ViagemGroup> = {};
 
     entregas.forEach(e => {
       if (!e.motorista_id || !e.motorista) return;
-      if (!groups[e.motorista_id]) {
-        groups[e.motorista_id] = { motorista: e.motorista, entregas: [] };
+
+      const viagemInfo = entregaViagemMap[e.id];
+
+      if (viagemInfo) {
+        // Entrega belongs to a viagem
+        const key = `viagem-${viagemInfo.viagem_id}`;
+        if (!groups[key]) {
+          groups[key] = {
+            id: viagemInfo.viagem_id,
+            tipo: 'viagem',
+            viagemCodigo: viagemInfo.codigo,
+            viagemStatus: viagemInfo.status,
+            motorista: e.motorista,
+            motorista_id: e.motorista_id,
+            entregas: [],
+          };
+        }
+        groups[key].entregas.push(e);
+      } else {
+        // Entrega sem viagem ativa - agrupar por motorista
+        const key = `orphan-${e.motorista_id}`;
+        if (!groups[key]) {
+          groups[key] = {
+            id: e.motorista_id,
+            tipo: 'sem_viagem',
+            motorista: e.motorista,
+            motorista_id: e.motorista_id,
+            entregas: [],
+          };
+        }
+        groups[key].entregas.push(e);
       }
-      groups[e.motorista_id].entregas.push(e);
     });
 
-    return Object.entries(groups).map(([id, data]) => ({
-      id,
-      ...data,
-    }));
-  }, [entregas]);
+    return Object.values(groups);
+  }, [entregas, entregaViagemMap]);
 
-  // Filtrar motoristas pelo termo de busca
-  const filteredMotoristaGroups = useMemo(() => {
-    if (!searchTerm.trim()) return motoristaGroups;
+  // Filtrar grupos pelo termo de busca
+  const filteredGroups = useMemo(() => {
+    if (!searchTerm.trim()) return viagemGroups;
 
     const term = searchTerm.toLowerCase();
-    return motoristaGroups.filter(g => {
+    return viagemGroups.filter(g => {
       const nome = g.motorista?.nome_completo?.toLowerCase() || '';
+      const viagemMatch = g.viagemCodigo?.toLowerCase().includes(term) || false;
       const temEntregaMatch = g.entregas.some(e =>
         e.codigo?.toLowerCase().includes(term) ||
         e.carga.endereco_origem?.cidade?.toLowerCase().includes(term) ||
         e.carga.endereco_destino?.cidade?.toLowerCase().includes(term)
       );
-      return nome.includes(term) || temEntregaMatch;
+      return nome.includes(term) || viagemMatch || temEntregaMatch;
     });
-  }, [motoristaGroups, searchTerm]);
+  }, [viagemGroups, searchTerm]);
 
   // Mapa de nomes dos motoristas para o componente de mapa
   const motoristaNames = useMemo(() => {
     const names: Record<string, string> = {};
-    motoristaGroups.forEach(g => {
-      names[g.id] = g.motorista?.nome_completo || 'Motorista';
+    viagemGroups.forEach(g => {
+      names[g.motorista_id] = g.motorista?.nome_completo || 'Motorista';
     });
     return names;
-  }, [motoristaGroups]);
+  }, [viagemGroups]);
 
   // Informações extras para tooltip do mapa (com entregas completas e lastSeenAt)
   const motoristaInfo = useMemo(() => {
     const info: Record<string, { nome: string; entregas: Array<{ id: string; codigo: string; status: string; origemCidade: string; destinoCidade: string; origemCoords: { lat: number; lng: number } | null; destinoCoords: { lat: number; lng: number } | null }>; isOnline: boolean; lastSeenAt?: string | null }> = {};
-    motoristaGroups.forEach(g => {
-      const loc = localizacoes.find(l => l.motorista_id === g.id);
-      info[g.id] = {
-        nome: g.motorista?.nome_completo || 'Motorista',
-        entregas: g.entregas.map(e => ({
-          id: e.id,
-          codigo: e.codigo || e.id.slice(0, 6),
-          status: e.status,
-          origemCidade: e.carga.endereco_origem?.cidade || 'N/A',
-          destinoCidade: e.carga.endereco_destino?.cidade || 'N/A',
-          origemCoords: e.carga.endereco_origem?.latitude && e.carga.endereco_origem?.longitude
-            ? { lat: e.carga.endereco_origem.latitude, lng: e.carga.endereco_origem.longitude }
-            : null,
-          destinoCoords: e.carga.endereco_destino?.latitude && e.carga.endereco_destino?.longitude
-            ? { lat: e.carga.endereco_destino.latitude, lng: e.carga.endereco_destino.longitude }
-            : null,
-        })),
-        isOnline: loc?.isOnline ?? false,
-        lastSeenAt: (loc as any)?.updated_at ?? null,
-      };
+    viagemGroups.forEach(g => {
+      const loc = localizacoes.find(l => l.motorista_id === g.motorista_id);
+      // Merge entregas into motorista-level info for map tooltips
+      if (!info[g.motorista_id]) {
+        info[g.motorista_id] = {
+          nome: g.motorista?.nome_completo || 'Motorista',
+          entregas: [],
+          isOnline: loc?.isOnline ?? false,
+          lastSeenAt: (loc as any)?.updated_at ?? null,
+        };
+      }
+      info[g.motorista_id].entregas.push(...g.entregas.map(e => ({
+        id: e.id,
+        codigo: e.codigo || e.id.slice(0, 6),
+        status: e.status,
+        origemCidade: e.carga.endereco_origem?.cidade || 'N/A',
+        destinoCidade: e.carga.endereco_destino?.cidade || 'N/A',
+        origemCoords: e.carga.endereco_origem?.latitude && e.carga.endereco_origem?.longitude
+          ? { lat: e.carga.endereco_origem.latitude, lng: e.carga.endereco_origem.longitude }
+          : null,
+        destinoCoords: e.carga.endereco_destino?.latitude && e.carga.endereco_destino?.longitude
+          ? { lat: e.carga.endereco_destino.latitude, lng: e.carga.endereco_destino.longitude }
+          : null,
+      })));
     });
     return info;
-  }, [motoristaGroups, localizacoes]);
+  }, [viagemGroups, localizacoes]);
 
   // Contagem de status para os indicadores - cores padronizadas
   const statusCounts = useMemo(() => {
@@ -1023,21 +1115,29 @@ function GestaoEntregasDialogContent({
     return { aguardando, coleta, entrega, entregue, cancelada };
   }, [entregas]);
 
-  // Handler para clicar no motorista
-  const handleMotoristaClick = useCallback((motoristaId: string) => {
+  // Handler para clicar no grupo (viagem ou motorista)
+  const handleGroupClick = useCallback((groupId: string) => {
     setSelectedMotoristaId(prev => {
-      if (prev === motoristaId) {
+      if (prev === groupId) {
         setSelectedEntregaId(null);
         return null;
       }
-      // Ao selecionar motorista, auto-selecionar primeira entrega
-      const group = motoristaGroups.find(g => g.id === motoristaId);
+      // Auto-selecionar primeira entrega do grupo
+      const group = viagemGroups.find(g => g.id === groupId);
       if (group?.entregas.length) {
         setSelectedEntregaId(group.entregas[0].id);
       }
-      return motoristaId;
+      return groupId;
     });
-  }, [motoristaGroups]);
+  }, [viagemGroups]);
+
+  // Bridge: map sends motorista_id, but we need to find the group
+  const handleMapMotoristaClick = useCallback((motoristaId: string) => {
+    const group = viagemGroups.find(g => g.motorista_id === motoristaId);
+    if (group) {
+      handleGroupClick(group.id);
+    }
+  }, [viagemGroups, handleGroupClick]);
 
   // Handler para selecionar entrega específica
   const handleEntregaSelect = useCallback((entregaId: string) => {
@@ -1072,6 +1172,13 @@ function GestaoEntregasDialogContent({
     };
   }, [selectedEntregaId, entregas]);
 
+  // Convert group.id to motorista_id for the map
+  const mapSelectedMotoristaId = useMemo(() => {
+    if (!selectedMotoristaId) return null;
+    const group = viagemGroups.find(g => g.id === selectedMotoristaId);
+    return group?.motorista_id || null;
+  }, [selectedMotoristaId, viagemGroups]);
+
   return (
     <>
       <DialogHeader className="px-4 py-3 border-b">
@@ -1085,9 +1192,9 @@ function GestaoEntregasDialogContent({
         <div className="flex-[7] relative">
           <GestaoLeafletMap
             localizacoes={localizacoes}
-            selectedMotoristaId={selectedMotoristaId}
+            selectedMotoristaId={mapSelectedMotoristaId}
             selectedEntregaId={selectedEntregaId}
-            onMotoristaClick={handleMotoristaClick}
+            onMotoristaClick={handleMapMotoristaClick}
             onEntregaDeselect={() => setSelectedEntregaId(null)}
             motoristaNames={motoristaNames}
             motoristaInfo={motoristaInfo}
@@ -1101,10 +1208,10 @@ function GestaoEntregasDialogContent({
           {/* Header com busca */}
           <div className="px-3 py-2 border-b bg-muted/30 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Motoristas ({filteredMotoristaGroups.length})</span>
+              <span className="text-sm font-medium">Viagens ({filteredGroups.length})</span>
               {searchTerm && (
                 <span className="text-xs text-muted-foreground">
-                  de {motoristaGroups.length} total
+                  de {viagemGroups.length} total
                 </span>
               )}
             </div>
@@ -1120,11 +1227,11 @@ function GestaoEntregasDialogContent({
           </div>
 
           <ScrollArea className="flex-1">
-            {filteredMotoristaGroups.length === 0 ? (
-              <EmptyColumnPlaceholder message={searchTerm ? "Nenhum motorista encontrado" : "Nenhum motorista disponível"} />
+            {filteredGroups.length === 0 ? (
+              <EmptyColumnPlaceholder message={searchTerm ? "Nenhuma viagem encontrada" : "Nenhuma viagem disponível"} />
             ) : (
-              filteredMotoristaGroups.map(group => {
-                const loc = localizacoes.find(l => l.motorista_id === group.id);
+              filteredGroups.map(group => {
+                const loc = localizacoes.find(l => l.motorista_id === group.motorista_id);
                 const isOnline = loc?.isOnline ?? false;
                 const isSelected = selectedMotoristaId === group.id;
 
@@ -1139,7 +1246,7 @@ function GestaoEntregasDialogContent({
                     key={group.id}
                     className={`px-3 py-2.5 border-b cursor-pointer transition-all hover:bg-muted/50 ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
                       }`}
-                    onClick={() => handleMotoristaClick(group.id)}
+                    onClick={() => handleGroupClick(group.id)}
                   >
                     <div className="flex items-center gap-2">
                       <div className="relative">
@@ -1162,9 +1269,18 @@ function GestaoEntregasDialogContent({
                             {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
-                        </p>
+                        {/* Viagem info */}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {group.tipo === 'viagem' && group.viagemCodigo && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-1 font-mono bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700">
+                              <Route className="w-2.5 h-2.5" />
+                              {group.viagemCodigo}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
