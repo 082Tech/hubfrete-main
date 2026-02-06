@@ -18,6 +18,7 @@ interface ViagemListItemProps {
     codigo: string;
     status: string;
     created_at: string;
+    updated_at?: string;
     manifesto_url?: string | null;
     motorista?: {
       id: string;
