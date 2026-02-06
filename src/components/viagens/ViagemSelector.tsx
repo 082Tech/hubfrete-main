@@ -8,7 +8,9 @@ import {
   Plus, 
   Package, 
   Clock,
-  Loader2
+  Loader2,
+  AlertTriangle,
+  Ban
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,14 +27,17 @@ interface ViagemSelectorProps {
   motoristaId: string;
   onViagemSelect: (viagemId: string | null) => void;
   selectedViagemId: string | null;
+  /** Called when trip status blocks assignment */
+  onBlockedChange?: (blocked: boolean) => void;
 }
 
 export function ViagemSelector({
   motoristaId,
   onViagemSelect,
   selectedViagemId,
+  onBlockedChange,
 }: ViagemSelectorProps) {
-  // Fetch viagens em andamento do motorista
+  // Fetch viagens aguardando e em_andamento do motorista
   const { data: viagens = [], isLoading: isLoadingViagens } = useQuery({
     queryKey: ['viagens_motorista', motoristaId],
     queryFn: async () => {
@@ -48,7 +53,7 @@ export function ViagemSelector({
           viagem_entregas(id)
         `)
         .eq('motorista_id', motoristaId)
-        .eq('status', 'em_andamento')
+        .in('status', ['aguardando', 'em_andamento'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -64,18 +69,30 @@ export function ViagemSelector({
     enabled: !!motoristaId,
   });
 
-  // Lógica automática: se tem viagem, seleciona; se não tem, passa null (vai criar nova)
+  const viagemEmAndamento = viagens.find(v => v.status === 'em_andamento') || null;
+  const viagemAguardando = viagens.find(v => v.status === 'aguardando') || null;
+  const isBlocked = !!viagemEmAndamento;
+
+  // Notify parent about block status
+  useEffect(() => {
+    onBlockedChange?.(isBlocked);
+  }, [isBlocked, onBlockedChange]);
+
+  // Auto-select logic
   useEffect(() => {
     if (isLoadingViagens) return;
     
-    if (viagens.length > 0) {
-      // Tem viagem ativa - seleciona automaticamente a primeira
-      onViagemSelect(viagens[0].id);
+    if (isBlocked) {
+      // Blocked - don't select anything
+      onViagemSelect(null);
+    } else if (viagemAguardando) {
+      // Has aguardando trip - select it
+      onViagemSelect(viagemAguardando.id);
     } else {
-      // Não tem viagem - passa null para criar uma nova
+      // No active trip - will create new
       onViagemSelect(null);
     }
-  }, [viagens, isLoadingViagens, onViagemSelect]);
+  }, [viagens, isLoadingViagens, isBlocked, viagemAguardando, onViagemSelect]);
 
   if (isLoadingViagens) {
     return (
@@ -91,8 +108,111 @@ export function ViagemSelector({
     );
   }
 
-  const viagemAtiva = viagens.length > 0 ? viagens[0] : null;
+  // Driver has a trip em_andamento → BLOCKED
+  if (isBlocked && viagemEmAndamento) {
+    return (
+      <div className="space-y-3 p-4 bg-destructive/5 rounded-lg border border-destructive/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Route className="w-5 h-5 text-destructive" />
+            <span className="font-semibold text-destructive">Viagem</span>
+          </div>
+          <Badge variant="destructive" className="gap-1">
+            <Ban className="w-3 h-3" />
+            Bloqueado
+          </Badge>
+        </div>
 
+        <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-md border border-destructive/20">
+          <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <p className="font-medium text-destructive">Motorista em viagem iniciada</p>
+            <p className="text-muted-foreground mt-1">
+              Este motorista já possui uma viagem em andamento. Não é possível adicionar novas cargas até que a viagem atual seja finalizada.
+            </p>
+          </div>
+        </div>
+
+        <Card className="bg-muted/50 border-destructive/20 opacity-75">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-destructive/20 text-destructive">
+                  <Route className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">{viagemEmAndamento.codigo}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Criada em {format(new Date(viagemEmAndamento.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="gap-1">
+                  <Package className="w-3 h-3" />
+                  {viagemEmAndamento.entregas_count} {viagemEmAndamento.entregas_count === 1 ? 'entrega' : 'entregas'}
+                </Badge>
+                <Badge className="gap-1 bg-amber-500/20 text-amber-700 border-amber-500/30 dark:text-amber-300 dark:bg-amber-900/30">
+                  <Clock className="w-3 h-3" />
+                  Em andamento
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Has aguardando trip → can add to it
+  if (viagemAguardando) {
+    return (
+      <div className="space-y-3 p-4 bg-secondary/30 rounded-lg border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Route className="w-5 h-5 text-primary" />
+            <span className="font-semibold">Viagem</span>
+          </div>
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          Esta entrega será adicionada à viagem aguardando do motorista.
+        </p>
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
+                  <Route className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">{viagemAguardando.codigo}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Criada em {format(new Date(viagemAguardando.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="gap-1">
+                  <Package className="w-3 h-3" />
+                  {viagemAguardando.entregas_count} {viagemAguardando.entregas_count === 1 ? 'entrega' : 'entregas'}
+                </Badge>
+                <Badge 
+                  variant="outline" 
+                  className="gap-1 bg-sky-100 text-sky-700 border-sky-300 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700"
+                >
+                  <Clock className="w-3 h-3" />
+                  Aguardando
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // No active trip → will create new
   return (
     <div className="space-y-3 p-4 bg-secondary/30 rounded-lg border">
       <div className="flex items-center justify-between">
@@ -101,49 +221,10 @@ export function ViagemSelector({
           <span className="font-semibold">Viagem</span>
         </div>
       </div>
-
-      {viagemAtiva ? (
-        <>
-          <p className="text-sm text-muted-foreground">
-            Esta entrega será adicionada à viagem ativa do motorista.
-          </p>
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
-                    <Route className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">{viagemAtiva.codigo}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Criada em {format(new Date(viagemAtiva.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="gap-1">
-                    <Package className="w-3 h-3" />
-                    {viagemAtiva.entregas_count} {viagemAtiva.entregas_count === 1 ? 'entrega' : 'entregas'}
-                  </Badge>
-                  <Badge 
-                    variant="outline" 
-                    className="gap-1 bg-chart-2/10 text-chart-2 border-chart-2/30"
-                  >
-                    <Clock className="w-3 h-3" />
-                    Em andamento
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      ) : (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Plus className="w-4 h-4 text-primary" />
-          <span>Uma nova viagem será criada automaticamente para este motorista.</span>
-        </div>
-      )}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Plus className="w-4 h-4 text-primary" />
+        <span>Uma nova viagem será criada automaticamente para este motorista.</span>
+      </div>
     </div>
   );
 }
