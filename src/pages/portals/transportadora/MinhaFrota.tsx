@@ -1576,7 +1576,8 @@ export default function MinhaFrota() {
               </Card>
             ) : (
               /* Card View - with larger photo */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex flex-col flex-1 min-h-0 overflow-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {paginatedVeiculos.map((veiculo) => (
                   <Card
                     key={veiculo.id}
@@ -1766,6 +1767,35 @@ export default function MinhaFrota() {
                   </Card>
                 ))}
               </div>
+              {/* Grid Pagination */}
+              {totalPagesVeiculos > 1 && (
+                <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4 shrink-0">
+                  <p className="text-sm text-muted-foreground">
+                    Mostrando {((currentPageVeiculos - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPageVeiculos * ITEMS_PER_PAGE, filteredVeiculos.length)} de {filteredVeiculos.length} registros
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPageVeiculos(p => Math.max(1, p - 1))} disabled={currentPageVeiculos === 1}>
+                      <ChevronLeft className="w-4 h-4 mr-1" />Anterior
+                    </Button>
+                    {Array.from({ length: Math.min(5, totalPagesVeiculos) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPagesVeiculos <= 5) pageNum = i + 1;
+                      else if (currentPageVeiculos <= 3) pageNum = i + 1;
+                      else if (currentPageVeiculos >= totalPagesVeiculos - 2) pageNum = totalPagesVeiculos - 4 + i;
+                      else pageNum = currentPageVeiculos - 2 + i;
+                      return (
+                        <Button key={pageNum} variant={currentPageVeiculos === pageNum ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPageVeiculos(pageNum)}>
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPageVeiculos(p => Math.min(totalPagesVeiculos, p + 1))} disabled={currentPageVeiculos === totalPagesVeiculos}>
+                      Próximo<ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
             )}
           </TabsContent>
 
@@ -1958,7 +1988,8 @@ export default function MinhaFrota() {
               </Card>
             ) : (
               /* Card View */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex flex-col flex-1 min-h-0 overflow-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {paginatedCarrocerias.map((carroceria) => (
                   <Card
                     key={carroceria.id}
@@ -2125,8 +2156,36 @@ export default function MinhaFrota() {
                   </Card>
                 ))}
               </div>
+              {/* Grid Pagination */}
+              {totalPagesCarrocerias > 1 && (
+                <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4 shrink-0">
+                  <p className="text-sm text-muted-foreground">
+                    Mostrando {((currentPageCarrocerias - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPageCarrocerias * ITEMS_PER_PAGE, filteredCarrocerias.length)} de {filteredCarrocerias.length} registros
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPageCarrocerias(p => Math.max(1, p - 1))} disabled={currentPageCarrocerias === 1}>
+                      <ChevronLeft className="w-4 h-4 mr-1" />Anterior
+                    </Button>
+                    {Array.from({ length: Math.min(5, totalPagesCarrocerias) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPagesCarrocerias <= 5) pageNum = i + 1;
+                      else if (currentPageCarrocerias <= 3) pageNum = i + 1;
+                      else if (currentPageCarrocerias >= totalPagesCarrocerias - 2) pageNum = totalPagesCarrocerias - 4 + i;
+                      else pageNum = currentPageCarrocerias - 2 + i;
+                      return (
+                        <Button key={pageNum} variant={currentPageCarrocerias === pageNum ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPageCarrocerias(pageNum)}>
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPageCarrocerias(p => Math.min(totalPagesCarrocerias, p + 1))} disabled={currentPageCarrocerias === totalPagesCarrocerias}>
+                      Próximo<ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
             )}
-
 
           </TabsContent>
         </Tabs>
