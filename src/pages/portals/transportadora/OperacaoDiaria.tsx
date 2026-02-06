@@ -1376,14 +1376,13 @@ export default function OperacaoDiaria() {
         throw error;
       }
 
-      // Filter: created today OR still pending OR finalized today (updated today with terminal status)
+      // Filter: active items ALWAYS show (regardless of date), terminal items only if finalized today
       const finalizedStatuses = ['entregue', 'cancelada'];
       const filtered = (data || []).filter(e => {
-        const createdToday = new Date(e.created_at) >= new Date(startOfToday);
-        const isPending = pendingStatuses.includes(e.status);
+        const isActive = pendingStatuses.includes(e.status);
+        if (isActive) return true; // always show active deliveries
         const updatedToday = new Date(e.updated_at) >= new Date(startOfToday);
-        const isFinalizedToday = finalizedStatuses.includes(e.status) && updatedToday;
-        return createdToday || isPending || isFinalizedToday;
+        return finalizedStatuses.includes(e.status) && updatedToday;
       });
 
       // Fetch eventos for each entrega
