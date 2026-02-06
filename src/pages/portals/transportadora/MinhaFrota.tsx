@@ -848,7 +848,7 @@ export default function MinhaFrota() {
                 {veiculo.foto_url ? (
                   <img src={veiculo.foto_url} alt={veiculo.placa} className="w-full h-full object-cover" />
                 ) : (
-                  <Car className="w-4 h-4 text-muted-foreground" />
+                  <Truck className="w-4 h-4 text-muted-foreground" />
                 )}
               </div>
               {veiculo.placa}
@@ -913,6 +913,9 @@ export default function MinhaFrota() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
+                  <Search className="w-4 h-4 mr-2" />Ver mais
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
                   <Edit className="w-4 h-4 mr-2" />Editar
                 </DropdownMenuItem>
@@ -1721,7 +1724,7 @@ export default function MinhaFrota() {
             ) : sortedVeiculos.length === 0 ? (
               <Card className="border-border">
                 <CardContent className="p-12 text-center">
-                  <Car className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">
                     Nenhum veículo encontrado
                   </h3>
@@ -1816,8 +1819,9 @@ export default function MinhaFrota() {
               </Card>
             ) : (
               /* Card View - compact like Motoristas */
-              <div className="flex flex-col flex-1 min-h-0 overflow-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex flex-col flex-1 min-h-0">
+                <div className="flex-1 overflow-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {paginatedVeiculos.map((veiculo) => (
                   <Card key={veiculo.id} className={`border-border ${!veiculo.ativo ? 'opacity-60' : ''}`}>
                     <CardContent className="p-4">
@@ -1833,7 +1837,7 @@ export default function MinhaFrota() {
                             ) : veiculo.foto_url ? (
                               <img src={veiculo.foto_url} alt={veiculo.placa} className="w-full h-full object-cover" />
                             ) : (
-                              <Car className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                              <Truck className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                             )}
                             <input
                               ref={(el) => cardFileInputRefs.current[veiculo.id] = el}
@@ -1873,6 +1877,9 @@ export default function MinhaFrota() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
+                              <Search className="w-4 h-4 mr-2" />Ver mais
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => cardFileInputRefs.current[veiculo.id]?.click()}>
                               <Upload className="w-4 h-4 mr-2" />{veiculo.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
                             </DropdownMenuItem>
@@ -1898,10 +1905,11 @@ export default function MinhaFrota() {
                           </Badge>
                         </div>
                       )}
-                    </CardContent>
+                     </CardContent>
                   </Card>
                 ))}
-              </div>
+                  </div>
+                </div>
               {/* Grid Pagination */}
               {totalPagesVeiculos > 1 && (
                 <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4 shrink-0">
@@ -2098,8 +2106,9 @@ export default function MinhaFrota() {
               </Card>
             ) : (
               /* Card View - compact like Motoristas */
-              <div className="flex flex-col flex-1 min-h-0 overflow-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex flex-col flex-1 min-h-0">
+                <div className="flex-1 overflow-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {paginatedCarrocerias.map((carroceria) => {
                   const veiculoAtrelado = veiculos.find(
                     (v) => v.motorista?.id === carroceria.motorista?.id && carroceria.motorista?.id
@@ -2148,6 +2157,9 @@ export default function MinhaFrota() {
                             <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditingCarroceria(carroceria)}>
+                              <Search className="w-4 h-4 mr-2" />Ver mais
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => cardFileInputRefs.current[carroceria.id]?.click()}>
                               <Upload className="w-4 h-4 mr-2" />{carroceria.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
                             </DropdownMenuItem>
@@ -2173,7 +2185,8 @@ export default function MinhaFrota() {
                   </Card>
                   );
                 })}
-              </div>
+                  </div>
+                </div>
               {/* Grid Pagination */}
               {totalPagesCarrocerias > 1 && (
                 <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4 shrink-0">
