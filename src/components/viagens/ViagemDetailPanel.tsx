@@ -518,7 +518,7 @@ export function ViagemDetailPanel({
               )}
               Iniciar Viagem
             </Button>
-          ) : isViagemEmAndamento ? (
+          ) : (isViagemAguardando || isViagemEmAndamento) ? (
             <Button
               className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
               disabled={!entregasValidation.canFinalize || isProcessingViagem}
