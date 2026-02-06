@@ -119,6 +119,7 @@ export function ViagemMultiPointMap({
   entregas,
   driverLocation,
   height = 280,
+  trackingPoints = [],
 }: ViagemMultiPointMapProps) {
   // Coletar todos os pontos para calcular bounds
   const allPoints = useMemo(() => {
