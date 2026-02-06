@@ -70,6 +70,7 @@ const columns: ColumnDefinition[] = [
   { id: 'telefone', label: 'Telefone', minWidth: '130px' },
   { id: 'cnh', label: 'CNH', minWidth: '60px', sortable: true, sortKey: 'categoria_cnh' },
   { id: 'validade_cnh', label: 'Validade CNH', minWidth: '120px', sortable: true, sortKey: 'validade_cnh' },
+  { id: 'tipo', label: 'Tipo', minWidth: '100px', sortable: true, sortKey: 'tipo_cadastro' },
   { id: 'status', label: 'Status', minWidth: '80px', sortable: true, sortKey: 'ativo' },
   { id: 'equipamentos', label: 'Equipamentos', minWidth: '200px' },
   { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
@@ -226,6 +227,8 @@ export default function Motoristas() {
       new Date(a.validade_cnh || 0).getTime() - new Date(b.validade_cnh || 0).getTime(),
     ativo: (a: MotoristaCompleto, b: MotoristaCompleto) =>
       (a.ativo === b.ativo ? 0 : a.ativo ? -1 : 1),
+    tipo_cadastro: (a: MotoristaCompleto, b: MotoristaCompleto) =>
+      (a.tipo_cadastro || '').localeCompare(b.tipo_cadastro || '', 'pt-BR'),
   }), []);
 
   const { sortedData, requestSort, getSortDirection } = useTableSort({
@@ -301,6 +304,7 @@ export default function Motoristas() {
       telefone: <Phone className="w-3.5 h-3.5" />,
       cnh: null,
       validade_cnh: <Calendar className="w-3.5 h-3.5" />,
+      tipo: null,
       status: null,
       equipamentos: <Truck className="w-3.5 h-3.5" />,
     };
@@ -357,6 +361,21 @@ export default function Motoristas() {
             </Badge>
           </td>
         );
+      case 'tipo': {
+        const tipoLabels: Record<string, string> = { frota: 'Frota', autonomo: 'Autônomo', terceirizado: 'Terceirizado' };
+        const tipo = motorista.tipo_cadastro || 'frota';
+        return (
+          <td className="p-4 align-middle">
+            <Badge variant="outline" className={
+              tipo === 'terceirizado' ? 'bg-chart-4/10 text-chart-4 border-chart-4/20' :
+              tipo === 'autonomo' ? 'bg-chart-5/10 text-chart-5 border-chart-5/20' :
+              'bg-primary/10 text-primary border-primary/20'
+            }>
+              {tipoLabels[tipo] || tipo}
+            </Badge>
+          </td>
+        );
+      }
       case 'status':
         return (
           <td className="p-4 align-middle">
