@@ -322,8 +322,8 @@ function DetailPanel({
   const nextStatus = getNextStatus();
   const isFinalized = entrega.status === 'entregue' || entrega.status === 'cancelada';
   
-  // Verificar se a viagem está iniciada (programada = não iniciada, bloqueando ações de entrega)
-  const isViagemNotStarted = viagemStatus === 'programada';
+  // Verificar se a viagem está iniciada (não mais necessário, viagens já iniciam como aguardando)
+  const isViagemNotStarted = false;
 
   const handleCancelConfirm = () => {
     onStatusChange('cancelada');

@@ -77,46 +77,54 @@ interface TimelineItem {
   user_nome: string;
   entityCodigo?: string;
   entityType: 'viagem' | 'entrega';
+  _sortOrder: number;
 }
 
 export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
   // Build unified timeline
   const timelineItems: TimelineItem[] = [];
+  const baseTime = new Date(viagem.created_at).getTime();
 
-  // 1. Trip creation event
+  // Derive trip creator from the first delivery's 'criado' event
+  const firstCreationEvent = entregas
+    .flatMap(e => e.eventos || [])
+    .find(ev => ev.tipo === 'criado');
+  const tripCreatorName = firstCreationEvent?.user_nome || 'Sistema';
+
+  // 1. Trip creation event (earliest)
   timelineItems.push({
     id: `viagem-created-${viagem.id}`,
-    timestamp: viagem.created_at,
+    timestamp: new Date(baseTime).toISOString(),
     tipo: 'viagem_criada',
-    user_nome: 'Sistema',
+    user_nome: tripCreatorName,
     entityCodigo: viagem.codigo,
     entityType: 'viagem',
+    _sortOrder: 0,
   });
 
-  // 2. Trip started (aguardando) — use started_at if available
-  // When the operator clicks "Iniciar Viagem", status goes to aguardando and started_at is set
-  if (viagem.started_at) {
+  // 2. Trip status aguardando (right after creation)
+  if (['aguardando', 'em_andamento', 'finalizada', 'cancelada'].includes(viagem.status)) {
     timelineItems.push({
-      id: `viagem-started-${viagem.id}`,
-      timestamp: viagem.started_at,
+      id: `viagem-aguardando-${viagem.id}`,
+      timestamp: viagem.started_at || new Date(baseTime + 1).toISOString(),
       tipo: 'viagem_aguardando',
       user_nome: 'Sistema',
       entityCodigo: viagem.codigo,
       entityType: 'viagem',
+      _sortOrder: 1,
     });
   }
 
-  // 3. Trip in progress (em_andamento) — if status is em_andamento or beyond
-  // We approximate this timestamp; if started_at exists and status >= em_andamento
+  // 3. Trip in progress (em_andamento)
   if (['em_andamento', 'finalizada', 'cancelada'].includes(viagem.status) && viagem.started_at) {
-    // Use started_at + small offset or updated_at as approximation
     timelineItems.push({
       id: `viagem-em-andamento-${viagem.id}`,
-      timestamp: viagem.started_at, // same moment as start for now
+      timestamp: viagem.started_at,
       tipo: 'viagem_em_andamento',
       user_nome: 'Sistema',
       entityCodigo: viagem.codigo,
       entityType: 'viagem',
+      _sortOrder: 2,
     });
   }
 
@@ -129,6 +137,7 @@ export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
       user_nome: 'Sistema',
       entityCodigo: viagem.codigo,
       entityType: 'viagem',
+      _sortOrder: 100,
     });
   } else if (viagem.status === 'cancelada') {
     timelineItems.push({
@@ -138,10 +147,11 @@ export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
       user_nome: 'Sistema',
       entityCodigo: viagem.codigo,
       entityType: 'viagem',
+      _sortOrder: 100,
     });
   }
 
-  // 5. Delivery events
+  // 5. Delivery events (with sort order based on their timestamp relative to viagem)
   entregas.forEach(entrega => {
     (entrega.eventos || []).forEach(evento => {
       timelineItems.push({
@@ -151,14 +161,20 @@ export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
         user_nome: evento.user_nome || 'Sistema',
         entityCodigo: entrega.codigo,
         entityType: 'entrega',
+        _sortOrder: 10,
       });
     });
   });
 
-  // Sort by timestamp (most recent first)
-  const sortedTimeline = timelineItems.sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
+  // Sort: by timestamp descending, then by _sortOrder descending for same-time events
+  const sortedTimeline = timelineItems.sort((a, b) => {
+    const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    if (Math.abs(timeDiff) < 100) {
+      // Same moment (~100ms window): use sort order (higher = more recent in timeline)
+      return b._sortOrder - a._sortOrder;
+    }
+    return timeDiff;
+  });
 
   if (sortedTimeline.length === 0) {
     return (
