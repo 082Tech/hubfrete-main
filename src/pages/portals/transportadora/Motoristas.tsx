@@ -631,7 +631,9 @@ export default function Motoristas() {
         ) : viewMode === 'list' ? (
           /* List View */
           <Card
-            className="border-border flex flex-col flex-1 min-h-0"
+            ref={tableCardRef}
+            style={{ height: tableCardHeight }}
+            className="border-border flex flex-col"
           >
             <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
               <div className="flex-1 min-h-0 overflow-auto">
