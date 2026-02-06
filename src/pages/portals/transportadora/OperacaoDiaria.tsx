@@ -1425,7 +1425,7 @@ export default function OperacaoDiaria() {
       const { data: viagensData, error: viagensError } = await supabase
         .from('viagens')
         .select(`
-          id, codigo, status, created_at, manifesto_url, motorista_id,
+          id, codigo, status, created_at, updated_at, manifesto_url, motorista_id,
           motorista:motoristas(id, nome_completo, foto_url),
           veiculo:veiculos(placa, modelo)
         `)
@@ -1488,10 +1488,8 @@ export default function OperacaoDiaria() {
         if (activeViagemStatuses.includes(v.status)) return true;
         if (terminalViagemStatuses.includes(v.status)) {
           // Show terminal viagens only if they were updated today
-          const updatedToday = new Date(v.created_at) >= new Date(startOfTodayViagem);
-          // For viagens we don't have updated_at, use entregas' updated_at as proxy
-          const anyEntregaUpdatedToday = v.entregas.some(e => new Date(e.updated_at) >= new Date(startOfTodayViagem));
-          return updatedToday || anyEntregaUpdatedToday;
+          const viagemUpdatedToday = v.updated_at && new Date(v.updated_at) >= new Date(startOfTodayViagem);
+          return !!viagemUpdatedToday;
         }
         return false;
       }) as ViagemWithEntregas[];
