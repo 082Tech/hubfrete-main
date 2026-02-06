@@ -122,7 +122,7 @@ export function ViagemDetailPanel({
 }: ViagemDetailPanelProps) {
   const [anexarManifestoOpen, setAnexarManifestoOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
-  const [iniciarDialogOpen, setIniciarDialogOpen] = useState(false);
+  // iniciarDialogOpen removed - trips now start as aguardando
   const [finalizarDialogOpen, setFinalizarDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [isProcessingViagem, setIsProcessingViagem] = useState(false);
@@ -143,7 +143,6 @@ export function ViagemDetailPanel({
   }, [viagem?.id]);
 
   // Status flags
-  const isViagemProgramada = viagem?.status === 'programada';
   const isViagemAguardando = viagem?.status === 'aguardando';
   const isViagemEmAndamento = viagem?.status === 'em_andamento';
   const isViagemFinalized = viagem?.status === 'finalizada' || viagem?.status === 'cancelada';
@@ -163,20 +162,7 @@ export function ViagemDetailPanel({
     };
   }, [viagem]);
 
-  const handleIniciarViagem = async () => {
-    if (!viagem || !onStart) return;
-    
-    setIsProcessingViagem(true);
-    try {
-      await onStart(viagem.id);
-      toast.success('Viagem iniciada! O motorista agora pode executar as entregas.');
-      setIniciarDialogOpen(false);
-    } catch (error) {
-      toast.error('Erro ao iniciar viagem');
-    } finally {
-      setIsProcessingViagem(false);
-    }
-  };
+  // handleIniciarViagem removed - trips now start as aguardando automatically
 
   const handleFinalizarViagem = async () => {
     if (!viagem || !onFinalize) return;
@@ -492,21 +478,8 @@ export function ViagemDetailPanel({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Botão principal: Iniciar ou Finalizar dependendo do status */}
-          {isViagemProgramada ? (
-            <Button
-              className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={isProcessingViagem}
-              onClick={() => setIniciarDialogOpen(true)}
-            >
-              {isProcessingViagem ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Truck className="w-4 h-4" />
-              )}
-              Iniciar Viagem
-            </Button>
-          ) : (isViagemAguardando || isViagemEmAndamento) ? (
+          {/* Botão principal: Finalizar */}
+          {(isViagemAguardando || isViagemEmAndamento) ? (
             <Button
               className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
               disabled={!entregasValidation.canFinalize || isProcessingViagem}
@@ -520,23 +493,6 @@ export function ViagemDetailPanel({
               Finalizar Viagem
             </Button>
           ) : null}
-        </div>
-      )}
-
-      {/* Aviso de viagem não iniciada */}
-      {isViagemProgramada && (
-        <div className="px-3 pb-3 -mt-1">
-          <div className="flex items-start gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-xs">
-            <AlertTriangle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-blue-800 dark:text-blue-300">
-                Viagem programada
-              </p>
-              <p className="text-blue-700 dark:text-blue-400">
-                Inicie a viagem para liberar as entregas ao motorista. Após iniciar, não será possível adicionar mais entregas.
-              </p>
-            </div>
-          </div>
         </div>
       )}
 
@@ -556,39 +512,6 @@ export function ViagemDetailPanel({
           </div>
         </div>
       )}
-
-      {/* Dialog de confirmação para iniciar viagem */}
-      <AlertDialog open={iniciarDialogOpen} onOpenChange={setIniciarDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Truck className="w-5 h-5 text-blue-600" />
-              Iniciar Viagem
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja iniciar a viagem <strong>{viagem.codigo}</strong>?
-              <br /><br />
-              <strong>Após iniciar:</strong>
-              <ul className="list-disc ml-4 mt-2 space-y-1">
-                <li>O motorista poderá executar as entregas</li>
-                <li>Novas entregas não poderão ser adicionadas a esta viagem</li>
-                <li>O rastreamento será ativado</li>
-              </ul>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessingViagem}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleIniciarViagem}
-              disabled={isProcessingViagem}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isProcessingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Confirmar Início
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Dialog de confirmação para finalizar viagem */}
       <AlertDialog open={finalizarDialogOpen} onOpenChange={setFinalizarDialogOpen}>
