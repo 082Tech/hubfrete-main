@@ -42,7 +42,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useViewModePreference } from '@/hooks/useViewModePreference';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
 import { useTableSort } from '@/hooks/useTableSort';
 import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColumns';
 import { DraggableTableHead } from '@/components/ui/draggable-table-head';
@@ -89,10 +88,6 @@ export default function Motoristas() {
   const [deletingMotoristaId, setDeletingMotoristaId] = useState<string | null>(null);
   const [selectedMotorista, setSelectedMotorista] = useState<MotoristaCompleto | null>(null);
 
-  const { ref: tableCardRef, height: tableCardHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    bottomOffset: 32,
-    minHeight: 320,
-  });
 
   // Draggable columns hook
   const {
@@ -631,9 +626,7 @@ export default function Motoristas() {
         ) : viewMode === 'list' ? (
           /* List View */
           <Card
-            ref={tableCardRef}
-            style={{ height: tableCardHeight }}
-            className="border-border flex flex-col"
+            className="border-border flex flex-col flex-1 min-h-0"
           >
             <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
               <div className="flex-1 min-h-0 overflow-auto">
@@ -738,9 +731,7 @@ export default function Motoristas() {
         ) : (
           /* Grid View */
           <div 
-            ref={tableCardRef}
-            style={{ height: tableCardHeight }}
-            className="flex flex-col overflow-hidden"
+            className="flex flex-col flex-1 min-h-0 overflow-auto"
           >
             <div className="flex-1 overflow-auto">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
