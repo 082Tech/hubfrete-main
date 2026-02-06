@@ -209,7 +209,9 @@ export default function CargasDisponiveis() {
   const equipmentSectionRef = useRef<HTMLDivElement>(null);
   const viagemSectionRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(15);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const prevVisibleCountRef = useRef(15);
 
   // Fetch cargas publicadas
   const { data: cargas = [], isLoading } = useQuery({
@@ -686,15 +688,26 @@ export default function CargasDisponiveis() {
   }, [cargas, advancedFilters, filterTipo, filterTiposVeiculo]);
 
   // Reset visible count when filters change
-  useEffect(() => { setVisibleCount(15); }, [advancedFilters, filterTipo, filterTiposVeiculo]);
+  useEffect(() => { setVisibleCount(15); prevVisibleCountRef.current = 15; }, [advancedFilters, filterTipo, filterTiposVeiculo]);
 
   const visibleCargas = useMemo(() => filteredCargas.slice(0, visibleCount), [filteredCargas, visibleCount]);
   const hasMore = visibleCount < filteredCargas.length;
 
+  const loadMore = () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    prevVisibleCountRef.current = visibleCount;
+    // Small delay to show loader and simulate fetch
+    setTimeout(() => {
+      setVisibleCount(prev => Math.min(prev + 15, filteredCargas.length));
+      setIsLoadingMore(false);
+    }, 400);
+  };
+
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop - clientHeight < 300 && hasMore) {
-      setVisibleCount(prev => Math.min(prev + 15, filteredCargas.length));
+    if (scrollHeight - scrollTop - clientHeight < 300) {
+      loadMore();
     }
   };
 
@@ -920,14 +933,15 @@ export default function CargasDisponiveis() {
   };
 
   // Carga Card component for reuse
-  const CargaCard = ({ carga, isHovered, uniformHeight = false }: { carga: Carga; isHovered?: boolean; uniformHeight?: boolean }) => {
+  const CargaCard = ({ carga, isHovered, uniformHeight = false, isNew = false }: { carga: Carga; isHovered?: boolean; uniformHeight?: boolean; isNew?: boolean }) => {
     const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
     const percentDisponivel = (pesoDisponivel / carga.peso_kg) * 100;
     const veiculoRequisitos = carga.veiculo_requisitos as VeiculoRequisitos | null;
 
     return (
       <Card
-        className={`border-border hover:shadow-lg transition-all cursor-pointer ${uniformHeight ? 'h-full flex flex-col' : ''} ${isHovered ? 'ring-2 ring-primary shadow-lg' : ''}`}
+        className={`border-border hover:shadow-lg transition-all cursor-pointer ${uniformHeight ? 'h-full flex flex-col' : ''} ${isHovered ? 'ring-2 ring-primary shadow-lg' : ''} ${isNew ? 'animate-fade-in' : ''}`}
+        style={isNew ? { animationDuration: '0.4s', animationFillMode: 'both' } : undefined}
         onMouseEnter={() => setHoveredCargaId(carga.id)}
         onMouseLeave={() => setHoveredCargaId(null)}
         onClick={() => handleAcceptClick(carga)}
@@ -1300,12 +1314,16 @@ export default function CargasDisponiveis() {
         ) : viewMode === 'list' ? (
           /* List View */
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20 md:pb-0 items-stretch" style={{ overflow: 'visible' }}>
-            {visibleCargas.map((carga) => (
-              <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} uniformHeight />
+            {visibleCargas.map((carga, index) => (
+              <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} uniformHeight isNew={index >= prevVisibleCountRef.current} />
             ))}
-            {hasMore && (
+            {(hasMore || isLoadingMore) && (
               <div className="col-span-full flex justify-center py-4">
-                <Button variant="outline" onClick={() => setVisibleCount(prev => prev + 15)}>Carregar mais</Button>
+                {isLoadingMore ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                ) : (
+                  <Button variant="outline" onClick={loadMore}>Carregar mais</Button>
+                )}
               </div>
             )}
           </div>
@@ -1324,10 +1342,10 @@ export default function CargasDisponiveis() {
           <div className="flex gap-4 h-[calc(100vh-300px)] min-h-[500px]">
             {/* Left - Scrollable List */}
             <div className="w-1/2 lg:w-2/5 overflow-y-auto px-1 py-1 space-y-3" onScroll={handleScroll}>
-              {visibleCargas.map((carga) => (
-                <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} />
+              {visibleCargas.map((carga, index) => (
+                <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} isNew={index >= prevVisibleCountRef.current} />
               ))}
-              {hasMore && (
+              {(hasMore || isLoadingMore) && (
                 <div className="flex justify-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
