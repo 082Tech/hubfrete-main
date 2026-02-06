@@ -1972,7 +1972,7 @@ export default function OperacaoDiaria() {
             {/* Column 2: Viagens Finalizadas */}
             <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-                <span className="text-sm font-medium text-muted-foreground">Finalizadas ({viagens.filter(v => v.status === 'finalizada').length})</span>
+                <span className="text-sm font-medium text-muted-foreground">Finalizadas ({viagens.filter(v => v.status === 'finalizada' || v.status === 'cancelada').length})</span>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {isLoadingViagens ? (
