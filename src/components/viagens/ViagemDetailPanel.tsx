@@ -34,7 +34,8 @@ import { AnexarManifestoViagemDialog } from './AnexarManifestoViagemDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
-import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
+import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
+import { supabase } from '@/integrations/supabase/client';
 interface ViagemEntregaEvento {
   id: string;
   tipo: string;
