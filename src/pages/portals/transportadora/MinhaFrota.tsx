@@ -79,7 +79,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useState, useMemo, useRef } from 'react';
 import { useViewModePreference } from '@/hooks/useViewModePreference';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
 import { toast } from 'sonner';
 import { VeiculoEditDialog, CarroceriaEditDialog } from '@/components/frota';
 
@@ -226,14 +226,7 @@ export default function MinhaFrota() {
   const enderecoProprietarioInputRef = useRef<HTMLInputElement>(null);
   const cardFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
-  const { ref: veiculosTableRef, height: veiculosTableHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    bottomOffset: 32,
-    minHeight: 320,
-  });
-  const { ref: carroceriasTableRef, height: carroceriasTableHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    bottomOffset: 32,
-    minHeight: 320,
-  });
+  // Height is now managed by CSS flexbox (flex-1 min-h-0) instead of JS calculation
   
   const [newVeiculo, setNewVeiculo] = useState({
     placa: '',
@@ -780,10 +773,10 @@ export default function MinhaFrota() {
   const isLoading = activeTab === 'veiculos' ? isLoadingVeiculos : isLoadingCarrocerias;
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="space-y-6">
+    <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
+      <div className="flex flex-col h-full gap-6 overflow-hidden">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Minha Frota</h1>
             <p className="text-muted-foreground">
@@ -1368,8 +1361,8 @@ export default function MinhaFrota() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'veiculos' | 'carrocerias')}>
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'veiculos' | 'carrocerias')} className="flex flex-col flex-1 min-h-0">
+          <TabsList className="grid w-full max-w-md grid-cols-2 shrink-0">
             <TabsTrigger value="veiculos" className="gap-2">
               <Car className="w-4 h-4" />
               Veículos ({veiculos.length})
@@ -1380,9 +1373,9 @@ export default function MinhaFrota() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="veiculos" className="space-y-6 mt-6">
+          <TabsContent value="veiculos" className="flex flex-col flex-1 min-h-0 gap-6 mt-6">
             {/* Veículos Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
               <Card className="border-border">
                 <CardContent className="p-4 flex items-center gap-4">
                   <div className="p-3 bg-primary/10 rounded-xl">
@@ -1430,7 +1423,7 @@ export default function MinhaFrota() {
             </div>
 
             {/* Search + View Toggle */}
-            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between shrink-0">
               <div className="relative max-w-md flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -1478,9 +1471,7 @@ export default function MinhaFrota() {
             ) : viewMode === 'list' ? (
               /* List View */
               <Card
-                ref={veiculosTableRef}
-                style={{ height: veiculosTableHeight }}
-                className="border-border flex flex-col"
+                className="border-border flex flex-col flex-1 min-h-0"
               >
                 <div className="flex-1 min-h-0 overflow-auto">
                   <table className="w-full caption-bottom text-sm">
@@ -1779,9 +1770,9 @@ export default function MinhaFrota() {
             )
           </TabsContent>
 
-          <TabsContent value="carrocerias" className="space-y-6 mt-6">
+          <TabsContent value="carrocerias" className="flex flex-col flex-1 min-h-0 gap-6 mt-6">
             {/* Carrocerias Stats */}
-            <div className="grid grid-cols-2 gap-4 max-w-md">
+            <div className="grid grid-cols-2 gap-4 max-w-md shrink-0">
               <Card className="border-border">
                 <CardContent className="p-4 flex items-center gap-4">
                   <div className="p-3 bg-primary/10 rounded-xl">
@@ -1807,7 +1798,7 @@ export default function MinhaFrota() {
             </div>
 
             {/* Search + View Toggle */}
-            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between shrink-0">
               <div className="relative max-w-md flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -1855,9 +1846,7 @@ export default function MinhaFrota() {
             ) : viewMode === 'list' ? (
               /* List View */
               <Card
-                ref={carroceriasTableRef}
-                style={{ height: carroceriasTableHeight }}
-                className="border-border flex flex-col"
+                className="border-border flex flex-col flex-1 min-h-0"
               >
                 <div className="flex-1 min-h-0 overflow-auto">
                   <table className="w-full caption-bottom text-sm">
