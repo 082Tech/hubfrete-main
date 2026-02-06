@@ -281,7 +281,6 @@ function DetailPanel({
   onBack?: () => void;
   viagemStatus?: string | null;
 }) {
-  const { empresa } = useUserContext();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
   const [anexarDocumentosOpen, setAnexarDocumentosOpen] = useState(false);
@@ -923,7 +922,6 @@ function DetailPanel({
         onOpenChange={setChatSheetOpen}
         entregaId={entrega.id}
         userType="transportadora"
-        empresaId={empresa?.id}
       />
     </div>
   );
