@@ -1940,12 +1940,12 @@ export default function OperacaoDiaria() {
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').length === 0 ? (
+                ) : viagens.filter(v => ['programada', 'aguardando', 'em_andamento'].includes(v.status)).length === 0 ? (
                   <div className="flex items-center justify-center h-full">
                     <EmptyColumnPlaceholder message="Viagens ativas aparecerão aqui" />
                   </div>
                 ) : (
-                  viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').map((viagem) => (
+                  viagens.filter(v => ['programada', 'aguardando', 'em_andamento'].includes(v.status)).map((viagem) => (
                     <ViagemListItem
                       key={viagem.id}
                       viagem={{
