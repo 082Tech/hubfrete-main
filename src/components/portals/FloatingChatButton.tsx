@@ -22,8 +22,10 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
   const [empresaId, setEmpresaId] = useState<number | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Hide on mensagens page
-  const isOnMessagesPage = location.pathname.includes('/mensagens');
+  // Only show on gestão/operação pages (not historico)
+  const isOnGestaoPage = 
+    (location.pathname.endsWith('/transportadora/entregas')) || 
+    (location.pathname.endsWith('/embarcador/cargas/em-rota'));
   
   useEffect(() => {
     const fetchEmpresaId = async () => {
@@ -74,7 +76,7 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
     navigate(`/${userType}/configuracoes`);
   };
 
-  if (isOnMessagesPage) return null;
+  if (!isOnGestaoPage) return null;
 
   return (
     <>
