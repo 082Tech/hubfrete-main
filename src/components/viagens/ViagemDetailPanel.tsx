@@ -257,7 +257,11 @@ export function ViagemDetailPanel({
         <div className={`rounded-md px-3 py-1.5 text-center text-sm ${viagemStatus.color}`}>
           <span className="font-semibold flex items-center justify-center gap-2">
             <Truck className="w-3.5 h-3.5" />
-            {viagemStatus.label} há {formatDistanceToNow(new Date(viagem.created_at), { locale: ptBR })}
+            {viagemStatus.label} há {formatDistanceToNow(new Date(
+              ['finalizada', 'cancelada'].includes(viagem.status) && viagem.updated_at
+                ? viagem.updated_at
+                : viagem.created_at
+            ), { locale: ptBR })}
           </span>
         </div>
       </div>

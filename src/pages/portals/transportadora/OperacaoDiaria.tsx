@@ -1425,7 +1425,7 @@ export default function OperacaoDiaria() {
       const { data: viagensData, error: viagensError } = await supabase
         .from('viagens')
         .select(`
-          id, codigo, status, created_at, manifesto_url, motorista_id,
+          id, codigo, status, created_at, updated_at, manifesto_url, motorista_id,
           motorista:motoristas(id, nome_completo, foto_url),
           veiculo:veiculos(placa, modelo)
         `)

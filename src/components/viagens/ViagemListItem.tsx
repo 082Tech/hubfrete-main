@@ -44,7 +44,9 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 
 export function ViagemListItem({ viagem, isSelected, onClick }: ViagemListItemProps) {
   const statusInfo = statusConfig[viagem.status] || statusConfig.em_andamento;
-  const tempoDecorrido = formatDistanceToNow(new Date(viagem.created_at), {
+  const isTerminal = ['finalizada', 'cancelada'].includes(viagem.status);
+  const referenceDate = isTerminal && viagem.updated_at ? viagem.updated_at : viagem.created_at;
+  const tempoDecorrido = formatDistanceToNow(new Date(referenceDate), {
     addSuffix: false,
     locale: ptBR
   });
