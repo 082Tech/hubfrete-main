@@ -283,11 +283,46 @@ export function ViagemDetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Mapa Multi-Ponto */}
+          {/* Entregas desta Viagem (above map for context) */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Package className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="font-medium text-xs">Entregas desta Viagem ({viagem.entregas.length})</span>
+            </div>
+            <div className="space-y-1">
+              {viagem.entregas.map(entrega => {
+                const eStatusInfo = statusConfig[entrega.status] || statusConfig.aguardando;
+                const StatusIcon = eStatusInfo.icon;
+                return (
+                  <div
+                    key={`summary-${entrega.id}`}
+                    className="flex items-center justify-between gap-2 p-1.5 rounded-md border bg-muted/30 hover:bg-muted/60 transition-all cursor-pointer text-xs"
+                    onClick={() => onSelectEntrega(entrega.id)}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-mono shrink-0">
+                        {entrega.codigo}
+                      </Badge>
+                      <span className="truncate text-muted-foreground">
+                        {entrega.carga.endereco_origem?.cidade} → {entrega.carga.endereco_destino?.cidade}
+                      </span>
+                    </div>
+                    <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 gap-1 shrink-0 ${eStatusInfo.color}`}>
+                      <StatusIcon className="w-2.5 h-2.5" />
+                      {eStatusInfo.label}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Mapa Multi-Ponto with tracking dots */}
           <div className="relative z-0">
             <ViagemMultiPointMap
               entregas={mapEntregas}
               driverLocation={driverLocation}
+              trackingPoints={trackingPoints}
               height={260}
             />
           </div>
