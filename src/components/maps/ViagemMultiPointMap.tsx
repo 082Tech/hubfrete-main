@@ -1,5 +1,5 @@
-import { useMemo, useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup, CircleMarker, Tooltip } from 'react-leaflet';
+import { useMemo, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, useMap, CircleMarker, Tooltip, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getTruckIconHtml } from './TruckIcon';
@@ -32,26 +32,26 @@ interface ViagemMultiPointMapProps {
   trackingPoints?: TrackingPoint[];
 }
 
-// Ícone de origem (círculo com "O")
+// Ícone de origem - círculo verde com "O" (mesmo estilo do DetailPanelLeafletMap)
 const createOrigemIcon = () => {
   return L.divIcon({
-    className: 'custom-origin-marker',
+    className: 'location-marker',
     html: `
       <div style="
+        background-color: #22c55e;
         width: 28px;
         height: 28px;
-        background: #22c55e;
         border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2px 6px rgba(34, 197, 94, 0.4);
-        border: 2px solid white;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
       ">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-          <circle cx="12" cy="10" r="3"/>
-        </svg>
+        O
       </div>
     `,
     iconSize: [28, 28],
@@ -59,26 +59,26 @@ const createOrigemIcon = () => {
   });
 };
 
-// Ícone de destino (círculo com bandeira)
+// Ícone de destino - círculo vermelho com "D" (mesmo estilo do DetailPanelLeafletMap)
 const createDestinoIcon = () => {
   return L.divIcon({
-    className: 'custom-destination-marker',
+    className: 'location-marker',
     html: `
       <div style="
+        background-color: #ef4444;
         width: 28px;
         height: 28px;
-        background: #ef4444;
         border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
-        border: 2px solid white;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
       ">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
-          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-          <line x1="4" y1="22" x2="4" y2="15"/>
-        </svg>
+        D
       </div>
     `,
     iconSize: [28, 28],
@@ -86,7 +86,7 @@ const createDestinoIcon = () => {
   });
 };
 
-// Ícone do caminhão usando o mesmo padrão do TruckIcon
+// Ícone do caminhão
 const createTruckLeafletIcon = (heading: number, isOnline: boolean) => {
   const truckHtml = getTruckIconHtml(heading, isOnline, false, 48);
   return L.divIcon({
@@ -97,13 +97,38 @@ const createTruckLeafletIcon = (heading: number, isOnline: boolean) => {
   });
 };
 
+// Status colors (same as TrackingHistoryMarkers)
+const statusColors: Record<string, string> = {
+  'aguardando': '#f59e0b',
+  'saiu_para_coleta': '#06b6d4',
+  'saiu_para_entrega': '#a855f7',
+  'entregue': '#22c55e',
+  'problema': '#ef4444',
+  'cancelada': '#ef4444',
+};
+
+const statusLabels: Record<string, string> = {
+  'aguardando': 'Aguardando',
+  'saiu_para_coleta': 'Saiu para Coleta',
+  'saiu_para_entrega': 'Saiu para Entrega',
+  'entregue': 'Entregue',
+  'problema': 'Problema',
+  'cancelada': 'Cancelada',
+};
+
+function formatDateTime(dateString: string): string {
+  return new Date(dateString).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
 // Componente para ajustar bounds automaticamente
 function FitBoundsToPoints({ points }: { points: Coordinate[] }) {
   const map = useMap();
 
   useEffect(() => {
     if (points.length === 0) return;
-
     const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
     map.fitBounds(bounds, { padding: [50, 50] });
   }, [map, points]);
@@ -113,7 +138,8 @@ function FitBoundsToPoints({ points }: { points: Coordinate[] }) {
 
 /**
  * Mapa de viagem multi-ponto para visualização de todas as origens/destinos
- * Versão com Leaflet/OpenStreetMap
+ * Estilo visual idêntico ao DetailPanelLeafletMap (marcadores O/D, dots por status)
+ * Sem linhas de rota (múltiplas origens/destinos)
  */
 export function ViagemMultiPointMap({
   entregas,
@@ -121,7 +147,6 @@ export function ViagemMultiPointMap({
   height = 280,
   trackingPoints = [],
 }: ViagemMultiPointMapProps) {
-  // Coletar todos os pontos para calcular bounds
   const allPoints = useMemo(() => {
     const points: Coordinate[] = [];
     entregas.forEach(e => {
@@ -137,7 +162,6 @@ export function ViagemMultiPointMap({
     return points;
   }, [entregas, driverLocation, trackingPoints]);
 
-  // Centro padrão se não houver coordenadas
   const mapCenter = useMemo((): [number, number] => {
     if (driverLocation) return [driverLocation.lat, driverLocation.lng];
     if (allPoints.length > 0) return [allPoints[0].lat, allPoints[0].lng];
@@ -145,52 +169,6 @@ export function ViagemMultiPointMap({
   }, [driverLocation, allPoints]);
 
   const isDriverOnline = driverLocation?.isOnline ?? false;
-
-  // Gerar linhas de rota para cada entrega
-  const routeLines = useMemo(() => {
-    const lines: Array<{ path: [number, number][]; color: string; dashed: boolean; key: string }> = [];
-
-    entregas.forEach(entrega => {
-      // Linha origem → destino (sempre visível)
-      if (entrega.origem && entrega.destino) {
-        lines.push({
-          key: `route-${entrega.id}`,
-          path: [[entrega.origem.lat, entrega.origem.lng], [entrega.destino.lat, entrega.destino.lng]],
-          color: '#6366f1', // roxo
-          dashed: false,
-        });
-      }
-
-      // Linha motorista → próximo ponto (baseado no status)
-      if (driverLocation) {
-        const truckPos: [number, number] = [driverLocation.lat, driverLocation.lng];
-
-        if (entrega.status === 'aguardando' || entrega.status === 'saiu_para_coleta') {
-          // Motorista indo para origem
-          if (entrega.origem) {
-            lines.push({
-              key: `truck-origem-${entrega.id}`,
-              path: [truckPos, [entrega.origem.lat, entrega.origem.lng]],
-              color: '#3b82f6', // azul
-              dashed: true,
-            });
-          }
-        } else if (entrega.status === 'saiu_para_entrega') {
-          // Motorista indo para destino
-          if (entrega.destino) {
-            lines.push({
-              key: `truck-destino-${entrega.id}`,
-              path: [truckPos, [entrega.destino.lat, entrega.destino.lng]],
-              color: '#22c55e', // verde
-              dashed: true,
-            });
-          }
-        }
-      }
-    });
-
-    return lines;
-  }, [entregas, driverLocation]);
 
   return (
     <div className="rounded-lg overflow-hidden border" style={{ height }}>
@@ -207,33 +185,25 @@ export function ViagemMultiPointMap({
 
         <FitBoundsToPoints points={allPoints} />
 
-        {/* Origens - Marcadores verdes */}
+        {/* Origens - Marcadores verdes com "O" */}
         {entregas.map((entrega) => (
           entrega.origem && (
             <Marker
               key={`origem-${entrega.id}`}
               position={[entrega.origem.lat, entrega.origem.lng]}
               icon={createOrigemIcon()}
-            >
-              <Popup>
-                <div className="text-xs font-medium">Origem: {entrega.codigo}</div>
-              </Popup>
-            </Marker>
+            />
           )
         ))}
 
-        {/* Destinos - Marcadores vermelhos */}
+        {/* Destinos - Marcadores vermelhos com "D" */}
         {entregas.map((entrega) => (
           entrega.destino && (
             <Marker
               key={`destino-${entrega.id}`}
               position={[entrega.destino.lat, entrega.destino.lng]}
               icon={createDestinoIcon()}
-            >
-              <Popup>
-                <div className="text-xs font-medium">Destino: {entrega.codigo}</div>
-              </Popup>
-            </Marker>
+            />
           )
         ))}
 
@@ -245,41 +215,37 @@ export function ViagemMultiPointMap({
           />
         )}
 
-        {/* Linhas de rota */}
-        {routeLines.map(line => (
-          <Polyline
-            key={line.key}
-            positions={line.path}
-            pathOptions={{
-              color: line.color,
-              weight: 3,
-              opacity: 0.8,
-              dashArray: line.dashed ? '10, 10' : undefined,
-            }}
-          />
-        ))}
+        {/* Tracking history dots - same style as TrackingHistoryMarkers */}
+        {trackingPoints.map((point, idx) => {
+          const color = statusColors[point.status || 'aguardando'] || '#6b7280';
+          const label = statusLabels[point.status || 'aguardando'] || point.status || 'Em trânsito';
+          const isFirst = idx === 0;
+          const isLast = idx === trackingPoints.length - 1;
 
-        {/* Tracking history dots */}
-        {trackingPoints.map((point, idx) => (
-          <CircleMarker
-            key={`track-${idx}`}
-            center={[point.lat, point.lng]}
-            radius={3}
-            pathOptions={{
-              color: '#6366f1',
-              fillColor: '#6366f1',
-              fillOpacity: 0.7,
-              weight: 1,
-            }}
-          >
-            <Tooltip direction="top" offset={[0, -5]}>
-              <div className="text-[10px]">
-                <div>{new Date(point.tracked_at).toLocaleString('pt-BR')}</div>
-                {point.speed != null && <div>{Math.round(point.speed)} km/h</div>}
-              </div>
-            </Tooltip>
-          </CircleMarker>
-        ))}
+          return (
+            <CircleMarker
+              key={`track-${idx}`}
+              center={[point.lat, point.lng]}
+              radius={isFirst || isLast ? 8 : 5}
+              pathOptions={{
+                color: 'white',
+                weight: 2,
+                fillColor: color,
+                fillOpacity: isFirst || isLast ? 1 : 0.8,
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
+                <div className="text-xs min-w-[120px]">
+                  <div className="font-medium">{label}</div>
+                  <div className="text-gray-500 mt-0.5">{formatDateTime(point.tracked_at)}</div>
+                  {point.speed != null && <div className="text-gray-500">{Math.round(point.speed)} km/h</div>}
+                  {isFirst && <div className="mt-1 text-green-600 font-medium">📍 Início</div>}
+                  {isLast && trackingPoints.length > 1 && <div className="mt-1 text-blue-600 font-medium">📍 Atual</div>}
+                </div>
+              </Tooltip>
+            </CircleMarker>
+          );
+        })}
       </MapContainer>
     </div>
   );

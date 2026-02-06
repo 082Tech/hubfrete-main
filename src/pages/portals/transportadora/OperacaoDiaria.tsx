@@ -2053,7 +2053,7 @@ export default function OperacaoDiaria() {
                   onRefresh={() => refetchViagens()}
                   driverLocation={selectedViagem?.motorista_id ? (() => {
                     const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
-                    return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, heading: loc.heading, isOnline: loc.isOnline } : null;
+                    return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, heading: loc.heading, isOnline: loc.isOnline, updated_at: (loc as any)?.updated_at } : null;
                   })() : null}
                   onStart={async (viagemId) => {
                     await iniciarViagemMutation.mutateAsync(viagemId);

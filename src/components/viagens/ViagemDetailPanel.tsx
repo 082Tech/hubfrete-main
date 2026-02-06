@@ -4,7 +4,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
   Share, Printer, X, Weight, DollarSign, Clock, Upload, History,
-  Loader2, MoreVertical, Ban, Paperclip, AlertTriangle
+  Loader2, MoreVertical, Ban, Paperclip, AlertTriangle, AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -86,7 +86,7 @@ interface ViagemDetailPanelProps {
   onClose: () => void;
   onSelectEntrega: (entregaId: string) => void;
   onRefresh: () => void;
-  driverLocation?: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
+  driverLocation?: { lat: number; lng: number; heading?: number | null; isOnline?: boolean; updated_at?: string | null } | null;
   onStart?: (viagemId: string) => Promise<void>;
   onFinalize?: (viagemId: string) => Promise<void>;
   onCancel?: (viagemId: string) => Promise<void>;
@@ -293,6 +293,10 @@ export function ViagemDetailPanel({
               {viagem.entregas.map(entrega => {
                 const eStatusInfo = statusConfig[entrega.status] || statusConfig.aguardando;
                 const StatusIcon = eStatusInfo.icon;
+                const missingDocs: string[] = [];
+                if (!entrega.notas_fiscais_urls?.length) missingDocs.push('NF-e');
+                if (!entrega.cte_url) missingDocs.push('CT-e');
+                if (!entrega.canhoto_url) missingDocs.push('Canhoto');
                 return (
                   <Card
                     key={`summary-${entrega.id}`}
@@ -315,6 +319,12 @@ export function ViagemDetailPanel({
                           {entrega.carga.endereco_origem?.cidade || '—'} → {entrega.carga.endereco_destino?.cidade || '—'}
                         </span>
                       </div>
+                      {missingDocs.length > 0 && entrega.status !== 'cancelada' && (
+                        <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
+                          <AlertCircle className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{missingDocs.join(', ')} pendente{missingDocs.length > 1 ? 's' : ''}</span>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
@@ -362,7 +372,12 @@ export function ViagemDetailPanel({
                       : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
-                    {driverLocation?.isOnline ? 'Online' : 'Offline'}
+                    {driverLocation?.isOnline ? 'Online' : (() => {
+                      const lastSeen = driverLocation?.updated_at;
+                      if (!lastSeen) return 'Offline';
+                      const text = formatDistanceToNow(new Date(lastSeen), { locale: ptBR, addSuffix: false });
+                      return `Offline há ${text}`;
+                    })()}
                   </span>
                 </div>
               </CardContent>
