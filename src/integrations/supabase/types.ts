@@ -1059,6 +1059,7 @@ export type Database = {
           canhoto_url: string | null
           carga_id: string
           carroceria_id: string | null
+          checklist_veiculo: Json | null
           codigo: string | null
           coletado_em: string | null
           created_at: string | null
@@ -1087,6 +1088,7 @@ export type Database = {
           canhoto_url?: string | null
           carga_id: string
           carroceria_id?: string | null
+          checklist_veiculo?: Json | null
           codigo?: string | null
           coletado_em?: string | null
           created_at?: string | null
@@ -1115,6 +1117,7 @@ export type Database = {
           canhoto_url?: string | null
           carga_id?: string
           carroceria_id?: string | null
+          checklist_veiculo?: Json | null
           codigo?: string | null
           coletado_em?: string | null
           created_at?: string | null
