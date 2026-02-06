@@ -141,12 +141,12 @@ interface Entrega {
   }>;
 }
 
-// Helper para verificar documentos obrigatórios
+// Helper para verificar documentos obrigatórios da entrega (3 docs: CT-e, Canhoto, NF-e)
+// Manifesto pertence à viagem, não à entrega
 function checkRequiredDocuments(entrega: Entrega): { complete: boolean; missing: string[] } {
   const missing: string[] = [];
 
   if (!entrega.cte_url) missing.push('CT-e');
-  if (!entrega.manifesto_url) missing.push('Manifesto');
   if (!entrega.canhoto_url) missing.push('Canhoto');
   if (!entrega.notas_fiscais_urls || entrega.notas_fiscais_urls.length === 0) missing.push('Nota Fiscal');
 
@@ -365,10 +365,9 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Contagem de documentos anexados
+  // Contagem de documentos anexados (3 obrigatórios: CT-e, Canhoto, NF-e)
   const docsCount = [
     entrega.cte_url ? 1 : 0,
-    entrega.manifesto_url ? 1 : 0,
     entrega.canhoto_url ? 1 : 0,
     (entrega.notas_fiscais_urls?.length || 0) > 0 ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
@@ -554,11 +553,11 @@ function DetailPanel({
                 <span className="font-medium text-xs">Documentos</span>
               </div>
               <Badge variant={docsCheck.complete ? "default" : "secondary"} className="text-[10px]">
-                {docsCount}/4 anexados
+                {docsCount}/3 anexados
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => handleDocClick(entrega.cte_url, 'CT-e')}
                 disabled={!entrega.cte_url}
@@ -566,14 +565,6 @@ function DetailPanel({
               >
                 {entrega.cte_url ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                 <span>CT-e</span>
-              </button>
-              <button
-                onClick={() => handleDocClick(entrega.manifesto_url, 'Manifesto')}
-                disabled={!entrega.manifesto_url}
-              className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${entrega.manifesto_url ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
-              >
-                {entrega.manifesto_url ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
-                <span>Manifesto</span>
               </button>
               <button
                 onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}

@@ -1,8 +1,11 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, lazy, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 // Table components not used - using native HTML for sticky headers
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -56,6 +59,9 @@ import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { useNavigate } from 'react-router-dom';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
+import HistoricoViagens from '@/components/historico/HistoricoViagens';
+
+type ViewMode = 'entregas' | 'viagens';
 
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
@@ -136,6 +142,7 @@ export default function HistoricoEntregas() {
   const { empresa } = useUserContext();
   const navigate = useNavigate();
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
+  const [viewMode, setViewMode] = useState<ViewMode>('viagens');
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedEntrega, setSelectedEntrega] = useState<EntregaHistorico | null>(null);
@@ -374,20 +381,19 @@ export default function HistoricoEntregas() {
     setFilePreviewOpen(true);
   };
 
-  // Count documents for a delivery
+  // Count documents for a delivery (3 obrigatórios: CT-e, Canhoto, NF-e)
   const getDocsCount = (e: EntregaHistorico) => {
     let count = 0;
     if (e.cte_url) count++;
     if (e.notas_fiscais_urls && e.notas_fiscais_urls.length > 0) count += e.notas_fiscais_urls.length;
-    if (e.manifesto_url) count++;
     if (e.canhoto_url) count++;
     return count;
   };
 
-  // Check if critical docs are missing (NF + CTE + Manifesto + Canhoto)
+  // Check if critical docs are missing (NF + CTE + Canhoto) - Manifesto pertence à viagem
   const hasMissingCriticalDocs = (e: EntregaHistorico) => {
     const nfsCount = e.notas_fiscais_urls?.length || 0;
-    return !e.cte_url || !e.manifesto_url || !e.canhoto_url || nfsCount === 0;
+    return !e.cte_url || !e.canhoto_url || nfsCount === 0;
   };
 
   // Render cell based on column ID
@@ -609,25 +615,57 @@ export default function HistoricoEntregas() {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Histórico de Entregas</h1>
-              <p className="text-muted-foreground">Entregas finalizadas, devoluções e ocorrências</p>
+              <h1 className="text-2xl font-bold text-foreground">Histórico</h1>
+              <p className="text-muted-foreground">Entregas e viagens finalizadas</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={resetColumnOrder}>
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Redefinir ordem das colunas</TooltipContent>
-              </Tooltip>
-              <Badge variant="outline" className="w-fit">
-                <Clock className="w-3 h-3 mr-1" />
-                {sortedData.length} registros
-              </Badge>
+            <div className="flex items-center gap-4">
+              {/* Switch de Visualização */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
+                <Label htmlFor="hist-view-mode" className={`text-sm font-medium transition-colors ${viewMode === 'entregas' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Entregas
+                </Label>
+                <Switch
+                  id="hist-view-mode"
+                  checked={viewMode === 'viagens'}
+                  onCheckedChange={(checked) => {
+                    setViewMode(checked ? 'viagens' : 'entregas');
+                    setSelectedStatus(null);
+                  }}
+                />
+                <Label htmlFor="hist-view-mode" className={`text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === 'viagens' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <Route className="w-3.5 h-3.5" />
+                  Viagens
+                </Label>
+              </div>
+
+              <Separator orientation="vertical" className="h-8" />
+
+              <AdvancedFiltersPopover
+                filters={advancedFilters}
+                onFiltersChange={setAdvancedFilters}
+                showMotorista={true}
+                showEmbarcador={viewMode === 'entregas'}
+                showDestinatario={viewMode === 'entregas'}
+                motoristas={motoristasUnicos}
+              />
+
+              {viewMode === 'entregas' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={resetColumnOrder}>
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Redefinir ordem das colunas</TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </div>
 
+          {viewMode === 'viagens' ? (
+            <HistoricoViagens advancedFilters={advancedFilters} />
+          ) : (
+          <>
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0 px-px">
             <Card
@@ -682,15 +720,6 @@ export default function HistoricoEntregas() {
 
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <AdvancedFiltersPopover
-              filters={advancedFilters}
-              onFiltersChange={setAdvancedFilters}
-              showMotorista={true}
-              showEmbarcador={true}
-              showDestinatario={true}
-              motoristas={motoristasUnicos}
-            />
-            
             <div className='flex gap-2 items-center text-sm text-muted-foreground'>
               <Truck className="w-4 h-4" />
               Entregas finalizadas
@@ -916,8 +945,9 @@ export default function HistoricoEntregas() {
               );
             })}
           </div>
+          </>
+          )}
         </div>
-
         {/* Details Dialog */}
         <EntregaDetailsDialog
           entrega={selectedEntrega as any}

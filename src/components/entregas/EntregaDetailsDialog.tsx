@@ -173,15 +173,14 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
     }
   };
 
-  // Calculate document status
+  // Calculate document status (3 obrigatórios: CT-e, NF-e, Canhoto - Manifesto pertence à viagem)
   const hasCte = !!entrega.cte_url;
   const hasNumeroCte = !!entrega.numero_cte;
   const hasNfs = (entrega.notas_fiscais_urls?.length || 0) > 0;
-  const hasManifesto = !!entrega.manifesto_url;
   const hasCanhoto = !!entrega.canhoto_url;
   
-  const totalDocs = (hasCte ? 1 : 0) + (hasNfs ? entrega.notas_fiscais_urls!.length : 0) + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
-  const pendingDocs = (!hasCte ? 1 : 0) + (!hasNfs ? 1 : 0) + (!hasManifesto ? 1 : 0) + (!hasCanhoto ? 1 : 0);
+  const totalDocs = (hasCte ? 1 : 0) + (hasNfs ? entrega.notas_fiscais_urls!.length : 0) + (hasCanhoto ? 1 : 0);
+  const pendingDocs = (!hasCte ? 1 : 0) + (!hasNfs ? 1 : 0) + (!hasCanhoto ? 1 : 0);
 
   return (
     <>
@@ -398,36 +397,6 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                         <Badge variant="secondary">+{entrega.notas_fiscais_urls!.length - 3}</Badge>
                       )}
                     </div>
-                  )}
-                </div>
-
-                {/* Manifesto */}
-                <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasManifesto ? 'bg-green-500/10' : 'bg-amber-500/10'}`}>
-                      {hasManifesto ? (
-                        <FileCheck className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-amber-600" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Manifesto de Carga (MDF-e)</p>
-                    </div>
-                  </div>
-                  {hasManifesto ? (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => openPreview(entrega.manifesto_url!, 'Manifesto')}
-                    >
-                      <ExternalLink className="w-3 h-3 mr-1" />
-                      Visualizar
-                    </Button>
-                  ) : (
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-                      Pendente
-                    </Badge>
                   )}
                 </div>
 
