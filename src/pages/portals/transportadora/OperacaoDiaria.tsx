@@ -1629,9 +1629,36 @@ export default function OperacaoDiaria() {
     },
   });
 
-  // Mutation para cancelar viagem
+  // Mutation para cancelar viagem (cancela todas as entregas dentro e libera peso)
   const cancelarViagemMutation = useMutation({
     mutationFn: async (viagemId: string) => {
+      // 1. Buscar entregas ativas da viagem (não já canceladas/entregues)
+      const { data: viagemEntregas, error: fetchError } = await supabase
+        .from('viagem_entregas')
+        .select('entrega_id')
+        .eq('viagem_id', viagemId);
+
+      if (fetchError) throw fetchError;
+
+      const entregaIds = (viagemEntregas || []).map(ve => ve.entrega_id);
+
+      if (entregaIds.length > 0) {
+        // 2. Cancelar todas as entregas que não estão finalizadas
+        // O trigger do banco (trigger_release_weight_on_entrega_cancel) 
+        // libera automaticamente o peso na carga
+        const { error: entregasError } = await supabase
+          .from('entregas')
+          .update({ 
+            status: 'cancelada', 
+            updated_at: new Date().toISOString() 
+          })
+          .in('id', entregaIds)
+          .not('status', 'in', '("entregue","cancelada")');
+
+        if (entregasError) throw entregasError;
+      }
+
+      // 3. Cancelar a viagem
       const { error } = await supabase
         .from('viagens')
         .update({ 
@@ -1644,6 +1671,7 @@ export default function OperacaoDiaria() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gestao-viagens'] });
+      queryClient.invalidateQueries({ queryKey: ['gestao-entregas'] });
       setSelectedViagem(null);
     },
     onError: (error) => {

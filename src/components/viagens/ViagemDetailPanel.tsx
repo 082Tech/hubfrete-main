@@ -646,7 +646,7 @@ export function ViagemDetailPanel({
             <AlertDialogDescription>
               Tem certeza que deseja cancelar a viagem <strong>{viagem.codigo}</strong>?
               <br /><br />
-              Esta ação é irreversível e todas as entregas associadas permanecerão em seus status atuais.
+              Esta ação é irreversível. Todas as entregas pendentes serão canceladas e o peso alocado será liberado nas cargas correspondentes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
