@@ -167,7 +167,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   return (
     <TooltipProvider delayDuration={0}>
       <aside 
-        className={`bg-sidebar border-r border-sidebar-border h-screen fixed left-0 top-0 flex flex-col transition-all duration-300`}
+        className={`bg-sidebar border-r border-sidebar-border h-full shrink-0 flex flex-col transition-all duration-300`}
         style={{ width: collapsed ? 64 : (width || 256) }}
       >
         {/* Logo & Collapse Button */}
