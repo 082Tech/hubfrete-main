@@ -452,31 +452,7 @@ export function ViagemDetailPanel({
             </div>
           </div>
 
-          <Separator />
 
-          {/* Track History */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Route className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium text-sm">Rastreamento da Viagem</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1"
-                onClick={() => setTrackingMapOpen(true)}
-              >
-                <Route className="w-3 h-3" />
-                Ver Trajeto
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Visualize o histórico completo de localização desta viagem.
-            </p>
-          </div>
-
-          <Separator />
 
           {/* Histórico da Viagem */}
           <div>
