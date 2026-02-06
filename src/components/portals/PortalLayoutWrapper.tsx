@@ -9,7 +9,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { NotificacoesProvider } from '@/contexts/NotificacoesContext';
 import { NotificationToast } from '@/components/notificacoes';
 import { ChatViewProvider, useChatView } from '@/contexts/ChatViewContext';
-import { FloatingChatButton } from './FloatingChatButton';
 
 export type { UserType };
 
@@ -100,9 +99,6 @@ function PortalLayoutContent({ expectedUserType }: PortalLayoutWrapperProps) {
       >
         <Outlet />
       </main>
-
-      {/* Floating chat button - accessible from any page */}
-      <FloatingChatButton userType={expectedUserType} />
 
       {/* Mobile: Show bottom navigation - hidden when in chat view */}
       {isMobile && (
