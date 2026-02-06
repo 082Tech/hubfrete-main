@@ -51,6 +51,7 @@ interface ChatAreaProps {
   onLoadMore?: () => void;
   onBack?: () => void;
   showBackButton?: boolean;
+  compact?: boolean; // Disables header click/details sheet for floating use
 }
 
 export function ChatArea({ 
@@ -65,7 +66,8 @@ export function ChatArea({
   onSendMessage,
   onLoadMore,
   onBack,
-  showBackButton 
+  showBackButton,
+  compact = false,
 }: ChatAreaProps) {
   const [newMessage, setNewMessage] = useState('');
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -389,8 +391,11 @@ export function ChatArea({
     <div className="flex-1 flex flex-col bg-background h-full min-h-0 w-full overflow-hidden">
       {/* Clickable Header */}
       <div 
-        className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border-b border-border bg-card cursor-pointer hover:bg-muted/30 transition-colors shrink-0"
-        onClick={() => setDetailsOpen(true)}
+        className={cn(
+          "flex items-center gap-2 md:gap-3 p-3 md:p-4 border-b border-border bg-card shrink-0",
+          !compact && "cursor-pointer hover:bg-muted/30 transition-colors"
+        )}
+        onClick={() => !compact && setDetailsOpen(true)}
       >
         {showBackButton && (
           <Button 
@@ -400,7 +405,7 @@ export function ChatArea({
               e.stopPropagation();
               onBack?.();
             }} 
-            className="shrink-0 md:hidden"
+            className="shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -419,11 +424,11 @@ export function ChatArea({
             {getStatusBadge()}
           </div>
           <p className="text-xs md:text-sm text-muted-foreground truncate">
-            {chat.entrega?.carga?.codigo} • Toque para ver detalhes
+            {chat.entrega?.carga?.codigo}{!compact && ' • Toque para ver detalhes'}
           </p>
         </div>
         
-        <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground shrink-0" />
+        {!compact && <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground shrink-0" />}
       </div>
 
       {/* Messages Area with custom background */}
