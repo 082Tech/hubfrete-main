@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
-  Share, Printer, X, Weight, DollarSign, Clock, Upload, History, Route,
+  Share, Printer, X, Weight, DollarSign, Clock, Upload, History,
   Loader2, MoreVertical, Ban, Paperclip, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
