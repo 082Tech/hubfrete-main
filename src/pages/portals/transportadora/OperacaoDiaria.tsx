@@ -1979,12 +1979,12 @@ export default function OperacaoDiaria() {
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : viagens.filter(v => v.status === 'finalizada').length === 0 ? (
+                ) : viagens.filter(v => v.status === 'finalizada' || v.status === 'cancelada').length === 0 ? (
                   <div className="flex items-center justify-center h-full">
                     <EmptyColumnPlaceholder message="Viagens finalizadas aparecerão aqui" />
                   </div>
                 ) : (
-                  viagens.filter(v => v.status === 'finalizada').map((viagem) => (
+                  viagens.filter(v => v.status === 'finalizada' || v.status === 'cancelada').map((viagem) => (
                     <ViagemListItem
                       key={viagem.id}
                       viagem={{
