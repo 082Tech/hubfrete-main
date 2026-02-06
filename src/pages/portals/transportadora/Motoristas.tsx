@@ -526,7 +526,7 @@ export default function Motoristas() {
 
   return (
     <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
-      <div className="flex flex-col h-full gap-6">
+      <div className="flex flex-col h-full gap-6 overflow-hidden">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
           <div>
