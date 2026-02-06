@@ -322,7 +322,7 @@ function DetailPanel({
   const nextStatus = getNextStatus();
   const isFinalized = entrega.status === 'entregue' || entrega.status === 'cancelada';
   
-  // Verificar se a viagem está iniciada (programada = não iniciada)
+  // Verificar se a viagem está iniciada (programada = não iniciada, bloqueando ações de entrega)
   const isViagemNotStarted = viagemStatus === 'programada';
 
   const handleCancelConfirm = () => {
@@ -1428,7 +1428,7 @@ export default function OperacaoDiaria() {
           veiculo:veiculos(placa, modelo)
         `)
         .in('motorista_id', motoristaIdsList)
-        .in('status', ['programada', 'em_andamento', 'finalizada'])
+        .in('status', ['programada', 'aguardando', 'em_andamento', 'finalizada', 'cancelada'])
         .order('created_at', { ascending: false });
 
       if (viagensError) throw viagensError;
@@ -1579,13 +1579,13 @@ export default function OperacaoDiaria() {
     },
   });
 
-  // Mutation para iniciar viagem (programada -> em_andamento)
+  // Mutation para iniciar viagem (programada -> aguardando)
   const iniciarViagemMutation = useMutation({
     mutationFn: async (viagemId: string) => {
       const { error } = await supabase
         .from('viagens')
         .update({ 
-          status: 'em_andamento', 
+          status: 'aguardando', 
           inicio_em: new Date().toISOString(),
           started_at: new Date().toISOString(),
           updated_at: new Date().toISOString() 
@@ -1738,11 +1738,9 @@ export default function OperacaoDiaria() {
       );
     }
 
-    const aguardando = filtered.filter(e => e.status === 'aguardando');
-    const emRota = filtered.filter(e =>
-      ['saiu_para_coleta', 'saiu_para_entrega', 'entregue', 'cancelada'].includes(e.status)
-    );
-    return { aguardandoEntregas: aguardando, emRotaEntregas: emRota, filteredEntregas: filtered };
+    const ativas = filtered.filter(e => ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'].includes(e.status));
+    const finalizadas = filtered.filter(e => ['entregue', 'cancelada'].includes(e.status));
+    return { aguardandoEntregas: ativas, emRotaEntregas: finalizadas, filteredEntregas: filtered };
   }, [entregas, filters]);
 
   // Get driver location for selected delivery (includes heading and online status)
@@ -1861,10 +1859,10 @@ export default function OperacaoDiaria() {
       <div className="flex-1 grid overflow-hidden p-4 !pt-4 md:p-8" style={{ gridTemplateColumns: '30% 30% 40%' }}>
         {viewMode === 'entregas' ? (
           <>
-            {/* Column 1: Entregas Aguardando (30%) */}
+            {/* Column 1: Entregas Ativas (30%) */}
             <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-                <span className="text-sm font-medium text-muted-foreground">Aguardando ({aguardandoEntregas.length})</span>
+                <span className="text-sm font-medium text-muted-foreground">Ativas ({aguardandoEntregas.length})</span>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {isLoading ? (
@@ -1873,7 +1871,7 @@ export default function OperacaoDiaria() {
                   </div>
                 ) : aguardandoEntregas.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <EmptyColumnPlaceholder message="Suas entregas aparecerão aqui" />
+                    <EmptyColumnPlaceholder message="Entregas ativas aparecerão aqui" />
                   </div>
                 ) : (
                   aguardandoEntregas.map((entrega) => (
@@ -1888,10 +1886,10 @@ export default function OperacaoDiaria() {
               </div>
             </div>
 
-            {/* Column 2: Entregas em Rota/Finalizadas (30%) */}
+            {/* Column 2: Entregas Finalizadas (30%) */}
             <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-                <span className="text-sm font-medium text-muted-foreground">Em Rota / Finalizadas ({emRotaEntregas.length})</span>
+                <span className="text-sm font-medium text-muted-foreground">Finalizadas ({emRotaEntregas.length})</span>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {isLoading ? (
@@ -1900,7 +1898,7 @@ export default function OperacaoDiaria() {
                   </div>
                 ) : emRotaEntregas.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <EmptyColumnPlaceholder message="Entregas em rota aparecerão aqui" />
+                    <EmptyColumnPlaceholder message="Entregas finalizadas aparecerão aqui" />
                   </div>
                 ) : (
                   emRotaEntregas.map((entrega) => (
@@ -1934,7 +1932,7 @@ export default function OperacaoDiaria() {
             <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
                 <span className="text-sm font-medium text-muted-foreground">
-                  Ativas ({viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').length})
+                  Ativas ({viagens.filter(v => ['programada', 'aguardando', 'em_andamento'].includes(v.status)).length})
                 </span>
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -1942,12 +1940,12 @@ export default function OperacaoDiaria() {
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').length === 0 ? (
+                ) : viagens.filter(v => ['programada', 'aguardando', 'em_andamento'].includes(v.status)).length === 0 ? (
                   <div className="flex items-center justify-center h-full">
                     <EmptyColumnPlaceholder message="Viagens ativas aparecerão aqui" />
                   </div>
                 ) : (
-                  viagens.filter(v => v.status === 'programada' || v.status === 'em_andamento').map((viagem) => (
+                  viagens.filter(v => ['programada', 'aguardando', 'em_andamento'].includes(v.status)).map((viagem) => (
                     <ViagemListItem
                       key={viagem.id}
                       viagem={{
@@ -1974,19 +1972,19 @@ export default function OperacaoDiaria() {
             {/* Column 2: Viagens Finalizadas */}
             <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
-                <span className="text-sm font-medium text-muted-foreground">Finalizadas ({viagens.filter(v => v.status === 'finalizada').length})</span>
+                <span className="text-sm font-medium text-muted-foreground">Finalizadas ({viagens.filter(v => v.status === 'finalizada' || v.status === 'cancelada').length})</span>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {isLoadingViagens ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : viagens.filter(v => v.status === 'finalizada').length === 0 ? (
+                ) : viagens.filter(v => v.status === 'finalizada' || v.status === 'cancelada').length === 0 ? (
                   <div className="flex items-center justify-center h-full">
                     <EmptyColumnPlaceholder message="Viagens finalizadas aparecerão aqui" />
                   </div>
                 ) : (
-                  viagens.filter(v => v.status === 'finalizada').map((viagem) => (
+                  viagens.filter(v => v.status === 'finalizada' || v.status === 'cancelada').map((viagem) => (
                     <ViagemListItem
                       key={viagem.id}
                       viagem={{

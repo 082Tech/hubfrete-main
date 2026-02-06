@@ -100,6 +100,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 
 const viagemStatusConfig: Record<string, { label: string; color: string }> = {
   programada: { label: 'Programada', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
+  aguardando: { label: 'Aguardando', color: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300' },
   em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
   finalizada: { label: 'Finalizada', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
@@ -125,6 +126,7 @@ export function ViagemDetailPanel({
 
   // Status flags
   const isViagemProgramada = viagem?.status === 'programada';
+  const isViagemAguardando = viagem?.status === 'aguardando';
   const isViagemEmAndamento = viagem?.status === 'em_andamento';
   const isViagemFinalized = viagem?.status === 'finalizada' || viagem?.status === 'cancelada';
 
@@ -516,7 +518,7 @@ export function ViagemDetailPanel({
               )}
               Iniciar Viagem
             </Button>
-          ) : isViagemEmAndamento ? (
+          ) : (isViagemAguardando || isViagemEmAndamento) ? (
             <Button
               className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
               disabled={!entregasValidation.canFinalize || isProcessingViagem}
@@ -551,7 +553,7 @@ export function ViagemDetailPanel({
       )}
 
       {/* Aviso de entregas pendentes (apenas em andamento) */}
-      {isViagemEmAndamento && !entregasValidation.canFinalize && (
+      {(isViagemAguardando || isViagemEmAndamento) && !entregasValidation.canFinalize && (
         <div className="px-3 pb-3 -mt-1">
           <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
