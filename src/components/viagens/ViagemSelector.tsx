@@ -53,7 +53,7 @@ export function ViagemSelector({
           viagem_entregas(id)
         `)
         .eq('motorista_id', motoristaId)
-        .in('status', ['programada', 'em_andamento'])
+        .in('status', ['aguardando', 'programada', 'em_andamento'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -70,7 +70,7 @@ export function ViagemSelector({
   });
 
   const viagemEmAndamento = viagens.find(v => v.status === 'em_andamento') || null;
-  const viagemProgramada = viagens.find(v => v.status === 'programada') || null;
+  const viagemDisponivel = viagens.find(v => v.status === 'aguardando' || v.status === 'programada') || null;
   const isBlocked = !!viagemEmAndamento;
 
   // Notify parent about block status
@@ -84,13 +84,13 @@ export function ViagemSelector({
     
     if (isBlocked) {
       onViagemSelect(null);
-    } else if (viagemProgramada) {
-      onViagemSelect(viagemProgramada.id);
+    } else if (viagemDisponivel) {
+      onViagemSelect(viagemDisponivel.id);
     } else {
       // No active trip - will create new
       onViagemSelect(null);
     }
-  }, [viagens, isLoadingViagens, isBlocked, viagemProgramada, onViagemSelect]);
+  }, [viagens, isLoadingViagens, isBlocked, viagemDisponivel, onViagemSelect]);
 
   if (isLoadingViagens) {
     return (
@@ -162,8 +162,9 @@ export function ViagemSelector({
     );
   }
 
-  // Has programada trip → can add to it
-  if (viagemProgramada) {
+  // Has available trip (aguardando or programada) → can add to it
+  if (viagemDisponivel) {
+    const statusLabel = viagemDisponivel.status === 'programada' ? 'Programada' : 'Aguardando';
     return (
       <div className="space-y-3 p-4 bg-secondary/30 rounded-lg border">
         <div className="flex items-center justify-between">
@@ -174,7 +175,7 @@ export function ViagemSelector({
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Esta entrega será adicionada à viagem programada do motorista.
+          Esta entrega será adicionada à viagem existente do motorista.
         </p>
         <Card className="bg-primary/5 border-primary/20">
           <CardContent className="p-3">
@@ -184,23 +185,23 @@ export function ViagemSelector({
                   <Route className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">{viagemProgramada.codigo}</p>
+                  <p className="font-semibold text-sm">{viagemDisponivel.codigo}</p>
                   <p className="text-xs text-muted-foreground">
-                    Criada em {format(new Date(viagemProgramada.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                    Criada em {format(new Date(viagemDisponivel.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="gap-1">
                   <Package className="w-3 h-3" />
-                  {viagemProgramada.entregas_count} {viagemProgramada.entregas_count === 1 ? 'entrega' : 'entregas'}
+                  {viagemDisponivel.entregas_count} {viagemDisponivel.entregas_count === 1 ? 'entrega' : 'entregas'}
                 </Badge>
                 <Badge 
                   variant="outline" 
                   className="gap-1 bg-sky-100 text-sky-700 border-sky-300 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700"
                 >
                   <Clock className="w-3 h-3" />
-                  Programada
+                  {statusLabel}
                 </Badge>
               </div>
             </div>
