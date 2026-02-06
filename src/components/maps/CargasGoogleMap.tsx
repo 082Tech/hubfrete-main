@@ -42,6 +42,7 @@ interface CargasGoogleMapProps {
   onCargaClick: (carga: Carga) => void;
   hoveredCargaId: string | null;
   setHoveredCargaId: (id: string | null) => void;
+  onBoundsChanged?: (bounds: { north: number; south: number; east: number; west: number }) => void;
 }
 
 const formatCurrency = (value: number | null) => {
@@ -66,6 +67,7 @@ export default function CargasGoogleMap({
   onCargaClick,
   hoveredCargaId,
   setHoveredCargaId,
+  onBoundsChanged,
 }: CargasGoogleMapProps) {
   const { isLoaded, loadError } = useGoogleMaps();
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -132,6 +134,21 @@ export default function CargasGoogleMap({
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
   }, []);
+
+  // Track user-initiated map moves to show "Buscar nessa área"
+  const handleIdle = useCallback(() => {
+    if (!map || !onBoundsChanged) return;
+    const bounds = map.getBounds();
+    if (!bounds) return;
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    onBoundsChanged({
+      north: ne.lat(),
+      south: sw.lat(),
+      east: ne.lng(),
+      west: sw.lng(),
+    });
+  }, [map, onBoundsChanged]);
 
   // Fit bounds when map loads or cargas change
   useEffect(() => {
@@ -264,6 +281,7 @@ export default function CargasGoogleMap({
         zoom={4}
         onLoad={onLoad}
         onUnmount={onUnmount}
+        onIdle={handleIdle}
         options={mapOptions}
         onClick={() => {
           setSelectedCarga(null);

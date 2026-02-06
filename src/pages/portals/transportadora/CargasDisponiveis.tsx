@@ -49,12 +49,13 @@ import {
   Layers,
   Info,
   Route,
+  LocateFixed,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AdvancedSearchPopover, AdvancedSearchFilters, emptyFilters } from '@/components/cargas/AdvancedSearchPopover';
 import { format } from 'date-fns';
@@ -203,6 +204,11 @@ export default function CargasDisponiveis() {
   const setViewMode = (mode: 'list' | 'map') => {
     setViewModeState(mode);
     try { localStorage.setItem('hubfrete_cargas_view_mode', mode); } catch {}
+    if (mode === 'list') {
+      setActiveMapBounds(null);
+      setShowSearchArea(false);
+      initialBoundsRef.current = true;
+    }
   };
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
   const [distancias, setDistancias] = useState<Map<string, { distance: string; duration: string }>>(new Map());
@@ -212,6 +218,10 @@ export default function CargasDisponiveis() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevVisibleCountRef = useRef(15);
+  const [mapBounds, setMapBounds] = useState<{ north: number; south: number; east: number; west: number } | null>(null);
+  const [activeMapBounds, setActiveMapBounds] = useState<{ north: number; south: number; east: number; west: number } | null>(null);
+  const [showSearchArea, setShowSearchArea] = useState(false);
+  const initialBoundsRef = useRef(true);
 
   // Fetch cargas publicadas
   const { data: cargas = [], isLoading } = useQuery({
@@ -688,22 +698,22 @@ export default function CargasDisponiveis() {
   }, [cargas, advancedFilters, filterTipo, filterTiposVeiculo]);
 
   // Reset visible count when filters change
-  useEffect(() => { setVisibleCount(15); prevVisibleCountRef.current = 15; }, [advancedFilters, filterTipo, filterTiposVeiculo]);
+  useEffect(() => { setVisibleCount(15); prevVisibleCountRef.current = 15; setActiveMapBounds(null); setShowSearchArea(false); initialBoundsRef.current = true; }, [advancedFilters, filterTipo, filterTiposVeiculo]);
 
   const visibleCargas = useMemo(() => filteredCargas.slice(0, visibleCount), [filteredCargas, visibleCount]);
   const hasMore = visibleCount < filteredCargas.length;
 
   const loadMore = () => {
-    if (isLoadingMore || !hasMore) return;
+    const totalAvailable = viewMode === 'list' ? filteredCargas.length : effectiveCargas.length;
+    const canLoadMore = visibleCount < totalAvailable;
+    if (isLoadingMore || !canLoadMore) return;
     setIsLoadingMore(true);
     prevVisibleCountRef.current = visibleCount;
-    // Save scroll position before adding items
     const scrollEl = scrollContainerRef.current;
     const savedScrollTop = scrollEl?.scrollTop ?? 0;
     setTimeout(() => {
-      setVisibleCount(prev => Math.min(prev + 15, filteredCargas.length));
+      setVisibleCount(prev => Math.min(prev + 15, totalAvailable));
       setIsLoadingMore(false);
-      // Restore scroll position after render
       requestAnimationFrame(() => {
         if (scrollEl) scrollEl.scrollTop = savedScrollTop;
       });
@@ -717,7 +727,53 @@ export default function CargasDisponiveis() {
     }
   };
 
-  // Map bounds removed - now handled by Google Maps component
+  // Map bounds filter
+  const handleMapBoundsChanged = useCallback((bounds: { north: number; south: number; east: number; west: number }) => {
+    // Skip the initial fitBounds call
+    if (initialBoundsRef.current) {
+      initialBoundsRef.current = false;
+      setMapBounds(bounds);
+      return;
+    }
+    setMapBounds(bounds);
+    setShowSearchArea(true);
+  }, []);
+
+  const handleSearchInArea = () => {
+    if (mapBounds) {
+      setActiveMapBounds(mapBounds);
+      setShowSearchArea(false);
+      setVisibleCount(15);
+      prevVisibleCountRef.current = 15;
+    }
+  };
+
+  const clearMapBoundsFilter = () => {
+    setActiveMapBounds(null);
+    setShowSearchArea(false);
+    initialBoundsRef.current = true;
+  };
+
+  // Cargas filtered by map bounds (applied on top of existing filters)
+  const mapFilteredCargas = useMemo(() => {
+    if (!activeMapBounds) return filteredCargas;
+    return filteredCargas.filter(c => {
+      const lat = c.endereco_origem?.latitude;
+      const lng = c.endereco_origem?.longitude;
+      if (lat == null || lng == null) return false;
+      return (
+        Number(lat) >= activeMapBounds.south &&
+        Number(lat) <= activeMapBounds.north &&
+        Number(lng) >= activeMapBounds.west &&
+        Number(lng) <= activeMapBounds.east
+      );
+    });
+  }, [filteredCargas, activeMapBounds]);
+
+  // Override visibleCargas to use mapFilteredCargas in map mode
+  const effectiveCargas = viewMode === 'map' || (viewMode !== 'list') ? mapFilteredCargas : filteredCargas;
+  const visibleCargasEffective = useMemo(() => effectiveCargas.slice(0, visibleCount), [effectiveCargas, visibleCount]);
+  const hasMoreEffective = visibleCount < effectiveCargas.length;
 
   const handleAcceptClick = (carga: Carga) => {
     setSelectedCarga(carga);
@@ -1337,22 +1393,28 @@ export default function CargasDisponiveis() {
           /* Mobile Map View - Full screen Airbnb style */
           <div className="relative h-[calc(100vh-220px)] -mx-4 -mb-4">
             <CargasGoogleMap
-              cargas={visibleCargas}
+              cargas={visibleCargasEffective}
               onCargaClick={handleAcceptClick}
               hoveredCargaId={hoveredCargaId}
               setHoveredCargaId={setHoveredCargaId}
+              onBoundsChanged={handleMapBoundsChanged}
             />
-            {(hasMore || isLoadingMore) && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-                {isLoadingMore ? (
-                  <div className="bg-background/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg border border-border">
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <Button variant="secondary" className="shadow-lg" onClick={loadMore}>
-                    Carregar mais ({filteredCargas.length - visibleCount} restantes)
-                  </Button>
-                )}
+            {/* Buscar nessa área */}
+            {showSearchArea && (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 animate-fade-in">
+                <Button variant="secondary" className="shadow-lg gap-2" onClick={handleSearchInArea}>
+                  <LocateFixed className="w-4 h-4" />
+                  Buscar nessa área
+                </Button>
+              </div>
+            )}
+            {/* Active bounds filter indicator */}
+            {activeMapBounds && (
+              <div className="absolute top-3 right-3 z-10">
+                <Button variant="outline" size="sm" className="shadow-lg bg-background/90 backdrop-blur-sm gap-1" onClick={clearMapBoundsFilter}>
+                  <Ban className="w-3 h-3" />
+                  Limpar filtro de área
+                </Button>
               </div>
             )}
           </div>
@@ -1360,13 +1422,31 @@ export default function CargasDisponiveis() {
           /* Desktop Split View - List + Map (Airbnb style) */
           <div className="flex gap-4 h-[calc(100vh-300px)] min-h-[500px]">
             {/* Left - Scrollable List */}
-            <div className="w-1/2 lg:w-2/5 overflow-y-auto px-1 py-1 space-y-3" onScroll={handleScroll}>
-              {visibleCargas.map((carga, index) => (
-                <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} isNew={index >= prevVisibleCountRef.current} />
-              ))}
-              {(hasMore || isLoadingMore) && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            <div className="w-1/2 lg:w-2/5 flex flex-col min-h-0">
+              <div className="flex-1 overflow-y-auto px-1 py-1 space-y-3" onScroll={handleScroll}>
+                {visibleCargasEffective.map((carga, index) => (
+                  <CargaCard key={carga.id} carga={carga} isHovered={hoveredCargaId === carga.id} isNew={index >= prevVisibleCountRef.current} />
+                ))}
+                {(hasMoreEffective || isLoadingMore) && (
+                  <div className="flex justify-center py-4">
+                    {isLoadingMore ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={loadMore}>
+                        Carregar mais ({effectiveCargas.length - visibleCount} restantes)
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+              {activeMapBounds && (
+                <div className="shrink-0 border-t border-border px-3 py-2 flex items-center justify-between bg-muted/50">
+                  <span className="text-xs text-muted-foreground">
+                    Filtrando por área do mapa ({mapFilteredCargas.length} cargas)
+                  </span>
+                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={clearMapBoundsFilter}>
+                    Limpar
+                  </Button>
                 </div>
               )}
             </div>
@@ -1374,15 +1454,18 @@ export default function CargasDisponiveis() {
             {/* Right - Map */}
             <div className="flex-1 rounded-xl overflow-hidden border border-border relative">
               <CargasGoogleMap
-                cargas={visibleCargas}
+                cargas={visibleCargasEffective}
                 onCargaClick={handleAcceptClick}
                 hoveredCargaId={hoveredCargaId}
                 setHoveredCargaId={setHoveredCargaId}
+                onBoundsChanged={handleMapBoundsChanged}
               />
-              {(hasMore || isLoadingMore) && !isLoadingMore && (
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
-                  <Button variant="secondary" size="sm" className="shadow-lg" onClick={loadMore}>
-                    Carregar mais ({filteredCargas.length - visibleCount})
+              {/* Buscar nessa área */}
+              {showSearchArea && (
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 animate-fade-in">
+                  <Button variant="secondary" className="shadow-lg gap-2" onClick={handleSearchInArea}>
+                    <LocateFixed className="w-4 h-4" />
+                    Buscar nessa área
                   </Button>
                 </div>
               )}
