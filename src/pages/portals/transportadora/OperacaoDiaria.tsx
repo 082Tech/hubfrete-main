@@ -1395,7 +1395,7 @@ export default function OperacaoDiaria() {
             .from('entrega_eventos')
             .select('id, tipo, timestamp, observacao, user_nome')
             .eq('entrega_id', entrega.id)
-            .order('timestamp', { ascending: false })
+            .order('timestamp', { ascending: true })
             .limit(10);
 
           return { ...entrega, eventos: eventos || [] };
