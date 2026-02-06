@@ -1337,11 +1337,24 @@ export default function CargasDisponiveis() {
           /* Mobile Map View - Full screen Airbnb style */
           <div className="relative h-[calc(100vh-220px)] -mx-4 -mb-4">
             <CargasGoogleMap
-              cargas={filteredCargas}
+              cargas={visibleCargas}
               onCargaClick={handleAcceptClick}
               hoveredCargaId={hoveredCargaId}
               setHoveredCargaId={setHoveredCargaId}
             />
+            {(hasMore || isLoadingMore) && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+                {isLoadingMore ? (
+                  <div className="bg-background/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg border border-border">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <Button variant="secondary" className="shadow-lg" onClick={loadMore}>
+                    Carregar mais ({filteredCargas.length - visibleCount} restantes)
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           /* Desktop Split View - List + Map (Airbnb style) */
@@ -1359,13 +1372,20 @@ export default function CargasDisponiveis() {
             </div>
 
             {/* Right - Map */}
-            <div className="flex-1 rounded-xl overflow-hidden border border-border">
+            <div className="flex-1 rounded-xl overflow-hidden border border-border relative">
               <CargasGoogleMap
-                cargas={filteredCargas}
+                cargas={visibleCargas}
                 onCargaClick={handleAcceptClick}
                 hoveredCargaId={hoveredCargaId}
                 setHoveredCargaId={setHoveredCargaId}
               />
+              {(hasMore || isLoadingMore) && !isLoadingMore && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
+                  <Button variant="secondary" size="sm" className="shadow-lg" onClick={loadMore}>
+                    Carregar mais ({filteredCargas.length - visibleCount})
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}
