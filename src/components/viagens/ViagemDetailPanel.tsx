@@ -126,6 +126,7 @@ export function ViagemDetailPanel({
 
   // Status flags
   const isViagemProgramada = viagem?.status === 'programada';
+  const isViagemAguardando = viagem?.status === 'aguardando';
   const isViagemEmAndamento = viagem?.status === 'em_andamento';
   const isViagemFinalized = viagem?.status === 'finalizada' || viagem?.status === 'cancelada';
 
