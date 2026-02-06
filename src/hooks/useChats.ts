@@ -253,7 +253,8 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       }
 
       chatsOffsetRef.current = offset + chatsData.length;
-      setHasMoreChats(chatsData.length >= CHATS_PER_PAGE);
+      // Only show "load more" if DB returned a full page AND we got at least 1 visible chat
+      setHasMoreChats(chatsData.length >= CHATS_PER_PAGE && assembledChats.length > 0);
 
     } catch (error: any) {
       console.error('Error fetching chats:', error);
