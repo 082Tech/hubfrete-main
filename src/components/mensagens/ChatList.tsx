@@ -123,7 +123,7 @@ export function ChatList({
                 onCheckedChange={() => setShowFinalized(false)}
               >
                 <div className="flex items-center justify-between w-full">
-                  <span>Entregas ativas</span>
+                  <span>Conversas ativas</span>
                   <Badge variant="secondary" className="text-xs ml-2">{activeCount}</Badge>
                 </div>
               </DropdownMenuCheckboxItem>
@@ -168,7 +168,7 @@ export function ChatList({
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <MessageSquare className="h-12 w-12 text-muted-foreground mb-3" />
             <p className="text-muted-foreground">
-              {searchTerm ? 'Nenhuma conversa encontrada' : showFinalized ? 'Nenhuma conversa ainda' : 'Nenhuma entrega ativa'}
+              {searchTerm ? 'Nenhuma conversa encontrada' : showFinalized ? 'Nenhuma conversa ainda' : 'Nenhuma conversa ativa'}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               {!searchTerm && !showFinalized && finalizedCount > 0 && (
