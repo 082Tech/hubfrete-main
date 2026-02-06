@@ -680,16 +680,7 @@ export function ViagemDetailPanel({
         title="Manifesto (MDF-e)"
       />
 
-      {/* Track History Dialog - usa o viagem_id diretamente */}
-      <ViagemTrackingMapDialog
-        viagemId={trackingMapOpen ? viagem.id : null}
-        info={viagem.motorista ? {
-          codigo: viagem.codigo,
-          motorista: viagem.motorista.nome_completo,
-          placa: viagem.veiculo?.placa || 'N/A'
-        } : null}
-        onClose={() => setTrackingMapOpen(false)}
-      />
+    </div>
     </div>
   );
 }
