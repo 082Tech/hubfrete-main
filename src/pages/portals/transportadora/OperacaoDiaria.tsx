@@ -1579,13 +1579,13 @@ export default function OperacaoDiaria() {
     },
   });
 
-  // Mutation para iniciar viagem (programada -> em_andamento)
+  // Mutation para iniciar viagem (programada -> aguardando)
   const iniciarViagemMutation = useMutation({
     mutationFn: async (viagemId: string) => {
       const { error } = await supabase
         .from('viagens')
         .update({ 
-          status: 'em_andamento', 
+          status: 'aguardando', 
           inicio_em: new Date().toISOString(),
           started_at: new Date().toISOString(),
           updated_at: new Date().toISOString() 
