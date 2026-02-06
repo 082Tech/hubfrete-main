@@ -697,10 +697,16 @@ export default function CargasDisponiveis() {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
     prevVisibleCountRef.current = visibleCount;
-    // Small delay to show loader and simulate fetch
+    // Save scroll position before adding items
+    const scrollEl = scrollContainerRef.current;
+    const savedScrollTop = scrollEl?.scrollTop ?? 0;
     setTimeout(() => {
       setVisibleCount(prev => Math.min(prev + 15, filteredCargas.length));
       setIsLoadingMore(false);
+      // Restore scroll position after render
+      requestAnimationFrame(() => {
+        if (scrollEl) scrollEl.scrollTop = savedScrollTop;
+      });
     }, 400);
   };
 
@@ -1154,7 +1160,7 @@ export default function CargasDisponiveis() {
   };
 
   return (
-    <div className="p-4 md:p-8 h-full overflow-auto">
+    <div ref={scrollContainerRef} className="p-4 md:p-8 h-full overflow-auto">
       <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
