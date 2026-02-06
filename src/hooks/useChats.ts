@@ -212,6 +212,10 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
           const transportadoraEmpresa = motorista?.empresa_id ? empresasMap.get(motorista.empresa_id) : null;
 
           const chatParticipantes = participantes.filter(p => p.chat_id === chat.id);
+          const ultimaMensagem = lastMessagesMap.get(chat.id) || null;
+
+          // Only show chats that have at least one message (iFood model)
+          if (!ultimaMensagem) return null;
 
           return {
             id: chat.id,
@@ -236,7 +240,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
               veiculo,
             },
             participantes: chatParticipantes,
-            ultima_mensagem: lastMessagesMap.get(chat.id) || null,
+            ultima_mensagem: ultimaMensagem,
             mensagens_nao_lidas: unreadCountsMap.get(chat.id) || 0,
           } as Chat;
         })

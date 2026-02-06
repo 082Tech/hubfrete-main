@@ -4,14 +4,13 @@ import { ChatList, ChatArea } from '@/components/mensagens';
 import { useChats } from '@/hooks/useChats';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { createChatsForExistingEntregas } from '@/lib/chatService';
+
 import { useChatView } from '@/contexts/ChatViewContext';
 
 export default function Mensagens() {
   const [searchParams] = useSearchParams();
   const [empresaId, setEmpresaId] = useState<number | undefined>();
   const [showChatList, setShowChatList] = useState(true);
-  const hasCreatedChats = useRef(false);
   const hasAutoSelected = useRef(false);
   const { setIsInChatView } = useChatView();
 
@@ -33,16 +32,6 @@ export default function Mensagens() {
       const { data } = await supabase.rpc('get_user_empresa_id', { _user_id: user.id });
       if (data) {
         setEmpresaId(data);
-        
-        // Create chats for existing entregas (one-time migration)
-        if (!hasCreatedChats.current) {
-          hasCreatedChats.current = true;
-          createChatsForExistingEntregas().then(count => {
-            if (count > 0) {
-              console.log(`Created ${count} chats for existing deliveries`);
-            }
-          });
-        }
       }
     };
     fetchEmpresaId();
