@@ -29,7 +29,7 @@ export function useRemainingViewportHeight<T extends HTMLElement = HTMLDivElemen
       if (!ref.current) return;
       const top = ref.current.getBoundingClientRect().top;
       const next = Math.max(minHeight, Math.floor(window.innerHeight - top - bottomOffset));
-      setHeight(next);
+      setHeight((prev) => (prev === next ? prev : next));
     };
 
     const schedule = () => {
@@ -37,15 +37,20 @@ export function useRemainingViewportHeight<T extends HTMLElement = HTMLDivElemen
       raf = requestAnimationFrame(compute);
     };
 
-    // Primeira medição
-    schedule();
+    // Double-RAF garante que o browser já pintou o layout completo
+    // antes da primeira medição (corrige altura errada no primeiro render)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(compute);
+    });
 
-    // Atualiza em resize/zoom e em scroll (caso o container pai ainda role)
     window.addEventListener("resize", schedule);
     window.addEventListener("scroll", schedule, { passive: true });
 
-    // Se o layout acima mudar de tamanho (ex: filtros abrindo/fechando), remede
+    // Observa o próprio elemento e o body para detectar mudanças de layout
     const ro = new ResizeObserver(schedule);
+    if (ref.current.parentElement) {
+      ro.observe(ref.current.parentElement);
+    }
     ro.observe(document.body);
 
     return () => {
