@@ -70,6 +70,8 @@ interface ViagemDetailPanelProps {
     status: string;
     created_at: string;
     updated_at?: string;
+    started_at?: string | null;
+    ended_at?: string | null;
     manifesto_url?: string | null;
     motorista?: {
       id: string;
@@ -454,6 +456,9 @@ export function ViagemDetailPanel({
                 codigo: viagem.codigo,
                 status: viagem.status,
                 created_at: viagem.created_at,
+                updated_at: viagem.updated_at,
+                started_at: viagem.started_at,
+                ended_at: viagem.ended_at,
               }}
               entregas={viagem.entregas}
             />
