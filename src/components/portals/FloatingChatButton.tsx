@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, Headset, Search, Filter, Loader2, X } from 'lucide-react';
+import { MessageCircle, Headset, Search, Loader2, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChatListItem } from '@/components/mensagens/ChatListItem';
+import { ChatArea } from '@/components/mensagens/ChatArea';
 import { useChats } from '@/hooks/useChats';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -21,10 +22,9 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
   const [empresaId, setEmpresaId] = useState<number | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Hide on mensagens page (already has full chat UI)
+  // Hide on mensagens page
   const isOnMessagesPage = location.pathname.includes('/mensagens');
   
-  // Get empresa_id
   useEffect(() => {
     const fetchEmpresaId = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -37,16 +37,21 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
 
   const {
     chats,
+    selectedChat,
+    messages,
     isLoadingChats,
-    isLoadingMoreChats,
-    hasMoreChats,
-    loadMoreChats,
+    isLoadingMessages,
+    isLoadingMore,
+    hasMoreMessages,
+    isSending,
+    currentUserId,
+    selectChat,
+    sendMessage,
+    loadMoreMessages,
   } = useChats({ userType, empresaId });
 
-  // Count total unread
   const totalUnread = chats.reduce((sum, chat) => sum + (chat.mensagens_nao_lidas || 0), 0);
 
-  // Filter chats by search
   const filteredChats = chats.filter(chat => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
@@ -57,11 +62,11 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
   });
 
   const handleSelectChat = (chatId: string) => {
-    setOpen(false);
-    const chat = chats.find(c => c.id === chatId);
-    if (chat) {
-      navigate(`/${userType}/mensagens?entrega=${chat.entrega_id}`);
-    }
+    selectChat(chatId);
+  };
+
+  const handleBack = () => {
+    selectChat(''); // Deselect to go back to list
   };
 
   const handleOpenSupport = () => {
@@ -78,12 +83,11 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
         onClick={() => setOpen(!open)}
         className={cn(
           'fixed z-50',
-          'bottom-4 right-4 md:bottom-6 md:right-6',
+          'bottom-3 right-3 md:bottom-5 md:right-5',
           'h-12 w-12 rounded-full shadow-lg',
           'bg-primary text-primary-foreground',
           'hover:scale-105 active:scale-95 transition-all duration-200',
           'flex items-center justify-center',
-          // On mobile, raise above bottom nav
           'mb-16 md:mb-0'
         )}
         aria-label="Abrir mensagens"
@@ -102,68 +106,86 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
         )}
       </button>
 
-      {/* Floating Popover */}
+      {/* Floating Chat Window */}
       {open && (
         <div
           className={cn(
             'fixed z-50 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden',
             'flex flex-col',
-            'w-80 h-[28rem]',
-            'bottom-20 right-4 md:bottom-20 md:right-6',
-            // On mobile, raise above bottom nav
+            'w-[22rem] md:w-[26rem] h-[32rem] md:h-[36rem]',
+            'bottom-[4.5rem] right-3 md:bottom-[5.5rem] md:right-5',
             'mb-16 md:mb-0'
           )}
         >
-          {/* Header */}
-          <div className="p-3 border-b border-border shrink-0">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold">Mensagens</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs h-7 px-2"
-                onClick={handleOpenSupport}
-              >
-                <Headset className="h-3 w-3" />
-                Suporte
-              </Button>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Buscar conversa..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 h-8 text-xs"
-              />
-            </div>
-          </div>
-          
-          {/* Chat List */}
-          <ScrollArea className="flex-1">
-            {isLoadingChats ? (
-              <div className="flex items-center justify-center p-6">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          {selectedChat ? (
+            /* Chat Conversation View */
+            <ChatArea
+              chat={selectedChat}
+              messages={messages}
+              isLoading={isLoadingMessages}
+              isLoadingMore={isLoadingMore}
+              hasMoreMessages={hasMoreMessages}
+              isSending={isSending}
+              currentUserId={currentUserId}
+              userType={userType}
+              onSendMessage={sendMessage}
+              onLoadMore={loadMoreMessages}
+              onBack={handleBack}
+              showBackButton={true}
+            />
+          ) : (
+            /* Chat List View */
+            <>
+              <div className="p-3 border-b border-border shrink-0">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold">Mensagens</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs h-7 px-2"
+                    onClick={handleOpenSupport}
+                  >
+                    <Headset className="h-3 w-3" />
+                    Suporte
+                  </Button>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar conversa..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 h-8 text-xs"
+                  />
+                </div>
               </div>
-            ) : filteredChats.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-6 text-center">
-                <MessageCircle className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-xs text-muted-foreground">
-                  {searchTerm ? 'Nenhuma conversa encontrada' : 'Nenhuma conversa ativa'}
-                </p>
-              </div>
-            ) : (
-              filteredChats.map(chat => (
-                <ChatListItem
-                  key={chat.id}
-                  chat={chat}
-                  isSelected={false}
-                  onClick={() => handleSelectChat(chat.id)}
-                  userType={userType}
-                />
-              ))
-            )}
-          </ScrollArea>
+              
+              <ScrollArea className="flex-1">
+                {isLoadingChats ? (
+                  <div className="flex items-center justify-center p-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : filteredChats.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-6 text-center">
+                    <MessageCircle className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-xs text-muted-foreground">
+                      {searchTerm ? 'Nenhuma conversa encontrada' : 'Nenhuma conversa ativa'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredChats.map(chat => (
+                    <ChatListItem
+                      key={chat.id}
+                      chat={chat}
+                      isSelected={false}
+                      onClick={() => handleSelectChat(chat.id)}
+                      userType={userType}
+                    />
+                  ))
+                )}
+              </ScrollArea>
+            </>
+          )}
         </div>
       )}
 
