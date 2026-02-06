@@ -134,6 +134,7 @@ export function FloatingChatButton({ userType }: FloatingChatButtonProps) {
               onLoadMore={loadMoreMessages}
               onBack={handleBack}
               showBackButton={true}
+              compact={true}
             />
           ) : (
             /* Chat List View */
