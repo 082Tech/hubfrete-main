@@ -714,8 +714,6 @@ export function ViagemDetailPanel({
         fileUrl={previewDocUrl}
         title="Manifesto (MDF-e)"
       />
-
-    </div>
     </div>
   );
 }
