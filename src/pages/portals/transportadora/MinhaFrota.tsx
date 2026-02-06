@@ -65,6 +65,8 @@ import {
   ImageOff,
   LayoutGrid,
   List,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -77,6 +79,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useState, useMemo, useRef } from 'react';
 import { useViewModePreference } from '@/hooks/useViewModePreference';
+import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
 import { toast } from 'sonner';
 import { VeiculoEditDialog, CarroceriaEditDialog } from '@/components/frota';
 
@@ -222,6 +225,15 @@ export default function MinhaFrota() {
   const documentoInputRef = useRef<HTMLInputElement>(null);
   const enderecoProprietarioInputRef = useRef<HTMLInputElement>(null);
   const cardFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+
+  const { ref: veiculosTableRef, height: veiculosTableHeight } = useRemainingViewportHeight<HTMLDivElement>({
+    bottomOffset: 32,
+    minHeight: 320,
+  });
+  const { ref: carroceriasTableRef, height: carroceriasTableHeight } = useRemainingViewportHeight<HTMLDivElement>({
+    bottomOffset: 32,
+    minHeight: 320,
+  });
   
   const [newVeiculo, setNewVeiculo] = useState({
     placa: '',
@@ -1465,34 +1477,38 @@ export default function MinhaFrota() {
               </Card>
             ) : viewMode === 'list' ? (
               /* List View */
-              <Card className="border-border">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Placa</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Carroceria</TableHead>
-                        <TableHead>Marca/Modelo</TableHead>
-                        <TableHead>Motorista</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+              <Card
+                ref={veiculosTableRef}
+                style={{ height: veiculosTableHeight }}
+                className="border-border flex flex-col"
+              >
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <table className="w-full caption-bottom text-sm">
+                    <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
+                      <tr className="border-b transition-colors bg-muted/50">
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Placa</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Tipo</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Carroceria</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Marca/Modelo</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Motorista</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="[&_tr:last-child]:border-0">
                       {paginatedVeiculos.map((veiculo) => (
-                        <TableRow key={veiculo.id} className={!veiculo.ativo ? 'opacity-60' : ''}>
-                          <TableCell className="font-medium">{veiculo.placa}</TableCell>
-                          <TableCell><Badge variant="secondary">{tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}</Badge></TableCell>
-                          <TableCell>
+                        <tr key={veiculo.id} className={`border-b transition-colors hover:bg-muted/30 ${!veiculo.ativo ? 'opacity-60' : ''}`}>
+                          <td className="p-4 align-middle font-medium">{veiculo.placa}</td>
+                          <td className="p-4 align-middle"><Badge variant="secondary">{tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}</Badge></td>
+                          <td className="p-4 align-middle">
                             {veiculo.carroceria_integrada ? (
                               <Badge className="bg-primary/10 text-primary border-primary/20">{tipoCarroceriaLabels[veiculo.carroceria] || veiculo.carroceria}</Badge>
                             ) : (
                               <span className="text-muted-foreground">Apenas Cavalo</span>
                             )}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{veiculo.marca} {veiculo.modelo} {veiculo.ano && `(${veiculo.ano})`}</TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="p-4 align-middle text-muted-foreground">{veiculo.marca} {veiculo.modelo} {veiculo.ano && `(${veiculo.ano})`}</td>
+                          <td className="p-4 align-middle">
                             {veiculo.motorista ? (
                               <div className="flex items-center gap-2">
                                 <Avatar className="w-6 h-6">
@@ -1506,8 +1522,8 @@ export default function MinhaFrota() {
                             ) : (
                               <span className="text-muted-foreground">-</span>
                             )}
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="p-4 align-middle">
                             <div className="flex gap-1">
                               <Badge variant={veiculo.ativo ? 'outline' : 'destructive'} className={veiculo.ativo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''}>
                                 {veiculo.ativo ? 'Ativo' : 'Inativo'}
@@ -1515,8 +1531,8 @@ export default function MinhaFrota() {
                               {veiculo.seguro_ativo && <Badge variant="outline" className="text-xs"><Shield className="w-3 h-3" /></Badge>}
                               {veiculo.rastreador && <Badge variant="outline" className="text-xs"><Gauge className="w-3 h-3" /></Badge>}
                             </div>
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="p-4 align-middle">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1532,12 +1548,40 @@ export default function MinhaFrota() {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
+                          </td>
+                        </tr>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </tbody>
+                  </table>
                 </div>
+                {/* Pagination */}
+                {totalPagesVeiculos > 1 && (
+                  <div className="flex items-center justify-between border-t px-4 py-3">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {((currentPageVeiculos - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPageVeiculos * ITEMS_PER_PAGE, filteredVeiculos.length)} de {filteredVeiculos.length} registros
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="sm" onClick={() => setCurrentPageVeiculos(p => Math.max(1, p - 1))} disabled={currentPageVeiculos === 1}>
+                        <ChevronLeft className="w-4 h-4 mr-1" />Anterior
+                      </Button>
+                      {Array.from({ length: Math.min(5, totalPagesVeiculos) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPagesVeiculos <= 5) pageNum = i + 1;
+                        else if (currentPageVeiculos <= 3) pageNum = i + 1;
+                        else if (currentPageVeiculos >= totalPagesVeiculos - 2) pageNum = totalPagesVeiculos - 4 + i;
+                        else pageNum = currentPageVeiculos - 2 + i;
+                        return (
+                          <Button key={pageNum} variant={currentPageVeiculos === pageNum ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPageVeiculos(pageNum)}>
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                      <Button variant="outline" size="sm" onClick={() => setCurrentPageVeiculos(p => Math.min(totalPagesVeiculos, p + 1))} disabled={currentPageVeiculos === totalPagesVeiculos}>
+                        Próximo<ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </Card>
             ) : (
               /* Card View - with larger photo */
@@ -1732,37 +1776,7 @@ export default function MinhaFrota() {
                 ))}
               </div>
             )}
-
-            {/* Pagination */}
-            {totalPagesVeiculos > 1 && (
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPageVeiculos(p => Math.max(1, p - 1))}
-                      className={currentPageVeiculos === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                  {Array.from({ length: totalPagesVeiculos }, (_, i) => i + 1).map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        isActive={currentPageVeiculos === page}
-                        onClick={() => setCurrentPageVeiculos(page)}
-                        className="cursor-pointer"
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPageVeiculos(p => Math.min(totalPagesVeiculos, p + 1))}
-                      className={currentPageVeiculos === totalPagesVeiculos ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
+            )
           </TabsContent>
 
           <TabsContent value="carrocerias" className="space-y-6 mt-6">
@@ -1840,36 +1854,40 @@ export default function MinhaFrota() {
               </Card>
             ) : viewMode === 'list' ? (
               /* List View */
-              <Card className="border-border">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Placa</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Marca/Modelo</TableHead>
-                        <TableHead>Capacidade</TableHead>
-                        <TableHead>Veículo</TableHead>
-                        <TableHead>Motorista</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+              <Card
+                ref={carroceriasTableRef}
+                style={{ height: carroceriasTableHeight }}
+                className="border-border flex flex-col"
+              >
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <table className="w-full caption-bottom text-sm">
+                    <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
+                      <tr className="border-b transition-colors bg-muted/50">
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Placa</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Tipo</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Marca/Modelo</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Capacidade</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Veículo</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Motorista</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="[&_tr:last-child]:border-0">
                       {paginatedCarrocerias.map((carroceria) => {
                         const veiculoAtrelado = veiculos.find(
                           (v) => v.motorista?.id === carroceria.motorista?.id && carroceria.motorista?.id
                         );
                         return (
-                          <TableRow key={carroceria.id} className={!carroceria.ativo ? 'opacity-60' : ''}>
-                            <TableCell className="font-medium">{carroceria.placa}</TableCell>
-                            <TableCell><Badge variant="secondary">{tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}</Badge></TableCell>
-                            <TableCell className="text-muted-foreground">{carroceria.marca} {carroceria.modelo} {carroceria.ano && `(${carroceria.ano})`}</TableCell>
-                            <TableCell className="text-muted-foreground">
+                          <tr key={carroceria.id} className={`border-b transition-colors hover:bg-muted/30 ${!carroceria.ativo ? 'opacity-60' : ''}`}>
+                            <td className="p-4 align-middle font-medium">{carroceria.placa}</td>
+                            <td className="p-4 align-middle"><Badge variant="secondary">{tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}</Badge></td>
+                            <td className="p-4 align-middle text-muted-foreground">{carroceria.marca} {carroceria.modelo} {carroceria.ano && `(${carroceria.ano})`}</td>
+                            <td className="p-4 align-middle text-muted-foreground">
                               {carroceria.capacidade_kg ? `${(carroceria.capacidade_kg / 1000).toLocaleString('pt-BR')}t` : '-'}
                               {carroceria.capacidade_m3 && ` / ${carroceria.capacidade_m3}m³`}
-                            </TableCell>
-                            <TableCell>
+                            </td>
+                            <td className="p-4 align-middle">
                               {veiculoAtrelado ? (
                                 <Badge variant="outline" className="text-xs gap-1">
                                   <Car className="w-3 h-3" />{veiculoAtrelado.placa}
@@ -1877,8 +1895,8 @@ export default function MinhaFrota() {
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )}
-                            </TableCell>
-                            <TableCell>
+                            </td>
+                            <td className="p-4 align-middle">
                               {carroceria.motorista ? (
                                 <div className="flex items-center gap-2">
                                   <Avatar className="w-6 h-6">
@@ -1892,13 +1910,13 @@ export default function MinhaFrota() {
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )}
-                            </TableCell>
-                            <TableCell>
+                            </td>
+                            <td className="p-4 align-middle">
                               <Badge variant={carroceria.ativo ? 'outline' : 'destructive'} className={carroceria.ativo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''}>
                                 {carroceria.ativo ? 'Ativa' : 'Inativa'}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
+                            </td>
+                            <td className="p-4 align-middle">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1914,13 +1932,41 @@ export default function MinhaFrota() {
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
+                            </td>
+                          </tr>
                         );
                       })}
-                    </TableBody>
-                  </Table>
+                    </tbody>
+                  </table>
                 </div>
+                {/* Pagination */}
+                {totalPagesCarrocerias > 1 && (
+                  <div className="flex items-center justify-between border-t px-4 py-3">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {((currentPageCarrocerias - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPageCarrocerias * ITEMS_PER_PAGE, filteredCarrocerias.length)} de {filteredCarrocerias.length} registros
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="sm" onClick={() => setCurrentPageCarrocerias(p => Math.max(1, p - 1))} disabled={currentPageCarrocerias === 1}>
+                        <ChevronLeft className="w-4 h-4 mr-1" />Anterior
+                      </Button>
+                      {Array.from({ length: Math.min(5, totalPagesCarrocerias) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPagesCarrocerias <= 5) pageNum = i + 1;
+                        else if (currentPageCarrocerias <= 3) pageNum = i + 1;
+                        else if (currentPageCarrocerias >= totalPagesCarrocerias - 2) pageNum = totalPagesCarrocerias - 4 + i;
+                        else pageNum = currentPageCarrocerias - 2 + i;
+                        return (
+                          <Button key={pageNum} variant={currentPageCarrocerias === pageNum ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPageCarrocerias(pageNum)}>
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                      <Button variant="outline" size="sm" onClick={() => setCurrentPageCarrocerias(p => Math.min(totalPagesCarrocerias, p + 1))} disabled={currentPageCarrocerias === totalPagesCarrocerias}>
+                        Próximo<ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </Card>
             ) : (
               /* Card View */
@@ -2093,36 +2139,7 @@ export default function MinhaFrota() {
               </div>
             )}
 
-            {/* Pagination */}
-            {totalPagesCarrocerias > 1 && (
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPageCarrocerias(p => Math.max(1, p - 1))}
-                      className={currentPageCarrocerias === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                  {Array.from({ length: totalPagesCarrocerias }, (_, i) => i + 1).map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        isActive={currentPageCarrocerias === page}
-                        onClick={() => setCurrentPageCarrocerias(page)}
-                        className="cursor-pointer"
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPageCarrocerias(p => Math.min(totalPagesCarrocerias, p + 1))}
-                      className={currentPageCarrocerias === totalPagesCarrocerias ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
+
           </TabsContent>
         </Tabs>
 
