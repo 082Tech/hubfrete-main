@@ -431,7 +431,77 @@ export default function CargasDisponiveis() {
   // All drivers are now available (no filter by active deliveries)
   // Capacity check will be done when selecting driver
 
-  // Mutation para aceitar carga
+  /**
+   * ═══════════════════════════════════════════════════════════════════════
+   * MUTATION: ACEITAR CARGA (Accept Load)
+   * ═══════════════════════════════════════════════════════════════════════
+   *
+   * PARÂMETROS RECEBIDOS:
+   * ─────────────────────
+   * - cargaId          (string)       → ID da carga sendo aceita
+   * - motoristaId      (string)       → ID do motorista designado
+   * - veiculoId        (string)       → ID do veículo selecionado
+   * - carroceriaId     (string|null)  → ID da carroceria (null se veículo tem carroceria_integrada)
+   * - pesoAlocadoKg    (number)       → Peso que o motorista vai carregar (em kg)
+   * - valorFrete       (number)       → Frete calculado: (pesoAlocadoKg / 1000) × valor_frete_tonelada
+   * - embarcadorEmpresaId  (number)   → empresa_id do embarcador (dono da carga)
+   * - transportadoraEmpresaId (number)→ empresa_id da transportadora logada
+   * - viagemId         (string|null)  → ID de viagem existente (se motorista já tem viagem 'programada'/'aguardando')
+   * - userId           (string|null)  → auth.uid() do usuário logado
+   * - userName         (string)       → Nome do operador para registro em eventos
+   *
+   * VALIDAÇÕES FEITAS ANTES DA CHAMADA (handleConfirmAccept):
+   * ─────────────────────────────────────────────────────────
+   * 1. Motorista, veículo e carroceria (se aplicável) devem estar selecionados
+   * 2. Peso alocado deve respeitar:
+   *    - Mínimo: peso_minimo_fracionado_kg (se permite_fracionado) ou peso total (se não permite)
+   *    - Máximo: MIN(capacidade_disponivel_equipamento, peso_disponivel_carga)
+   * 3. Capacidade do equipamento é calculada em tempo real:
+   *    - Se veículo tem carroceria_integrada → usa capacidade_kg do veículo
+   *    - Senão → usa capacidade_kg da carroceria selecionada
+   *    - Deduz peso já em uso (entregas ativas do mesmo equipamento)
+   * 4. Motorista com viagem 'em_andamento' é BLOQUEADO (não pode aceitar novas cargas)
+   * 5. empresa_id de ambos os lados deve estar presente
+   *
+   * O QUE A MUTATION FAZ (passo a passo):
+   * ─────────────────────────────────────
+   * ETAPA 1 — ABATE PESO NA CARGA
+   *   → Lê peso_disponivel_kg atual da carga
+   *   → Subtrai pesoAlocadoKg → novo peso disponível
+   *   → Define status: 'totalmente_alocada' (se ≤0) ou 'parcialmente_alocada'
+   *   → UPDATE na tabela 'cargas'
+   *
+   * ETAPA 2 — CRIA A ENTREGA
+   *   → INSERT em 'entregas' com status 'aguardando'
+   *   → Campos: carga_id, motorista_id, veiculo_id, carroceria_id, peso_alocado_kg, valor_frete
+   *   → O código da entrega (ex: CRG-2026-0001-E01) é gerado por trigger no banco
+   *
+   * ETAPA 3 — REGISTRA EVENTOS NA TIMELINE
+   *   → Evento 'criado': registra quem criou a entrega (userId + userName)
+   *   → Evento 'aceite': registra status inicial pelo Sistema (+1ms para ordenação)
+   *
+   * ETAPA 4 — VIAGEM (AUTOMÁTICA)
+   *   → SE viagemId foi passado (viagem 'programada'/'aguardando' já existe):
+   *       • Busca próxima ordem (MAX(ordem) + 1)
+   *       • INSERT em viagem_entregas vinculando entrega à viagem existente
+   *   → SE viagemId é null (sem viagem ativa):
+   *       • INSERT em 'viagens' com status 'aguardando', started_at = now()
+   *       • O código (VGM-YYYY-NNNN) é gerado por trigger no banco
+   *       • INSERT em viagem_entregas com ordem = 1
+   *
+   * ETAPA 5 — CRIA CHAT
+   *   → Cria chat vinculado à entrega com participantes:
+   *     embarcador (empresa_id) + transportadora (empresa_id) + motorista
+   *
+   * RESULTADO:
+   *   → Retorna { entregaId, viagemId }
+   *   → Invalida queries: cargas_disponiveis, viagens_motorista, entregas_ativas_motoristas
+   *
+   * NOTA: O abate de capacidade do equipamento (veículo/carroceria) NÃO é feito
+   * no banco — é calculado em tempo real no frontend via mapas de ocupação
+   * (pesoEmUsoPorVeiculo / pesoEmUsoPorCarroceria) somando entregas ativas.
+   * ═══════════════════════════════════════════════════════════════════════
+   */
   const acceptCarga = useMutation({
     mutationFn: async ({
       cargaId,
