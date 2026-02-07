@@ -2372,6 +2372,15 @@ export type Database = {
         Args: { p_entrega_id: string }
         Returns: string
       }
+      create_viagem_for_carga: {
+        Args: {
+          p_carga_id: string
+          p_motorista_id: string
+          p_peso_kg: number
+          p_veiculo_id: string
+        }
+        Returns: Json
+      }
       criar_viagem_para_entregas: {
         Args: {
           p_carroceria_id: string
