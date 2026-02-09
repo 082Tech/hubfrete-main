@@ -53,6 +53,7 @@ import { format, subDays, parseISO, subMonths, differenceInDays, differenceInHou
 import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
 import { ReportTabs, FinancialTab, PerformanceTab, OperationalTab } from '@/components/relatorios';
+import { DateRangePicker, getDefaultDateRange } from '@/components/relatorios/DateRangePicker';
 
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
