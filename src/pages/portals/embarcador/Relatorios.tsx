@@ -86,31 +86,8 @@ const tipoCargaLabels: Record<string, string> = {
 };
 
 export default function Relatorios() {
-  const [periodo, setPeriodo] = useState('30dias');
+  const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const { empresa, filialAtiva } = useUserContext();
-
-  // Calculate date range based on period
-  const dateRange = useMemo(() => {
-    const now = new Date();
-    let start: Date;
-    switch (periodo) {
-      case '7dias':
-        start = subDays(now, 7);
-        break;
-      case '30dias':
-        start = subDays(now, 30);
-        break;
-      case '90dias':
-        start = subDays(now, 90);
-        break;
-      case 'ano':
-        start = subMonths(now, 12);
-        break;
-      default:
-        start = subDays(now, 30);
-    }
-    return { start, end: now };
-  }, [periodo]);
 
   // Fetch cargas with all needed data
   const { data: cargas = [], isLoading: loadingCargas } = useQuery({
