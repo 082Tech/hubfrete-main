@@ -121,45 +121,64 @@ function EntregaListItem({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social || 'Remetente';
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário';
 
-  // NF-e alert
   const hasNf = (entrega.notas_fiscais_urls?.length || 0) > 0;
   const nfePending = !hasNf && entrega.status === 'aguardando';
 
   return (
     <div
-      className={`flex items-start gap-3 bg-card px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
+      className={`bg-card px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
       onClick={onClick}
     >
-      <Avatar className="h-9 w-9 shrink-0">
-        {entrega.motorista?.foto_url && <AvatarImage src={entrega.motorista.foto_url} />}
-        <AvatarFallback className="bg-muted text-muted-foreground text-sm">
-          {entrega.motorista?.nome_completo?.[0] || <Truck className="w-4 h-4" />}
-        </AvatarFallback>
-      </Avatar>
-
-      <div className="flex-1 min-w-0 space-y-1">
-        <span className="font-medium text-sm truncate block">
-          {entrega.motorista?.nome_completo || 'Sem motorista'}
-        </span>
-        <div className="flex items-center gap-1 text-sm font-semibold">
-          <span className="truncate">{entrega.carga.endereco_origem?.cidade || 'N/A'}</span>
-          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          <span className="truncate">{entrega.carga.endereco_destino?.cidade || 'N/A'}</span>
+      {/* Linha 1: Código da carga + badge de status */}
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
+          <Package className="w-4 h-4 text-primary shrink-0" />
+          <span className="font-bold text-sm font-mono">{entrega.carga.codigo}</span>
         </div>
-        <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
-          <span className="flex items-center gap-1 truncate max-w-[120px]" title={remetenteNome}>
-            <Upload className="w-3 h-3 shrink-0" />
-            {remetenteNome}
-          </span>
-          <span className="flex items-center gap-1 truncate max-w-[120px]" title={destinatarioNome}>
-            <Download className="w-3 h-3 shrink-0" />
-            {destinatarioNome}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground">{tempoDecorrido}</span>
+          <Badge className={`text-[10px] ${statusInfo.color}`}>{statusInfo.label}</Badge>
+        </div>
+      </div>
+
+      {/* Linha 2: Rota */}
+      <div className="flex items-center gap-1 text-sm mb-1">
+        <span className="truncate font-medium">{entrega.carga.endereco_origem?.cidade || 'N/A'}</span>
+        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        <span className="truncate font-medium">{entrega.carga.endereco_destino?.cidade || 'N/A'}</span>
+      </div>
+
+      {/* Linha 3: Remetente / Destinatário */}
+      <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2 mb-1">
+        <span className="flex items-center gap-1 truncate max-w-[120px]" title={remetenteNome}>
+          <Upload className="w-3 h-3 shrink-0" />
+          {remetenteNome}
+        </span>
+        <span className="flex items-center gap-1 truncate max-w-[120px]" title={destinatarioNome}>
+          <Download className="w-3 h-3 shrink-0" />
+          {destinatarioNome}
+        </span>
+      </div>
+
+      {/* Linha 4: Descrição + peso */}
+      <p className="text-xs text-muted-foreground truncate mb-1.5">
+        {entrega.carga.descricao} • {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+      </p>
+
+      {/* Rodapé: Motorista + frete + alerta NF-e */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Avatar className="h-5 w-5">
+            {entrega.motorista?.foto_url && <AvatarImage src={entrega.motorista.foto_url} />}
+            <AvatarFallback className="bg-muted text-muted-foreground text-[8px]">
+              {entrega.motorista?.nome_completo?.[0] || <Truck className="w-3 h-3" />}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-[11px] text-muted-foreground truncate max-w-[100px]">
+            {entrega.motorista?.nome_completo || 'Sem motorista'}
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <Badge variant="outline" className="font-mono text-[10px] px-1.5">
-            #{entrega.codigo || entrega.id.slice(0, 6)}
-          </Badge>
           {entrega.valor_frete && (
             <span className="text-primary font-semibold">
               R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -172,11 +191,6 @@ function EntregaListItem({
             </Badge>
           )}
         </div>
-      </div>
-
-      <div className="text-right shrink-0">
-        <p className="text-xs text-muted-foreground mb-1">{tempoDecorrido}</p>
-        <Badge className={`text-[10px] ${statusInfo.color}`}>{statusInfo.label}</Badge>
       </div>
     </div>
   );
@@ -252,9 +266,9 @@ function DetailPanel({
       <div className="p-3 border-b">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Entrega Nº</span>
-            <Badge variant="outline" className="font-mono font-bold text-xs px-2 border-primary text-primary">
-              {entrega.codigo || entrega.id.slice(0, 8)}
+            <Package className="w-4 h-4 text-primary" />
+            <Badge variant="outline" className="font-mono font-bold text-sm px-2 border-primary text-primary bg-primary/5">
+              {entrega.carga.codigo}
             </Badge>
           </div>
           <div className="flex items-center gap-0.5">
@@ -265,9 +279,13 @@ function DetailPanel({
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground mb-2">
-          {format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })} • Carga {entrega.carga.codigo}
-        </p>
+        {/* Carga description + entrega ref */}
+        <p className="text-sm font-medium mb-1">{entrega.carga.descricao}</p>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          <span>Entrega #{entrega.codigo || entrega.id.slice(0, 6)}</span>
+          <span>•</span>
+          <span>{format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
+        </div>
 
         {/* Status banner */}
         <div className={`rounded-md px-3 py-1.5 text-center text-sm ${statusInfo.color}`}>
@@ -291,14 +309,28 @@ function DetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Empresa que publicou */}
-          {entrega.carga.empresa && (
-            <div className="flex items-center gap-2 text-sm">
-              <Building2 className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Publicado por:</span>
-              <span className="font-medium">{entrega.carga.empresa.nome || 'Empresa não identificada'}</span>
+          {/* Carga specs - top priority */}
+          <div className="bg-muted/30 rounded-lg p-3 space-y-1.5">
+            <div className="flex items-center gap-3 text-xs flex-wrap">
+              <span className="flex items-center gap-1">
+                <Weight className="w-3 h-3 text-muted-foreground" />
+                <span className="font-medium">{entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg</span>
+              </span>
+              <span className="text-muted-foreground">Tipo: {entrega.carga.tipo}</span>
+              {entrega.valor_frete && (
+                <span className="flex items-center gap-1 text-primary font-semibold">
+                  <DollarSign className="w-3 h-3" />
+                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              )}
             </div>
-          )}
+            {entrega.carga.empresa && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Building2 className="w-3 h-3" />
+                Publicado por: <span className="font-medium text-foreground">{entrega.carga.empresa.nome}</span>
+              </div>
+            )}
+          </div>
 
           {/* Map */}
           <DetailPanelLeafletMap
@@ -309,23 +341,6 @@ function DetailPanel({
             height={300}
             entregaId={entrega.id}
           />
-
-          {/* Cargo description */}
-          <div className="text-sm">
-            <p className="font-medium">{entrega.carga.descricao}</p>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-              <span className="flex items-center gap-1">
-                <Weight className="w-3 h-3" />
-                {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
-              </span>
-              {entrega.valor_frete && (
-                <span className="flex items-center gap-1 text-primary font-semibold">
-                  <DollarSign className="w-3 h-3" />
-                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              )}
-            </div>
-          </div>
 
           <Separator />
 
@@ -599,62 +614,59 @@ function GestaoMapDialogContent({
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Group entregas by motorista
-  const motoristaGroups = useMemo(() => {
-    const groups: Record<string, { motorista: Entrega['motorista']; motorista_id: string; entregas: Entrega[] }> = {};
+  // Group entregas by CARGA (not motorista)
+  const cargaGroups = useMemo(() => {
+    const groups: Record<string, { carga: Entrega['carga']; entregas: Entrega[] }> = {};
     entregas.forEach(e => {
-      if (!e.motorista_id || !e.motorista) return;
-      if (!groups[e.motorista_id]) {
-        groups[e.motorista_id] = { motorista: e.motorista, motorista_id: e.motorista_id, entregas: [] };
+      const cargaId = e.carga.id;
+      if (!groups[cargaId]) {
+        groups[cargaId] = { carga: e.carga, entregas: [] };
       }
-      groups[e.motorista_id].entregas.push(e);
+      groups[cargaId].entregas.push(e);
     });
     return Object.values(groups);
   }, [entregas]);
 
   const filteredGroups = useMemo(() => {
-    if (!searchTerm.trim()) return motoristaGroups;
+    if (!searchTerm.trim()) return cargaGroups;
     const term = searchTerm.toLowerCase();
-    return motoristaGroups.filter(g => {
-      const nome = g.motorista?.nome_completo?.toLowerCase() || '';
-      const temEntregaMatch = g.entregas.some(e =>
-        e.codigo?.toLowerCase().includes(term) ||
-        e.carga.endereco_origem?.cidade?.toLowerCase().includes(term) ||
-        e.carga.endereco_destino?.cidade?.toLowerCase().includes(term)
-      );
-      return nome.includes(term) || temEntregaMatch;
+    return cargaGroups.filter(g => {
+      const codigo = g.carga.codigo?.toLowerCase() || '';
+      const descricao = g.carga.descricao?.toLowerCase() || '';
+      const remetente = (g.carga.remetente_nome_fantasia || g.carga.remetente_razao_social || '').toLowerCase();
+      const destinatario = (g.carga.destinatario_nome_fantasia || g.carga.destinatario_razao_social || '').toLowerCase();
+      const origemCidade = g.carga.endereco_origem?.cidade?.toLowerCase() || '';
+      const destinoCidade = g.carga.endereco_destino?.cidade?.toLowerCase() || '';
+      return codigo.includes(term) || descricao.includes(term) || remetente.includes(term) || destinatario.includes(term) || origemCidade.includes(term) || destinoCidade.includes(term);
     });
-  }, [motoristaGroups, searchTerm]);
+  }, [cargaGroups, searchTerm]);
 
+  // Build motoristaNames & motoristaInfo from all entregas (still needed by the map component)
   const motoristaNames = useMemo(() => {
     const names: Record<string, string> = {};
-    motoristaGroups.forEach(g => { names[g.motorista_id] = g.motorista?.nome_completo || 'Motorista'; });
+    entregas.forEach(e => {
+      if (e.motorista_id && e.motorista) names[e.motorista_id] = e.motorista.nome_completo;
+    });
     return names;
-  }, [motoristaGroups]);
+  }, [entregas]);
 
   const motoristaInfo = useMemo(() => {
     const info: Record<string, { nome: string; entregas: Array<{ id: string; codigo: string; status: string; origemCidade: string; destinoCidade: string; origemCoords: { lat: number; lng: number } | null; destinoCoords: { lat: number; lng: number } | null }>; isOnline: boolean; lastSeenAt?: string | null }> = {};
-    motoristaGroups.forEach(g => {
-      const loc = localizacoes.find(l => l.motorista_id === g.motorista_id);
-      info[g.motorista_id] = {
-        nome: g.motorista?.nome_completo || 'Motorista',
-        entregas: g.entregas.map(e => ({
-          id: e.id,
-          codigo: e.codigo || e.id.slice(0, 6),
-          status: e.status,
-          origemCidade: e.carga.endereco_origem?.cidade || 'N/A',
-          destinoCidade: e.carga.endereco_destino?.cidade || 'N/A',
-          origemCoords: e.carga.endereco_origem?.latitude && e.carga.endereco_origem?.longitude
-            ? { lat: e.carga.endereco_origem.latitude, lng: e.carga.endereco_origem.longitude } : null,
-          destinoCoords: e.carga.endereco_destino?.latitude && e.carga.endereco_destino?.longitude
-            ? { lat: e.carga.endereco_destino.latitude, lng: e.carga.endereco_destino.longitude } : null,
-        })),
-        isOnline: loc?.isOnline ?? false,
-        lastSeenAt: (loc as any)?.updated_at ?? null,
-      };
+    entregas.forEach(e => {
+      if (!e.motorista_id || !e.motorista) return;
+      if (!info[e.motorista_id]) {
+        const loc = localizacoes.find(l => l.motorista_id === e.motorista_id);
+        info[e.motorista_id] = { nome: e.motorista.nome_completo, entregas: [], isOnline: loc?.isOnline ?? false, lastSeenAt: (loc as any)?.updated_at ?? null };
+      }
+      info[e.motorista_id].entregas.push({
+        id: e.id, codigo: e.codigo || e.id.slice(0, 6), status: e.status,
+        origemCidade: e.carga.endereco_origem?.cidade || 'N/A', destinoCidade: e.carga.endereco_destino?.cidade || 'N/A',
+        origemCoords: e.carga.endereco_origem?.latitude && e.carga.endereco_origem?.longitude ? { lat: e.carga.endereco_origem.latitude, lng: e.carga.endereco_origem.longitude } : null,
+        destinoCoords: e.carga.endereco_destino?.latitude && e.carga.endereco_destino?.longitude ? { lat: e.carga.endereco_destino.latitude, lng: e.carga.endereco_destino.longitude } : null,
+      });
     });
     return info;
-  }, [motoristaGroups, localizacoes]);
+  }, [entregas, localizacoes]);
 
   const statusCounts = useMemo(() => {
     let aguardando = 0, coleta = 0, entrega = 0, entregue = 0, cancelada = 0;
@@ -687,14 +699,17 @@ function GestaoMapDialogContent({
     };
   }, [selectedEntregaId, entregas]);
 
-  const handleGroupClick = useCallback((motoristaId: string) => {
+  const handleMotoristaClick = useCallback((motoristaId: string) => {
     setSelectedMotoristaId(prev => {
       if (prev === motoristaId) { setSelectedEntregaId(null); return null; }
-      const group = motoristaGroups.find(g => g.motorista_id === motoristaId);
-      if (group?.entregas.length) setSelectedEntregaId(group.entregas[0].id);
       return motoristaId;
     });
-  }, [motoristaGroups]);
+  }, []);
+
+  const handleEntregaClick = useCallback((entrega: Entrega) => {
+    setSelectedEntregaId(entrega.id);
+    if (entrega.motorista_id) setSelectedMotoristaId(entrega.motorista_id);
+  }, []);
 
   return (
     <>
@@ -707,7 +722,7 @@ function GestaoMapDialogContent({
             localizacoes={localizacoes}
             selectedMotoristaId={selectedMotoristaId}
             selectedEntregaId={selectedEntregaId}
-            onMotoristaClick={handleGroupClick}
+            onMotoristaClick={handleMotoristaClick}
             onEntregaDeselect={() => setSelectedEntregaId(null)}
             motoristaNames={motoristaNames}
             motoristaInfo={motoristaInfo}
@@ -717,11 +732,11 @@ function GestaoMapDialogContent({
         </div>
         <div className="flex-[3] border-l flex flex-col bg-background">
           <div className="px-3 py-2 border-b bg-muted/30 space-y-2">
-            <span className="text-sm font-medium">Motoristas ({filteredGroups.length})</span>
+            <span className="text-sm font-medium">Cargas ({filteredGroups.length})</span>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
-                placeholder="Buscar motorista, cidade..."
+                placeholder="Buscar carga, cidade, remetente..."
                 className="pl-8 h-8 text-xs bg-background"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -730,82 +745,70 @@ function GestaoMapDialogContent({
           </div>
           <ScrollArea className="flex-1">
             {filteredGroups.length === 0 ? (
-              <EmptyColumnPlaceholder message="Nenhum motorista encontrado" />
+              <EmptyColumnPlaceholder message="Nenhuma carga encontrada" />
             ) : (
               filteredGroups.map(group => {
-                const loc = localizacoes.find(l => l.motorista_id === group.motorista_id);
-                const isOnline = loc?.isOnline ?? false;
-                const isSelected = selectedMotoristaId === group.motorista_id;
-                const lastSeenAt = (loc as any)?.updated_at;
-                const lastSeenText = lastSeenAt
-                  ? formatDistanceToNow(new Date(lastSeenAt), { locale: ptBR, addSuffix: false })
-                  : null;
+                const isExpanded = group.entregas.some(e => selectedEntregaId === e.id);
 
                 return (
                   <div
-                    key={group.motorista_id}
-                    className={`px-3 py-2.5 border-b cursor-pointer transition-all hover:bg-muted/50 ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
-                    onClick={() => handleGroupClick(group.motorista_id)}
+                    key={group.carga.id}
+                    className={`px-3 py-2.5 border-b cursor-pointer transition-all hover:bg-muted/50 ${isExpanded ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <Avatar className="h-8 w-8">
-                          {group.motorista?.foto_url && <AvatarImage src={group.motorista.foto_url} />}
-                          <AvatarFallback className="text-xs">{group.motorista?.nome_completo?.[0]}</AvatarFallback>
-                        </Avatar>
-                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
-                          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isOnline
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
-                            {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
-                          </span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
+                    {/* Carga header */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <Package className="w-4 h-4 text-primary shrink-0" />
+                      <span className="font-bold text-sm font-mono">{group.carga.codigo}</span>
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
+                        {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
+                      </Badge>
                     </div>
+                    <div className="flex items-center gap-1.5 text-xs mb-1 pl-6">
+                      <MapPin className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
+                      <span className="truncate">{group.carga.endereco_origem?.cidade || 'N/A'}</span>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <MapPin className="w-3 h-3 text-red-500 dark:text-red-400 shrink-0" />
+                      <span className="truncate">{group.carga.endereco_destino?.cidade || 'N/A'}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate pl-6">{group.carga.descricao}</p>
 
-                    {isSelected && group.entregas.length > 0 && (
-                      <div className="mt-2 pl-10 space-y-2">
-                        {group.entregas.map(e => {
-                          const isEntregaSelected = selectedEntregaId === e.id;
-                          const sInfo = statusConfig[e.status];
-                          const SIcon = sInfo?.icon || Package;
-                          return (
-                            <div
-                              key={e.id}
-                              className={`p-2.5 rounded-lg cursor-pointer transition-all border ${isEntregaSelected ? 'bg-primary/5 border-primary/40 shadow-sm' : 'bg-muted/30 border-transparent hover:bg-muted/60'}`}
-                              onClick={(ev) => { ev.stopPropagation(); setSelectedEntregaId(e.id); }}
-                            >
-                              <div className="flex items-center justify-between mb-1.5">
-                                <Badge variant="outline" className={`text-[10px] px-2 py-0.5 font-mono ${isEntregaSelected ? 'border-primary text-primary bg-primary/5' : ''}`}>
-                                  {e.codigo}
+                    {/* Entregas dentro da carga */}
+                    <div className="mt-2 pl-6 space-y-2">
+                      {group.entregas.map(e => {
+                        const isEntregaSelected = selectedEntregaId === e.id;
+                        const sInfo = statusConfig[e.status];
+                        const SIcon = sInfo?.icon || Package;
+                        return (
+                          <div
+                            key={e.id}
+                            className={`p-2 rounded-lg cursor-pointer transition-all border ${isEntregaSelected ? 'bg-primary/5 border-primary/40 shadow-sm' : 'bg-muted/30 border-transparent hover:bg-muted/60'}`}
+                            onClick={(ev) => { ev.stopPropagation(); handleEntregaClick(e); }}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <Badge variant="outline" className={`text-[10px] px-2 py-0.5 font-mono ${isEntregaSelected ? 'border-primary text-primary bg-primary/5' : ''}`}>
+                                {e.codigo}
+                              </Badge>
+                              {sInfo && (
+                                <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 gap-1 ${sInfo.color}`}>
+                                  <SIcon className="w-2.5 h-2.5" />
+                                  {sInfo.label}
                                 </Badge>
-                                {sInfo && (
-                                  <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 gap-1 ${sInfo.color}`}>
-                                    <SIcon className="w-2.5 h-2.5" />
-                                    {sInfo.label}
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1.5 text-xs">
-                                <MapPin className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
-                                <span className="truncate">{e.carga.endereco_origem?.cidade}/{e.carga.endereco_origem?.estado}</span>
-                                <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                                <MapPin className="w-3 h-3 text-red-500 dark:text-red-400 shrink-0" />
-                                <span className="truncate">{e.carga.endereco_destino?.cidade}/{e.carga.endereco_destino?.estado}</span>
-                              </div>
+                              )}
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            {/* Motorista as secondary info */}
+                            {e.motorista && (
+                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                <Avatar className="h-4 w-4">
+                                  {e.motorista.foto_url && <AvatarImage src={e.motorista.foto_url} />}
+                                  <AvatarFallback className="text-[7px]">{e.motorista.nome_completo?.[0]}</AvatarFallback>
+                                </Avatar>
+                                <span className="truncate">{e.motorista.nome_completo}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })
