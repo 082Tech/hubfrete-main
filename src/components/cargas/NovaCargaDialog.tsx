@@ -132,7 +132,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const resetDialogState = () => {
     form.reset();
     setNecessidadesEspeciais([]);
-    setNotaFiscalUrl(null);
     setPesoMinimoFracionado(null);
     setVeiculosSelecionados([]);
     setCarroceriasSelecionadas([]);
