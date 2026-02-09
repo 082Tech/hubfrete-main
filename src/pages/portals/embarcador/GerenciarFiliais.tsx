@@ -715,7 +715,7 @@ export default function GerenciarFiliais() {
         </div>
 
         {/* Content with fixed height */}
-        <Card ref={contentRef} className="flex-1 flex flex-col overflow-hidden" style={{ height: contentHeight }}>
+        <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
           <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-auto p-4">
               {paginatedFiliais.length === 0 ? (

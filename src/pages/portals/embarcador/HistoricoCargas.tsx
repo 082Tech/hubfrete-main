@@ -831,11 +831,7 @@ export default function HistoricoCargas() {
           </div>
 
           {/* Table */}
-          <Card
-            ref={tableCardRef as any}
-            style={{ height: tableCardHeight }}
-            className="flex flex-col"
-          >
+          <Card className="flex flex-col flex-1 min-h-0">
             <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">

@@ -196,7 +196,7 @@ export default function ContatosSalvos() {
               Contatos são compartilhados entre todas as filiais da empresa
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 min-h-0 overflow-auto">
             {loading ? (
               <div className="text-center py-12 text-muted-foreground">
                 Carregando contatos...
