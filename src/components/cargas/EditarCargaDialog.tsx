@@ -39,7 +39,7 @@ import type { Database } from '@/integrations/supabase/types';
 import { RemetenteSection } from './RemetenteSection';
 import { DestinoSection } from './DestinoSection';
 import { NecessidadesEspeciais } from './NecessidadesEspeciais';
-import { NotaFiscalUpload } from './NotaFiscalUpload';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ResumoSection } from './ResumoSection';
 import { VeiculoCarroceriaSelect } from './VeiculoCarroceriaSelect';
 
