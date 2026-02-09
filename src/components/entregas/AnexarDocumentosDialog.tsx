@@ -382,6 +382,8 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
             </CardContent>
           </Card>
 
+          <Separator />
+
           {/* Canhoto Section */}
           <Card>
             <CardContent className="pt-4 space-y-3">
