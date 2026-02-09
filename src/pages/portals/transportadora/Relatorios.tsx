@@ -19,13 +19,6 @@ import {
   Users
 } from 'lucide-react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { 
   BarChart, 
   Bar, 
   XAxis, 
