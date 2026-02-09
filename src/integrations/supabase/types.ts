@@ -208,7 +208,11 @@ export type Database = {
           temperatura_max: number | null
           temperatura_min: number | null
           tipo: Database["public"]["Enums"]["tipo_carga"]
+          tipo_precificacao: Database["public"]["Enums"]["tipo_precificacao"]
           updated_at: string | null
+          valor_frete_fixo: number | null
+          valor_frete_km: number | null
+          valor_frete_m3: number | null
           valor_frete_tonelada: number | null
           valor_mercadoria: number | null
           veiculo_requisitos: Json | null
@@ -260,7 +264,11 @@ export type Database = {
           temperatura_max?: number | null
           temperatura_min?: number | null
           tipo: Database["public"]["Enums"]["tipo_carga"]
+          tipo_precificacao?: Database["public"]["Enums"]["tipo_precificacao"]
           updated_at?: string | null
+          valor_frete_fixo?: number | null
+          valor_frete_km?: number | null
+          valor_frete_m3?: number | null
           valor_frete_tonelada?: number | null
           valor_mercadoria?: number | null
           veiculo_requisitos?: Json | null
@@ -312,7 +320,11 @@ export type Database = {
           temperatura_max?: number | null
           temperatura_min?: number | null
           tipo?: Database["public"]["Enums"]["tipo_carga"]
+          tipo_precificacao?: Database["public"]["Enums"]["tipo_precificacao"]
           updated_at?: string | null
+          valor_frete_fixo?: number | null
+          valor_frete_km?: number | null
+          valor_frete_m3?: number | null
           valor_frete_tonelada?: number | null
           valor_mercadoria?: number | null
           veiculo_requisitos?: Json | null
@@ -2526,6 +2538,7 @@ export type Database = {
         | "entrega_aceita"
         | "entrega_concluida"
         | "cte_anexado"
+      tipo_precificacao: "por_tonelada" | "por_m3" | "fixo" | "por_km"
       tipo_propriedade_veiculo: "pf" | "pj"
       tipo_veiculo:
         | "truck"
@@ -2761,6 +2774,7 @@ export const Constants = {
         "entrega_concluida",
         "cte_anexado",
       ],
+      tipo_precificacao: ["por_tonelada", "por_m3", "fixo", "por_km"],
       tipo_propriedade_veiculo: ["pf", "pj"],
       tipo_veiculo: [
         "truck",
