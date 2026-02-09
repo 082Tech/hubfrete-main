@@ -203,7 +203,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       capturedOrigemData,
       capturedDestinoData,
       capturedNecessidades,
-      capturedNotaFiscalUrl,
+      null, // nota fiscal not collected at creation
       capturedPesoMinimo,
       capturedVeiculos,
       capturedCarrocerias,
