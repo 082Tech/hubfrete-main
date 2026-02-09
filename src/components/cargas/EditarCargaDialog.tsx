@@ -291,8 +291,22 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
   }, [carga, open, form]);
 
   const pesoKg = form.watch('peso_kg');
+  const tipoPrecificacao = form.watch('tipo_precificacao');
   const valorFreteTonelada = form.watch('valor_frete_tonelada');
-  const freteTotal = pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
+  const valorFreteM3 = form.watch('valor_frete_m3');
+  const valorFreteFixo = form.watch('valor_frete_fixo');
+  const valorFreteKm = form.watch('valor_frete_km');
+  const volumeM3 = form.watch('volume_m3');
+  
+  const freteTotal = (() => {
+    switch (tipoPrecificacao) {
+      case 'por_tonelada': return pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
+      case 'por_m3': return volumeM3 && valorFreteM3 ? volumeM3 * valorFreteM3 : 0;
+      case 'fixo': return valorFreteFixo || 0;
+      case 'por_km': return 0;
+      default: return 0;
+    }
+  })();
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
 
