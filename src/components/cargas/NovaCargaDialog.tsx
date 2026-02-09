@@ -40,7 +40,8 @@ import type { Database } from '@/integrations/supabase/types';
 import { RemetenteSection } from './RemetenteSection';
 import { DestinoSection } from './DestinoSection';
 import { NecessidadesEspeciais } from './NecessidadesEspeciais';
-import { NotaFiscalUpload } from './NotaFiscalUpload';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 import { ResumoSection } from './ResumoSection';
 import { VeiculoCarroceriaSelect, ALL_VEICULOS, ALL_CARROCERIAS } from './VeiculoCarroceriaSelect';
 
@@ -117,7 +118,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
   // Additional state for new fields
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
-  const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
   const [pesoMinimoFracionado, setPesoMinimoFracionado] = useState<number | null>(null);
 
   // Vehicle and body type requirements - start empty (deselected)
@@ -132,7 +132,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const resetDialogState = () => {
     form.reset();
     setNecessidadesEspeciais([]);
-    setNotaFiscalUrl(null);
     setPesoMinimoFracionado(null);
     setVeiculosSelecionados([]);
     setCarroceriasSelecionadas([]);
@@ -188,7 +187,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     const capturedOrigemData = { ...origemData };
     const capturedDestinoData = { ...destinoData };
     const capturedNecessidades = [...necessidadesEspeciais];
-    const capturedNotaFiscalUrl = notaFiscalUrl;
     const capturedPesoMinimo = pesoMinimoFracionado;
     const capturedVeiculos = [...veiculosSelecionados];
     const capturedCarrocerias = [...carroceriasSelecionadas];
@@ -205,7 +203,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       capturedOrigemData,
       capturedDestinoData,
       capturedNecessidades,
-      capturedNotaFiscalUrl,
+      null, // nota fiscal not collected at creation
       capturedPesoMinimo,
       capturedVeiculos,
       capturedCarrocerias,
@@ -673,11 +671,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   />
                 </div>
 
-                {/* Nota Fiscal Upload */}
-                <NotaFiscalUpload
-                  value={notaFiscalUrl}
-                  onChange={setNotaFiscalUrl}
-                />
+                {/* NF-e info alert */}
+                <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+                    As Notas Fiscais (NF-e) serão solicitadas quando as entregas forem geradas para esta carga.
+                  </AlertDescription>
+                </Alert>
               </TabsContent>
 
               <TabsContent value="requisitos" className="space-y-6 mt-4">
@@ -889,7 +889,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     regras_carregamento: form.getValues('regras_carregamento'),
                   }}
                   necessidadesEspeciais={necessidadesEspeciais}
-                  notaFiscalUrl={notaFiscalUrl}
+                  notaFiscalUrl={null}
                   veiculosSelecionados={veiculosSelecionados}
                   carroceriasSelecionadas={carroceriasSelecionadas}
                 />

@@ -63,9 +63,9 @@ export function DocumentButton({
     if (!file) return;
 
     // Validate
-    const allowedTypes = ['application/pdf', 'application/xml', 'text/xml', 'image/jpeg', 'image/png'];
+    const allowedTypes = ['application/pdf', 'application/xml', 'text/xml', 'application/xhtml+xml', 'image/jpeg', 'image/png'];
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Tipo não permitido. Use PDF, XML, JPG ou PNG.');
+      toast.error('Tipo não permitido. Use PDF, XML, XHTML, JPG ou PNG.');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -155,7 +155,7 @@ export function DocumentButton({
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.xml,.jpg,.jpeg,.png"
+          accept=".pdf,.xml,.xhtml,.jpg,.jpeg,.png"
           onChange={handleFileChange}
           className="hidden"
         />
