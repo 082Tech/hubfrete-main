@@ -189,8 +189,8 @@ export default function ContatosSalvos() {
         </Card>
 
         {/* Contacts Table */}
-        <Card>
-          <CardHeader>
+        <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <CardHeader className="shrink-0">
             <CardTitle>Lista de Contatos</CardTitle>
             <CardDescription>
               Contatos são compartilhados entre todas as filiais da empresa
