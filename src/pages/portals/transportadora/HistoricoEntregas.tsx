@@ -890,16 +890,6 @@ export default function HistoricoEntregas() {
                                                           <MessageCircle className="w-4 h-4 mr-2" />
                                                           Ver conversa
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => {
-                                                          setTrackingMapEntregaId(entrega.id);
-                                                          setTrackingMapInfo({
-                                                            motorista: entrega.motorista?.nome_completo || viagem.motorista?.nome_completo || 'Motorista',
-                                                            placa: entrega.veiculo?.placa || viagem.veiculo?.placa || '-',
-                                                          });
-                                                        }}>
-                                                          <Route className="w-4 h-4 mr-2" />
-                                                          Ver no mapa
-                                                        </DropdownMenuItem>
                                                       </DropdownMenuContent>
                                                     </DropdownMenu>
                                                   </td>
