@@ -591,18 +591,7 @@ export default function Relatorios() {
             <p className="text-muted-foreground">Analise o desempenho das suas operações</p>
           </div>
           <div className="flex gap-3">
-            <Select value={periodo} onValueChange={setPeriodo}>
-              <SelectTrigger className="w-[180px]">
-                <Calendar className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border-border z-50">
-                <SelectItem value="7dias">Últimos 7 dias</SelectItem>
-                <SelectItem value="30dias">Últimos 30 dias</SelectItem>
-                <SelectItem value="90dias">Últimos 90 dias</SelectItem>
-                <SelectItem value="ano">Este ano</SelectItem>
-              </SelectContent>
-            </Select>
+            <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
             <Button variant="outline" className="gap-2">
               <Download className="w-4 h-4" />
               Exportar

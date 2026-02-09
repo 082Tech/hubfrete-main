@@ -123,17 +123,7 @@ export default function Relatorios() {
           </h1>
           <p className="text-sm text-muted-foreground">Análises e métricas da plataforma</p>
         </div>
-        <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-          <SelectTrigger className="w-[180px]">
-            <Calendar className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="3_months">Últimos 3 meses</SelectItem>
-            <SelectItem value="6_months">Últimos 6 meses</SelectItem>
-            <SelectItem value="12_months">Últimos 12 meses</SelectItem>
-          </SelectContent>
-        </Select>
+        <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
       </div>
 
       {/* Report Tabs */}
