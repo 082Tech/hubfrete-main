@@ -144,12 +144,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
       }
       const finalNotasFiscaisUrls = [...notasFiscaisUrls, ...uploadedNfUrls];
 
-      // Upload Manifesto if there's a new file
-      let finalManifestoUrl = manifestoUrl;
-      if (manifestoFile) {
-        finalManifestoUrl = await uploadFile(manifestoFile, 'manifesto');
-      }
-
       // Upload Canhoto if there's a new file
       let finalCanhotoUrl = canhotoUrl;
       if (canhotoFile) {
