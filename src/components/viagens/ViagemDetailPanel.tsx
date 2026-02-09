@@ -498,7 +498,7 @@ export function ViagemDetailPanel({
 
       {/* Aviso de entregas pendentes (apenas em andamento) */}
       {(isViagemAguardando || isViagemEmAndamento) && !entregasValidation.canFinalize && (
-        <div className="px-3 pb-3 -mt-1">
+        <div className="px-3 pb-3 mt-1">
           <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div>
