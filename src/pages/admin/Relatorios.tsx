@@ -110,7 +110,7 @@ export default function Relatorios() {
     }
 
     fetchReportData();
-  }, [selectedPeriod]);
+  }, [dateRange]);
 
   return (
     <div className="space-y-6">
