@@ -665,7 +665,7 @@ export default function HistoricoCargas() {
   return (
     <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
       <TooltipProvider>
-        <div className="flex flex-col h-full gap-6">
+        <div className="flex flex-col h-full gap-6 min-h-0">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
             <div>
