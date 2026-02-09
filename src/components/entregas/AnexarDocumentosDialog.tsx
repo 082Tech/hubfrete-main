@@ -157,7 +157,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
           cte_url: finalCteUrl,
           numero_cte: numeroCte || null,
           notas_fiscais_urls: finalNotasFiscaisUrls,
-          manifesto_url: finalManifestoUrl,
           canhoto_url: finalCanhotoUrl,
         })
         .eq('id', entrega.id);
