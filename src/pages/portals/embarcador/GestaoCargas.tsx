@@ -129,11 +129,11 @@ function EntregaListItem({
       className={`bg-card px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
       onClick={onClick}
     >
-      {/* Linha 1: Código da carga + badge de status */}
+      {/* Linha 1: Código da entrega (CRG-X-EX) + badge de status */}
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <Package className="w-4 h-4 text-primary shrink-0" />
-          <span className="font-bold text-sm font-mono">{entrega.carga.codigo}</span>
+          <span className="font-bold text-sm font-mono">{entrega.carga.codigo}-{entrega.codigo || entrega.id.slice(0, 4)}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-muted-foreground">{tempoDecorrido}</span>
