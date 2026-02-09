@@ -98,6 +98,8 @@ interface EntregaData {
   notas_fiscais_urls: string[] | null;
   manifesto_url: string | null;
   canhoto_url: string | null;
+  // Manifesto fetched from viagem level
+  viagem_manifesto_url?: string | null;
   motoristas: {
     id: string;
     nome_completo: string;
@@ -338,8 +340,7 @@ export default function GestaoCargas() {
 
       if (error) throw error;
       
-      // Filter to only include cargas that have at least one active entrega
-      return (data || [])
+      const rawCargas = (data || [])
         .map(item => ({
           ...item,
           entregas: Array.isArray(item.entregas) 
@@ -347,6 +348,32 @@ export default function GestaoCargas() {
             : []
         }))
         .filter(item => item.entregas.length > 0) as CargaCompleta[];
+
+      // Fetch manifesto from viagem level for each entrega
+      const allEntregaIds = rawCargas.flatMap(c => c.entregas.map(e => e.id));
+      if (allEntregaIds.length > 0) {
+        const { data: veLinks } = await supabase
+          .from('viagem_entregas')
+          .select('entrega_id, viagem:viagens(manifesto_url)')
+          .in('entrega_id', allEntregaIds);
+
+        if (veLinks) {
+          const manifestoMap: Record<string, string | null> = {};
+          veLinks.forEach((link: any) => {
+            if (link.viagem?.manifesto_url) {
+              manifestoMap[link.entrega_id] = link.viagem.manifesto_url;
+            }
+          });
+          // Inject viagem_manifesto_url into each entrega
+          rawCargas.forEach(c => {
+            c.entregas.forEach(e => {
+              (e as any).viagem_manifesto_url = manifestoMap[e.id] || null;
+            });
+          });
+        }
+      }
+
+      return rawCargas;
     },
     enabled: !!filialAtiva?.id,
     refetchInterval: 60000, // Refresh every 1 minute
@@ -630,13 +657,18 @@ export default function GestaoCargas() {
     const StatusIcon = statusConfig?.icon || Package;
     const isSelected = selectedEntregaId === entrega.id;
     
-    // Document counts
+    // Document counts - use viagem manifesto
     const hasCte = !!entrega.cte_url;
-    const hasManifesto = !!entrega.manifesto_url;
+    const manifestoUrl = entrega.viagem_manifesto_url || entrega.manifesto_url;
+    const hasManifesto = !!manifestoUrl;
     const hasCanhoto = !!entrega.canhoto_url;
     const nfsCount = entrega.notas_fiscais_urls?.length || 0;
-    const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
-    const hasMissingCritical = !hasCte || !hasManifesto || !hasCanhoto || nfsCount === 0;
+    const hasNf = nfsCount > 0;
+    const totalDocs = (hasCte ? 1 : 0) + (hasNf ? 1 : 0) + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
+    const hasMissingCritical = !hasCte || !hasManifesto || !hasCanhoto || !hasNf;
+    
+    // NF-e alert: blocks "Saiu para Entrega"
+    const nfePending = !hasNf && status === 'aguardando';
 
     return (
       <TableRow 
@@ -697,10 +729,25 @@ export default function GestaoCargas() {
           </span>
         </TableCell>
         <TableCell className="py-2.5">
-          <Badge className={`${statusConfig?.color || ''} text-xs gap-1`}>
-            <StatusIcon className="w-3 h-3" />
-            {statusConfig?.label || status}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge className={`${statusConfig?.color || ''} text-xs gap-1`}>
+              <StatusIcon className="w-3 h-3" />
+              {statusConfig?.label || status}
+            </Badge>
+            {nfePending && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 text-amber-600 border-amber-400 gap-0.5">
+                    <AlertTriangle className="w-2.5 h-2.5" />
+                    NF-e
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">NF-e pendente — o motorista não pode sair para entrega sem ela</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </TableCell>
         {/* Documentos - Click to view (embarcador = view only) */}
         <TableCell className="py-2.5">
@@ -710,11 +757,11 @@ export default function GestaoCargas() {
             className={`h-6 px-2 gap-1 ${hasMissingCritical ? 'text-amber-600' : 'text-green-600'}`}
             onClick={(e) => {
               e.stopPropagation();
-              setSelectedEntregaForDetails({ entrega, carga });
+              setSelectedEntregaForDetails({ entrega: { ...entrega, manifesto_url: manifestoUrl || entrega.manifesto_url }, carga });
             }}
           >
             <FileText className="w-3 h-3" />
-            {totalDocs}
+            <span className="text-xs">{totalDocs}/4</span>
             {hasMissingCritical && <AlertTriangle className="w-3 h-3" />}
           </Button>
         </TableCell>
