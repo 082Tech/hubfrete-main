@@ -723,6 +723,7 @@ export default function GestaoCargas() {
             entrega={selectedEntrega}
             onClose={() => setSelectedEntrega(null)}
             driverLocation={driverLocation}
+            onRefresh={() => refetch()}
           />
         </div>
       </div>
