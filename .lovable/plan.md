@@ -1,59 +1,86 @@
 
 
-## Ajuste da Gestao de Cargas: Visao centrada em Cargas para o Embarcador
+## Configuracao de Ambientes: Producao + Teste (Supabase Branching + GitHub)
 
-### Problema atual
-A tela de Gestao de Cargas do embarcador esta muito centrada no **motorista** -- o item da lista destaca o nome do motorista, e a Visualizacao Geral em Mapa agrupa tudo por motorista. O embarcador precisa de uma visao centrada na **carga** (qual e o carregamento, qual a carga mae), com o motorista como informacao complementar.
+### Visao geral
 
-Alem disso, o tracking history (historico de rastreamento) no mapa do painel de detalhes precisa ser verificado e garantido.
+Criar dois ambientes isolados:
+- **Producao** (branch `main`) -- o que ja esta rodando hoje
+- **Teste** (branch `develop`) -- para desenvolvimento e validacao
 
----
-
-### Mudancas planejadas
-
-#### 1. Lista de entregas (colunas Ativas/Finalizadas) -- foco na carga
-- Reorganizar o `EntregaListItem` para destacar a **carga** como informacao principal:
-  - **Linha 1**: Codigo da carga (ex: `CRG-2026-0042`) + badge de status
-  - **Linha 2**: Rota (Cidade Origem -> Cidade Destino)
-  - **Linha 3**: Remetente / Destinatario
-  - **Linha 4**: Descricao da carga + peso
-  - **Rodape**: Avatar pequeno do motorista com nome (como info secundaria), valor do frete
-- O avatar do motorista passa de destaque principal para um icone menor no rodape do card
-
-#### 2. Painel de detalhes -- garantir tracking history
-- Verificar que o `DetailPanelLeafletMap` esta recebendo `entregaId` corretamente (ja recebe, mas garantir que o fluxo `entrega -> viagem_entregas -> tracking_historico` funcione)
-- Adicionar destaque visual ao codigo da **carga mae** no header do painel (ex: badge maior com "CRG-2026-XXXX" + descricao)
-- Reorganizar a hierarquia: Carga primeiro, motorista depois
-
-#### 3. Visualizacao Geral em Mapa -- agrupar por Carga
-- Trocar o agrupamento do painel lateral de **"Motoristas"** para **"Cargas"**
-- Cada grupo sera uma carga (codigo + descricao + rota)
-- Dentro de cada carga, listar as entregas associadas com status
-- Manter foto do motorista como info secundaria dentro de cada entrega
-- O titulo do painel muda de "Motoristas (N)" para "Cargas (N)"
-- A busca filtra por codigo da carga, cidade, remetente/destinatario
+Usando Supabase Branching (plano Pro) integrado ao GitHub.
 
 ---
 
-### Detalhes tecnicos
+### Passo a passo
 
-#### `EntregaListItem` (linhas 107-183 de GestaoCargas.tsx)
-- Trocar a hierarquia visual: Package icon + codigo da carga como titulo
-- Motorista passa para uma linha menor com avatar 6x6 (em vez de 9x9)
-- Manter todos os dados, apenas reordenar prioridade visual
+#### Etapa 1: Habilitar Supabase Branching (no Dashboard do Supabase)
 
-#### `GestaoMapDialogContent` (linhas 591-818 de GestaoCargas.tsx)
-- Refatorar `motoristaGroups` para `cargaGroups`: agrupar entregas por `carga.id`
-- Cada grupo mostra: codigo da carga, rota, descricao, e lista de entregas
-- Motorista aparece como sub-info dentro de cada entrega no grupo
-- Adaptar `GestaoLeafletMap` props se necessario para o novo agrupamento
+1. Acesse **Supabase Dashboard > Project Settings > Branching**
+2. Clique em **Enable Branching**
+3. O Supabase vai pedir para conectar ao repositorio GitHub do projeto (se ainda nao estiver conectado)
+4. Autorize a integracao -- o Supabase precisa de acesso ao repo para detectar branches e PRs
 
-#### `DetailPanel` (linhas 196-588 de GestaoCargas.tsx)
-- Mover a secao da carga (descricao, peso, tipo) para logo abaixo do header, antes do mapa
-- Garantir que `entregaId` e passado ao `DetailPanelLeafletMap` (ja e feito na linha 311)
-- O tracking history depende de existir um registro em `viagem_entregas` -- isso e esperado e correto
+> **Importante**: Ao habilitar, o Supabase passa a criar automaticamente uma instancia preview (banco isolado) para cada branch/PR no GitHub
 
-#### Arquivos modificados
-- `src/pages/portals/embarcador/GestaoCargas.tsx` (principal -- EntregaListItem, DetailPanel, GestaoMapDialogContent)
-- `src/components/maps/GestaoLeafletMap.tsx` (ajustar props se o agrupamento mudar de motorista para carga)
+#### Etapa 2: Criar a branch `develop` no GitHub
+
+1. No GitHub, crie a branch `develop` a partir da `main`
+2. Assim que a branch existir e o Branching estiver habilitado, o Supabase cria automaticamente um **Preview Branch** com:
+   - Banco de dados isolado (copia do schema, sem dados de producao)
+   - Segredos herdados da producao
+   - URL propria para testes
+
+#### Etapa 3: Configurar o Lovable para trabalhar com a branch `develop`
+
+1. No Lovable, va em **Account Settings > Labs** e ative o **GitHub Branch Switching**
+2. Depois, no projeto, troque para a branch `develop`
+3. A partir dai, todas as alteracoes feitas no Lovable vao para a branch `develop` no GitHub
+4. O Supabase Preview Branch sera usado automaticamente (as migrations rodam contra o banco de teste)
+
+#### Etapa 4: Fluxo de trabalho
+
+```text
+Desenvolvimento (branch develop)
+        |
+        | -- push / alteracoes no Lovable
+        |
+        v
+  Supabase Preview Branch (banco de teste)
+        |
+        | -- quando pronto: abrir PR develop -> main
+        |
+        v
+  Merge na main --> Producao (banco principal)
+```
+
+- **Develop**: toda experimentacao e desenvolvimento acontece aqui
+- **Main**: so recebe codigo validado via merge/PR
+- Os dados de producao nunca sao afetados pelo ambiente de teste
+
+---
+
+### O que eu NAO posso fazer por voce (precisa ser feito manualmente)
+
+| Acao | Onde fazer |
+|------|-----------|
+| Habilitar Branching | Supabase Dashboard > Settings > Branching |
+| Conectar repo ao Supabase Branching | Supabase Dashboard (autorizacao GitHub) |
+| Criar branch `develop` | GitHub |
+| Ativar Branch Switching no Lovable | Account Settings > Labs |
+
+### O que eu POSSO fazer depois
+
+- Ajustar variaveis de ambiente se necessario
+- Criar migrations que rodem nos dois ambientes
+- Adaptar codigo para detectar ambiente (teste vs producao) se precisar de comportamento diferente
+
+---
+
+### Observacoes importantes
+
+- **Dados NAO sao sincronizados** entre ambientes -- o banco de teste comeca vazio (apenas schema)
+- **Migrations sao compartilhadas** -- ao fazer merge da `develop` na `main`, as migrations rodam na producao
+- Se precisar de dados de teste, sera necessario criar seeds ou inserir manualmente no banco preview
+- O Supabase Branching cobra pelo tempo de uso das instancias preview (incluso no Pro com limites)
 
