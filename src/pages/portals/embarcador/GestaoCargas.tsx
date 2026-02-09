@@ -757,11 +757,11 @@ export default function GestaoCargas() {
             className={`h-6 px-2 gap-1 ${hasMissingCritical ? 'text-amber-600' : 'text-green-600'}`}
             onClick={(e) => {
               e.stopPropagation();
-              setSelectedEntregaForDetails({ entrega, carga });
+              setSelectedEntregaForDetails({ entrega: { ...entrega, manifesto_url: manifestoUrl || entrega.manifesto_url }, carga });
             }}
           >
             <FileText className="w-3 h-3" />
-            {totalDocs}
+            <span className="text-xs">{totalDocs}/4</span>
             {hasMissingCritical && <AlertTriangle className="w-3 h-3" />}
           </Button>
         </TableCell>
