@@ -9,7 +9,7 @@ import { DateRangePicker, getDefaultDateRange } from '@/components/relatorios/Da
 
 export default function Relatorios() {
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('6_months');
+  const [dateRange, setDateRange] = useState(getDefaultDateRange);
 
   // Operational data
   const [operationalData, setOperationalData] = useState({
