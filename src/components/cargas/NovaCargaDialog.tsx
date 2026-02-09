@@ -59,6 +59,15 @@ const tipoCargaOptions: { value: TipoCarga; label: string }[] = [
   { value: 'container', label: 'Container' },
 ];
 
+type TipoPrecificacao = 'por_tonelada' | 'por_m3' | 'fixo' | 'por_km';
+
+const tipoPrecificacaoOptions: { value: TipoPrecificacao; label: string; suffix: string }[] = [
+  { value: 'por_tonelada', label: 'Por Tonelada', suffix: '/ton' },
+  { value: 'por_m3', label: 'Por m³', suffix: '/m³' },
+  { value: 'fixo', label: 'Fixo', suffix: '' },
+  { value: 'por_km', label: 'Por KM', suffix: '/km' },
+];
+
 const formSchema = z.object({
   // Dados da carga
   descricao: z.string().min(5, 'Descrição deve ter no mínimo 5 caracteres'),
@@ -67,7 +76,11 @@ const formSchema = z.object({
   volume_m3: z.coerce.number().optional(),
   quantidade_paletes: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
-  valor_frete_tonelada: z.coerce.number().min(0),
+  tipo_precificacao: z.enum(['por_tonelada', 'por_m3', 'fixo', 'por_km'] as const).default('por_tonelada'),
+  valor_frete_tonelada: z.coerce.number().optional(),
+  valor_frete_m3: z.coerce.number().optional(),
+  valor_frete_fixo: z.coerce.number().optional(),
+  valor_frete_km: z.coerce.number().optional(),
   permite_fracionado: z.boolean().default(true),
 
   // Características especiais
