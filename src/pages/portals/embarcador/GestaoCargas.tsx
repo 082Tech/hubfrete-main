@@ -340,8 +340,7 @@ export default function GestaoCargas() {
 
       if (error) throw error;
       
-      // Filter to only include cargas that have at least one active entrega
-      return (data || [])
+      const rawCargas = (data || [])
         .map(item => ({
           ...item,
           entregas: Array.isArray(item.entregas) 
@@ -349,6 +348,32 @@ export default function GestaoCargas() {
             : []
         }))
         .filter(item => item.entregas.length > 0) as CargaCompleta[];
+
+      // Fetch manifesto from viagem level for each entrega
+      const allEntregaIds = rawCargas.flatMap(c => c.entregas.map(e => e.id));
+      if (allEntregaIds.length > 0) {
+        const { data: veLinks } = await supabase
+          .from('viagem_entregas')
+          .select('entrega_id, viagem:viagens(manifesto_url)')
+          .in('entrega_id', allEntregaIds);
+
+        if (veLinks) {
+          const manifestoMap: Record<string, string | null> = {};
+          veLinks.forEach((link: any) => {
+            if (link.viagem?.manifesto_url) {
+              manifestoMap[link.entrega_id] = link.viagem.manifesto_url;
+            }
+          });
+          // Inject viagem_manifesto_url into each entrega
+          rawCargas.forEach(c => {
+            c.entregas.forEach(e => {
+              (e as any).viagem_manifesto_url = manifestoMap[e.id] || null;
+            });
+          });
+        }
+      }
+
+      return rawCargas;
     },
     enabled: !!filialAtiva?.id,
     refetchInterval: 60000, // Refresh every 1 minute
