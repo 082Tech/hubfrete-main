@@ -911,6 +911,15 @@ export default function GestaoCargas() {
             showEmbarcador={false}
             showDestinatario
           />
+          <Button
+            variant="default"
+            size="sm"
+            className="gap-2"
+            onClick={() => setGestaoDialogOpen(true)}
+          >
+            <Map className="w-4 h-4" />
+            Visualização Geral em Mapa
+          </Button>
         </div>
       </div>
 
