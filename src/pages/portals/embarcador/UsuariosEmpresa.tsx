@@ -50,7 +50,7 @@ import { EditUserDialog } from '@/components/users/EditUserDialog';
 import { ManageInvitesCard } from '@/components/users/ManageInvitesCard';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
 
 type UserRole = 'ADMIN' | 'OPERADOR';
 
