@@ -657,13 +657,18 @@ export default function GestaoCargas() {
     const StatusIcon = statusConfig?.icon || Package;
     const isSelected = selectedEntregaId === entrega.id;
     
-    // Document counts
+    // Document counts - use viagem manifesto
     const hasCte = !!entrega.cte_url;
-    const hasManifesto = !!entrega.manifesto_url;
+    const manifestoUrl = entrega.viagem_manifesto_url || entrega.manifesto_url;
+    const hasManifesto = !!manifestoUrl;
     const hasCanhoto = !!entrega.canhoto_url;
     const nfsCount = entrega.notas_fiscais_urls?.length || 0;
-    const totalDocs = (hasCte ? 1 : 0) + nfsCount + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
-    const hasMissingCritical = !hasCte || !hasManifesto || !hasCanhoto || nfsCount === 0;
+    const hasNf = nfsCount > 0;
+    const totalDocs = (hasCte ? 1 : 0) + (hasNf ? 1 : 0) + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
+    const hasMissingCritical = !hasCte || !hasManifesto || !hasCanhoto || !hasNf;
+    
+    // NF-e alert: blocks "Saiu para Entrega"
+    const nfePending = !hasNf && status === 'aguardando';
 
     return (
       <TableRow 
