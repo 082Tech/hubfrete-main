@@ -118,7 +118,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
   // Additional state for new fields
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
-  const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
   const [pesoMinimoFracionado, setPesoMinimoFracionado] = useState<number | null>(null);
 
   // Vehicle and body type requirements - start empty (deselected)
