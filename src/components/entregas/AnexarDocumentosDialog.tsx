@@ -16,7 +16,6 @@ interface AnexarDocumentosDialogProps {
     cte_url?: string | null;
     numero_cte?: string | null;
     notas_fiscais_urls?: string[] | null;
-    manifesto_url?: string | null;
     canhoto_url?: string | null;
     carga?: {
       codigo?: string;
