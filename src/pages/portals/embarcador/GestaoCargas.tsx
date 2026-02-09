@@ -121,45 +121,64 @@ function EntregaListItem({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social || 'Remetente';
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário';
 
-  // NF-e alert
   const hasNf = (entrega.notas_fiscais_urls?.length || 0) > 0;
   const nfePending = !hasNf && entrega.status === 'aguardando';
 
   return (
     <div
-      className={`flex items-start gap-3 bg-card px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
+      className={`bg-card px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
       onClick={onClick}
     >
-      <Avatar className="h-9 w-9 shrink-0">
-        {entrega.motorista?.foto_url && <AvatarImage src={entrega.motorista.foto_url} />}
-        <AvatarFallback className="bg-muted text-muted-foreground text-sm">
-          {entrega.motorista?.nome_completo?.[0] || <Truck className="w-4 h-4" />}
-        </AvatarFallback>
-      </Avatar>
-
-      <div className="flex-1 min-w-0 space-y-1">
-        <span className="font-medium text-sm truncate block">
-          {entrega.motorista?.nome_completo || 'Sem motorista'}
-        </span>
-        <div className="flex items-center gap-1 text-sm font-semibold">
-          <span className="truncate">{entrega.carga.endereco_origem?.cidade || 'N/A'}</span>
-          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          <span className="truncate">{entrega.carga.endereco_destino?.cidade || 'N/A'}</span>
+      {/* Linha 1: Código da carga + badge de status */}
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
+          <Package className="w-4 h-4 text-primary shrink-0" />
+          <span className="font-bold text-sm font-mono">{entrega.carga.codigo}</span>
         </div>
-        <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
-          <span className="flex items-center gap-1 truncate max-w-[120px]" title={remetenteNome}>
-            <Upload className="w-3 h-3 shrink-0" />
-            {remetenteNome}
-          </span>
-          <span className="flex items-center gap-1 truncate max-w-[120px]" title={destinatarioNome}>
-            <Download className="w-3 h-3 shrink-0" />
-            {destinatarioNome}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground">{tempoDecorrido}</span>
+          <Badge className={`text-[10px] ${statusInfo.color}`}>{statusInfo.label}</Badge>
+        </div>
+      </div>
+
+      {/* Linha 2: Rota */}
+      <div className="flex items-center gap-1 text-sm mb-1">
+        <span className="truncate font-medium">{entrega.carga.endereco_origem?.cidade || 'N/A'}</span>
+        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        <span className="truncate font-medium">{entrega.carga.endereco_destino?.cidade || 'N/A'}</span>
+      </div>
+
+      {/* Linha 3: Remetente / Destinatário */}
+      <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2 mb-1">
+        <span className="flex items-center gap-1 truncate max-w-[120px]" title={remetenteNome}>
+          <Upload className="w-3 h-3 shrink-0" />
+          {remetenteNome}
+        </span>
+        <span className="flex items-center gap-1 truncate max-w-[120px]" title={destinatarioNome}>
+          <Download className="w-3 h-3 shrink-0" />
+          {destinatarioNome}
+        </span>
+      </div>
+
+      {/* Linha 4: Descrição + peso */}
+      <p className="text-xs text-muted-foreground truncate mb-1.5">
+        {entrega.carga.descricao} • {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+      </p>
+
+      {/* Rodapé: Motorista + frete + alerta NF-e */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Avatar className="h-5 w-5">
+            {entrega.motorista?.foto_url && <AvatarImage src={entrega.motorista.foto_url} />}
+            <AvatarFallback className="bg-muted text-muted-foreground text-[8px]">
+              {entrega.motorista?.nome_completo?.[0] || <Truck className="w-3 h-3" />}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-[11px] text-muted-foreground truncate max-w-[100px]">
+            {entrega.motorista?.nome_completo || 'Sem motorista'}
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <Badge variant="outline" className="font-mono text-[10px] px-1.5">
-            #{entrega.codigo || entrega.id.slice(0, 6)}
-          </Badge>
           {entrega.valor_frete && (
             <span className="text-primary font-semibold">
               R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -172,11 +191,6 @@ function EntregaListItem({
             </Badge>
           )}
         </div>
-      </div>
-
-      <div className="text-right shrink-0">
-        <p className="text-xs text-muted-foreground mb-1">{tempoDecorrido}</p>
-        <Badge className={`text-[10px] ${statusInfo.color}`}>{statusInfo.label}</Badge>
       </div>
     </div>
   );
