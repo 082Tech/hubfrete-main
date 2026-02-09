@@ -50,7 +50,7 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
   // Refs
   const cteInputRef = useRef<HTMLInputElement>(null);
   const nfInputRef = useRef<HTMLInputElement>(null);
-  const manifestoInputRef = useRef<HTMLInputElement>(null);
+  const canhotoInputRef = useRef<HTMLInputElement>(null);
   const canhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Reset state when dialog opens with new entrega
