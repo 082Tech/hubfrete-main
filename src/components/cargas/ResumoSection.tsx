@@ -441,16 +441,45 @@ export function ResumoSection({
                 R$ {cargaData.valor_mercadoria.toLocaleString('pt-BR')}
               </Badge>
             )}
-            {cargaData.valor_frete_tonelada && (
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                Frete: R$ {cargaData.valor_frete_tonelada.toLocaleString('pt-BR')}/ton
-              </Badge>
-            )}
-            {cargaData.valor_frete_tonelada && cargaData.peso_kg > 0 && (
-              <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20">
-                Total: R$ {((cargaData.peso_kg / 1000) * cargaData.valor_frete_tonelada).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </Badge>
-            )}
+            {(() => {
+              const tp = cargaData.tipo_precificacao || 'por_tonelada';
+              const labels: Record<string, string> = {
+                por_tonelada: '/ton',
+                por_m3: '/m³',
+                fixo: ' (fixo)',
+                por_km: '/km',
+              };
+              const values: Record<string, number | undefined> = {
+                por_tonelada: cargaData.valor_frete_tonelada,
+                por_m3: cargaData.valor_frete_m3,
+                fixo: cargaData.valor_frete_fixo,
+                por_km: cargaData.valor_frete_km,
+              };
+              const val = values[tp];
+              if (!val) return null;
+              return (
+                <>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                    Frete: R$ {val.toLocaleString('pt-BR')}{labels[tp]}
+                  </Badge>
+                  {tp === 'por_tonelada' && cargaData.peso_kg > 0 && (
+                    <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20">
+                      Total: R$ {((cargaData.peso_kg / 1000) * val).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </Badge>
+                  )}
+                  {tp === 'por_m3' && (cargaData.volume_m3 ?? 0) > 0 && (
+                    <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20">
+                      Total: R$ {((cargaData.volume_m3 ?? 0) * val).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </Badge>
+                  )}
+                  {tp === 'fixo' && (
+                    <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20">
+                      Total: R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </Badge>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* Special characteristics */}
