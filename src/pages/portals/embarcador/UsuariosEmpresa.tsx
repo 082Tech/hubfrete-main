@@ -86,10 +86,6 @@ export default function UsuariosEmpresa() {
   const { viewMode, setViewMode } = useViewModePreference();
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { ref: contentRef, height: contentHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    bottomOffset: 32,
-    minHeight: 300,
-  });
 
   // Fetch usuarios from the company
   const { data: usuarios = [], isLoading: loadingUsuarios, refetch: refetchUsuarios } = useQuery({
