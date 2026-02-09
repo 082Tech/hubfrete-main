@@ -1,1608 +1,727 @@
-import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
-import textAbbr from '@/utils/textAbbr';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Search,
-  Package,
-  MapPin,
-  Calendar,
-  MoreHorizontal,
-  Eye,
-  Loader2,
-  Filter,
-  Truck,
-  CheckCircle,
-  AlertCircle,
-  User,
-  RefreshCw,
-  X,
-  Building2,
-  WifiOff,
-  Radio,
-  ChevronDown,
-  ChevronRight,
-  FileText,
-  DollarSign,
-  MessageCircle,
-  Clock,
-  ArrowRight,
-  AlertTriangle,
-  XCircle,
-  PanelLeftClose,
-  PanelLeft,
-  Route,
-} from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
-import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
-import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
-import { ChatSheet } from '@/components/mensagens/ChatSheet';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-// Sidebar state is read from localStorage (same key as PortalLayoutWrapper)
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { format, formatDistanceToNow, startOfDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import type { Database } from '@/integrations/supabase/types';
+import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Package,
+  Truck,
+  MapPin,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  ArrowRight,
+  MessageCircle,
+  RefreshCw,
+  History,
+  Share,
+  Printer,
+  X,
+  ArrowUpRight,
+  FileText,
+  Building2,
+  Calendar,
+  DollarSign,
+  AlertTriangle,
+  HelpCircle,
+  Upload,
+  Download,
+  Weight,
+} from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
+import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
+import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
+import { ChatSheet } from '@/components/mensagens/ChatSheet';
 
-// Lazy load the OpenStreetMap component
-const EntregasMap = lazy(() => import('@/components/maps/EntregasMap'));
+// Status config - matching transportadora portal
+const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800', icon: Clock },
+  saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800', icon: Truck },
+  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin },
+  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', icon: CheckCircle },
+  cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle },
+};
 
-type StatusCarga = Database['public']['Enums']['status_carga'];
-type StatusEntrega = Database['public']['Enums']['status_entrega'];
-
-interface EntregaData {
+interface Entrega {
   id: string;
-  codigo: string | null;
-  status: StatusEntrega | null;
+  codigo: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
   motorista_id: string | null;
-  coletado_em: string | null;
-  entregue_em: string | null;
-  updated_at: string | null;
   peso_alocado_kg: number | null;
   valor_frete: number | null;
+  coletado_em: string | null;
+  entregue_em: string | null;
   cte_url: string | null;
   numero_cte: string | null;
   notas_fiscais_urls: string[] | null;
-  manifesto_url: string | null;
   canhoto_url: string | null;
-  // Manifesto fetched from viagem level
-  viagem_manifesto_url?: string | null;
-  motoristas: {
+  motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
+  veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
+  carga: {
     id: string;
-    nome_completo: string;
-    telefone: string | null;
-    email: string | null;
-    foto_url: string | null;
-  } | null;
-  veiculos: {
-    id: string;
-    placa: string;
-    marca: string | null;
-    modelo: string | null;
-    tipo: string | null;
-  } | null;
+    codigo: string;
+    descricao: string;
+    peso_kg: number;
+    tipo: string;
+    remetente_razao_social: string | null;
+    remetente_nome_fantasia: string | null;
+    destinatario_razao_social: string | null;
+    destinatario_nome_fantasia: string | null;
+    data_coleta_de: string | null;
+    data_entrega_limite: string | null;
+    endereco_origem?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
+    endereco_destino?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
+    empresa?: { id: number; nome: string | null } | null;
+  };
 }
 
-interface EnderecoData {
-  id: string;
-  tipo: string;
-  cidade: string;
-  estado: string;
-  logradouro: string;
-  numero: string | null;
-  bairro: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  contato_nome: string | null;
-  contato_telefone: string | null;
-}
-
-interface CargaCompleta {
-  id: string;
-  codigo: string;
-  descricao: string;
-  tipo: string;
-  peso_kg: number;
-  peso_disponivel_kg: number | null;
-  volume_m3: number | null;
-  valor_mercadoria: number | null;
-  valor_frete_tonelada: number | null;
-  status: StatusCarga | null;
-  data_coleta_de: string | null;
-  data_coleta_ate: string | null;
-  data_entrega_limite: string | null;
-  created_at: string | null;
-  necessidades_especiais: string[] | null;
-  regras_carregamento: string | null;
-  nota_fiscal_url: string | null;
-  carga_fragil: boolean | null;
-  carga_perigosa: boolean | null;
-  carga_viva: boolean | null;
-  empilhavel: boolean | null;
-  requer_refrigeracao: boolean | null;
-  temperatura_min: number | null;
-  temperatura_max: number | null;
-  numero_onu: string | null;
-  destinatario_razao_social: string | null;
-  destinatario_nome_fantasia: string | null;
-  destinatario_cnpj: string | null;
-  remetente_razao_social: string | null;
-  remetente_nome_fantasia: string | null;
-  remetente_cnpj: string | null;
-  endereco_origem: EnderecoData | null;
-  endereco_destino: EnderecoData | null;
-  filiais: {
-    nome: string | null;
-    cidade: string | null;
-    estado: string | null;
-    endereco: string | null;
-    telefone: string | null;
-    responsavel: string | null;
-  } | null;
-  entregas: EntregaData[];
-}
-
-// Status configuration for display - matching transportadora portal
-const statusEntregaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
-  'aguardando': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando', icon: Clock },
-  'saiu_para_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Saiu para Coleta', icon: Package },
-  'saiu_para_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Saiu para Entrega', icon: Truck },
-  'entregue': { color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', label: 'Entregue', icon: CheckCircle },
-  'problema': { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Problema', icon: AlertCircle },
-  'cancelada': { color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', label: 'Cancelada', icon: XCircle },
-};
-
-// Status filters for active deliveries
-const allStatusFilters = [
-  { value: 'aguardando', label: 'Aguardando' },
-  { value: 'saiu_para_coleta', label: 'Saiu para Coleta' },
-  { value: 'saiu_para_entrega', label: 'Saiu para Entrega' },
-  { value: 'problema', label: 'Problema' },
-];
-
-// Statuses that should not appear in delivery management (finalized)
-const activeStatuses: StatusEntrega[] = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega', 'problema'];
-
-export default function GestaoCargas() {
-  const navigate = useNavigate();
-  const { filialAtiva, switchingFilial, empresa } = useUserContext();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
-  const [detailsCargaId, setDetailsCargaId] = useState<string | null>(null);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [selectedEntregaForDetails, setSelectedEntregaForDetails] = useState<{ entrega: EntregaData; carga: CargaCompleta } | null>(null);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
-  const [tableExpanded, setTableExpanded] = useState(true);
-  
-  // Chat sheet state
-  const [chatSheetOpen, setChatSheetOpen] = useState(false);
-  const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
-
-  // Monitor internet connection status
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // Fetch cargas that have active entregas, grouped by carga
-  const { data: cargas = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['gestao_entregas_embarcador', filialAtiva?.id],
-    queryFn: async () => {
-      if (!filialAtiva?.id) return [];
-
-      // Fetch cargas with their active entregas
-      const { data, error } = await supabase
-        .from('cargas')
-        .select(`
-          id,
-          codigo,
-          descricao,
-          tipo,
-          peso_kg,
-          peso_disponivel_kg,
-          volume_m3,
-          valor_mercadoria,
-          valor_frete_tonelada,
-          status,
-          data_coleta_de,
-          data_coleta_ate,
-          data_entrega_limite,
-          created_at,
-          necessidades_especiais,
-          regras_carregamento,
-          nota_fiscal_url,
-          carga_fragil,
-          carga_perigosa,
-          carga_viva,
-          empilhavel,
-          requer_refrigeracao,
-          temperatura_min,
-          temperatura_max,
-          numero_onu,
-          destinatario_razao_social,
-          destinatario_nome_fantasia,
-          destinatario_cnpj,
-          remetente_razao_social,
-          remetente_nome_fantasia,
-          remetente_cnpj,
-          filiais (
-            nome,
-            cidade,
-            estado,
-            endereco,
-            telefone,
-            responsavel
-          ),
-          endereco_origem:enderecos_carga!cargas_endereco_origem_fkey (
-            id,
-            tipo,
-            cidade,
-            estado,
-            logradouro,
-            numero,
-            bairro,
-            latitude,
-            longitude,
-            contato_nome,
-            contato_telefone
-          ),
-          endereco_destino:enderecos_carga!cargas_endereco_destino_fkey (
-            id,
-            tipo,
-            cidade,
-            estado,
-            logradouro,
-            numero,
-            bairro,
-            latitude,
-            longitude,
-            contato_nome,
-            contato_telefone
-          ),
-          entregas!inner (
-            id,
-            codigo,
-            status,
-            motorista_id,
-            coletado_em,
-            entregue_em,
-            updated_at,
-            peso_alocado_kg,
-            valor_frete,
-            cte_url,
-            numero_cte,
-            notas_fiscais_urls,
-            manifesto_url,
-            canhoto_url,
-            motoristas (
-              id,
-              nome_completo,
-              telefone,
-              email,
-              foto_url
-            ),
-            veiculos (
-              id,
-              placa,
-              marca,
-              modelo,
-              tipo
-            )
-          )
-        `)
-        .eq('filial_id', filialAtiva.id)
-        .in('entregas.status', activeStatuses)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      const rawCargas = (data || [])
-        .map(item => ({
-          ...item,
-          entregas: Array.isArray(item.entregas) 
-            ? item.entregas.filter((e: any) => activeStatuses.includes(e.status))
-            : []
-        }))
-        .filter(item => item.entregas.length > 0) as CargaCompleta[];
-
-      // Fetch manifesto from viagem level for each entrega
-      const allEntregaIds = rawCargas.flatMap(c => c.entregas.map(e => e.id));
-      if (allEntregaIds.length > 0) {
-        const { data: veLinks } = await supabase
-          .from('viagem_entregas')
-          .select('entrega_id, viagem:viagens(manifesto_url)')
-          .in('entrega_id', allEntregaIds);
-
-        if (veLinks) {
-          const manifestoMap: Record<string, string | null> = {};
-          veLinks.forEach((link: any) => {
-            if (link.viagem?.manifesto_url) {
-              manifestoMap[link.entrega_id] = link.viagem.manifesto_url;
-            }
-          });
-          // Inject viagem_manifesto_url into each entrega
-          rawCargas.forEach(c => {
-            c.entregas.forEach(e => {
-              (e as any).viagem_manifesto_url = manifestoMap[e.id] || null;
-            });
-          });
-        }
-      }
-
-      return rawCargas;
-    },
-    enabled: !!filialAtiva?.id,
-    refetchInterval: 60000, // Refresh every 1 minute
+// --- List item for columns ---
+function EntregaListItem({
+  entrega,
+  isSelected,
+  onClick,
+}: {
+  entrega: Entrega;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  const statusInfo = statusConfig[entrega.status] || statusConfig.aguardando;
+  const tempoDecorrido = formatDistanceToNow(new Date(entrega.updated_at || entrega.created_at), {
+    addSuffix: false,
+    locale: ptBR,
   });
+  const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social || 'Remetente';
+  const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário';
 
-  // Fetch driver locations from 'locations' table using motorista_id
-  const motoristaIds = useMemo(() => {
-    const ids = new Set<string>();
-    cargas.forEach(c => {
-      c.entregas.forEach(e => {
-        if (e.motoristas?.id) {
-          ids.add(e.motoristas.id);
-        }
-      });
-    });
-    return Array.from(ids);
-  }, [cargas]);
+  // NF-e alert
+  const hasNf = (entrega.notas_fiscais_urls?.length || 0) > 0;
+  const nfePending = !hasNf && entrega.status === 'aguardando';
 
-  // Real-time driver locations
-  const { localizacaoMap, isConnected: isRealtimeConnected } = useRealtimeLocalizacoes({
-    motoristaIds,
-    enabled: motoristaIds.length > 0,
-  });
+  return (
+    <div
+      className={`flex items-start gap-3 bg-card px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
+      onClick={onClick}
+    >
+      <Avatar className="h-9 w-9 shrink-0">
+        {entrega.motorista?.foto_url && <AvatarImage src={entrega.motorista.foto_url} />}
+        <AvatarFallback className="bg-muted text-muted-foreground text-sm">
+          {entrega.motorista?.nome_completo?.[0] || <Truck className="w-4 h-4" />}
+        </AvatarFallback>
+      </Avatar>
 
-  // Filter cargas based on search and status filters
-  const filteredCargas = useMemo(() => {
-    return cargas.map(carga => {
-      // Filter entregas within each carga
-      const filteredEntregas = carga.entregas.filter(entrega => {
-        const matchesStatus = selectedStatuses.length === 0 ||
-          selectedStatuses.includes(entrega.status || '');
-        return matchesStatus;
-      });
-
-      return { ...carga, entregas: filteredEntregas };
-    }).filter(carga => {
-      // Filter carga by search term
-      const matchesSearch =
-        carga.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        carga.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        carga.entregas.some(e => 
-          e.motoristas?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          e.veiculos?.placa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          e.numero_cte?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-
-      // Only include cargas that still have matching entregas
-      return matchesSearch && carga.entregas.length > 0;
-    });
-  }, [cargas, searchTerm, selectedStatuses]);
-
-  // Calculate stats - matching transportadora portal colors
-  const stats = useMemo(() => {
-    let aguardando = 0;
-    let saiuParaColeta = 0;
-    let saiuParaEntrega = 0;
-    let problema = 0;
-    let totalEntregas = 0;
-    let totalFrete = 0;
-
-    cargas.forEach(c => {
-      c.entregas.forEach(e => {
-        totalEntregas++;
-        totalFrete += e.valor_frete || 0;
-        if (e.status === 'aguardando') {
-          aguardando++;
-        } else if (e.status === 'saiu_para_coleta') {
-          saiuParaColeta++;
-        } else if (e.status === 'saiu_para_entrega') {
-          saiuParaEntrega++;
-        } else if (e.status === 'problema') {
-          problema++;
-        }
-      });
-    });
-
-    return {
-      total: totalEntregas,
-      cargas: cargas.length,
-      aguardando,
-      saiu_para_coleta: saiuParaColeta,
-      saiu_para_entrega: saiuParaEntrega,
-      problema,
-      totalFrete,
-    };
-  }, [cargas]);
-
-  // Map data for entregas with location - using entrega.id as selection key
-  const mapData = useMemo(() => {
-    const data: any[] = [];
-    
-    filteredCargas.forEach(c => {
-      c.entregas.forEach(e => {
-        const origem = c.endereco_origem;
-        const destino = c.endereco_destino;
-        const motoristaId = e.motoristas?.id;
-        const localizacao = motoristaId ? localizacaoMap.get(motoristaId) : null;
-
-        const hasLocation = localizacao?.latitude && localizacao?.longitude;
-        const hasRoute = (origem?.latitude && origem?.longitude) || (destino?.latitude && destino?.longitude);
-
-        if (!hasLocation && !hasRoute) return;
-
-        data.push({
-          id: e.id,
-          entregaId: e.id,
-          cargaId: c.id,
-          entregaCodigo: e.codigo,
-          cargaCodigo: c.codigo,
-          latitude: localizacao?.latitude || null,
-          longitude: localizacao?.longitude || null,
-          status: e.status || null,
-          codigo: c.codigo,
-          descricao: c.descricao,
-          motorista: e.motoristas?.nome_completo || null,
-          motoristaFotoUrl: e.motoristas?.foto_url || null,
-          motoristaOnline: localizacao?.status ?? null,
-          placa: e.veiculos?.placa || null,
-          veiculoTipo: e.veiculos?.tipo || null,
-          pesoAlocado: e.peso_alocado_kg || null,
-          valorFrete: e.valor_frete || null,
-          origem: origem ? `${origem.cidade}, ${origem.estado}` : null,
-          destino: destino ? `${destino.cidade}, ${destino.estado}` : null,
-          origemCoords: origem?.latitude && origem?.longitude
-            ? { lat: origem.latitude, lng: origem.longitude }
-            : null,
-          destinoCoords: destino?.latitude && destino?.longitude
-            ? { lat: destino.latitude, lng: destino.longitude }
-            : null,
-          lastLocationUpdate: localizacao?.timestamp ?? null,
-          heading: localizacao?.heading ?? null,
-        });
-      });
-    });
-
-    return data;
-  }, [filteredCargas, localizacaoMap]);
-
-  const handleStatusToggle = (status: string) => {
-    setSelectedStatuses(prev =>
-      prev.includes(status)
-        ? prev.filter(s => s !== status)
-        : [...prev, status]
-    );
-  };
-
-  const clearFilters = () => {
-    setSelectedStatuses([]);
-    setSearchTerm('');
-  };
-
-  const toggleRow = (id: string) => {
-    setExpandedRows(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const getEnderecoData = (carga: CargaCompleta, tipo: 'origem' | 'destino') => {
-    const endereco = tipo === 'origem' ? carga.endereco_origem : carga.endereco_destino;
-    if (!endereco) return { empresa: '-', cidade: '-', enderecoCompleto: '-' };
-    
-    const enderecoCompleto = [
-      endereco.logradouro,
-      endereco.numero,
-      endereco.bairro,
-      `${endereco.cidade}/${endereco.estado}`,
-    ].filter(Boolean).join(', ');
-    
-    let empresa: string;
-    if (tipo === 'origem') {
-      // Use remetente fields for origin
-      empresa = carga.remetente_nome_fantasia || carga.remetente_razao_social || carga.filiais?.nome || endereco.contato_nome || 'Remetente';
-    } else {
-      // Use destinatario fields for destination
-      empresa = carga.destinatario_nome_fantasia || carga.destinatario_razao_social || endereco.contato_nome || 'Destinatário';
-    }
-    
-    return { empresa, cidade: `${endereco.cidade}/${endereco.estado}`, enderecoCompleto };
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
-
-  const formatWeight = (kg: number) => {
-    if (kg >= 1000) return `${(kg / 1000).toFixed(1)}t`;
-    return `${kg.toLocaleString('pt-BR')}kg`;
-  };
-
-  const formatCurrency = (value: number | null) => {
-    if (!value) return '-';
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-  };
-
-  const getTotalFrete = (carga: CargaCompleta) => {
-    return carga.entregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
-  };
-
-  const getTotalPeso = (carga: CargaCompleta) => {
-    return carga.entregas.reduce((acc, e) => acc + (e.peso_alocado_kg || 0), 0);
-  };
-
-  // Filters sidebar content
-  const FiltersContent = () => (
-    <div className="space-y-6">
-      <div>
-        <h4 className="font-medium text-sm text-foreground mb-3">Status da Entrega</h4>
-        <div className="space-y-2">
-          {allStatusFilters.map(status => (
-            <div key={status.value} className="flex items-center space-x-2">
-              <Checkbox
-                id={`filter-${status.value}`}
-                checked={selectedStatuses.includes(status.value)}
-                onCheckedChange={() => handleStatusToggle(status.value)}
-              />
-              <Label htmlFor={`filter-${status.value}`} className="text-sm font-normal cursor-pointer">
-                {status.label}
-              </Label>
-            </div>
-          ))}
+      <div className="flex-1 min-w-0 space-y-1">
+        <span className="font-medium text-sm truncate block">
+          {entrega.motorista?.nome_completo || 'Sem motorista'}
+        </span>
+        <div className="flex items-center gap-1 text-sm font-semibold">
+          <span className="truncate">{entrega.carga.endereco_origem?.cidade || 'N/A'}</span>
+          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <span className="truncate">{entrega.carga.endereco_destino?.cidade || 'N/A'}</span>
+        </div>
+        <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+          <span className="flex items-center gap-1 truncate max-w-[120px]" title={remetenteNome}>
+            <Upload className="w-3 h-3 shrink-0" />
+            {remetenteNome}
+          </span>
+          <span className="flex items-center gap-1 truncate max-w-[120px]" title={destinatarioNome}>
+            <Download className="w-3 h-3 shrink-0" />
+            {destinatarioNome}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <Badge variant="outline" className="font-mono text-[10px] px-1.5">
+            #{entrega.codigo || entrega.id.slice(0, 6)}
+          </Badge>
+          {entrega.valor_frete && (
+            <span className="text-primary font-semibold">
+              R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
+          )}
+          {nfePending && (
+            <Badge variant="outline" className="text-[9px] px-1 py-0 text-amber-600 border-amber-400 gap-0.5">
+              <AlertTriangle className="w-2.5 h-2.5" />
+              NF-e
+            </Badge>
+          )}
         </div>
       </div>
 
-      {selectedStatuses.length > 0 && (
-        <Button variant="outline" size="sm" onClick={clearFilters} className="w-full gap-2">
-          <X className="w-4 h-4" />
-          Limpar filtros
-        </Button>
-      )}
+      <div className="text-right shrink-0">
+        <p className="text-xs text-muted-foreground mb-1">{tempoDecorrido}</p>
+        <Badge className={`text-[10px] ${statusInfo.color}`}>{statusInfo.label}</Badge>
+      </div>
     </div>
   );
+}
 
-  // Live indicator component
-  const LiveIndicator = () => (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-            isOnline 
-              ? 'bg-primary/10 text-primary border border-primary/20' 
-              : 'bg-destructive/10 text-destructive border border-destructive/20'
-          }`}>
-            {isOnline ? (
-              <>
-                <Radio className="w-3 h-3 animate-pulse" />
-                <span>Ao Vivo</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-3 h-3" />
-                <span>Offline</span>
-              </>
-            )}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          {isOnline 
-            ? 'Mapa atualizado em tempo real' 
-            : 'Sem conexão com a internet'}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+// --- Empty column placeholder ---
+function EmptyColumnPlaceholder({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-muted-foreground px-8 py-12 h-full min-h-[200px]">
+      <Package className="w-12 h-12 mb-3 opacity-30" />
+      <p className="text-sm text-center">{message}</p>
+    </div>
   );
+}
 
-  const handleOpenChat = (entrega: EntregaData) => {
-    setChatEntregaId(entrega.id);
-    setChatSheetOpen(true);
-  };
+// --- Detail panel (right side - read-only for embarcador) ---
+function DetailPanel({
+  entrega,
+  onClose,
+  driverLocation,
+}: {
+  entrega: Entrega | null;
+  onClose: () => void;
+  driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
+}) {
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewDocTitle, setPreviewDocTitle] = useState('');
+  const [chatSheetOpen, setChatSheetOpen] = useState(false);
 
-  // Render entrega row for nested subtable
-  const renderEntregaRow = (entrega: EntregaData, carga: CargaCompleta, idx: number) => {
-    const status = entrega.status || 'aguardando';
-    const statusConfig = statusEntregaConfig[status];
-    const StatusIcon = statusConfig?.icon || Package;
-    const isSelected = selectedEntregaId === entrega.id;
-    
-    // Document counts - use viagem manifesto
-    const hasCte = !!entrega.cte_url;
-    const manifestoUrl = entrega.viagem_manifesto_url || entrega.manifesto_url;
-    const hasManifesto = !!manifestoUrl;
-    const hasCanhoto = !!entrega.canhoto_url;
-    const nfsCount = entrega.notas_fiscais_urls?.length || 0;
-    const hasNf = nfsCount > 0;
-    const totalDocs = (hasCte ? 1 : 0) + (hasNf ? 1 : 0) + (hasManifesto ? 1 : 0) + (hasCanhoto ? 1 : 0);
-    const hasMissingCritical = !hasCte || !hasManifesto || !hasCanhoto || !hasNf;
-    
-    // NF-e alert: blocks "Saiu para Entrega"
-    const nfePending = !hasNf && status === 'aguardando';
-
+  if (!entrega) {
     return (
-      <TableRow 
-        key={entrega.id}
-        className={`cursor-pointer hover:bg-muted/50 ${isSelected ? 'bg-primary/10' : ''}`}
-        onClick={() => setSelectedEntregaId(isSelected ? null : entrega.id)}
-      >
-        <TableCell className="py-2.5">
-          <Badge variant="secondary" className="text-xs font-mono whitespace-nowrap">
-            {entrega.codigo || `${carga.codigo}-E${String(idx + 1).padStart(2, '0')}`}
-          </Badge>
-        </TableCell>
-        <TableCell className="py-2.5">
-          {entrega.motoristas ? (
-            <div className="flex items-center gap-2">
-              <Avatar className="h-7 w-7">
-                <AvatarImage src={entrega.motoristas.foto_url || undefined} alt={entrega.motoristas.nome_completo} />
-                <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                  {entrega.motoristas.nome_completo.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-sm font-medium whitespace-nowrap">
-                    {textAbbr(entrega.motoristas.nome_completo, 18)}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{entrega.motoristas.nome_completo}</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">-</span>
-          )}
-        </TableCell>
-        <TableCell className="py-2.5">
-          <div className="flex items-center gap-2">
-            <Truck className="w-3 h-3 text-muted-foreground" />
-            <span className="text-sm font-mono">
-              {entrega.veiculos?.placa || '-'}
-            </span>
-          </div>
-        </TableCell>
-        <TableCell className="text-right py-2.5">
-          <span className="text-sm font-medium">
-            {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
-          </span>
-        </TableCell>
-        <TableCell className="text-right py-2.5">
-          <span className="text-sm font-medium text-green-600">
-            {formatCurrency(entrega.valor_frete)}
-          </span>
-        </TableCell>
-        <TableCell className="py-2.5">
-          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-            {entrega.numero_cte || '-'}
-          </span>
-        </TableCell>
-        <TableCell className="py-2.5">
-          <div className="flex items-center gap-1.5">
-            <Badge className={`${statusConfig?.color || ''} text-xs gap-1`}>
-              <StatusIcon className="w-3 h-3" />
-              {statusConfig?.label || status}
-            </Badge>
-            {nfePending && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="text-[9px] px-1 py-0 text-amber-600 border-amber-400 gap-0.5">
-                    <AlertTriangle className="w-2.5 h-2.5" />
-                    NF-e
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">NF-e pendente — o motorista não pode sair para entrega sem ela</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-        </TableCell>
-        {/* Documentos - Click to view (embarcador = view only) */}
-        <TableCell className="py-2.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-6 px-2 gap-1 ${hasMissingCritical ? 'text-amber-600' : 'text-green-600'}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedEntregaForDetails({ entrega: { ...entrega, manifesto_url: manifestoUrl || entrega.manifesto_url }, carga });
-            }}
-          >
-            <FileText className="w-3 h-3" />
-            <span className="text-xs">{totalDocs}/4</span>
-            {hasMissingCritical && <AlertTriangle className="w-3 h-3" />}
-          </Button>
-        </TableCell>
-        {/* Chat column */}
-        <TableCell className="py-2.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenChat(entrega);
-                }}
-              >
-                <MessageCircle className="w-3.5 h-3.5 text-primary" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Abrir chat</TooltipContent>
-          </Tooltip>
-        </TableCell>
-        {/* Actions column */}
-        <TableCell className="py-2.5">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => e.stopPropagation()}>
-                <MoreHorizontal className="w-3.5 h-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setSelectedEntregaId(entrega.id)}>
-                <Eye className="w-4 h-4 mr-2" />
-                Ver no mapa
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelectedEntregaForDetails({ entrega, carga })}>
-                <FileText className="w-4 h-4 mr-2" />
-                Ver detalhes
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleOpenChat(entrega)}>
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Abrir chat
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
-      </TableRow>
+      <div className="flex items-center justify-center h-full">
+        <EmptyColumnPlaceholder message="Selecione uma entrega para ver os detalhes" />
+      </div>
     );
+  }
+
+  const statusInfo = statusConfig[entrega.status] || statusConfig.aguardando;
+  const StatusIcon = statusInfo.icon;
+
+  const origemCoords = entrega.carga.endereco_origem?.latitude && entrega.carga.endereco_origem?.longitude
+    ? { lat: entrega.carga.endereco_origem.latitude, lng: entrega.carga.endereco_origem.longitude }
+    : null;
+  const destinoCoords = entrega.carga.endereco_destino?.latitude && entrega.carga.endereco_destino?.longitude
+    ? { lat: entrega.carga.endereco_destino.latitude, lng: entrega.carga.endereco_destino.longitude }
+    : null;
+
+  const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
+  const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
+
+  // Docs: 3 obrigatórios (NF-e, CT-e, Canhoto) - sem manifesto
+  const hasCte = !!entrega.cte_url;
+  const hasCanhoto = !!entrega.canhoto_url;
+  const hasNf = (entrega.notas_fiscais_urls?.length || 0) > 0;
+  const docsCount = [hasCte, hasCanhoto, hasNf].filter(Boolean).length;
+  const docsComplete = docsCount === 3;
+
+  // NF-e alert
+  const nfePending = !hasNf && entrega.status === 'aguardando';
+
+  const handleDocClick = (url: string | null, title: string) => {
+    if (url) {
+      setPreviewDocUrl(url);
+      setPreviewDocTitle(title);
+    }
   };
-
-  // Get sidebar state from localStorage (synced with PortalLayoutWrapper)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('hubfrete_sidebar_collapsed') === 'true';
-  });
-
-  // Listen for storage changes to sync sidebar state
-  useEffect(() => {
-    const handleStorageChange = () => {
-      setIsSidebarCollapsed(localStorage.getItem('hubfrete_sidebar_collapsed') === 'true');
-    };
-    
-    // Listen for changes from other components
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also poll for local changes (since storage event doesn't fire for same-tab changes)
-    const interval = setInterval(handleStorageChange, 100);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
 
   return (
-    <div 
-      className="fixed inset-0 overflow-hidden transition-[left] duration-300"
-      style={{ left: isSidebarCollapsed ? '4rem' : '16rem' }}
-    >
-      <TooltipProvider>
-        {/* Fullscreen Map Container */}
-        <div className="absolute inset-0 z-0">
-          <Suspense fallback={
-            <div className="w-full h-full flex items-center justify-center bg-muted/30">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-          }>
-            <EntregasMap
-              entregas={mapData}
-              selectedEntregaId={selectedEntregaId}
-              onSelectEntrega={setSelectedEntregaId}
-              fullHeight
-              hideLegend
-              hideSelectionBadge
-            />
-          </Suspense>
+    <div className="h-full flex flex-col bg-card border-l">
+      {/* Header */}
+      <div className="p-3 border-b">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Entrega Nº</span>
+            <Badge variant="outline" className="font-mono font-bold text-xs px-2 border-primary text-primary">
+              {entrega.codigo || entrega.id.slice(0, 8)}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="icon" className="h-7 w-7"><Share className="w-3.5 h-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7"><ArrowUpRight className="w-3.5 h-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7"><Printer className="w-3.5 h-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}><X className="w-3.5 h-3.5" /></Button>
+          </div>
         </div>
 
-        {/* Loading/Empty States */}
-        {(isLoading || switchingFilial) ? (
-          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-            <Card className="border-border bg-background shadow-lg pointer-events-auto">
-              <CardContent className="p-8">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto" />
-              </CardContent>
-            </Card>
-          </div>
-        ) : filteredCargas.length === 0 && cargas.length === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-            <Card className="border-border bg-background shadow-lg max-w-sm pointer-events-auto">
-              <CardContent className="p-6 text-center">
-                <Truck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <h3 className="font-semibold text-foreground mb-1">Nenhuma entrega encontrada</h3>
-                <p className="text-sm text-muted-foreground">
-                  Publique cargas para começar a receber entregas
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <>
-            {/* Desktop Layout */}
-            <div className="hidden lg:block">
-              {/* Selected Delivery Card - positioned to the left of control panel */}
-              {selectedEntregaId && (() => {
-                const selectedEntrega = mapData.find(e => e.entregaId === selectedEntregaId || e.id === selectedEntregaId);
-                if (!selectedEntrega) return null;
-                const statusConfig = statusEntregaConfig[selectedEntrega.status || 'aguardando'];
-                const StatusIcon = statusConfig?.icon || Package;
-                return (
-                  <div className={`absolute top-4 z-30 transition-all duration-300 ${filtersCollapsed ? 'right-16' : 'right-[22rem]'}`}>
-                    <Card className="w-64 border shadow-xl bg-background">
-                      <CardHeader className="pb-2 pt-3 px-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className={`p-1.5 rounded-md ${statusConfig?.color?.split(' ')[0] || 'bg-muted'}`}>
-                              <StatusIcon className={`w-4 h-4 ${statusConfig?.color?.split(' ')[1] || 'text-muted-foreground'}`} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold">{selectedEntrega.entregaCodigo || 'Entrega'}</p>
-                              <p className="text-[10px] text-muted-foreground">{selectedEntrega.cargaCodigo}</p>
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0"
-                            onClick={() => setSelectedEntregaId(null)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="px-3 pb-3 pt-0 space-y-2">
-                        {/* Status Badge */}
-                        <Badge variant="outline" className={`text-[10px] ${statusConfig?.color || ''}`}>
-                          {statusConfig?.label || selectedEntrega.status}
-                        </Badge>
-                        
-                        {/* Route Info */}
-                        <div className="space-y-1.5">
-                          {selectedEntrega.origem && (
-                            <div className="flex items-center gap-2 text-xs">
-                              <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                              <span className="text-muted-foreground truncate">{selectedEntrega.origem}</span>
-                            </div>
-                          )}
-                          {selectedEntrega.destino && (
-                            <div className="flex items-center gap-2 text-xs">
-                              <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                              <span className="text-muted-foreground truncate">{selectedEntrega.destino}</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Driver & Vehicle */}
-                        {(selectedEntrega.motorista || selectedEntrega.placa) && (
-                          <div className="pt-1.5 border-t flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              {selectedEntrega.motoristaFotoUrl ? (
-                                <AvatarImage src={selectedEntrega.motoristaFotoUrl} />
-                              ) : null}
-                              <AvatarFallback className="text-[10px]">
-                                {selectedEntrega.motorista?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'M'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium truncate">{selectedEntrega.motorista || 'Motorista'}</p>
-                              {selectedEntrega.placa && (
-                                <p className="text-[10px] text-muted-foreground">{selectedEntrega.placa}</p>
-                              )}
-                            </div>
-                            {selectedEntrega.motoristaOnline !== null && (
-                              <div className={`w-2 h-2 rounded-full ${selectedEntrega.motoristaOnline ? 'bg-green-500' : 'bg-red-500'}`} />
-                            )}
-                          </div>
-                        )}
-                        
-                        {/* Weight & Freight */}
-                        {(selectedEntrega.pesoAlocado || selectedEntrega.valorFrete) && (
-                          <div className="grid grid-cols-2 gap-2 pt-1.5 border-t">
-                            {selectedEntrega.pesoAlocado && (
-                              <div>
-                                <p className="text-[10px] text-muted-foreground">Peso</p>
-                                <p className="text-xs font-medium">{(selectedEntrega.pesoAlocado / 1000).toFixed(1)}t</p>
-                              </div>
-                            )}
-                            {selectedEntrega.valorFrete && (
-                              <div>
-                                <p className="text-[10px] text-muted-foreground">Frete</p>
-                                <p className="text-xs font-medium text-green-600">
-                                  {selectedEntrega.valorFrete.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                );
-              })()}
+        <p className="text-xs text-muted-foreground mb-2">
+          {format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })} • Carga {entrega.carga.codigo}
+        </p>
 
-              {/* Floating Top Right Panel - Control Panel with Stats & Legend */}
-              <div className={`absolute top-4 right-4 z-30 transition-all duration-300 ${filtersCollapsed ? 'w-auto' : 'w-80'}`}>
-                {filtersCollapsed ? (
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="w-10 h-10 bg-background shadow-lg hover:bg-muted border"
-                      onClick={() => setFiltersCollapsed(false)}
-                    >
-                      <PanelLeft className="w-5 h-5 text-foreground" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="w-10 h-10 bg-background shadow-lg hover:bg-muted border"
-                      onClick={() => refetch()}
-                      disabled={isLoading || isFetching}
-                    >
-                      <RefreshCw className={`w-4 h-4 text-foreground ${isFetching ? 'animate-spin' : ''}`} />
-                    </Button>
-                    <div className="bg-background shadow-lg rounded-lg p-2 border">
-                      <LiveIndicator />
-                    </div>
-                  </div>
-                ) : (
-                  <Card className="border bg-background shadow-xl">
-                    <CardHeader className="pb-2 pt-3 px-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => refetch()}
-                            disabled={isLoading || isFetching}
-                          >
-                            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-                          </Button>
-                          <LiveIndicator />
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => setFiltersCollapsed(true)}
-                        >
-                          <PanelLeftClose className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="px-3 pb-3 pt-0 space-y-3">
-                      {/* Stats Summary Cards */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2">
-                          <Clock className="w-4 h-4 text-amber-600" />
-                          <div>
-                            <span className="text-lg font-bold text-amber-600">{stats.aguardando}</span>
-                            <p className="text-[10px] text-amber-600/80">Aguardando</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-2">
-                          <Package className="w-4 h-4 text-blue-600" />
-                          <div>
-                            <span className="text-lg font-bold text-blue-600">{stats.saiu_para_coleta}</span>
-                            <p className="text-[10px] text-blue-600/80">Coleta</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-2">
-                          <Truck className="w-4 h-4 text-purple-600" />
-                          <div>
-                            <span className="text-lg font-bold text-purple-600">{stats.saiu_para_entrega}</span>
-                            <p className="text-[10px] text-purple-600/80">Entrega</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-2.5 py-2">
-                          <AlertCircle className="w-4 h-4 text-destructive" />
-                          <div>
-                            <span className="text-lg font-bold text-destructive">{stats.problema}</span>
-                            <p className="text-[10px] text-destructive/80">Problema</p>
-                          </div>
-                        </div>
-                      </div>
+        {/* Status banner */}
+        <div className={`rounded-md px-3 py-1.5 text-center text-sm ${statusInfo.color}`}>
+          <span className="font-semibold flex items-center justify-center gap-2">
+            <StatusIcon className="w-3.5 h-3.5" />
+            {statusInfo.label} há {formatDistanceToNow(new Date(entrega.updated_at), { locale: ptBR })}
+          </span>
+        </div>
 
-                      {/* Total Frete */}
-                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
-                        <DollarSign className="w-4 h-4 text-emerald-600" />
-                        <div>
-                          <span className="text-sm font-bold text-emerald-600">{formatCurrency(stats.totalFrete)}</span>
-                          <p className="text-[10px] text-emerald-600/80">Frete Total</p>
-                        </div>
-                      </div>
-
-                      {/* Search */}
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                        <Input
-                          placeholder="Buscar código, motorista..."
-                          className="pl-8 h-8 text-xs bg-background"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                      </div>
-
-                      {/* Filters - Collapsible */}
-                      <details className="group">
-                        <summary className="text-[10px] font-medium text-muted-foreground cursor-pointer flex items-center gap-1 hover:text-foreground">
-                          <Filter className="w-3 h-3" />
-                          Filtros
-                          <ChevronRight className="w-3 h-3 transition-transform group-open:rotate-90" />
-                        </summary>
-                        <div className="mt-2 space-y-1.5">
-                          {allStatusFilters.map(status => (
-                            <div key={status.value} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`filter-${status.value}`}
-                                checked={selectedStatuses.includes(status.value)}
-                                onCheckedChange={() => handleStatusToggle(status.value)}
-                                className="h-3.5 w-3.5"
-                              />
-                              <Label htmlFor={`filter-${status.value}`} className="text-xs font-normal cursor-pointer">
-                                {status.label}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-
-                      {/* Active Filters */}
-                      {selectedStatuses.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {selectedStatuses.map(status => {
-                            const config = statusEntregaConfig[status];
-                            return (
-                              <Badge
-                                key={status}
-                                variant="outline"
-                                className={`${config?.color || ''} cursor-pointer text-[9px] px-1.5 py-0`}
-                                onClick={() => handleStatusToggle(status)}
-                              >
-                                {config?.label || status}
-                                <X className="w-2.5 h-2.5 ml-1" />
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Legend */}
-                      <details className="group" open>
-                        <summary className="text-[10px] font-medium text-muted-foreground cursor-pointer flex items-center gap-1 hover:text-foreground">
-                          <MapPin className="w-3 h-3" />
-                          Legenda do Mapa
-                          <ChevronRight className="w-3 h-3 transition-transform group-open:rotate-90" />
-                        </summary>
-                        <div className="mt-2 space-y-2">
-                          {/* Status Legend */}
-                          <div className="space-y-1">
-                            <p className="text-[9px] font-medium text-muted-foreground uppercase">Status</p>
-                            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                              {[
-                                { key: 'aguardando', color: '#f97316', label: 'Aguardando' },
-                                { key: 'saiu_para_coleta', color: '#3b82f6', label: 'Coleta' },
-                                { key: 'saiu_para_entrega', color: '#8b5cf6', label: 'Entrega' },
-                                { key: 'problema', color: '#ef4444', label: 'Problema' },
-                              ].map(item => (
-                                <div key={item.key} className="flex items-center gap-1">
-                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                                  <span className="text-[10px] text-muted-foreground">{item.label}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          {/* Connection Legend */}
-                          <div className="space-y-1 pt-1 border-t">
-                            <p className="text-[9px] font-medium text-muted-foreground uppercase">Conexão</p>
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1">
-                                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                                <span className="text-[10px] text-muted-foreground">Online</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                                <span className="text-[10px] text-muted-foreground">Offline</span>
-                              </div>
-                            </div>
-                          </div>
-                          {/* Route Legend when selection active */}
-                          {selectedEntregaId && (
-                            <div className="space-y-1 pt-1 border-t">
-                              <p className="text-[9px] font-medium text-muted-foreground uppercase">Rota</p>
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                                  <span className="text-[10px] text-muted-foreground">Origem</span>
-                                  <div className="w-2.5 h-2.5 rounded-full bg-red-500 ml-2" />
-                                  <span className="text-[10px] text-muted-foreground">Destino</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-5 h-0" style={{ borderTop: '2px dashed #f97316' }} />
-                                  <span className="text-[10px] text-muted-foreground">p/ Coleta</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-5 h-0" style={{ borderTop: '2px solid #3b82f6' }} />
-                                  <span className="text-[10px] text-muted-foreground">p/ Entrega</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </details>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-
-              {/* Floating Table Panel at Bottom - Full Width */}
-              <div className="absolute bottom-4 left-4 right-4 z-20">
-                <Card className="border bg-background shadow-xl">
-                  {/* Header */}
-                  <CardHeader className="py-2.5 px-4 border-b">
-                    <div className="flex items-center justify-between">
-                      {/* Left: Title */}
-                      <div className="flex items-center gap-2">
-                        <Package className="w-4 h-4 text-primary" />
-                        <CardTitle className="text-sm">Cargas em Rota ({filteredCargas.length})</CardTitle>
-                      </div>
-                      
-                      {/* Right: Minimize button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => setTableExpanded(!tableExpanded)}
-                      >
-                        {tableExpanded ? (
-                          <>
-                            <ChevronDown className="w-4 h-4 mr-1" />
-                            Minimizar
-                          </>
-                        ) : (
-                          <>
-                            <ChevronRight className="w-4 h-4 mr-1" />
-                            Expandir
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  {tableExpanded && (
-                    <CardContent className="p-0">
-                      <div className="max-h-[340px] overflow-y-auto">
-                        <Table>
-                          <TableHeader className="sticky top-0 z-10 bg-muted">
-                            <TableRow>
-                              <TableHead className="font-semibold w-8"></TableHead>
-                              <TableHead className="font-semibold min-w-[130px]">Código</TableHead>
-                              <TableHead className="font-semibold min-w-[160px]">
-                                <div className="flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
-                                  Remetente
-                                </div>
-                              </TableHead>
-                              <TableHead className="font-semibold min-w-[160px]">
-                                <div className="flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
-                                  Destinatário
-                                </div>
-                              </TableHead>
-                              <TableHead className="font-semibold min-w-[90px] text-center">Peso Total</TableHead>
-                              <TableHead className="font-semibold min-w-[100px]">
-                                <div className="flex items-center gap-1">
-                                  <DollarSign className="w-3 h-3" />
-                                  Frete
-                                </div>
-                              </TableHead>
-                              <TableHead className="font-semibold min-w-[90px] text-center">Entregas</TableHead>
-                              <TableHead className="font-semibold min-w-[100px]">
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  Limite
-                                </div>
-                              </TableHead>
-                              <TableHead className="font-semibold w-10"></TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredCargas.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
-                                  Nenhuma entrega corresponde aos filtros selecionados
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              filteredCargas.map((carga) => {
-                                const isExpanded = expandedRows.has(carga.id);
-                                const origem = getEnderecoData(carga, 'origem');
-                                const destino = getEnderecoData(carga, 'destino');
-                                const totalPeso = getTotalPeso(carga);
-                                const totalFrete = getTotalFrete(carga);
-                                
-                                const statusCounts = carga.entregas.reduce((acc, e) => {
-                                  acc[e.status || 'aguardando'] = (acc[e.status || 'aguardando'] || 0) + 1;
-                                  return acc;
-                                }, {} as Record<string, number>);
-                                
-                                return (
-                                  <React.Fragment key={carga.id}>
-                                    <TableRow 
-                                      className={`hover:bg-muted/50 cursor-pointer ${isExpanded ? 'bg-muted/30 border-l-2 border-l-primary' : ''}`}
-                                      onClick={() => toggleRow(carga.id)}
-                                    >
-                                      <TableCell className="p-2">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          className="h-6 w-6"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleRow(carga.id);
-                                          }}
-                                        >
-                                          {isExpanded ? (
-                                            <ChevronDown className="w-4 h-4 text-primary" />
-                                          ) : (
-                                            <ChevronRight className="w-4 h-4" />
-                                          )}
-                                        </Button>
-                                      </TableCell>
-                                      <TableCell>
-                                        <div>
-                                          <p className="font-medium text-primary text-nowrap">{carga.codigo}</p>
-                                          <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                                            {carga.descricao}
-                                          </p>
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <div className="cursor-help">
-                                              <div className="flex items-center gap-1">
-                                                <MapPin className="w-3 h-3 text-green-500 shrink-0" />
-                                                <p className="font-medium text-sm truncate max-w-[130px]">{origem.empresa}</p>
-                                              </div>
-                                              <p className="text-xs text-muted-foreground truncate max-w-[130px]">
-                                                {origem.cidade}
-                                              </p>
-                                            </div>
-                                          </TooltipTrigger>
-                                          <TooltipContent side="top" className="max-w-xs">
-                                            <p className="font-medium">{origem.empresa}</p>
-                                            <p className="text-xs text-muted-foreground">{origem.enderecoCompleto}</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TableCell>
-                                      <TableCell>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <div className="cursor-help">
-                                              <div className="flex items-center gap-1">
-                                                <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                                                <p className="font-medium text-sm truncate max-w-[130px]">{destino.empresa}</p>
-                                              </div>
-                                              <p className="text-xs text-muted-foreground truncate max-w-[130px]">
-                                                {destino.cidade}
-                                              </p>
-                                            </div>
-                                          </TooltipTrigger>
-                                          <TooltipContent side="top" className="max-w-xs">
-                                            <p className="font-medium">{destino.empresa}</p>
-                                            <p className="text-xs text-muted-foreground">{destino.enderecoCompleto}</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TableCell>
-                                      <TableCell className="text-center">
-                                        <span className="font-medium">{formatWeight(totalPeso)}</span>
-                                      </TableCell>
-                                      <TableCell>
-                                        <span className="font-medium text-green-600">
-                                          {formatCurrency(totalFrete)}
-                                        </span>
-                                      </TableCell>
-                                      <TableCell className="text-center">
-                                        <div className="flex flex-wrap gap-1 justify-center">
-                                          {Object.entries(statusCounts).map(([status, count]) => {
-                                            const config = statusEntregaConfig[status];
-                                            return (
-                                              <Badge key={status} variant="outline" className={`${config?.color || ''} text-[10px] px-1.5 py-0`}>
-                                                {count}
-                                              </Badge>
-                                            );
-                                          })}
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        <span className="text-sm">
-                                          {formatDate(carga.data_entrega_limite)}
-                                        </span>
-                                      </TableCell>
-                                      <TableCell>
-                                        <DropdownMenu>
-                                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                              <MoreHorizontal className="w-4 h-4" />
-                                            </Button>
-                                          </DropdownMenuTrigger>
-                                          <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={(e) => {
-                                              e.stopPropagation();
-                                              setDetailsCargaId(carga.id);
-                                            }}>
-                                              <Eye className="w-4 h-4 mr-2" />
-                                              Ver detalhes da carga
-                                            </DropdownMenuItem>
-                                          </DropdownMenuContent>
-                                        </DropdownMenu>
-                                      </TableCell>
-                                    </TableRow>
-
-                                    {isExpanded && carga.entregas.length > 0 && (
-                                      <TableRow className="bg-muted/10 hover:bg-muted/10">
-                                        <TableCell colSpan={9} className="p-0">
-                                          <div className="px-6 py-3">
-                                            <div className="flex items-center gap-2 mb-2">
-                                              <Truck className="w-4 h-4 text-primary" />
-                                              <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
-                                              <span className="text-xs text-muted-foreground">• Clique em uma entrega para ver no mapa</span>
-                                            </div>
-                                            <div className="bg-background rounded-lg border overflow-hidden">
-                                              <Table>
-                                                <TableHeader>
-                                                  <TableRow className="bg-muted/30">
-                                                    <TableHead className="text-xs">Código</TableHead>
-                                                    <TableHead className="text-xs">Motorista</TableHead>
-                                                    <TableHead className="text-xs">Veículo</TableHead>
-                                                    <TableHead className="text-xs text-right">Peso</TableHead>
-                                                    <TableHead className="text-xs text-right">Frete</TableHead>
-                                                    <TableHead className="text-xs">N° CT-e</TableHead>
-                                                    <TableHead className="text-xs">Status</TableHead>
-                                                    <TableHead className="text-xs">Docs</TableHead>
-                                                    <TableHead className="text-xs">Chat</TableHead>
-                                                    <TableHead className="text-xs w-10"></TableHead>
-                                                  </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                  {carga.entregas.map((entrega, idx) => renderEntregaRow(entrega, carga, idx))}
-                                                </TableBody>
-                                              </Table>
-                                            </div>
-                                          </div>
-                                        </TableCell>
-                                      </TableRow>
-                                    )}
-                                  </React.Fragment>
-                                );
-                              })
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CardContent>
-                  )}
-                </Card>
-              </div>
+        {/* NF-e Alert */}
+        {nfePending && (
+          <div className="mt-2 flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-300">NF-e pendente</p>
+              <p className="text-amber-700 dark:text-amber-400">O motorista não pode sair para entrega sem a Nota Fiscal anexada.</p>
             </div>
-
-            {/* Mobile Layout */}
-            <div className="lg:hidden absolute inset-0 flex flex-col">
-              {/* Mobile Header */}
-              <div className="bg-background/95 backdrop-blur-sm border-b p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h1 className="text-lg font-bold text-foreground">Gestão de Entregas</h1>
-                    <p className="text-xs text-muted-foreground">Acompanhe em tempo real</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => refetch()}
-                      disabled={isLoading || isFetching}
-                    >
-                      <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-                    </Button>
-                    <LiveIndicator />
-                  </div>
-                </div>
-                {/* Mobile Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar código, motorista..."
-                    className="pl-9 h-9 bg-background"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Mobile Map Area */}
-              <div className="flex-1 relative">
-                <Suspense fallback={
-                  <div className="w-full h-full flex items-center justify-center bg-muted/30">
-                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                  </div>
-                }>
-                  <EntregasMap
-                    entregas={mapData}
-                    selectedEntregaId={selectedEntregaId}
-                    onSelectEntrega={setSelectedEntregaId}
-                    fullHeight
-                  />
-                </Suspense>
-              </div>
-            </div>
-          </>
+          </div>
         )}
-      {/* Dialogs */}
-      {detailsCargaId && (() => {
-        const cargaForDetails = cargas.find(c => c.id === detailsCargaId);
-        if (!cargaForDetails) return null;
-        
-        return (
-          <CargaDetailsDialog
-            carga={{
-              id: cargaForDetails.id,
-              codigo: cargaForDetails.codigo,
-              descricao: cargaForDetails.descricao,
-              tipo: cargaForDetails.tipo,
-              peso_kg: cargaForDetails.peso_kg,
-              volume_m3: cargaForDetails.volume_m3,
-              valor_mercadoria: cargaForDetails.valor_mercadoria,
-              valor_frete_tonelada: cargaForDetails.valor_frete_tonelada,
-              status: cargaForDetails.status,
-              data_coleta_de: cargaForDetails.data_coleta_de,
-              data_coleta_ate: cargaForDetails.data_coleta_ate,
-              data_entrega_limite: cargaForDetails.data_entrega_limite,
-              created_at: cargaForDetails.created_at,
-              necessidades_especiais: cargaForDetails.necessidades_especiais,
-              regras_carregamento: cargaForDetails.regras_carregamento,
-              nota_fiscal_url: cargaForDetails.nota_fiscal_url,
-              carga_fragil: cargaForDetails.carga_fragil,
-              carga_perigosa: cargaForDetails.carga_perigosa,
-              carga_viva: cargaForDetails.carga_viva,
-              empilhavel: cargaForDetails.empilhavel,
-              requer_refrigeracao: cargaForDetails.requer_refrigeracao,
-              temperatura_min: cargaForDetails.temperatura_min,
-              temperatura_max: cargaForDetails.temperatura_max,
-              numero_onu: cargaForDetails.numero_onu,
-              remetente: cargaForDetails.endereco_origem ? {
-                nome: cargaForDetails.filiais?.nome || cargaForDetails.endereco_origem.contato_nome || 'Remetente',
-                cidade: cargaForDetails.endereco_origem.cidade,
-                estado: cargaForDetails.endereco_origem.estado,
-                endereco: `${cargaForDetails.endereco_origem.logradouro}${cargaForDetails.endereco_origem.numero ? `, ${cargaForDetails.endereco_origem.numero}` : ''}`,
-                contato_nome: cargaForDetails.endereco_origem.contato_nome,
-                contato_telefone: cargaForDetails.endereco_origem.contato_telefone,
-              } : null,
-              destinatario: cargaForDetails.endereco_destino ? {
-                nome: cargaForDetails.destinatario_nome_fantasia || cargaForDetails.destinatario_razao_social || cargaForDetails.endereco_destino.contato_nome || 'Destinatário',
-                cidade: cargaForDetails.endereco_destino.cidade,
-                estado: cargaForDetails.endereco_destino.estado,
-                endereco: `${cargaForDetails.endereco_destino.logradouro}${cargaForDetails.endereco_destino.numero ? `, ${cargaForDetails.endereco_destino.numero}` : ''}`,
-                contato_nome: cargaForDetails.endereco_destino.contato_nome,
-                contato_telefone: cargaForDetails.endereco_destino.contato_telefone,
-              } : null,
-            }}
-            open={!!detailsCargaId}
-            onOpenChange={(open) => !open && setDetailsCargaId(null)}
-          />
-        );
-      })()}
+      </div>
 
-      {selectedEntregaForDetails && (
-        <EntregaDetailsDialog
-          open={!!selectedEntregaForDetails}
-          onOpenChange={(open) => !open && setSelectedEntregaForDetails(null)}
-          entrega={{
-            id: selectedEntregaForDetails.entrega.id,
-            status: selectedEntregaForDetails.entrega.status || 'aguardando',
-            created_at: selectedEntregaForDetails.entrega.updated_at,
-            coletado_em: selectedEntregaForDetails.entrega.coletado_em,
-            entregue_em: selectedEntregaForDetails.entrega.entregue_em,
-            peso_alocado_kg: selectedEntregaForDetails.entrega.peso_alocado_kg,
-            valor_frete: selectedEntregaForDetails.entrega.valor_frete,
-            cte_url: selectedEntregaForDetails.entrega.cte_url,
-            numero_cte: selectedEntregaForDetails.entrega.numero_cte,
-            notas_fiscais_urls: selectedEntregaForDetails.entrega.notas_fiscais_urls,
-            manifesto_url: selectedEntregaForDetails.entrega.manifesto_url,
-            canhoto_url: selectedEntregaForDetails.entrega.canhoto_url,
-            motorista: selectedEntregaForDetails.entrega.motoristas,
-            veiculo: selectedEntregaForDetails.entrega.veiculos,
-            carga: {
-              id: selectedEntregaForDetails.carga.id,
-              codigo: selectedEntregaForDetails.carga.codigo,
-              descricao: selectedEntregaForDetails.carga.descricao,
-              peso_kg: selectedEntregaForDetails.carga.peso_kg,
-              tipo: selectedEntregaForDetails.carga.tipo,
-              data_entrega_limite: selectedEntregaForDetails.carga.data_entrega_limite,
-              destinatario_nome_fantasia: selectedEntregaForDetails.carga.destinatario_nome_fantasia,
-              destinatario_razao_social: selectedEntregaForDetails.carga.destinatario_razao_social,
-              endereco_origem: selectedEntregaForDetails.carga.endereco_origem,
-              endereco_destino: selectedEntregaForDetails.carga.endereco_destino,
-              empresa: null,
-            },
-          }}
-        />
-      )}
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-4">
+          {/* Empresa que publicou */}
+          {entrega.carga.empresa && (
+            <div className="flex items-center gap-2 text-sm">
+              <Building2 className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Publicado por:</span>
+              <span className="font-medium">{entrega.carga.empresa.nome || 'Empresa não identificada'}</span>
+            </div>
+          )}
+
+          {/* Map */}
+          <DetailPanelLeafletMap
+            origemCoords={origemCoords}
+            destinoCoords={destinoCoords}
+            driverLocation={driverLocation}
+            status={entrega.status}
+            height={300}
+            entregaId={entrega.id}
+          />
+
+          {/* Cargo description */}
+          <div className="text-sm">
+            <p className="font-medium">{entrega.carga.descricao}</p>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+              <span className="flex items-center gap-1">
+                <Weight className="w-3 h-3" />
+                {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+              </span>
+              {entrega.valor_frete && (
+                <span className="flex items-center gap-1 text-primary font-semibold">
+                  <DollarSign className="w-3 h-3" />
+                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Origem */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              ORIGEM / REMETENTE
+            </div>
+            <div className="pl-4 text-sm">
+              {remetenteNome && <p className="font-medium">{remetenteNome}</p>}
+              {entrega.carga.endereco_origem && (
+                <>
+                  <p className="text-muted-foreground">
+                    {entrega.carga.endereco_origem.logradouro}
+                    {entrega.carga.endereco_origem.numero && `, ${entrega.carga.endereco_origem.numero}`}
+                    {entrega.carga.endereco_origem.bairro && ` - ${entrega.carga.endereco_origem.bairro}`}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {entrega.carga.endereco_origem.cidade}/{entrega.carga.endereco_origem.estado}
+                  </p>
+                </>
+              )}
+              {entrega.carga.data_coleta_de && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                  <Calendar className="w-3 h-3" />
+                  Coleta: {format(new Date(entrega.carga.data_coleta_de), 'dd/MM/yyyy', { locale: ptBR })}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Destino */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <div className="w-2 h-2 rounded-full bg-red-500" />
+              DESTINO / DESTINATÁRIO
+            </div>
+            <div className="pl-4 text-sm">
+              {destinatarioNome && <p className="font-medium">{destinatarioNome}</p>}
+              {entrega.carga.endereco_destino && (
+                <>
+                  <p className="text-muted-foreground">
+                    {entrega.carga.endereco_destino.logradouro}
+                    {entrega.carga.endereco_destino.numero && `, ${entrega.carga.endereco_destino.numero}`}
+                    {entrega.carga.endereco_destino.bairro && ` - ${entrega.carga.endereco_destino.bairro}`}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {entrega.carga.endereco_destino.cidade}/{entrega.carga.endereco_destino.estado}
+                  </p>
+                </>
+              )}
+              {entrega.carga.data_entrega_limite && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                  <Calendar className="w-3 h-3" />
+                  Prazo: {format(new Date(entrega.carga.data_entrega_limite), 'dd/MM/yyyy', { locale: ptBR })}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Datas */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-muted/30 rounded-md p-2">
+              <p className="text-muted-foreground">Data Coleta</p>
+              <p className="font-medium">
+                {entrega.coletado_em
+                  ? format(new Date(entrega.coletado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                  : 'Pendente'}
+              </p>
+            </div>
+            <div className="bg-muted/30 rounded-md p-2">
+              <p className="text-muted-foreground">Data Entrega</p>
+              <p className="font-medium">
+                {entrega.entregue_em
+                  ? format(new Date(entrega.entregue_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                  : 'Pendente'}
+              </p>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Documentos - 3/3 (NF-e, CT-e, Canhoto) */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-medium text-xs">Documentos</span>
+              </div>
+              <Badge variant={docsComplete ? 'default' : 'secondary'} className="text-[10px]">
+                {docsCount}/3 anexados
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => handleDocClick(entrega.cte_url, 'CT-e')}
+                disabled={!entrega.cte_url}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${hasCte ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
+                {hasCte ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                <span>CT-e</span>
+              </button>
+              <button
+                onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}
+                disabled={!entrega.canhoto_url}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${hasCanhoto ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
+                {hasCanhoto ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                <span>Canhoto</span>
+              </button>
+              <button
+                onClick={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
+                disabled={!(entrega.notas_fiscais_urls?.length)}
+                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${hasNf ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
+              >
+                {hasNf ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                <span>NF ({entrega.notas_fiscais_urls?.length || 0})</span>
+              </button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Driver & Vehicle + Chat */}
+          {entrega.motorista && (
+            <Card className="shadow-none border">
+              <CardContent className="p-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Avatar className="h-8 w-8">
+                      {entrega.motorista.foto_url && <AvatarImage src={entrega.motorista.foto_url} />}
+                      <AvatarFallback className="text-xs">{entrega.motorista.nome_completo?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm truncate">{entrega.motorista.nome_completo}</p>
+                      <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${driverLocation?.isOnline
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                        {driverLocation?.isOnline ? 'Online' : 'Offline'}
+                      </span>
+                    </div>
+                    {entrega.veiculo && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Truck className="w-3 h-3" />
+                        <span>{entrega.veiculo.placa}</span>
+                      </div>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" className="shrink-0" onClick={() => setChatSheetOpen(true)}>
+                    <MessageCircle className="w-4 h-4 mr-1.5" />
+                    Chat
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </ScrollArea>
+
+      {/* Preview dialog */}
+      <FilePreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => !open && setPreviewDocUrl(null)}
+        fileUrl={previewDocUrl}
+        title={previewDocTitle}
+      />
 
       {/* Chat Sheet */}
       <ChatSheet
         open={chatSheetOpen}
         onOpenChange={setChatSheetOpen}
-        entregaId={chatEntregaId}
+        entregaId={entrega.id}
         userType="embarcador"
-        empresaId={empresa?.id}
       />
-      </TooltipProvider>
+    </div>
+  );
+}
+
+// ==================== Main Component ====================
+export default function GestaoCargas() {
+  const { filialAtiva, switchingFilial } = useUserContext();
+  const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
+  const [filters, setFilters] = useState<AdvancedFilters>({});
+
+  // Fetch entregas directly (not via cargas) filtered by embarcador's filial
+  const { data: entregas = [], isLoading, refetch } = useQuery({
+    queryKey: ['gestao_entregas_embarcador', filialAtiva?.id],
+    queryFn: async () => {
+      if (!filialAtiva?.id) return [];
+
+      const today = new Date();
+      const startOfToday = startOfDay(today).toISOString();
+
+      const { data, error } = await supabase
+        .from('entregas')
+        .select(`
+          id, codigo, status, created_at, updated_at,
+          motorista_id, peso_alocado_kg, valor_frete, coletado_em, entregue_em,
+          cte_url, numero_cte, notas_fiscais_urls, canhoto_url,
+          motorista:motoristas(id, nome_completo, telefone, foto_url),
+          veiculo:veiculos(id, placa, modelo, tipo),
+          carga:cargas!inner(
+            id, codigo, descricao, peso_kg, tipo,
+            remetente_razao_social, remetente_nome_fantasia,
+            destinatario_razao_social, destinatario_nome_fantasia,
+            data_coleta_de, data_entrega_limite,
+            endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
+            endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
+            empresa:empresas(id, nome)
+          )
+        `)
+        .eq('carga.filial_id', filialAtiva.id)
+        .not('status', 'is', null)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Filter: active always show, terminal only if finalized today
+      const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'];
+      const terminalStatuses = ['entregue', 'cancelada'];
+
+      return (data || []).filter(e => {
+        if (pendingStatuses.includes(e.status)) return true;
+        if (terminalStatuses.includes(e.status)) {
+          return new Date(e.updated_at) >= new Date(startOfToday);
+        }
+        return false;
+      }) as Entrega[];
+    },
+    enabled: !!filialAtiva?.id,
+    refetchInterval: 60000,
+  });
+
+  // Collect motorista IDs for real-time tracking
+  const motoristaIds = useMemo(() => {
+    const ids = new Set<string>();
+    entregas.forEach(e => {
+      if (e.motorista?.id) ids.add(e.motorista.id);
+    });
+    return Array.from(ids);
+  }, [entregas]);
+
+  const { localizacoes } = useRealtimeLocalizacoes({
+    motoristaIds,
+    enabled: motoristaIds.length > 0,
+  });
+
+  // Update selectedEntrega when data refreshes
+  useEffect(() => {
+    if (selectedEntrega) {
+      const updated = entregas.find(e => e.id === selectedEntrega.id);
+      if (updated) setSelectedEntrega(updated);
+    }
+  }, [entregas]);
+
+  // Filter entregas
+  const { ativas, finalizadas } = useMemo(() => {
+    let filtered = entregas;
+
+    if (filters.codigo) {
+      const term = filters.codigo.toLowerCase();
+      filtered = filtered.filter(e =>
+        e.codigo?.toLowerCase().includes(term) || e.carga.codigo?.toLowerCase().includes(term)
+      );
+    }
+    if (filters.motorista) {
+      const term = filters.motorista.toLowerCase();
+      filtered = filtered.filter(e => e.motorista?.nome_completo?.toLowerCase().includes(term));
+    }
+    if (filters.cidadeOrigem) {
+      const term = filters.cidadeOrigem.toLowerCase();
+      filtered = filtered.filter(e => e.carga.endereco_origem?.cidade?.toLowerCase().includes(term));
+    }
+    if (filters.cidadeDestino) {
+      const term = filters.cidadeDestino.toLowerCase();
+      filtered = filtered.filter(e => e.carga.endereco_destino?.cidade?.toLowerCase().includes(term));
+    }
+    if (filters.destinatario) {
+      const term = filters.destinatario.toLowerCase();
+      filtered = filtered.filter(e =>
+        e.carga.destinatario_nome_fantasia?.toLowerCase().includes(term) ||
+        e.carga.destinatario_razao_social?.toLowerCase().includes(term)
+      );
+    }
+
+    const a = filtered.filter(e => ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'].includes(e.status));
+    const f = filtered.filter(e => ['entregue', 'cancelada'].includes(e.status));
+    return { ativas: a, finalizadas: f };
+  }, [entregas, filters]);
+
+  // Driver location for selected delivery
+  const driverLocation = useMemo(() => {
+    if (!selectedEntrega?.motorista_id) return null;
+    const loc = localizacoes.find(l => l.motorista_id === selectedEntrega.motorista_id);
+    if (loc?.latitude && loc?.longitude) {
+      return { lat: loc.latitude, lng: loc.longitude, heading: loc.heading, isOnline: loc.isOnline };
+    }
+    return null;
+  }, [selectedEntrega, localizacoes]);
+
+  return (
+    <div className="flex flex-col" style={{ height: 'calc(100dvh)' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 !pb-0 md:p-8">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-foreground">Gestão de Cargas</h1>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="w-5 h-5 rounded-full mt-1 ml-1 bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
+                    <HelpCircle className="w-5 h-5 text-muted-foreground" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-sm p-3">
+                  <p className="font-medium mb-1">Acompanhamento de Entregas</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed">
+                    <li>Acompanhe em tempo real as entregas das suas cargas.</li>
+                    <li>Entregas finalizadas permanecem visíveis até o fim do dia.</li>
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <p className="text-muted-foreground">Visualize sua operação diária</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+          <AdvancedFiltersPopover
+            filters={filters}
+            onFiltersChange={setFilters}
+            showMotorista
+            showEmbarcador={false}
+            showDestinatario
+          />
+        </div>
+      </div>
+
+      {/* Main content - 3 columns: 30% 30% 40% */}
+      <div className="flex-1 grid overflow-hidden p-4 !pt-4 md:p-8" style={{ gridTemplateColumns: '30% 30% 40%' }}>
+        {/* Column 1: Ativas */}
+        <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
+          <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+            <span className="text-sm font-medium text-muted-foreground">Ativas ({ativas.length})</span>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {(isLoading || switchingFilial) ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : ativas.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <EmptyColumnPlaceholder message="Entregas ativas aparecerão aqui" />
+              </div>
+            ) : (
+              ativas.map(e => (
+                <EntregaListItem
+                  key={e.id}
+                  entrega={e}
+                  isSelected={selectedEntrega?.id === e.id}
+                  onClick={() => setSelectedEntrega(e)}
+                />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Column 2: Finalizadas */}
+        <div className="border-y border-r bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
+          <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
+            <span className="text-sm font-medium text-muted-foreground">Finalizadas ({finalizadas.length})</span>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {(isLoading || switchingFilial) ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : finalizadas.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <EmptyColumnPlaceholder message="Entregas finalizadas do dia aparecerão aqui" />
+              </div>
+            ) : (
+              finalizadas.map(e => (
+                <EntregaListItem
+                  key={e.id}
+                  entrega={e}
+                  isSelected={selectedEntrega?.id === e.id}
+                  onClick={() => setSelectedEntrega(e)}
+                />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Column 3: Detail Panel */}
+        <div className="border rounded-r-md bg-card shadow-sm flex flex-col min-w-0 overflow-hidden">
+          <DetailPanel
+            entrega={selectedEntrega}
+            onClose={() => setSelectedEntrega(null)}
+            driverLocation={driverLocation}
+          />
+        </div>
+      </div>
     </div>
   );
 }
