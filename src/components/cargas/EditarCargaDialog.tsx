@@ -577,44 +577,117 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                     Valor do Frete
                   </h4>
 
+                  {/* Tipo de precificação */}
+                  <FormField
+                    control={form.control}
+                    name="tipo_precificacao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tipo de Precificação</FormLabel>
+                        <div className="flex flex-wrap gap-2">
+                          {tipoPrecificacaoOptions.map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => field.onChange(opt.value)}
+                              className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                                field.value === opt.value
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'bg-background text-muted-foreground border-border hover:bg-muted'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="valor_frete_tonelada"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Frete por Tonelada (R$)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              value={field.value ?? ''}
-                              onChange={(e) =>
-                                field.onChange(e.target.value === '' ? 0 : Number(e.target.value))
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {tipoPrecificacao === 'por_tonelada' && (
+                      <FormField
+                        control={form.control}
+                        name="valor_frete_tonelada"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Frete por Tonelada (R$)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {tipoPrecificacao === 'por_m3' && (
+                      <FormField
+                        control={form.control}
+                        name="valor_frete_m3"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Frete por m³ (R$)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {tipoPrecificacao === 'fixo' && (
+                      <FormField
+                        control={form.control}
+                        name="valor_frete_fixo"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Valor Fixo do Frete (R$)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {tipoPrecificacao === 'por_km' && (
+                      <FormField
+                        control={form.control}
+                        name="valor_frete_km"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Frete por KM (R$)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     <div className="space-y-2">
-                      <Label className="text-sm">Frete Total Estimado</Label>
+                      <Label className="text-sm">
+                        {tipoPrecificacao === 'por_km' ? 'Valor por KM' : 'Frete Total Estimado'}
+                      </Label>
                       <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center">
                         <span className="font-bold text-primary">
-                          {freteTotal > 0
-                            ? new Intl.NumberFormat('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL',
-                            }).format(freteTotal)
-                            : 'R$ 0,00'}
+                          {tipoPrecificacao === 'por_km'
+                            ? (valorFreteKm ? `R$ ${valorFreteKm.toFixed(2)}/km` : 'Informe o valor/km')
+                            : freteTotal > 0
+                              ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
+                              : 'R$ 0,00'}
                         </span>
                       </div>
-                      {pesoKg > 0 && valorFreteTonelada > 0 && (
+                      {tipoPrecificacao === 'por_tonelada' && pesoKg > 0 && (valorFreteTonelada ?? 0) > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          {(pesoKg / 1000).toFixed(2)}t x R$ {valorFreteTonelada.toFixed(2)}/ton
+                          {(pesoKg / 1000).toFixed(2)}t × R$ {(valorFreteTonelada ?? 0).toFixed(2)}/ton
+                        </p>
+                      )}
+                      {tipoPrecificacao === 'por_m3' && (volumeM3 ?? 0) > 0 && (valorFreteM3 ?? 0) > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {(volumeM3 ?? 0).toFixed(2)}m³ × R$ {(valorFreteM3 ?? 0).toFixed(2)}/m³
                         </p>
                       )}
                     </div>
