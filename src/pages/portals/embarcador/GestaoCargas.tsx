@@ -177,15 +177,17 @@ function EmptyColumnPlaceholder({ message }: { message: string }) {
   );
 }
 
-// --- Detail panel (right side - read-only for embarcador) ---
+// --- Detail panel (right side - embarcador: can attach NF-e, view CT-e/Canhoto) ---
 function DetailPanel({
   entrega,
   onClose,
   driverLocation,
+  onRefresh,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
   driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
+  onRefresh: () => void;
 }) {
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState('');
