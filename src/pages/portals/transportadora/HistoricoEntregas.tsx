@@ -50,7 +50,8 @@ import {
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
-import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
+import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
+import { ViagemDetailsHistoricoDialog } from '@/components/viagens/ViagemDetailsHistoricoDialog';
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
