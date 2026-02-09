@@ -349,14 +349,15 @@ export default function Relatorios() {
 
   // Chart: Weekly/Daily activity
   const activityChartData = useMemo(() => {
+    const totalDays = differenceInDays(dateRange.end, dateRange.start) || 1;
+    const maxPoints = 30;
+    const step = Math.max(1, Math.ceil(totalDays / maxPoints));
     const days = [];
-    const interval = periodo === '7dias' ? 7 : periodo === '30dias' ? 30 : periodo === '90dias' ? 14 : 12;
-    const step = periodo === '90dias' ? 6 : periodo === 'ano' ? 30 : 1;
     
-    for (let i = interval - 1; i >= 0; i--) {
-      const date = subDays(new Date(), i * step);
+    for (let i = 0; i <= totalDays; i += step) {
+      const date = subDays(dateRange.end, totalDays - i);
       const dateStr = format(date, 'yyyy-MM-dd');
-      const dayName = format(date, periodo === '7dias' ? 'EEE' : 'dd/MM', { locale: ptBR });
+      const dayName = format(date, totalDays <= 7 ? 'EEE' : 'dd/MM', { locale: ptBR });
       
       const cargasCount = filteredCargas.filter(c => {
         const cargaDate = format(parseISO(c.created_at), 'yyyy-MM-dd');
@@ -384,7 +385,7 @@ export default function Relatorios() {
       });
     }
     return days;
-  }, [filteredCargas, filteredEntregas, periodo]);
+  }, [filteredCargas, filteredEntregas, dateRange]);
 
   // Chart: Status distribution
   const statusChartData = useMemo(() => {
