@@ -1,21 +1,15 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Calendar } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { OperationalReport, GrowthReport, FinancialReport } from '@/components/admin/relatorios';
+import { DateRangePicker, getDefaultDateRange } from '@/components/relatorios/DateRangePicker';
 
 export default function Relatorios() {
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('6_months');
+  const [dateRange, setDateRange] = useState(getDefaultDateRange);
 
   // Operational data
   const [operationalData, setOperationalData] = useState({
@@ -116,7 +110,7 @@ export default function Relatorios() {
     }
 
     fetchReportData();
-  }, [selectedPeriod]);
+  }, [dateRange]);
 
   return (
     <div className="space-y-6">
@@ -129,17 +123,7 @@ export default function Relatorios() {
           </h1>
           <p className="text-sm text-muted-foreground">Análises e métricas da plataforma</p>
         </div>
-        <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-          <SelectTrigger className="w-[180px]">
-            <Calendar className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="3_months">Últimos 3 meses</SelectItem>
-            <SelectItem value="6_months">Últimos 6 meses</SelectItem>
-            <SelectItem value="12_months">Últimos 12 meses</SelectItem>
-          </SelectContent>
-        </Select>
+        <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
       </div>
 
       {/* Report Tabs */}

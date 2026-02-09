@@ -5,7 +5,6 @@ import {
   TrendingUp,
   TrendingDown,
   Download,
-  Calendar,
   Package,
   DollarSign,
   Truck,
@@ -20,13 +19,6 @@ import {
   Users
 } from 'lucide-react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { 
   BarChart, 
   Bar, 
   XAxis, 
@@ -43,7 +35,7 @@ import {
   ComposedChart,
   Line
 } from 'recharts';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -51,6 +43,7 @@ import { format, subDays, parseISO, subMonths, differenceInDays, differenceInHou
 import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
 import { ReportTabs, FinancialTab, PerformanceTab, OperationalTab } from '@/components/relatorios';
+import { DateRangePicker, getDefaultDateRange } from '@/components/relatorios/DateRangePicker';
 
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
@@ -95,31 +88,8 @@ const tipoVeiculoLabels: Record<string, string> = {
 };
 
 export default function TransportadoraRelatorios() {
-  const [periodo, setPeriodo] = useState('30dias');
+  const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const { empresa, filialAtiva } = useUserContext();
-
-  // Calculate date range based on period
-  const dateRange = useMemo(() => {
-    const now = new Date();
-    let start: Date;
-    switch (periodo) {
-      case '7dias':
-        start = subDays(now, 7);
-        break;
-      case '30dias':
-        start = subDays(now, 30);
-        break;
-      case '90dias':
-        start = subDays(now, 90);
-        break;
-      case 'ano':
-        start = subMonths(now, 12);
-        break;
-      default:
-        start = subDays(now, 30);
-    }
-    return { start, end: now };
-  }, [periodo]);
 
   // Fetch veiculos
   const { data: veiculos = [], isLoading: loadingVeiculos } = useQuery({
@@ -374,14 +344,15 @@ export default function TransportadoraRelatorios() {
 
   // Chart: Daily/Weekly activity
   const activityChartData = useMemo(() => {
+    const totalDays = differenceInDays(dateRange.end, dateRange.start) || 1;
+    const maxPoints = 30;
+    const step = Math.max(1, Math.ceil(totalDays / maxPoints));
     const days = [];
-    const interval = periodo === '7dias' ? 7 : periodo === '30dias' ? 30 : periodo === '90dias' ? 14 : 12;
-    const step = periodo === '90dias' ? 6 : periodo === 'ano' ? 30 : 1;
     
-    for (let i = interval - 1; i >= 0; i--) {
-      const date = subDays(new Date(), i * step);
+    for (let i = 0; i <= totalDays; i += step) {
+      const date = subDays(dateRange.end, totalDays - i);
       const dateStr = format(date, 'yyyy-MM-dd');
-      const dayName = format(date, periodo === '7dias' ? 'EEE' : 'dd/MM', { locale: ptBR });
+      const dayName = format(date, totalDays <= 7 ? 'EEE' : 'dd/MM', { locale: ptBR });
       
       const coletasCount = filteredEntregas.filter(e => {
         if (!e.coletado_em) return false;
@@ -409,7 +380,7 @@ export default function TransportadoraRelatorios() {
       });
     }
     return days;
-  }, [filteredEntregas, periodo]);
+  }, [filteredEntregas, dateRange]);
 
   // Chart: Status distribution
   const statusChartData = useMemo(() => {
@@ -621,18 +592,7 @@ export default function TransportadoraRelatorios() {
             <p className="text-muted-foreground">Analise o desempenho das suas operações de transporte</p>
           </div>
           <div className="flex gap-3">
-            <Select value={periodo} onValueChange={setPeriodo}>
-              <SelectTrigger className="w-[180px]">
-                <Calendar className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border-border z-50">
-                <SelectItem value="7dias">Últimos 7 dias</SelectItem>
-                <SelectItem value="30dias">Últimos 30 dias</SelectItem>
-                <SelectItem value="90dias">Últimos 90 dias</SelectItem>
-                <SelectItem value="ano">Este ano</SelectItem>
-              </SelectContent>
-            </Select>
+            <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
             <Button variant="outline" className="gap-2">
               <Download className="w-4 h-4" />
               Exportar
