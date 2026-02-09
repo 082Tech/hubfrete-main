@@ -159,9 +159,13 @@ export default function HistoricoEntregas() {
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
-  // Tracking map
-  const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
-  const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
+  // Tracking map (viagem-level)
+  const [trackingViagemId, setTrackingViagemId] = useState<string | null>(null);
+  const [trackingViagemInfo, setTrackingViagemInfo] = useState<{ motorista: string; placa: string; codigo: string } | null>(null);
+
+  // Viagem detail dialog
+  const [detailViagemOpen, setDetailViagemOpen] = useState(false);
+  const [selectedViagem, setSelectedViagem] = useState<ViagemHistorico | null>(null);
 
   const { data: viagens = [], isLoading } = useQuery({
     queryKey: ['historico_viagens_expandable', empresa?.id],
