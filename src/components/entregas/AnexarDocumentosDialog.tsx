@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Upload, FileText, Trash2, Eye, Plus, FileUp, Receipt, ClipboardList, Stamp } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, Eye, Plus, FileUp, Receipt, Stamp } from 'lucide-react';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -16,7 +16,6 @@ interface AnexarDocumentosDialogProps {
     cte_url?: string | null;
     numero_cte?: string | null;
     notas_fiscais_urls?: string[] | null;
-    manifesto_url?: string | null;
     canhoto_url?: string | null;
     carga?: {
       codigo?: string;
@@ -37,9 +36,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
   const [notasFiscaisUrls, setNotasFiscaisUrls] = useState<string[]>([]);
   const [notasFiscaisFiles, setNotasFiscaisFiles] = useState<File[]>([]);
   
-  // Manifesto state
-  const [manifestoFile, setManifestoFile] = useState<File | null>(null);
-  const [manifestoUrl, setManifestoUrl] = useState<string | null>(null);
   
   // Canhoto state
   const [canhotoFile, setCanhotoFile] = useState<File | null>(null);
@@ -54,7 +50,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
   // Refs
   const cteInputRef = useRef<HTMLInputElement>(null);
   const nfInputRef = useRef<HTMLInputElement>(null);
-  const manifestoInputRef = useRef<HTMLInputElement>(null);
   const canhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Reset state when dialog opens with new entrega
@@ -63,11 +58,9 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
       setCteUrl(entrega.cte_url || null);
       setNumeroCte(entrega.numero_cte || '');
       setNotasFiscaisUrls(entrega.notas_fiscais_urls || []);
-      setManifestoUrl(entrega.manifesto_url || null);
       setCanhotoUrl(entrega.canhoto_url || null);
       setCteFile(null);
       setNotasFiscaisFiles([]);
-      setManifestoFile(null);
       setCanhotoFile(null);
     }
   }, [entrega, open]);
@@ -103,13 +96,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
       }
     }
     setNotasFiscaisFiles(prev => [...prev, ...validFiles]);
-  };
-
-  const handleManifestoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file)) {
-      setManifestoFile(file);
-    }
   };
 
   const handleCanhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,12 +143,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
       }
       const finalNotasFiscaisUrls = [...notasFiscaisUrls, ...uploadedNfUrls];
 
-      // Upload Manifesto if there's a new file
-      let finalManifestoUrl = manifestoUrl;
-      if (manifestoFile) {
-        finalManifestoUrl = await uploadFile(manifestoFile, 'manifesto');
-      }
-
       // Upload Canhoto if there's a new file
       let finalCanhotoUrl = canhotoUrl;
       if (canhotoFile) {
@@ -176,7 +156,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
           cte_url: finalCteUrl,
           numero_cte: numeroCte || null,
           notas_fiscais_urls: finalNotasFiscaisUrls,
-          manifesto_url: finalManifestoUrl,
           canhoto_url: finalCanhotoUrl,
         })
         .eq('id', entrega.id);
@@ -398,81 +377,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Adicionar Nota Fiscal
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Separator />
-
-          {/* Manifesto Section */}
-          <Card>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <ClipboardList className="w-4 h-4 text-purple-600" />
-                Manifesto (MDF-e)
-              </div>
-              
-              <div className="space-y-2">
-                {manifestoUrl && !manifestoFile && (
-                  <div className="flex items-center justify-between p-3 border rounded-lg bg-purple-500/5 border-purple-500/20">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-purple-600" />
-                      <span className="text-sm font-medium text-purple-600">Manifesto anexado</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openPreview(manifestoUrl, 'Manifesto')}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Ver
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setManifestoUrl(null)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {manifestoFile && (
-                  <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5 border-primary/20">
-                    <div className="flex items-center gap-2">
-                      <Upload className="w-4 h-4 text-primary" />
-                      <span className="text-sm truncate max-w-[200px]">{manifestoFile.name}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setManifestoFile(null)}
-                      className="text-muted-foreground"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-
-                <input
-                  ref={manifestoInputRef}
-                  type="file"
-                  accept=".pdf,.xml,.jpg,.jpeg,.png"
-                  onChange={handleManifestoFileChange}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => manifestoInputRef.current?.click()}
-                  className="w-full"
-                >
-                  <FileUp className="w-4 h-4 mr-2" />
-                  {manifestoUrl || manifestoFile ? 'Substituir Manifesto' : 'Anexar Manifesto'}
                 </Button>
               </div>
             </CardContent>

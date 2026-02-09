@@ -892,7 +892,6 @@ function DetailPanel({
           cte_url: entrega.cte_url,
           numero_cte: entrega.numero_cte,
           notas_fiscais_urls: entrega.notas_fiscais_urls,
-          manifesto_url: entrega.manifesto_url,
           canhoto_url: entrega.canhoto_url,
           carga: { codigo: entrega.carga.codigo },
         }}
@@ -1887,9 +1886,17 @@ export default function OperacaoDiaria() {
   }, [selectedEntrega, localizacoes]);
 
   const handleStatusChange = (newStatus: string) => {
-    if (selectedEntrega) {
-      statusMutation.mutate({ entregaId: selectedEntrega.id, newStatus });
-      setSelectedEntrega(prev => prev ? { ...prev, status: newStatus } : null);
+    // In viagem view, the active entrega is selectedEntregaInViagem
+    const activeEntrega = selectedEntregaInViagem || selectedEntrega;
+    if (activeEntrega) {
+      statusMutation.mutate({ entregaId: activeEntrega.id, newStatus });
+      if (selectedEntregaInViagem) {
+        setSelectedEntregaInViagem(prev => prev ? { ...prev, status: newStatus } : null);
+        // Also refetch viagens to update the viagem's entrega statuses
+        refetchViagens();
+      } else {
+        setSelectedEntrega(prev => prev ? { ...prev, status: newStatus } : null);
+      }
     }
   };
 
