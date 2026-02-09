@@ -99,13 +99,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
     setNotasFiscaisFiles(prev => [...prev, ...validFiles]);
   };
 
-  const handleManifestoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file)) {
-      setManifestoFile(file);
-    }
-  };
-
   const handleCanhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && validateFile(file)) {
