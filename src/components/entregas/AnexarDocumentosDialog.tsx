@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Upload, FileText, Trash2, Eye, Plus, FileUp, Receipt, ClipboardList, Stamp } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, Eye, Plus, FileUp, Receipt, Stamp } from 'lucide-react';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { Card, CardContent } from '@/components/ui/card';
 
