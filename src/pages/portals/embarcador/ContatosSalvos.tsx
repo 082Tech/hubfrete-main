@@ -146,8 +146,8 @@ export default function ContatosSalvos() {
   });
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="space-y-6">
+    <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
+      <div className="flex flex-col gap-6 flex-1 min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
