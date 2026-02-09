@@ -14,7 +14,7 @@ import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
 import { AdvancedFiltersPopover, type AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import type { Database } from '@/integrations/supabase/types';
 
