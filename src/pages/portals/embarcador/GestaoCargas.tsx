@@ -40,6 +40,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
+import { DocumentButton } from '@/components/entregas/DocumentButton';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 
