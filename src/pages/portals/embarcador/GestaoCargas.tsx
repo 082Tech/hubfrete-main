@@ -504,11 +504,259 @@ function DetailPanel({
   );
 }
 
+// ==================== Map Dialog (simplified - no viagens, just motoristas) ====================
+function GestaoMapDialogContent({
+  entregas,
+  localizacoes,
+}: {
+  entregas: Entrega[];
+  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+}) {
+  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
+  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Group entregas by motorista
+  const motoristaGroups = useMemo(() => {
+    const groups: Record<string, { motorista: Entrega['motorista']; motorista_id: string; entregas: Entrega[] }> = {};
+    entregas.forEach(e => {
+      if (!e.motorista_id || !e.motorista) return;
+      if (!groups[e.motorista_id]) {
+        groups[e.motorista_id] = { motorista: e.motorista, motorista_id: e.motorista_id, entregas: [] };
+      }
+      groups[e.motorista_id].entregas.push(e);
+    });
+    return Object.values(groups);
+  }, [entregas]);
+
+  const filteredGroups = useMemo(() => {
+    if (!searchTerm.trim()) return motoristaGroups;
+    const term = searchTerm.toLowerCase();
+    return motoristaGroups.filter(g => {
+      const nome = g.motorista?.nome_completo?.toLowerCase() || '';
+      const temEntregaMatch = g.entregas.some(e =>
+        e.codigo?.toLowerCase().includes(term) ||
+        e.carga.endereco_origem?.cidade?.toLowerCase().includes(term) ||
+        e.carga.endereco_destino?.cidade?.toLowerCase().includes(term)
+      );
+      return nome.includes(term) || temEntregaMatch;
+    });
+  }, [motoristaGroups, searchTerm]);
+
+  const motoristaNames = useMemo(() => {
+    const names: Record<string, string> = {};
+    motoristaGroups.forEach(g => { names[g.motorista_id] = g.motorista?.nome_completo || 'Motorista'; });
+    return names;
+  }, [motoristaGroups]);
+
+  const motoristaInfo = useMemo(() => {
+    const info: Record<string, { nome: string; entregas: Array<{ id: string; codigo: string; status: string; origemCidade: string; destinoCidade: string; origemCoords: { lat: number; lng: number } | null; destinoCoords: { lat: number; lng: number } | null }>; isOnline: boolean; lastSeenAt?: string | null }> = {};
+    motoristaGroups.forEach(g => {
+      const loc = localizacoes.find(l => l.motorista_id === g.motorista_id);
+      info[g.motorista_id] = {
+        nome: g.motorista?.nome_completo || 'Motorista',
+        entregas: g.entregas.map(e => ({
+          id: e.id,
+          codigo: e.codigo || e.id.slice(0, 6),
+          status: e.status,
+          origemCidade: e.carga.endereco_origem?.cidade || 'N/A',
+          destinoCidade: e.carga.endereco_destino?.cidade || 'N/A',
+          origemCoords: e.carga.endereco_origem?.latitude && e.carga.endereco_origem?.longitude
+            ? { lat: e.carga.endereco_origem.latitude, lng: e.carga.endereco_origem.longitude } : null,
+          destinoCoords: e.carga.endereco_destino?.latitude && e.carga.endereco_destino?.longitude
+            ? { lat: e.carga.endereco_destino.latitude, lng: e.carga.endereco_destino.longitude } : null,
+        })),
+        isOnline: loc?.isOnline ?? false,
+        lastSeenAt: (loc as any)?.updated_at ?? null,
+      };
+    });
+    return info;
+  }, [motoristaGroups, localizacoes]);
+
+  const statusCounts = useMemo(() => {
+    let aguardando = 0, coleta = 0, entrega = 0, entregue = 0, cancelada = 0;
+    entregas.forEach(e => {
+      if (e.status === 'aguardando') aguardando++;
+      else if (e.status === 'saiu_para_coleta') coleta++;
+      else if (e.status === 'saiu_para_entrega') entrega++;
+      else if (e.status === 'entregue') entregue++;
+      else if (e.status === 'cancelada') cancelada++;
+    });
+    return { aguardando, coleta, entrega, entregue, cancelada };
+  }, [entregas]);
+
+  const selectedEntregaData = useMemo(() => {
+    if (!selectedEntregaId) return null;
+    const ent = entregas.find(e => e.id === selectedEntregaId);
+    if (!ent) return null;
+    return {
+      id: ent.id, codigo: ent.codigo, status: ent.status,
+      motoristaNome: ent.motorista?.nome_completo || 'Motorista',
+      motoristaFoto: ent.motorista?.foto_url,
+      carga: {
+        descricao: ent.carga.descricao, peso: ent.carga.peso_kg, tipo: ent.carga.tipo,
+        remetente: ent.carga.remetente_nome_fantasia || ent.carga.remetente_razao_social,
+        destinatario: ent.carga.destinatario_nome_fantasia || ent.carga.destinatario_razao_social,
+        origemCidade: ent.carga.endereco_origem?.cidade, origemEstado: ent.carga.endereco_origem?.estado,
+        destinoCidade: ent.carga.endereco_destino?.cidade, destinoEstado: ent.carga.endereco_destino?.estado,
+      },
+      pesoAlocado: ent.peso_alocado_kg, valorFrete: ent.valor_frete, numeroCte: ent.numero_cte,
+    };
+  }, [selectedEntregaId, entregas]);
+
+  const handleGroupClick = useCallback((motoristaId: string) => {
+    setSelectedMotoristaId(prev => {
+      if (prev === motoristaId) { setSelectedEntregaId(null); return null; }
+      const group = motoristaGroups.find(g => g.motorista_id === motoristaId);
+      if (group?.entregas.length) setSelectedEntregaId(group.entregas[0].id);
+      return motoristaId;
+    });
+  }, [motoristaGroups]);
+
+  return (
+    <>
+      <DialogHeader className="px-4 py-3 border-b">
+        <DialogTitle className="text-lg font-bold">Visualização Geral em Mapa</DialogTitle>
+      </DialogHeader>
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-[7] relative">
+          <GestaoLeafletMap
+            localizacoes={localizacoes}
+            selectedMotoristaId={selectedMotoristaId}
+            selectedEntregaId={selectedEntregaId}
+            onMotoristaClick={handleGroupClick}
+            onEntregaDeselect={() => setSelectedEntregaId(null)}
+            motoristaNames={motoristaNames}
+            motoristaInfo={motoristaInfo}
+            statusCounts={statusCounts}
+            selectedEntregaData={selectedEntregaData}
+          />
+        </div>
+        <div className="flex-[3] border-l flex flex-col bg-background">
+          <div className="px-3 py-2 border-b bg-muted/30 space-y-2">
+            <span className="text-sm font-medium">Motoristas ({filteredGroups.length})</span>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar motorista, cidade..."
+                className="pl-8 h-8 text-xs bg-background"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+          <ScrollArea className="flex-1">
+            {filteredGroups.length === 0 ? (
+              <EmptyColumnPlaceholder message="Nenhum motorista encontrado" />
+            ) : (
+              filteredGroups.map(group => {
+                const loc = localizacoes.find(l => l.motorista_id === group.motorista_id);
+                const isOnline = loc?.isOnline ?? false;
+                const isSelected = selectedMotoristaId === group.motorista_id;
+                const lastSeenAt = (loc as any)?.updated_at;
+                const lastSeenText = lastSeenAt
+                  ? formatDistanceToNow(new Date(lastSeenAt), { locale: ptBR, addSuffix: false })
+                  : null;
+
+                return (
+                  <div
+                    key={group.motorista_id}
+                    className={`px-3 py-2.5 border-b cursor-pointer transition-all hover:bg-muted/50 ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
+                    onClick={() => handleGroupClick(group.motorista_id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Avatar className="h-8 w-8">
+                          {group.motorista?.foto_url && <AvatarImage src={group.motorista.foto_url} />}
+                          <AvatarFallback className="text-xs">{group.motorista?.nome_completo?.[0]}</AvatarFallback>
+                        </Avatar>
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
+                          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isOnline
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                            {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isSelected && group.entregas.length > 0 && (
+                      <div className="mt-2 pl-10 space-y-2">
+                        {group.entregas.map(e => {
+                          const isEntregaSelected = selectedEntregaId === e.id;
+                          const sInfo = statusConfig[e.status];
+                          const SIcon = sInfo?.icon || Package;
+                          return (
+                            <div
+                              key={e.id}
+                              className={`p-2.5 rounded-lg cursor-pointer transition-all border ${isEntregaSelected ? 'bg-primary/5 border-primary/40 shadow-sm' : 'bg-muted/30 border-transparent hover:bg-muted/60'}`}
+                              onClick={(ev) => { ev.stopPropagation(); setSelectedEntregaId(e.id); }}
+                            >
+                              <div className="flex items-center justify-between mb-1.5">
+                                <Badge variant="outline" className={`text-[10px] px-2 py-0.5 font-mono ${isEntregaSelected ? 'border-primary text-primary bg-primary/5' : ''}`}>
+                                  {e.codigo}
+                                </Badge>
+                                {sInfo && (
+                                  <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 gap-1 ${sInfo.color}`}>
+                                    <SIcon className="w-2.5 h-2.5" />
+                                    {sInfo.label}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <MapPin className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
+                                <span className="truncate">{e.carga.endereco_origem?.cidade}/{e.carga.endereco_origem?.estado}</span>
+                                <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                                <MapPin className="w-3 h-3 text-red-500 dark:text-red-400 shrink-0" />
+                                <span className="truncate">{e.carga.endereco_destino?.cidade}/{e.carga.endereco_destino?.estado}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </ScrollArea>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function GestaoMapDialog({
+  open, onOpenChange, entregas, localizacoes,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  entregas: Entrega[];
+  localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0">
+        <GestaoMapDialogContent entregas={entregas} localizacoes={localizacoes} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ==================== Main Component ====================
 export default function GestaoCargas() {
   const { filialAtiva, switchingFilial } = useUserContext();
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [filters, setFilters] = useState<AdvancedFilters>({});
+  const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
 
   // Fetch entregas directly (not via cargas) filtered by embarcador's filial
   const { data: entregas = [], isLoading, refetch } = useQuery({
