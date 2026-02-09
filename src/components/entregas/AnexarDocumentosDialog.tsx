@@ -59,11 +59,9 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
       setCteUrl(entrega.cte_url || null);
       setNumeroCte(entrega.numero_cte || '');
       setNotasFiscaisUrls(entrega.notas_fiscais_urls || []);
-      setManifestoUrl(entrega.manifesto_url || null);
       setCanhotoUrl(entrega.canhoto_url || null);
       setCteFile(null);
       setNotasFiscaisFiles([]);
-      setManifestoFile(null);
       setCanhotoFile(null);
     }
   }, [entrega, open]);
