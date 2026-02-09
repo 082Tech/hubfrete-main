@@ -1,10 +1,12 @@
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  Users, 
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+  Users,
   Search,
   Mail,
   Edit,
@@ -20,11 +22,8 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight
+  RotateCcw,
 } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
-import { useViewModePreference } from '@/hooks/useViewModePreference';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,9 +49,14 @@ import { EditUserDialog } from '@/components/users/EditUserDialog';
 import { ManageInvitesCard } from '@/components/users/ManageInvitesCard';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
-
+import { useViewModePreference } from '@/hooks/useViewModePreference';
+import { useTableSort } from '@/hooks/useTableSort';
+import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColumns';
+import { DraggableTableHead } from '@/components/ui/draggable-table-head';
 
 type UserRole = 'ADMIN' | 'OPERADOR';
+
+const ITEMS_PER_PAGE = 12;
 
 interface UsuarioComFiliais {
   id: number;
@@ -74,18 +78,39 @@ const roleColors: Record<UserRole, string> = {
   OPERADOR: 'bg-green-500/10 text-green-600 border-green-500/20',
 };
 
-const ITEMS_PER_PAGE = 12;
+const columns: ColumnDefinition[] = [
+  { id: 'usuario', label: 'Usuário', minWidth: '200px', sticky: 'left', sortable: true, sortKey: 'nome' },
+  { id: 'email', label: 'E-mail', minWidth: '200px', sortable: true, sortKey: 'email' },
+  { id: 'cargo', label: 'Cargo', minWidth: '120px', sortable: true, sortKey: 'cargo' },
+  { id: 'filiais', label: 'Filiais', minWidth: '180px' },
+  { id: 'status', label: 'Status', minWidth: '100px' },
+  { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
+];
 
 export default function UsuariosEmpresa() {
   const { user } = useAuth();
   const { empresa, filiais: contextFiliais } = useUserContext();
   const [searchTerm, setSearchTerm] = useState('');
+  const { viewMode, setViewMode } = useViewModePreference();
+  const [currentPage, setCurrentPage] = useState(1);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UsuarioComFiliais | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
-  const { viewMode, setViewMode } = useViewModePreference();
-  const [currentPage, setCurrentPage] = useState(1);
 
+  const {
+    orderedColumns,
+    draggedColumn,
+    dragOverColumn,
+    handleDragStart,
+    handleDragEnd,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    resetColumnOrder,
+  } = useDraggableColumns({
+    columns,
+    persistKey: 'usuarios-empresa-embarcador-columns',
+  });
 
   // Fetch usuarios from the company
   const { data: usuarios = [], isLoading: loadingUsuarios, refetch: refetchUsuarios } = useQuery({
@@ -159,8 +184,8 @@ export default function UsuariosEmpresa() {
   const pendingInviteUsers: UsuarioComFiliais[] = invites
     .filter(inv => inv.status === 'pending')
     .map((inv, idx) => ({
-      id: -(idx + 1), // Negative ID to avoid collision
-      nome: inv.email.split('@')[0], // Use email prefix as name
+      id: -(idx + 1),
+      nome: inv.email.split('@')[0],
       email: inv.email,
       cargo: inv.role as UserRole,
       auth_user_id: null,
@@ -179,17 +204,32 @@ export default function UsuariosEmpresa() {
       (usuario.cargo && roleLabels[usuario.cargo]?.toLowerCase().includes(searchTerm.toLowerCase()))
     ), [allUsuarios, searchTerm]);
 
-  // Reset page when search changes
+  const sortFunctions = useMemo(() => ({
+    nome: (a: UsuarioComFiliais, b: UsuarioComFiliais) =>
+      (a.nome || '').localeCompare(b.nome || '', 'pt-BR'),
+    email: (a: UsuarioComFiliais, b: UsuarioComFiliais) =>
+      (a.email || '').localeCompare(b.email || '', 'pt-BR'),
+    cargo: (a: UsuarioComFiliais, b: UsuarioComFiliais) =>
+      (a.cargo || '').localeCompare(b.cargo || '', 'pt-BR'),
+  }), []);
+
+  const { sortedData, requestSort, getSortDirection } = useTableSort({
+    data: filteredUsuarios,
+    defaultSort: { key: 'nome', direction: 'asc' },
+    persistKey: 'usuarios-empresa-embarcador',
+    sortFunctions,
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
+  const paginatedUsuarios = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedData.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedData, currentPage]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredUsuarios.length / ITEMS_PER_PAGE);
-  const paginatedUsuarios = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredUsuarios.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredUsuarios, currentPage]);
 
   const handleDelete = async () => {
     if (!deletingUserId) return;
@@ -226,156 +266,140 @@ export default function UsuariosEmpresa() {
     pendingInvites: invites.filter(i => i.status === 'pending').length,
   };
 
-  // Render pagination
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-
-    const getPageNumbers = () => {
-      const pages: (number | 'ellipsis')[] = [];
-      
-      if (totalPages <= 7) {
-        for (let i = 1; i <= totalPages; i++) pages.push(i);
-      } else {
-        pages.push(1);
-        if (currentPage > 3) pages.push('ellipsis');
-        
-        const start = Math.max(2, currentPage - 1);
-        const end = Math.min(totalPages - 1, currentPage + 1);
-        
-        for (let i = start; i <= end; i++) pages.push(i);
-        
-        if (currentPage < totalPages - 2) pages.push('ellipsis');
-        pages.push(totalPages);
-      }
-      
-      return pages;
+  const getColumnIcon = (columnId: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      usuario: <Users className="w-3.5 h-3.5" />,
+      email: <Mail className="w-3.5 h-3.5" />,
+      cargo: <Shield className="w-3.5 h-3.5" />,
+      filiais: <MapPin className="w-3.5 h-3.5" />,
     };
-
-    return (
-      <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/30">
-        <div className="text-sm text-muted-foreground">
-          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredUsuarios.length)} de {filteredUsuarios.length}
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
-          >
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          
-          {getPageNumbers().map((page, idx) => 
-            page === 'ellipsis' ? (
-              <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
-            ) : (
-              <Button
-                key={page}
-                variant={currentPage === page ? 'default' : 'outline'}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage(page)}
-              >
-                {page}
-              </Button>
-            )
-          )}
-          
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
-          >
-            <ChevronsRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    );
+    return icons[columnId] || null;
   };
 
-  const UserCard = ({ usuario }: { usuario: UsuarioComFiliais }) => (
-    <Card className="border-border">
-      <CardContent className="p-6">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <Avatar className="w-12 h-12">
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+  const renderCell = (columnId: string, usuario: UsuarioComFiliais) => {
+    switch (columnId) {
+      case 'usuario':
+        return (
+          <td className="p-4 align-middle sticky left-0 bg-background z-10">
+            <div className="flex items-center gap-3">
+              <Avatar className="w-8 h-8">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  {(usuario.nome || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-medium text-nowrap">{usuario.nome || 'Sem nome'}</span>
+            </div>
+          </td>
+        );
+      case 'email':
+        return (
+          <td className="p-4 align-middle text-muted-foreground text-nowrap">
+            {usuario.email || '-'}
+          </td>
+        );
+      case 'cargo':
+        return (
+          <td className="p-4 align-middle">
+            {usuario.cargo && (
+              <Badge variant="outline" className={roleColors[usuario.cargo]}>
+                {roleLabels[usuario.cargo]}
+              </Badge>
+            )}
+          </td>
+        );
+      case 'filiais':
+        return (
+          <td className="p-4 align-middle text-muted-foreground">
+            <span className="truncate max-w-[180px] block">{getFilialNomes(usuario.filiais)}</span>
+          </td>
+        );
+      case 'status':
+        return (
+          <td className="p-4 align-middle">
+            {usuario.isPending ? (
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1">
+                <Clock className="w-3 h-3" />
+                Pendente
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                Ativo
+              </Badge>
+            )}
+          </td>
+        );
+      case 'acoes':
+        return (
+          <td className="p-4 align-middle sticky right-0 bg-background z-10">
+            {!usuario.isPending && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditingUser(usuario)}>
+                    <Edit className="w-4 h-4 mr-2" />Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDeletingUserId(usuario.id)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </td>
+        );
+      default:
+        return <td className="p-4 align-middle">-</td>;
+    }
+  };
+
+  const renderUserCard = (usuario: UsuarioComFiliais) => (
+    <Card key={usuario.id} className="border-border">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <Avatar className="w-10 h-10 shrink-0">
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
                 {(usuario.nome || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="space-y-1">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold text-foreground">{usuario.nome || 'Sem nome'}</h3>
+                <h3 className="font-semibold text-foreground truncate">{usuario.nome || 'Sem nome'}</h3>
                 {usuario.isPending && (
-                  <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1">
+                  <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 text-[10px]">
                     <Clock className="w-3 h-3" />
-                    Convite Pendente
+                    Pendente
                   </Badge>
                 )}
                 {usuario.cargo && !usuario.isPending && (
-                  <Badge variant="outline" className={roleColors[usuario.cargo]}>
+                  <Badge variant="outline" className={`${roleColors[usuario.cargo]} text-[10px]`}>
                     {roleLabels[usuario.cargo]}
                   </Badge>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                {usuario.email && (
-                  <div className="flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5" />
-                    {usuario.email}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground pt-1">
-                <MapPin className="w-3.5 h-3.5" />
-                <span>{getFilialNomes(usuario.filiais)}</span>
-              </div>
+              <p className="text-xs text-muted-foreground truncate">{usuario.email}</p>
+              <p className="text-xs text-muted-foreground truncate mt-1">{getFilialNomes(usuario.filiais)}</p>
             </div>
           </div>
           
           {!usuario.isPending && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="shrink-0">
+                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem 
-                  className="gap-2"
-                  onClick={() => setEditingUser(usuario)}
-                >
+                <DropdownMenuItem className="gap-2" onClick={() => setEditingUser(usuario)}>
                   <Edit className="w-4 h-4" />
                   Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="gap-2"
-                  onClick={() => setEditingUser(usuario)}
-                >
-                  <Shield className="w-4 h-4" />
-                  Alterar Permissões
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
@@ -394,10 +418,10 @@ export default function UsuariosEmpresa() {
   );
 
   return (
-    <div className="flex flex-col h-full p-4 md:p-8">
-      <div className="flex flex-col gap-6 flex-1 min-h-0">
+    <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
+      <div className="flex flex-col h-full gap-6 overflow-hidden">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Usuários da Empresa</h1>
             <p className="text-muted-foreground">Gerencie os usuários e suas permissões</p>
@@ -455,13 +479,12 @@ export default function UsuariosEmpresa() {
         </AlertDialog>
 
         {/* Pending Invites */}
-        <ManageInvitesCard 
-          invites={invites} 
-          onRefresh={refetchInvites} 
-        />
+        <div className="shrink-0">
+          <ManageInvitesCard invites={invites} onRefresh={refetchInvites} />
+        </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
           <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -517,8 +540,8 @@ export default function UsuariosEmpresa() {
         </div>
 
         {/* Search + View Toggle */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="relative max-w-md w-full">
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between shrink-0">
+          <div className="relative max-w-md flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
               placeholder="Buscar por nome, email ou cargo..." 
@@ -528,65 +551,209 @@ export default function UsuariosEmpresa() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('grid')}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
+            {viewMode === 'list' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={resetColumnOrder}
+                title="Restaurar ordem das colunas"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+            )}
+            <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'list' | 'grid')}>
+              <ToggleGroupItem value="list" aria-label="Visualização em lista">
+                <List className="w-4 h-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="grid" aria-label="Visualização em cards">
+                <LayoutGrid className="w-4 h-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
         </div>
 
         {/* Content */}
         {loadingUsuarios ? (
-          <div className="flex items-center justify-center h-32 flex-1">
+          <Card className="flex-1 flex items-center justify-center border-border">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : paginatedUsuarios.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 flex-1">
-            <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-medium text-foreground mb-1">
-              {searchTerm ? 'Nenhum usuário encontrado' : 'Nenhum usuário cadastrado'}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {searchTerm 
-                ? 'Tente ajustar os termos da busca' 
-                : 'Clique em "Convidar Usuário" para adicionar o primeiro'}
-            </p>
-          </div>
+          </Card>
+        ) : sortedData.length === 0 ? (
+          <Card className="flex-1 flex items-center justify-center border-border">
+            <CardContent className="text-center">
+              <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-medium text-foreground mb-1">
+                {searchTerm ? 'Nenhum usuário encontrado' : 'Nenhum usuário cadastrado'}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {searchTerm 
+                  ? 'Tente ajustar os termos da busca' 
+                  : 'Clique em "Convidar Usuário" para adicionar o primeiro'}
+              </p>
+            </CardContent>
+          </Card>
         ) : viewMode === 'list' ? (
-          <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
-            <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-auto p-4">
-                <div className="space-y-4">
-                  {paginatedUsuarios.map((usuario) => (
-                    <UserCard key={usuario.id} usuario={usuario} />
-                  ))}
-                </div>
+          <Card className="border-border flex flex-col flex-1 min-h-0">
+            <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
+              <div className="flex-1 min-h-0 overflow-auto">
+                <table className="w-full caption-bottom text-sm">
+                  <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
+                    <tr className="border-b transition-colors bg-muted/50">
+                      {orderedColumns.map((col) => (
+                        <DraggableTableHead
+                          key={col.id}
+                          columnId={col.id}
+                          isDragging={draggedColumn === col.id}
+                          isDragOver={dragOverColumn === col.id}
+                          isSticky={!!col.sticky}
+                          sortable={col.sortable}
+                          sortDirection={col.sortKey ? getSortDirection(col.sortKey) : null}
+                          onSort={col.sortKey ? () => requestSort(col.sortKey!) : undefined}
+                          onColumnDragStart={handleDragStart}
+                          onColumnDragEnd={handleDragEnd}
+                          onColumnDragOver={handleDragOver}
+                          onColumnDragLeave={handleDragLeave}
+                          onColumnDrop={handleDrop}
+                          className={`min-w-[${col.minWidth}] ${
+                            col.sticky === 'left' ? 'sticky left-0 bg-muted/50 z-10' :
+                            col.sticky === 'right' ? 'sticky right-0 bg-muted/50 z-10' : ''
+                          }`}
+                        >
+                          {getColumnIcon(col.id)}
+                          {col.label}
+                        </DraggableTableHead>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="[&_tr:last-child]:border-0">
+                    {paginatedUsuarios.map((usuario) => (
+                      <tr key={usuario.id} className="border-b transition-colors hover:bg-muted/30">
+                        {orderedColumns.map((col) => (
+                          <React.Fragment key={col.id}>
+                            {renderCell(col.id, usuario)}
+                          </React.Fragment>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              {renderPagination()}
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t px-4 py-3 shrink-0">
+                  <p className="text-sm text-muted-foreground">
+                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length} registros
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Anterior
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? 'default' : 'outline'}
+                            size="sm"
+                            className="w-8 h-8 p-0"
+                            onClick={() => setCurrentPage(pageNum)}
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Próximo
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (
+          /* Grid View */
           <div className="flex flex-col flex-1 min-h-0 overflow-auto">
             <div className="flex-1 overflow-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {paginatedUsuarios.map((usuario) => (
-                  <UserCard key={usuario.id} usuario={usuario} />
-                ))}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {paginatedUsuarios.map(renderUserCard)}
               </div>
             </div>
+            
+            {/* Pagination for Grid */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4">
-                {renderPagination()}
+              <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4 shrink-0">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length} registros
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Anterior
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? 'default' : 'outline'}
+                          size="sm"
+                          className="w-8 h-8 p-0"
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próximo
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
