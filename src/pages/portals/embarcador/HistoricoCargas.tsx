@@ -193,11 +193,6 @@ export default function HistoricoCargas() {
   const [selectedEntrega, setSelectedEntrega] = useState<EntregaData | null>(null);
   const [selectedEntregaCarga, setSelectedEntregaCarga] = useState<CargaData | null>(null);
 
-  const { ref: tableCardRef, height: tableCardHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    // desconta padding inferior da página (p-4 = 16, p-8 = 32 no md)
-    bottomOffset: 32,
-    minHeight: 320,
-  });
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
   useEffect(() => {
