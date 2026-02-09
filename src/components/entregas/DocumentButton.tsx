@@ -1,0 +1,165 @@
+import { useRef, useState } from 'react';
+import { CheckCircle, XCircle, Upload, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+type DocType = 'nfe' | 'cte' | 'canhoto';
+
+interface DocumentButtonProps {
+  /** Document type */
+  type: DocType;
+  /** Whether the document is already attached */
+  hasDoc: boolean;
+  /** Number of attached docs (only for NF-e which supports multiple) */
+  count?: number;
+  /** Whether the current user role can attach this document */
+  canAttach: boolean;
+  /** Called when user clicks to view an existing doc */
+  onView: () => void;
+  /** Entrega ID for upload path */
+  entregaId: string;
+  /** Called after successful upload */
+  onUploaded: () => void;
+}
+
+const docLabels: Record<DocType, string> = {
+  nfe: 'NF',
+  cte: 'CT-e',
+  canhoto: 'Canhoto',
+};
+
+const uploadPrefixes: Record<DocType, { prefix: string; folder?: string }> = {
+  nfe: { prefix: 'nota_fiscal' },
+  cte: { prefix: 'cte' },
+  canhoto: { prefix: 'canhoto', folder: 'canhotos' },
+};
+
+export function DocumentButton({
+  type,
+  hasDoc,
+  count,
+  canAttach,
+  onView,
+  entregaId,
+  onUploaded,
+}: DocumentButtonProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const label = type === 'nfe' && count !== undefined
+    ? `${docLabels[type]} (${count})`
+    : docLabels[type];
+
+  const handleClick = () => {
+    if (hasDoc) {
+      onView();
+    } else if (canAttach && !uploading) {
+      inputRef.current?.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate
+    const allowedTypes = ['application/pdf', 'application/xml', 'text/xml', 'image/jpeg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Tipo não permitido. Use PDF, XML, JPG ou PNG.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Máximo 10MB.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { prefix, folder } = uploadPrefixes[type];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${prefix}_${entregaId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = folder ? `${folder}/${fileName}` : `${prefix}s/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('notas-fiscais')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Update entrega record
+      let updatePayload: Record<string, any> = {};
+
+      if (type === 'cte') {
+        updatePayload = { cte_url: filePath };
+      } else if (type === 'canhoto') {
+        updatePayload = { canhoto_url: filePath };
+      } else if (type === 'nfe') {
+        // Append to existing array
+        const { data: current } = await supabase
+          .from('entregas')
+          .select('notas_fiscais_urls')
+          .eq('id', entregaId)
+          .single();
+        const existing = current?.notas_fiscais_urls || [];
+        updatePayload = { notas_fiscais_urls: [...existing, filePath] };
+      }
+
+      const { error: dbError } = await supabase
+        .from('entregas')
+        .update(updatePayload)
+        .eq('id', entregaId);
+
+      if (dbError) throw dbError;
+
+      toast.success(`${docLabels[type]} anexado com sucesso!`);
+      onUploaded();
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      toast.error(`Erro ao anexar ${docLabels[type]}: ${err.message}`);
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  // Determine visual state
+  const isClickable = hasDoc || (canAttach && !uploading);
+  const showUploadHint = !hasDoc && canAttach;
+
+  const bgClass = hasDoc
+    ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer'
+    : showUploadHint
+      ? 'bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:hover:bg-amber-900/30 cursor-pointer'
+      : 'bg-muted/30 border-muted cursor-not-allowed';
+
+  return (
+    <>
+      <button
+        onClick={handleClick}
+        disabled={!isClickable}
+        className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${bgClass}`}
+      >
+        {uploading ? (
+          <Loader2 className="w-3 h-3 animate-spin text-primary" />
+        ) : hasDoc ? (
+          <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+        ) : showUploadHint ? (
+          <Upload className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+        ) : (
+          <XCircle className="w-3 h-3 text-muted-foreground" />
+        )}
+        <span>{label}</span>
+      </button>
+
+      {canAttach && (
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf,.xml,.jpg,.jpeg,.png"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+      )}
+    </>
+  );
+}
