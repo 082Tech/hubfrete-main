@@ -59,6 +59,14 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle },
 };
 
+interface EntregaEvento {
+  id: string;
+  tipo: string;
+  timestamp: string;
+  observacao: string | null;
+  user_nome: string | null;
+}
+
 interface Entrega {
   id: string;
   codigo: string;
@@ -76,6 +84,7 @@ interface Entrega {
   canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
+  eventos?: EntregaEvento[];
   carga: {
     id: string;
     codigo: string;
