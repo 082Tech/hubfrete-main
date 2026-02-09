@@ -125,7 +125,11 @@ interface ResumoSectionProps {
     peso_kg: number;
     volume_m3?: number;
     valor_mercadoria?: number;
+    tipo_precificacao?: string;
     valor_frete_tonelada?: number;
+    valor_frete_m3?: number;
+    valor_frete_fixo?: number;
+    valor_frete_km?: number;
     data_coleta_de: string;
     data_coleta_ate?: string;
     data_entrega_limite?: string;
