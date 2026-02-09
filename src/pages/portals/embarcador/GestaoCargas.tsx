@@ -729,10 +729,25 @@ export default function GestaoCargas() {
           </span>
         </TableCell>
         <TableCell className="py-2.5">
-          <Badge className={`${statusConfig?.color || ''} text-xs gap-1`}>
-            <StatusIcon className="w-3 h-3" />
-            {statusConfig?.label || status}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge className={`${statusConfig?.color || ''} text-xs gap-1`}>
+              <StatusIcon className="w-3 h-3" />
+              {statusConfig?.label || status}
+            </Badge>
+            {nfePending && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 text-amber-600 border-amber-400 gap-0.5">
+                    <AlertTriangle className="w-2.5 h-2.5" />
+                    NF-e
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">NF-e pendente — o motorista não pode sair para entrega sem ela</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </TableCell>
         {/* Documentos - Click to view (embarcador = view only) */}
         <TableCell className="py-2.5">
