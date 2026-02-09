@@ -669,7 +669,7 @@ export default function Configuracoes() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="h-full overflow-auto p-4 md:p-8">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

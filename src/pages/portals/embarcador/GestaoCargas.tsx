@@ -22,6 +22,7 @@ import {
   XCircle,
   Loader2,
   ArrowRight,
+  ArrowLeftRight,
   MessageCircle,
   RefreshCw,
   History,
@@ -58,6 +59,14 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle },
 };
 
+interface EntregaEvento {
+  id: string;
+  tipo: string;
+  timestamp: string;
+  observacao: string | null;
+  user_nome: string | null;
+}
+
 interface Entrega {
   id: string;
   codigo: string;
@@ -75,6 +84,7 @@ interface Entrega {
   canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
+  eventos?: EntregaEvento[];
   carga: {
     id: string;
     codigo: string;
@@ -482,6 +492,79 @@ function DetailPanel({
               </CardContent>
             </Card>
           )}
+          {/* History Timeline */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <History className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium text-sm">Histórico</span>
+            </div>
+
+            {entrega.eventos && entrega.eventos.length > 0 ? (
+              <div className="relative">
+                <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-border" />
+                <div className="space-y-4">
+                  {entrega.eventos.slice(0, 5).map((evento) => {
+                    const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean; isCreation?: boolean }> = {
+                      criado: { label: 'Entrega criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
+                      aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
+                      inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
+                      inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+                      finalizado: { label: 'Entregue', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+                      cancelado: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+                      problema: { label: 'Problema', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
+                      documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
+                      cte_anexado: { label: 'CT-e anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
+                      manifesto_anexado: { label: 'Manifesto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
+                      canhoto_anexado: { label: 'Canhoto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
+                      nf_anexada: { label: 'Nota Fiscal anexada', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
+                    };
+
+                    const config = tipoConfig[evento.tipo] || { label: evento.tipo.replace(/_/g, ' '), bgColor: 'bg-muted dark:bg-muted/50' };
+                    const userName = evento.user_nome || 'Sistema';
+                    const isDocument = config.isDocument || evento.tipo.includes('documento') || evento.tipo.includes('anexa');
+                    const isCreation = config.isCreation;
+
+                    return (
+                      <div key={evento.id} className="relative flex items-start gap-3">
+                        <div className={`relative z-10 w-8 h-8 rounded-md ${config.bgColor} flex items-center justify-center shrink-0`}>
+                          {isDocument ? (
+                            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          ) : isCreation ? (
+                            <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          ) : (
+                            <ArrowLeftRight className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
+                              evento.tipo === 'inicio_coleta' ? 'text-cyan-600 dark:text-cyan-400' :
+                                evento.tipo === 'inicio_rota' ? 'text-purple-600 dark:text-purple-400' :
+                                  evento.tipo === 'finalizado' ? 'text-green-600 dark:text-green-400' :
+                                    evento.tipo === 'cancelado' ? 'text-red-600 dark:text-red-400' :
+                                      evento.tipo === 'problema' ? 'text-orange-600 dark:text-orange-400' :
+                                        'text-muted-foreground'
+                              }`} />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 pt-1">
+                          <p className="text-sm">
+                            <span className="font-medium">{userName}</span>
+                            <span className="text-muted-foreground">
+                              {isCreation ? ' criou esta entrega' : isDocument ? ' anexou ' : ' definiu o status como '}
+                            </span>
+                            {!isCreation && <span className="font-medium">{config.label}</span>}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {format(new Date(evento.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-3">
+                Nenhum evento registrado
+              </p>
+            )}
+          </div>
         </div>
       </ScrollArea>
 
@@ -795,13 +878,28 @@ export default function GestaoCargas() {
       const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'];
       const terminalStatuses = ['entregue', 'cancelada'];
 
-      return (data || []).filter(e => {
+      const filtered = (data || []).filter(e => {
         if (pendingStatuses.includes(e.status)) return true;
         if (terminalStatuses.includes(e.status)) {
           return new Date(e.updated_at) >= new Date(startOfToday);
         }
         return false;
-      }) as Entrega[];
+      });
+
+      // Fetch eventos for each entrega
+      const entregasWithEvents = await Promise.all(
+        filtered.map(async (entrega) => {
+          const { data: eventos } = await supabase
+            .from('entrega_eventos')
+            .select('id, tipo, timestamp, observacao, user_nome')
+            .eq('entrega_id', entrega.id)
+            .order('timestamp', { ascending: true })
+            .limit(10);
+          return { ...entrega, eventos: eventos || [] };
+        })
+      );
+
+      return entregasWithEvents as Entrega[];
     },
     enabled: !!filialAtiva?.id,
     refetchInterval: 60000,

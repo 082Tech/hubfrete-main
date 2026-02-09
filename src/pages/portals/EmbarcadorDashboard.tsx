@@ -150,7 +150,7 @@ export default function EmbarcadorDashboard() {
       setChatMessage('');
     }
   };
-  return <div className="p-4 md:p-8">
+  return <div className="h-full overflow-auto p-4 md:p-8">
       <div className="space-y-6">
         {/* Welcome Header */}
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">

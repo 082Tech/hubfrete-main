@@ -714,41 +714,48 @@ export default function GerenciarFiliais() {
           </div>
         </div>
 
-        {/* Content with fixed height */}
-        <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
-          <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-auto p-4">
-              {paginatedFiliais.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-medium text-foreground mb-1">
-                    {searchTerm ? 'Nenhuma filial encontrada' : 'Nenhuma filial cadastrada'}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {searchTerm 
-                      ? 'Tente ajustar os termos da busca' 
-                      : 'Clique em "Nova Filial" para cadastrar a primeira'}
-                  </p>
-                </div>
-              ) : viewMode === 'list' ? (
+        {/* Content */}
+        {paginatedFiliais.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 flex-1">
+            <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="font-medium text-foreground mb-1">
+              {searchTerm ? 'Nenhuma filial encontrada' : 'Nenhuma filial cadastrada'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {searchTerm 
+                ? 'Tente ajustar os termos da busca' 
+                : 'Clique em "Nova Filial" para cadastrar a primeira'}
+            </p>
+          </div>
+        ) : viewMode === 'list' ? (
+          <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-auto p-4">
                 <div className="space-y-4">
                   {paginatedFiliais.map((filial) => (
                     <FilialCard key={filial.id} filial={filial} />
                   ))}
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {paginatedFiliais.map((filial) => (
-                    <FilialCard key={filial.id} filial={filial} />
-                  ))}
-                </div>
-              )}
+              </div>
+              {renderPagination()}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex flex-col flex-1 min-h-0 overflow-auto">
+            <div className="flex-1 overflow-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {paginatedFiliais.map((filial) => (
+                  <FilialCard key={filial.id} filial={filial} />
+                ))}
+              </div>
             </div>
-            
-            {/* Pagination */}
-            {renderPagination()}
-          </CardContent>
-        </Card>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4">
+                {renderPagination()}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

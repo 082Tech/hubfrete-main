@@ -545,49 +545,52 @@ export default function UsuariosEmpresa() {
           </div>
         </div>
 
-        {/* Content with fixed height */}
-        <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
-          <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
-            {loadingUsuarios ? (
-              <div className="flex items-center justify-center h-32 flex-1">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                <div className="flex-1 overflow-auto p-4">
-                  {paginatedUsuarios.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="font-medium text-foreground mb-1">
-                        {searchTerm ? 'Nenhum usuário encontrado' : 'Nenhum usuário cadastrado'}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {searchTerm 
-                          ? 'Tente ajustar os termos da busca' 
-                          : 'Clique em "Convidar Usuário" para adicionar o primeiro'}
-                      </p>
-                    </div>
-                  ) : viewMode === 'list' ? (
-                    <div className="space-y-4">
-                      {paginatedUsuarios.map((usuario) => (
-                        <UserCard key={usuario.id} usuario={usuario} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {paginatedUsuarios.map((usuario) => (
-                        <UserCard key={usuario.id} usuario={usuario} />
-                      ))}
-                    </div>
-                  )}
+        {/* Content */}
+        {loadingUsuarios ? (
+          <div className="flex items-center justify-center h-32 flex-1">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : paginatedUsuarios.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 flex-1">
+            <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="font-medium text-foreground mb-1">
+              {searchTerm ? 'Nenhum usuário encontrado' : 'Nenhum usuário cadastrado'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {searchTerm 
+                ? 'Tente ajustar os termos da busca' 
+                : 'Clique em "Convidar Usuário" para adicionar o primeiro'}
+            </p>
+          </div>
+        ) : viewMode === 'list' ? (
+          <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-auto p-4">
+                <div className="space-y-4">
+                  {paginatedUsuarios.map((usuario) => (
+                    <UserCard key={usuario.id} usuario={usuario} />
+                  ))}
                 </div>
-
-                {/* Pagination */}
+              </div>
+              {renderPagination()}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex flex-col flex-1 min-h-0 overflow-auto">
+            <div className="flex-1 overflow-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {paginatedUsuarios.map((usuario) => (
+                  <UserCard key={usuario.id} usuario={usuario} />
+                ))}
+              </div>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4">
                 {renderPagination()}
-              </>
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
     </div>
   );
