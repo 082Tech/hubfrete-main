@@ -1,25 +1,16 @@
-import React, { useMemo, useState, useEffect, lazy, Suspense } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-// Table components not used - using native HTML for sticky headers
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
-import { useTableSort } from '@/hooks/useTableSort';
-import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColumns';
-import { DraggableTableHead } from '@/components/ui/draggable-table-head';
 import { AdvancedFiltersPopover, type AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import type { Database } from '@/integrations/supabase/types';
-import { 
-  Building2, 
-  Calendar, 
-  Package, 
-  Truck, 
-  CheckCircle, 
+import {
+  Package,
+  Truck,
+  CheckCircle,
   AlertTriangle,
   MapPin,
   ArrowRight,
@@ -34,7 +25,15 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
-  RotateCcw,
+  ChevronDown,
+  Calendar,
+  FileCheck,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ChevronsLeft,
+  ChevronsRight,
+  Loader2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -48,37 +47,25 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
-import { useNavigate } from 'react-router-dom';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
-import HistoricoViagens from '@/components/historico/HistoricoViagens';
-
-type ViewMode = 'entregas' | 'viagens';
-
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
-interface EntregaHistorico {
+interface EntregaInViagem {
   id: string;
   codigo: string | null;
   status: StatusEntrega | null;
-  updated_at: string | null;
-  entregue_em: string | null;
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   cte_url: string | null;
   numero_cte: string | null;
   notas_fiscais_urls: string[] | null;
-  manifesto_url: string | null;
-  canhoto_url?: string | null;
+  canhoto_url: string | null;
+  entregue_em: string | null;
+  updated_at: string | null;
   motorista: {
     id: string;
     nome_completo: string;
@@ -101,268 +88,299 @@ interface EntregaHistorico {
   };
 }
 
-const finalizedStatuses: StatusEntrega[] = ['entregue', 'problema', 'cancelada'];
+interface ViagemHistorico {
+  id: string;
+  codigo: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  ended_at: string | null;
+  manifesto_url: string | null;
+  km_total: number | null;
+  motorista: {
+    id: string;
+    nome_completo: string;
+    telefone: string | null;
+  } | null;
+  veiculo: {
+    placa: string;
+    tipo: string;
+  } | null;
+  entregas: EntregaInViagem[];
+}
 
-const statusConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
-  'entregue': {
+const viagemStatusConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
+  finalizada: {
     color: 'bg-green-500/10 text-green-600 border-green-500/20',
-    label: 'Entregue',
-    icon: CheckCircle
+    label: 'Finalizada',
+    icon: CheckCircle,
   },
-  'problema': {
-    color: 'bg-destructive/10 text-destructive border-destructive/20',
-    label: 'Problema',
-    icon: AlertTriangle
-  },
-  'cancelada': {
+  cancelada: {
     color: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
     label: 'Cancelada',
-    icon: Ban
+    icon: Ban,
   },
+};
+
+const entregaStatusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
+  saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
+  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
+  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle },
+  problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle },
+  cancelada: { label: 'Cancelada', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: Ban },
 };
 
 const ITEMS_PER_PAGE = 15;
 
-// Column definitions
-const columns: ColumnDefinition[] = [
-  { id: 'codigo', label: 'Código', minWidth: '100px', sticky: 'left', sortable: true, sortKey: 'codigo' },
-  { id: 'remetente', label: 'Remetente', minWidth: '160px', sortable: true, sortKey: 'remetente' },
-  { id: 'destinatario', label: 'Destinatário', minWidth: '160px', sortable: true, sortKey: 'destinatario' },
-  { id: 'rota', label: 'Rota', minWidth: '180px' },
-  { id: 'peso', label: 'Peso', minWidth: '80px', sortable: true, sortKey: 'peso' },
-  { id: 'motorista', label: 'Motorista', minWidth: '130px', sortable: true, sortKey: 'motorista' },
-  { id: 'status', label: 'Status', minWidth: '120px', sortable: true, sortKey: 'status' },
-  { id: 'numero_cte', label: 'N° CT-e', minWidth: '100px' },
-  { id: 'docs', label: 'Docs', minWidth: '80px' },
-  { id: 'encerrada_em', label: 'Encerrada em', minWidth: '110px', sortable: true, sortKey: 'encerrada_em' },
-  { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
-];
+type SortField = 'encerrada_em' | 'codigo' | 'motorista' | 'entregas' | 'km';
+type SortOrder = 'asc' | 'desc';
 
 export default function HistoricoEntregas() {
   const { empresa } = useUserContext();
-  const navigate = useNavigate();
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
-  const [viewMode, setViewMode] = useState<ViewMode>('viagens');
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState<SortField>('encerrada_em');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  // Entrega details
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [selectedEntrega, setSelectedEntrega] = useState<EntregaHistorico | null>(null);
-  const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
-  const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
+  const [selectedEntrega, setSelectedEntrega] = useState<EntregaInViagem | null>(null);
+
+  // File preview
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
   const [filePreviewTitle, setFilePreviewTitle] = useState('Documento');
-  const [currentPage, setCurrentPage] = useState(1);
-  
-  // Chat sheet state
+
+  // Chat sheet
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
+  // Tracking map
+  const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
+  const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
 
-  // Draggable columns hook
-  const {
-    orderedColumns,
-    draggedColumn,
-    dragOverColumn,
-    handleDragStart,
-    handleDragEnd,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    resetColumnOrder,
-  } = useDraggableColumns({
-    columns,
-    persistKey: 'historico-entregas-columns',
-  });
-
-  const { data: entregas = [], isLoading } = useQuery({
-    queryKey: ['historico_entregas_transportadora', empresa?.id],
+  const { data: viagens = [], isLoading } = useQuery({
+    queryKey: ['historico_viagens_expandable', empresa?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
 
-      const { data: motoristasData, error: motoristasError } = await supabase
+      const { data: motoristasData } = await supabase
         .from('motoristas')
         .select('id')
         .eq('empresa_id', empresa.id);
 
-      if (motoristasError) throw motoristasError;
-
       const motoristaIds = (motoristasData || []).map((m) => m.id);
       if (motoristaIds.length === 0) return [];
 
-      const { data, error } = await supabase
-        .from('entregas')
-        .select(
-          `
-          id,
-          codigo,
-          status,
-          updated_at,
-          entregue_em,
-          peso_alocado_kg,
-          valor_frete,
-          cte_url,
-          numero_cte,
-          notas_fiscais_urls,
-          manifesto_url,
-          canhoto_url,
+      // Fetch finalized viagens
+      const { data: viagensData, error } = await supabase
+        .from('viagens')
+        .select(`
+          id, codigo, status, created_at, updated_at, ended_at,
+          manifesto_url, km_total,
           motorista:motoristas(id, nome_completo, telefone),
-          veiculo:veiculos(placa, tipo),
-          carga:cargas(
-            id,
-            codigo,
-            descricao,
-            peso_kg,
-            destinatario_nome_fantasia,
-            destinatario_razao_social,
-            endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro),
-            endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro),
-            empresa:empresas!cargas_empresa_id_fkey(nome)
-          )
-        `
-        )
+          veiculo:veiculos(placa, tipo)
+        `)
         .in('motorista_id', motoristaIds)
-        .in('status', finalizedStatuses)
+        .in('status', ['finalizada', 'cancelada'])
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as EntregaHistorico[];
+
+      const viagemIds = (viagensData || []).map(v => v.id);
+      if (viagemIds.length === 0) return [];
+
+      // Fetch viagem_entregas links
+      const { data: veLinks } = await supabase
+        .from('viagem_entregas')
+        .select('viagem_id, entrega_id')
+        .in('viagem_id', viagemIds);
+
+      const entregaIds = (veLinks || []).map(l => l.entrega_id);
+
+      let entregasMap: Record<string, EntregaInViagem> = {};
+      if (entregaIds.length > 0) {
+        const { data: entregasData } = await supabase
+          .from('entregas')
+          .select(`
+            id, codigo, status, peso_alocado_kg, valor_frete,
+            cte_url, numero_cte, notas_fiscais_urls, canhoto_url,
+            entregue_em, updated_at,
+            motorista:motoristas(id, nome_completo, telefone),
+            veiculo:veiculos(placa, tipo),
+            carga:cargas(
+              id, codigo, descricao, peso_kg,
+              destinatario_nome_fantasia, destinatario_razao_social,
+              empresa:empresas!cargas_empresa_id_fkey(nome),
+              endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro),
+              endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro)
+            )
+          `)
+          .in('id', entregaIds);
+
+        (entregasData || []).forEach(e => {
+          entregasMap[e.id] = e as unknown as EntregaInViagem;
+        });
+      }
+
+      // Build viagem → entregas mapping
+      const viagemEntregasMap: Record<string, EntregaInViagem[]> = {};
+      (veLinks || []).forEach(link => {
+        if (!viagemEntregasMap[link.viagem_id]) viagemEntregasMap[link.viagem_id] = [];
+        const entrega = entregasMap[link.entrega_id];
+        if (entrega) viagemEntregasMap[link.viagem_id].push(entrega);
+      });
+
+      return (viagensData || []).map(v => ({
+        ...v,
+        entregas: viagemEntregasMap[v.id] || [],
+      })) as ViagemHistorico[];
     },
     enabled: !!empresa?.id,
   });
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    return {
-      total: entregas.length,
-      entregue: entregas.filter(e => e.status === 'entregue').length,
-      cancelada: entregas.filter(e => e.status === 'cancelada').length,
-      problema: entregas.filter(e => e.status === 'problema').length,
-    };
-  }, [entregas]);
+  // Stats
+  const stats = useMemo(() => ({
+    total: viagens.length,
+    finalizada: viagens.filter(v => v.status === 'finalizada').length,
+    cancelada: viagens.filter(v => v.status === 'cancelada').length,
+    totalEntregas: viagens.reduce((acc, v) => acc + v.entregas.length, 0),
+  }), [viagens]);
 
-  // Get unique motoristas for filter dropdown
-  const motoristasUnicos = useMemo(() => {
-    const motoristasSet = new Map<string, string>();
-    entregas.forEach(e => {
-      if (e.motorista?.nome_completo) {
-        motoristasSet.set(e.motorista.id, e.motorista.nome_completo);
-      }
-    });
-    return Array.from(motoristasSet.entries()).map(([id, nome]) => ({ id, nome }));
-  }, [entregas]);
-
+  // Filtering
   const filtered = useMemo(() => {
-    let result = entregas;
-    
-    // Apply status filter
+    let result = viagens;
+
     if (selectedStatus) {
-      result = result.filter(e => e.status === selectedStatus);
+      result = result.filter(v => v.status === selectedStatus);
     }
 
-    // Apply advanced filters
     if (advancedFilters.codigo) {
       const q = advancedFilters.codigo.toLowerCase();
-      result = result.filter(e => 
-        e.carga.codigo.toLowerCase().includes(q) ||
-        (e.codigo || '').toLowerCase().includes(q)
-      );
-    }
-
-    if (advancedFilters.destinatario) {
-      const q = advancedFilters.destinatario.toLowerCase();
-      result = result.filter(e => 
-        (e.carga.destinatario_nome_fantasia || '').toLowerCase().includes(q) ||
-        (e.carga.destinatario_razao_social || '').toLowerCase().includes(q)
-      );
-    }
-
-    if (advancedFilters.embarcador) {
-      const q = advancedFilters.embarcador.toLowerCase();
-      result = result.filter(e => 
-        (e.carga.empresa?.nome || '').toLowerCase().includes(q)
+      result = result.filter(v =>
+        v.codigo.toLowerCase().includes(q) ||
+        v.entregas.some(e => (e.codigo || '').toLowerCase().includes(q) || e.carga.codigo.toLowerCase().includes(q))
       );
     }
 
     if (advancedFilters.motorista) {
       const q = advancedFilters.motorista.toLowerCase();
-      result = result.filter(e => 
-        (e.motorista?.nome_completo || '').toLowerCase().includes(q)
+      result = result.filter(v =>
+        (v.motorista?.nome_completo || '').toLowerCase().includes(q)
       );
     }
 
     if (advancedFilters.cidadeOrigem) {
       const q = advancedFilters.cidadeOrigem.toLowerCase();
-      result = result.filter(e => 
-        e.carga.endereco_origem?.cidade?.toLowerCase().includes(q)
+      result = result.filter(v =>
+        v.entregas.some(e => e.carga.endereco_origem?.cidade?.toLowerCase().includes(q))
       );
     }
 
     if (advancedFilters.cidadeDestino) {
       const q = advancedFilters.cidadeDestino.toLowerCase();
-      result = result.filter(e => 
-        e.carga.endereco_destino?.cidade?.toLowerCase().includes(q)
+      result = result.filter(v =>
+        v.entregas.some(e => e.carga.endereco_destino?.cidade?.toLowerCase().includes(q))
       );
     }
 
-    // Apply date filters from advanced filters
+    if (advancedFilters.embarcador) {
+      const q = advancedFilters.embarcador.toLowerCase();
+      result = result.filter(v =>
+        v.entregas.some(e => (e.carga.empresa?.nome || '').toLowerCase().includes(q))
+      );
+    }
+
+    if (advancedFilters.destinatario) {
+      const q = advancedFilters.destinatario.toLowerCase();
+      result = result.filter(v =>
+        v.entregas.some(e =>
+          (e.carga.destinatario_nome_fantasia || '').toLowerCase().includes(q) ||
+          (e.carga.destinatario_razao_social || '').toLowerCase().includes(q)
+        )
+      );
+    }
+
     if (advancedFilters.dateFrom) {
       const fromDate = new Date(advancedFilters.dateFrom);
       fromDate.setHours(0, 0, 0, 0);
-      result = result.filter(e => {
-        const entregaDate = new Date(e.entregue_em || e.updated_at || Date.now());
-        return entregaDate >= fromDate;
-      });
+      result = result.filter(v => new Date(v.ended_at || v.updated_at) >= fromDate);
     }
-    
+
     if (advancedFilters.dateTo) {
       const toDate = new Date(advancedFilters.dateTo);
       toDate.setHours(23, 59, 59, 999);
-      result = result.filter(e => {
-        const entregaDate = new Date(e.entregue_em || e.updated_at || Date.now());
-        return entregaDate <= toDate;
-      });
+      result = result.filter(v => new Date(v.ended_at || v.updated_at) <= toDate);
     }
 
     return result;
-  }, [entregas, selectedStatus, advancedFilters]);
+  }, [viagens, selectedStatus, advancedFilters]);
 
-  // Custom sort functions for nested/computed fields
-  const sortFunctions = useMemo(() => ({
-    codigo: (a: EntregaHistorico, b: EntregaHistorico) =>
-      (a.codigo || a.carga.codigo).localeCompare(b.codigo || b.carga.codigo, 'pt-BR'),
-    remetente: (a: EntregaHistorico, b: EntregaHistorico) =>
-      (a.carga.empresa?.nome || '').localeCompare(b.carga.empresa?.nome || '', 'pt-BR'),
-    destinatario: (a: EntregaHistorico, b: EntregaHistorico) =>
-      (a.carga.destinatario_nome_fantasia || a.carga.destinatario_razao_social || '')
-        .localeCompare(b.carga.destinatario_nome_fantasia || b.carga.destinatario_razao_social || '', 'pt-BR'),
-    peso: (a: EntregaHistorico, b: EntregaHistorico) =>
-      (a.peso_alocado_kg || a.carga.peso_kg) - (b.peso_alocado_kg || b.carga.peso_kg),
-    motorista: (a: EntregaHistorico, b: EntregaHistorico) =>
-      (a.motorista?.nome_completo || '').localeCompare(b.motorista?.nome_completo || '', 'pt-BR'),
-    status: (a: EntregaHistorico, b: EntregaHistorico) =>
-      (a.status || '').localeCompare(b.status || '', 'pt-BR'),
-    encerrada_em: (a: EntregaHistorico, b: EntregaHistorico) =>
-      new Date(a.entregue_em || a.updated_at || 0).getTime() - new Date(b.entregue_em || b.updated_at || 0).getTime(),
-  }), []);
-
-  const { sortedData, requestSort, getSortDirection } = useTableSort({
-    data: filtered,
-    defaultSort: { key: 'encerrada_em', direction: 'desc' },
-    persistKey: 'historico-entregas-transportadora',
-    sortFunctions,
-  });
+  // Sorting
+  const sortedData = useMemo(() => {
+    const sorted = [...filtered];
+    sorted.sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'encerrada_em':
+          comparison = new Date(a.ended_at || a.updated_at).getTime() - new Date(b.ended_at || b.updated_at).getTime();
+          break;
+        case 'codigo':
+          comparison = a.codigo.localeCompare(b.codigo, 'pt-BR');
+          break;
+        case 'motorista':
+          comparison = (a.motorista?.nome_completo || '').localeCompare(b.motorista?.nome_completo || '', 'pt-BR');
+          break;
+        case 'entregas':
+          comparison = a.entregas.length - b.entregas.length;
+          break;
+        case 'km':
+          comparison = (a.km_total || 0) - (b.km_total || 0);
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+    return sorted;
+  }, [filtered, sortField, sortOrder]);
 
   // Pagination
   const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
   const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return sortedData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedData.slice(start, start + ITEMS_PER_PAGE);
   }, [sortedData, currentPage]);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedStatus, advancedFilters]);
+  }, [selectedStatus, advancedFilters, sortField, sortOrder]);
+
+  const toggleRow = (id: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />;
+    return sortOrder === 'asc'
+      ? <ArrowUp className="w-3 h-3 ml-1 text-primary" />
+      : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
+  };
 
   const formatPeso = (peso: number | null) => {
     if (!peso) return '-';
@@ -370,9 +388,9 @@ export default function HistoricoEntregas() {
     return `${peso.toLocaleString('pt-BR')} kg`;
   };
 
-  const handleOpenDetails = (entrega: EntregaHistorico) => {
-    setSelectedEntrega(entrega);
-    setDetailsDialogOpen(true);
+  const formatCurrency = (value: number | null) => {
+    if (!value) return '-';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
   const handleOpenFile = (url: string, title: string) => {
@@ -381,231 +399,60 @@ export default function HistoricoEntregas() {
     setFilePreviewOpen(true);
   };
 
-  // Count documents for a delivery (3 obrigatórios: CT-e, Canhoto, NF-e)
-  const getDocsCount = (e: EntregaHistorico) => {
-    let count = 0;
-    if (e.cte_url) count++;
-    if (e.notas_fiscais_urls && e.notas_fiscais_urls.length > 0) count += e.notas_fiscais_urls.length;
-    if (e.canhoto_url) count++;
-    return count;
+  const handleOpenDetails = (entrega: EntregaInViagem) => {
+    setSelectedEntrega(entrega);
+    setDetailsDialogOpen(true);
   };
 
-  // Check if critical docs are missing (NF + CTE + Canhoto) - Manifesto pertence à viagem
-  const hasMissingCriticalDocs = (e: EntregaHistorico) => {
-    const nfsCount = e.notas_fiscais_urls?.length || 0;
-    return !e.cte_url || !e.canhoto_url || nfsCount === 0;
-  };
+  // Pagination renderer
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    const getPageNumbers = () => {
+      const pages: (number | 'ellipsis')[] = [];
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        if (currentPage > 3) pages.push('ellipsis');
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+        for (let i = start; i <= end; i++) pages.push(i);
+        if (currentPage < totalPages - 2) pages.push('ellipsis');
+        pages.push(totalPages);
+      }
+      return pages;
+    };
 
-  // Render cell based on column ID
-  const renderCell = (columnId: string, e: EntregaHistorico) => {
-    const origem = e.carga.endereco_origem;
-    const destino = e.carga.endereco_destino;
-    const status = e.status || 'entregue';
-    const config = statusConfig[status];
-    const StatusIcon = config?.icon || CheckCircle;
-
-    switch (columnId) {
-      case 'codigo':
-        return (
-          <td className="p-4 align-middle sticky left-0 bg-background z-10">
-            <div className="flex items-center gap-2">
-              <Package className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="font-medium text-nowrap">{e.codigo || e.carga.codigo}</span>
-            </div>
-          </td>
-        );
-      case 'remetente':
-        return (
-          <td className="p-4 align-middle text-nowrap">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="cursor-help">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-green-500 shrink-0" />
-                    <span className="font-medium text-sm truncate max-w-[130px]">
-                      {e.carga.empresa?.nome || '-'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate max-w-[130px]">
-                    {origem?.cidade || '-'}
-                  </p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <p className="font-medium">{e.carga.empresa?.nome || 'Remetente não informado'}</p>
-                {origem && (
-                  <p className="text-xs text-muted-foreground">{origem.logradouro}, {origem.cidade}/{origem.estado}</p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </td>
-        );
-      case 'destinatario':
-        return (
-          <td className="p-4 align-middle text-nowrap">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="cursor-help">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                    <span className="font-medium text-sm truncate max-w-[130px]">
-                      {e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || '-'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate max-w-[130px]">
-                    {destino?.cidade || '-'}
-                  </p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <p className="font-medium">{e.carga.destinatario_nome_fantasia || e.carga.destinatario_razao_social || 'Destinatário não informado'}</p>
-                {destino && (
-                  <p className="text-xs text-muted-foreground">{destino.logradouro}, {destino.cidade}/{destino.estado}</p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </td>
-        );
-      case 'rota':
-        return (
-          <td className="p-4 align-middle text-nowrap">
-            <div className="flex items-center gap-1 text-sm">
-              <span className="truncate max-w-[50px]">{origem?.cidade || '-'}</span>
-              <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-              <span className="truncate max-w-[50px]">{destino?.cidade || '-'}</span>
-            </div>
-          </td>
-        );
-      case 'peso':
-        return (
-          <td className="p-4 align-middle text-sm text-nowrap">
-            {formatPeso(e.peso_alocado_kg || e.carga.peso_kg)}
-          </td>
-        );
-      case 'motorista':
-        return (
-          <td className="p-4 align-middle text-nowrap">
-            {e.motorista ? (
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <User className="w-3 h-3 text-primary" />
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-sm truncate max-w-[80px]">
-                      {e.motorista.nome_completo}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="font-medium">{e.motorista.nome_completo}</p>
-                    {e.veiculo && <p className="text-xs text-muted-foreground">Placa: {e.veiculo.placa}</p>}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
+    return (
+      <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/30">
+        <div className="text-sm text-muted-foreground">
+          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length}
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          {getPageNumbers().map((page, idx) =>
+            page === 'ellipsis' ? (
+              <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
             ) : (
-              <span className="text-sm text-muted-foreground">-</span>
-            )}
-          </td>
-        );
-      case 'status':
-        return (
-          <td className="p-4 align-middle text-nowrap">
-            <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
-              <StatusIcon className="w-3 h-3" />
-              {config?.label || status}
-            </Badge>
-          </td>
-        );
-      case 'numero_cte':
-        return (
-          <td className="p-4 align-middle text-nowrap">
-            <span className="text-xs font-mono text-muted-foreground">
-              {e.numero_cte || '-'}
-            </span>
-          </td>
-        );
-      case 'docs':
-        const docsCount = getDocsCount(e);
-        const hasMissing = hasMissingCriticalDocs(e);
-        return (
-          <td className="p-4 align-middle text-nowrap">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-7 px-2 gap-1 ${hasMissing ? 'text-amber-600' : 'text-green-600'}`}
-              onClick={() => handleOpenDetails(e)}
-            >
-              <FileText className="w-3 h-3" />
-              {docsCount}
-              {hasMissing && <AlertTriangle className="w-3 h-3" />}
-            </Button>
-          </td>
-        );
-      case 'encerrada_em':
-        return (
-          <td className="p-4 align-middle text-sm text-muted-foreground text-nowrap">
-            {new Date(e.entregue_em || e.updated_at || Date.now()).toLocaleDateString('pt-BR', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </td>
-        );
-      case 'acoes':
-        return (
-          <td className="p-4 align-middle sticky right-0 bg-background z-10">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => {
-                  setChatEntregaId(e.id);
-                  setChatSheetOpen(true);
-                }}>
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Ver conversa
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleOpenDetails(e)}>
-                  <Eye className="w-4 h-4 mr-2" />
-                  Ver detalhes
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleOpenDetails(e)}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Ver documentos
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  setTrackingMapEntregaId(e.id);
-                  setTrackingMapInfo({
-                    motorista: e.motorista?.nome_completo || 'Motorista',
-                    placa: e.veiculo?.placa || '-',
-                  });
-                }}>
-                  <Route className="w-4 h-4 mr-2" />
-                  Ver histórico no mapa
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </td>
-        );
-      default:
-        return <td className="p-4 align-middle">-</td>;
-    }
-  };
-
-  // Render column header icon based on column ID
-  const getColumnIcon = (columnId: string) => {
-    switch (columnId) {
-      case 'remetente': return <Building2 className="w-3 h-3" />;
-      case 'destinatario': return <Package className="w-3 h-3" />;
-      case 'peso': return <Scale className="w-3 h-3" />;
-      case 'motorista': return <User className="w-3 h-3" />;
-      case 'docs': return <FileText className="w-3 h-3" />;
-      case 'encerrada_em': return <Calendar className="w-3 h-3" />;
-      default: return null;
-    }
+              <Button key={page} variant={currentPage === page ? 'default' : 'outline'} size="icon" className="h-8 w-8" onClick={() => setCurrentPage(page)}>
+                {page}
+              </Button>
+            )
+          )}
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -616,56 +463,19 @@ export default function HistoricoEntregas() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Histórico</h1>
-              <p className="text-muted-foreground">Entregas e viagens finalizadas</p>
+              <p className="text-muted-foreground">Viagens e entregas finalizadas</p>
             </div>
             <div className="flex items-center gap-4">
-              {/* Switch de Visualização */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
-                <Label htmlFor="hist-view-mode" className={`text-sm font-medium transition-colors ${viewMode === 'entregas' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  Entregas
-                </Label>
-                <Switch
-                  id="hist-view-mode"
-                  checked={viewMode === 'viagens'}
-                  onCheckedChange={(checked) => {
-                    setViewMode(checked ? 'viagens' : 'entregas');
-                    setSelectedStatus(null);
-                  }}
-                />
-                <Label htmlFor="hist-view-mode" className={`text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === 'viagens' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  <Route className="w-3.5 h-3.5" />
-                  Viagens
-                </Label>
-              </div>
-
-              <Separator orientation="vertical" className="h-8" />
-
               <AdvancedFiltersPopover
                 filters={advancedFilters}
                 onFiltersChange={setAdvancedFilters}
                 showMotorista={true}
-                showEmbarcador={viewMode === 'entregas'}
-                showDestinatario={viewMode === 'entregas'}
-                motoristas={motoristasUnicos}
+                showEmbarcador={true}
+                showDestinatario={true}
               />
-
-              {viewMode === 'entregas' && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={resetColumnOrder}>
-                      <RotateCcw className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Redefinir ordem das colunas</TooltipContent>
-                </Tooltip>
-              )}
             </div>
           </div>
 
-          {viewMode === 'viagens' ? (
-            <HistoricoViagens advancedFilters={advancedFilters} />
-          ) : (
-          <>
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0 px-px">
             <Card
@@ -674,22 +484,22 @@ export default function HistoricoEntregas() {
             >
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
-                  <Truck className="w-4 h-4 text-muted-foreground" />
+                  <Route className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-xs text-muted-foreground">Total Viagens</p>
               </CardContent>
             </Card>
             <Card
-              className={`border-border cursor-pointer transition-all ${selectedStatus === 'entregue' ? 'ring-2 ring-green-500 ring-inset' : 'hover:bg-muted/30'}`}
-              onClick={() => setSelectedStatus(selectedStatus === 'entregue' ? null : 'entregue')}
+              className={`border-border cursor-pointer transition-all ${selectedStatus === 'finalizada' ? 'ring-2 ring-green-500 ring-inset' : 'hover:bg-muted/30'}`}
+              onClick={() => setSelectedStatus(selectedStatus === 'finalizada' ? null : 'finalizada')}
             >
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <CheckCircle className="w-4 h-4 text-green-600" />
                 </div>
-                <p className="text-2xl font-bold text-green-600">{stats.entregue}</p>
-                <p className="text-xs text-muted-foreground">Entregues</p>
+                <p className="text-2xl font-bold text-green-600">{stats.finalizada}</p>
+                <p className="text-xs text-muted-foreground">Finalizadas</p>
               </CardContent>
             </Card>
             <Card
@@ -704,240 +514,455 @@ export default function HistoricoEntregas() {
                 <p className="text-xs text-muted-foreground">Canceladas</p>
               </CardContent>
             </Card>
-            <Card
-              className={`border-border cursor-pointer transition-all ${selectedStatus === 'problema' ? 'ring-2 ring-destructive ring-inset' : 'hover:bg-muted/30'}`}
-              onClick={() => setSelectedStatus(selectedStatus === 'problema' ? null : 'problema')}
-            >
+            <Card className="border-border">
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
-                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                  <Package className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <p className="text-2xl font-bold text-destructive">{stats.problema}</p>
-                <p className="text-xs text-muted-foreground">Problemas</p>
+                <p className="text-2xl font-bold text-foreground">{stats.totalEntregas}</p>
+                <p className="text-xs text-muted-foreground">Total Entregas</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <div className='flex gap-2 items-center text-sm text-muted-foreground'>
-              <Truck className="w-4 h-4" />
-              Entregas finalizadas
+            <div className="flex gap-2 items-center text-sm text-muted-foreground">
+              <Route className="w-4 h-4" />
+              Viagens finalizadas
             </div>
-            
+
             {selectedStatus && (
               <Badge variant="outline">
-                Filtro: {statusConfig[selectedStatus]?.label}
+                Filtro: {viagemStatusConfig[selectedStatus]?.label}
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-4 w-4 ml-1 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedStatus(null);
-                  }}
+                  onClick={() => setSelectedStatus(null)}
                 >
                   ×
                 </Button>
               </Badge>
             )}
-            
+
             <div className="ml-auto text-sm text-muted-foreground">
-              {sortedData.length} {sortedData.length === 1 ? 'entrega' : 'entregas'}
+              {sortedData.length} {sortedData.length === 1 ? 'viagem' : 'viagens'}
             </div>
           </div>
 
           {/* Table */}
-          <Card
-            className="border-border hidden md:flex flex-col flex-1 min-h-0"
-          >
+          <Card className="border-border hidden md:flex flex-col flex-1 min-h-0">
             <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
-              <div className="flex-1 min-h-0 overflow-auto">
-                <table className="w-full caption-bottom text-sm">
-                  <thead className="sticky top-0 z-20 bg-background [&_tr]:border-b">
-                    <tr className="border-b transition-colors bg-muted/50">
-                      {orderedColumns.map((col) => (
-                        <DraggableTableHead
-                          key={col.id}
-                          columnId={col.id}
-                          isDragging={draggedColumn === col.id}
-                          isDragOver={dragOverColumn === col.id}
-                          isSticky={!!col.sticky}
-                          sortable={col.sortable}
-                          sortDirection={col.sortKey ? getSortDirection(col.sortKey) : null}
-                          onSort={col.sortKey ? () => requestSort(col.sortKey!) : undefined}
-                          onColumnDragStart={handleDragStart}
-                          onColumnDragEnd={handleDragEnd}
-                          onColumnDragOver={handleDragOver}
-                          onColumnDragLeave={handleDragLeave}
-                          onColumnDrop={handleDrop}
-                          className={`min-w-[${col.minWidth}] ${
-                            col.sticky === 'left' ? 'sticky left-0 bg-muted/50 z-10' :
-                            col.sticky === 'right' ? 'sticky right-0 bg-muted/50 z-10' : ''
-                          }`}
-                        >
-                          {getColumnIcon(col.id)}
-                          {col.label}
-                        </DraggableTableHead>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="[&_tr:last-child]:border-0">
-                    {isLoading ? (
-                      <tr className="border-b transition-colors">
-                        <td colSpan={orderedColumns.length} className="p-4 align-middle py-10 text-center text-muted-foreground">
-                          Carregando...
-                        </td>
-                      </tr>
-                    ) : paginatedData.length === 0 ? (
-                      <tr className="border-b transition-colors">
-                        <td colSpan={orderedColumns.length} className="p-4 align-middle py-10 text-center text-muted-foreground">
-                          <div className="flex flex-col items-center gap-2">
-                            <Package className="w-10 h-10 text-muted-foreground/50" />
-                            <p>Nenhum registro encontrado.</p>
-                            {(selectedStatus || Object.keys(advancedFilters).length > 0) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setAdvancedFilters({});
-                                  setSelectedStatus(null);
-                                }}
-                              >
-                                Limpar filtros
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      paginatedData.map((e) => (
-                        <tr key={e.id} className="border-b transition-colors hover:bg-muted/30">
-                          {orderedColumns.map((col) => (
-                            <React.Fragment key={col.id}>
-                              {renderCell(col.id, e)}
-                            </React.Fragment>
-                          ))}
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t px-4 py-3">
-                  <p className="text-sm text-muted-foreground">
-                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length} registros
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                      Anterior
-                    </Button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum: number;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={currentPage === pageNum ? 'default' : 'outline'}
-                            size="sm"
-                            className="w-8 h-8 p-0"
-                            onClick={() => setCurrentPage(pageNum)}
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Próximo
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12 flex-1">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
+              ) : paginatedData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center flex-1">
+                  <Route className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma viagem encontrada</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {selectedStatus || Object.keys(advancedFilters).length > 0 ? 'Tente ajustar os filtros' : 'As viagens finalizadas aparecerão aqui'}
+                  </p>
+                  {(selectedStatus || Object.keys(advancedFilters).length > 0) && (
+                    <Button variant="outline" size="sm" onClick={() => { setAdvancedFilters({}); setSelectedStatus(null); }}>
+                      Limpar filtros
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1 min-h-0 overflow-auto">
+                    <table className="w-full caption-bottom text-sm">
+                      <thead className="sticky top-0 z-20 bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+                        <tr className="border-b">
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground w-10"></th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[130px] cursor-pointer" onClick={() => handleSort('codigo')}>
+                            <div className="flex items-center">
+                              Viagem
+                              <SortIcon field="codigo" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[150px] cursor-pointer" onClick={() => handleSort('motorista')}>
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              Motorista
+                              <SortIcon field="motorista" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[200px]">
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              Rotas
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px] cursor-pointer" onClick={() => handleSort('entregas')}>
+                            <div className="flex items-center justify-center">
+                              Entregas
+                              <SortIcon field="entregas" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[100px]">Status</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[80px]">
+                            <div className="flex items-center gap-1">
+                              <FileText className="w-3 h-3" />
+                              MDF-e
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[80px] cursor-pointer" onClick={() => handleSort('km')}>
+                            <div className="flex items-center justify-center">
+                              KM
+                              <SortIcon field="km" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[120px] cursor-pointer" onClick={() => handleSort('encerrada_em')}>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              Encerrada em
+                              <SortIcon field="encerrada_em" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedData.map((viagem) => {
+                          const isExpanded = expandedRows.has(viagem.id);
+                          const config = viagemStatusConfig[viagem.status];
+                          const StatusIcon = config?.icon || CheckCircle;
+                          const hasEntregas = viagem.entregas.length > 0;
+
+                          // Build route summary
+                          const origens = [...new Set(viagem.entregas.map(e => e.carga.endereco_origem?.cidade).filter(Boolean))];
+                          const destinos = [...new Set(viagem.entregas.map(e => e.carga.endereco_destino?.cidade).filter(Boolean))];
+
+                          return (
+                            <React.Fragment key={viagem.id}>
+                              {/* Main Row */}
+                              <tr
+                                className={`border-b transition-colors hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
+                                onClick={() => hasEntregas && toggleRow(viagem.id)}
+                              >
+                                <td className="p-2 align-middle">
+                                  {hasEntregas && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={(e) => { e.stopPropagation(); toggleRow(viagem.id); }}
+                                    >
+                                      {isExpanded ? (
+                                        <ChevronDown className="w-4 h-4 text-primary" />
+                                      ) : (
+                                        <ChevronRight className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                  )}
+                                </td>
+                                <td className="p-4 align-middle">
+                                  <div className="flex items-center gap-2">
+                                    <Route className="w-4 h-4 text-muted-foreground shrink-0" />
+                                    <span className="font-medium text-nowrap font-mono">{viagem.codigo}</span>
+                                  </div>
+                                </td>
+                                <td className="p-4 align-middle text-nowrap">
+                                  {viagem.motorista ? (
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                        <User className="w-3 h-3 text-primary" />
+                                      </div>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="text-sm truncate max-w-[100px]">{viagem.motorista.nome_completo}</span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="font-medium">{viagem.motorista.nome_completo}</p>
+                                          {viagem.veiculo && <p className="text-xs text-muted-foreground">Placa: {viagem.veiculo.placa}</p>}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">-</span>
+                                  )}
+                                </td>
+                                <td className="p-4 align-middle text-nowrap">
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <span className="truncate max-w-[70px]">{origens[0] || '-'}</span>
+                                    <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                                    <span className="truncate max-w-[70px]">{destinos[0] || '-'}</span>
+                                    {destinos.length > 1 && (
+                                      <Badge variant="secondary" className="text-[10px] px-1">+{destinos.length - 1}</Badge>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-4 align-middle text-sm text-center">
+                                  <Badge variant="outline" className="text-xs">
+                                    {viagem.entregas.length}
+                                  </Badge>
+                                </td>
+                                <td className="p-4 align-middle text-nowrap">
+                                  <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
+                                    <StatusIcon className="w-3 h-3" />
+                                    {config?.label || viagem.status}
+                                  </Badge>
+                                </td>
+                                <td className="p-4 align-middle text-nowrap">
+                                  {viagem.manifesto_url ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 px-2 gap-1 text-green-600"
+                                      onClick={(e) => { e.stopPropagation(); handleOpenFile(viagem.manifesto_url!, 'Manifesto MDF-e'); }}
+                                    >
+                                      <FileCheck className="w-3 h-3" />
+                                      Ver
+                                    </Button>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                      <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                      Pendente
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="p-4 align-middle text-sm text-muted-foreground text-center text-nowrap">
+                                  {viagem.km_total ? `${viagem.km_total.toLocaleString('pt-BR')} km` : '-'}
+                                </td>
+                                <td className="p-4 align-middle text-sm text-muted-foreground text-nowrap">
+                                  {new Date(viagem.ended_at || viagem.updated_at).toLocaleDateString('pt-BR', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
+                                </td>
+                                <td className="p-4 align-middle">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreHorizontal className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                      {viagem.manifesto_url && (
+                                        <DropdownMenuItem onClick={() => handleOpenFile(viagem.manifesto_url!, 'Manifesto MDF-e')}>
+                                          <FileText className="w-4 h-4 mr-2" />
+                                          Ver Manifesto
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem onClick={() => toggleRow(viagem.id)}>
+                                        <Eye className="w-4 h-4 mr-2" />
+                                        {isExpanded ? 'Recolher' : 'Ver'} entregas ({viagem.entregas.length})
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </td>
+                              </tr>
+
+                              {/* Expanded Row - Entregas subtable */}
+                              {isExpanded && hasEntregas && (
+                                <tr className="bg-muted/20 hover:bg-muted/20">
+                                  <td colSpan={10} className="p-0">
+                                    <div className="px-8 py-4">
+                                      <div className="flex items-center gap-2 mb-3">
+                                        <Package className="w-4 h-4 text-primary" />
+                                        <span className="text-sm font-medium">Entregas ({viagem.entregas.length})</span>
+                                      </div>
+                                      <div className="bg-background rounded-lg border overflow-hidden">
+                                        <table className="w-full text-sm">
+                                          <thead>
+                                            <tr className="border-b bg-muted/30">
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Código</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Embarcador</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Destinatário</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Rota</th>
+                                              <th className="h-10 px-4 text-right align-middle font-medium text-xs">Peso</th>
+                                              <th className="h-10 px-4 text-right align-middle font-medium text-xs">Frete</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">N° CT-e</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Docs</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs">Status</th>
+                                              <th className="h-10 px-4 text-left align-middle font-medium text-xs w-10"></th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {viagem.entregas.map((entrega) => {
+                                              const eStatus = entrega.status || 'aguardando';
+                                              const eConfig = entregaStatusConfig[eStatus] || entregaStatusConfig.aguardando;
+                                              const EStatusIcon = eConfig.icon;
+
+                                              const hasCte = !!entrega.cte_url;
+                                              const hasCanhoto = !!entrega.canhoto_url;
+                                              const hasNf = entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0;
+                                              const docCount = [hasCte, hasCanhoto, hasNf].filter(Boolean).length;
+                                              const missingCritical = !hasCte || !hasCanhoto || !hasNf;
+
+                                              const origem = entrega.carga.endereco_origem;
+                                              const destino = entrega.carga.endereco_destino;
+
+                                              return (
+                                                <tr key={entrega.id} className="border-b last:border-0 hover:bg-muted/30">
+                                                  <td className="p-4 align-middle font-mono text-sm font-medium text-primary text-nowrap">
+                                                    {entrega.codigo || entrega.carga.codigo}
+                                                  </td>
+                                                  <td className="p-4 align-middle text-nowrap">
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <span className="text-sm truncate max-w-[120px] block">
+                                                          {entrega.carga.empresa?.nome || '-'}
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
+                                                        {entrega.carga.empresa?.nome || 'Não informado'}
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </td>
+                                                  <td className="p-4 align-middle text-nowrap">
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <span className="text-sm truncate max-w-[120px] block">
+                                                          {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
+                                                        {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Não informado'}
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </td>
+                                                  <td className="p-4 align-middle text-nowrap">
+                                                    <div className="flex items-center gap-1 text-sm">
+                                                      <span className="truncate max-w-[50px]">{origem?.cidade || '-'}</span>
+                                                      <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                                                      <span className="truncate max-w-[50px]">{destino?.cidade || '-'}</span>
+                                                    </div>
+                                                  </td>
+                                                  <td className="p-4 align-middle text-right text-sm font-medium">
+                                                    {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
+                                                  </td>
+                                                  <td className="p-4 align-middle text-right text-sm font-medium text-green-600">
+                                                    {formatCurrency(entrega.valor_frete)}
+                                                  </td>
+                                                  <td className="p-4 align-middle text-sm font-mono">
+                                                    {entrega.numero_cte || '-'}
+                                                  </td>
+                                                  <td className="p-4 align-middle">
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      className={`h-7 px-2 gap-1 ${missingCritical ? 'text-amber-600' : 'text-green-600'}`}
+                                                      onClick={(e) => { e.stopPropagation(); handleOpenDetails(entrega); }}
+                                                    >
+                                                      <FileText className="w-3 h-3" />
+                                                      <span className="text-xs">{docCount}/3</span>
+                                                      {missingCritical && <AlertTriangle className="w-3 h-3" />}
+                                                    </Button>
+                                                  </td>
+                                                  <td className="p-4 align-middle">
+                                                    <Badge className={`${eConfig.color} text-xs`}>
+                                                      <EStatusIcon className="w-3 h-3 mr-1" />
+                                                      {eConfig.label}
+                                                    </Badge>
+                                                  </td>
+                                                  <td className="p-4 align-middle">
+                                                    <DropdownMenu>
+                                                      <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                          <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end" className="w-48">
+                                                        <DropdownMenuItem onClick={() => handleOpenDetails(entrega)}>
+                                                          <Eye className="w-4 h-4 mr-2" />
+                                                          Ver detalhes
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => {
+                                                          setChatEntregaId(entrega.id);
+                                                          setChatSheetOpen(true);
+                                                        }}>
+                                                          <MessageCircle className="w-4 h-4 mr-2" />
+                                                          Ver conversa
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => {
+                                                          setTrackingMapEntregaId(entrega.id);
+                                                          setTrackingMapInfo({
+                                                            motorista: entrega.motorista?.nome_completo || viagem.motorista?.nome_completo || 'Motorista',
+                                                            placa: entrega.veiculo?.placa || viagem.veiculo?.placa || '-',
+                                                          });
+                                                        }}>
+                                                          <Route className="w-4 h-4 mr-2" />
+                                                          Ver no mapa
+                                                        </DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {renderPagination()}
+                </>
               )}
             </CardContent>
           </Card>
 
           {/* Mobile Cards */}
           <div className="md:hidden space-y-3">
-            {filtered.map((e) => {
-              const status = e.status || 'entregue';
-              const config = statusConfig[status];
+            {sortedData.map((viagem) => {
+              const config = viagemStatusConfig[viagem.status];
               const StatusIcon = config?.icon || CheckCircle;
+              const origens = [...new Set(viagem.entregas.map(e => e.carga.endereco_origem?.cidade).filter(Boolean))];
+              const destinos = [...new Set(viagem.entregas.map(e => e.carga.endereco_destino?.cidade).filter(Boolean))];
 
               return (
-                <Card key={e.id} className="border-border">
+                <Card key={viagem.id} className="border-border">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <Badge variant="secondary" className="text-xs mb-1">
-                          {e.carga.codigo}
-                        </Badge>
-                        <p className="font-medium text-foreground">{e.carga.descricao}</p>
+                        <Badge variant="secondary" className="text-xs mb-1 font-mono">{viagem.codigo}</Badge>
+                        <p className="font-medium text-foreground">
+                          {viagem.motorista?.nome_completo || 'Sem motorista'}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          {e.carga.empresa?.nome} • {formatPeso(e.peso_alocado_kg || e.carga.peso_kg)}
+                          {viagem.entregas.length} {viagem.entregas.length === 1 ? 'entrega' : 'entregas'}
+                          {viagem.km_total ? ` • ${viagem.km_total} km` : ''}
                         </p>
                       </div>
                       <Badge className={`text-xs gap-1 ${config?.color || ''}`}>
                         <StatusIcon className="w-3 h-3" />
-                        {config?.label || status}
+                        {config?.label || viagem.status}
                       </Badge>
                     </div>
 
                     <div className="flex items-center gap-2 text-sm mb-3">
-                      <MapPin className="w-4 h-4 text-chart-1 shrink-0" />
-                      <span className="truncate">{e.carga.endereco_origem?.cidade}</span>
+                      <MapPin className="w-4 h-4 text-green-500 shrink-0" />
+                      <span className="truncate">{origens[0] || '-'}</span>
                       <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <MapPin className="w-4 h-4 text-chart-2 shrink-0" />
-                      <span className="truncate">{e.carga.endereco_destino?.cidade}</span>
+                      <MapPin className="w-4 h-4 text-red-500 shrink-0" />
+                      <span className="truncate">{destinos[0] || '-'}</span>
                     </div>
 
                     <div className="flex items-center justify-between pt-3 border-t border-border">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(viagem.ended_at || viagem.updated_at).toLocaleDateString('pt-BR')}
+                      </span>
                       <div className="flex items-center gap-2">
-                        {e.motorista && (
-                          <>
-                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                              <User className="w-3 h-3 text-primary" />
-                            </div>
-                            <span className="text-sm truncate max-w-[100px]">{e.motorista.nome_completo}</span>
-                          </>
+                        {viagem.manifesto_url && (
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-green-600" onClick={() => handleOpenFile(viagem.manifesto_url!, 'MDF-e')}>
+                            <FileCheck className="w-3 h-3 mr-1" />
+                            MDF-e
+                          </Button>
                         )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(e.entregue_em || e.updated_at || Date.now()).toLocaleDateString('pt-BR')}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleOpenDetails(e)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -945,27 +970,21 @@ export default function HistoricoEntregas() {
               );
             })}
           </div>
-          </>
-          )}
         </div>
-        {/* Details Dialog */}
+
+        {/* Dialogs */}
         <EntregaDetailsDialog
           entrega={selectedEntrega as any}
           open={detailsDialogOpen}
           onOpenChange={setDetailsDialogOpen}
         />
 
-        {/* Tracking History Map Dialog */}
-        <TrackingMapDialog 
+        <TrackingMapDialog
           entregaId={trackingMapEntregaId}
           info={trackingMapInfo}
-          onClose={() => {
-            setTrackingMapEntregaId(null);
-            setTrackingMapInfo(null);
-          }}
+          onClose={() => { setTrackingMapEntregaId(null); setTrackingMapInfo(null); }}
         />
 
-        {/* File Preview Dialog */}
         <FilePreviewDialog
           open={filePreviewOpen}
           onOpenChange={setFilePreviewOpen}
@@ -973,7 +992,6 @@ export default function HistoricoEntregas() {
           title={filePreviewTitle}
         />
 
-        {/* Chat Sheet */}
         <ChatSheet
           open={chatSheetOpen}
           onOpenChange={setChatSheetOpen}
