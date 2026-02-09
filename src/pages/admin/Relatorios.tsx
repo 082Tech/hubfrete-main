@@ -1,17 +1,11 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Calendar } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { OperationalReport, GrowthReport, FinancialReport } from '@/components/admin/relatorios';
+import { DateRangePicker, getDefaultDateRange } from '@/components/relatorios/DateRangePicker';
 
 export default function Relatorios() {
   const [isLoading, setIsLoading] = useState(true);
