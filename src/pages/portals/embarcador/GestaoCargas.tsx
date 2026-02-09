@@ -46,6 +46,7 @@ import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { DocumentButton } from '@/components/entregas/DocumentButton';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
+import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 
 // Status config - matching transportadora portal
