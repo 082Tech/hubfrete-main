@@ -40,7 +40,8 @@ import type { Database } from '@/integrations/supabase/types';
 import { RemetenteSection } from './RemetenteSection';
 import { DestinoSection } from './DestinoSection';
 import { NecessidadesEspeciais } from './NecessidadesEspeciais';
-import { NotaFiscalUpload } from './NotaFiscalUpload';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 import { ResumoSection } from './ResumoSection';
 import { VeiculoCarroceriaSelect, ALL_VEICULOS, ALL_CARROCERIAS } from './VeiculoCarroceriaSelect';
 
