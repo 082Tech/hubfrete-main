@@ -123,6 +123,10 @@ interface CargaData {
   permite_fracionado: boolean | null;
   valor_mercadoria: number | null;
   valor_frete_tonelada: number | null;
+  tipo_precificacao: string | null;
+  valor_frete_m3: number | null;
+  valor_frete_fixo: number | null;
+  valor_frete_km: number | null;
   status: StatusCarga;
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
@@ -227,6 +231,10 @@ export default function HistoricoCargas() {
           permite_fracionado,
           valor_mercadoria,
           valor_frete_tonelada,
+          tipo_precificacao,
+          valor_frete_m3,
+          valor_frete_fixo,
+          valor_frete_km,
           status,
           data_coleta_de,
           data_coleta_ate,

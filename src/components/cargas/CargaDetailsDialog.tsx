@@ -47,6 +47,10 @@ interface CargaDetailsProps {
     volume_m3: number | null;
     valor_mercadoria: number | null;
     valor_frete_tonelada?: number | null;
+    tipo_precificacao?: string | null;
+    valor_frete_m3?: number | null;
+    valor_frete_fixo?: number | null;
+    valor_frete_km?: number | null;
     status: StatusCarga | null;
     data_coleta_de: string | null;
     data_coleta_ate: string | null;
@@ -436,15 +440,38 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
                 )
               )}
 
-              {/* Valor do Frete por Tonelada */}
-              {carga.valor_frete_tonelada && (
-                <div className="flex items-center gap-2 p-2 rounded bg-primary/5 border border-primary/20">
-                  <span className="text-sm text-muted-foreground">Frete por tonelada:</span>
-                  <span className="font-medium text-primary">
-                    {carga.valor_frete_tonelada.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/ton
-                  </span>
-                </div>
-              )}
+              {/* Valor do Frete */}
+              {(() => {
+                const tp = carga.tipo_precificacao || 'por_tonelada';
+                const labelMap: Record<string, string> = {
+                  por_tonelada: 'Frete por tonelada',
+                  por_m3: 'Frete por m³',
+                  fixo: 'Frete fixo',
+                  por_km: 'Frete por km',
+                };
+                const suffixMap: Record<string, string> = {
+                  por_tonelada: '/ton',
+                  por_m3: '/m³',
+                  fixo: '',
+                  por_km: '/km',
+                };
+                const valMap: Record<string, number | null | undefined> = {
+                  por_tonelada: carga.valor_frete_tonelada,
+                  por_m3: carga.valor_frete_m3,
+                  fixo: carga.valor_frete_fixo,
+                  por_km: carga.valor_frete_km,
+                };
+                const val = valMap[tp];
+                if (!val) return null;
+                return (
+                  <div className="flex items-center gap-2 p-2 rounded bg-primary/5 border border-primary/20">
+                    <span className="text-sm text-muted-foreground">{labelMap[tp]}:</span>
+                    <span className="font-medium text-primary">
+                      {val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}{suffixMap[tp]}
+                    </span>
+                  </div>
+                );
+              })()}
 
               {/* Nota fiscal */}
               {carga.nota_fiscal_url && (

@@ -133,6 +133,10 @@ interface CargaData {
   permite_fracionado: boolean | null;
   valor_mercadoria: number | null;
   valor_frete_tonelada: number | null;
+  tipo_precificacao: string | null;
+  valor_frete_m3: number | null;
+  valor_frete_fixo: number | null;
+  valor_frete_km: number | null;
   status: string;
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
@@ -242,6 +246,10 @@ export default function CargasPublicadas() {
           permite_fracionado,
           valor_mercadoria,
           valor_frete_tonelada,
+          tipo_precificacao,
+          valor_frete_m3,
+          valor_frete_fixo,
+          valor_frete_km,
           status,
           data_coleta_de,
           data_coleta_ate,
@@ -494,10 +502,16 @@ export default function CargasPublicadas() {
     return carga.entregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
   };
 
-  // Calculate estimated total freight based on valor_frete_tonelada
+  // Calculate estimated total freight based on pricing type
   const getFreteEstimado = (carga: CargaData) => {
-    if (!carga.valor_frete_tonelada) return null;
-    return (carga.peso_kg / 1000) * carga.valor_frete_tonelada;
+    const tp = carga.tipo_precificacao || 'por_tonelada';
+    switch (tp) {
+      case 'por_tonelada': return carga.valor_frete_tonelada ? (carga.peso_kg / 1000) * carga.valor_frete_tonelada : null;
+      case 'por_m3': return carga.valor_frete_m3 && carga.volume_m3 ? carga.volume_m3 * carga.valor_frete_m3 : null;
+      case 'fixo': return carga.valor_frete_fixo || null;
+      case 'por_km': return null; // cannot estimate without distance
+      default: return null;
+    }
   };
 
   // Stats - only for non-finalized cargas
@@ -505,8 +519,8 @@ export default function CargasPublicadas() {
   
   const stats = useMemo(() => {
     const freteEstimadoTotal = activeCargas.reduce((acc, c) => {
-      if (!c.valor_frete_tonelada) return acc;
-      return acc + (c.peso_kg / 1000) * c.valor_frete_tonelada;
+      const est = getFreteEstimado(c);
+      return acc + (est || 0);
     }, 0);
     const freteAlocadoTotal = activeCargas.reduce((acc, c) => acc + getTotalFrete(c), 0);
     
@@ -1250,6 +1264,10 @@ export default function CargasPublicadas() {
               volume_m3: detailsCarga.volume_m3,
               valor_mercadoria: detailsCarga.valor_mercadoria,
               valor_frete_tonelada: detailsCarga.valor_frete_tonelada,
+              tipo_precificacao: detailsCarga.tipo_precificacao,
+              valor_frete_m3: detailsCarga.valor_frete_m3,
+              valor_frete_fixo: detailsCarga.valor_frete_fixo,
+              valor_frete_km: detailsCarga.valor_frete_km,
               status: detailsCarga.status as any,
               data_coleta_de: detailsCarga.data_coleta_de,
               data_coleta_ate: detailsCarga.data_coleta_ate,
