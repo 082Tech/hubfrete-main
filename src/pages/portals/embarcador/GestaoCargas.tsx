@@ -40,6 +40,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
+import { DocumentButton } from '@/components/entregas/DocumentButton';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 
@@ -176,15 +177,17 @@ function EmptyColumnPlaceholder({ message }: { message: string }) {
   );
 }
 
-// --- Detail panel (right side - read-only for embarcador) ---
+// --- Detail panel (right side - embarcador: can attach NF-e, view CT-e/Canhoto) ---
 function DetailPanel({
   entrega,
   onClose,
   driverLocation,
+  onRefresh,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
   driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
+  onRefresh: () => void;
 }) {
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState('');
@@ -406,30 +409,31 @@ function DetailPanel({
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => handleDocClick(entrega.cte_url, 'CT-e')}
-                disabled={!entrega.cte_url}
-                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${hasCte ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
-              >
-                {hasCte ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
-                <span>CT-e</span>
-              </button>
-              <button
-                onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}
-                disabled={!entrega.canhoto_url}
-                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${hasCanhoto ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
-              >
-                {hasCanhoto ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
-                <span>Canhoto</span>
-              </button>
-              <button
-                onClick={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
-                disabled={!(entrega.notas_fiscais_urls?.length)}
-                className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${hasNf ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' : 'bg-muted/30 border-muted cursor-not-allowed'}`}
-              >
-                {hasNf ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
-                <span>NF ({entrega.notas_fiscais_urls?.length || 0})</span>
-              </button>
+              <DocumentButton
+                type="cte"
+                hasDoc={hasCte}
+                canAttach={false}
+                onView={() => handleDocClick(entrega.cte_url, 'CT-e')}
+                entregaId={entrega.id}
+                onUploaded={onRefresh}
+              />
+              <DocumentButton
+                type="canhoto"
+                hasDoc={hasCanhoto}
+                canAttach={false}
+                onView={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}
+                entregaId={entrega.id}
+                onUploaded={onRefresh}
+              />
+              <DocumentButton
+                type="nfe"
+                hasDoc={hasNf}
+                count={entrega.notas_fiscais_urls?.length || 0}
+                canAttach={true}
+                onView={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
+                entregaId={entrega.id}
+                onUploaded={onRefresh}
+              />
             </div>
           </div>
 
@@ -719,6 +723,7 @@ export default function GestaoCargas() {
             entrega={selectedEntrega}
             onClose={() => setSelectedEntrega(null)}
             driverLocation={driverLocation}
+            onRefresh={() => refetch()}
           />
         </div>
       </div>
