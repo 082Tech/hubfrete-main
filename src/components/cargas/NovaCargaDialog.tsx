@@ -159,7 +159,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       descricao: '',
       tipo: 'carga_seca',
       peso_kg: 0,
+      tipo_precificacao: 'por_tonelada',
       valor_frete_tonelada: 0,
+      valor_frete_m3: undefined,
+      valor_frete_fixo: undefined,
+      valor_frete_km: undefined,
       permite_fracionado: true,
       carga_fragil: false,
       carga_perigosa: false,
@@ -171,10 +175,23 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   });
 
   const pesoKg = form.watch('peso_kg');
+  const tipoPrecificacao = form.watch('tipo_precificacao');
   const valorFreteTonelada = form.watch('valor_frete_tonelada');
+  const valorFreteM3 = form.watch('valor_frete_m3');
+  const valorFreteFixo = form.watch('valor_frete_fixo');
+  const valorFreteKm = form.watch('valor_frete_km');
+  const volumeM3 = form.watch('volume_m3');
 
-  // Calcular preview do frete total
-  const freteTotal = pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
+  // Calcular preview do frete total baseado no tipo
+  const freteTotal = (() => {
+    switch (tipoPrecificacao) {
+      case 'por_tonelada': return pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
+      case 'por_m3': return volumeM3 && valorFreteM3 ? volumeM3 * valorFreteM3 : 0;
+      case 'fixo': return valorFreteFixo || 0;
+      case 'por_km': return 0; // Cannot calculate without distance
+      default: return 0;
+    }
+  })();
 
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
