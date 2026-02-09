@@ -98,6 +98,8 @@ interface EntregaData {
   notas_fiscais_urls: string[] | null;
   manifesto_url: string | null;
   canhoto_url: string | null;
+  // Manifesto fetched from viagem level
+  viagem_manifesto_url?: string | null;
   motoristas: {
     id: string;
     nome_completo: string;
