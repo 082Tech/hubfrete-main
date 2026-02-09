@@ -748,15 +748,20 @@ export default function HistoricoEntregas() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-48">
-                                      {viagem.manifesto_url && (
-                                        <DropdownMenuItem onClick={() => handleOpenFile(viagem.manifesto_url!, 'Manifesto MDF-e')}>
-                                          <FileText className="w-4 h-4 mr-2" />
-                                          Ver Manifesto
-                                        </DropdownMenuItem>
-                                      )}
-                                      <DropdownMenuItem onClick={() => toggleRow(viagem.id)}>
+                                      <DropdownMenuItem onClick={() => { setSelectedViagem(viagem); setDetailViagemOpen(true); }}>
                                         <Eye className="w-4 h-4 mr-2" />
-                                        {isExpanded ? 'Recolher' : 'Ver'} entregas ({viagem.entregas.length})
+                                        Ver mais
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {
+                                        setTrackingViagemId(viagem.id);
+                                        setTrackingViagemInfo({
+                                          motorista: viagem.motorista?.nome_completo || 'Motorista',
+                                          placa: viagem.veiculo?.placa || '-',
+                                          codigo: viagem.codigo,
+                                        });
+                                      }}>
+                                        <Route className="w-4 h-4 mr-2" />
+                                        Ver histórico no mapa
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
