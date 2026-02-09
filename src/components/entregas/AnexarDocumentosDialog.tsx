@@ -37,9 +37,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
   const [notasFiscaisUrls, setNotasFiscaisUrls] = useState<string[]>([]);
   const [notasFiscaisFiles, setNotasFiscaisFiles] = useState<File[]>([]);
   
-  // Manifesto state
-  const [manifestoFile, setManifestoFile] = useState<File | null>(null);
-  const [manifestoUrl, setManifestoUrl] = useState<string | null>(null);
   
   // Canhoto state
   const [canhotoFile, setCanhotoFile] = useState<File | null>(null);

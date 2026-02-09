@@ -1887,9 +1887,17 @@ export default function OperacaoDiaria() {
   }, [selectedEntrega, localizacoes]);
 
   const handleStatusChange = (newStatus: string) => {
-    if (selectedEntrega) {
-      statusMutation.mutate({ entregaId: selectedEntrega.id, newStatus });
-      setSelectedEntrega(prev => prev ? { ...prev, status: newStatus } : null);
+    // In viagem view, the active entrega is selectedEntregaInViagem
+    const activeEntrega = selectedEntregaInViagem || selectedEntrega;
+    if (activeEntrega) {
+      statusMutation.mutate({ entregaId: activeEntrega.id, newStatus });
+      if (selectedEntregaInViagem) {
+        setSelectedEntregaInViagem(prev => prev ? { ...prev, status: newStatus } : null);
+        // Also refetch viagens to update the viagem's entrega statuses
+        refetchViagens();
+      } else {
+        setSelectedEntrega(prev => prev ? { ...prev, status: newStatus } : null);
+      }
     }
   };
 
