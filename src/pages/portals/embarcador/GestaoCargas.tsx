@@ -878,13 +878,28 @@ export default function GestaoCargas() {
       const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'];
       const terminalStatuses = ['entregue', 'cancelada'];
 
-      return (data || []).filter(e => {
+      const filtered = (data || []).filter(e => {
         if (pendingStatuses.includes(e.status)) return true;
         if (terminalStatuses.includes(e.status)) {
           return new Date(e.updated_at) >= new Date(startOfToday);
         }
         return false;
-      }) as Entrega[];
+      });
+
+      // Fetch eventos for each entrega
+      const entregasWithEvents = await Promise.all(
+        filtered.map(async (entrega) => {
+          const { data: eventos } = await supabase
+            .from('entrega_eventos')
+            .select('id, tipo, timestamp, observacao, user_nome')
+            .eq('entrega_id', entrega.id)
+            .order('timestamp', { ascending: true })
+            .limit(10);
+          return { ...entrega, eventos: eventos || [] };
+        })
+      );
+
+      return entregasWithEvents as Entrega[];
     },
     enabled: !!filialAtiva?.id,
     refetchInterval: 60000,
