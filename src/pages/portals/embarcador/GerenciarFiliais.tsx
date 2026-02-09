@@ -45,7 +45,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
 
 interface Filial {
   id: number;
@@ -102,10 +102,6 @@ export default function GerenciarFiliais() {
   const { viewMode, setViewMode } = useViewModePreference();
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { ref: contentRef, height: contentHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    bottomOffset: 32,
-    minHeight: 300,
-  });
 
   // Carregar filiais do banco
   const loadFiliais = async () => {
@@ -719,7 +715,7 @@ export default function GerenciarFiliais() {
         </div>
 
         {/* Content with fixed height */}
-        <Card ref={contentRef} className="flex-1 flex flex-col overflow-hidden" style={{ height: contentHeight }}>
+        <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
           <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-auto p-4">
               {paginatedFiliais.length === 0 ? (

@@ -50,7 +50,7 @@ import { EditUserDialog } from '@/components/users/EditUserDialog';
 import { ManageInvitesCard } from '@/components/users/ManageInvitesCard';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
 
 type UserRole = 'ADMIN' | 'OPERADOR';
 
@@ -86,10 +86,6 @@ export default function UsuariosEmpresa() {
   const { viewMode, setViewMode } = useViewModePreference();
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { ref: contentRef, height: contentHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    bottomOffset: 32,
-    minHeight: 300,
-  });
 
   // Fetch usuarios from the company
   const { data: usuarios = [], isLoading: loadingUsuarios, refetch: refetchUsuarios } = useQuery({
@@ -550,7 +546,7 @@ export default function UsuariosEmpresa() {
         </div>
 
         {/* Content with fixed height */}
-        <Card ref={contentRef} className="flex-1 flex flex-col overflow-hidden" style={{ height: contentHeight }}>
+        <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
           <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
             {loadingUsuarios ? (
               <div className="flex items-center justify-center h-32 flex-1">

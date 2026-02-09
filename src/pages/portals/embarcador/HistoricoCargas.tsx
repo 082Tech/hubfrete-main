@@ -14,7 +14,7 @@ import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
 import { AdvancedFiltersPopover, type AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -193,11 +193,6 @@ export default function HistoricoCargas() {
   const [selectedEntrega, setSelectedEntrega] = useState<EntregaData | null>(null);
   const [selectedEntregaCarga, setSelectedEntregaCarga] = useState<CargaData | null>(null);
 
-  const { ref: tableCardRef, height: tableCardHeight } = useRemainingViewportHeight<HTMLDivElement>({
-    // desconta padding inferior da página (p-4 = 16, p-8 = 32 no md)
-    bottomOffset: 32,
-    minHeight: 320,
-  });
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
   useEffect(() => {
@@ -670,7 +665,7 @@ export default function HistoricoCargas() {
   return (
     <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
       <TooltipProvider>
-        <div className="flex flex-col h-full gap-6">
+        <div className="flex flex-col h-full gap-6 min-h-0">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
             <div>
@@ -836,11 +831,7 @@ export default function HistoricoCargas() {
           </div>
 
           {/* Table */}
-          <Card
-            ref={tableCardRef as any}
-            style={{ height: tableCardHeight }}
-            className="flex flex-col"
-          >
+          <Card className="flex flex-col flex-1 min-h-0">
             <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">

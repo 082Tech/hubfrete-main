@@ -146,8 +146,8 @@ export default function ContatosSalvos() {
   });
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="space-y-6">
+    <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
+      <div className="flex flex-col gap-6 flex-1 min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -189,14 +189,14 @@ export default function ContatosSalvos() {
         </Card>
 
         {/* Contacts Table */}
-        <Card>
-          <CardHeader>
+        <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <CardHeader className="shrink-0">
             <CardTitle>Lista de Contatos</CardTitle>
             <CardDescription>
               Contatos são compartilhados entre todas as filiais da empresa
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 min-h-0 overflow-auto">
             {loading ? (
               <div className="text-center py-12 text-muted-foreground">
                 Carregando contatos...
