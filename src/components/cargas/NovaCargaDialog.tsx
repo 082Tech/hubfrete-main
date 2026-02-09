@@ -187,7 +187,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     const capturedOrigemData = { ...origemData };
     const capturedDestinoData = { ...destinoData };
     const capturedNecessidades = [...necessidadesEspeciais];
-    const capturedNotaFiscalUrl = notaFiscalUrl;
     const capturedPesoMinimo = pesoMinimoFracionado;
     const capturedVeiculos = [...veiculosSelecionados];
     const capturedCarrocerias = [...carroceriasSelecionadas];
