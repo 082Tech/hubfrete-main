@@ -889,7 +889,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     regras_carregamento: form.getValues('regras_carregamento'),
                   }}
                   necessidadesEspeciais={necessidadesEspeciais}
-                  notaFiscalUrl={notaFiscalUrl}
+                  notaFiscalUrl={null}
                   veiculosSelecionados={veiculosSelecionados}
                   carroceriasSelecionadas={carroceriasSelecionadas}
                 />

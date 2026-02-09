@@ -644,11 +644,13 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                   />
                 </div>
 
-                {/* Nota Fiscal Upload */}
-                <NotaFiscalUpload
-                  value={notaFiscalUrl}
-                  onChange={setNotaFiscalUrl}
-                />
+                {/* NF-e info alert */}
+                <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+                    As Notas Fiscais (NF-e) serão solicitadas quando as entregas forem geradas para esta carga.
+                  </AlertDescription>
+                </Alert>
               </TabsContent>
 
               <TabsContent value="requisitos" className="space-y-6 mt-4">

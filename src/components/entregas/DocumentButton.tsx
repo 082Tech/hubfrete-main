@@ -155,7 +155,7 @@ export function DocumentButton({
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.xml,.jpg,.jpeg,.png"
+          accept=".pdf,.xml,.xhtml,.jpg,.jpeg,.png"
           onChange={handleFileChange}
           className="hidden"
         />
