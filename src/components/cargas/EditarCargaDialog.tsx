@@ -103,7 +103,11 @@ interface CargaToEdit {
   peso_disponivel_kg: number | null;
   permite_fracionado: boolean | null;
   valor_mercadoria: number | null;
+  tipo_precificacao?: string | null;
   valor_frete_tonelada: number | null;
+  valor_frete_m3?: number | null;
+  valor_frete_fixo?: number | null;
+  valor_frete_km?: number | null;
   volume_m3: number | null;
   carga_fragil: boolean | null;
   carga_perigosa: boolean | null;
