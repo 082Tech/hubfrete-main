@@ -309,14 +309,28 @@ function DetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Empresa que publicou */}
-          {entrega.carga.empresa && (
-            <div className="flex items-center gap-2 text-sm">
-              <Building2 className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Publicado por:</span>
-              <span className="font-medium">{entrega.carga.empresa.nome || 'Empresa não identificada'}</span>
+          {/* Carga specs - top priority */}
+          <div className="bg-muted/30 rounded-lg p-3 space-y-1.5">
+            <div className="flex items-center gap-3 text-xs flex-wrap">
+              <span className="flex items-center gap-1">
+                <Weight className="w-3 h-3 text-muted-foreground" />
+                <span className="font-medium">{entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg</span>
+              </span>
+              <span className="text-muted-foreground">Tipo: {entrega.carga.tipo}</span>
+              {entrega.valor_frete && (
+                <span className="flex items-center gap-1 text-primary font-semibold">
+                  <DollarSign className="w-3 h-3" />
+                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              )}
             </div>
-          )}
+            {entrega.carga.empresa && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Building2 className="w-3 h-3" />
+                Publicado por: <span className="font-medium text-foreground">{entrega.carga.empresa.nome}</span>
+              </div>
+            )}
+          </div>
 
           {/* Map */}
           <DetailPanelLeafletMap
@@ -327,23 +341,6 @@ function DetailPanel({
             height={300}
             entregaId={entrega.id}
           />
-
-          {/* Cargo description */}
-          <div className="text-sm">
-            <p className="font-medium">{entrega.carga.descricao}</p>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-              <span className="flex items-center gap-1">
-                <Weight className="w-3 h-3" />
-                {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
-              </span>
-              {entrega.valor_frete && (
-                <span className="flex items-center gap-1 text-primary font-semibold">
-                  <DollarSign className="w-3 h-3" />
-                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              )}
-            </div>
-          </div>
 
           <Separator />
 
