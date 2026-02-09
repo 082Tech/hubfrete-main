@@ -50,7 +50,8 @@ import {
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
-import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
+import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
+import { ViagemDetailsHistoricoDialog } from '@/components/viagens/ViagemDetailsHistoricoDialog';
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
@@ -158,9 +159,13 @@ export default function HistoricoEntregas() {
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
-  // Tracking map
-  const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
-  const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
+  // Tracking map (viagem-level)
+  const [trackingViagemId, setTrackingViagemId] = useState<string | null>(null);
+  const [trackingViagemInfo, setTrackingViagemInfo] = useState<{ motorista: string; placa: string; codigo: string } | null>(null);
+
+  // Viagem detail dialog
+  const [detailViagemOpen, setDetailViagemOpen] = useState(false);
+  const [selectedViagem, setSelectedViagem] = useState<ViagemHistorico | null>(null);
 
   const { data: viagens = [], isLoading } = useQuery({
     queryKey: ['historico_viagens_expandable', empresa?.id],
@@ -743,15 +748,20 @@ export default function HistoricoEntregas() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-48">
-                                      {viagem.manifesto_url && (
-                                        <DropdownMenuItem onClick={() => handleOpenFile(viagem.manifesto_url!, 'Manifesto MDF-e')}>
-                                          <FileText className="w-4 h-4 mr-2" />
-                                          Ver Manifesto
-                                        </DropdownMenuItem>
-                                      )}
-                                      <DropdownMenuItem onClick={() => toggleRow(viagem.id)}>
+                                      <DropdownMenuItem onClick={() => { setSelectedViagem(viagem); setDetailViagemOpen(true); }}>
                                         <Eye className="w-4 h-4 mr-2" />
-                                        {isExpanded ? 'Recolher' : 'Ver'} entregas ({viagem.entregas.length})
+                                        Ver mais
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {
+                                        setTrackingViagemId(viagem.id);
+                                        setTrackingViagemInfo({
+                                          motorista: viagem.motorista?.nome_completo || 'Motorista',
+                                          placa: viagem.veiculo?.placa || '-',
+                                          codigo: viagem.codigo,
+                                        });
+                                      }}>
+                                        <Route className="w-4 h-4 mr-2" />
+                                        Ver histórico no mapa
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
@@ -880,16 +890,6 @@ export default function HistoricoEntregas() {
                                                           <MessageCircle className="w-4 h-4 mr-2" />
                                                           Ver conversa
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => {
-                                                          setTrackingMapEntregaId(entrega.id);
-                                                          setTrackingMapInfo({
-                                                            motorista: entrega.motorista?.nome_completo || viagem.motorista?.nome_completo || 'Motorista',
-                                                            placa: entrega.veiculo?.placa || viagem.veiculo?.placa || '-',
-                                                          });
-                                                        }}>
-                                                          <Route className="w-4 h-4 mr-2" />
-                                                          Ver no mapa
-                                                        </DropdownMenuItem>
                                                       </DropdownMenuContent>
                                                     </DropdownMenu>
                                                   </td>
@@ -979,10 +979,16 @@ export default function HistoricoEntregas() {
           onOpenChange={setDetailsDialogOpen}
         />
 
-        <TrackingMapDialog
-          entregaId={trackingMapEntregaId}
-          info={trackingMapInfo}
-          onClose={() => { setTrackingMapEntregaId(null); setTrackingMapInfo(null); }}
+        <ViagemTrackingMapDialog
+          viagemId={trackingViagemId}
+          info={trackingViagemInfo}
+          onClose={() => { setTrackingViagemId(null); setTrackingViagemInfo(null); }}
+        />
+
+        <ViagemDetailsHistoricoDialog
+          viagem={selectedViagem}
+          open={detailViagemOpen}
+          onOpenChange={setDetailViagemOpen}
         />
 
         <FilePreviewDialog
