@@ -45,7 +45,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
 
 interface Filial {
   id: number;
