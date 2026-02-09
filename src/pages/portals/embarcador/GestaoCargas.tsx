@@ -133,7 +133,7 @@ function EntregaListItem({
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <Package className="w-4 h-4 text-primary shrink-0" />
-          <span className="font-bold text-sm font-mono">{entrega.carga.codigo}-{entrega.codigo || entrega.id.slice(0, 4)}</span>
+          <span className="font-bold text-sm font-mono">{entrega.codigo || entrega.id.slice(0, 4)}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-muted-foreground">{tempoDecorrido}</span>
