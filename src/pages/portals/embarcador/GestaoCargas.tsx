@@ -989,6 +989,14 @@ export default function GestaoCargas() {
           />
         </div>
       </div>
+
+      {/* Map Dialog */}
+      <GestaoMapDialog
+        open={gestaoDialogOpen}
+        onOpenChange={setGestaoDialogOpen}
+        entregas={entregas}
+        localizacoes={localizacoes}
+      />
     </div>
   );
 }
