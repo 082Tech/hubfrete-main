@@ -1,68 +1,59 @@
 
-## Transformar Gestao de Cargas do Embarcador em Kanban + Remover Manifesto
 
-Duas mudancas na tela de Gestao de Cargas do portal do embarcador:
+## Ajuste da Gestao de Cargas: Visao centrada em Cargas para o Embarcador
 
-### 1. Remover logica de Manifesto (MDF-e)
+### Problema atual
+A tela de Gestao de Cargas do embarcador esta muito centrada no **motorista** -- o item da lista destaca o nome do motorista, e a Visualizacao Geral em Mapa agrupa tudo por motorista. O embarcador precisa de uma visao centrada na **carga** (qual e o carregamento, qual a carga mae), com o motorista como informacao complementar.
 
-- Remover a query secundaria que busca `viagem_entregas` + `viagens(manifesto_url)` (linhas 352-374)
-- Remover campo `viagem_manifesto_url` da interface `EntregaData` e `manifesto_url`
-- Contagem de documentos passa de `X/4` para `X/3` (NF-e, CT-e, Canhoto)
-- Manter o alerta de NF-e pendente (badge ambar para status `aguardando` sem NF-e)
+Alem disso, o tracking history (historico de rastreamento) no mapa do painel de detalhes precisa ser verificado e garantido.
 
-### 2. Layout Kanban (estilo Gestao de Entregas da transportadora)
+---
 
-Substituir o layout atual (mapa fullscreen com tabela flutuante e painel de controle) por um layout kanban de 3 colunas identico ao da transportadora, porem **apenas com visao de entregas** (sem switch de viagens).
+### Mudancas planejadas
 
-A estrutura sera:
+#### 1. Lista de entregas (colunas Ativas/Finalizadas) -- foco na carga
+- Reorganizar o `EntregaListItem` para destacar a **carga** como informacao principal:
+  - **Linha 1**: Codigo da carga (ex: `CRG-2026-0042`) + badge de status
+  - **Linha 2**: Rota (Cidade Origem -> Cidade Destino)
+  - **Linha 3**: Remetente / Destinatario
+  - **Linha 4**: Descricao da carga + peso
+  - **Rodape**: Avatar pequeno do motorista com nome (como info secundaria), valor do frete
+- O avatar do motorista passa de destaque principal para um icone menor no rodape do card
 
-```text
-+---------------------+---------------------+---------------------------+
-|     Ativas (30%)    |  Finalizadas (30%)  |   Painel de Detalhes (40%) |
-|                     |                     |                           |
-| - Aguardando        | - Entregue          |  Mapa, status, docs,      |
-| - Saiu p/ Coleta    | - Cancelada         |  motorista, acoes...       |
-| - Saiu p/ Entrega   |                     |                           |
-+---------------------+---------------------+---------------------------+
-```
+#### 2. Painel de detalhes -- garantir tracking history
+- Verificar que o `DetailPanelLeafletMap` esta recebendo `entregaId` corretamente (ja recebe, mas garantir que o fluxo `entrega -> viagem_entregas -> tracking_historico` funcione)
+- Adicionar destaque visual ao codigo da **carga mae** no header do painel (ex: badge maior com "CRG-2026-XXXX" + descricao)
+- Reorganizar a hierarquia: Carga primeiro, motorista depois
 
-#### O que muda na pratica:
+#### 3. Visualizacao Geral em Mapa -- agrupar por Carga
+- Trocar o agrupamento do painel lateral de **"Motoristas"** para **"Cargas"**
+- Cada grupo sera uma carga (codigo + descricao + rota)
+- Dentro de cada carga, listar as entregas associadas com status
+- Manter foto do motorista como info secundaria dentro de cada entrega
+- O titulo do painel muda de "Motoristas (N)" para "Cargas (N)"
+- A busca filtra por codigo da carga, cidade, remetente/destinatario
 
-**Remove:**
-- Layout fullscreen com mapa de fundo (`EntregasMap`)
-- Painel de controle flutuante (stats, legenda, filtros no canto superior direito)
-- Card flutuante de entrega selecionada no mapa
-- Tabela flutuante na base ("Cargas em Rota")
-- Logica de sidebar collapsed / posicionamento fixo
-- Logica de `mapData` e `localizacaoMap`
-
-**Adiciona:**
-- Layout de 3 colunas (grid 30/30/40) que ocupa 100dvh
-- `EntregaListItem` -- componente de card para listar entregas nas colunas (reutilizando o padrao da transportadora: avatar, rota, status, tempo decorrido)
-- `DetailPanel` -- painel lateral direito com mapa do Leaflet, informacoes da carga, documentos (3/3), acoes de chat e status
-- `EmptyColumnPlaceholder` -- placeholder para colunas vazias
-- Header com titulo, botao de refresh e filtros avancados (`AdvancedFiltersPopover`)
-- Separacao de entregas: coluna 1 = status ativos (`aguardando`, `saiu_para_coleta`, `saiu_para_entrega`), coluna 2 = terminais (`entregue`, `cancelada`)
-
-**Busca de dados:** A query principal muda -- em vez de buscar por `cargas` com `entregas!inner`, buscara diretamente as `entregas` filtradas pela empresa do embarcador (via `cargas.filial_id`), trazendo os dados da carga embutidos. Isso simplifica a estrutura e alinha com o padrao da transportadora.
-
-**Visao "diaria":** Entregas ativas sempre aparecem; entregas finalizadas (entregue/cancelada) permanecem visiveis se o `updated_at` for do dia atual, movendo-se automaticamente para o historico na virada do dia.
-
-**Sem switch de viagens:** O embarcador nao precisa gerenciar viagens, entao nao havera switch nem logica de viagens.
+---
 
 ### Detalhes tecnicos
 
-**Arquivo principal:** `src/pages/portals/embarcador/GestaoCargas.tsx` -- reescrita completa do layout e query
+#### `EntregaListItem` (linhas 107-183 de GestaoCargas.tsx)
+- Trocar a hierarquia visual: Package icon + codigo da carga como titulo
+- Motorista passa para uma linha menor com avatar 6x6 (em vez de 9x9)
+- Manter todos os dados, apenas reordenar prioridade visual
 
-**Componentes reutilizados da transportadora (mesmo padrao, adaptados):**
-- `EntregaListItem` inline (card com avatar, rota origem-destino, status badge, tempo)
-- `DetailPanel` inline (mapa Leaflet, dados da carga, documentos 3/3, acoes)
-- `checkRequiredDocuments` (CT-e, Canhoto, NF-e -- sem manifesto)
-- `AdvancedFiltersPopover` para filtros granulares
-- `DetailPanelLeafletMap` para mapa no painel de detalhes
-- `ChatSheet` para mensagens
-- `FilePreviewDialog` para visualizacao de documentos
+#### `GestaoMapDialogContent` (linhas 591-818 de GestaoCargas.tsx)
+- Refatorar `motoristaGroups` para `cargaGroups`: agrupar entregas por `carga.id`
+- Cada grupo mostra: codigo da carga, rota, descricao, e lista de entregas
+- Motorista aparece como sub-info dentro de cada entrega no grupo
+- Adaptar `GestaoLeafletMap` props se necessario para o novo agrupamento
 
-**Mudanca na query:** De `cargas -> entregas` para `entregas -> cargas`, filtrando por `cargas.filial_id = filialAtiva.id` e trazendo endereco_origem/destino e empresa via joins.
+#### `DetailPanel` (linhas 196-588 de GestaoCargas.tsx)
+- Mover a secao da carga (descricao, peso, tipo) para logo abaixo do header, antes do mapa
+- Garantir que `entregaId` e passado ao `DetailPanelLeafletMap` (ja e feito na linha 311)
+- O tracking history depende de existir um registro em `viagem_entregas` -- isso e esperado e correto
 
-**Persistencia diaria:** Entregas com status terminal (`entregue`, `cancelada`) so aparecem se `updated_at >= startOfDay(now)`.
+#### Arquivos modificados
+- `src/pages/portals/embarcador/GestaoCargas.tsx` (principal -- EntregaListItem, DetailPanel, GestaoMapDialogContent)
+- `src/components/maps/GestaoLeafletMap.tsx` (ajustar props se o agrupamento mudar de motorista para carga)
+
