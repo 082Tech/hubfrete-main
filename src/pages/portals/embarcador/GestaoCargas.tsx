@@ -266,9 +266,9 @@ function DetailPanel({
       <div className="p-3 border-b">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Entrega Nº</span>
-            <Badge variant="outline" className="font-mono font-bold text-xs px-2 border-primary text-primary">
-              {entrega.codigo || entrega.id.slice(0, 8)}
+            <Package className="w-4 h-4 text-primary" />
+            <Badge variant="outline" className="font-mono font-bold text-sm px-2 border-primary text-primary bg-primary/5">
+              {entrega.carga.codigo}
             </Badge>
           </div>
           <div className="flex items-center gap-0.5">
@@ -279,9 +279,13 @@ function DetailPanel({
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground mb-2">
-          {format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })} • Carga {entrega.carga.codigo}
-        </p>
+        {/* Carga description + entrega ref */}
+        <p className="text-sm font-medium mb-1">{entrega.carga.descricao}</p>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          <span>Entrega #{entrega.codigo || entrega.id.slice(0, 6)}</span>
+          <span>•</span>
+          <span>{format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
+        </div>
 
         {/* Status banner */}
         <div className={`rounded-md px-3 py-1.5 text-center text-sm ${statusInfo.color}`}>
