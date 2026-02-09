@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, Eye, DollarSign, Info } from 'lucide-react';
+import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, Eye, DollarSign } from 'lucide-react';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
 import { RemetenteSection } from './RemetenteSection';
