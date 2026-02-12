@@ -1,11 +1,1 @@
 project_id = "eilwdavgnuhfyxfqkvrk"
-
-[functions.create-driver-auth]
-verify_jwt = false
-
-[functions.delete-driver-auth]
-verify_jwt = false
-
-# Finalizar entrega - requer autenticação
-[functions.finalizar-entrega]
-verify_jwt = false
