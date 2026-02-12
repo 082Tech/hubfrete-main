@@ -157,3 +157,55 @@ export function checkEntregaDocs(ctes: CteDoc[], canhotoUrl: string | null): { c
 
   return { complete: missing.length === 0, missing };
 }
+
+/**
+ * Fetch NF-es directly linked to an entrega (not through CT-e).
+ * Used to check if embarcador has attached NF-es before allowing transition.
+ */
+export async function fetchNfesForEntrega(entregaId: string): Promise<NfeDoc[]> {
+  const { data, error } = await (supabase as any)
+    .from('nfes')
+    .select('id, numero, chave_acesso, url, xml_url, valor, emitido_em')
+    .eq('entrega_id', entregaId)
+    .order('created_at', { ascending: true });
+
+  if (error || !data) return [];
+  return data as NfeDoc[];
+}
+
+/**
+ * Check if an entrega has at least one NF-e attached (required before saiu_para_entrega).
+ */
+export async function hasNfeAttached(entregaId: string): Promise<boolean> {
+  const { count, error } = await (supabase as any)
+    .from('nfes')
+    .select('id', { count: 'exact', head: true })
+    .eq('entrega_id', entregaId);
+
+  if (error) return false;
+  return (count ?? 0) > 0;
+}
+
+/**
+ * Poll CT-e status via the focusnfe-cte edge function.
+ * Returns the current focus_status after querying.
+ */
+export async function pollCteStatus(focusRef: string): Promise<{ status: string; data: any }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL || 'https://eilwdavgnuhfyxfqkvrk.supabase.co'}/functions/v1/focusnfe-cte`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token || ''}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbHdkYXZnbnVoZnl4ZnFrdnJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MjUxNjIsImV4cCI6MjA4MzMwMTE2Mn0.kwfOZWgzUEhhQYE3NEPfhYoAQMok0suqVp6FsWBHmu8',
+      },
+      body: JSON.stringify({ action: 'consultar', ref: focusRef }),
+    }
+  );
+
+  const result = await response.json();
+  return { status: result.data?.status || 'desconhecido', data: result.data };
+}

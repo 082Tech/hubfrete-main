@@ -1,9 +1,11 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { parseNfeXml } from '@/lib/nfeXmlParser';
+import { toast } from 'sonner';
 import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -218,6 +220,95 @@ function DetailPanel({
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [isUploadingNfe, setIsUploadingNfe] = useState(false);
+  const nfeInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch NF-es for this entrega from the nfes table
+  const { data: nfes = [], refetch: refetchNfes } = useQuery({
+    queryKey: ['entrega-nfes', entrega?.id],
+    queryFn: async () => {
+      if (!entrega?.id) return [];
+      const { data, error } = await (supabase as any)
+        .from('nfes')
+        .select('id, numero, chave_acesso, url, valor, emitido_em')
+        .eq('entrega_id', entrega.id)
+        .order('created_at', { ascending: true });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!entrega?.id,
+  });
+
+  // Fetch CT-es for this entrega
+  const { data: ctes = [] } = useQuery({
+    queryKey: ['entrega-ctes', entrega?.id],
+    queryFn: async () => {
+      if (!entrega?.id) return [];
+      const { data, error } = await (supabase as any)
+        .from('ctes')
+        .select('id, numero, chave_acesso, url, focus_status, valor')
+        .eq('entrega_id', entrega.id)
+        .order('created_at', { ascending: true });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!entrega?.id,
+  });
+
+  const handleNfeXmlUpload = async (file: File) => {
+    if (!entrega) return;
+    setIsUploadingNfe(true);
+    try {
+      const xmlContent = await file.text();
+      const parsed = parseNfeXml(xmlContent);
+
+      if (!parsed.chaveAcesso) {
+        toast.error('Não foi possível extrair a chave de acesso do XML. Verifique o arquivo.');
+        setIsUploadingNfe(false);
+        return;
+      }
+
+      // Upload XML file to storage
+      const fileName = `nfe-${entrega.id}-${Date.now()}.xml`;
+      const storagePath = `documentos/nfes/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('documentos')
+        .upload(storagePath, file, { contentType: 'text/xml' });
+
+      let fileUrl: string | null = null;
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(storagePath);
+        fileUrl = urlData?.publicUrl || null;
+      }
+
+      // Insert into nfes table
+      const { error: insertError } = await (supabase as any)
+        .from('nfes')
+        .insert({
+          entrega_id: entrega.id,
+          numero: parsed.numero,
+          chave_acesso: parsed.chaveAcesso,
+          url: fileUrl,
+          xml_content: xmlContent,
+          valor: parsed.valor,
+        });
+
+      if (insertError) {
+        console.error('Erro ao salvar NF-e:', insertError);
+        toast.error('Erro ao salvar NF-e no banco de dados');
+      } else {
+        toast.success(`NF-e ${parsed.numero || parsed.chaveAcesso?.slice(-6) || ''} anexada com sucesso!`);
+        refetchNfes();
+        onRefresh();
+      }
+    } catch (err) {
+      console.error('Erro ao processar XML:', err);
+      toast.error('Erro ao processar o arquivo XML');
+    } finally {
+      setIsUploadingNfe(false);
+      if (nfeInputRef.current) nfeInputRef.current.value = '';
+    }
+  };
 
   if (!entrega) {
     return (
@@ -240,14 +331,14 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Docs: 3 obrigatórios (NF-e, CT-e, Canhoto) - sem manifesto
+  // Docs: 3 obrigatórios (NF-e, CT-e, Canhoto)
   const hasCanhoto = !!entrega.canhoto_url;
-  // CT-e and NF-e are now in separate tables
-  const docsCount = hasCanhoto ? 1 : 0;
-  const docsComplete = hasCanhoto; // simplified - full check via documentHelpers
+  const hasNfe = nfes.length > 0;
+  const hasCte = ctes.length > 0;
+  const docsCount = (hasNfe ? 1 : 0) + (hasCte ? 1 : 0) + (hasCanhoto ? 1 : 0);
+  const docsComplete = hasNfe && hasCte && hasCanhoto;
 
-  // NF-e now in separate tables
-  const nfePending = false;
+  const nfePending = !hasNfe && entrega.status !== 'entregue' && entrega.status !== 'cancelada';
 
   const handleDocClick = (url: string | null, title: string) => {
     if (url) {
@@ -434,6 +525,105 @@ function DetailPanel({
               </Badge>
             </div>
 
+            {/* NF-e Section - embarcador can upload */}
+            <div className="mb-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Notas Fiscais (NF-e)</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-[10px] px-2 gap-1"
+                  onClick={() => nfeInputRef.current?.click()}
+                  disabled={isUploadingNfe}
+                >
+                  {isUploadingNfe ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Upload className="w-3 h-3" />
+                  )}
+                  Anexar XML
+                </Button>
+                <input
+                  ref={nfeInputRef}
+                  type="file"
+                  accept=".xml"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleNfeXmlUpload(file);
+                  }}
+                />
+              </div>
+
+              {nfes.length > 0 ? (
+                <div className="space-y-1">
+                  {nfes.map((nfe: any) => (
+                    <div
+                      key={nfe.id}
+                      className="flex items-center justify-between p-1.5 rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-xs"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                        <span className="font-medium">
+                          NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || ''}
+                        </span>
+                        {nfe.valor && (
+                          <span className="text-muted-foreground">
+                            R$ {Number(nfe.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        )}
+                      </div>
+                      {nfe.url && (
+                        <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || ''}`)}>
+                          <Download className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+                  <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                  <span className="text-amber-800 dark:text-amber-300">Nenhuma NF-e anexada. A transportadora não pode sair para entrega.</span>
+                </div>
+              )}
+            </div>
+
+            {/* CT-e Section - auto-generated */}
+            <div className="mb-2 space-y-1.5">
+              <span className="text-xs font-medium text-muted-foreground">CT-e</span>
+              {ctes.length > 0 ? (
+                <div className="space-y-1">
+                  {ctes.map((cte: any) => (
+                    <div
+                      key={cte.id}
+                      className="flex items-center justify-between p-1.5 rounded-md bg-muted/50 border text-xs"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {cte.focus_status === 'autorizado' ? (
+                          <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                        )}
+                        <span className="font-medium">
+                          CT-e {cte.numero || 'Processando...'}
+                        </span>
+                        <Badge variant="outline" className="text-[8px] px-1 py-0">Auto</Badge>
+                      </div>
+                      {cte.url && (
+                        <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => handleDocClick(cte.url, `CT-e ${cte.numero || ''}`)}>
+                          <Download className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Gerado automaticamente ao sair para entrega</p>
+              )}
+            </div>
+
+            {/* Canhoto */}
             <div className="grid grid-cols-2 gap-2">
               <DocumentButton
                 type="canhoto"
@@ -441,15 +631,7 @@ function DetailPanel({
                 canAttach={false}
                 onView={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}
                 entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
-              <DocumentButton
-                type="cte"
-                hasDoc={false}
-                canAttach={false}
-                onView={() => {}}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
+                onUploaded={() => { onRefresh(); }}
               />
             </div>
           </div>
