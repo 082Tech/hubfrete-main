@@ -109,10 +109,6 @@ interface Entrega {
   coletado_em: string | null;
   entregue_em: string | null;
   // Documentos
-  cte_url: string | null;
-  numero_cte: string | null;
-  notas_fiscais_urls: string[] | null;
-  manifesto_url: string | null;
   canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
@@ -142,15 +138,13 @@ interface Entrega {
   }>;
 }
 
-// Helper para verificar documentos obrigatórios da entrega (3 docs: CT-e, Canhoto, NF-e)
-// Manifesto pertence à viagem, não à entrega
+// Helper para verificar documentos obrigatórios da entrega
+// Agora usa as tabelas ctes/nfes - placeholder local que verifica apenas canhoto
+// CT-e e NF-e são verificados via documentHelpers
 function checkRequiredDocuments(entrega: Entrega): { complete: boolean; missing: string[] } {
   const missing: string[] = [];
-
-  if (!entrega.cte_url) missing.push('CT-e');
+  // CT-e e NF-e agora vêm das tabelas separadas - por enquanto verificamos apenas canhoto localmente
   if (!entrega.canhoto_url) missing.push('Canhoto');
-  if (!entrega.notas_fiscais_urls || entrega.notas_fiscais_urls.length === 0) missing.push('Nota Fiscal');
-
   return { complete: missing.length === 0, missing };
 }
 
@@ -366,12 +360,8 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Contagem de documentos anexados (3 obrigatórios: CT-e, Canhoto, NF-e)
-  const docsCount = [
-    entrega.cte_url ? 1 : 0,
-    entrega.canhoto_url ? 1 : 0,
-    (entrega.notas_fiscais_urls?.length || 0) > 0 ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
+  // Contagem de documentos anexados - canhoto local, CT-e/NF-e agora nas tabelas separadas
+  const docsCount = entrega.canhoto_url ? 1 : 0;
 
   return (
     <div className="h-full flex flex-col bg-card border-l">
@@ -558,15 +548,7 @@ function DetailPanel({
               </Badge>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <DocumentButton
-                type="cte"
-                hasDoc={!!entrega.cte_url}
-                canAttach={true}
-                onView={() => handleDocClick(entrega.cte_url, 'CT-e')}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
+            <div className="grid grid-cols-2 gap-2">
               <DocumentButton
                 type="canhoto"
                 hasDoc={!!entrega.canhoto_url}
@@ -576,11 +558,10 @@ function DetailPanel({
                 onUploaded={onRefresh}
               />
               <DocumentButton
-                type="nfe"
-                hasDoc={(entrega.notas_fiscais_urls?.length || 0) > 0}
-                count={entrega.notas_fiscais_urls?.length || 0}
-                canAttach={false}
-                onView={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
+                type="cte"
+                hasDoc={false}
+                canAttach={true}
+                onView={() => {}}
                 entregaId={entrega.id}
                 onUploaded={onRefresh}
               />
@@ -1157,7 +1138,6 @@ function GestaoEntregasDialogContent({
       },
       pesoAlocado: entrega.peso_alocado_kg,
       valorFrete: entrega.valor_frete,
-      numeroCte: entrega.numero_cte,
     };
   }, [selectedEntregaId, entregas]);
 
@@ -1389,7 +1369,7 @@ interface ViagemWithEntregas {
   updated_at?: string;
   started_at?: string | null;
   ended_at?: string | null;
-  manifesto_url: string | null;
+  
   motorista_id: string;
   motorista: {
     id: string;
@@ -1406,8 +1386,6 @@ interface ViagemWithEntregas {
     status: string;
     peso_alocado_kg: number | null;
     valor_frete: number | null;
-    notas_fiscais_urls: string[] | null;
-    cte_url: string | null;
     canhoto_url: string | null;
     carga: {
       descricao: string;
@@ -1462,7 +1440,7 @@ export default function OperacaoDiaria() {
           id, codigo, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em,
-          cte_url, numero_cte, notas_fiscais_urls, manifesto_url, canhoto_url,
+          canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!inner(
@@ -1533,7 +1511,7 @@ export default function OperacaoDiaria() {
       const { data: viagensData, error: viagensError } = await supabase
         .from('viagens')
         .select(`
-          id, codigo, status, created_at, updated_at, started_at, ended_at, manifesto_url, motorista_id,
+          id, codigo, status, created_at, updated_at, started_at, ended_at, motorista_id,
           motorista:motoristas(id, nome_completo, foto_url),
           veiculo:veiculos(placa, modelo)
         `)
@@ -1551,7 +1529,7 @@ export default function OperacaoDiaria() {
             .select(`
               entrega:entregas(
                 id, codigo, status, peso_alocado_kg, valor_frete, created_at, updated_at,
-                notas_fiscais_urls, cte_url, canhoto_url,
+                canhoto_url,
                 carga:cargas(
                   descricao,
                   endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
