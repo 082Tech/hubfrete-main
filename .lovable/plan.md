@@ -1,59 +1,130 @@
 
+# Automacao de Documentos Fiscais + Bloqueio por NF-e
 
-## Ajuste da Gestao de Cargas: Visao centrada em Cargas para o Embarcador
+## Resumo
 
-### Problema atual
-A tela de Gestao de Cargas do embarcador esta muito centrada no **motorista** -- o item da lista destaca o nome do motorista, e a Visualizacao Geral em Mapa agrupa tudo por motorista. O embarcador precisa de uma visao centrada na **carga** (qual e o carregamento, qual a carga mae), com o motorista como informacao complementar.
+O embarcador anexa a NF-e (XML) na entrega. Enquanto nao tiver NF-e anexada, a transportadora nao consegue mudar o status de `saiu_para_coleta` para `saiu_para_entrega`. Quando a transportadora avanca para `saiu_para_entrega`, o sistema automaticamente emite o CT-e via Focus NFe usando os dados da entrega + NF-e anexada.
 
-Alem disso, o tracking history (historico de rastreamento) no mapa do painel de detalhes precisa ser verificado e garantido.
+## Fluxo Operacional
 
----
+```text
+1. Embarcador publica carga
+2. Transportadora cria entrega/viagem
+3. Status: aguardando -> saiu_para_coleta (livre)
+4. Embarcador anexa NF-e (XML obrigatorio - conteudo salvo no DB)
+5. Status: saiu_para_coleta -> saiu_para_entrega (BLOQUEADO ate ter NF-e)
+   -> Ao desbloquear: sistema emite CT-e automaticamente via Focus NFe
+6. Status: saiu_para_entrega -> entregue (precisa canhoto)
+```
 
-### Mudancas planejadas
+## Mudancas Planejadas
 
-#### 1. Lista de entregas (colunas Ativas/Finalizadas) -- foco na carga
-- Reorganizar o `EntregaListItem` para destacar a **carga** como informacao principal:
-  - **Linha 1**: Codigo da carga (ex: `CRG-2026-0042`) + badge de status
-  - **Linha 2**: Rota (Cidade Origem -> Cidade Destino)
-  - **Linha 3**: Remetente / Destinatario
-  - **Linha 4**: Descricao da carga + peso
-  - **Rodape**: Avatar pequeno do motorista com nome (como info secundaria), valor do frete
-- O avatar do motorista passa de destaque principal para um icone menor no rodape do card
+### 1. Tabela `nfes` - Guardar XML no DB
 
-#### 2. Painel de detalhes -- garantir tracking history
-- Verificar que o `DetailPanelLeafletMap` esta recebendo `entregaId` corretamente (ja recebe, mas garantir que o fluxo `entrega -> viagem_entregas -> tracking_historico` funcione)
-- Adicionar destaque visual ao codigo da **carga mae** no header do painel (ex: badge maior com "CRG-2026-XXXX" + descricao)
-- Reorganizar a hierarquia: Carga primeiro, motorista depois
+Sera necessario rodar SQL para adicionar uma coluna `xml_content TEXT` na tabela `nfes` para armazenar o conteudo do XML diretamente no banco (sem depender de arquivo no storage). SQL para rodar manualmente:
 
-#### 3. Visualizacao Geral em Mapa -- agrupar por Carga
-- Trocar o agrupamento do painel lateral de **"Motoristas"** para **"Cargas"**
-- Cada grupo sera uma carga (codigo + descricao + rota)
-- Dentro de cada carga, listar as entregas associadas com status
-- Manter foto do motorista como info secundaria dentro de cada entrega
-- O titulo do painel muda de "Motoristas (N)" para "Cargas (N)"
-- A busca filtra por codigo da carga, cidade, remetente/destinatario
+```sql
+ALTER TABLE public.nfes ADD COLUMN IF NOT EXISTS xml_content TEXT;
+```
 
----
+### 2. Portal do Embarcador - Upload de NF-e (XML)
 
-### Detalhes tecnicos
+**Arquivo: `src/pages/portals/embarcador/GestaoCargas.tsx`**
 
-#### `EntregaListItem` (linhas 107-183 de GestaoCargas.tsx)
-- Trocar a hierarquia visual: Package icon + codigo da carga como titulo
-- Motorista passa para uma linha menor com avatar 6x6 (em vez de 9x9)
-- Manter todos os dados, apenas reordenar prioridade visual
+- Adicionar botao "Anexar NF-e" na secao de documentos do painel de detalhes (atualmente mostra `hasDoc: false` hardcoded)
+- O botao abre um input de arquivo que aceita apenas `.xml`
+- Ao selecionar o XML:
+  - Le o conteudo do arquivo como texto
+  - Faz upload do arquivo para o storage (para referencia/download)
+  - Insere na tabela `nfes` com `entrega_id`, `url` (storage path) e `xml_content` (conteudo do XML)
+  - Extrai a chave de acesso do XML se possivel (tag `<chNFe>`)
+- Mostrar indicador visual de NF-e pendente (alerta ambar) quando nao tiver NF-e anexada
+- Atualizar o contador de documentos para refletir NF-es da tabela
 
-#### `GestaoMapDialogContent` (linhas 591-818 de GestaoCargas.tsx)
-- Refatorar `motoristaGroups` para `cargaGroups`: agrupar entregas por `carga.id`
-- Cada grupo mostra: codigo da carga, rota, descricao, e lista de entregas
-- Motorista aparece como sub-info dentro de cada entrega no grupo
-- Adaptar `GestaoLeafletMap` props se necessario para o novo agrupamento
+### 3. Bloqueio de Transicao `saiu_para_coleta -> saiu_para_entrega`
 
-#### `DetailPanel` (linhas 196-588 de GestaoCargas.tsx)
-- Mover a secao da carga (descricao, peso, tipo) para logo abaixo do header, antes do mapa
-- Garantir que `entregaId` e passado ao `DetailPanelLeafletMap` (ja e feito na linha 311)
-- O tracking history depende de existir um registro em `viagem_entregas` -- isso e esperado e correto
+**Arquivo: `src/pages/portals/transportadora/OperacaoDiaria.tsx`**
 
-#### Arquivos modificados
-- `src/pages/portals/embarcador/GestaoCargas.tsx` (principal -- EntregaListItem, DetailPanel, GestaoMapDialogContent)
-- `src/components/maps/GestaoLeafletMap.tsx` (ajustar props se o agrupamento mudar de motorista para carga)
+No `DetailPanel`, antes de permitir a transicao para `saiu_para_entrega`:
+- Consultar tabela `nfes` para verificar se existe pelo menos 1 NF-e vinculada a entrega (via CT-e existente ou diretamente)
+- Se nao houver NF-e: exibir alerta ambar "NF-e obrigatoria - Aguardando embarcador anexar a Nota Fiscal" e desabilitar o botao
+- Se houver NF-e: liberar o botao normalmente
 
+Ajustar o `handleActionClick` e o dialog de confirmacao para incluir essa verificacao.
+
+### 4. Emissao Automatica de CT-e ao Sair para Entrega
+
+**Arquivo: `src/pages/portals/transportadora/OperacaoDiaria.tsx`**
+
+Na `statusMutation`, quando `newStatus === 'saiu_para_entrega'`:
+
+1. Buscar dados da entrega (remetente, destinatario, enderecos, valores, NF-es)
+2. Montar o payload do CT-e conforme a API Focus NFe (modal rodoviario)
+3. Gerar uma referencia unica (`ref`) baseada no ID da entrega
+4. Chamar a Edge Function `focusnfe-cte` com `action: 'emitir'`
+5. O CT-e sera salvo na tabela `ctes` com `focus_ref` e `focus_status: 'processando_autorizacao'`
+6. Vincular as NF-es existentes ao CT-e recem criado
+7. Exibir toast informando que o CT-e esta sendo processado
+
+### 5. Consulta de Status do CT-e (Polling)
+
+**Arquivo: `src/lib/documentHelpers.ts`**
+
+Adicionar funcao `pollCteStatus(focusRef: string)` que:
+- Chama a Edge Function com `action: 'consultar'`
+- A Edge Function ja atualiza o banco automaticamente quando autorizado
+- Retorna o status atual
+
+No `DetailPanel` da transportadora, quando houver CT-e com `focus_status !== 'autorizado'`:
+- Mostrar badge "Processando..." com botao para consultar manualmente
+- Atualizar a UI quando o status mudar para autorizado (mostrando numero e link do DACTE)
+
+### 6. Ajuste na Edge Function
+
+**Arquivo: `supabase/functions/focusnfe-cte/index.ts`**
+
+- Adicionar acao `emitir_com_nfes` que:
+  - Recebe `entrega_id`
+  - Busca as NF-es da entrega no banco
+  - Monta o payload do CT-e com as chaves das NF-es
+  - Emite via Focus NFe
+  - Salva o CT-e e vincula as NF-es
+
+Isso centraliza a logica de montagem do payload na Edge Function em vez de no frontend.
+
+### 7. Atualizacao do `AnexarDocumentosDialog`
+
+**Arquivo: `src/components/entregas/AnexarDocumentosDialog.tsx`**
+
+- Mostrar NF-es vindas da tabela com indicacao de quem anexou (embarcador)
+- CT-es gerados automaticamente mostram badge "Auto" com status Focus NFe
+- Manter upload manual de CT-e como fallback
+
+## Detalhes Tecnicos
+
+### Payload CT-e para Focus NFe (modal rodoviario - homologacao)
+
+O payload sera montado a partir dos dados da entrega:
+- `cnpj_emitente`: CNPJ da transportadora (do cadastro da empresa)
+- `cpf/cnpj_remetente`: dados do remetente da carga
+- `cnpj_destinatario`: dados do destinatario
+- Enderecos de origem/destino
+- `valor_total`: valor do frete
+- `nfes[]`: array com chaves de acesso das NF-es extraidas do XML
+- `modal_rodoviario`: dados do veiculo/motorista
+
+Em homologacao, os nomes devem ser "CT-E EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL".
+
+### Referencia unica
+
+Formato: `cte-{entrega_id_curto}-{timestamp}` para garantir unicidade.
+
+## Ordem de Implementacao
+
+1. SQL: adicionar `xml_content` na tabela `nfes`
+2. Embarcador: upload de NF-e com XML
+3. Transportadora: bloqueio de transicao sem NF-e
+4. Edge Function: acao `emitir_com_nfes`
+5. Transportadora: emissao automatica ao sair para entrega
+6. Polling de status do CT-e
+7. Atualizacao visual dos documentos em ambos portais
