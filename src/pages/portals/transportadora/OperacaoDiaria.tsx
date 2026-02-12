@@ -283,6 +283,8 @@ function DetailPanel({
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState<string>('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [nfeBlockMessage, setNfeBlockMessage] = useState<string | null>(null);
+  const [checkingNfe, setCheckingNfe] = useState(false);
 
   if (!entrega) {
     return (
@@ -336,14 +338,31 @@ function DetailPanel({
     setActionConfirmDialogOpen(false);
   };
 
-  const handleActionClick = () => {
+  const handleActionClick = async () => {
     if (!nextStatus) return;
 
     if (nextStatus.status === 'entregue') {
-      // Precisa verificar documentos antes de marcar como entregue
       setEntregueDialogOpen(true);
+    } else if (nextStatus.status === 'saiu_para_entrega') {
+      // Check if NF-e is attached before allowing transition
+      setCheckingNfe(true);
+      try {
+        const { hasNfeAttached } = await import('@/lib/documentHelpers');
+        const hasNfe = await hasNfeAttached(entrega.id);
+        if (!hasNfe) {
+          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para entrega.');
+          setCheckingNfe(false);
+          return;
+        }
+        setNfeBlockMessage(null);
+        setActionConfirmDialogOpen(true);
+      } catch (err) {
+        console.error('Erro ao verificar NF-e:', err);
+        toast.error('Erro ao verificar documentos');
+      } finally {
+        setCheckingNfe(false);
+      }
     } else {
-      // Todas as ações precisam de confirmação
       setActionConfirmDialogOpen(true);
     }
   };
@@ -721,6 +740,23 @@ function DetailPanel({
         </div>
       )}
 
+      {/* Alerta de NF-e obrigatória */}
+      {nfeBlockMessage && !isFinalized && (
+        <div className="px-3 pt-3">
+          <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-300">
+                NF-e obrigatória
+              </p>
+              <p className="text-amber-700 dark:text-amber-400">
+                {nfeBlockMessage}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer actions - botão principal + menu de 3 pontos */}
       {!isFinalized && nextStatus && (
         <div className="p-3 border-t bg-muted/20">
@@ -751,14 +787,14 @@ function DetailPanel({
               size="sm"
               className="flex-1 text-xs"
               onClick={handleActionClick}
-              disabled={isChangingStatus || isViagemNotStarted}
+              disabled={isChangingStatus || isViagemNotStarted || checkingNfe}
             >
-              {isChangingStatus ? (
+              {(isChangingStatus || checkingNfe) ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
               ) : (
                 <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
               )}
-              {nextStatus.label}
+              {checkingNfe ? 'Verificando NF-e...' : nextStatus.label}
             </Button>
           </div>
         </div>
@@ -1669,6 +1705,42 @@ export default function OperacaoDiaria() {
 
       if (eventoError) {
         console.error('Erro ao registrar evento:', eventoError);
+      }
+
+      // Auto-emit CT-e when transitioning to saiu_para_entrega
+      if (newStatus === 'saiu_para_entrega') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const ref = `cte-${entregaId.slice(0, 8)}-${Date.now()}`;
+          
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL || 'https://eilwdavgnuhfyxfqkvrk.supabase.co'}/functions/v1/focusnfe-cte`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token || ''}`,
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbHdkYXZnbnVoZnl4ZnFrdnJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MjUxNjIsImV4cCI6MjA4MzMwMTE2Mn0.kwfOZWgzUEhhQYE3NEPfhYoAQMok0suqVp6FsWBHmu8',
+              },
+              body: JSON.stringify({
+                action: 'emitir_com_nfes',
+                entrega_id: entregaId,
+                ref,
+              }),
+            }
+          );
+
+          const result = await response.json();
+          if (result.success) {
+            toast.info('CT-e sendo emitido automaticamente via Focus NFe...');
+          } else {
+            console.error('Erro na emissão automática do CT-e:', result);
+            toast.warning('Não foi possível emitir o CT-e automaticamente. Verifique os documentos.');
+          }
+        } catch (cteError) {
+          console.error('Erro ao emitir CT-e:', cteError);
+          toast.warning('Erro ao emitir CT-e automaticamente');
+        }
       }
     },
     onSuccess: () => {
