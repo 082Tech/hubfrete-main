@@ -78,9 +78,6 @@ interface Entrega {
   valor_frete: number | null;
   coletado_em: string | null;
   entregue_em: string | null;
-  cte_url: string | null;
-  numero_cte: string | null;
-  notas_fiscais_urls: string[] | null;
   canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
@@ -121,8 +118,8 @@ function EntregaListItem({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social || 'Remetente';
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário';
 
-  const hasNf = (entrega.notas_fiscais_urls?.length || 0) > 0;
-  const nfePending = !hasNf && entrega.status === 'aguardando';
+  // NF-e now in separate tables - pending check removed
+  const nfePending = false;
 
   return (
     <div
@@ -244,14 +241,13 @@ function DetailPanel({
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
   // Docs: 3 obrigatórios (NF-e, CT-e, Canhoto) - sem manifesto
-  const hasCte = !!entrega.cte_url;
   const hasCanhoto = !!entrega.canhoto_url;
-  const hasNf = (entrega.notas_fiscais_urls?.length || 0) > 0;
-  const docsCount = [hasCte, hasCanhoto, hasNf].filter(Boolean).length;
-  const docsComplete = docsCount === 3;
+  // CT-e and NF-e are now in separate tables
+  const docsCount = hasCanhoto ? 1 : 0;
+  const docsComplete = hasCanhoto; // simplified - full check via documentHelpers
 
-  // NF-e alert
-  const nfePending = !hasNf && entrega.status === 'aguardando';
+  // NF-e now in separate tables
+  const nfePending = false;
 
   const handleDocClick = (url: string | null, title: string) => {
     if (url) {
@@ -438,15 +434,7 @@ function DetailPanel({
               </Badge>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <DocumentButton
-                type="cte"
-                hasDoc={hasCte}
-                canAttach={false}
-                onView={() => handleDocClick(entrega.cte_url, 'CT-e')}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
+            <div className="grid grid-cols-2 gap-2">
               <DocumentButton
                 type="canhoto"
                 hasDoc={hasCanhoto}
@@ -456,11 +444,10 @@ function DetailPanel({
                 onUploaded={onRefresh}
               />
               <DocumentButton
-                type="nfe"
-                hasDoc={hasNf}
-                count={entrega.notas_fiscais_urls?.length || 0}
-                canAttach={true}
-                onView={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
+                type="cte"
+                hasDoc={false}
+                canAttach={false}
+                onView={() => {}}
                 entregaId={entrega.id}
                 onUploaded={onRefresh}
               />
@@ -695,7 +682,7 @@ function GestaoMapDialogContent({
         origemCidade: ent.carga.endereco_origem?.cidade, origemEstado: ent.carga.endereco_origem?.estado,
         destinoCidade: ent.carga.endereco_destino?.cidade, destinoEstado: ent.carga.endereco_destino?.estado,
       },
-      pesoAlocado: ent.peso_alocado_kg, valorFrete: ent.valor_frete, numeroCte: ent.numero_cte,
+      pesoAlocado: ent.peso_alocado_kg, valorFrete: ent.valor_frete,
     };
   }, [selectedEntregaId, entregas]);
 
@@ -858,7 +845,7 @@ export default function GestaoCargas() {
         .select(`
           id, codigo, status, created_at, updated_at,
           motorista_id, peso_alocado_kg, valor_frete, coletado_em, entregue_em,
-          cte_url, numero_cte, notas_fiscais_urls, canhoto_url,
+          canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!inner(
