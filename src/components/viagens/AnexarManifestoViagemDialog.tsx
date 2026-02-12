@@ -35,7 +35,7 @@ export function AnexarManifestoViagemDialog({
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${viagemId}/manifesto.${fileExt}`;
+      const fileName = `${viagemId}/manifesto_${Date.now()}.${fileExt}`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
@@ -51,13 +51,27 @@ export function AnexarManifestoViagemDialog({
 
       const manifestoUrl = urlData.publicUrl;
 
-      // Update viagem with manifesto_url
-      const { error: updateError } = await supabase
-        .from('viagens')
-        .update({ manifesto_url: manifestoUrl, updated_at: new Date().toISOString() })
-        .eq('id', viagemId);
+      // First, close any active manifesto for this viagem
+      await (supabase as any)
+        .from('manifestos')
+        .update({ status: 'encerrado', encerrado_em: new Date().toISOString() })
+        .eq('viagem_id', viagemId)
+        .eq('status', 'ativo');
 
-      if (updateError) throw updateError;
+      // Insert new manifesto record
+      const { error: insertError } = await (supabase as any)
+        .from('manifestos')
+        .insert({
+          viagem_id: viagemId,
+          url: manifestoUrl,
+          status: 'ativo',
+          emitido_em: new Date().toISOString(),
+        });
+
+      if (insertError) throw insertError;
+
+      // Update viagem updated_at
+      await supabase.from('viagens').update({ updated_at: new Date().toISOString() }).eq('id', viagemId);
 
       return manifestoUrl;
     },
@@ -65,6 +79,7 @@ export function AnexarManifestoViagemDialog({
       toast.success('Manifesto (MDF-e) anexado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['gestao-viagens'] });
       queryClient.invalidateQueries({ queryKey: ['operacao-diaria'] });
+      queryClient.invalidateQueries({ queryKey: ['viagem-manifestos'] });
       setFile(null);
       onOpenChange(false);
       onSuccess?.();

@@ -889,9 +889,6 @@ function DetailPanel({
       <AnexarDocumentosDialog
         entrega={{
           id: entrega.id,
-          cte_url: entrega.cte_url,
-          numero_cte: entrega.numero_cte,
-          notas_fiscais_urls: entrega.notas_fiscais_urls,
           canhoto_url: entrega.canhoto_url,
           carga: { codigo: entrega.carga.codigo },
         }}
