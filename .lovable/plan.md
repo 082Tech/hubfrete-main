@@ -1,130 +1,278 @@
 
-# Automacao de Documentos Fiscais + Bloqueio por NF-e
 
-## Resumo
+# Plano: Campos Fiscais Faltantes para CT-e e MDF-e
 
-O embarcador anexa a NF-e (XML) na entrega. Enquanto nao tiver NF-e anexada, a transportadora nao consegue mudar o status de `saiu_para_coleta` para `saiu_para_entrega`. Quando a transportadora avanca para `saiu_para_entrega`, o sistema automaticamente emite o CT-e via Focus NFe usando os dados da entrega + NF-e anexada.
+## Contexto
 
-## Fluxo Operacional
+A API Focus NFe exige campos fiscais obrigatorios que nao existem no banco de dados atual. Sem eles, o payload do CT-e sera rejeitado pela SEFAZ. Este plano adiciona todos os campos necessarios e cria formularios para preenchimento.
+
+## Gaps Identificados vs API Focus NFe
+
+### O que temos vs o que falta
 
 ```text
-1. Embarcador publica carga
-2. Transportadora cria entrega/viagem
-3. Status: aguardando -> saiu_para_coleta (livre)
-4. Embarcador anexa NF-e (XML obrigatorio - conteudo salvo no DB)
-5. Status: saiu_para_coleta -> saiu_para_entrega (BLOQUEADO ate ter NF-e)
-   -> Ao desbloquear: sistema emite CT-e automaticamente via Focus NFe
-6. Status: saiu_para_entrega -> entregue (precisa canhoto)
+CAMPO FOCUS NFE               | TEMOS?  | ONDE FALTA
+-------------------------------|---------|----------------------------------
+cnpj_emitente                  | SIM     | empresas.cnpj_matriz
+inscricao_estadual_emitente    | NAO     | empresas (nao existe coluna)
+nome_emitente / razao_social   | PARCIAL | empresas.nome (informal)
+logradouro_emitente            | NAO     | filiais.endereco (campo unico, nao estruturado)
+numero_emitente                | NAO     | filiais (nao existe)
+bairro_emitente                | NAO     | filiais (nao existe)
+codigo_municipio_emitente      | NAO     | filiais (nao existe - IBGE 7 digitos)
+municipio_emitente             | SIM     | filiais.cidade
+uf_emitente                    | SIM     | filiais.estado
+cep_emitente                   | SIM     | filiais.cep
+telefone_emitente              | SIM     | filiais.telefone
+codigo_municipio_remetente     | NAO     | enderecos_carga (nao existe)
+codigo_municipio_destinatario  | NAO     | enderecos_carga (nao existe)
+inscricao_estadual_destinatario| NAO     | cargas (nao existe)
+cfop                           | NAO     | nenhuma tabela
+natureza_operacao              | NAO     | nenhuma tabela
+numero (CT-e)                  | NAO     | nenhum controle de numeracao
+serie (CT-e)                   | NAO     | nenhum controle de numeracao
+icms_situacao_tributaria       | NAO     | nenhuma tabela
+icms_base_calculo              | NAO     | nenhuma tabela
+icms_aliquota                  | NAO     | nenhuma tabela
+valor_total_carga              | PARCIAL | cargas.valor_mercadoria (pode ser null)
+quantidades (peso bruto)       | SIM     | cargas.peso_kg
+tipo_servico                   | NAO     | nenhuma tabela
+tomador                        | NAO     | nenhuma tabela
 ```
 
-## Mudancas Planejadas
+## Mudancas no Banco de Dados (3 migrations)
 
-### 1. Tabela `nfes` - Guardar XML no DB
-
-Sera necessario rodar SQL para adicionar uma coluna `xml_content TEXT` na tabela `nfes` para armazenar o conteudo do XML diretamente no banco (sem depender de arquivo no storage). SQL para rodar manualmente:
+### Migration 1: Campos fiscais na tabela `empresas`
 
 ```sql
-ALTER TABLE public.nfes ADD COLUMN IF NOT EXISTS xml_content TEXT;
+ALTER TABLE public.empresas
+  ADD COLUMN IF NOT EXISTS razao_social TEXT,
+  ADD COLUMN IF NOT EXISTS nome_fantasia TEXT,
+  ADD COLUMN IF NOT EXISTS inscricao_estadual TEXT,
+  ADD COLUMN IF NOT EXISTS telefone TEXT,
+  ADD COLUMN IF NOT EXISTS email TEXT;
 ```
 
-### 2. Portal do Embarcador - Upload de NF-e (XML)
+### Migration 2: Endereco estruturado + codigo IBGE na tabela `filiais`
 
-**Arquivo: `src/pages/portals/embarcador/GestaoCargas.tsx`**
+```sql
+ALTER TABLE public.filiais
+  ADD COLUMN IF NOT EXISTS logradouro TEXT,
+  ADD COLUMN IF NOT EXISTS numero TEXT,
+  ADD COLUMN IF NOT EXISTS complemento TEXT,
+  ADD COLUMN IF NOT EXISTS bairro TEXT,
+  ADD COLUMN IF NOT EXISTS codigo_municipio_ibge TEXT;
+```
 
-- Adicionar botao "Anexar NF-e" na secao de documentos do painel de detalhes (atualmente mostra `hasDoc: false` hardcoded)
-- O botao abre um input de arquivo que aceita apenas `.xml`
-- Ao selecionar o XML:
-  - Le o conteudo do arquivo como texto
-  - Faz upload do arquivo para o storage (para referencia/download)
-  - Insere na tabela `nfes` com `entrega_id`, `url` (storage path) e `xml_content` (conteudo do XML)
-  - Extrai a chave de acesso do XML se possivel (tag `<chNFe>`)
-- Mostrar indicador visual de NF-e pendente (alerta ambar) quando nao tiver NF-e anexada
-- Atualizar o contador de documentos para refletir NF-es da tabela
+A coluna `endereco` existente sera mantida para compatibilidade, mas os novos campos estruturados serao usados para gerar o payload fiscal.
 
-### 3. Bloqueio de Transicao `saiu_para_coleta -> saiu_para_entrega`
+### Migration 3: Codigo IBGE nos enderecos de carga + IE destinatario + xml_content nas NF-es
 
-**Arquivo: `src/pages/portals/transportadora/OperacaoDiaria.tsx`**
+```sql
+ALTER TABLE public.enderecos_carga
+  ADD COLUMN IF NOT EXISTS codigo_municipio_ibge TEXT;
 
-No `DetailPanel`, antes de permitir a transicao para `saiu_para_entrega`:
-- Consultar tabela `nfes` para verificar se existe pelo menos 1 NF-e vinculada a entrega (via CT-e existente ou diretamente)
-- Se nao houver NF-e: exibir alerta ambar "NF-e obrigatoria - Aguardando embarcador anexar a Nota Fiscal" e desabilitar o botao
-- Se houver NF-e: liberar o botao normalmente
+ALTER TABLE public.cargas
+  ADD COLUMN IF NOT EXISTS destinatario_inscricao_estadual TEXT,
+  ADD COLUMN IF NOT EXISTS remetente_inscricao_estadual TEXT;
 
-Ajustar o `handleActionClick` e o dialog de confirmacao para incluir essa verificacao.
+ALTER TABLE public.nfes
+  ADD COLUMN IF NOT EXISTS xml_content TEXT;
+```
 
-### 4. Emissao Automatica de CT-e ao Sair para Entrega
+### Migration 4: Tabela de configuracao fiscal por empresa
 
-**Arquivo: `src/pages/portals/transportadora/OperacaoDiaria.tsx`**
+```sql
+CREATE TABLE IF NOT EXISTS public.config_fiscal (
+  id BIGSERIAL PRIMARY KEY,
+  empresa_id BIGINT NOT NULL REFERENCES public.empresas(id),
+  cfop_estadual TEXT NOT NULL DEFAULT '5353',
+  cfop_interestadual TEXT NOT NULL DEFAULT '6353',
+  natureza_operacao TEXT NOT NULL DEFAULT 'PRESTACAO DE SERVICO DE TRANSPORTE',
+  serie_cte INTEGER NOT NULL DEFAULT 1,
+  proximo_numero_cte INTEGER NOT NULL DEFAULT 1,
+  icms_situacao_tributaria TEXT NOT NULL DEFAULT '00',
+  icms_aliquota NUMERIC(5,2) DEFAULT 0,
+  tomador_padrao TEXT NOT NULL DEFAULT '0',
+  tipo_servico INTEGER NOT NULL DEFAULT 0,
+  ambiente INTEGER NOT NULL DEFAULT 2,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(empresa_id)
+);
 
-Na `statusMutation`, quando `newStatus === 'saiu_para_entrega'`:
+ALTER TABLE public.config_fiscal ENABLE ROW LEVEL SECURITY;
 
-1. Buscar dados da entrega (remetente, destinatario, enderecos, valores, NF-es)
-2. Montar o payload do CT-e conforme a API Focus NFe (modal rodoviario)
-3. Gerar uma referencia unica (`ref`) baseada no ID da entrega
-4. Chamar a Edge Function `focusnfe-cte` com `action: 'emitir'`
-5. O CT-e sera salvo na tabela `ctes` com `focus_ref` e `focus_status: 'processando_autorizacao'`
-6. Vincular as NF-es existentes ao CT-e recem criado
-7. Exibir toast informando que o CT-e esta sendo processado
+CREATE POLICY "Usuarios da empresa podem ler config fiscal"
+  ON public.config_fiscal FOR SELECT
+  USING (public.user_belongs_to_empresa(auth.uid(), empresa_id));
 
-### 5. Consulta de Status do CT-e (Polling)
+CREATE POLICY "Usuarios da empresa podem inserir config fiscal"
+  ON public.config_fiscal FOR INSERT
+  WITH CHECK (public.user_belongs_to_empresa(auth.uid(), empresa_id));
 
-**Arquivo: `src/lib/documentHelpers.ts`**
+CREATE POLICY "Usuarios da empresa podem atualizar config fiscal"
+  ON public.config_fiscal FOR UPDATE
+  USING (public.user_belongs_to_empresa(auth.uid(), empresa_id));
+```
 
-Adicionar funcao `pollCteStatus(focusRef: string)` que:
-- Chama a Edge Function com `action: 'consultar'`
-- A Edge Function ja atualiza o banco automaticamente quando autorizado
-- Retorna o status atual
+### Migration 5: Tabelas de documentos fiscais (ctes, nfes, manifestos)
 
-No `DetailPanel` da transportadora, quando houver CT-e com `focus_status !== 'autorizado'`:
-- Mostrar badge "Processando..." com botao para consultar manualmente
-- Atualizar a UI quando o status mudar para autorizado (mostrando numero e link do DACTE)
+Verificar se ja existem no banco. Na analise atual, **nao existem**. Sera necessario criar:
 
-### 6. Ajuste na Edge Function
+```sql
+CREATE TABLE IF NOT EXISTS public.ctes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entrega_id UUID REFERENCES public.entregas(id),
+  numero TEXT,
+  serie TEXT,
+  chave_acesso TEXT,
+  url TEXT,
+  xml_url TEXT,
+  valor NUMERIC(12,2),
+  focus_ref TEXT,
+  focus_status TEXT DEFAULT 'pendente',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.nfes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entrega_id UUID REFERENCES public.entregas(id),
+  cte_id UUID REFERENCES public.ctes(id),
+  numero TEXT,
+  chave_acesso TEXT,
+  url TEXT,
+  xml_content TEXT,
+  valor NUMERIC(12,2),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.manifestos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  viagem_id UUID REFERENCES public.viagens(id),
+  numero TEXT,
+  chave_acesso TEXT,
+  url TEXT,
+  xml_url TEXT,
+  focus_ref TEXT,
+  focus_status TEXT DEFAULT 'pendente',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.manifesto_ctes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  manifesto_id UUID REFERENCES public.manifestos(id),
+  cte_id UUID REFERENCES public.ctes(id),
+  UNIQUE(manifesto_id, cte_id)
+);
+
+-- RLS para todas
+ALTER TABLE public.ctes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.nfes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.manifestos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.manifesto_ctes ENABLE ROW LEVEL SECURITY;
+```
+
+## Mudancas no Frontend
+
+### 1. Formulario de Configuracao Fiscal (nova aba em Configuracoes)
+
+**Arquivo: `src/pages/portals/transportadora/Configuracoes.tsx`**
+
+Adicionar uma nova aba "Fiscal" no array de tabs com os seguintes campos editaveis:
+
+- Inscricao Estadual (IE) da empresa
+- Razao Social formal
+- CFOP Estadual / Interestadual
+- Natureza da Operacao
+- Serie do CT-e
+- Proximo Numero CT-e
+- ICMS: Situacao Tributaria, Aliquota
+- Tomador padrao (0=remetente, 1=expedidor, 2=recebedor, 3=destinatario)
+- Tipo de servico (0=normal, 1=subcontratacao, 2=redespacho, 3=redespacho intermediario, 4=servico vinculado multimodal)
+- Ambiente (1=producao, 2=homologacao)
+
+Tambem adicionar campos de endereco estruturado da filial matriz (logradouro, numero, bairro, codigo IBGE).
+
+### 2. Lookup de codigo IBGE de municipios
+
+**Novo arquivo: `src/lib/ibgeLookup.ts`**
+
+Funcao que consulta a API do IBGE (`https://servicodados.ibge.gov.br/api/v1/localidades/municipios`) para buscar o codigo de 7 digitos a partir do nome da cidade + UF. Sera usada:
+- No formulario de configuracao fiscal (auto-preencher codigo IBGE da filial)
+- No cadastro de enderecos de carga (auto-preencher ao informar cidade/estado)
+
+### 3. Atualizar Edge Function `focusnfe-cte`
 
 **Arquivo: `supabase/functions/focusnfe-cte/index.ts`**
 
-- Adicionar acao `emitir_com_nfes` que:
-  - Recebe `entrega_id`
-  - Busca as NF-es da entrega no banco
-  - Monta o payload do CT-e com as chaves das NF-es
-  - Emite via Focus NFe
-  - Salva o CT-e e vincula as NF-es
+Na acao `emitir_com_nfes`, atualizar o `buildCteFromEntrega` para:
+- Buscar `config_fiscal` da empresa da transportadora
+- Usar `cfop`, `natureza_operacao`, `serie`, `numero`, `icms_*` reais
+- Usar endereco estruturado da filial (logradouro, numero, bairro, codigo IBGE)
+- Usar `inscricao_estadual` da empresa
+- Usar `razao_social` da empresa (em producao; em homologacao manter mensagem padrao)
+- Incrementar `proximo_numero_cte` na tabela `config_fiscal` apos emissao
+- Incluir `codigo_municipio_*` nos enderecos de remetente/destinatario
 
-Isso centraliza a logica de montagem do payload na Edge Function em vez de no frontend.
+### 4. Atualizar formularios de carga (embarcador)
 
-### 7. Atualizacao do `AnexarDocumentosDialog`
+**Arquivo: `src/components/cargas/DestinoSection.tsx`** e **`src/components/cargas/RemetenteSection.tsx`**
 
-**Arquivo: `src/components/entregas/AnexarDocumentosDialog.tsx`**
+Adicionar campo opcional "Inscricao Estadual" para destinatario e remetente.
 
-- Mostrar NF-es vindas da tabela com indicacao de quem anexou (embarcador)
-- CT-es gerados automaticamente mostram badge "Auto" com status Focus NFe
-- Manter upload manual de CT-e como fallback
+### 5. Auto-preencher codigo IBGE nos enderecos
+
+**Arquivo: `src/components/cargas/OrigemSection.tsx`** e **`DestinoSection.tsx`**
+
+Ao salvar um endereco de carga, buscar automaticamente o codigo IBGE do municipio e salvar no campo `codigo_municipio_ibge`.
 
 ## Detalhes Tecnicos
 
-### Payload CT-e para Focus NFe (modal rodoviario - homologacao)
+### API IBGE para codigos municipais
 
-O payload sera montado a partir dos dados da entrega:
-- `cnpj_emitente`: CNPJ da transportadora (do cadastro da empresa)
-- `cpf/cnpj_remetente`: dados do remetente da carga
-- `cnpj_destinatario`: dados do destinatario
-- Enderecos de origem/destino
-- `valor_total`: valor do frete
-- `nfes[]`: array com chaves de acesso das NF-es extraidas do XML
-- `modal_rodoviario`: dados do veiculo/motorista
+```text
+GET https://servicodados.ibge.gov.br/api/v1/localidades/estados/{UF}/municipios
+```
 
-Em homologacao, os nomes devem ser "CT-E EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL".
+Retorna lista com `id` (codigo IBGE 7 digitos) e `nome` do municipio. A funcao fara match por nome normalizado (sem acentos, uppercase).
 
-### Referencia unica
+### Controle de numeracao CT-e
 
-Formato: `cte-{entrega_id_curto}-{timestamp}` para garantir unicidade.
+A tabela `config_fiscal` armazena `proximo_numero_cte`. A Edge Function faz:
+1. `SELECT proximo_numero_cte FROM config_fiscal WHERE empresa_id = X FOR UPDATE`
+2. Usa o numero no payload
+3. `UPDATE config_fiscal SET proximo_numero_cte = proximo_numero_cte + 1`
+
+Isso garante numeracao sequencial sem duplicatas (lock via `FOR UPDATE`).
+
+### Campos obrigatorios Focus NFe que serao preenchidos
+
+Apos as mudancas, o payload completo tera:
+
+- `cnpj_emitente` -- empresas.cnpj_matriz
+- `inscricao_estadual_emitente` -- empresas.inscricao_estadual
+- `nome_emitente` -- empresas.razao_social (ou msg homologacao)
+- `logradouro/numero/bairro/municipio/uf/cep_emitente` -- filiais (estruturado)
+- `codigo_municipio_emitente` -- filiais.codigo_municipio_ibge
+- `cfop` -- config_fiscal.cfop_estadual ou cfop_interestadual
+- `natureza_operacao` -- config_fiscal
+- `numero` -- config_fiscal.proximo_numero_cte
+- `serie` -- config_fiscal.serie_cte
+- `icms_*` -- config_fiscal
+- `tomador` -- config_fiscal.tomador_padrao
+- `tipo_servico` -- config_fiscal.tipo_servico
+- `codigo_municipio_remetente/destinatario` -- enderecos_carga.codigo_municipio_ibge
+- `inscricao_estadual_destinatario` -- cargas.destinatario_inscricao_estadual
 
 ## Ordem de Implementacao
 
-1. SQL: adicionar `xml_content` na tabela `nfes`
-2. Embarcador: upload de NF-e com XML
-3. Transportadora: bloqueio de transicao sem NF-e
-4. Edge Function: acao `emitir_com_nfes`
-5. Transportadora: emissao automatica ao sair para entrega
-6. Polling de status do CT-e
-7. Atualizacao visual dos documentos em ambos portais
+1. Migrations SQL (5 migrations executadas no Supabase)
+2. `src/lib/ibgeLookup.ts` -- helper de lookup IBGE
+3. `src/pages/portals/transportadora/Configuracoes.tsx` -- aba Fiscal
+4. `src/components/cargas/DestinoSection.tsx` + `RemetenteSection.tsx` -- campo IE
+5. `supabase/functions/focusnfe-cte/index.ts` -- payload completo
+6. Atualizar types do Supabase
+
