@@ -730,10 +730,12 @@ export type Database = {
           created_at: string | null
           empresa_id: number
           icms_aliquota: number | null
+          icms_base_calculo_percentual: number
           icms_situacao_tributaria: string
           id: number
           natureza_operacao: string
           proximo_numero_cte: number
+          regime_tributario_emitente: number
           serie_cte: number
           tipo_servico: number
           tomador_padrao: string
@@ -746,10 +748,12 @@ export type Database = {
           created_at?: string | null
           empresa_id: number
           icms_aliquota?: number | null
+          icms_base_calculo_percentual?: number
           icms_situacao_tributaria?: string
           id?: number
           natureza_operacao?: string
           proximo_numero_cte?: number
+          regime_tributario_emitente?: number
           serie_cte?: number
           tipo_servico?: number
           tomador_padrao?: string
@@ -762,10 +766,12 @@ export type Database = {
           created_at?: string | null
           empresa_id?: number
           icms_aliquota?: number | null
+          icms_base_calculo_percentual?: number
           icms_situacao_tributaria?: string
           id?: number
           natureza_operacao?: string
           proximo_numero_cte?: number
+          regime_tributario_emitente?: number
           serie_cte?: number
           tipo_servico?: number
           tomador_padrao?: string
