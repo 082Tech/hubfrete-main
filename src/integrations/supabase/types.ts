@@ -855,6 +855,69 @@ export type Database = {
           },
         ]
       }
+      ctes: {
+        Row: {
+          chave_acesso: string | null
+          created_at: string | null
+          empresa_id: number | null
+          entrega_id: string | null
+          focus_ref: string | null
+          focus_status: string | null
+          id: string
+          numero: string | null
+          serie: string | null
+          updated_at: string | null
+          url: string | null
+          valor: number | null
+          xml_url: string | null
+        }
+        Insert: {
+          chave_acesso?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          entrega_id?: string | null
+          focus_ref?: string | null
+          focus_status?: string | null
+          id?: string
+          numero?: string | null
+          serie?: string | null
+          updated_at?: string | null
+          url?: string | null
+          valor?: number | null
+          xml_url?: string | null
+        }
+        Update: {
+          chave_acesso?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          entrega_id?: string | null
+          focus_ref?: string | null
+          focus_status?: string | null
+          id?: string
+          numero?: string | null
+          serie?: string | null
+          updated_at?: string | null
+          url?: string | null
+          valor?: number | null
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ctes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ctes_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_validacao: {
         Row: {
           carroceria_id: string | null
@@ -1505,6 +1568,96 @@ export type Database = {
           },
         ]
       }
+      manifesto_ctes: {
+        Row: {
+          cte_id: string | null
+          id: string
+          manifesto_id: string | null
+        }
+        Insert: {
+          cte_id?: string | null
+          id?: string
+          manifesto_id?: string | null
+        }
+        Update: {
+          cte_id?: string | null
+          id?: string
+          manifesto_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manifesto_ctes_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manifesto_ctes_manifesto_id_fkey"
+            columns: ["manifesto_id"]
+            isOneToOne: false
+            referencedRelation: "manifestos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manifestos: {
+        Row: {
+          chave_acesso: string | null
+          created_at: string | null
+          empresa_id: number | null
+          focus_ref: string | null
+          focus_status: string | null
+          id: string
+          numero: string | null
+          updated_at: string | null
+          url: string | null
+          viagem_id: string | null
+          xml_url: string | null
+        }
+        Insert: {
+          chave_acesso?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          focus_ref?: string | null
+          focus_status?: string | null
+          id?: string
+          numero?: string | null
+          updated_at?: string | null
+          url?: string | null
+          viagem_id?: string | null
+          xml_url?: string | null
+        }
+        Update: {
+          chave_acesso?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          focus_ref?: string | null
+          focus_status?: string | null
+          id?: string
+          numero?: string | null
+          updated_at?: string | null
+          url?: string | null
+          viagem_id?: string | null
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manifestos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manifestos_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: false
+            referencedRelation: "viagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mensagens: {
         Row: {
           anexo_nome: string | null
@@ -1764,6 +1917,57 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfes: {
+        Row: {
+          chave_acesso: string | null
+          created_at: string | null
+          cte_id: string | null
+          entrega_id: string | null
+          id: string
+          numero: string | null
+          url: string | null
+          valor: number | null
+          xml_content: string | null
+        }
+        Insert: {
+          chave_acesso?: string | null
+          created_at?: string | null
+          cte_id?: string | null
+          entrega_id?: string | null
+          id?: string
+          numero?: string | null
+          url?: string | null
+          valor?: number | null
+          xml_content?: string | null
+        }
+        Update: {
+          chave_acesso?: string | null
+          created_at?: string | null
+          cte_id?: string | null
+          entrega_id?: string | null
+          id?: string
+          numero?: string | null
+          url?: string | null
+          valor?: number | null
+          xml_content?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfes_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfes_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
             referencedColumns: ["id"]
           },
         ]
