@@ -496,6 +496,7 @@ export function ConfigFiscalTab() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">1 - Simples Nacional</SelectItem>
+                  <SelectItem value="2">2 - Simples Nacional - Excesso de Sublimite</SelectItem>
                   <SelectItem value="3">3 - Regime Normal</SelectItem>
                 </SelectContent>
               </Select>
