@@ -282,7 +282,7 @@ function DetailPanel({
       }
 
       // Insert into nfes table
-      const { error: insertError } = await (supabase as any)
+      const { error: dbError } = await (supabase as any)
         .from('nfes')
         .insert({
           entrega_id: entrega.id,
@@ -293,17 +293,24 @@ function DetailPanel({
           valor: parsed.valor,
         });
 
-      if (insertError) {
-        console.error('Erro ao salvar NF-e:', insertError);
-        toast.error('Erro ao salvar NF-e no banco de dados');
-      } else {
-        toast.success(`NF-e ${parsed.numero || parsed.chaveAcesso?.slice(-6) || ''} anexada com sucesso!`);
-        refetchNfes();
-        onRefresh();
+      if (dbError) {
+        console.error('Erro ao salvar NF-e:', dbError);
+        throw dbError;
       }
-    } catch (err) {
-      console.error('Erro ao processar XML:', err);
-      toast.error('Erro ao processar o arquivo XML');
+
+      toast.success(`NF-e ${parsed.numero || parsed.chaveAcesso?.slice(-6) || ''} anexada com sucesso!`);
+      refetchNfes();
+      onRefresh();
+    } catch (error: any) {
+      console.error('Erro no upload da NF-e:', error);
+      // Tratamento específico para erros conhecidos
+      if (error.message?.includes('schema "net" does not exist')) {
+        toast.error('Erro de configuração no servidor (Extensão net faltando). Contate o suporte.');
+      } else if (error.code === '23505') {
+        toast.error('Esta Nota Fiscal já foi importada anteriormente.');
+      } else {
+        toast.error(`Erro ao enviar NF-e: ${error.message || 'Erro desconhecido'}`);
+      }
     } finally {
       setIsUploadingNfe(false);
       if (nfeInputRef.current) nfeInputRef.current.value = '';
