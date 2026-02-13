@@ -1202,9 +1202,12 @@ export type Database = {
       filiais: {
         Row: {
           ativa: boolean | null
+          bairro: string | null
           cep: string | null
           cidade: string | null
           cnpj: string | null
+          codigo_municipio_ibge: string | null
+          complemento: string | null
           created_at: string
           email: string | null
           empresa_id: number | null
@@ -1213,16 +1216,21 @@ export type Database = {
           id: number
           is_matriz: boolean | null
           latitude: number | null
+          logradouro: string | null
           longitude: number | null
           nome: string | null
+          numero: string | null
           responsavel: string | null
           telefone: string | null
         }
         Insert: {
           ativa?: boolean | null
+          bairro?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          codigo_municipio_ibge?: string | null
+          complemento?: string | null
           created_at?: string
           email?: string | null
           empresa_id?: number | null
@@ -1231,16 +1239,21 @@ export type Database = {
           id?: number
           is_matriz?: boolean | null
           latitude?: number | null
+          logradouro?: string | null
           longitude?: number | null
           nome?: string | null
+          numero?: string | null
           responsavel?: string | null
           telefone?: string | null
         }
         Update: {
           ativa?: boolean | null
+          bairro?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          codigo_municipio_ibge?: string | null
+          complemento?: string | null
           created_at?: string
           email?: string | null
           empresa_id?: number | null
@@ -1249,8 +1262,10 @@ export type Database = {
           id?: number
           is_matriz?: boolean | null
           latitude?: number | null
+          logradouro?: string | null
           longitude?: number | null
           nome?: string | null
+          numero?: string | null
           responsavel?: string | null
           telefone?: string | null
         }
