@@ -178,6 +178,7 @@ export type Database = {
           destinatario_contato_email: string | null
           destinatario_contato_nome: string | null
           destinatario_contato_telefone: string | null
+          destinatario_inscricao_estadual: string | null
           destinatario_nome_fantasia: string | null
           destinatario_razao_social: string | null
           documentacao: Json | null
@@ -201,6 +202,7 @@ export type Database = {
           remetente_cnpj: string | null
           remetente_contato_nome: string | null
           remetente_contato_telefone: string | null
+          remetente_inscricao_estadual: string | null
           remetente_nome_fantasia: string | null
           remetente_razao_social: string | null
           requer_refrigeracao: boolean | null
@@ -234,6 +236,7 @@ export type Database = {
           destinatario_contato_email?: string | null
           destinatario_contato_nome?: string | null
           destinatario_contato_telefone?: string | null
+          destinatario_inscricao_estadual?: string | null
           destinatario_nome_fantasia?: string | null
           destinatario_razao_social?: string | null
           documentacao?: Json | null
@@ -257,6 +260,7 @@ export type Database = {
           remetente_cnpj?: string | null
           remetente_contato_nome?: string | null
           remetente_contato_telefone?: string | null
+          remetente_inscricao_estadual?: string | null
           remetente_nome_fantasia?: string | null
           remetente_razao_social?: string | null
           requer_refrigeracao?: boolean | null
@@ -290,6 +294,7 @@ export type Database = {
           destinatario_contato_email?: string | null
           destinatario_contato_nome?: string | null
           destinatario_contato_telefone?: string | null
+          destinatario_inscricao_estadual?: string | null
           destinatario_nome_fantasia?: string | null
           destinatario_razao_social?: string | null
           documentacao?: Json | null
@@ -313,6 +318,7 @@ export type Database = {
           remetente_cnpj?: string | null
           remetente_contato_nome?: string | null
           remetente_contato_telefone?: string | null
+          remetente_inscricao_estadual?: string | null
           remetente_nome_fantasia?: string | null
           remetente_razao_social?: string | null
           requer_refrigeracao?: boolean | null
@@ -950,6 +956,7 @@ export type Database = {
           carga_id: string | null
           cep: string
           cidade: string
+          codigo_municipio_ibge: string | null
           complemento: string | null
           contato_email: string | null
           contato_nome: string | null
@@ -974,6 +981,7 @@ export type Database = {
           carga_id?: string | null
           cep: string
           cidade: string
+          codigo_municipio_ibge?: string | null
           complemento?: string | null
           contato_email?: string | null
           contato_nome?: string | null
@@ -998,6 +1006,7 @@ export type Database = {
           carga_id?: string | null
           cep?: string
           cidade?: string
+          codigo_municipio_ibge?: string | null
           complemento?: string | null
           contato_email?: string | null
           contato_nome?: string | null
