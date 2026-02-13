@@ -904,27 +904,42 @@ export type Database = {
           classe: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz: string | null
           created_at: string
+          email: string | null
           id: number
+          inscricao_estadual: string | null
           logo_url: string | null
           nome: string | null
+          nome_fantasia: string | null
+          razao_social: string | null
+          telefone: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
         Insert: {
           classe: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz?: string | null
           created_at?: string
+          email?: string | null
           id?: number
+          inscricao_estadual?: string | null
           logo_url?: string | null
           nome?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string | null
+          telefone?: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
         Update: {
           classe?: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz?: string | null
           created_at?: string
+          email?: string | null
           id?: number
+          inscricao_estadual?: string | null
           logo_url?: string | null
           nome?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string | null
+          telefone?: string | null
           tipo?: Database["public"]["Enums"]["tipo_empresa"]
         }
         Relationships: []
