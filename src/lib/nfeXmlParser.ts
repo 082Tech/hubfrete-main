@@ -7,6 +7,12 @@ export interface ParsedNfe {
   chaveAcesso: string | null;
   numero: string | null;
   valor: number | null;
+  remetenteCnpj: string | null;
+  remetenteRazaoSocial: string | null;
+  destinatarioCnpj: string | null;
+  destinatarioRazaoSocial: string | null;
+  pesoBruto: number | null;
+  dataEmissao: string | null;
 }
 
 /**
@@ -16,12 +22,13 @@ export function parseNfeXml(xmlContent: string): ParsedNfe {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlContent, 'text/xml');
 
+  const getTagValue = (tagName: string, parent?: Element) => {
+    const elements = (parent || doc).getElementsByTagName(tagName);
+    return elements.length > 0 ? elements[0].textContent?.trim() || null : null;
+  };
+
   // Try to extract chave de acesso from <chNFe> tag (inside <protNFe> or <infProt>)
-  let chaveAcesso: string | null = null;
-  const chNFeElements = doc.getElementsByTagName('chNFe');
-  if (chNFeElements.length > 0) {
-    chaveAcesso = chNFeElements[0].textContent?.trim() || null;
-  }
+  let chaveAcesso: string | null = getTagValue('chNFe');
 
   // If not found in <chNFe>, try the Id attribute of <infNFe> (format: "NFe" + 44 digits)
   if (!chaveAcesso) {
@@ -34,23 +41,39 @@ export function parseNfeXml(xmlContent: string): ParsedNfe {
     }
   }
 
+  // Extract remetente (emit)
+  const emit = doc.getElementsByTagName('emit')[0];
+  const remetenteCnpj = emit ? getTagValue('CNPJ', emit) : null;
+  const remetenteRazaoSocial = emit ? getTagValue('xNome', emit) : null;
+
+  // Extract destinatario (dest)
+  const dest = doc.getElementsByTagName('dest')[0];
+  const destinatarioCnpj = dest ? getTagValue('CNPJ', dest) : null;
+  const destinatarioRazaoSocial = dest ? getTagValue('xNome', dest) : null;
+
+  // Extract peso bruto
+  const pesoB = getTagValue('pesoB');
+  const pesoBruto = pesoB ? parseFloat(pesoB) : null;
+
+  // Extract data emissao
+  const dataEmissao = getTagValue('dhEmi');
+
   // Extract numero from <nNF>
-  let numero: string | null = null;
-  const nNFElements = doc.getElementsByTagName('nNF');
-  if (nNFElements.length > 0) {
-    numero = nNFElements[0].textContent?.trim() || null;
-  }
+  const numero = getTagValue('nNF');
 
   // Extract valor total from <vNF>
-  let valor: number | null = null;
-  const vNFElements = doc.getElementsByTagName('vNF');
-  if (vNFElements.length > 0) {
-    const valorStr = vNFElements[0].textContent?.trim();
-    if (valorStr) {
-      valor = parseFloat(valorStr);
-      if (isNaN(valor)) valor = null;
-    }
-  }
+  const vNF = getTagValue('vNF');
+  const valor = vNF ? parseFloat(vNF) : null;
 
-  return { chaveAcesso, numero, valor };
+  return { 
+    chaveAcesso, 
+    numero, 
+    valor, 
+    remetenteCnpj, 
+    remetenteRazaoSocial, 
+    destinatarioCnpj, 
+    destinatarioRazaoSocial, 
+    pesoBruto, 
+    dataEmissao 
+  };
 }
