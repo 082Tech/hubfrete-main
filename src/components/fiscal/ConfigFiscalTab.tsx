@@ -22,9 +22,11 @@ interface ConfigFiscal {
   proximo_numero_cte: number;
   icms_situacao_tributaria: string;
   icms_aliquota: number;
+  icms_base_calculo_percentual: number;
   tomador_padrao: string;
   tipo_servico: number;
   ambiente: number;
+  regime_tributario_emitente: number;
 }
 
 interface EmpresaFiscal {
@@ -78,9 +80,11 @@ export function ConfigFiscalTab() {
     proximo_numero_cte: 1,
     icms_situacao_tributaria: '00',
     icms_aliquota: 0,
+    icms_base_calculo_percentual: 100,
     tomador_padrao: '0',
     tipo_servico: 0,
     ambiente: 2,
+    regime_tributario_emitente: 3,
   });
 
   useEffect(() => {
@@ -466,11 +470,36 @@ export function ConfigFiscalTab() {
                 placeholder="0.00"
               />
             </div>
+            <div className="space-y-2">
+              <Label>ICMS - Base de Cálculo (%)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={config.icms_base_calculo_percentual}
+                onChange={e => setConfig(prev => ({ ...prev, icms_base_calculo_percentual: parseFloat(e.target.value) || 100 }))}
+                placeholder="100.00"
+              />
+            </div>
           </div>
 
           <Separator />
 
           <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Regime Tributário</Label>
+              <Select
+                value={String(config.regime_tributario_emitente)}
+                onValueChange={v => setConfig(prev => ({ ...prev, regime_tributario_emitente: parseInt(v) }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 - Simples Nacional</SelectItem>
+                  <SelectItem value="3">3 - Regime Normal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>Tomador Padrão</Label>
               <Select
