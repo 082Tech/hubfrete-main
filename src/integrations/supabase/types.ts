@@ -722,6 +722,65 @@ export type Database = {
           },
         ]
       }
+      config_fiscal: {
+        Row: {
+          ambiente: number
+          cfop_estadual: string
+          cfop_interestadual: string
+          created_at: string | null
+          empresa_id: number
+          icms_aliquota: number | null
+          icms_situacao_tributaria: string
+          id: number
+          natureza_operacao: string
+          proximo_numero_cte: number
+          serie_cte: number
+          tipo_servico: number
+          tomador_padrao: string
+          updated_at: string | null
+        }
+        Insert: {
+          ambiente?: number
+          cfop_estadual?: string
+          cfop_interestadual?: string
+          created_at?: string | null
+          empresa_id: number
+          icms_aliquota?: number | null
+          icms_situacao_tributaria?: string
+          id?: number
+          natureza_operacao?: string
+          proximo_numero_cte?: number
+          serie_cte?: number
+          tipo_servico?: number
+          tomador_padrao?: string
+          updated_at?: string | null
+        }
+        Update: {
+          ambiente?: number
+          cfop_estadual?: string
+          cfop_interestadual?: string
+          created_at?: string | null
+          empresa_id?: number
+          icms_aliquota?: number | null
+          icms_situacao_tributaria?: string
+          id?: number
+          natureza_operacao?: string
+          proximo_numero_cte?: number
+          serie_cte?: number
+          tipo_servico?: number
+          tomador_padrao?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_fiscal_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contatos_destino: {
         Row: {
           bairro: string | null
