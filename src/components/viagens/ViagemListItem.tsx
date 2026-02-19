@@ -19,7 +19,7 @@ interface ViagemListItemProps {
     status: string;
     created_at: string;
     updated_at?: string;
-    manifesto_url?: string | null;
+    
     motorista?: {
       id: string;
       nome_completo: string;
@@ -98,11 +98,11 @@ export function ViagemListItem({ viagem, isSelected, onClick }: ViagemListItemPr
           <span className="truncate">{rotaTexto}</span>
         </div>
 
-        {/* Indicador de Manifesto */}
+        {/* Veículo */}
         <div className="flex items-center gap-2 text-xs">
-          <span className={`flex items-center gap-1 ${viagem.manifesto_url ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+          <span className="flex items-center gap-1 text-muted-foreground">
             <FileText className="w-3 h-3" />
-            {viagem.manifesto_url ? 'MDF-e ✓' : 'MDF-e pendente'}
+            MDF-e
           </span>
           {viagem.veiculo && (
             <span className="text-muted-foreground">

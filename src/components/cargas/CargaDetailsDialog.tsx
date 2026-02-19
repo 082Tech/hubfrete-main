@@ -30,8 +30,10 @@ import {
   FileText,
   Navigation,
   CheckCircle,
-  PackageOpen
+  PackageOpen,
+  FileSearch
 } from 'lucide-react';
+import { NfeValidationStatus } from './NfeValidationStatus';
 import type { Database } from '@/integrations/supabase/types';
 
 type StatusCarga = Database['public']['Enums']['status_carga'];
@@ -490,9 +492,11 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
             </CardContent>
           </Card>
 
-          {/* Entregas (Frações) - Show table if it's an array with items */}
-          {carga.entregas && Array.isArray(carga.entregas) && carga.entregas.length > 0 && (
-            <>
+          {/* Status Fiscal */}
+          <NfeValidationStatus entregaId={carga.id} />
+
+          {/* Entregas */}
+          {carga.entregas && (Array.isArray(carga.entregas) ? carga.entregas.length > 0 : true) && (            <>
               <Separator />
               <Card>
                 <CardHeader className="pb-2">

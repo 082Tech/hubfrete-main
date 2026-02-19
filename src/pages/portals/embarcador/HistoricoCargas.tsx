@@ -96,10 +96,6 @@ interface EntregaData {
   coletado_em: string | null;
   entregue_em: string | null;
   motorista_id: string | null;
-  cte_url: string | null;
-  numero_cte: string | null;
-  notas_fiscais_urls: string[] | null;
-  manifesto_url: string | null;
   canhoto_url: string | null;
   motoristas: {
     nome_completo: string;
@@ -296,10 +292,7 @@ export default function HistoricoCargas() {
             coletado_em,
             entregue_em,
             motorista_id,
-            cte_url,
-            numero_cte,
-            notas_fiscais_urls,
-            manifesto_url,
+            canhoto_url,
             canhoto_url,
             motoristas (
               nome_completo,
@@ -522,15 +515,13 @@ export default function HistoricoCargas() {
   // Count documents for an entrega
   const getDocsCount = (entrega: EntregaData) => {
     let count = 0;
-    if (entrega.cte_url) count++;
-    if (entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0) count += entrega.notas_fiscais_urls.length;
-    if (entrega.manifesto_url) count++;
     if (entrega.canhoto_url) count++;
     return count;
   };
 
-  const hasMissingCriticalDocs = (entrega: EntregaData) => {
-    return !entrega.cte_url || !entrega.manifesto_url;
+  const hasMissingCriticalDocs = (_entrega: EntregaData) => {
+    // CT-e and NF-e now checked via separate tables
+    return false;
   };
 
   const handleOpenEntregaDetails = (entrega: EntregaData, carga: CargaData) => {
@@ -1101,8 +1092,8 @@ export default function HistoricoCargas() {
                                                   </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                  <span className="text-xs font-mono text-muted-foreground">
-                                                    {entrega.numero_cte || '-'}
+                                                   <span className="text-xs font-mono text-muted-foreground">
+                                                     -
                                                   </span>
                                                 </TableCell>
                                                 <TableCell>
@@ -1184,10 +1175,6 @@ export default function HistoricoCargas() {
               valor_frete: selectedEntrega.valor_frete,
               coletado_em: selectedEntrega.coletado_em,
               entregue_em: selectedEntrega.entregue_em,
-              cte_url: selectedEntrega.cte_url,
-              numero_cte: selectedEntrega.numero_cte,
-              notas_fiscais_urls: selectedEntrega.notas_fiscais_urls,
-              manifesto_url: selectedEntrega.manifesto_url,
               canhoto_url: selectedEntrega.canhoto_url,
               motorista: selectedEntrega.motoristas ? {
                 id: selectedEntrega.motorista_id || '',

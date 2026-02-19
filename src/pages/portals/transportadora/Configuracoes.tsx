@@ -1,5 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ConfigFiscalTab } from '@/components/fiscal/ConfigFiscalTab';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,7 +40,7 @@ import { ChangePasswordDialog } from '@/components/settings';
 
 type Filial = Tables<'filiais'>;
 
-type TabId = 'perfil' | 'empresa' | 'notificacoes' | 'seguranca' | 'integracoes';
+type TabId = 'perfil' | 'empresa' | 'fiscal' | 'notificacoes' | 'seguranca' | 'integracoes';
 
 interface Tab {
   id: TabId;
@@ -51,6 +52,7 @@ interface Tab {
 const tabs: Tab[] = [
   { id: 'perfil', label: 'Perfil', icon: User, description: 'Dados pessoais e aparência' },
   { id: 'empresa', label: 'Transportadora', icon: Truck, description: 'Dados e bases operacionais' },
+  { id: 'fiscal', label: 'Fiscal', icon: Shield, description: 'CT-e, ICMS e configurações fiscais' },
   { id: 'notificacoes', label: 'Notificações', icon: Bell, description: 'Alertas e canais' },
   { id: 'seguranca', label: 'Segurança', icon: Shield, description: 'Senha e autenticação' },
   { id: 'integracoes', label: 'Integrações', icon: Plug, description: 'ERPs e APIs externas' },
@@ -411,6 +413,9 @@ export default function Configuracoes() {
             </Card>
           </div>
         );
+
+      case 'fiscal':
+        return <ConfigFiscalTab />;
 
       case 'notificacoes':
         return (

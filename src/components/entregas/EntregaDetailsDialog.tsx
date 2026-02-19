@@ -46,10 +46,6 @@ interface EntregaDetailsProps {
     entregue_em: string | null;
     peso_alocado_kg: number | null;
     valor_frete: number | null;
-    cte_url?: string | null;
-    numero_cte?: string | null;
-    notas_fiscais_urls?: string[] | null;
-    manifesto_url?: string | null;
     canhoto_url?: string | null;
     motorista: {
       id: string;
@@ -173,14 +169,9 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
     }
   };
 
-  // Calculate document status (3 obrigatórios: CT-e, NF-e, Canhoto - Manifesto pertence à viagem)
-  const hasCte = !!entrega.cte_url;
-  const hasNumeroCte = !!entrega.numero_cte;
-  const hasNfs = (entrega.notas_fiscais_urls?.length || 0) > 0;
+  // Document status - CT-e and NF-e are now in separate tables
   const hasCanhoto = !!entrega.canhoto_url;
-  
-  const totalDocs = (hasCte ? 1 : 0) + (hasNfs ? entrega.notas_fiscais_urls!.length : 0) + (hasCanhoto ? 1 : 0);
-  const pendingDocs = (!hasCte ? 1 : 0) + (!hasNfs ? 1 : 0) + (!hasCanhoto ? 1 : 0);
+  const pendingDocs = !hasCanhoto ? 1 : 0;
 
   return (
     <>
@@ -335,69 +326,17 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {/* CT-e */}
+                {/* CT-e - now from separate table */}
                 <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasCte ? 'bg-green-500/10' : 'bg-amber-500/10'}`}>
-                      {hasCte ? (
-                        <FileCheck className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-amber-600" />
-                      )}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted">
+                      <FileCheck className="w-4 h-4 text-muted-foreground" />
                     </div>
                     <div>
                       <p className="font-medium text-sm">CT-e (Conhecimento de Transporte)</p>
-                      {hasNumeroCte && (
-                        <p className="text-xs text-muted-foreground font-mono">Nº {entrega.numero_cte}</p>
-                      )}
+                      <p className="text-xs text-muted-foreground">Consulte via tabela de CT-es</p>
                     </div>
                   </div>
-                  {hasCte ? (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => openPreview(entrega.cte_url!, 'CT-e')}
-                    >
-                      <ExternalLink className="w-3 h-3 mr-1" />
-                      Visualizar
-                    </Button>
-                  ) : (
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-                      Pendente
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Notas Fiscais */}
-                <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasNfs ? 'bg-green-500/10' : 'bg-muted'}`}>
-                      <Files className={`w-4 h-4 ${hasNfs ? 'text-green-600' : 'text-muted-foreground'}`} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Notas Fiscais</p>
-                      <p className="text-xs text-muted-foreground">
-                        {hasNfs ? `${entrega.notas_fiscais_urls!.length} arquivo(s)` : 'Nenhuma anexada'}
-                      </p>
-                    </div>
-                  </div>
-                  {hasNfs && (
-                    <div className="flex gap-1">
-                      {entrega.notas_fiscais_urls!.slice(0, 3).map((url, index) => (
-                        <Button 
-                          key={index}
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => openPreview(url, `Nota Fiscal ${index + 1}`)}
-                        >
-                          NF {index + 1}
-                        </Button>
-                      ))}
-                      {entrega.notas_fiscais_urls!.length > 3 && (
-                        <Badge variant="secondary">+{entrega.notas_fiscais_urls!.length - 3}</Badge>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Canhoto */}

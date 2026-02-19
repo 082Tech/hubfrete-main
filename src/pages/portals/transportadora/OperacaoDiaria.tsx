@@ -109,10 +109,6 @@ interface Entrega {
   coletado_em: string | null;
   entregue_em: string | null;
   // Documentos
-  cte_url: string | null;
-  numero_cte: string | null;
-  notas_fiscais_urls: string[] | null;
-  manifesto_url: string | null;
   canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
@@ -142,15 +138,13 @@ interface Entrega {
   }>;
 }
 
-// Helper para verificar documentos obrigatórios da entrega (3 docs: CT-e, Canhoto, NF-e)
-// Manifesto pertence à viagem, não à entrega
+// Helper para verificar documentos obrigatórios da entrega
+// Agora usa as tabelas ctes/nfes - placeholder local que verifica apenas canhoto
+// CT-e e NF-e são verificados via documentHelpers
 function checkRequiredDocuments(entrega: Entrega): { complete: boolean; missing: string[] } {
   const missing: string[] = [];
-
-  if (!entrega.cte_url) missing.push('CT-e');
+  // CT-e e NF-e agora vêm das tabelas separadas - por enquanto verificamos apenas canhoto localmente
   if (!entrega.canhoto_url) missing.push('Canhoto');
-  if (!entrega.notas_fiscais_urls || entrega.notas_fiscais_urls.length === 0) missing.push('Nota Fiscal');
-
   return { complete: missing.length === 0, missing };
 }
 
@@ -289,6 +283,8 @@ function DetailPanel({
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState<string>('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [nfeBlockMessage, setNfeBlockMessage] = useState<string | null>(null);
+  const [checkingNfe, setCheckingNfe] = useState(false);
 
   if (!entrega) {
     return (
@@ -342,14 +338,31 @@ function DetailPanel({
     setActionConfirmDialogOpen(false);
   };
 
-  const handleActionClick = () => {
+  const handleActionClick = async () => {
     if (!nextStatus) return;
 
     if (nextStatus.status === 'entregue') {
-      // Precisa verificar documentos antes de marcar como entregue
       setEntregueDialogOpen(true);
+    } else if (nextStatus.status === 'saiu_para_entrega') {
+      // Check if NF-e is attached before allowing transition
+      setCheckingNfe(true);
+      try {
+        const { hasNfeAttached } = await import('@/lib/documentHelpers');
+        const hasNfe = await hasNfeAttached(entrega.id);
+        if (!hasNfe) {
+          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para entrega.');
+          setCheckingNfe(false);
+          return;
+        }
+        setNfeBlockMessage(null);
+        setActionConfirmDialogOpen(true);
+      } catch (err) {
+        console.error('Erro ao verificar NF-e:', err);
+        toast.error('Erro ao verificar documentos');
+      } finally {
+        setCheckingNfe(false);
+      }
     } else {
-      // Todas as ações precisam de confirmação
       setActionConfirmDialogOpen(true);
     }
   };
@@ -366,12 +379,8 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Contagem de documentos anexados (3 obrigatórios: CT-e, Canhoto, NF-e)
-  const docsCount = [
-    entrega.cte_url ? 1 : 0,
-    entrega.canhoto_url ? 1 : 0,
-    (entrega.notas_fiscais_urls?.length || 0) > 0 ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
+  // Contagem de documentos anexados - canhoto local, CT-e/NF-e agora nas tabelas separadas
+  const docsCount = entrega.canhoto_url ? 1 : 0;
 
   return (
     <div className="h-full flex flex-col bg-card border-l">
@@ -558,15 +567,7 @@ function DetailPanel({
               </Badge>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <DocumentButton
-                type="cte"
-                hasDoc={!!entrega.cte_url}
-                canAttach={true}
-                onView={() => handleDocClick(entrega.cte_url, 'CT-e')}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
+            <div className="grid grid-cols-2 gap-2">
               <DocumentButton
                 type="canhoto"
                 hasDoc={!!entrega.canhoto_url}
@@ -576,11 +577,10 @@ function DetailPanel({
                 onUploaded={onRefresh}
               />
               <DocumentButton
-                type="nfe"
-                hasDoc={(entrega.notas_fiscais_urls?.length || 0) > 0}
-                count={entrega.notas_fiscais_urls?.length || 0}
-                canAttach={false}
-                onView={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
+                type="cte"
+                hasDoc={false}
+                canAttach={true}
+                onView={() => {}}
                 entregaId={entrega.id}
                 onUploaded={onRefresh}
               />
@@ -740,6 +740,23 @@ function DetailPanel({
         </div>
       )}
 
+      {/* Alerta de NF-e obrigatória */}
+      {nfeBlockMessage && !isFinalized && (
+        <div className="px-3 pt-3">
+          <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-300">
+                NF-e obrigatória
+              </p>
+              <p className="text-amber-700 dark:text-amber-400">
+                {nfeBlockMessage}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer actions - botão principal + menu de 3 pontos */}
       {!isFinalized && nextStatus && (
         <div className="p-3 border-t bg-muted/20">
@@ -770,14 +787,14 @@ function DetailPanel({
               size="sm"
               className="flex-1 text-xs"
               onClick={handleActionClick}
-              disabled={isChangingStatus || isViagemNotStarted}
+              disabled={isChangingStatus || isViagemNotStarted || checkingNfe}
             >
-              {isChangingStatus ? (
+              {(isChangingStatus || checkingNfe) ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
               ) : (
                 <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
               )}
-              {nextStatus.label}
+              {checkingNfe ? 'Verificando NF-e...' : nextStatus.label}
             </Button>
           </div>
         </div>
@@ -889,9 +906,6 @@ function DetailPanel({
       <AnexarDocumentosDialog
         entrega={{
           id: entrega.id,
-          cte_url: entrega.cte_url,
-          numero_cte: entrega.numero_cte,
-          notas_fiscais_urls: entrega.notas_fiscais_urls,
           canhoto_url: entrega.canhoto_url,
           carga: { codigo: entrega.carga.codigo },
         }}
@@ -1160,7 +1174,6 @@ function GestaoEntregasDialogContent({
       },
       pesoAlocado: entrega.peso_alocado_kg,
       valorFrete: entrega.valor_frete,
-      numeroCte: entrega.numero_cte,
     };
   }, [selectedEntregaId, entregas]);
 
@@ -1392,7 +1405,7 @@ interface ViagemWithEntregas {
   updated_at?: string;
   started_at?: string | null;
   ended_at?: string | null;
-  manifesto_url: string | null;
+  
   motorista_id: string;
   motorista: {
     id: string;
@@ -1409,8 +1422,6 @@ interface ViagemWithEntregas {
     status: string;
     peso_alocado_kg: number | null;
     valor_frete: number | null;
-    notas_fiscais_urls: string[] | null;
-    cte_url: string | null;
     canhoto_url: string | null;
     carga: {
       descricao: string;
@@ -1465,7 +1476,7 @@ export default function OperacaoDiaria() {
           id, codigo, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em,
-          cte_url, numero_cte, notas_fiscais_urls, manifesto_url, canhoto_url,
+          canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!inner(
@@ -1536,7 +1547,7 @@ export default function OperacaoDiaria() {
       const { data: viagensData, error: viagensError } = await supabase
         .from('viagens')
         .select(`
-          id, codigo, status, created_at, updated_at, started_at, ended_at, manifesto_url, motorista_id,
+          id, codigo, status, created_at, updated_at, started_at, ended_at, motorista_id,
           motorista:motoristas(id, nome_completo, foto_url),
           veiculo:veiculos(placa, modelo)
         `)
@@ -1554,7 +1565,7 @@ export default function OperacaoDiaria() {
             .select(`
               entrega:entregas(
                 id, codigo, status, peso_alocado_kg, valor_frete, created_at, updated_at,
-                notas_fiscais_urls, cte_url, canhoto_url,
+                canhoto_url,
                 carga:cargas(
                   descricao,
                   endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
@@ -1694,6 +1705,42 @@ export default function OperacaoDiaria() {
 
       if (eventoError) {
         console.error('Erro ao registrar evento:', eventoError);
+      }
+
+      // Auto-emit CT-e when transitioning to saiu_para_entrega
+      if (newStatus === 'saiu_para_entrega') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const ref = `cte-${entregaId.slice(0, 8)}-${Date.now()}`;
+          
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL || 'https://eilwdavgnuhfyxfqkvrk.supabase.co'}/functions/v1/focusnfe-cte`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token || ''}`,
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbHdkYXZnbnVoZnl4ZnFrdnJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MjUxNjIsImV4cCI6MjA4MzMwMTE2Mn0.kwfOZWgzUEhhQYE3NEPfhYoAQMok0suqVp6FsWBHmu8',
+              },
+              body: JSON.stringify({
+                action: 'emitir_com_nfes',
+                entrega_id: entregaId,
+                ref,
+              }),
+            }
+          );
+
+          const result = await response.json();
+          if (result.success) {
+            toast.info('CT-e sendo emitido automaticamente via Focus NFe...');
+          } else {
+            console.error('Erro na emissão automática do CT-e:', result);
+            toast.warning('Não foi possível emitir o CT-e automaticamente. Verifique os documentos.');
+          }
+        } catch (cteError) {
+          console.error('Erro ao emitir CT-e:', cteError);
+          toast.warning('Erro ao emitir CT-e automaticamente');
+        }
       }
     },
     onSuccess: () => {
