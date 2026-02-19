@@ -311,21 +311,25 @@ function DetailPanel({
 
       // 3. Insert into nfes table
       // Prioritize data from Focus API, fallback to regex parse
+      // Focus NFe Import+Query returns data in 'requisicao_nota_fiscal' or 'nfe_completa' depending on endpoint version/flags
+      // But looking at user docs, it is inside 'requisicao_nota_fiscal'
+      const focusData = nfeJson.requisicao_nota_fiscal || nfeJson.nfe_completa?.infNFe || nfeJson;
+
       const { error: dbError } = await (supabase as any)
         .from('nfes')
         .insert({
           entrega_id: entrega.id,
-          numero: nfeJson.numero || parsed.numero,
-          chave_acesso: nfeJson.chave_nfe || parsed.chaveAcesso,
+          numero: focusData.numero || nfeJson.numero || parsed.numero,
+          chave_acesso: focusData.chave_nfe || nfeJson.chave_nfe || parsed.chaveAcesso,
           url: fileUrl,
           xml_path: storagePath,
-          valor: nfeJson.valor_total || parsed.valor,
-          data_emissao: nfeJson.data_emissao || parsed.dataEmissao,
-          peso_bruto: nfeJson.peso_bruto || parsed.pesoBruto,
-          remetente_cnpj: nfeJson.emitente?.cnpj || parsed.remetenteCnpj,
-          remetente_razao_social: nfeJson.emitente?.razao_social || parsed.remetenteRazaoSocial,
-          destinatario_cnpj: nfeJson.destinatario?.cnpj || parsed.destinatarioCnpj,
-          destinatario_razao_social: nfeJson.destinatario?.razao_social || parsed.destinatarioRazaoSocial,
+          valor: focusData.valor_total || (focusData.total?.ICMSTot?.vNF) || parsed.valor,
+          data_emissao: focusData.data_emissao || (focusData.ide?.dhEmi) || parsed.dataEmissao,
+          peso_bruto: focusData.peso_bruto || (focusData.transp?.vol?.[0]?.pesoB) || parsed.pesoBruto,
+          remetente_cnpj: focusData.cnpj_emitente || (focusData.emit?.CNPJ) || parsed.remetenteCnpj,
+          remetente_razao_social: focusData.nome_emitente || (focusData.emit?.xNome) || parsed.remetenteRazaoSocial,
+          destinatario_cnpj: focusData.cnpj_destinatario || (focusData.dest?.CNPJ) || parsed.destinatarioCnpj,
+          destinatario_razao_social: focusData.nome_destinatario || (focusData.dest?.xNome) || parsed.destinatarioRazaoSocial,
           xml_content: xmlContent,
           status_validacao: 'autorizada',
           validado_em: new Date().toISOString(),
