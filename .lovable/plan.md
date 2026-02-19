@@ -1,86 +1,59 @@
 
 
-# Plano: Completar Schema Fiscal para API Focus NFe
+## Ajuste da Gestao de Cargas: Visao centrada em Cargas para o Embarcador
 
-## Resumo
+### Problema atual
+A tela de Gestao de Cargas do embarcador esta muito centrada no **motorista** -- o item da lista destaca o nome do motorista, e a Visualizacao Geral em Mapa agrupa tudo por motorista. O embarcador precisa de uma visao centrada na **carga** (qual e o carregamento, qual a carga mae), com o motorista como informacao complementar.
 
-Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
-
-## Situacao Atual
-
-Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
-
-## Alteracoes Necessarias
-
-### Migracao Unica
-
-Adicionar duas colunas a tabela `config_fiscal`:
-
-| Coluna | Tipo | Default | Finalidade |
-|--------|------|---------|------------|
-| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
-| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
-
-### Atualizacao do Frontend
-
-Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
-- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
-- Campo numerico para o percentual da base de calculo do ICMS
-
-### Atualizacao dos Tipos TypeScript
-
-Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
+Alem disso, o tracking history (historico de rastreamento) no mapa do painel de detalhes precisa ser verificado e garantido.
 
 ---
 
-## Secao Tecnica
+### Mudancas planejadas
 
-### SQL da Migracao
+#### 1. Lista de entregas (colunas Ativas/Finalizadas) -- foco na carga
+- Reorganizar o `EntregaListItem` para destacar a **carga** como informacao principal:
+  - **Linha 1**: Codigo da carga (ex: `CRG-2026-0042`) + badge de status
+  - **Linha 2**: Rota (Cidade Origem -> Cidade Destino)
+  - **Linha 3**: Remetente / Destinatario
+  - **Linha 4**: Descricao da carga + peso
+  - **Rodape**: Avatar pequeno do motorista com nome (como info secundaria), valor do frete
+- O avatar do motorista passa de destaque principal para um icone menor no rodape do card
 
-```sql
-ALTER TABLE public.config_fiscal
-  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
-  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
+#### 2. Painel de detalhes -- garantir tracking history
+- Verificar que o `DetailPanelLeafletMap` esta recebendo `entregaId` corretamente (ja recebe, mas garantir que o fluxo `entrega -> viagem_entregas -> tracking_historico` funcione)
+- Adicionar destaque visual ao codigo da **carga mae** no header do painel (ex: badge maior com "CRG-2026-XXXX" + descricao)
+- Reorganizar a hierarquia: Carga primeiro, motorista depois
 
-COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
-  IS '1 = Simples Nacional, 3 = Regime Normal';
-COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
-  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
-```
+#### 3. Visualizacao Geral em Mapa -- agrupar por Carga
+- Trocar o agrupamento do painel lateral de **"Motoristas"** para **"Cargas"**
+- Cada grupo sera uma carga (codigo + descricao + rota)
+- Dentro de cada carga, listar as entregas associadas com status
+- Manter foto do motorista como info secundaria dentro de cada entrega
+- O titulo do painel muda de "Motoristas (N)" para "Cargas (N)"
+- A busca filtra por codigo da carga, cidade, remetente/destinatario
 
-### Mapeamento Completo: Banco -> Payload API
+---
 
-Com essas 2 colunas adicionadas, o mapeamento fica completo:
+### Detalhes tecnicos
 
-**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
-- CNPJ: `empresas.cnpj_matriz`
-- IE: `empresas.inscricao_estadual`
-- Razao Social: `empresas.razao_social`
-- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
-- Municipio IBGE: `filiais.codigo_municipio_ibge`
-- UF: `filiais.estado`
-- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
+#### `EntregaListItem` (linhas 107-183 de GestaoCargas.tsx)
+- Trocar a hierarquia visual: Package icon + codigo da carga como titulo
+- Motorista passa para uma linha menor com avatar 6x6 (em vez de 9x9)
+- Manter todos os dados, apenas reordenar prioridade visual
 
-**Fiscal**: `config_fiscal`
-- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
-- Natureza: `natureza_operacao`
-- Serie/Numero: `serie_cte` / `proximo_numero_cte`
-- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
-- Ambiente: `ambiente`
+#### `GestaoMapDialogContent` (linhas 591-818 de GestaoCargas.tsx)
+- Refatorar `motoristaGroups` para `cargaGroups`: agrupar entregas por `carga.id`
+- Cada grupo mostra: codigo da carga, rota, descricao, e lista de entregas
+- Motorista aparece como sub-info dentro de cada entrega no grupo
+- Adaptar `GestaoLeafletMap` props se necessario para o novo agrupamento
 
-**Remetente/Destinatario**: `cargas` + `enderecos_carga`
-**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
-**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
+#### `DetailPanel` (linhas 196-588 de GestaoCargas.tsx)
+- Mover a secao da carga (descricao, peso, tipo) para logo abaixo do header, antes do mapa
+- Garantir que `entregaId` e passado ao `DetailPanelLeafletMap` (ja e feito na linha 311)
+- O tracking history depende de existir um registro em `viagem_entregas` -- isso e esperado e correto
 
-### Campos Derivados por Logica (sem banco)
-- `data_emissao`: gerado no momento da emissao
-- `tipo_documento`: sempre `0` (Normal)
-- `modal`: sempre `01` (Rodoviario)
-- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
-
-### Sequencia de Implementacao
-
-1. Aplicar migracao SQL (1 migration)
-2. Atualizar types.ts
-3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
+#### Arquivos modificados
+- `src/pages/portals/embarcador/GestaoCargas.tsx` (principal -- EntregaListItem, DetailPanel, GestaoMapDialogContent)
+- `src/components/maps/GestaoLeafletMap.tsx` (ajustar props se o agrupamento mudar de motorista para carga)
 

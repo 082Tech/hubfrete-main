@@ -680,15 +680,6 @@ export function DestinoSection({ initialData, onLocationChange, dialogOpen = tru
             />
           </div>
         </div>
-
-        <div>
-          <Label className="text-sm">Inscrição Estadual (IE)</Label>
-          <Input 
-            value={(formData as any).inscricao_estadual || ''}
-            onChange={(e) => handleInputChange('inscricao_estadual' as any, e.target.value)}
-            placeholder="Opcional - IE do destinatário"
-          />
-        </div>
       </div>
 
       {/* Manage Contacts Dialog */}

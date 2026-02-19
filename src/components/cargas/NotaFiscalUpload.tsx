@@ -58,22 +58,7 @@ export function NotaFiscalUpload({ value, onChange }: NotaFiscalUploadProps) {
 
       onChange(filePath); // Store the path, not the full URL
       setFileName(file.name);
-      
-      // If it's an XML, trigger validation
-      if (fileExt?.toLowerCase() === 'xml') {
-        toast.info('Validando nota fiscal na SEFAZ...');
-        const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-nfe', {
-          body: { chave_acesso: null, xml_path: filePath } // The function will extract the key
-        });
-        
-        if (validationError) {
-          toast.error('Erro ao iniciar validação: ' + validationError.message);
-        } else {
-          toast.success('Nota fiscal enviada para validação!');
-        }
-      } else {
-        toast.success('Arquivo anexado com sucesso!');
-      }
+      toast.success('Nota fiscal anexada com sucesso!');
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error('Erro ao fazer upload: ' + error.message);

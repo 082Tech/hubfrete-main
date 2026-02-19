@@ -52,6 +52,8 @@ interface ViagemEntrega {
   updated_at?: string;
   peso_alocado_kg?: number | null;
   valor_frete?: number | null;
+  notas_fiscais_urls?: string[] | null;
+  cte_url?: string | null;
   canhoto_url?: string | null;
   eventos?: ViagemEntregaEvento[];
   carga: {
@@ -70,7 +72,7 @@ interface ViagemDetailPanelProps {
     updated_at?: string;
     started_at?: string | null;
     ended_at?: string | null;
-    
+    manifesto_url?: string | null;
     motorista?: {
       id: string;
       nome_completo: string;
@@ -208,6 +210,8 @@ export function ViagemDetailPanel({
   // Resumo de documentos das entregas
   const docsResumo = viagem.entregas.map(e => ({
     codigo: e.codigo,
+    cte: !!e.cte_url,
+    nfe: (e.notas_fiscais_urls?.length || 0) > 0,
     pod: !!e.canhoto_url,
   }));
 
@@ -278,6 +282,8 @@ export function ViagemDetailPanel({
                 const eStatusInfo = statusConfig[entrega.status] || statusConfig.aguardando;
                 const StatusIcon = eStatusInfo.icon;
                 const missingDocs: string[] = [];
+                if (!entrega.notas_fiscais_urls?.length) missingDocs.push('NF-e');
+                if (!entrega.cte_url) missingDocs.push('CT-e');
                 if (!entrega.canhoto_url) missingDocs.push('Canhoto');
                 return (
                   <Card
@@ -379,14 +385,24 @@ export function ViagemDetailPanel({
 
             <div className="grid grid-cols-1 gap-2">
               <button
-                onClick={() => setAnexarManifestoOpen(true)}
-                className="flex items-center justify-between gap-2 p-2 rounded-md border text-xs transition-colors text-left bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:hover:bg-amber-900/30 cursor-pointer"
+                onClick={() => viagem.manifesto_url ? setPreviewDocUrl(viagem.manifesto_url) : setAnexarManifestoOpen(true)}
+                className={`flex items-center justify-between gap-2 p-2 rounded-md border text-xs transition-colors text-left ${
+                  viagem.manifesto_url 
+                    ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer' 
+                    : 'bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:hover:bg-amber-900/30 cursor-pointer'
+                }`}
               >
                 <span className="flex items-center gap-2">
-                  <Upload className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                  {viagem.manifesto_url ? (
+                    <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <Upload className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                  )}
                   <span>Manifesto (MDF-e)</span>
                 </span>
-                <span className="text-amber-600 dark:text-amber-400 text-[10px]">Gerenciar</span>
+                {!viagem.manifesto_url && (
+                  <span className="text-amber-600 dark:text-amber-400 text-[10px]">Clique para anexar</span>
+                )}
               </button>
             </div>
           </div>
@@ -403,6 +419,8 @@ export function ViagemDetailPanel({
               {docsResumo.map(doc => (
                 <div key={doc.codigo} className="flex items-center gap-2 text-muted-foreground">
                   <Badge variant="outline" className="text-[9px] px-1">{doc.codigo}</Badge>
+                  <span>CT-e {doc.cte ? '✓' : '✗'}</span>
+                  <span>NF-e {doc.nfe ? '✓' : '✗'}</span>
                   <span>POD {doc.pod ? '✓' : '✗'}</span>
                 </div>
               ))}
