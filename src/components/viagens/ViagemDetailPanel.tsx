@@ -70,7 +70,7 @@ interface ViagemDetailPanelProps {
     updated_at?: string;
     started_at?: string | null;
     ended_at?: string | null;
-    
+
     motorista?: {
       id: string;
       nome_completo: string;
@@ -164,7 +164,7 @@ export function ViagemDetailPanel({
 
   const handleFinalizarViagem = async () => {
     if (!viagem || !onFinalize) return;
-    
+
     setIsProcessingViagem(true);
     try {
       await onFinalize(viagem.id);
@@ -179,7 +179,7 @@ export function ViagemDetailPanel({
 
   const handleCancelarViagem = async () => {
     if (!viagem || !onCancel) return;
-    
+
     setIsProcessingViagem(true);
     try {
       await onCancel(viagem.id);
@@ -334,9 +334,8 @@ export function ViagemDetailPanel({
                       {viagem.motorista.foto_url && <AvatarImage src={viagem.motorista.foto_url} />}
                       <AvatarFallback className="text-xs">{viagem.motorista.nome_completo?.[0]}</AvatarFallback>
                     </Avatar>
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${
-                      driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'
-                    }`} />
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'
+                      }`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{viagem.motorista.nome_completo}</p>
@@ -348,11 +347,10 @@ export function ViagemDetailPanel({
                       </div>
                     )}
                   </div>
-                  <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
-                    driverLocation?.isOnline
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                  }`}>
+                  <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${driverLocation?.isOnline
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                     {driverLocation?.isOnline ? 'Online' : (() => {
                       const lastSeen = driverLocation?.updated_at;
@@ -378,16 +376,28 @@ export function ViagemDetailPanel({
             </div>
 
             <div className="grid grid-cols-1 gap-2">
-              <button
-                onClick={() => setAnexarManifestoOpen(true)}
-                className="flex items-center justify-between gap-2 p-2 rounded-md border text-xs transition-colors text-left bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:hover:bg-amber-900/30 cursor-pointer"
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-10 gap-2 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
+                onClick={async () => {
+                  const confirm = window.confirm('Deseja gerar o MDF-e automaticamente agora?');
+                  if (!confirm) return;
+                  try {
+                    toast.info('Gerando MDF-e...', { id: 'mdfe-gen' });
+                    await supabase.functions.invoke('focusnfe-mdfe', {
+                      body: { action: 'emitir_automatico', viagem_id: viagem.id }
+                    });
+                    toast.success('MDF-e em processamento', { id: 'mdfe-gen' });
+                    onRefresh();
+                  } catch (e) {
+                    toast.error('Erro ao gerar MDF-e. Verifique se as NF-es e o veículo estão corretos.', { id: 'mdfe-gen' });
+                  }
+                }}
               >
-                <span className="flex items-center gap-2">
-                  <Upload className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                  <span>Manifesto (MDF-e)</span>
-                </span>
-                <span className="text-amber-600 dark:text-amber-400 text-[10px]">Gerenciar</span>
-              </button>
+                <FileText className="w-4 h-4" />
+                Gerar MDF-e Automático
+              </Button>
             </div>
           </div>
 
@@ -417,7 +427,7 @@ export function ViagemDetailPanel({
               <History className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium text-sm">Histórico da Viagem</span>
             </div>
-            
+
             <ViagemHistorico
               viagem={{
                 id: viagem.id,

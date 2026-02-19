@@ -29,21 +29,21 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
   // CT-e state
   const [cteFile, setCteFile] = useState<File | null>(null);
   const [existingCtes, setExistingCtes] = useState<CteDoc[]>([]);
-  
+
   // NF-e state (new files to upload, keyed by cte index or 'new')
   const [nfeFiles, setNfeFiles] = useState<File[]>([]);
   const [selectedCteIdForNfe, setSelectedCteIdForNfe] = useState<string | null>(null);
-  
+
   // Canhoto state
   const [canhotoFile, setCanhotoFile] = useState<File | null>(null);
   const [canhotoUrl, setCanhotoUrl] = useState<string | null>(null);
-  
+
   // UI state
   const [isSaving, setIsSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>('');
-  
+
   // Refs
   const cteInputRef = useRef<HTMLInputElement>(null);
   const nfInputRef = useRef<HTMLInputElement>(null);
@@ -57,7 +57,7 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
       setNfeFiles([]);
       setCanhotoFile(null);
       setSelectedCteIdForNfe(null);
-      
+
       // Fetch existing CTes and NFes
       fetchCtesForEntregas([entrega.id]).then(map => {
         setExistingCtes(map[entrega.id] || []);
@@ -76,13 +76,6 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
       return false;
     }
     return true;
-  };
-
-  const handleCteFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file)) {
-      setCteFile(file);
-    }
   };
 
   const handleNfFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,29 +107,12 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
     if (!entrega) return;
     setIsSaving(true);
     try {
-      let newCteId: string | null = null;
-
-      // Upload new CT-e if provided
-      if (cteFile) {
-        const cteUrl = await uploadFile(cteFile, 'cte');
-        const { data: cteData, error: cteError } = await (supabase as any)
-          .from('ctes')
-          .insert({ entrega_id: entrega.id, url: cteUrl })
-          .select('id')
-          .single();
-        if (cteError) throw cteError;
-        newCteId = cteData.id;
-      }
-
-      // Upload NF-es
-      const targetCteId = selectedCteIdForNfe || newCteId || (existingCtes.length > 0 ? existingCtes[0].id : null);
-      if (nfeFiles.length > 0 && targetCteId) {
+      // Upload NF-es and link to the delivery directly
+      if (nfeFiles.length > 0) {
         for (const file of nfeFiles) {
           const nfeUrl = await uploadFile(file, 'nota_fiscal');
-          await (supabase as any).from('nfes').insert({ cte_id: targetCteId, url: nfeUrl });
+          await (supabase as any).from('nfes').insert({ entrega_id: entrega.id, url: nfeUrl });
         }
-      } else if (nfeFiles.length > 0 && !targetCteId) {
-        toast.error('Adicione um CT-e antes de anexar NF-es.');
       }
 
       // Upload Canhoto
@@ -195,69 +171,18 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
               Entrega da carga <span className="font-medium text-foreground">{entrega.carga.codigo}</span>
             </p>
           )}
-
-          {/* CT-e Section */}
-          <Card>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Receipt className="w-4 h-4 text-primary" />
-                CT-e (Conhecimento de Transporte)
-              </div>
-              
-              {/* Existing CTes */}
-              {existingCtes.map((cte, idx) => (
-                <div key={cte.id} className="flex items-center justify-between p-3 border rounded-lg bg-emerald-500/5 border-emerald-500/20">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-emerald-600" />
-                    <span className="text-sm font-medium text-emerald-600">
-                      CT-e {idx + 1} {cte.numero ? `(Nº ${cte.numero})` : ''}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {cte.nfes.length} NF-e(s)
-                    </span>
-                  </div>
-                  {cte.url && (
-                    <Button variant="ghost" size="sm" onClick={() => openPreview(cte.url!, `CT-e ${idx + 1}`)}>
-                      <Eye className="w-4 h-4 mr-1" /> Ver
-                    </Button>
-                  )}
-                </div>
-              ))}
-
-              {cteFile && (
-                <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5 border-primary/20">
-                  <div className="flex items-center gap-2">
-                    <Upload className="w-4 h-4 text-primary" />
-                    <span className="text-sm truncate max-w-[200px]">{cteFile.name}</span>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => setCteFile(null)} className="text-muted-foreground">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-
-              <div>
-                <input ref={cteInputRef} type="file" accept=".pdf,.xml,.jpg,.jpeg,.png" onChange={handleCteFileChange} className="hidden" />
-                <Button variant="outline" size="sm" onClick={() => cteInputRef.current?.click()} className="w-full">
-                  <FileUp className="w-4 h-4 mr-2" />
-                  Adicionar CT-e
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Separator />
+          {/* CT-e Section foi removido pois a geração será automática */}
 
           {/* Notas Fiscais Section */}
           <Card>
             <CardContent className="pt-4 space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <FileText className="w-4 h-4 text-blue-600" />
-                Notas Fiscais (vinculadas a CT-e)
+                Notas Fiscais
               </div>
 
               {/* Show NF-es from existing CTes */}
-              {existingCtes.flatMap((cte, cIdx) => 
+              {existingCtes.flatMap((cte, cIdx) =>
                 cte.nfes.map((nf, nIdx) => (
                   <div key={nf.id} className="flex items-center justify-between p-3 border rounded-lg bg-blue-500/5 border-blue-500/20">
                     <div className="flex items-center gap-2">
@@ -292,14 +217,10 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
                 size="sm"
                 onClick={() => nfInputRef.current?.click()}
                 className="w-full"
-                disabled={existingCtes.length === 0 && !cteFile}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Adicionar Nota Fiscal
               </Button>
-              {existingCtes.length === 0 && !cteFile && (
-                <p className="text-xs text-muted-foreground text-center">Adicione um CT-e primeiro para vincular NF-es</p>
-              )}
             </CardContent>
           </Card>
 
@@ -312,7 +233,7 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
                 <Stamp className="w-4 h-4 text-orange-600" />
                 Canhoto (Comprovante de Entrega)
               </div>
-              
+
               {canhotoUrl && !canhotoFile && (
                 <div className="flex items-center justify-between p-3 border rounded-lg bg-orange-500/5 border-orange-500/20">
                   <div className="flex items-center gap-2">

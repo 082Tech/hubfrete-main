@@ -1,20 +1,20 @@
 import { useState } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { 
-  Package, 
-  MapPin, 
-  Calendar, 
-  Truck, 
-  User, 
+import {
+  Package,
+  MapPin,
+  Calendar,
+  Truck,
+  User,
   Building2,
   Weight,
   Route,
@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import type { Database } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
@@ -40,6 +41,7 @@ interface EntregaDetailsProps {
   entrega: {
     id: string;
     codigo?: string | null;
+    tracking_code?: string;
     status: StatusEntrega | null;
     created_at: string | null;
     coletado_em: string | null;
@@ -186,6 +188,21 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                 {config?.label}
               </Badge>
             </DialogTitle>
+            {entrega.tracking_code && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => {
+                  const url = `${window.location.origin}/rastreio?codigo=${entrega.tracking_code}`;
+                  navigator.clipboard.writeText(url);
+                  toast.success('Link de rastreio copiado!');
+                }}
+              >
+                <ExternalLink className="w-4 h-4" />
+                Link de Rastreio
+              </Button>
+            )}
           </DialogHeader>
 
           <div className="space-y-4">
@@ -273,7 +290,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                   <p className="text-muted-foreground">Peso Alocado</p>
                   <p className="font-medium flex items-center gap-1">
                     <Weight className="w-3 h-3" />
-                    {entrega.peso_alocado_kg 
+                    {entrega.peso_alocado_kg
                       ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg`
                       : `${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
                     }
@@ -353,8 +370,8 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                     </div>
                   </div>
                   {hasCanhoto ? (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => openPreview(entrega.canhoto_url!, 'Canhoto de Entrega')}
                     >
@@ -385,8 +402,8 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                     <>
                       <div className="flex items-center gap-3">
                         {entrega.motorista.foto_url ? (
-                          <img 
-                            src={entrega.motorista.foto_url} 
+                          <img
+                            src={entrega.motorista.foto_url}
                             alt={entrega.motorista.nome_completo}
                             className="w-10 h-10 rounded-full object-cover"
                           />

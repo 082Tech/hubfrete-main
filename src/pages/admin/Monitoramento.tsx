@@ -101,7 +101,7 @@ export default function Monitoramento() {
         // Fetch active entregas
         const { data: entregas, error: entregasError } = await supabase
           .from('entregas')
-          .select('id, codigo, status, motorista_id')
+          .select('id, codigo, status, motorista_id, tracking_code')
           .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'] as any)
           .not('motorista_id', 'is', null);
 
@@ -141,6 +141,7 @@ export default function Monitoramento() {
               heading: loc?.heading || null,
               entrega_ativa: !!entrega,
               entrega_codigo: entrega?.codigo || null,
+              tracking_code: entrega?.tracking_code || null,
               entrega_status: entrega?.status || null,
             };
           }) || [];

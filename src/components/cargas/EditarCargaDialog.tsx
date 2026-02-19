@@ -69,7 +69,7 @@ const tipoPrecificacaoOptions: { value: TipoPrecificacao; label: string }[] = [
 const formSchema = z.object({
   descricao: z.string().min(5, 'Descrição deve ter no mínimo 5 caracteres'),
   tipo: z.enum(['granel_solido', 'granel_liquido', 'carga_seca', 'refrigerada', 'congelada', 'perigosa', 'viva', 'indivisivel', 'container'] as const),
-  peso_kg: z.coerce.number().min(1, 'Peso deve ser maior que 0'),
+  peso_kg: z.coerce.number().int('O peso deve ser um número inteiro').min(1, 'Peso deve ser maior que 0'),
   volume_m3: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
   tipo_precificacao: z.enum(['por_tonelada', 'por_m3', 'fixo', 'por_km'] as const).default('por_tonelada'),
@@ -297,7 +297,7 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
   const valorFreteFixo = form.watch('valor_frete_fixo');
   const valorFreteKm = form.watch('valor_frete_km');
   const volumeM3 = form.watch('volume_m3');
-  
+
   const freteTotal = (() => {
     switch (tipoPrecificacao) {
       case 'por_tonelada': return pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
@@ -536,7 +536,13 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                       <FormItem>
                         <FormLabel>Peso (kg) *</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="0" {...field} />
+                          <Input
+                            type="number"
+                            step="1"
+                            placeholder="0"
+                            {...field}
+                            onChange={(e) => field.onChange(Math.floor(Number(e.target.value)))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -594,11 +600,10 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                               key={opt.value}
                               type="button"
                               onClick={() => field.onChange(opt.value)}
-                              className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                                field.value === opt.value
+                              className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${field.value === opt.value
                                   ? 'bg-primary text-primary-foreground border-primary'
                                   : 'bg-background text-muted-foreground border-border hover:bg-muted'
-                              }`}
+                                }`}
                             >
                               {opt.label}
                             </button>

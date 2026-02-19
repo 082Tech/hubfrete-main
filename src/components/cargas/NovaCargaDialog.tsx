@@ -72,7 +72,7 @@ const formSchema = z.object({
   // Dados da carga
   descricao: z.string().min(5, 'Descrição deve ter no mínimo 5 caracteres'),
   tipo: z.enum(['granel_solido', 'granel_liquido', 'carga_seca', 'refrigerada', 'congelada', 'perigosa', 'viva', 'indivisivel', 'container'] as const),
-  peso_kg: z.coerce.number().min(1, 'Peso deve ser maior que 0'),
+  peso_kg: z.coerce.number().int('O peso deve ser um número inteiro').min(1, 'Peso deve ser maior que 0'),
   volume_m3: z.coerce.number().optional(),
   quantidade_paletes: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
@@ -517,7 +517,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <FormItem>
                         <FormLabel>Peso (kg) *</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="0" {...field} />
+                          <Input
+                            type="number"
+                            step="1"
+                            placeholder="0"
+                            {...field}
+                            onChange={(e) => field.onChange(Math.floor(Number(e.target.value)))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -547,10 +553,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <FormItem>
                         <FormLabel>Qtd. Paletes</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="0" 
-                            value={field.value ?? ''} 
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={field.value ?? ''}
                             onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                           />
                         </FormControl>
@@ -594,11 +600,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                               key={opt.value}
                               type="button"
                               onClick={() => field.onChange(opt.value)}
-                              className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                                field.value === opt.value
+                              className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${field.value === opt.value
                                   ? 'bg-primary text-primary-foreground border-primary'
                                   : 'bg-background text-muted-foreground border-border hover:bg-muted'
-                              }`}
+                                }`}
                             >
                               {opt.label}
                             </button>
@@ -721,10 +726,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
                       <Input
                         type="number"
+                        step="1"
                         placeholder="Ex: 15000 (15 toneladas)"
                         className="mt-2"
                         value={pesoMinimoFracionado || ''}
-                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Number(e.target.value) : null)}
+                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Math.floor(Number(e.target.value)) : null)}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Deixe vazio para não ter limite mínimo

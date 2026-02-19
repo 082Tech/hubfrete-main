@@ -23,7 +23,7 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+
     // Get the authorization header to identify the inviting user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -35,7 +35,7 @@ serve(async (req: Request): Promise<Response> => {
 
     // Create admin client with service role
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     // Create client with user's token to verify identity
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseClient = createClient(supabaseUrl, anonKey, {
@@ -56,7 +56,7 @@ serve(async (req: Request): Promise<Response> => {
     if (!email || !company_type || !company_id) {
       return new Response(
         JSON.stringify({ error: "Campos obrigatórios: email, company_type, company_id" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -65,7 +65,7 @@ serve(async (req: Request): Promise<Response> => {
     if (!emailRegex.test(email)) {
       return new Response(
         JSON.stringify({ error: "Formato de email inválido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -73,7 +73,7 @@ serve(async (req: Request): Promise<Response> => {
     if (isNaN(empresaId)) {
       return new Response(
         JSON.stringify({ error: "ID da empresa inválido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -88,7 +88,7 @@ serve(async (req: Request): Promise<Response> => {
       console.error("Empresa not found:", empresaError);
       return new Response(
         JSON.stringify({ error: "Empresa não encontrada" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -97,7 +97,7 @@ serve(async (req: Request): Promise<Response> => {
     if (empresa.tipo !== expectedTipo) {
       return new Response(
         JSON.stringify({ error: "Tipo de empresa não corresponde" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -111,7 +111,7 @@ serve(async (req: Request): Promise<Response> => {
     if (!inviterUsuario) {
       return new Response(
         JSON.stringify({ error: "Usuário não encontrado no sistema" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -128,7 +128,7 @@ serve(async (req: Request): Promise<Response> => {
     if (!inviterFiliais || inviterFiliais.length === 0) {
       return new Response(
         JSON.stringify({ error: "Sem permissão para convidar usuários para esta empresa" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -137,7 +137,7 @@ serve(async (req: Request): Promise<Response> => {
     if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: "Apenas administradores podem convidar usuários" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -153,7 +153,7 @@ serve(async (req: Request): Promise<Response> => {
       if (filialError || !filial) {
         return new Response(
           JSON.stringify({ error: "Filial não encontrada ou não pertence a esta empresa" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
@@ -170,7 +170,7 @@ serve(async (req: Request): Promise<Response> => {
     if (existingInvite) {
       return new Response(
         JSON.stringify({ error: "Já existe um convite pendente para este email" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -196,7 +196,7 @@ serve(async (req: Request): Promise<Response> => {
       if (existingAssoc) {
         return new Response(
           JSON.stringify({ error: "Este usuário já faz parte da empresa" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
@@ -219,7 +219,7 @@ serve(async (req: Request): Promise<Response> => {
       console.error("Error creating invite:", inviteError);
       return new Response(
         JSON.stringify({ error: "Erro ao criar convite" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -243,35 +243,52 @@ serve(async (req: Request): Promise<Response> => {
 
     if (authError) {
       console.error("Error sending invite email:", authError);
-      // Delete the invite record if email failed
-      await supabaseAdmin.from("company_invites").delete().eq("id", invite.id);
-      
-      // Check for specific error cases
-      if (authError.message?.includes("already been registered")) {
+
+      // Check for common existing user errors
+      // Supabase can return "User already registered" or similar.
+      // We check broadly for "register" or status 422 which is common for logical issues.
+      const isExistingUser =
+        authError.message?.toLowerCase().includes("registered") ||
+        authError.message?.toLowerCase().includes("exists") ||
+        (authError as any).status === 422;
+
+      if (isExistingUser) {
+        // User exists, but we can't send a signup email. 
+        // We will return success with the link so the admin can copy it.
+        console.log("User likely already registered, returning invite link manually.");
+
         return new Response(
-          JSON.stringify({ error: "Este email já está registrado. O usuário pode fazer login normalmente." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            success: true,
+            message: "Usuário já cadastrado. Copie o link abaixo.",
+            invite_id: invite.id,
+            invite_link: `${origin}/login?invite=${invite.token}`
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
+
+      // Delete the invite record if email failed for other reasons
+      await supabaseAdmin.from("company_invites").delete().eq("id", invite.id);
+
       return new Response(
         JSON.stringify({ error: `Erro ao enviar convite: ${authError.message}` }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Invite sent successfully:", { 
-      email, 
-      invite_id: invite.id, 
+    console.log("Invite sent successfully:", {
+      email,
+      invite_id: invite.id,
       empresa: empresa.nome,
-      role 
+      role
     });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: "Convite enviado com sucesso",
-        invite_id: invite.id 
+        invite_id: invite.id
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -279,8 +296,8 @@ serve(async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: "Erro interno do servidor" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: `Erro interno do servidor: ${error instanceof Error ? error.message : String(error)}` }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

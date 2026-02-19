@@ -35,12 +35,7 @@ const STEPS = [
   { id: 4, title: 'Resumo', description: 'Confirme as informações' },
 ];
 
-const getVisibleSteps = (isTerceirizado: boolean) => {
-  if (isTerceirizado) {
-    return STEPS.filter(s => s.id !== 2); // Skip credentials step
-  }
-  return STEPS;
-};
+
 
 export function MotoristaFormDialog({
   open,
@@ -99,19 +94,16 @@ export function MotoristaFormDialog({
     }
 
     const isTerceirizado = formData.tipo_cadastro === 'terceirizado';
-    const visibleSteps = getVisibleSteps(isTerceirizado);
-    const currentIndex = visibleSteps.findIndex(s => s.id === currentStep);
-    const nextStep = visibleSteps[currentIndex + 1];
+    const currentIndex = STEPS.findIndex(s => s.id === currentStep);
+    const nextStep = STEPS[currentIndex + 1];
     if (nextStep) {
       setCurrentStep(nextStep.id);
     }
   };
 
   const handlePrev = () => {
-    const isTerceirizado = formData.tipo_cadastro === 'terceirizado';
-    const visibleSteps = getVisibleSteps(isTerceirizado);
-    const currentIndex = visibleSteps.findIndex(s => s.id === currentStep);
-    const prevStep = visibleSteps[currentIndex - 1];
+    const currentIndex = STEPS.findIndex(s => s.id === currentStep);
+    const prevStep = STEPS[currentIndex - 1];
     if (prevStep) {
       setCurrentStep(prevStep.id);
     }
@@ -126,7 +118,7 @@ export function MotoristaFormDialog({
         // Terceirizado: create motorista directly without auth
         // Generate a placeholder user_id (no auth account)
         const placeholderUserId = crypto.randomUUID();
-        
+
         const { data: motoristaData, error: motoristaError } = await supabase
           .from('motoristas')
           .insert({
@@ -257,11 +249,10 @@ export function MotoristaFormDialog({
   };
 
   const isTerceirizado = formData.tipo_cadastro === 'terceirizado';
-  const visibleSteps = getVisibleSteps(isTerceirizado);
-  const currentStepIndex = visibleSteps.findIndex(s => s.id === currentStep);
+  const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
   const currentStepData = STEPS.find(s => s.id === currentStep);
-  const isLastStep = currentStepIndex === visibleSteps.length - 1;
-  const progress = ((currentStepIndex + 1) / visibleSteps.length) * 100;
+  const isLastStep = currentStepIndex === STEPS.length - 1;
+  const progress = ((currentStepIndex + 1) / STEPS.length) * 100;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -271,7 +262,7 @@ export function MotoristaFormDialog({
             {editingMotorista ? 'Editar Motorista' : 'Cadastrar Motorista'}
           </DialogTitle>
           <DialogDescription>
-            Etapa {currentStepIndex + 1} de {visibleSteps.length}: {currentStepData?.description}
+            Etapa {currentStepIndex + 1} de {STEPS.length}: {currentStepData?.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -279,7 +270,7 @@ export function MotoristaFormDialog({
         <div className="space-y-2">
           <Progress value={progress} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
-            {visibleSteps.map((step) => (
+            {STEPS.map((step) => (
               <button
                 key={step.id}
                 type="button"

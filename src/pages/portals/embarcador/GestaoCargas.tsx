@@ -224,13 +224,15 @@ function DetailPanel({
   const nfeInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch NF-es for this entrega from the nfes table
+  const [isDragging, setIsDragging] = useState(false);
+
   const { data: nfes = [], refetch: refetchNfes } = useQuery({
     queryKey: ['entrega-nfes', entrega?.id],
     queryFn: async () => {
       if (!entrega?.id) return [];
       const { data, error } = await (supabase as any)
         .from('nfes')
-        .select('id, numero, chave_acesso, url, valor, data_emissao')
+        .select('*')
         .eq('entrega_id', entrega.id)
         .order('created_at', { ascending: true });
       if (error) return [];
@@ -238,6 +240,12 @@ function DetailPanel({
     },
     enabled: !!entrega?.id,
   });
+
+  const handleFilesSelection = (files: FileList | File[]) => {
+    Array.from(files).forEach(file => {
+      handleNfeXmlUpload(file);
+    });
+  };
 
   // Fetch CT-es for this entrega
   const { data: ctes = [] } = useQuery({
@@ -562,7 +570,7 @@ function DetailPanel({
 
           <Separator />
 
-          {/* Documentos - 3/3 (NF-e, CT-e, Canhoto) */}
+          {/* Documentos */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -570,12 +578,24 @@ function DetailPanel({
                 <span className="font-medium text-xs">Documentos</span>
               </div>
               <Badge variant={docsComplete ? 'default' : 'secondary'} className="text-[10px]">
-                {docsCount}/3 anexados
+                {docsCount} anexado(s)
               </Badge>
             </div>
 
             {/* NF-e Section - embarcador can upload */}
-            <div className="mb-2 space-y-1.5">
+            <div
+              className={`mb-2 space-y-1.5 p-2 border-2 border-dashed rounded-md transition-colors ${isDragging ? 'border-primary bg-primary/5' : 'border-transparent'}`}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  handleFilesSelection(e.dataTransfer.files);
+                }
+              }}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">Notas Fiscais (NF-e)</span>
                 <Button
@@ -595,11 +615,12 @@ function DetailPanel({
                 <input
                   ref={nfeInputRef}
                   type="file"
+                  multiple
                   accept=".xml"
                   className="hidden"
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleNfeXmlUpload(file);
+                    if (e.target.files) handleFilesSelection(e.target.files);
+                    e.target.value = ''; // Reset input to allow re-upload 
                   }}
                 />
               </div>

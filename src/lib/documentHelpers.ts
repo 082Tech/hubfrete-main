@@ -162,15 +162,15 @@ export function checkEntregaDocs(ctes: CteDoc[], canhotoUrl: string | null): { c
  * Fetch NF-es directly linked to an entrega (not through CT-e).
  * Used to check if embarcador has attached NF-es before allowing transition.
  */
-export async function fetchNfesForEntrega(entregaId: string): Promise<NfeDoc[]> {
+export async function fetchNfesForEntrega(entregaId: string): Promise<(NfeDoc & { cte_id?: string | null })[]> {
   const { data, error } = await (supabase as any)
     .from('nfes')
-    .select('id, numero, chave_acesso, url, xml_url, valor, emitido_em')
+    .select('id, cte_id, numero, chave_acesso, url, xml_url, valor, emitido_em')
     .eq('entrega_id', entregaId)
     .order('created_at', { ascending: true });
 
   if (error || !data) return [];
-  return data as NfeDoc[];
+  return data;
 }
 
 /**

@@ -285,6 +285,24 @@ function DetailPanel({
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [nfeBlockMessage, setNfeBlockMessage] = useState<string | null>(null);
   const [checkingNfe, setCheckingNfe] = useState(false);
+  const [existingCtes, setExistingCtes] = useState<any[]>([]);
+  const [unlinkedNfes, setUnlinkedNfes] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (entrega?.id) {
+      import('@/lib/documentHelpers').then(({ fetchCtesForEntregas, fetchNfesForEntrega }) => {
+        fetchCtesForEntregas([entrega.id]).then((map) => {
+          setExistingCtes(map[entrega.id] || []);
+        });
+        fetchNfesForEntrega(entrega.id).then((nfes) => {
+          setUnlinkedNfes(nfes.filter(nf => !nf.cte_id));
+        });
+      });
+    } else {
+      setExistingCtes([]);
+      setUnlinkedNfes([]);
+    }
+  }, [entrega?.id]);
 
   if (!entrega) {
     return (
@@ -318,7 +336,7 @@ function DetailPanel({
 
   const nextStatus = getNextStatus();
   const isFinalized = entrega.status === 'entregue' || entrega.status === 'cancelada';
-  
+
   // Verificar se a viagem está iniciada (não mais necessário, viagens já iniciam como aguardando)
   const isViagemNotStarted = false;
 
@@ -379,8 +397,11 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Contagem de documentos anexados - canhoto local, CT-e/NF-e agora nas tabelas separadas
-  const docsCount = entrega.canhoto_url ? 1 : 0;
+  // Contagem de documentos anexados - canhoto local, CT-e/NF-e nas tabelas separadas
+  const docsCount = (entrega.canhoto_url ? 1 : 0)
+    + (existingCtes.length > 0 ? 1 : 0)
+    + existingCtes.reduce((acc, cte) => acc + (cte.nfes?.length > 0 ? 1 : 0), 0)
+    + (unlinkedNfes.length > 0 ? 1 : 0);
 
   return (
     <div className="h-full flex flex-col bg-card border-l">
@@ -454,7 +475,7 @@ function DetailPanel({
             <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3" />
-                {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+                {(entrega.peso_alocado_kg || entrega.carga.peso_kg)?.toLocaleString('pt-BR')} kg
               </span>
               {entrega.carga.quantidade && (
                 <span className="flex items-center gap-1">
@@ -567,7 +588,7 @@ function DetailPanel({
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               <DocumentButton
                 type="canhoto"
                 hasDoc={!!entrega.canhoto_url}
@@ -576,14 +597,83 @@ function DetailPanel({
                 entregaId={entrega.id}
                 onUploaded={onRefresh}
               />
-              <DocumentButton
-                type="cte"
-                hasDoc={false}
-                canAttach={true}
-                onView={() => {}}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
+
+              {/* Botão de gerar CT-e automaticamente se houver NFe */}
+              {unlinkedNfes.length > 0 && existingCtes.length === 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-8 gap-2 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
+                  onClick={async () => {
+                    const confirm = window.confirm('Deseja gerar o CT-e automaticamente agora?');
+                    if (!confirm) return;
+                    try {
+                      toast.info('Gerando CT-e...', { id: 'cte-gen' });
+                      const ref = entrega.carga.empresa?.id ? `${entrega.carga.empresa.id}` : '';
+                      await supabase.functions.invoke('focusnfe-cte', {
+                        body: JSON.stringify({ action: 'emitir_com_nfes', entrega_id: entrega.id, ref })
+                      });
+                      toast.success('CT-e em processamento', { id: 'cte-gen' });
+                      onRefresh();
+                    } catch (e) {
+                      toast.error('Erro ao gerar CT-e.', { id: 'cte-gen' });
+                    }
+                  }}
+                >
+                  <FileText className="w-4 h-4" />
+                  Gerar CT-e Automático
+                </Button>
+              )}
+
+              {/* Unlinked NF-es */}
+              {unlinkedNfes.map((nf: any, nIdx: number) => (
+                <div key={nf.id} className="flex items-center justify-between p-2 rounded-md bg-blue-500/5 border border-blue-500/20 text-xs">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
+                    <span className="font-medium text-blue-700">NF-e {nIdx + 1}</span>
+                  </div>
+                  {nf.url && (
+                    <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => handleDocClick(nf.url, `NF-e ${nIdx + 1}`)}>
+                      Ver
+                    </Button>
+                  )}
+                </div>
+              ))}
+
+              {/* CT-es and their NF-es */}
+              {existingCtes.map((cte: any, cIdx: number) => (
+                <div key={cte.id} className="space-y-2">
+                  <div className="flex items-center justify-between p-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 text-xs">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="font-medium text-emerald-700">CT-e {cIdx + 1} {cte.numero ? `(${cte.numero})` : ''}</span>
+                    </div>
+                    {cte.url && (
+                      <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => handleDocClick(cte.url, `CT-e ${cIdx + 1}`)}>
+                        Ver
+                      </Button>
+                    )}
+                  </div>
+                  {cte.nfes?.map((nf: any, nIdx: number) => (
+                    <div key={nf.id} className="flex items-center justify-between p-2 ml-4 rounded-md bg-blue-500/5 border border-blue-500/20 text-xs">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="font-medium text-blue-700">NF-e {nIdx + 1}</span>
+                      </div>
+                      {nf.url && (
+                        <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => handleDocClick(nf.url, `NF-e ${nIdx + 1}`)}>
+                          Ver
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {existingCtes.length === 0 && unlinkedNfes.length === 0 && (
+                <div className="text-center p-3 text-xs text-muted-foreground bg-muted/30 rounded-md border border-dashed">
+                  Nenhum CT-e ou NF-e anexado
+                </div>
+              )}
             </div>
           </div>
 
@@ -608,8 +698,8 @@ function DetailPanel({
                       <p className="font-medium text-sm truncate">{entrega.motorista.nome_completo}</p>
                       {/* Badge de status Online/Offline com tempo */}
                       <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${driverLocation?.isOnline
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                         {driverLocation?.isOnline ? 'Online' : (() => {
@@ -675,14 +765,14 @@ function DetailPanel({
                     const userName = evento.user_nome || 'Sistema';
                     const isDocument = config.isDocument || evento.tipo.includes('documento') || evento.tipo.includes('anexa');
                     const isCreation = config.isCreation;
-                    const isLast = idx === entrega.eventos!.slice(0, 5).length - 1;
+                    const isLast = idx === (entrega.eventos!.length || 0) - 1;
 
                     return (
                       <div key={evento.id} className="relative flex items-start gap-3">
                         {/* Ícone com cor de fundo baseada no status */}
                         <div className={`relative z-10 w-8 h-8 rounded-md ${config.bgColor} flex items-center justify-center shrink-0`}>
                           {isDocument ? (
-                          <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           ) : isCreation ? (
                             <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                           ) : (
@@ -1024,8 +1114,8 @@ function GestaoEntregasDialogContent({
           groups[key] = {
             id: viagemInfo.viagem_id,
             tipo: 'viagem',
-            viagemCodigo: viagemInfo.codigo,
-            viagemStatus: viagemInfo.status,
+            viagemCodigo: (viagemInfo as any).codigo,
+            viagemStatus: (viagemInfo as any).status,
             motorista: e.motorista,
             motorista_id: e.motorista_id,
             entregas: [],
@@ -1267,8 +1357,8 @@ function GestaoEntregasDialogContent({
                           <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
                           {/* Badge de status Online/Offline com tempo */}
                           <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isOnline
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                             }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                             {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
@@ -1331,10 +1421,10 @@ function GestaoEntregasDialogContent({
 
                               {/* Rota */}
                               <div className="flex items-center gap-1.5 text-xs text-foreground">
-                <MapPin className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
+                                <MapPin className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
                                 <span className="truncate">{e.carga.endereco_origem?.cidade}/{e.carga.endereco_origem?.estado}</span>
                                 <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                <MapPin className="w-3 h-3 text-red-500 dark:text-red-400 shrink-0" />
+                                <MapPin className="w-3 h-3 text-red-500 dark:text-red-400 shrink-0" />
                                 <span className="truncate">{e.carga.endereco_destino?.cidade}/{e.carga.endereco_destino?.estado}</span>
                               </div>
 
@@ -1405,7 +1495,7 @@ interface ViagemWithEntregas {
   updated_at?: string;
   started_at?: string | null;
   ended_at?: string | null;
-  
+
   motorista_id: string;
   motorista: {
     id: string;
@@ -1509,7 +1599,7 @@ export default function OperacaoDiaria() {
 
       // Fetch eventos for each entrega
       const entregasWithEvents = await Promise.all(
-        filtered.map(async (entrega) => {
+        filtered.map(async (entrega: any) => {
           const { data: eventos } = await supabase
             .from('entrega_eventos')
             .select('id, tipo, timestamp, observacao, user_nome')
@@ -1521,7 +1611,7 @@ export default function OperacaoDiaria() {
         })
       );
 
-      return entregasWithEvents as Entrega[];
+      return entregasWithEvents as any as Entrega[];
     },
     enabled: !!empresa?.id,
     refetchInterval: 30000,
@@ -1604,7 +1694,7 @@ export default function OperacaoDiaria() {
       const startOfTodayViagem = startOfDay(today).toISOString();
       const activeViagemStatuses = ['programada', 'aguardando', 'em_andamento'];
       const terminalViagemStatuses = ['finalizada', 'cancelada'];
-      
+
       return viagensWithEntregas.filter(v => {
         if (v.entregas.length === 0) return false;
         if (activeViagemStatuses.includes(v.status)) return true;
@@ -1696,7 +1786,7 @@ export default function OperacaoDiaria() {
       // Registrar evento com auditoria (user_id e user_nome)
       const { error: eventoError } = await supabase.from('entrega_eventos').insert({
         entrega_id: entregaId,
-        tipo: eventoTipo,
+        tipo: eventoTipo as any,
         timestamp: new Date().toISOString(),
         observacao: `Status alterado para ${statusConfig[newStatus]?.label || newStatus}`,
         user_id: user?.id ?? null,
@@ -1706,45 +1796,6 @@ export default function OperacaoDiaria() {
       if (eventoError) {
         console.error('Erro ao registrar evento:', eventoError);
       }
-
-      // Auto-emit CT-e when transitioning to saiu_para_entrega
-      if (newStatus === 'saiu_para_entrega') {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const ref = `cte-${entregaId.slice(0, 8)}-${Date.now()}`;
-          
-          const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL || 'https://eilwdavgnuhfyxfqkvrk.supabase.co'}/functions/v1/focusnfe-cte`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session?.access_token || ''}`,
-                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbHdkYXZnbnVoZnl4ZnFrdnJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MjUxNjIsImV4cCI6MjA4MzMwMTE2Mn0.kwfOZWgzUEhhQYE3NEPfhYoAQMok0suqVp6FsWBHmu8',
-              },
-              body: JSON.stringify({
-                action: 'emitir_com_nfes',
-                entrega_id: entregaId,
-                ref,
-              }),
-            }
-          );
-
-          const result = await response.json();
-          if (result.success) {
-            toast.info('CT-e sendo emitido automaticamente via Focus NFe...');
-          } else {
-            console.error('Erro na emissão automática do CT-e:', result);
-            toast.warning('Não foi possível emitir o CT-e automaticamente. Verifique os documentos.');
-          }
-        } catch (cteError) {
-          console.error('Erro ao emitir CT-e:', cteError);
-          toast.warning('Erro ao emitir CT-e automaticamente');
-        }
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['operacao-diaria'] });
       toast.success('Status atualizado!');
     },
     onError: (error) => {
@@ -1758,11 +1809,11 @@ export default function OperacaoDiaria() {
     mutationFn: async (viagemId: string) => {
       const { error } = await supabase
         .from('viagens')
-        .update({ 
-          status: 'aguardando', 
+        .update({
+          status: 'aguardando',
           inicio_em: new Date().toISOString(),
           started_at: new Date().toISOString(),
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString()
         })
         .eq('id', viagemId);
 
@@ -1783,11 +1834,11 @@ export default function OperacaoDiaria() {
     mutationFn: async (viagemId: string) => {
       const { error } = await supabase
         .from('viagens')
-        .update({ 
-          status: 'finalizada', 
+        .update({
+          status: 'finalizada',
           fim_em: new Date().toISOString(),
           ended_at: new Date().toISOString(),
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString()
         })
         .eq('id', viagemId);
 
@@ -1822,9 +1873,9 @@ export default function OperacaoDiaria() {
         // libera automaticamente o peso na carga
         const { error: entregasError } = await supabase
           .from('entregas')
-          .update({ 
-            status: 'cancelada', 
-            updated_at: new Date().toISOString() 
+          .update({
+            status: 'cancelada',
+            updated_at: new Date().toISOString()
           })
           .in('id', entregaIds)
           .not('status', 'in', '("entregue","cancelada")');
@@ -1835,9 +1886,9 @@ export default function OperacaoDiaria() {
       // 3. Cancelar a viagem
       const { error } = await supabase
         .from('viagens')
-        .update({ 
-          status: 'cancelada', 
-          updated_at: new Date().toISOString() 
+        .update({
+          status: 'cancelada',
+          updated_at: new Date().toISOString()
         })
         .eq('id', viagemId);
 

@@ -42,6 +42,7 @@ import CadastroTransportadora from "./pages/CadastroTransportadora";
 import PreCadastroEmbarcador from "./pages/PreCadastroEmbarcador";
 import PreCadastroTransportadora from "./pages/PreCadastroTransportadora";
 import PreCadastroMotorista from "./pages/PreCadastroMotorista";
+import Rastreio from "./pages/public/Rastreio";
 import EmbarcadorDashboard from "./pages/portals/EmbarcadorDashboard";
 import CargasPublicadas from "./pages/portals/embarcador/CargasPublicadas";
 import CargasEmRota from "./pages/portals/embarcador/GestaoCargas";
@@ -130,6 +131,7 @@ const App = () => {
                   <Route path="/cadastro/transportadora" element={<CadastroTransportadora />} />
 
                   {/* Pré-cadastros públicos */}
+                  <Route path="/rastreio" element={<Rastreio />} />
                   <Route path="/pre-cadastro/embarcador" element={<PreCadastroEmbarcador />} />
                   <Route path="/pre-cadastro/transportadora" element={<PreCadastroTransportadora />} />
                   <Route path="/pre-cadastro/motorista" element={<PreCadastroMotorista />} />
