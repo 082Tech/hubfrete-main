@@ -26,7 +26,7 @@ export interface NfeDoc {
   url: string | null;
   xml_url: string | null;
   valor: number | null;
-  data_emissao: string | null;
+  emitido_em: string | null;
 }
 
 export interface ManifestoDoc {
@@ -35,7 +35,7 @@ export interface ManifestoDoc {
   chave_acesso: string | null;
   url: string | null;
   status: string;
-  created_at: string;
+  emitido_em: string;
   encerrado_em: string | null;
   observacoes: string | null;
 }
@@ -61,7 +61,7 @@ export async function fetchCtesForEntregas(entregaIds: string[]): Promise<Record
   if (cteIds.length > 0) {
     const { data: nfes } = await (supabase as any)
       .from('nfes')
-      .select('id, cte_id, numero, chave_acesso, url, xml_url, valor, data_emissao')
+      .select('id, cte_id, numero, chave_acesso, url, xml_url, valor, emitido_em')
       .in('cte_id', cteIds)
       .order('created_at', { ascending: true });
 
@@ -74,7 +74,7 @@ export async function fetchCtesForEntregas(entregaIds: string[]): Promise<Record
         url: nf.url,
         xml_url: nf.xml_url,
         valor: nf.valor,
-        data_emissao: nf.data_emissao,
+        emitido_em: nf.emitido_em,
       });
     });
   }
@@ -105,10 +105,10 @@ export async function fetchManifestosForViagens(viagemIds: string[]): Promise<Re
   if (viagemIds.length === 0) return {};
 
   const { data: manifestos, error } = await (supabase as any)
-    .from('mdfes')
-    .select('id, viagem_id, numero, chave_acesso, pdf_path, status, created_at, encerrado_at, erro')
+    .from('manifestos')
+    .select('id, viagem_id, numero, chave_acesso, url, status, emitido_em, encerrado_em, observacoes')
     .in('viagem_id', viagemIds)
-    .order('created_at', { ascending: true });
+    .order('emitido_em', { ascending: true });
 
   if (error || !manifestos) return {};
 
@@ -119,11 +119,11 @@ export async function fetchManifestosForViagens(viagemIds: string[]): Promise<Re
       id: m.id,
       numero: m.numero,
       chave_acesso: m.chave_acesso,
-      url: m.pdf_path, // Mapping pdf_path to url for frontend compatibility
+      url: m.url,
       status: m.status,
-      created_at: m.created_at,
-      encerrado_em: m.encerrado_at,
-      observacoes: m.erro,
+      emitido_em: m.emitido_em,
+      encerrado_em: m.encerrado_em,
+      observacoes: m.observacoes,
     });
   });
 
@@ -134,7 +134,7 @@ export async function fetchManifestosForViagens(viagemIds: string[]): Promise<Re
  * Get the active manifesto for a viagem from a list of manifestos.
  */
 export function getActiveManifesto(manifestos: ManifestoDoc[]): ManifestoDoc | null {
-  return manifestos.find(m => m.status === 'processando' || m.status === 'autorizado') || null;
+  return manifestos.find(m => m.status === 'ativo') || null;
 }
 
 /**
@@ -192,7 +192,7 @@ export async function hasNfeAttached(entregaId: string): Promise<boolean> {
  */
 export async function pollCteStatus(focusRef: string): Promise<{ status: string; data: any }> {
   const { data: { session } } = await supabase.auth.getSession();
-
+  
   const response = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL || 'https://eilwdavgnuhfyxfqkvrk.supabase.co'}/functions/v1/focusnfe-cte`,
     {

@@ -53,24 +53,19 @@ export function AnexarManifestoViagemDialog({
 
       // First, close any active manifesto for this viagem
       await (supabase as any)
-        .from('mdfes')
-        .update({ status: 'encerrado', encerrado_at: new Date().toISOString() })
+        .from('manifestos')
+        .update({ status: 'encerrado', encerrado_em: new Date().toISOString() })
         .eq('viagem_id', viagemId)
-        .eq('status', 'processando'); // or 'autorizado'
-
-      // Determine path column based on extension
-      const isPdf = fileExt?.toLowerCase() === 'pdf';
-      const pathColumn = isPdf ? 'pdf_path' : 'xml_path';
+        .eq('status', 'ativo');
 
       // Insert new manifesto record
       const { error: insertError } = await (supabase as any)
-        .from('mdfes')
+        .from('manifestos')
         .insert({
           viagem_id: viagemId,
-          [pathColumn]: fileName, // Store the storage path, accessing public URL via helper
-          status: 'processando',
-          focus_ref: `MANUAL-${Date.now()}`, // Required unique ref
-          created_at: new Date().toISOString(),
+          url: manifestoUrl,
+          status: 'ativo',
+          emitido_em: new Date().toISOString(),
         });
 
       if (insertError) throw insertError;
@@ -142,10 +137,11 @@ export function AnexarManifestoViagemDialog({
         <div className="space-y-4">
           {/* Drop zone */}
           <div
-            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${dragOver
+            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              dragOver
                 ? 'border-primary bg-primary/5'
                 : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-              }`}
+            }`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}

@@ -230,7 +230,7 @@ function DetailPanel({
       if (!entrega?.id) return [];
       const { data, error } = await (supabase as any)
         .from('nfes')
-        .select('id, numero, chave_acesso, url, valor, data_emissao')
+        .select('id, numero, chave_acesso, url, valor, emitido_em')
         .eq('entrega_id', entrega.id)
         .order('created_at', { ascending: true });
       if (error) return [];
@@ -270,7 +270,7 @@ function DetailPanel({
 
       // Upload XML file to storage
       const fileName = `nfe-${entrega.id}-${Date.now()}.xml`;
-      const storagePath = `nfes/${fileName}`;
+      const storagePath = `documentos/nfes/${fileName}`;
       const { error: uploadError } = await supabase.storage
         .from('documentos')
         .upload(storagePath, file, { contentType: 'text/xml' });
@@ -289,15 +289,8 @@ function DetailPanel({
           numero: parsed.numero,
           chave_acesso: parsed.chaveAcesso,
           url: fileUrl,
-          xml_path: storagePath,
-          valor: parsed.valor,
-          data_emissao: parsed.dataEmissao,
-          peso_bruto: parsed.pesoBruto,
-          remetente_cnpj: parsed.remetenteCnpj,
-          remetente_razao_social: parsed.remetenteRazaoSocial,
-          destinatario_cnpj: parsed.destinatarioCnpj,
-          destinatario_razao_social: parsed.destinatarioRazaoSocial,
           xml_content: xmlContent,
+          valor: parsed.valor,
         });
 
       if (dbError) {
