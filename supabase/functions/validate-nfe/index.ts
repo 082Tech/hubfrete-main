@@ -15,87 +15,84 @@ serve(async (req) => {
     const FOCUS_NFE_TOKEN = Deno.env.get("FOCUS_NFE_TOKEN");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { nfe_id, chave_acesso } = await req.json();
+    const { nfe_id, chave_acesso, xml_content, referencia, empresa_id } = await req.json();
 
-    if (!nfe_id && !chave_acesso) {
-      throw new Error("nfe_id or chave_acesso is required");
+    const ref = referencia || chave_acesso || nfe_id;
+
+    if (!xml_content) {
+      throw new Error("xml_content is required for import");
+    }
+    if (!ref) {
+      throw new Error("referencia (or chave_acesso) is required");
     }
 
-    // 1. Get access key if only ID provided
-    let chave = chave_acesso;
-    if (!chave && nfe_id) {
-      const { data: nfe } = await supabase.from("nfes").select("chave_acesso").eq("id", nfe_id).single();
-      chave = nfe?.chave_acesso;
+    // 1. Determine Token (Dynamic or Env Fallback)
+    let token = Deno.env.get("FOCUS_NFE_TOKEN");
+
+    if (empresa_id) {
+      const { data: empresa, error: empError } = await supabase
+        .from("empresas")
+        .select("token_focus")
+        .eq("id", empresa_id)
+        .single();
+
+      if (empresa?.token_focus) {
+        token = empresa.token_focus;
+        console.log(`Using custom token for empresa ${empresa_id}`);
+      }
     }
 
-    if (!chave) throw new Error("Chave de acesso não encontrada");
+    if (!token) {
+      throw new Error("Focus NFe Token not found (Env or Company)");
+    }
 
     // AMBIENTE DA API: Alterne entre homologacao e api (produção)
     const FOCUS_BASE_URL = "https://homologacao.focusnfe.com.br";
     // const FOCUS_BASE_URL = "https://api.focusnfe.com.br";
 
-    // 2. Call FocusNFe for Manifestação (Ciência da Operação)
-    // This also retrieves the official XML from SEFAZ
-    const authHeader = "Basic " + btoa(FOCUS_NFE_TOKEN + ":");
-    const response = await fetch(`${FOCUS_BASE_URL}/v2/nfes_recebidas/${chave}/manifesto`, {
+    const authHeader = "Basic " + btoa(token + ":");
+
+    // 2. Import NFe XML
+    console.log(`Importing NFe with ref: ${ref}`);
+    const importRes = await fetch(`${FOCUS_BASE_URL}/v2/nfe/importacao?ref=${ref}`, {
       method: "POST",
       headers: {
         "Authorization": authHeader,
-        "Content-Type": "application/json",
+        "Content-Type": "application/xml",
       },
-      body: JSON.stringify({ tipo_evento: "ciencia_da_operacao" }),
+      body: xml_content,
     });
 
-    const result = await response.json();
-    
-    // 3. Update status in database
-    const updateData: any = {
-      status_validacao: response.ok ? 'autorizada' : 'rejeitada',
-      validado_em: new Date().toISOString(),
-    };
-
-    if (!response.ok) {
-      updateData.erro_validacao = result.mensagem || JSON.stringify(result);
-    } else {
-      // If success, FocusNFe will eventually provide the XML
-      // For now, we mark as authorized. A webhook should update the XML content later.
-      // Or we can try to fetch the XML immediately if available
-      const xmlRes = await fetch(`${FOCUS_BASE_URL}/v2/nfes_recebidas/${chave}.xml`, {
-        headers: { "Authorization": authHeader }
-      });
-      
-      if (xmlRes.ok) {
-        const xmlContent = await xmlRes.text();
-        updateData.xml_content = xmlContent;
-        
-        // Basic parse to extract some fields (simplified for this example)
-        // In a real scenario, use a proper XML parser
-        const extract = (regex: RegExp) => {
-          const match = xmlContent.match(regex);
-          return match ? match[1] : null;
-        };
-
-        updateData.remetente_cnpj = extract(/<emit>.*?<CNPJ>(.*?)<\/CNPJ>/s);
-        updateData.remetente_razao_social = extract(/<emit>.*?<xNome>(.*?)<\/xNome>/s);
-        updateData.destinatario_cnpj = extract(/<dest>.*?<CNPJ>(.*?)<\/CNPJ>/s);
-        updateData.destinatario_razao_social = extract(/<dest>.*?<xNome>(.*?)<\/xNome>/s);
-        updateData.valor_total = extract(/<vNF>(.*?)<\/vNF>/);
-        updateData.data_emissao = extract(/<dhEmi>(.*?)<\/dhEmi>/);
-      }
+    if (!importRes.ok) {
+      const errorText = await importRes.text();
+      throw new Error(`Error importing XML: ${importRes.status} - ${errorText}`);
     }
 
-    if (nfe_id) {
-      await supabase.from("nfes").update(updateData).eq("id", nfe_id);
+    // 3. Query NFe data (completa=1)
+    console.log(`Querying NFe data for ref: ${ref}`);
+    const queryRes = await fetch(`${FOCUS_BASE_URL}/v2/nfe/${ref}?completa=1`, {
+      method: "GET",
+      headers: {
+        "Authorization": authHeader,
+      },
+    });
+
+    if (!queryRes.ok) {
+      const errorText = await queryRes.text();
+      throw new Error(`Error querying NFe data: ${queryRes.status} - ${errorText}`);
     }
 
-    return new Response(JSON.stringify({ success: response.ok, data: result }), {
+    const nfeData = await queryRes.json();
+
+    return new Response(JSON.stringify({ success: true, data: nfeData }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
 
   } catch (error: any) {
+    console.error("Error in validate-nfe:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

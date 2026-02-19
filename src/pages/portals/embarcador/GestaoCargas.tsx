@@ -268,7 +268,35 @@ function DetailPanel({
         return;
       }
 
-      // Upload XML file to storage
+      // 1. Validate with Focus NFe (Import + Query)
+      toast.info('Validando NFe na SEFAZ (Focus NFe)...');
+      const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-nfe', {
+        body: {
+          referencia: parsed.chaveAcesso,
+          xml_content: xmlContent
+        }
+      });
+
+      if (validationError) {
+        console.error('Validation function error:', validationError);
+        // Tenta extrair o corpo do erro se disponível
+        let errorMessage = validationError.message;
+        if (validationError instanceof Error && (validationError as any).context?.json) {
+          const body = await (validationError as any).context.json();
+          errorMessage = body.error || JSON.stringify(body);
+        }
+        throw new Error(`Erro na validação: ${errorMessage}`);
+      }
+
+      const nfeJson = validationData.data;
+
+      if (!validationData?.success) {
+        console.error('Validation failed (Logic):', validationData);
+        throw new Error(`Validação falhou: ${validationData?.error || 'Erro desconhecido'}`);
+      }
+      toast.success('NFe validada com sucesso!');
+
+      // 2. Upload XML file to storage
       const fileName = `nfe-${entrega.id}-${Date.now()}.xml`;
       const storagePath = `nfes/${fileName}`;
       const { error: uploadError } = await supabase.storage
@@ -281,23 +309,26 @@ function DetailPanel({
         fileUrl = urlData?.publicUrl || null;
       }
 
-      // Insert into nfes table
+      // 3. Insert into nfes table
+      // Prioritize data from Focus API, fallback to regex parse
       const { error: dbError } = await (supabase as any)
         .from('nfes')
         .insert({
           entrega_id: entrega.id,
-          numero: parsed.numero,
-          chave_acesso: parsed.chaveAcesso,
+          numero: nfeJson.numero || parsed.numero,
+          chave_acesso: nfeJson.chave_nfe || parsed.chaveAcesso,
           url: fileUrl,
           xml_path: storagePath,
-          valor: parsed.valor,
-          data_emissao: parsed.dataEmissao,
-          peso_bruto: parsed.pesoBruto,
-          remetente_cnpj: parsed.remetenteCnpj,
-          remetente_razao_social: parsed.remetenteRazaoSocial,
-          destinatario_cnpj: parsed.destinatarioCnpj,
-          destinatario_razao_social: parsed.destinatarioRazaoSocial,
+          valor: nfeJson.valor_total || parsed.valor,
+          data_emissao: nfeJson.data_emissao || parsed.dataEmissao,
+          peso_bruto: nfeJson.peso_bruto || parsed.pesoBruto,
+          remetente_cnpj: nfeJson.emitente?.cnpj || parsed.remetenteCnpj,
+          remetente_razao_social: nfeJson.emitente?.razao_social || parsed.remetenteRazaoSocial,
+          destinatario_cnpj: nfeJson.destinatario?.cnpj || parsed.destinatarioCnpj,
+          destinatario_razao_social: nfeJson.destinatario?.razao_social || parsed.destinatarioRazaoSocial,
           xml_content: xmlContent,
+          status_validacao: 'autorizada',
+          validado_em: new Date().toISOString(),
         });
 
       if (dbError) {
