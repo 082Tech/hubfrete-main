@@ -289,6 +289,13 @@ function DetailPanel({
   const [checkingNfe, setCheckingNfe] = useState(false);
   const [existingCtes, setExistingCtes] = useState<any[]>([]);
   const [unlinkedNfes, setUnlinkedNfes] = useState<any[]>([]);
+  const [docsRefreshKey, setDocsRefreshKey] = useState(0);
+
+  // Atualiza documentos quando entrega muda ou quando um doc é uploado
+  const refreshDocs = useCallback(() => {
+    setDocsRefreshKey(k => k + 1);
+    onRefresh();
+  }, [onRefresh]);
 
   useEffect(() => {
     if (entrega?.id) {
@@ -304,7 +311,7 @@ function DetailPanel({
       setExistingCtes([]);
       setUnlinkedNfes([]);
     }
-  }, [entrega?.id]);
+  }, [entrega?.id, docsRefreshKey]);
 
   if (!entrega) {
     return (
@@ -609,84 +616,82 @@ function DetailPanel({
             </div>
 
             <div className="space-y-2">
-              {/* Canhoto */}
-              <div className={`flex flex-col p-3 rounded-xl border transition-colors ${!!entrega.canhoto_url ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-muted/30 border-dashed border-emerald-200'}`}>
+              {/* ── Canhoto ── */}
+              <div className={`flex flex-col p-3 rounded-xl border transition-colors ${!!entrega.canhoto_url ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-muted/30 border-dashed border-emerald-200/60'}`}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-1.5 rounded-full ${!!entrega.canhoto_url ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30'}`}>
-                      {!!entrega.canhoto_url ? (
-                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className={`font-medium text-sm ${!!entrega.canhoto_url ? 'text-emerald-900 dark:text-emerald-100' : 'text-emerald-700 dark:text-emerald-400'}`}>
-                        Canhoto
-                      </span>
-                      {!entrega.canhoto_url && <span className="text-[10px] text-emerald-600/80">Comprovante de entrega</span>}
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-emerald-500" />
+                    <span className={`font-semibold text-sm ${!!entrega.canhoto_url ? 'text-emerald-900 dark:text-emerald-100' : 'text-muted-foreground'}`}>
+                      Canhoto
+                    </span>
+                    {!!entrega.canhoto_url && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400">
+                        1 anexo
+                      </Badge>
+                    )}
                   </div>
                   {!!entrega.canhoto_url ? (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}>
-                      <Download className="w-4 h-4" />
+                    <Button variant="outline" size="sm" className="h-7 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-100 gap-1" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}>
+                      <Download className="w-3 h-3" /> Baixar
                     </Button>
                   ) : (
-                    <div className="w-[150px]">
-                      <DocumentButton
-                        type="canhoto"
-                        hasDoc={false}
-                        canAttach={true}
-                        onView={() => { }}
-                        entregaId={entrega.id}
-                        onUploaded={onRefresh}
-                      />
-                    </div>
+                    <DocumentButton
+                      type="canhoto"
+                      hasDoc={false}
+                      canAttach={true}
+                      onView={() => { }}
+                      entregaId={entrega.id}
+                      onUploaded={refreshDocs}
+                    />
                   )}
                 </div>
+                {!!entrega.canhoto_url && (
+                  <div className="mt-2 pt-2 border-t border-emerald-100 dark:border-emerald-800/50">
+                    <div className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-emerald-100/50 dark:border-emerald-800/30">
+                      <div className="flex items-center gap-2">
+                        <FileCode className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-xs font-medium text-emerald-900 dark:text-emerald-200">Canhoto da entrega</span>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}>
+                        <Download className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* CT-e */}
-              <div className={`flex flex-col p-3 rounded-xl border transition-colors ${existingCtes.length > 0 ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-muted/30 border-dashed border-amber-200'}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-1.5 rounded-full ${existingCtes.length > 0 ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
-                      {existingCtes.length > 0 ? (
-                        <CheckCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className={`font-medium text-sm ${existingCtes.length > 0 ? 'text-amber-900 dark:text-amber-100' : 'text-amber-700 dark:text-amber-400'}`}>
-                        CT-es {existingCtes.length > 0 ? `(${existingCtes.length})` : ''}
-                      </span>
-                      {!existingCtes.length && <span className="text-[10px] text-amber-600/80">Obrigatório para faturamento</span>}
-                    </div>
-                  </div>
+              {/* ── CT-es ── */}
+              <div className={`flex flex-col p-3 rounded-xl border transition-colors ${existingCtes.length > 0 ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-muted/30 border-dashed border-amber-200/60'}`}>
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-[120px]">
-                      <DocumentButton
-                        type="cte"
-                        hasDoc={false}
-                        canAttach={true}
-                        onView={() => { }}
-                        entregaId={entrega.id}
-                        onUploaded={onRefresh}
-                      />
-                    </div>
+                    <FileText className="w-4 h-4 text-amber-500" />
+                    <span className={`font-semibold text-sm ${existingCtes.length > 0 ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'}`}>
+                      CT-e
+                    </span>
+                    {existingCtes.length > 0 && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400">
+                        {existingCtes.length} anexo{existingCtes.length !== 1 ? 's' : ''}
+                      </Badge>
+                    )}
                   </div>
+                  <DocumentButton
+                    type="cte"
+                    hasDoc={false}
+                    canAttach={true}
+                    onView={() => { }}
+                    entregaId={entrega.id}
+                    onUploaded={refreshDocs}
+                  />
                 </div>
-
                 {existingCtes.length > 0 && (
-                  <div className="grid gap-2 mt-2 pt-2 border-t border-amber-100 dark:border-amber-800/50">
+                  <div className="mt-2 pt-2 border-t border-amber-100 dark:border-amber-800/50 space-y-1.5">
                     {existingCtes.map((cte: any, cIdx: number) => (
-                      <div key={cte.id} className="flex flex-col gap-1">
+                      <div key={cte.id}>
                         <div className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-amber-100/50 dark:border-amber-800/30">
                           <div className="flex items-center gap-2">
                             <FileCode className="w-3.5 h-3.5 text-amber-500" />
                             <span className="text-xs font-medium text-amber-900 dark:text-amber-200">
-                              CT-e {cte.numero ? `(${cte.numero})` : `(${cIdx + 1})`}
+                              CT-e {cte.numero || `#${cIdx + 1}`}
                             </span>
                           </div>
                           {cte.url && (
@@ -695,13 +700,12 @@ function DetailPanel({
                             </Button>
                           )}
                         </div>
-                        {/* Neste CT-e, se houver NF-es atreladas, exibe de forma clean */}
                         {cte.nfes && cte.nfes.length > 0 && (
-                          <div className="ml-4 pl-3 border-l-2 border-amber-100 dark:border-amber-800/50 space-y-1">
-                            {cte.nfes.map((nf: any, nIdx: number) => (
+                          <div className="ml-4 mt-1 pl-3 border-l-2 border-amber-100 dark:border-amber-800/50 space-y-1">
+                            {cte.nfes.map((nf: any) => (
                               <div key={nf.id} className="flex items-center justify-between p-1.5 rounded-md bg-indigo-50/30 dark:bg-indigo-900/10 text-xs">
                                 <div className="flex items-center gap-2">
-                                  <FileText className="w-3 h-3 text-indigo-400" />
+                                  <FileCode className="w-3 h-3 text-indigo-400" />
                                   <span className="text-indigo-900 dark:text-indigo-200">
                                     NF-e {nf.numero || nf.chave_acesso?.slice(-6) || ''}
                                   </span>
@@ -721,22 +725,20 @@ function DetailPanel({
                 )}
               </div>
 
-              {/* Notas Fiscais Não Vinculadas (se houver) */}
+              {/* ── NF-es sem CT-e vinculado ── */}
               {unlinkedNfes.length > 0 && (
                 <div className="flex flex-col p-3 rounded-xl border bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800 transition-colors">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
-                      <AlertTriangle className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-indigo-500" />
+                      <span className="font-semibold text-sm text-indigo-900 dark:text-indigo-100">NF-e</span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-indigo-300 text-indigo-700 dark:border-indigo-700 dark:text-indigo-400">
+                        {unlinkedNfes.length} anexo{unlinkedNfes.length !== 1 ? 's' : ''}
+                      </Badge>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-sm text-indigo-900 dark:text-indigo-100">
-                        Notas Fiscais (Aguardando CT-e)
-                      </span>
-                      <span className="text-[10px] text-indigo-600/80">O embarcador anexou estas notas</span>
-                    </div>
+                    <Badge variant="secondary" className="text-[10px]">Do embarcador</Badge>
                   </div>
-
-                  <div className="grid gap-2 mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-800/50">
+                  <div className="mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-800/50 space-y-1.5">
                     {unlinkedNfes.map((nf: any) => (
                       <div key={nf.id} className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-indigo-100/50 dark:border-indigo-800/30">
                         <div className="flex items-center gap-2">
@@ -744,6 +746,11 @@ function DetailPanel({
                           <span className="text-xs font-medium text-indigo-900 dark:text-indigo-200">
                             NF-e {nf.numero || nf.chave_acesso?.slice(-6) || ''}
                           </span>
+                          {nf.valor && (
+                            <span className="text-[10px] text-muted-foreground">
+                              R$ {Number(nf.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          )}
                         </div>
                         {nf.url && (
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nf.url, `NF-e ${nf.numero || ''}`)}>
@@ -759,7 +766,7 @@ function DetailPanel({
 
             {existingCtes.length === 0 && unlinkedNfes.length === 0 && !entrega.canhoto_url && (
               <div className="mt-3 p-2.5 rounded-lg bg-muted text-center border border-dashed text-xs text-muted-foreground">
-                Aqui você anexa CT-e e Canhoto após finalizar. Notas Fiscais enviadas pelo embarcador aparecem aqui.
+                Aqui você anexa CT-e e Canhoto. Notas Fiscais enviadas pelo embarcador também aparecem aqui.
               </div>
             )}
           </div>
