@@ -114,7 +114,7 @@ export function ConfigFiscalTab() {
       }
 
       // Load filial matriz
-      const { data: filial } = await supabase
+      const { data: filial } = await (supabase as any)
         .from('filiais')
         .select('id, logradouro, numero, complemento, bairro, codigo_municipio_ibge, cidade, estado')
         .eq('empresa_id', empresa.id)

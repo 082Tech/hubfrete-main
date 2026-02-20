@@ -115,7 +115,7 @@ export default function Rastreio() {
         setSearchParams({ codigo: codeToSearch });
 
         try {
-            const { data: result, error } = await supabase.rpc('get_public_tracking_info', {
+            const { data: result, error } = await (supabase as any).rpc('get_public_tracking_info', {
                 _tracking_code: codeToSearch
             });
 

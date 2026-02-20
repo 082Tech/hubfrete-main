@@ -99,17 +99,17 @@ export default function Monitoramento() {
         if (motoristasError) throw motoristasError;
 
         // Fetch active entregas
-        const { data: entregas, error: entregasError } = await supabase
+        const { data: entregas, error: entregasError } = await (supabase as any)
           .from('entregas')
           .select('id, codigo, status, motorista_id, tracking_code')
-          .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'] as any)
+          .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
           .not('motorista_id', 'is', null);
 
         if (entregasError) throw entregasError;
 
         // Map entregas by motorista
         const entregaByMotorista = new Map(
-          entregas?.map((e) => [e.motorista_id, e]) || []
+          entregas?.map((e: any) => [e.motorista_id, e]) || []
         );
 
         // Fetch initial locations from 'locations' table (English column names)
@@ -126,7 +126,7 @@ export default function Monitoramento() {
         // Build driver list
         const driverList: DriverWithLocation[] =
           motoristas?.map((m) => {
-            const entrega = entregaByMotorista.get(m.id);
+            const entrega = entregaByMotorista.get(m.id) as any;
             const loc = locationMap.get(m.id) as any;
             return {
               motorista_id: m.id,

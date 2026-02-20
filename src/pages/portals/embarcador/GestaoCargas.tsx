@@ -1232,7 +1232,7 @@ export default function GestaoCargas() {
       const today = new Date();
       const startOfToday = startOfDay(today).toISOString();
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('entregas')
         .select(`
           id, codigo, tracking_code, status, created_at, updated_at,

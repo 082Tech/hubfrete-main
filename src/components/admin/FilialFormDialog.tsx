@@ -117,7 +117,7 @@ export function FilialFormDialog({
       };
 
       if (isEdit && filial) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('filiais')
           .update(dataToSave)
           .eq('id', filial.id);
@@ -125,7 +125,7 @@ export function FilialFormDialog({
         if (error) throw error;
         toast.success('Filial atualizada com sucesso!');
       } else {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('filiais')
           .insert(dataToSave);
 

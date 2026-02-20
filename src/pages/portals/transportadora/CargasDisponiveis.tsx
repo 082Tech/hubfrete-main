@@ -287,7 +287,7 @@ export default function CargasDisponiveis() {
           empresa:empresas!cargas_empresa_id_fkey(nome, logo_url),
           filial:filiais!cargas_filial_id_fkey(nome)
         `)
-        .in('status', ['publicada', 'parcialmente_alocada'] as string[])
+        .in('status', ['publicada', 'parcialmente_alocada'] as any)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -593,7 +593,7 @@ export default function CargasDisponiveis() {
       if (cargaError) throw cargaError;
 
       // Check if driver already has an active delivery for this load
-      const { data: entregaExistente, error: checkError } = await supabase
+      const { data: entregaExistente, error: checkError } = await (supabase as any)
         .from('entregas')
         .select('*')
         .eq('carga_id', cargaId)

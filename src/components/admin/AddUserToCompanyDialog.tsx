@@ -81,20 +81,20 @@ export function AddUserToCompanyDialog({
   const fetchExistingUsers = async () => {
     try {
       // Fetch all users that are not linked to this company yet
-      const { data: allUsers } = await supabase
+      const { data: allUsers } = await (supabase as any)
         .from('usuarios')
         .select('id, nome, email, auth_user_id');
       
       // Fetch users already linked to any branch of this company
-      const { data: linkedUsers } = await supabase
+      const { data: linkedUsers } = await (supabase as any)
         .from('usuarios_filiais')
         .select('usuario_id, filiais!inner(empresa_id)')
         .eq('filiais.empresa_id', empresaId);
       
-      const linkedUserIds = new Set((linkedUsers || []).map(u => u.usuario_id));
+      const linkedUserIds = new Set((linkedUsers || []).map((u: any) => u.usuario_id));
       
       // Filter out already linked users
-      const availableUsers = (allUsers || []).filter(u => !linkedUserIds.has(u.id));
+      const availableUsers = (allUsers || []).filter((u: any) => !linkedUserIds.has(u.id));
       setExistingUsers(availableUsers);
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
@@ -159,7 +159,7 @@ export function AddUserToCompanyDialog({
     setLoading(true);
     try {
       // First update the user's cargo
-      const { error: userError } = await supabase
+      const { error: userError } = await (supabase as any)
         .from('usuarios')
         .update({ cargo: existingUserRole })
         .eq('id', parseInt(selectedUserId));
@@ -167,7 +167,7 @@ export function AddUserToCompanyDialog({
       if (userError) throw userError;
 
       // Then create the filial link
-      const { error: linkError } = await supabase
+      const { error: linkError } = await (supabase as any)
         .from('usuarios_filiais')
         .insert({
           usuario_id: parseInt(selectedUserId),
