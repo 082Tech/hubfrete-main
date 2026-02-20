@@ -15,7 +15,8 @@ interface TrackingPoint {
 }
 
 interface TrackingHistoryMarkersProps {
-  entregaId: string | null;
+  entregaId?: string | null;
+  viagemId?: string | null;
 }
 
 const statusLabels: Record<string, string> = {
@@ -66,12 +67,12 @@ function formatDateTime(dateString: string): string {
   });
 }
 
-export function TrackingHistoryMarkers({ entregaId }: TrackingHistoryMarkersProps) {
+export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryMarkersProps) {
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!entregaId) {
+    if (!entregaId && !viagemId) {
       setTrackingPoints([]);
       return;
     }
@@ -79,21 +80,26 @@ export function TrackingHistoryMarkers({ entregaId }: TrackingHistoryMarkersProp
     const fetchTrackingHistory = async () => {
       setIsLoading(true);
       try {
-        // First, find the viagem_id for this entrega
-        const { data: viagemEntrega, error: veError } = await supabase
-          .from('viagem_entregas')
-          .select('viagem_id')
-          .eq('entrega_id', entregaId)
-          .maybeSingle();
+        let finalViagemId = viagemId;
 
-        if (veError) throw veError;
+        // Se não foi passado viagemId, precisamos buscar através da entrega
+        if (!finalViagemId && entregaId) {
+          const { data: viagemEntrega, error: veError } = await supabase
+            .from('viagem_entregas')
+            .select('viagem_id')
+            .eq('entrega_id', entregaId)
+            .maybeSingle();
 
-        if (!viagemEntrega?.viagem_id) {
+          if (veError) throw veError;
+          finalViagemId = viagemEntrega?.viagem_id;
+        }
+
+        if (!finalViagemId) {
           setTrackingPoints([]);
           return;
         }
 
-        const data = await fetchAllTrackingHistoricoByViagemId(viagemEntrega.viagem_id, {
+        const data = await fetchAllTrackingHistoricoByViagemId(finalViagemId, {
           pageSize: 1000,
           maxRows: 50000,
         });
@@ -120,9 +126,9 @@ export function TrackingHistoryMarkers({ entregaId }: TrackingHistoryMarkersProp
     };
 
     fetchTrackingHistory();
-  }, [entregaId]);
+  }, [entregaId, viagemId]);
 
-  if (!entregaId || trackingPoints.length === 0) return null;
+  if ((!entregaId && !viagemId) || trackingPoints.length === 0) return null;
 
   return (
     <>

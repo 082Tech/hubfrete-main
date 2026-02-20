@@ -104,6 +104,7 @@ interface Entrega {
   motorista_id: string | null;
   veiculo_id: string | null;
   carroceria_id: string | null;
+  carrocerias_alocadas?: any[];
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   coletado_em: string | null;
@@ -397,11 +398,11 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Contagem de documentos anexados - canhoto local, CT-e/NF-e nas tabelas separadas
+  // Contagem de documentos anexados - canhoto local, CT-es e NF-es
   const docsCount = (entrega.canhoto_url ? 1 : 0)
-    + (existingCtes.length > 0 ? 1 : 0)
-    + existingCtes.reduce((acc, cte) => acc + (cte.nfes?.length > 0 ? 1 : 0), 0)
-    + (unlinkedNfes.length > 0 ? 1 : 0);
+    + existingCtes.length
+    + existingCtes.reduce((acc, cte) => acc + (cte.nfes?.length || 0), 0)
+    + unlinkedNfes.length;
 
   return (
     <div className="h-full flex flex-col bg-card border-l">
@@ -472,22 +473,40 @@ function DetailPanel({
           {/* Cargo description */}
           <div className="text-sm">
             <p className="font-medium">{entrega.carga.descricao}</p>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-              <span className="flex items-center gap-1">
-                <Weight className="w-3 h-3" />
-                {(entrega.peso_alocado_kg || entrega.carga.peso_kg)?.toLocaleString('pt-BR')} kg
-              </span>
-              {entrega.carga.quantidade && (
+            <div className="flex flex-col gap-1.5 mt-1">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <Package className="w-3 h-3" />
-                  {entrega.carga.quantidade} un
+                  <Weight className="w-3 h-3" />
+                  {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
+                  {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
                 </span>
-              )}
-              {entrega.valor_frete && (
-                <span className="flex items-center gap-1 text-primary font-semibold">
-                  <DollarSign className="w-3 h-3" />
-                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
+                {entrega.carga.quantidade && (
+                  <span className="flex items-center gap-1">
+                    <Package className="w-3 h-3" />
+                    {entrega.carga.quantidade} un
+                  </span>
+                )}
+                {entrega.valor_frete && (
+                  <span className="flex items-center gap-1 text-primary font-semibold">
+                    <DollarSign className="w-3 h-3" />
+                    R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                )}
+              </div>
+
+              {/* Peso detalhado por carroceria (Multi-Trailer) */}
+              {entrega.carrocerias_alocadas && entrega.carrocerias_alocadas.length > 0 && (
+                <div className="flex flex-col gap-1 mt-2 pl-3 border-l-2 border-primary/20">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Distribuição do Peso</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {entrega.carrocerias_alocadas.map((ca: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-1.5 text-xs">
+                        <Badge variant="outline" className="text-[10px] bg-muted/50 font-mono px-1 py-0">{ca.placa}</Badge>
+                        <span className="font-medium">{Number(ca.peso_kg || 0).toLocaleString('pt-BR')} kg</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -583,8 +602,8 @@ function DetailPanel({
                 <FileText className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="font-medium text-xs">Documentos</span>
               </div>
-              <Badge variant={docsCheck.complete ? "default" : "secondary"} className="text-[10px]">
-                {docsCount}/3 anexados
+              <Badge variant={docsCount > 0 ? "default" : "secondary"} className="text-[10px]">
+                {docsCount} anexo{docsCount !== 1 ? 's' : ''}
               </Badge>
             </div>
 
@@ -598,32 +617,14 @@ function DetailPanel({
                 onUploaded={onRefresh}
               />
 
-              {/* Botão de gerar CT-e automaticamente se houver NFe */}
-              {unlinkedNfes.length > 0 && existingCtes.length === 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full h-8 gap-2 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
-                  onClick={async () => {
-                    const confirm = window.confirm('Deseja gerar o CT-e automaticamente agora?');
-                    if (!confirm) return;
-                    try {
-                      toast.info('Gerando CT-e...', { id: 'cte-gen' });
-                      const ref = entrega.carga.empresa?.id ? `${entrega.carga.empresa.id}` : '';
-                      await supabase.functions.invoke('focusnfe-cte', {
-                        body: JSON.stringify({ action: 'emitir_com_nfes', entrega_id: entrega.id, ref })
-                      });
-                      toast.success('CT-e em processamento', { id: 'cte-gen' });
-                      onRefresh();
-                    } catch (e) {
-                      toast.error('Erro ao gerar CT-e.', { id: 'cte-gen' });
-                    }
-                  }}
-                >
-                  <FileText className="w-4 h-4" />
-                  Gerar CT-e Automático
-                </Button>
-              )}
+              <DocumentButton
+                type="cte"
+                hasDoc={false}
+                canAttach={true}
+                onView={() => { }}
+                entregaId={entrega.id}
+                onUploaded={onRefresh}
+              />
 
               {/* Unlinked NF-es */}
               {unlinkedNfes.map((nf: any, nIdx: number) => (
@@ -1274,6 +1275,12 @@ function GestaoEntregasDialogContent({
     return group?.motorista_id || null;
   }, [selectedMotoristaId, viagemGroups]);
 
+  const mapSelectedViagemId = useMemo(() => {
+    if (!selectedMotoristaId) return null;
+    const group = viagemGroups.find(g => g.id === selectedMotoristaId);
+    return group?.tipo === 'viagem' ? group.id : null;
+  }, [selectedMotoristaId, viagemGroups]);
+
   return (
     <>
       <DialogHeader className="px-4 py-3 border-b">
@@ -1288,6 +1295,7 @@ function GestaoEntregasDialogContent({
           <GestaoLeafletMap
             localizacoes={localizacoes}
             selectedMotoristaId={mapSelectedMotoristaId}
+            selectedViagemId={mapSelectedViagemId}
             selectedEntregaId={selectedEntregaId}
             onMotoristaClick={handleMapMotoristaClick}
             onEntregaDeselect={() => setSelectedEntregaId(null)}
@@ -1430,10 +1438,11 @@ function GestaoEntregasDialogContent({
 
                               {/* Info adicional: Peso + Valor */}
                               <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
-                                {e.peso_alocado_kg && (
+                                {e.carga.peso_kg && (
                                   <span className="flex items-center gap-1">
                                     <Weight className="w-3 h-3" />
-                                    {e.peso_alocado_kg.toLocaleString('pt-BR')} kg
+                                    {e.peso_alocado_kg ? `${e.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
+                                    {e.carga.peso_kg.toLocaleString('pt-BR')} kg
                                   </span>
                                 )}
                                 {e.valor_frete && (
@@ -1564,7 +1573,7 @@ export default function OperacaoDiaria() {
         .from('entregas')
         .select(`
           id, codigo, status, created_at, updated_at,
-          motorista_id, veiculo_id, carroceria_id,
+          motorista_id, veiculo_id, carroceria_id, carrocerias_alocadas,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em,
           canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),

@@ -43,29 +43,29 @@ export function NotaFiscalUpload({ value, onChange }: NotaFiscalUploadProps) {
 
       // Generate unique file path
       const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `notas_fiscais/${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       const { data, error } = await supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .upload(filePath, file);
 
       if (error) throw error;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .getPublicUrl(filePath);
 
       onChange(filePath); // Store the path, not the full URL
       setFileName(file.name);
-      
+
       // If it's an XML, trigger validation
       if (fileExt?.toLowerCase() === 'xml') {
         toast.info('Validando nota fiscal na SEFAZ...');
         const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-nfe', {
           body: { chave_acesso: null, xml_path: filePath } // The function will extract the key
         });
-        
+
         if (validationError) {
           toast.error('Erro ao iniciar validação: ' + validationError.message);
         } else {
@@ -86,7 +86,7 @@ export function NotaFiscalUpload({ value, onChange }: NotaFiscalUploadProps) {
     if (value) {
       try {
         await supabase.storage
-          .from('notas-fiscais')
+          .from('documentos')
           .remove([value]);
       } catch (error) {
         console.error('Error removing file:', error);

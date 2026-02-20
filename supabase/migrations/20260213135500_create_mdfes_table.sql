@@ -68,18 +68,52 @@ COMMENT ON COLUMN public.mdfes.encerrado_at
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.mdfes ENABLE ROW LEVEL SECURITY;
 
--- Policy: Usuários podem ver MDF-es de suas próprias empresas
-CREATE POLICY "Users can view mdfes from their company"
+-- Policy: Usuários podem ver MDF-es de suas próprias empresas ou viagens
+CREATE POLICY "Users can view mdfes"
   ON public.mdfes
   FOR SELECT
   USING (
-    empresa_id IN (
-      SELECT empresa_id FROM public.motoristas WHERE user_id = auth.uid()
-      UNION
-      SELECT id FROM public.empresas WHERE id IN (
-        SELECT empresa_id FROM public.usuarios WHERE user_id = auth.uid()
+    empresa_id IN (SELECT empresa_id FROM public.motoristas WHERE user_id = auth.uid())
+    OR public.user_belongs_to_empresa(auth.uid(), empresa_id)
+    OR EXISTS (
+      SELECT 1 FROM public.viagens v WHERE v.id = viagem_id AND (
+        v.motorista_id = public.get_user_motorista_id(auth.uid())
+        OR public.user_belongs_to_empresa(auth.uid(), (SELECT empresa_id FROM public.motoristas WHERE id = v.motorista_id))
       )
     )
+    OR public.is_admin(auth.uid())
+  );
+
+-- Policy: Usuários podem inserir MDF-es para suas próprias empresas
+CREATE POLICY "Users can insert mdfes"
+  ON public.mdfes
+  FOR INSERT
+  WITH CHECK (
+    empresa_id IN (SELECT empresa_id FROM public.motoristas WHERE user_id = auth.uid())
+    OR public.user_belongs_to_empresa(auth.uid(), empresa_id)
+    OR EXISTS (
+      SELECT 1 FROM public.viagens v WHERE v.id = viagem_id AND (
+        v.motorista_id = public.get_user_motorista_id(auth.uid())
+        OR public.user_belongs_to_empresa(auth.uid(), (SELECT empresa_id FROM public.motoristas WHERE id = v.motorista_id))
+      )
+    )
+    OR public.is_admin(auth.uid())
+  );
+
+-- Policy: Usuários podem atualizar MDF-es de suas próprias empresas
+CREATE POLICY "Users can update mdfes"
+  ON public.mdfes
+  FOR UPDATE
+  USING (
+    empresa_id IN (SELECT empresa_id FROM public.motoristas WHERE user_id = auth.uid())
+    OR public.user_belongs_to_empresa(auth.uid(), empresa_id)
+    OR EXISTS (
+      SELECT 1 FROM public.viagens v WHERE v.id = viagem_id AND (
+        v.motorista_id = public.get_user_motorista_id(auth.uid())
+        OR public.user_belongs_to_empresa(auth.uid(), (SELECT empresa_id FROM public.motoristas WHERE id = v.motorista_id))
+      )
+    )
+    OR public.is_admin(auth.uid())
   );
 
 -- Policy: Service role pode fazer tudo

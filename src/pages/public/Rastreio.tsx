@@ -267,14 +267,7 @@ export default function Rastreio() {
                                                     <span className="text-gray-500 block text-xs">Quantidade</span>
                                                     <p className="font-medium text-gray-900">{data.entrega.carga.quantidade || '-'}</p>
                                                 </div>
-                                                <div>
-                                                    <span className="text-gray-500 block text-xs">Valor</span>
-                                                    <p className="font-medium text-gray-900">
-                                                        {data.entrega.carga.valor
-                                                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.entrega.carga.valor)
-                                                            : '-'}
-                                                    </p>
-                                                </div>
+
                                             </div>
                                         </div>
                                     )}
@@ -312,57 +305,18 @@ export default function Rastreio() {
                                                         <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded font-mono border border-gray-200">
                                                             {data.entrega.placa_veiculo}
                                                         </span>
+                                                        {data.entrega.veiculo?.modelo && (
+                                                            <span className="text-gray-500 text-sm font-medium">
+                                                                {data.entrega.veiculo.modelo}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
                                     )}
 
-                                    {data.entrega.veiculo && (
-                                        <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                                            <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                                <Car className="w-4 h-4 text-blue-600" />
-                                                Veículo e Capacidade
-                                            </h4>
 
-                                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                                <div>
-                                                    <span className="text-xs text-gray-500 block">Modelo</span>
-                                                    <p className="font-medium text-gray-900 text-sm">
-                                                        {data.entrega.veiculo.marca} {data.entrega.veiculo.modelo}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <span className="text-xs text-gray-500 block">Tipo</span>
-                                                    <p className="font-medium text-gray-900 text-sm capitalize">
-                                                        {data.entrega.veiculo.tipo} • {data.entrega.veiculo.carroceria}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {data.entrega.veiculo.capacidade_kg && data.entrega.carga?.peso && (
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between text-xs">
-                                                        <span className="text-gray-600">Ocupação de Peso</span>
-                                                        <span className="font-medium text-gray-900">
-                                                            {Math.min(Math.round((data.entrega.carga.peso / data.entrega.veiculo.capacidade_kg) * 100), 100)}%
-                                                        </span>
-                                                    </div>
-                                                    <Progress
-                                                        value={Math.min((data.entrega.carga.peso / data.entrega.veiculo.capacidade_kg) * 100, 100)}
-                                                        className={`h-2 ${data.entrega.carga.peso > data.entrega.veiculo.capacidade_kg ? 'bg-red-100' : ''}`}
-                                                        indicatorClassName={data.entrega.carga.peso > data.entrega.veiculo.capacidade_kg ? 'bg-red-500' : undefined}
-                                                    />
-                                                    <div className="flex justify-between text-[10px] text-gray-400">
-                                                        <span className={data.entrega.carga.peso > data.entrega.veiculo.capacidade_kg ? 'text-red-500 font-medium' : ''}>
-                                                            {data.entrega.carga.peso} kg
-                                                        </span>
-                                                        <span>Capacidade: {data.entrega.veiculo.capacidade_kg} kg</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                             </CardContent>
                         </Card>

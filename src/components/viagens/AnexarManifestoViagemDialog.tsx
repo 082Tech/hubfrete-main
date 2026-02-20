@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserContext } from '@/contexts/UserContext';
 
 interface AnexarManifestoViagemDialogProps {
   open: boolean;
@@ -29,24 +30,25 @@ export function AnexarManifestoViagemDialog({
   onSuccess,
 }: AnexarManifestoViagemDialogProps) {
   const queryClient = useQueryClient();
+  const { empresa } = useUserContext();
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${viagemId}/manifesto_${Date.now()}.${fileExt}`;
+      const fileName = `manifestos/${viagemId}/manifesto_${Date.now()}.${fileExt}`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .getPublicUrl(fileName);
 
       const manifestoUrl = urlData.publicUrl;
@@ -67,6 +69,7 @@ export function AnexarManifestoViagemDialog({
         .from('mdfes')
         .insert({
           viagem_id: viagemId,
+          empresa_id: empresa?.id || null,
           [pathColumn]: fileName, // Store the storage path, accessing public URL via helper
           status: 'processando',
           focus_ref: `MANUAL-${Date.now()}`, // Required unique ref
@@ -143,8 +146,8 @@ export function AnexarManifestoViagemDialog({
           {/* Drop zone */}
           <div
             className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${dragOver
-                ? 'border-primary bg-primary/5'
-                : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+              ? 'border-primary bg-primary/5'
+              : 'border-muted-foreground/25 hover:border-muted-foreground/50'
               }`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}

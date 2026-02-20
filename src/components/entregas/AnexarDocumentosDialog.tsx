@@ -98,7 +98,7 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
     const fileExt = file.name.split('.').pop();
     const fileName = `${prefix}_${entrega.id}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = folder ? `${folder}/${fileName}` : `${prefix}s/${fileName}`;
-    const { error: uploadError } = await supabase.storage.from('notas-fiscais').upload(filePath, file);
+    const { error: uploadError } = await supabase.storage.from('documentos').upload(filePath, file);
     if (uploadError) throw new Error(`Erro ao fazer upload do ${prefix}`);
     return filePath;
   };
@@ -143,7 +143,7 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
 
   const openPreview = async (url: string, title: string) => {
     if (url && !url.startsWith('http')) {
-      const { data, error } = await supabase.storage.from('notas-fiscais').createSignedUrl(url, 3600);
+      const { data, error } = await supabase.storage.from('documentos').createSignedUrl(url, 3600);
       if (error) { toast.error('Erro ao carregar documento'); return; }
       setPreviewUrl(data.signedUrl);
     } else {

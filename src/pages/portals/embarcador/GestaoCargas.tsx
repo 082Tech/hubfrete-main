@@ -43,6 +43,7 @@ import {
   Weight,
   Map,
   Search,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
@@ -72,6 +73,7 @@ interface EntregaEvento {
 interface Entrega {
   id: string;
   codigo: string;
+  tracking_code: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -161,7 +163,7 @@ function EntregaListItem({
 
       {/* Linha 4: Descrição + peso */}
       <p className="text-xs text-muted-foreground truncate mb-1.5">
-        {entrega.carga.descricao} • {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+        {entrega.carga.descricao} • {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}{entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
       </p>
 
       {/* Rodapé: Motorista + frete + alerta NF-e */}
@@ -221,7 +223,47 @@ function DetailPanel({
   const [previewDocTitle, setPreviewDocTitle] = useState('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [isUploadingNfe, setIsUploadingNfe] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const nfeInputRef = useRef<HTMLInputElement>(null);
+
+  const handleShareTracking = async () => {
+    if (!entrega?.tracking_code) {
+      toast.error('Código de rastreio não disponível para esta entrega.');
+      return;
+    }
+    try {
+      // The public tracking route is /rastreio
+      const url = `${window.location.origin}/rastreio?codigo=${entrega.tracking_code}`;
+      await navigator.clipboard.writeText(url);
+      setIsCopied(true);
+      toast.success('Link de rastreio copiado para a área de transferência!');
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      toast.error('Erro ao copiar o link.');
+      console.error('Copy tracking link error:', err);
+    }
+  };
+
+  const handleNativeShare = async () => {
+    if (!entrega?.tracking_code) {
+      toast.error('Código de rastreio não disponível para esta entrega.');
+      return;
+    }
+    try {
+      const url = `${window.location.origin}/rastreio?codigo=${entrega.tracking_code}`;
+      if (navigator.share) {
+        await navigator.share({
+          title: `Rastreio de Entrega ${entrega.codigo || ''}`,
+          text: `Acompanhe em tempo real a entrega ${entrega.codigo || ''}`,
+          url: url,
+        });
+      } else {
+        toast.error('Seu navegador não suporta compartilhamento nativo.');
+      }
+    } catch (err) {
+      console.error('Native share error:', err);
+    }
+  };
 
   // Fetch NF-es for this entrega from the nfes table
   const [isDragging, setIsDragging] = useState(false);
@@ -416,7 +458,47 @@ function DetailPanel({
             </Badge>
           </div>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7"><Share className="w-3.5 h-3.5" /></Button>
+            {/* Botão de Copiar Link */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={handleShareTracking}
+                  >
+                    {isCopied ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                    ) : (
+                      <LinkIcon className="w-3.5 h-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Copiar link de rastreio</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* Botão de Compartilhar Nativo */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={handleNativeShare}
+                  >
+                    <Share className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Compartilhar</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button variant="ghost" size="icon" className="h-7 w-7"><ArrowUpRight className="w-3.5 h-3.5" /></Button>
             <Button variant="ghost" size="icon" className="h-7 w-7"><Printer className="w-3.5 h-3.5" /></Button>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}><X className="w-3.5 h-3.5" /></Button>
@@ -425,7 +507,7 @@ function DetailPanel({
 
         {/* Carga description + entrega ref */}
         <p className="text-sm font-medium mb-1">{entrega.carga.descricao}</p>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 flex-wrap">
           <span>Entrega #{entrega.codigo || entrega.id.slice(0, 6)}</span>
           <span>•</span>
           <span>{format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
@@ -458,7 +540,10 @@ function DetailPanel({
             <div className="flex items-center gap-3 text-xs flex-wrap">
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3 text-muted-foreground" />
-                <span className="font-medium">{entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg</span>
+                <span className="font-medium">
+                  {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
+                  {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+                </span>
               </span>
               <span className="text-muted-foreground">Tipo: {entrega.carga.tipo}</span>
               {entrega.valor_frete && (
@@ -1095,7 +1180,7 @@ export default function GestaoCargas() {
       const { data, error } = await supabase
         .from('entregas')
         .select(`
-          id, codigo, status, created_at, updated_at,
+          id, codigo, tracking_code, status, created_at, updated_at,
           motorista_id, peso_alocado_kg, valor_frete, coletado_em, entregue_em,
           canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),

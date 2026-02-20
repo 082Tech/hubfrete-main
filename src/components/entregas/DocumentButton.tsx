@@ -79,7 +79,7 @@ export function DocumentButton({
         // Upload file to storage
         const fileName = `cte_${entregaId}_${uniqueId}.${fileExt}`;
         const filePath = `ctes/${fileName}`;
-        const { error: uploadError } = await supabase.storage.from('notas-fiscais').upload(filePath, file);
+        const { error: uploadError } = await supabase.storage.from('documentos').upload(filePath, file);
         if (uploadError) throw uploadError;
 
         // Insert into ctes table
@@ -93,7 +93,7 @@ export function DocumentButton({
         // Canhoto stays on entregas table
         const fileName = `canhoto_${entregaId}_${uniqueId}.${fileExt}`;
         const filePath = `canhotos/${fileName}`;
-        const { error: uploadError } = await supabase.storage.from('notas-fiscais').upload(filePath, file);
+        const { error: uploadError } = await supabase.storage.from('documentos').upload(filePath, file);
         if (uploadError) throw uploadError;
 
         const { error: dbError } = await supabase.from('entregas').update({ canhoto_url: filePath }).eq('id', entregaId);
@@ -106,8 +106,8 @@ export function DocumentButton({
         }
         // Upload file to storage
         const fileName = `nota_fiscal_${entregaId}_${uniqueId}.${fileExt}`;
-        const filePath = `nota_fiscals/${fileName}`;
-        const { error: uploadError } = await supabase.storage.from('notas-fiscais').upload(filePath, file);
+        const filePath = `notas_fiscais/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from('documentos').upload(filePath, file);
         if (uploadError) throw uploadError;
 
         // Insert into nfes table

@@ -28,6 +28,7 @@ import {
   Building,
   MessageSquare,
   MoreVertical,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -199,78 +200,92 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
           <div className="px-4 py-4 border-b border-sidebar-border bg-sidebar-accent/10">
             <div className="flex items-start gap-3 mb-3">
               {availableEmpresas.length > 1 ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-start gap-3 text-left w-full group focus:outline-none">
-                      {empresa?.logo_url ? (
-                        <img
-                          src={empresa.logo_url}
-                          alt={empresa.nome || 'Logo'}
-                          className="w-10 h-10 rounded-lg object-contain bg-white border border-sidebar-border shrink-0 group-hover:border-primary/50 transition-colors"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-sidebar-primary/10 border border-sidebar-primary/20 flex items-center justify-center shrink-0 group-hover:border-primary/50 transition-colors">
-                          <Building2 className="w-5 h-5 text-sidebar-primary" />
-                        </div>
-                      )}
+                <div className="flex items-start gap-3 w-full">
+                  {empresa?.logo_url ? (
+                    <img
+                      src={empresa.logo_url}
+                      alt={empresa.nome || 'Logo'}
+                      className="w-10 h-10 rounded-lg object-contain bg-white border border-sidebar-border shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-sidebar-primary/10 border border-sidebar-primary/20 flex items-center justify-center shrink-0">
+                      <Building2 className="w-5 h-5 text-sidebar-primary" />
+                    </div>
+                  )}
 
-                      <div className="flex-1 min-w-0">
-                        <Badge variant={config.badgeVariant} className="text-[10px] py-0 px-1.5 h-5 mb-1">
-                          <PortalIcon className="w-2.5 h-2.5 mr-1" />
-                          {config.title}
-                        </Badge>
-                        <div className="flex items-center gap-1 group-hover:text-primary transition-colors">
-                          <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
-                            {empresa?.nome || companyName}
-                          </p>
-                          <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                        </div>
-                        {empresa?.cnpj_matriz && (
-                          <p className="text-[10px] text-sidebar-foreground/60">
-                            CNPJ: {empresa.cnpj_matriz}
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-64">
-                    <div className="px-3 py-2 border-b border-border">
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                        Trocar Empresa
+                  <div className="flex-1 min-w-0">
+                    <Badge variant={config.badgeVariant} className="text-[10px] py-0 px-1.5 h-5 mb-1">
+                      <PortalIcon className="w-2.5 h-2.5 mr-1" />
+                      {config.title}
+                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
+                        {empresa?.nome || companyName}
                       </p>
                     </div>
-                    {availableEmpresas.map((emp) => {
-                      const isSelected = empresa?.id === emp.id;
+                    {empresa?.cnpj_matriz && (
+                      <p className="text-[10px] text-sidebar-foreground/60">
+                        CNPJ: {empresa.cnpj_matriz}
+                      </p>
+                    )}
+                  </div>
 
-                      return (
-                        <DropdownMenuItem
-                          key={emp.id}
-                          onClick={() => switchEmpresa(emp)}
-                          className={`flex items-center gap-2 py-2.5 cursor-pointer ${isSelected ? 'bg-accent' : ''}`}
-                        >
-                          {emp.logo_url ? (
-                            <img src={emp.logo_url} alt="" className="w-6 h-6 rounded object-contain bg-white border border-border" />
-                          ) : (
-                            <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center border border-primary/20">
-                              <Building2 className="w-3 h-3 text-primary" />
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground border hover:bg-sidebar-accent"
+                          >
+                            <ArrowRightLeft className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        Trocar Empresa
+                      </TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="end" className="w-64">
+                      <div className="px-3 py-2 border-b border-border">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                          Trocar Empresa
+                        </p>
+                      </div>
+                      {availableEmpresas.map((emp) => {
+                        const isSelected = empresa?.id === emp.id;
+
+                        return (
+                          <DropdownMenuItem
+                            key={emp.id}
+                            onClick={() => switchEmpresa(emp)}
+                            className={`flex items-center gap-2 py-2.5 cursor-pointer ${isSelected ? 'bg-accent' : ''}`}
+                          >
+                            {emp.logo_url ? (
+                              <img src={emp.logo_url} alt="" className="w-6 h-6 rounded object-contain bg-white border border-border" />
+                            ) : (
+                              <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center border border-primary/20">
+                                <Building2 className="w-3 h-3 text-primary" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : ''}`}>
+                                {emp.nome}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {emp.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
+                              </p>
                             </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : ''}`}>
-                              {emp.nome}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {emp.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
-                            </p>
-                          </div>
-                          {isSelected && (
-                            <Check className="w-4 h-4 text-primary shrink-0" />
-                          )}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                            {isSelected && (
+                              <Check className="w-4 h-4 text-primary shrink-0" />
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               ) : (
                 <>
                   {empresa?.logo_url ? (

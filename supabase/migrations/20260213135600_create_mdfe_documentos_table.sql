@@ -48,19 +48,60 @@ COMMENT ON COLUMN public.mdfe_documentos.nfe_id
 ALTER TABLE public.mdfe_documentos ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Usuários podem ver documentos de MDF-es de suas empresas
-CREATE POLICY "Users can view mdfe_documentos from their company"
+CREATE POLICY "Users can view mdfe_documentos"
   ON public.mdfe_documentos
   FOR SELECT
   USING (
     mdfe_id IN (
-      SELECT id FROM public.mdfes WHERE empresa_id IN (
-        SELECT empresa_id FROM public.motoristas WHERE user_id = auth.uid()
-        UNION
-        SELECT id FROM public.empresas WHERE id IN (
-          SELECT empresa_id FROM public.usuarios WHERE user_id = auth.uid()
+      SELECT id FROM public.mdfes WHERE
+        empresa_id IN (SELECT empresa_id FROM public.motoristas WHERE user_id = auth.uid())
+        OR public.user_belongs_to_empresa(auth.uid(), empresa_id)
+        OR EXISTS (
+          SELECT 1 FROM public.viagens v WHERE v.id = viagem_id AND (
+            v.motorista_id = public.get_user_motorista_id(auth.uid())
+            OR public.user_belongs_to_empresa(auth.uid(), (SELECT empresa_id FROM public.motoristas WHERE id = v.motorista_id))
+          )
         )
-      )
     )
+    OR public.is_admin(auth.uid())
+  );
+
+-- Policy: Usuários podem inserir documentos em MDF-es de suas empresas
+CREATE POLICY "Users can insert mdfe_documentos"
+  ON public.mdfe_documentos
+  FOR INSERT
+  WITH CHECK (
+    mdfe_id IN (
+      SELECT id FROM public.mdfes WHERE
+        empresa_id IN (SELECT empresa_id FROM public.motoristas WHERE user_id = auth.uid())
+        OR public.user_belongs_to_empresa(auth.uid(), empresa_id)
+        OR EXISTS (
+          SELECT 1 FROM public.viagens v WHERE v.id = viagem_id AND (
+            v.motorista_id = public.get_user_motorista_id(auth.uid())
+            OR public.user_belongs_to_empresa(auth.uid(), (SELECT empresa_id FROM public.motoristas WHERE id = v.motorista_id))
+          )
+        )
+    )
+    OR public.is_admin(auth.uid())
+  );
+
+-- Policy: Usuários podem atualizar documentos de MDF-es de suas empresas
+CREATE POLICY "Users can update mdfe_documentos"
+  ON public.mdfe_documentos
+  FOR UPDATE
+  USING (
+    mdfe_id IN (
+      SELECT id FROM public.mdfes WHERE
+        empresa_id IN (SELECT empresa_id FROM public.motoristas WHERE user_id = auth.uid())
+        OR public.user_belongs_to_empresa(auth.uid(), empresa_id)
+        OR EXISTS (
+          SELECT 1 FROM public.viagens v WHERE v.id = viagem_id AND (
+            v.motorista_id = public.get_user_motorista_id(auth.uid())
+            OR public.user_belongs_to_empresa(auth.uid(), (SELECT empresa_id FROM public.motoristas WHERE id = v.motorista_id))
+          )
+        )
+    )
+    OR public.is_admin(auth.uid())
   );
 
 -- Policy: Service role pode fazer tudo

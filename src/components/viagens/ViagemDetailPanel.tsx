@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -35,6 +36,7 @@ import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
 import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
+import { fetchManifestosForViagens, getActiveManifesto } from '@/lib/documentHelpers';
 import { supabase } from '@/integrations/supabase/client';
 interface ViagemEntregaEvento {
   id: string;
@@ -139,6 +141,22 @@ export function ViagemDetailPanel({
       }))))
       .catch(() => setTrackingPoints([]));
   }, [viagem?.id]);
+
+  // Fetch Manifestos
+  const { data: manifestosMap } = useQuery({
+    queryKey: ['viagem-manifestos', viagem?.id],
+    queryFn: async () => {
+      if (!viagem?.id) return {};
+      return fetchManifestosForViagens([viagem.id]);
+    },
+    enabled: !!viagem?.id,
+  });
+
+  const activeManifesto = useMemo(() => {
+    if (!viagem?.id || !manifestosMap) return null;
+    const manifestos = manifestosMap[viagem.id] || [];
+    return getActiveManifesto(manifestos);
+  }, [viagem?.id, manifestosMap]);
 
   // Status flags
   const isViagemAguardando = viagem?.status === 'aguardando';
@@ -376,28 +394,37 @@ export function ViagemDetailPanel({
             </div>
 
             <div className="grid grid-cols-1 gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full h-10 gap-2 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
-                onClick={async () => {
-                  const confirm = window.confirm('Deseja gerar o MDF-e automaticamente agora?');
-                  if (!confirm) return;
-                  try {
-                    toast.info('Gerando MDF-e...', { id: 'mdfe-gen' });
-                    await supabase.functions.invoke('focusnfe-mdfe', {
-                      body: { action: 'emitir_automatico', viagem_id: viagem.id }
-                    });
-                    toast.success('MDF-e em processamento', { id: 'mdfe-gen' });
-                    onRefresh();
-                  } catch (e) {
-                    toast.error('Erro ao gerar MDF-e. Verifique se as NF-es e o veículo estão corretos.', { id: 'mdfe-gen' });
-                  }
-                }}
-              >
-                <FileText className="w-4 h-4" />
-                Gerar MDF-e Automático
-              </Button>
+              {activeManifesto ? (
+                <div className="flex items-center justify-between p-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 text-xs">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                    <div>
+                      <span className="font-medium text-emerald-700 block">MDF-e Ativo {activeManifesto.numero ? `(${activeManifesto.numero})` : ''}</span>
+                      <span className="text-[10px] text-emerald-600/70">{format(new Date(activeManifesto.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {activeManifesto.url && (
+                      <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => window.open(activeManifesto.url!, '_blank')}>
+                        Ver
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => setAnexarManifestoOpen(true)}>
+                      Substituir
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-10 gap-2 bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/30"
+                  onClick={() => setAnexarManifestoOpen(true)}
+                >
+                  <Upload className="w-4 h-4" />
+                  Anexar Manifesto (MDF-e)
+                </Button>
+              )}
             </div>
           </div>
 

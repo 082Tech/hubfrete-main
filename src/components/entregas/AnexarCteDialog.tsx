@@ -64,7 +64,7 @@ export function AnexarCteDialog({ entrega, open, onOpenChange, onSuccess }: Anex
       const filePath = `ctes/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .upload(filePath, cteFile);
 
       if (uploadError) throw new Error('Erro ao fazer upload do CT-e');

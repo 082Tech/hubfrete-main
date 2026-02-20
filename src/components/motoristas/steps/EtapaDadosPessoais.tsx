@@ -57,13 +57,13 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
       const filePath = `motoristas/${folder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .getPublicUrl(filePath);
 
       updateFormData({ [fieldName]: urlData.publicUrl });
@@ -280,7 +280,7 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
             />
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Checkbox
             id="cnh_qrcode"
@@ -333,7 +333,7 @@ export function EtapaDadosPessoais({ formData, updateFormData }: EtapaDadosPesso
           <FileText className="w-4 h-4" />
           Comprovante de Endereço
         </div>
-        
+
         <div className="space-y-2">
           <Label>Comprovante de Endereço</Label>
           <div className="flex items-center gap-4">

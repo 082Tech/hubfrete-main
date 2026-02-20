@@ -1,16 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Truck, 
-  MapPin, 
-  Users, 
+import {
+  Truck,
+  MapPin,
+  Users,
   Package,
   Route,
   Fuel,
   Clock,
   Activity
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, 
+import {
+  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
@@ -73,13 +73,13 @@ const CHART_COLORS = [
   'hsl(var(--chart-5))',
 ];
 
-export function OperationalTab({ 
-  metrics, 
+export function OperationalTab({
+  metrics,
   topRoutes,
   vehicleUsage,
   dailyActivity,
   formatCurrency,
-  portalType 
+  portalType
 }: OperationalTabProps) {
   const isTransportadora = portalType === 'transportadora';
 
@@ -99,7 +99,7 @@ export function OperationalTab({
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 bg-chart-2/10 rounded-lg">
@@ -111,7 +111,7 @@ export function OperationalTab({
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 bg-chart-3/10 rounded-lg">
@@ -123,7 +123,7 @@ export function OperationalTab({
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 bg-chart-4/10 rounded-lg">
@@ -155,12 +155,12 @@ export function OperationalTab({
               </p>
             ) : (
               topRoutes.map((route, index) => (
-                <div 
+                <div
                   key={route.destino}
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <div 
+                    <div
                       className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                       style={{ backgroundColor: `${CHART_COLORS[index % CHART_COLORS.length]}20`, color: CHART_COLORS[index % CHART_COLORS.length] }}
                     >
@@ -197,40 +197,40 @@ export function OperationalTab({
               <AreaChart data={dailyActivity}>
                 <defs>
                   <linearGradient id="colorColetasOp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorEntregasOp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="dia" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                 <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--popover))', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px'
                   }}
                 />
                 <Legend />
-                <Area 
-                  type="monotone" 
-                  dataKey="coletas" 
+                <Area
+                  type="monotone"
+                  dataKey="coletas"
                   name="Coletas"
-                  stroke="hsl(var(--chart-1))" 
-                  fillOpacity={1} 
-                  fill="url(#colorColetasOp)" 
+                  stroke="hsl(var(--chart-1))"
+                  fillOpacity={1}
+                  fill="url(#colorColetasOp)"
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="entregas" 
+                <Area
+                  type="monotone"
+                  dataKey="entregas"
                   name="Entregas"
-                  stroke="hsl(var(--chart-2))" 
-                  fillOpacity={1} 
-                  fill="url(#colorEntregasOp)" 
+                  stroke="hsl(var(--chart-2))"
+                  fillOpacity={1}
+                  fill="url(#colorEntregasOp)"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -242,9 +242,9 @@ export function OperationalTab({
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               {isTransportadora ? <Truck className="w-4 h-4 text-primary" /> : <Package className="w-4 h-4 text-primary" />}
-              {isTransportadora ? 'Utilização por Tipo de Veículo' : 'Distribuição por Tipo de Carga'}
+              {isTransportadora ? 'Utilização por Tipo de Veículo' : 'Distribuição por Necessidade de Veículo'}
             </CardTitle>
-            <CardDescription>Análise detalhada</CardDescription>
+            <CardDescription>{isTransportadora ? 'Análise Detalhada' : 'Veículos solicitados nas cargas'}</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
@@ -252,9 +252,9 @@ export function OperationalTab({
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis type="number" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                 <YAxis dataKey="tipo" type="category" tick={{ fontSize: 10 }} width={80} className="text-muted-foreground" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--popover))', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px'
                   }}
@@ -280,7 +280,7 @@ export function OperationalTab({
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 bg-chart-2/10 rounded-lg">
@@ -292,7 +292,7 @@ export function OperationalTab({
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 bg-chart-3/10 rounded-lg">
@@ -304,7 +304,7 @@ export function OperationalTab({
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 bg-chart-4/10 rounded-lg">
