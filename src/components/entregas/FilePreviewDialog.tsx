@@ -34,7 +34,7 @@ function extractPathFromUrl(url: string): ExtractedPath | null {
   // - Bucket prefixed: documentos/ctes/file.pdf
 
   // Standard buckets in the project
-  const knownBuckets = ['documentos', 'chat-anexos', 'fotos-frota', 'notas-fiscais'];
+  const knownBuckets = ['documentos', 'chat-anexos', 'fotos-frota', 'notas-fiscais', 'mdfes'];
 
   // Check if it's a full Supabase storage URL
   const storagePattern = /\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+?)(?:\?|$)/;
@@ -66,8 +66,11 @@ function extractPathFromUrl(url: string): ExtractedPath | null {
     const cleanPath = url.replace(/^\/+/, '');
 
     // Determine bucket based on path prefix
-    if (cleanPath.startsWith('ctes/') || cleanPath.startsWith('manifestos/')) {
+    if (cleanPath.startsWith('ctes/')) {
       return { bucket: 'documentos', path: cleanPath };
+    }
+    if (cleanPath.startsWith('manifestos/')) {
+      return { bucket: 'mdfes', path: cleanPath };
     }
     if (cleanPath.startsWith('chat-anexos/')) {
       return { bucket: 'chat-anexos', path: cleanPath.replace('chat-anexos/', '') };

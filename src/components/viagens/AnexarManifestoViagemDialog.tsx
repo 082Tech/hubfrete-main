@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/hooks/useUserContext';
 
 interface AnexarManifestoViagemDialogProps {
   open: boolean;
@@ -41,14 +41,14 @@ export function AnexarManifestoViagemDialog({
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
-        .from('documentos')
+        .from('mdfes')
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('documentos')
+        .from('mdfes')
         .getPublicUrl(fileName);
 
       const manifestoUrl = urlData.publicUrl;

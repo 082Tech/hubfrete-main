@@ -425,6 +425,24 @@ export function ViagemDetailPanel({
                   Anexar Manifesto (MDF-e)
                 </Button>
               )}
+
+              {/* Encerrados/Inativos */}
+              {manifestosMap && viagem?.id && manifestosMap[viagem.id] && manifestosMap[viagem.id].filter(m => m.id !== activeManifesto?.id).map(m => (
+                <div key={m.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 border border-muted text-xs">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                    <div>
+                      <span className="font-medium text-muted-foreground block">MDF-e {m.status === 'cancelado' ? 'Cancelado' : 'Encerrado'} {m.numero ? `(${m.numero})` : ''}</span>
+                      <span className="text-[10px] text-muted-foreground/70">{format(new Date(m.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
+                    </div>
+                  </div>
+                  {m.url && (
+                    <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => window.open(m.url!, '_blank')}>
+                      Ver
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 

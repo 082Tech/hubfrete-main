@@ -115,11 +115,18 @@ export async function fetchManifestosForViagens(viagemIds: string[]): Promise<Re
   const result: Record<string, ManifestoDoc[]> = {};
   manifestos.forEach((m: any) => {
     if (!result[m.viagem_id]) result[m.viagem_id] = [];
+
+    let publicUrl = m.pdf_path;
+    if (m.pdf_path) {
+      const { data: urlData } = supabase.storage.from('mdfes').getPublicUrl(m.pdf_path);
+      publicUrl = urlData?.publicUrl || m.pdf_path;
+    }
+
     result[m.viagem_id].push({
       id: m.id,
       numero: m.numero,
       chave_acesso: m.chave_acesso,
-      url: m.pdf_path, // Mapping pdf_path to url for frontend compatibility
+      url: publicUrl, // Full public URL
       status: m.status,
       created_at: m.created_at,
       encerrado_em: m.encerrado_at,
