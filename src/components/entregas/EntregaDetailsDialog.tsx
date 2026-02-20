@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -131,6 +132,19 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
+  const [nfes, setNfes] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!entrega?.id || !open) { setNfes([]); return; }
+    (async () => {
+      const { data } = await (supabase as any)
+        .from('nfes')
+        .select('id, numero, chave_acesso, url, xml_url, valor, data_emissao')
+        .eq('entrega_id', entrega.id)
+        .order('created_at', { ascending: true });
+      setNfes(data || []);
+    })();
+  }, [entrega?.id, open]);
 
   if (!entrega) {
     return (
@@ -171,9 +185,10 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
     }
   };
 
-  // Document status - CT-e and NF-e are now in separate tables
+  // Document status
   const hasCanhoto = !!entrega.canhoto_url;
-  const pendingDocs = !hasCanhoto ? 1 : 0;
+  const hasNfes = nfes.length > 0;
+  const pendingDocs = (!hasCanhoto ? 1 : 0) + (!hasNfes ? 1 : 0);
 
   return (
     <>
@@ -343,7 +358,52 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {/* CT-e - now from separate table */}
+                {/* NF-es do Embarcador */}
+                {nfes.length > 0 ? (
+                  nfes.map((nfe: any, idx: number) => (
+                    <div key={nfe.id} className="flex items-center justify-between p-3 rounded-lg border bg-green-500/5 border-green-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-green-500/10">
+                          <Files className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">NF-e {nfe.numero || `#${idx + 1}`}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {nfe.chave_acesso ? `Chave: ...${nfe.chave_acesso.slice(-8)}` : 'Anexada pelo embarcador'}
+                            {nfe.valor ? ` · ${Number(nfe.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      {nfe.url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openPreview(nfe.url, `NF-e ${nfe.numero || idx + 1}`)}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Ver
+                        </Button>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted">
+                        <Files className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Notas Fiscais (NF-e)</p>
+                        <p className="text-xs text-muted-foreground">Nenhuma NF-e anexada pelo embarcador</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="bg-muted text-muted-foreground">
+                      Pendente
+                    </Badge>
+                  </div>
+                )}
+
+                {/* CT-e - read-only */}
                 <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted">
@@ -351,7 +411,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                     </div>
                     <div>
                       <p className="font-medium text-sm">CT-e (Conhecimento de Transporte)</p>
-                      <p className="text-xs text-muted-foreground">Consulte via tabela de CT-es</p>
+                      <p className="text-xs text-muted-foreground">Geração automática (em breve)</p>
                     </div>
                   </div>
                 </div>
