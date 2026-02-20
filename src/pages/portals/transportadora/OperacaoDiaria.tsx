@@ -1662,11 +1662,11 @@ export default function OperacaoDiaria() {
       // Fetch deliveries - usando apenas os status válidos
       const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('entregas')
         .select(`
           id, codigo, status, created_at, updated_at,
-          motorista_id, veiculo_id, carroceria_id, carrocerias_alocadas,
+          motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em,
           canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),

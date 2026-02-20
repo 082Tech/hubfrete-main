@@ -14,7 +14,7 @@ export function NfeValidationStatus({ entregaId }: NfeValidationStatusProps) {
 
   useEffect(() => {
     const fetchNfes = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('nfes')
         .select('*')
         .eq('entrega_id', entregaId);

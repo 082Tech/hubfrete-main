@@ -107,12 +107,12 @@ export function MotoristaAdminFormDialog({
 
   const fetchEmpresas = async () => {
     try {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('empresas')
         .select('id, nome, tipo')
         .eq('tipo', 'TRANSPORTADORA')
         .order('nome');
-      setEmpresas(data || []);
+      setEmpresas((data || []) as Empresa[]);
     } catch (error) {
       console.error('Erro ao buscar empresas:', error);
     }
@@ -150,7 +150,7 @@ export function MotoristaAdminFormDialog({
       };
 
       if (isEdit && motorista) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('motoristas')
           .update(dataToSave)
           .eq('id', motorista.id);
@@ -162,7 +162,7 @@ export function MotoristaAdminFormDialog({
         // In production, this should use proper auth flow
         const { data: { user } } = await supabase.auth.getUser();
         
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('motoristas')
           .insert({
             ...dataToSave,

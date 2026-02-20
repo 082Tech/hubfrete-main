@@ -64,7 +64,7 @@ export function AdminLayoutWrapper() {
         return;
       }
 
-      const { data: torreUser, error } = await supabase
+      const { data: torreUser, error } = await (supabase as any)
         .from('torre_users')
         .select('id, role, nome, email')
         .eq('user_id', session.user.id)
@@ -78,7 +78,7 @@ export function AdminLayoutWrapper() {
         return;
       }
 
-      setAdminUser(torreUser);
+      setAdminUser(torreUser as AdminUser);
     } catch (error) {
       console.error('Erro ao verificar autenticação:', error);
       navigate('/admin');
@@ -88,7 +88,7 @@ export function AdminLayoutWrapper() {
   };
 
   const fetchPendingCount = async () => {
-    const { count } = await supabase
+    const { count } = await (supabase as any)
       .from('pre_cadastros')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'pendente');
