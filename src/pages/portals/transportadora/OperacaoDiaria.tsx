@@ -110,6 +110,7 @@ interface Entrega {
   valor_frete: number | null;
   coletado_em: string | null;
   entregue_em: string | null;
+  previsao_coleta: string | null;
   // Documentos
   canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
