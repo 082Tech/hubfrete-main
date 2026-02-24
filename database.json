@@ -1,0 +1,16 @@
+{
+    "hubfrete-development":{
+        "database-name": "hubfrete-develop",
+        "supabase-id": "ublyithvarvtqbwmxtyh",
+        "supabase-url": "https://ublyithvarvtqbwmxtyh.supabase.co",
+        "supabase-anon-key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVibHlpdGh2YXJ2dHFid214dHloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5OTIwMzYsImV4cCI6MjA4NjU2ODAzNn0.vTOdUsHUa32L3QdK4nVaumLqTXbjalOvcd7Mr9Dz5yU"
+    },
+    "hubfrete-production":{
+        "database-name": "hubfrete",
+        "supabase-id": "eilwdavgnuhfyxfqkvrk",
+        "supabase-url": "https://eilwdavgnuhfyxfqkvrk.supabase.co",
+        "supabase-anon-key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbHdkYXZnbnVoZnl4ZnFrdnJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MjUxNjIsImV4cCI6MjA4MzMwMTE2Mn0.kwfOZWgzUEhhQYE3NEPfhYoAQMok0suqVp6FsWBHmu8"
+    },
+
+    "active-database": "hubfrete-development"
+}

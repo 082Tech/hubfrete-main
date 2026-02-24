@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { getCodigoMunicipioIBGE } from '@/lib/ibgeLookup';
 import { toast } from 'sonner';
+import { CertificadoDigitalForm } from './CertificadoDigitalForm';
 
 interface ConfigFiscal {
   id?: number;
@@ -236,6 +237,12 @@ export function ConfigFiscalTab() {
 
   return (
     <div className="space-y-6">
+
+      {/* Certificado Digital */}
+      {empresa?.id && (
+        <CertificadoDigitalForm empresaId={empresa.id} />
+      )}
+
       {/* Empresa Fiscal Data */}
       <Card className="border-border">
         <CardHeader>

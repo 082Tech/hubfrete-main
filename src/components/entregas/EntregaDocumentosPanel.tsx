@@ -25,6 +25,7 @@ interface EntregaDocumentosPanelProps {
     entregaId: string;
     ctes: CteDoc[];
     nfesDiretas?: NfeDoc[];
+    gnres?: any[];
     canhotoUrl?: string | null;
     onRefresh: () => void;
 }
@@ -242,7 +243,7 @@ function SectionTitle({ icon, label, count, badge }: {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function EntregaDocumentosPanel({
-    perfil, entregaId, ctes: ctesProp, nfesDiretas = [], canhotoUrl: canhotoUrlProp, onRefresh,
+    perfil, entregaId, ctes: ctesProp, nfesDiretas = [], gnres = [], canhotoUrl: canhotoUrlProp, onRefresh,
 }: EntregaDocumentosPanelProps) {
 
     // ── Estado LOCAL (atualiza imediatamente sem depender do ciclo do pai) ──────
@@ -503,6 +504,51 @@ export function EntregaDocumentosPanel({
                     </section>
                 );
             })()}
+
+            {/* ═══ Guias GNRE ═══ */}
+            {gnres.length > 0 && (
+                <section className="space-y-2">
+                    <SectionTitle icon={<FileText className="w-3.5 h-3.5 text-slate-500" />} label="Guias GNRE" count={gnres.length} />
+                    <div className="space-y-2">
+                        {gnres.map((gnre, i) => (
+                            <div key={gnre.id} className="rounded-xl border border-slate-200 dark:border-slate-800/40 overflow-hidden bg-card">
+                                <div className="flex items-center justify-between px-3 py-2.5 bg-slate-50/60 dark:bg-slate-900/10">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                                                Guia {gnre.uf_favorecida}
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground">
+                                                R$ {Number(gnre.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <Badge variant="outline" className={`text-[9px] px-1 py-0 justify-end self-start
+                                        ${gnre.status === 'autorizada' ? 'border-emerald-300 text-emerald-600' : 
+                                          gnre.status === 'pendente' || gnre.status === 'processando' ? 'border-amber-300 text-amber-600' : 'border-red-300 text-red-600'}`
+                                      }>
+                                        {gnre.status}
+                                    </Badge>
+                                </div>
+                                {gnre.status === 'autorizada' && gnre.codigo_barras && (
+                                    <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 dark:bg-slate-900/40 dark:border-slate-800/50 flex items-center justify-between">
+                                        <span className="text-[10px] text-muted-foreground truncate mr-2" title={gnre.linha_digitavel}>
+                                            {gnre.linha_digitavel}
+                                        </span>
+                                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-slate-600 shrink-0" onClick={() => {
+                                            navigator.clipboard.writeText(gnre.codigo_barras);
+                                            toast.success('Código copiado!');
+                                        }}>
+                                            Copiar Linha
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* ═══ CT-es (transportadora) ═══ */}
             {perfil === 'transportadora' && (
