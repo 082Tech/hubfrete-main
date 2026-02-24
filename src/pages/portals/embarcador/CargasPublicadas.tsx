@@ -102,6 +102,7 @@ interface EntregaData {
   coletado_em: string | null;
   entregue_em: string | null;
   created_at: string | null;
+  previsao_coleta: string | null;
   motorista_id: string | null;
   cte_url: string | null;
   manifesto_url: string | null;
