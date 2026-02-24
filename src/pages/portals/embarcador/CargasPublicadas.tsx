@@ -249,7 +249,7 @@ export default function CargasPublicadas() {
           valor_mercadoria,
           valor_frete_tonelada,
           tipo_precificacao,
-          expira_em,
+          publicada_em,
           valor_frete_m3,
           valor_frete_fixo,
           valor_frete_km,
