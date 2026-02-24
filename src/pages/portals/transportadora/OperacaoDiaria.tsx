@@ -498,15 +498,15 @@ function DetailPanel({
 
           {/* Cargo description */}
           <div className="text-sm">
-            <p className="font-medium">{entrega.carga.descricao}</p>
+            <p className="font-medium">{entrega.carga?.descricao}</p>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3" />
                 {entrega.peso_alocado_kg
-                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
-                  : `${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`}
+                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga?.peso_kg?.toLocaleString('pt-BR') ?? '-'} kg`
+                  : `${entrega.carga?.peso_kg?.toLocaleString('pt-BR') ?? '-'} kg`}
               </span>
-              {entrega.carga.quantidade && (
+              {entrega.carga?.quantidade && (
                 <span className="flex items-center gap-1">
                   <Package className="w-3 h-3" />
                   {entrega.carga.quantidade} un
