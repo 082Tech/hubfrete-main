@@ -105,7 +105,7 @@ interface Entrega {
   motorista_id: string | null;
   veiculo_id: string | null;
   carroceria_id: string | null;
-  carrocerias_alocadas?: any[];
+  peso_alocado_kg: number | null;
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   coletado_em: string | null;
