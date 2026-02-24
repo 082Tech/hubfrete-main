@@ -1535,7 +1535,7 @@ export default function OperacaoDiaria() {
           previsao_coleta, canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
-          carga:cargas!inner(
+          carga:cargas!entregas_carga_id_fkey(
             id, codigo, descricao, peso_kg, tipo, quantidade,
             remetente_razao_social, remetente_nome_fantasia,
             destinatario_razao_social, destinatario_nome_fantasia,
