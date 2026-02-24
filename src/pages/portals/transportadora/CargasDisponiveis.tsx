@@ -659,6 +659,7 @@ export default function CargasDisponiveis() {
           carroceria_id: carroceriaId,
           peso_alocado_kg: pesoAlocadoKg,
           valor_frete: valorFrete,
+          previsao_coleta: previsaoColeta ? new Date(previsaoColeta).toISOString() : null,
           status: 'aguardando',
           created_by: userId,
           carrocerias_alocadas: carroceriasAlocadas || null,
