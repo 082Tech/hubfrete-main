@@ -15,7 +15,6 @@ export interface CteDoc {
   url: string | null;
   xml_url: string | null;
   valor: number | null;
-  emitido_em: string | null;
   nfes: NfeDoc[];
 }
 
@@ -49,7 +48,7 @@ export async function fetchCtesForEntregas(entregaIds: string[]): Promise<Record
 
   const { data: ctes, error } = await (supabase as any)
     .from('ctes')
-    .select('id, entrega_id, numero, chave_acesso, url, xml_url, valor, emitido_em')
+    .select('id, entrega_id, numero, chave_acesso, url, xml_url, valor')
     .in('entrega_id', entregaIds)
     .order('created_at', { ascending: true });
 
@@ -89,7 +88,6 @@ export async function fetchCtesForEntregas(entregaIds: string[]): Promise<Record
       url: cte.url,
       xml_url: cte.xml_url,
       valor: cte.valor,
-      emitido_em: cte.emitido_em,
       nfes: nfesMap[cte.id] || [],
     });
   });
@@ -118,7 +116,7 @@ export async function fetchManifestosForViagens(viagemIds: string[]): Promise<Re
 
     let publicUrl = m.pdf_path;
     if (m.pdf_path) {
-      const { data: urlData } = supabase.storage.from('mdfes').getPublicUrl(m.pdf_path);
+      const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(m.pdf_path);
       publicUrl = urlData?.publicUrl || m.pdf_path;
     }
 
@@ -172,7 +170,7 @@ export function checkEntregaDocs(ctes: CteDoc[], canhotoUrl: string | null): { c
 export async function fetchNfesForEntrega(entregaId: string): Promise<(NfeDoc & { cte_id?: string | null })[]> {
   const { data, error } = await (supabase as any)
     .from('nfes')
-    .select('id, cte_id, numero, chave_acesso, url, xml_url, valor, emitido_em')
+    .select('id, cte_id, numero, chave_acesso, url, xml_url, valor, data_emissao')
     .eq('entrega_id', entregaId)
     .order('created_at', { ascending: true });
 

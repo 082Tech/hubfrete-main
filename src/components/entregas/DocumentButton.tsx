@@ -105,8 +105,8 @@ export function DocumentButton({
           return;
         }
         // Upload file to storage
-        const fileName = `nota_fiscal_${entregaId}_${uniqueId}.${fileExt}`;
-        const filePath = `notas_fiscais/${fileName}`;
+        const fileName = `nfe_${entregaId}_${uniqueId}.${fileExt}`;
+        const filePath = `nfes/${fileName}`;
         const { error: uploadError } = await supabase.storage.from('documentos').upload(filePath, file);
         if (uploadError) throw uploadError;
 

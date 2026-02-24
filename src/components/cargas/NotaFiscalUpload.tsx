@@ -43,7 +43,7 @@ export function NotaFiscalUpload({ value, onChange }: NotaFiscalUploadProps) {
 
       // Generate unique file path
       const fileExt = file.name.split('.').pop();
-      const filePath = `notas_fiscais/${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `nfes/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       const { data, error } = await supabase.storage
         .from('documentos')

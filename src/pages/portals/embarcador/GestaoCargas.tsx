@@ -332,7 +332,7 @@ function DetailPanel({
       return mData.map((m: any) => {
         let url = null;
         if (m.pdf_path) {
-          const { data: urlData } = supabase.storage.from('mdfes').getPublicUrl(m.pdf_path);
+          const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(m.pdf_path);
           url = urlData?.publicUrl || null;
         }
         return {
