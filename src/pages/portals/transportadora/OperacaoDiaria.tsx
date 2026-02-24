@@ -110,6 +110,7 @@ interface Entrega {
   valor_frete: number | null;
   coletado_em: string | null;
   entregue_em: string | null;
+  previsao_coleta: string | null;
   // Documentos
   canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
@@ -601,6 +602,14 @@ function DetailPanel({
 
           {/* Datas da entrega */}
           <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-muted/30 rounded-md p-2">
+              <p className="text-muted-foreground">Previsão Coleta</p>
+              <p className="font-medium">
+                {entrega.previsao_coleta
+                  ? format(new Date(entrega.previsao_coleta), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                  : 'Não informada'}
+              </p>
+            </div>
             <div className="bg-muted/30 rounded-md p-2">
               <p className="text-muted-foreground">Data Coleta</p>
               <p className="font-medium">
