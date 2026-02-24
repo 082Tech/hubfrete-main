@@ -143,7 +143,7 @@ interface CargaData {
   data_coleta_ate: string | null;
   data_entrega_limite: string | null;
   created_at: string;
-  expira_em: string;
+  expira_em?: string | null;
   // Remetente fields
   remetente_razao_social: string | null;
   remetente_nome_fantasia: string | null;
