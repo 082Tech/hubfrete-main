@@ -221,7 +221,7 @@ export default function HistoricoEntregas() {
           .from('entregas')
           .select(`
             id, codigo, status, peso_alocado_kg, valor_frete,
-            numero_cte, canhoto_url,
+            numero_cte, canhoto_url, previsao_coleta,
             entregue_em, updated_at,
             ctes(id),
             nfes(id),
