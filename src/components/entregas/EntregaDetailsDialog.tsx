@@ -49,6 +49,7 @@ interface EntregaDetailsProps {
     entregue_em: string | null;
     peso_alocado_kg: number | null;
     valor_frete: number | null;
+    previsao_coleta?: string | null;
     canhoto_url?: string | null;
     motorista: {
       id: string;
@@ -306,7 +307,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                   <p className="font-medium flex items-center gap-1">
                     <Weight className="w-3 h-3" />
                     {entrega.peso_alocado_kg
-                      ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg`
+                      ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
                       : `${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
                     }
                   </p>
@@ -314,6 +315,13 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                 <div>
                   <p className="text-muted-foreground">Valor do Frete</p>
                   <p className="font-medium">{formatValor(entrega.valor_frete)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Previsão de Coleta</p>
+                  <p className="font-medium flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {entrega.previsao_coleta ? formatDateTime(entrega.previsao_coleta) : '-'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Previsão de Entrega</p>

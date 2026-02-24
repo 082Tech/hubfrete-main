@@ -88,6 +88,7 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
             .from('viagem_entregas')
             .select('viagem_id')
             .eq('entrega_id', entregaId)
+            .limit(1)
             .maybeSingle();
 
           if (veError) throw veError;

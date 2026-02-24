@@ -73,7 +73,7 @@ import { toast } from 'sonner';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
-import { DocumentButton } from '@/components/entregas/DocumentButton';
+import { EntregaDocumentosPanel } from '@/components/entregas/EntregaDocumentosPanel';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
@@ -105,11 +105,11 @@ interface Entrega {
   motorista_id: string | null;
   veiculo_id: string | null;
   carroceria_id: string | null;
-  carrocerias_alocadas?: any[];
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   coletado_em: string | null;
   entregue_em: string | null;
+  previsao_coleta: string | null;
   // Documentos
   canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
@@ -291,6 +291,24 @@ function DetailPanel({
   const [unlinkedNfes, setUnlinkedNfes] = useState<any[]>([]);
   const [docsRefreshKey, setDocsRefreshKey] = useState(0);
 
+  // Buscar status da viagem caso não venha nas props
+  const { data: fetchedViagemStatus } = useQuery({
+    queryKey: ['entrega-viagem-status-panel', entrega?.id],
+    queryFn: async () => {
+      if (!entrega?.id) return null;
+      const { data } = await supabase
+        .from('viagem_entregas')
+        .select('viagens(status)')
+        .eq('entrega_id', entrega.id)
+        .limit(1)
+        .maybeSingle();
+      return (data?.viagens as any)?.status || null;
+    },
+    enabled: !!entrega?.id && !viagemStatus,
+  });
+
+  const effectiveViagemStatus = viagemStatus || fetchedViagemStatus;
+
   // Atualiza documentos quando entrega muda ou quando um doc é uploado
   const refreshDocs = useCallback(() => {
     setDocsRefreshKey(k => k + 1);
@@ -346,8 +364,8 @@ function DetailPanel({
   const nextStatus = getNextStatus();
   const isFinalized = entrega.status === 'entregue' || entrega.status === 'cancelada';
 
-  // Verificar se a viagem está iniciada (não mais necessário, viagens já iniciam como aguardando)
-  const isViagemNotStarted = false;
+  // Verificar se a viagem está iniciada
+  const isViagemNotStarted = effectiveViagemStatus ? effectiveViagemStatus !== 'em_andamento' : false;
 
   const handleCancelConfirm = () => {
     onStatusChange('cancelada');
@@ -480,41 +498,25 @@ function DetailPanel({
 
           {/* Cargo description */}
           <div className="text-sm">
-            <p className="font-medium">{entrega.carga.descricao}</p>
-            <div className="flex flex-col gap-1.5 mt-1">
-              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <p className="font-medium">{entrega.carga?.descricao}</p>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
+              <span className="flex items-center gap-1">
+                <Weight className="w-3 h-3" />
+                {entrega.peso_alocado_kg
+                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga?.peso_kg?.toLocaleString('pt-BR') ?? '-'} kg`
+                  : `${entrega.carga?.peso_kg?.toLocaleString('pt-BR') ?? '-'} kg`}
+              </span>
+              {entrega.carga?.quantidade && (
                 <span className="flex items-center gap-1">
-                  <Weight className="w-3 h-3" />
-                  {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
-                  {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+                  <Package className="w-3 h-3" />
+                  {entrega.carga.quantidade} un
                 </span>
-                {entrega.carga.quantidade && (
-                  <span className="flex items-center gap-1">
-                    <Package className="w-3 h-3" />
-                    {entrega.carga.quantidade} un
-                  </span>
-                )}
-                {entrega.valor_frete && (
-                  <span className="flex items-center gap-1 text-primary font-semibold">
-                    <DollarSign className="w-3 h-3" />
-                    R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                )}
-              </div>
-
-              {/* Peso detalhado por carroceria (Multi-Trailer) */}
-              {entrega.carrocerias_alocadas && entrega.carrocerias_alocadas.length > 0 && (
-                <div className="flex flex-col gap-1 mt-2 pl-3 border-l-2 border-primary/20">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Distribuição do Peso</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    {entrega.carrocerias_alocadas.map((ca: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-1.5 text-xs">
-                        <Badge variant="outline" className="text-[10px] bg-muted/50 font-mono px-1 py-0">{ca.placa}</Badge>
-                        <span className="font-medium">{Number(ca.peso_kg || 0).toLocaleString('pt-BR')} kg</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              )}
+              {entrega.valor_frete && (
+                <span className="flex items-center gap-1 text-primary font-semibold">
+                  <DollarSign className="w-3 h-3" />
+                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
               )}
             </div>
           </div>
@@ -584,6 +586,14 @@ function DetailPanel({
           {/* Datas da entrega */}
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="bg-muted/30 rounded-md p-2">
+              <p className="text-muted-foreground">Previsão Coleta</p>
+              <p className="font-medium">
+                {entrega.previsao_coleta
+                  ? format(new Date(entrega.previsao_coleta), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                  : 'Não informada'}
+              </p>
+            </div>
+            <div className="bg-muted/30 rounded-md p-2">
               <p className="text-muted-foreground">Data Coleta</p>
               <p className="font-medium">
                 {entrega.coletado_em
@@ -615,160 +625,14 @@ function DetailPanel({
               </Badge>
             </div>
 
-            <div className="space-y-2">
-              {/* ── Canhoto ── */}
-              <div className={`flex flex-col p-3 rounded-xl border transition-colors ${!!entrega.canhoto_url ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-muted/30 border-dashed border-emerald-200/60'}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-emerald-500" />
-                    <span className={`font-semibold text-sm ${!!entrega.canhoto_url ? 'text-emerald-900 dark:text-emerald-100' : 'text-muted-foreground'}`}>
-                      Canhoto
-                    </span>
-                    {!!entrega.canhoto_url && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400">
-                        1 anexo
-                      </Badge>
-                    )}
-                  </div>
-                  {!!entrega.canhoto_url ? (
-                    <Button variant="outline" size="sm" className="h-7 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-100 gap-1" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}>
-                      <Download className="w-3 h-3" /> Baixar
-                    </Button>
-                  ) : (
-                    <DocumentButton
-                      type="canhoto"
-                      hasDoc={false}
-                      canAttach={true}
-                      onView={() => { }}
-                      entregaId={entrega.id}
-                      onUploaded={refreshDocs}
-                    />
-                  )}
-                </div>
-                {!!entrega.canhoto_url && (
-                  <div className="mt-2 pt-2 border-t border-emerald-100 dark:border-emerald-800/50">
-                    <div className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-emerald-100/50 dark:border-emerald-800/30">
-                      <div className="flex items-center gap-2">
-                        <FileCode className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-xs font-medium text-emerald-900 dark:text-emerald-200">Canhoto da entrega</span>
-                      </div>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}>
-                        <Download className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* ── CT-es ── */}
-              <div className={`flex flex-col p-3 rounded-xl border transition-colors ${existingCtes.length > 0 ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-muted/30 border-dashed border-amber-200/60'}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-amber-500" />
-                    <span className={`font-semibold text-sm ${existingCtes.length > 0 ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'}`}>
-                      CT-e
-                    </span>
-                    {existingCtes.length > 0 && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400">
-                        {existingCtes.length} anexo{existingCtes.length !== 1 ? 's' : ''}
-                      </Badge>
-                    )}
-                  </div>
-                  <DocumentButton
-                    type="cte"
-                    hasDoc={false}
-                    canAttach={true}
-                    onView={() => { }}
-                    entregaId={entrega.id}
-                    onUploaded={refreshDocs}
-                  />
-                </div>
-                {existingCtes.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-amber-100 dark:border-amber-800/50 space-y-1.5">
-                    {existingCtes.map((cte: any, cIdx: number) => (
-                      <div key={cte.id}>
-                        <div className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-amber-100/50 dark:border-amber-800/30">
-                          <div className="flex items-center gap-2">
-                            <FileCode className="w-3.5 h-3.5 text-amber-500" />
-                            <span className="text-xs font-medium text-amber-900 dark:text-amber-200">
-                              CT-e {cte.numero || `#${cIdx + 1}`}
-                            </span>
-                          </div>
-                          {cte.url && (
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => handleDocClick(cte.url, `CT-e ${cIdx + 1}`)}>
-                              <Download className="w-3 h-3" />
-                            </Button>
-                          )}
-                        </div>
-                        {cte.nfes && cte.nfes.length > 0 && (
-                          <div className="ml-4 mt-1 pl-3 border-l-2 border-amber-100 dark:border-amber-800/50 space-y-1">
-                            {cte.nfes.map((nf: any) => (
-                              <div key={nf.id} className="flex items-center justify-between p-1.5 rounded-md bg-indigo-50/30 dark:bg-indigo-900/10 text-xs">
-                                <div className="flex items-center gap-2">
-                                  <FileCode className="w-3 h-3 text-indigo-400" />
-                                  <span className="text-indigo-900 dark:text-indigo-200">
-                                    NF-e {nf.numero || nf.chave_acesso?.slice(-6) || ''}
-                                  </span>
-                                </div>
-                                {nf.url && (
-                                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-600" onClick={() => handleDocClick(nf.url, `NF-e ${nf.numero || ''}`)}>
-                                    <Download className="w-3 h-3" />
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* ── NF-es sem CT-e vinculado ── */}
-              {unlinkedNfes.length > 0 && (
-                <div className="flex flex-col p-3 rounded-xl border bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-indigo-500" />
-                      <span className="font-semibold text-sm text-indigo-900 dark:text-indigo-100">NF-e</span>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-indigo-300 text-indigo-700 dark:border-indigo-700 dark:text-indigo-400">
-                        {unlinkedNfes.length} anexo{unlinkedNfes.length !== 1 ? 's' : ''}
-                      </Badge>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px]">Do embarcador</Badge>
-                  </div>
-                  <div className="mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-800/50 space-y-1.5">
-                    {unlinkedNfes.map((nf: any) => (
-                      <div key={nf.id} className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-indigo-100/50 dark:border-indigo-800/30">
-                        <div className="flex items-center gap-2">
-                          <FileCode className="w-3.5 h-3.5 text-indigo-400" />
-                          <span className="text-xs font-medium text-indigo-900 dark:text-indigo-200">
-                            NF-e {nf.numero || nf.chave_acesso?.slice(-6) || ''}
-                          </span>
-                          {nf.valor && (
-                            <span className="text-[10px] text-muted-foreground">
-                              R$ {Number(nf.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                          )}
-                        </div>
-                        {nf.url && (
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nf.url, `NF-e ${nf.numero || ''}`)}>
-                            <Download className="w-3 h-3" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {existingCtes.length === 0 && unlinkedNfes.length === 0 && !entrega.canhoto_url && (
-              <div className="mt-3 p-2.5 rounded-lg bg-muted text-center border border-dashed text-xs text-muted-foreground">
-                Aqui você anexa CT-e e Canhoto. Notas Fiscais enviadas pelo embarcador também aparecem aqui.
-              </div>
-            )}
+            <EntregaDocumentosPanel
+              perfil="transportadora"
+              entregaId={entrega.id}
+              ctes={existingCtes}
+              nfesDiretas={unlinkedNfes}
+              canhotoUrl={entrega.canhoto_url || null}
+              onRefresh={refreshDocs}
+            />
           </div>
 
           <Separator />
@@ -1581,7 +1445,7 @@ function GestaoEntregasDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0">
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
         <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} />
       </DialogContent>
     </Dialog>
@@ -1668,10 +1532,10 @@ export default function OperacaoDiaria() {
           id, codigo, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em,
-          canhoto_url,
+          previsao_coleta, canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
-          carga:cargas!inner(
+          carga:cargas!entregas_carga_id_fkey(
             id, codigo, descricao, peso_kg, tipo, quantidade,
             remetente_razao_social, remetente_nome_fantasia,
             destinatario_razao_social, destinatario_nome_fantasia,
@@ -1689,6 +1553,8 @@ export default function OperacaoDiaria() {
         console.error('Error fetching entregas:', error);
         throw error;
       }
+
+      console.log('[DEBUG] First entrega raw carga:', data?.[0]?.carga, 'peso_kg:', data?.[0]?.carga?.peso_kg);
 
       // Filter: active items ALWAYS show (regardless of date), terminal items only if finalized today
       const finalizedStatuses = ['entregue', 'cancelada'];
@@ -1812,6 +1678,37 @@ export default function OperacaoDiaria() {
     refetchInterval: 30000,
   });
 
+  // Mantém selectedViagem sempre sincronizado com os dados atuais da query
+  // Assim o painel atualiza automaticamente após iniciar/finalizar/cancelar sem reload
+  const selectedViagemLive = useMemo(
+    () => selectedViagem
+      ? viagens.find(v => v.id === selectedViagem.id) ?? selectedViagem
+      : null,
+    [selectedViagem, viagens]
+  );
+
+  // Mantém selectedEntrega sempre sincronizado com os dados live
+  const selectedEntregaLive = useMemo(
+    () => selectedEntrega
+      ? entregas.find(e => e.id === selectedEntrega.id) ?? selectedEntrega
+      : null,
+    [selectedEntrega, entregas]
+  );
+
+  // Mantém selectedEntregaInViagem sincronizado com as entregas da viagem live
+  const selectedEntregaInViagemLive = useMemo(
+    () => {
+      if (!selectedEntregaInViagem || !selectedViagemLive) return selectedEntregaInViagem;
+      const fromViagem = selectedViagemLive.entregas.find(e => e.id === selectedEntregaInViagem.id);
+      if (fromViagem) {
+        // Injeta campos extras que existem na Entrega mas não no tipo da viagem
+        return { ...selectedEntregaInViagem, ...fromViagem };
+      }
+      return selectedEntregaInViagem;
+    },
+    [selectedEntregaInViagem, selectedViagemLive]
+  );
+
   const motoristaGroups = useMemo(() => {
     const groups: Record<string, { motorista: Entrega['motorista']; entregas: Entrega[] }> = {};
 
@@ -1900,19 +1797,24 @@ export default function OperacaoDiaria() {
       }
       toast.success('Status atualizado!');
     },
+    onSuccess: () => {
+      // Refetch imediato após mudança de status para atualizar o painel sem reload
+      refetch();
+      refetchViagens();
+    },
     onError: (error) => {
       toast.error('Erro ao atualizar status');
       console.error(error);
     },
   });
 
-  // Mutation para iniciar viagem (programada -> aguardando)
+  // Mutation para iniciar viagem (aguardando -> em_andamento)
   const iniciarViagemMutation = useMutation({
     mutationFn: async (viagemId: string) => {
       const { error } = await supabase
         .from('viagens')
         .update({
-          status: 'aguardando',
+          status: 'em_andamento',
           inicio_em: new Date().toISOString(),
           started_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -2251,7 +2153,7 @@ export default function OperacaoDiaria() {
             {/* Column 3: Detail Panel (40%) */}
             <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
               <DetailPanel
-                entrega={selectedEntrega}
+                entrega={selectedEntregaLive}
                 onClose={() => setSelectedEntrega(null)}
                 onStatusChange={handleStatusChange}
                 isChangingStatus={statusMutation.isPending}
@@ -2348,7 +2250,7 @@ export default function OperacaoDiaria() {
               {selectedEntregaInViagem ? (
                 /* Mostrar DetailPanel da entrega com botão voltar */
                 <DetailPanel
-                  entrega={selectedEntregaInViagem}
+                  entrega={selectedEntregaInViagemLive as any}
                   onClose={() => setSelectedEntregaInViagem(null)}
                   onStatusChange={handleStatusChange}
                   isChangingStatus={statusMutation.isPending}
@@ -2356,12 +2258,12 @@ export default function OperacaoDiaria() {
                   onRefresh={handleRefresh}
                   showBackButton
                   onBack={() => setSelectedEntregaInViagem(null)}
-                  viagemStatus={selectedViagem?.status}
+                  viagemStatus={selectedViagemLive?.status}
                 />
               ) : (
                 /* Mostrar ViagemDetailPanel */
                 <ViagemDetailPanel
-                  viagem={selectedViagem}
+                  viagem={selectedViagemLive}
                   onClose={() => setSelectedViagem(null)}
                   onSelectEntrega={(entregaId) => {
                     const entrega = entregas.find(e => e.id === entregaId);
@@ -2370,8 +2272,8 @@ export default function OperacaoDiaria() {
                     }
                   }}
                   onRefresh={() => refetchViagens()}
-                  driverLocation={selectedViagem?.motorista_id ? (() => {
-                    const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
+                  driverLocation={selectedViagemLive?.motorista_id ? (() => {
+                    const loc = localizacoes.find(l => l.motorista_id === selectedViagemLive.motorista_id);
                     return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, heading: loc.heading, isOnline: loc.isOnline, updated_at: (loc as any)?.updated_at } : null;
                   })() : null}
                   onStart={async (viagemId) => {

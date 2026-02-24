@@ -60,7 +60,7 @@ export async function fetchCtesForEntregas(entregaIds: string[]): Promise<Record
   if (cteIds.length > 0) {
     const { data: nfes } = await (supabase as any)
       .from('nfes')
-      .select('id, cte_id, numero, chave_acesso, url, xml_url, valor, data_emissao')
+      .select('id, cte_id, numero, chave_acesso, url, valor, data_emissao')
       .in('cte_id', cteIds)
       .order('created_at', { ascending: true });
 
@@ -71,7 +71,7 @@ export async function fetchCtesForEntregas(entregaIds: string[]): Promise<Record
         numero: nf.numero,
         chave_acesso: nf.chave_acesso,
         url: nf.url,
-        xml_url: nf.xml_url,
+        xml_url: null,
         valor: nf.valor,
         data_emissao: nf.data_emissao,
       });
@@ -170,7 +170,11 @@ export function checkEntregaDocs(ctes: CteDoc[], canhotoUrl: string | null): { c
 export async function fetchNfesForEntrega(entregaId: string): Promise<(NfeDoc & { cte_id?: string | null })[]> {
   const { data, error } = await (supabase as any)
     .from('nfes')
+<<<<<<< HEAD
     .select('id, cte_id, numero, chave_acesso, url, xml_url, valor, data_emissao')
+=======
+    .select('id, cte_id, numero, chave_acesso, url, valor, data_emissao')
+>>>>>>> 62e305476dd9c336dbc1af4ec80fe80efe094c8b
     .eq('entrega_id', entregaId)
     .order('created_at', { ascending: true });
 

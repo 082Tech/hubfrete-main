@@ -14,16 +14,16 @@ const formatTimestamp = (timestamp: number): string => {
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMins / 60);
-  
+
   if (diffMins < 1) return 'Agora';
   if (diffMins < 60) return `${diffMins} min atrás`;
   if (diffHours < 24) return `${diffHours}h atrás`;
-  
-  return date.toLocaleString('pt-BR', { 
-    day: '2-digit', 
+
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
     month: '2-digit',
-    hour: '2-digit', 
-    minute: '2-digit' 
+    hour: '2-digit',
+    minute: '2-digit'
   });
 };
 
@@ -159,7 +159,7 @@ async function fetchRoute(
     const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
     const response = await fetch(url);
     const data = await response.json();
-    
+
     if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates) {
       // OSRM returns [lng, lat], we need [lat, lng] for Leaflet
       return data.routes[0].geometry.coordinates.map(
@@ -169,18 +169,18 @@ async function fetchRoute(
   } catch (error) {
     console.error('Error fetching route:', error);
   }
-  
+
   // Fallback to straight line
   return [[start.lat, start.lng], [end.lat, end.lng]];
 }
 
 // Component to fit bounds to markers - only triggers on selection change, not location updates
-function FitBounds({ 
-  entregas, 
+function FitBounds({
+  entregas,
   selectedEntrega,
-  selectedId 
-}: { 
-  entregas: EntregaMapData[]; 
+  selectedId
+}: {
+  entregas: EntregaMapData[];
   selectedEntrega: EntregaMapData | null;
   selectedId: string | null;
 }) {
@@ -188,7 +188,7 @@ function FitBounds({
   const prevSelectedIdRef = useRef<string | null | undefined>(undefined);
   const hasInitialFit = useRef(false);
   const isMountedRef = useRef(true);
-  
+
   // Track mounted state to prevent operations during unmount
   useEffect(() => {
     isMountedRef.current = true;
@@ -196,11 +196,11 @@ function FitBounds({
       isMountedRef.current = false;
     };
   }, []);
-  
+
   useEffect(() => {
     // Prevent map operations if component is unmounting or map container is invalid
     if (!isMountedRef.current) return;
-    
+
     try {
       // Check if map container is still valid
       const container = map.getContainer();
@@ -209,28 +209,28 @@ function FitBounds({
       // Map is likely being destroyed, exit early
       return;
     }
-    
+
     // Only fit bounds when selection actually changes (ID change), not on location updates
     const selectionChanged = prevSelectedIdRef.current !== selectedId;
-    
+
     // Initial fit on mount (when no selection)
     const needsInitialFit = !hasInitialFit.current && !selectedId && entregas.length > 0;
-    
+
     if (!selectionChanged && !needsInitialFit) {
       return;
     }
-    
+
     prevSelectedIdRef.current = selectedId;
-    
+
     // Use requestAnimationFrame to ensure map is fully ready
     requestAnimationFrame(() => {
       if (!isMountedRef.current) return;
-      
+
       try {
         if (selectedEntrega) {
           // Fit bounds to show the route when selecting a delivery
           const points: [number, number][] = [];
-          
+
           if (selectedEntrega.latitude && selectedEntrega.longitude) {
             points.push([selectedEntrega.latitude, selectedEntrega.longitude]);
           }
@@ -240,7 +240,7 @@ function FitBounds({
           if (selectedEntrega.destinoCoords) {
             points.push([selectedEntrega.destinoCoords.lat, selectedEntrega.destinoCoords.lng]);
           }
-          
+
           if (points.length > 1) {
             const bounds = L.latLngBounds(points);
             map.fitBounds(bounds, { padding: [80, 80], maxZoom: 12 });
@@ -264,7 +264,7 @@ function FitBounds({
       }
     });
   }, [selectedId, entregas.length, map]); // Only depend on selectedId, not the full objects
-  
+
   return null;
 }
 
@@ -275,10 +275,10 @@ const showRouteToOriginStatuses = ['aguardando', 'saiu_para_coleta'];
 // Route display component with OSRM integration
 // - aguardando/saiu_para_coleta: dashed lines truck->origin->destination
 // - saiu_para_entrega: solid line truck->destination only
-function RouteDisplay({ 
+function RouteDisplay({
   selectedEntrega,
-  hasTrackingHistory 
-}: { 
+  hasTrackingHistory
+}: {
   selectedEntrega: EntregaMapData | null;
   hasTrackingHistory: boolean;
 }) {
@@ -297,16 +297,16 @@ function RouteDisplay({
 
     const loadRoutes = async () => {
       setIsLoading(true);
-      
+
       try {
         const status = selectedEntrega.status || '';
         const hasTruckPos = !!(selectedEntrega.latitude && selectedEntrega.longitude);
         const hasOrigin = !!selectedEntrega.origemCoords;
         const hasDestination = !!selectedEntrega.destinoCoords;
-        
+
         // Check if status is before delivery (aguardando or saiu_para_coleta)
         const isBeforeDelivery = showRouteToOriginStatuses.includes(status);
-        
+
         if (isBeforeDelivery) {
           // DASHED routes: truck -> origin -> destination
           if (hasTruckPos && hasOrigin) {
@@ -318,7 +318,7 @@ function RouteDisplay({
           } else {
             setTruckToOriginRoute([]);
           }
-          
+
           if (hasOrigin && hasDestination) {
             const originToDest = await fetchRoute(
               selectedEntrega.origemCoords!,
@@ -328,13 +328,13 @@ function RouteDisplay({
           } else {
             setOriginToDestinationRoute([]);
           }
-          
+
           setTruckToDestinationRoute([]);
         } else {
           // SOLID route: truck -> destination directly (saiu_para_entrega)
           setTruckToOriginRoute([]);
           setOriginToDestinationRoute([]);
-          
+
           if (hasTruckPos && hasDestination) {
             const toDest = await fetchRoute(
               { lat: selectedEntrega.latitude!, lng: selectedEntrega.longitude! },
@@ -384,7 +384,7 @@ function RouteDisplay({
               }}
             />
           )}
-          
+
           {/* Dashed blue: origin to destination */}
           {originToDestinationRoute.length > 1 && (
             <Polyline
@@ -415,9 +415,9 @@ function RouteDisplay({
   );
 }
 
-export function EntregasMap({ 
-  entregas, 
-  selectedEntregaId, 
+export function EntregasMap({
+  entregas,
+  selectedEntregaId,
   selectedCargaId,
   onSelectEntrega,
   onSelectCarga,
@@ -427,23 +427,23 @@ export function EntregasMap({
 }: EntregasMapProps) {
   // Entregas with truck location
   const validEntregas = entregas.filter(e => e.latitude && e.longitude);
-  
+
   // Support both entregaId and cargaId for selection
   const effectiveSelectedId = selectedEntregaId || selectedCargaId;
-  
+
   // Find selected entrega (can be any entrega, even without truck location)
-  const selectedEntrega = effectiveSelectedId 
-    ? entregas.find(e => 
-        (e.entregaId && e.entregaId === effectiveSelectedId) || 
-        (e.cargaId && e.cargaId === effectiveSelectedId) ||
-        e.id === effectiveSelectedId
-      ) || null
+  const selectedEntrega = effectiveSelectedId
+    ? entregas.find(e =>
+      (e.entregaId && e.entregaId === effectiveSelectedId) ||
+      (e.cargaId && e.cargaId === effectiveSelectedId) ||
+      e.id === effectiveSelectedId
+    ) || null
     : null;
-  
+
   // Default center (Brazil)
   const defaultCenter: [number, number] = [-15.7801, -47.9292];
   const defaultZoom = 4;
-  
+
   // Calculate center based on all available points
   const allPoints: [number, number][] = [];
   entregas.forEach(e => {
@@ -451,18 +451,18 @@ export function EntregasMap({
     if (e.origemCoords) allPoints.push([e.origemCoords.lat, e.origemCoords.lng]);
     if (e.destinoCoords) allPoints.push([e.destinoCoords.lat, e.destinoCoords.lng]);
   });
-  
+
   const center: [number, number] = allPoints.length > 0
     ? [
-        allPoints.reduce((acc, p) => acc + p[0], 0) / allPoints.length,
-        allPoints.reduce((acc, p) => acc + p[1], 0) / allPoints.length,
-      ]
+      allPoints.reduce((acc, p) => acc + p[0], 0) / allPoints.length,
+      allPoints.reduce((acc, p) => acc + p[1], 0) / allPoints.length,
+    ]
     : defaultCenter;
 
   const handleMarkerClick = (entrega: EntregaMapData) => {
     const entregaKey = entrega.entregaId || entrega.cargaId || entrega.id;
     const isCurrentlySelected = entregaKey === effectiveSelectedId;
-    
+
     if (onSelectEntrega) {
       onSelectEntrega(isCurrentlySelected ? null : (entrega.entregaId || entrega.id));
     }
@@ -494,19 +494,19 @@ export function EntregasMap({
         center={center}
         zoom={defaultZoom}
         style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom={true}
+        scrollWheelZoom={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitBounds entregas={validEntregas} selectedEntrega={selectedEntrega} selectedId={effectiveSelectedId} />
-        
+
         {/* Tracking history points when entrega is selected */}
         {selectedEntrega && (
           <TrackingHistoryMarkers entregaId={selectedEntrega.entregaId || selectedEntrega.id} />
         )}
-        
+
         {/* Suggested route: only shows remaining route when already collected */}
         <RouteDisplay selectedEntrega={selectedEntrega} hasTrackingHistory={false} />
 
@@ -543,7 +543,7 @@ export function EntregasMap({
             </Popup>
           </Marker>
         )}
-        
+
         {/* Driver avatar markers - hide others when one is selected */}
         {validEntregas
           .filter((entrega) => {
@@ -559,10 +559,10 @@ export function EntregasMap({
             const entregaKey = entrega.entregaId || entrega.cargaId || entrega.id;
             const isSelected = entregaKey === effectiveSelectedId;
             const isRecent = isRecentLocation(entrega.lastLocationUpdate);
-            
+
             // Include heading and online status in key to force icon recreation on updates
             const headingKey = Math.round((entrega.heading ?? 0) / 5) * 5; // Round to 5-degree increments
-            
+
             return (
               <Marker
                 key={`${entrega.id}-${headingKey}-${isRecent}`}
@@ -573,9 +573,9 @@ export function EntregasMap({
                 }}
               >
                 {/* Detailed tooltip on hover - no popup on click */}
-                <Tooltip 
-                  direction="top" 
-                  offset={[0, -20]} 
+                <Tooltip
+                  direction="top"
+                  offset={[0, -20]}
                   opacity={1}
                   permanent={false}
                   className="!bg-white !border !border-gray-200 !rounded-xl !shadow-2xl !p-0"
@@ -608,7 +608,7 @@ export function EntregasMap({
                           </div>
                         )}
                         {/* Status badge */}
-                        <span 
+                        <span
                           className="inline-block text-[10px] px-2 py-0.5 rounded-full text-white mt-1.5 font-medium"
                           style={{ backgroundColor: color }}
                         >
@@ -638,7 +638,7 @@ export function EntregasMap({
                     {entrega.statusCounts && Object.keys(entrega.statusCounts).length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
                         {Object.entries(entrega.statusCounts).map(([st, count]) => (
-                          <span 
+                          <span
                             key={st}
                             className="text-[10px] px-1.5 py-0.5 rounded text-white font-medium"
                             style={{ backgroundColor: statusColors[st] || '#6b7280' }}
@@ -658,7 +658,7 @@ export function EntregasMap({
                             <span className="font-semibold text-gray-900">{entrega.codigo}</span>
                           </div>
                         )}
-                        
+
                         {entrega.descricao && (
                           <div className="flex items-start gap-1.5 text-xs">
                             <Package className="w-3 h-3 mt-0.5 flex-shrink-0 text-gray-400" />
@@ -689,7 +689,7 @@ export function EntregasMap({
             );
           })}
       </MapContainer>
-      
+
       {/* Legend - only show if not hidden */}
       {!hideLegend && (
         <div className="absolute bottom-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
@@ -697,7 +697,7 @@ export function EntregasMap({
           <div className="flex flex-col gap-1">
             {['aguardando', 'saiu_para_coleta', 'saiu_para_entrega', 'problema'].map((key) => (
               <div key={key} className="flex items-center gap-1.5">
-                <div 
+                <div
                   className="w-3 h-3 rounded-full border-2 border-white shadow-sm"
                   style={{ backgroundColor: statusColors[key] }}
                 />
@@ -705,7 +705,7 @@ export function EntregasMap({
               </div>
             ))}
           </div>
-          
+
           {/* Wi-Fi indicator legend */}
           <div className="mt-2 pt-2 border-t border-border">
             <p className="text-xs font-medium text-muted-foreground mb-1">Conexão</p>
@@ -720,7 +720,7 @@ export function EntregasMap({
               </div>
             </div>
           </div>
-          
+
           {effectiveSelectedId && (
             <div className="mt-2 pt-2 border-t border-border">
               <p className="text-xs font-medium text-muted-foreground mb-1">Rota</p>

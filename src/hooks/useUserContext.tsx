@@ -26,6 +26,7 @@ export interface CompanyInfo {
   razao_social: string;
   nome_fantasia: string | null;
   cnpj: string;
+  logo_url: string | null;
 }
 
 export interface UserContextData {
@@ -144,6 +145,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         razao_social: newEmpresa.nome || 'Empresa',
         nome_fantasia: newEmpresa.nome,
         cnpj: newEmpresa.cnpj_matriz || '',
+        logo_url: newEmpresa.logo_url || null,
       });
 
       // Persist active company preference
@@ -275,6 +277,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
             razao_social: activeEmpresa.nome || 'Empresa',
             nome_fantasia: activeEmpresa.nome,
             cnpj: activeEmpresa.cnpj_matriz || '',
+            logo_url: activeEmpresa.logo_url || null,
           });
 
           // Load filiais for the active company

@@ -102,6 +102,7 @@ interface EntregaData {
   coletado_em: string | null;
   entregue_em: string | null;
   created_at: string | null;
+  previsao_coleta: string | null;
   motorista_id: string | null;
   cte_url: string | null;
   manifesto_url: string | null;
@@ -143,6 +144,7 @@ interface CargaData {
   data_coleta_ate: string | null;
   data_entrega_limite: string | null;
   created_at: string;
+  expira_em: string;
   // Remetente fields
   remetente_razao_social: string | null;
   remetente_nome_fantasia: string | null;
@@ -248,6 +250,7 @@ export default function CargasPublicadas() {
           valor_mercadoria,
           valor_frete_tonelada,
           tipo_precificacao,
+          expira_em,
           valor_frete_m3,
           valor_frete_fixo,
           valor_frete_km,
@@ -311,6 +314,7 @@ export default function CargasPublicadas() {
             status,
             coletado_em,
             entregue_em,
+            previsao_coleta,
             created_at,
             motorista_id,
             cte_url,
@@ -339,7 +343,7 @@ export default function CargasPublicadas() {
 
       if (error) throw error;
 
-      return (data || []).map(item => ({
+      return (data || []).map((item: any) => ({
         ...item,
         entregas: Array.isArray(item.entregas) ? item.entregas : (item.entregas ? [item.entregas] : [])
       })) as CargaData[];
@@ -990,6 +994,10 @@ export default function CargasPublicadas() {
                                     <p className="text-xs text-muted-foreground truncate max-w-[120px]">
                                       {carga.descricao}
                                     </p>
+                                    <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 font-medium bg-muted/40 w-max px-1.5 py-0.5 rounded-sm">
+                                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                                      Expira: {formatDate(carga.expira_em)}
+                                    </p>
                                   </div>
                                 </td>
                                 <td className="p-4 align-middle">
@@ -1331,6 +1339,7 @@ export default function CargasPublicadas() {
               entregue_em: detailsEntrega.entrega.entregue_em,
               peso_alocado_kg: detailsEntrega.entrega.peso_alocado_kg,
               valor_frete: detailsEntrega.entrega.valor_frete,
+              previsao_coleta: detailsEntrega.entrega.previsao_coleta,
               motorista: detailsEntrega.entrega.motoristas ? {
                 id: detailsEntrega.entrega.motoristas.id,
                 nome_completo: detailsEntrega.entrega.motoristas.nome_completo,

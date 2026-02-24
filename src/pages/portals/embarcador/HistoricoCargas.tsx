@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
+import { EntregaDocsDialog } from '@/components/entregas/EntregaDocsDialog';
 
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 
@@ -163,6 +164,7 @@ const statusEntregaConfig: Record<string, { label: string; color: string; icon: 
   entregue: { label: 'Entregue', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
   cancelada: { label: 'Cancelada', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: RotateCcw },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
+  parcialmente_finalizada: { label: 'Finalizada (Parcial)', color: 'bg-gray-100 text-gray-600 border-gray-300', icon: CheckCircle2 },
 };
 
 // Filter options for Histórico - only finalized states
@@ -184,14 +186,20 @@ export default function HistoricoCargas() {
   const [highlightedEntregaId, setHighlightedEntregaId] = useState<string | null>(null);
   const [trackingMapEntregaId, setTrackingMapEntregaId] = useState<string | null>(null);
   const [trackingMapInfo, setTrackingMapInfo] = useState<{ motorista: string; placa: string } | null>(null);
-  
+
   // Advanced filters
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
-  
+
   // Entrega details dialog
   const [entregaDetailsOpen, setEntregaDetailsOpen] = useState(false);
   const [selectedEntrega, setSelectedEntrega] = useState<EntregaData | null>(null);
   const [selectedEntregaCarga, setSelectedEntregaCarga] = useState<CargaData | null>(null);
+
+  // Docs dialog
+  const [docsDialogOpen, setDocsDialogOpen] = useState(false);
+  const [docsEntregaId, setDocsEntregaId] = useState<string | null>(null);
+  const [docsEntregaCodigo, setDocsEntregaCodigo] = useState<string | null>(null);
+  const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
 
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
@@ -214,7 +222,7 @@ export default function HistoricoCargas() {
     queryKey: ['historico-cargas', filialAtiva?.id],
     queryFn: async () => {
       if (!filialAtiva?.id) return [];
-      
+
       const { data, error } = await supabase
         .from('cargas')
         .select(`
@@ -310,7 +318,7 @@ export default function HistoricoCargas() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       return (data || []).map(item => ({
         ...item,
         entregas: Array.isArray(item.entregas) ? item.entregas : (item.entregas ? [item.entregas] : [])
@@ -321,6 +329,11 @@ export default function HistoricoCargas() {
 
   // Helper functions
   const allEntregasFinalized = (carga: CargaData) => {
+    // Se a carga for explicitamente finalizada parcialmente pelo Cron (expirou) 
+    // ELA VAI PRO HISTÓRICO mesmo que não tenha 100% das entregas ativas finalizadas. 
+    // OBS: O Cron job agora OBRIGA que não haja entregas ativas para ela assumir este status.
+    if (carga.status === 'parcialmente_finalizada') return true;
+
     if (carga.entregas.length === 0) return false;
     return carga.entregas.every(e => ['entregue', 'cancelada', 'problema'].includes(e.status));
   };
@@ -345,11 +358,11 @@ export default function HistoricoCargas() {
   const filteredCargas = useMemo(() => {
     // First, filter to only show finalized cargas
     let result = cargas.filter(carga => allEntregasFinalized(carga));
-    
+
     // Apply advanced filters
     if (advancedFilters.codigo) {
       const q = advancedFilters.codigo.toLowerCase();
-      result = result.filter(carga => 
+      result = result.filter(carga =>
         carga.codigo.toLowerCase().includes(q) ||
         carga.descricao.toLowerCase().includes(q)
       );
@@ -357,7 +370,7 @@ export default function HistoricoCargas() {
 
     if (advancedFilters.destinatario) {
       const q = advancedFilters.destinatario.toLowerCase();
-      result = result.filter(carga => 
+      result = result.filter(carga =>
         (carga.destinatario_nome_fantasia || '').toLowerCase().includes(q) ||
         (carga.destinatario_razao_social || '').toLowerCase().includes(q)
       );
@@ -365,8 +378,8 @@ export default function HistoricoCargas() {
 
     if (advancedFilters.motorista) {
       const q = advancedFilters.motorista.toLowerCase();
-      result = result.filter(carga => 
-        carga.entregas.some(e => 
+      result = result.filter(carga =>
+        carga.entregas.some(e =>
           e.motoristas?.nome_completo?.toLowerCase().includes(q)
         )
       );
@@ -374,14 +387,14 @@ export default function HistoricoCargas() {
 
     if (advancedFilters.cidadeOrigem) {
       const q = advancedFilters.cidadeOrigem.toLowerCase();
-      result = result.filter(carga => 
+      result = result.filter(carga =>
         carga.endereco_origem?.cidade?.toLowerCase().includes(q)
       );
     }
 
     if (advancedFilters.cidadeDestino) {
       const q = advancedFilters.cidadeDestino.toLowerCase();
-      result = result.filter(carga => 
+      result = result.filter(carga =>
         carga.endereco_destino?.cidade?.toLowerCase().includes(q)
       );
     }
@@ -408,7 +421,7 @@ export default function HistoricoCargas() {
         return cargaDate >= fromDate;
       });
     }
-    
+
     if (advancedFilters.dateTo) {
       const toDate = new Date(advancedFilters.dateTo);
       toDate.setHours(23, 59, 59, 999);
@@ -468,7 +481,7 @@ export default function HistoricoCargas() {
   const getEnderecoData = (carga: CargaData, tipo: 'origem' | 'destino') => {
     const endereco = tipo === 'origem' ? carga.endereco_origem : carga.endereco_destino;
     if (!endereco) return { empresa: '-', cidade: '-', enderecoCompleto: '-' };
-    
+
     const enderecoCompleto = [
       endereco.logradouro,
       endereco.numero,
@@ -476,18 +489,21 @@ export default function HistoricoCargas() {
       `${endereco.cidade}/${endereco.estado}`,
       endereco.cep
     ].filter(Boolean).join(', ');
-    
+
     let empresa: string;
     if (tipo === 'origem') {
       empresa = carga.remetente_nome_fantasia || carga.remetente_razao_social || endereco.contato_nome || 'Remetente';
     } else {
       empresa = carga.destinatario_nome_fantasia || carga.destinatario_razao_social || endereco.contato_nome || 'Destinatário';
     }
-    
+
     return { empresa, cidade: `${endereco.cidade}/${endereco.estado}`, enderecoCompleto };
   };
 
   const getStatusBadge = (carga: CargaData) => {
+    if (carga.status === 'parcialmente_finalizada') {
+      return <Badge className="bg-gray-500/10 text-gray-600 border-gray-500/20">Finalizada (Parcial)</Badge>;
+    }
     if (hasProblema(carga)) {
       return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Com Problemas</Badge>;
     }
@@ -532,7 +548,7 @@ export default function HistoricoCargas() {
 
   // Stats - only for finalized cargas
   const finalizedCargas = useMemo(() => cargas.filter(c => allEntregasFinalized(c)), [cargas]);
-  
+
   const stats = useMemo(() => ({
     total: finalizedCargas.length,
     entregues: finalizedCargas.filter(c => allDelivered(c)).length,
@@ -567,8 +583,8 @@ export default function HistoricoCargas() {
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />;
-    return sortOrder === 'asc' 
-      ? <ArrowUp className="w-3 h-3 ml-1 text-primary" /> 
+    return sortOrder === 'asc'
+      ? <ArrowUp className="w-3 h-3 ml-1 text-primary" />
       : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
   };
 
@@ -578,22 +594,22 @@ export default function HistoricoCargas() {
 
     const getPageNumbers = () => {
       const pages: (number | 'ellipsis')[] = [];
-      
+
       if (totalPages <= 7) {
         for (let i = 1; i <= totalPages; i++) pages.push(i);
       } else {
         pages.push(1);
         if (currentPage > 3) pages.push('ellipsis');
-        
+
         const start = Math.max(2, currentPage - 1);
         const end = Math.min(totalPages - 1, currentPage + 1);
-        
+
         for (let i = start; i <= end; i++) pages.push(i);
-        
+
         if (currentPage < totalPages - 2) pages.push('ellipsis');
         pages.push(totalPages);
       }
-      
+
       return pages;
     };
 
@@ -621,8 +637,8 @@ export default function HistoricoCargas() {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          
-          {getPageNumbers().map((page, idx) => 
+
+          {getPageNumbers().map((page, idx) =>
             page === 'ellipsis' ? (
               <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
             ) : (
@@ -637,7 +653,7 @@ export default function HistoricoCargas() {
               </Button>
             )
           )}
-          
+
           <Button
             variant="outline"
             size="icon"
@@ -684,7 +700,7 @@ export default function HistoricoCargas() {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 shrink-0">
-            <Card 
+            <Card
               className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary ring-inset' : ''}`}
               onClick={() => setFilterStatus('all')}
             >
@@ -697,7 +713,7 @@ export default function HistoricoCargas() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'entregue' ? 'ring-2 ring-emerald-500 ring-inset' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'entregue' ? 'all' : 'entregue')}
             >
@@ -710,7 +726,7 @@ export default function HistoricoCargas() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'cancelada' ? 'ring-2 ring-gray-500 ring-inset' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'cancelada' ? 'all' : 'cancelada')}
             >
@@ -724,7 +740,7 @@ export default function HistoricoCargas() {
             </Card>
 
             {stats.comProblemas > 0 && (
-              <Card 
+              <Card
                 className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'problema' ? 'ring-2 ring-destructive ring-inset' : ''}`}
                 onClick={() => setFilterStatus(filterStatus === 'problema' ? 'all' : 'problema')}
               >
@@ -801,7 +817,7 @@ export default function HistoricoCargas() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             <div className='flex gap-2 items-center text-sm text-muted-foreground'>
               <Package className="w-4 h-4" />
               Cargas finalizadas
@@ -900,19 +916,19 @@ export default function HistoricoCargas() {
                         const origem = getEnderecoData(carga, 'origem');
                         const destino = getEnderecoData(carga, 'destino');
                         const hasEntregas = carga.entregas.length > 0;
-                        
+
                         return (
                           <React.Fragment key={carga.id}>
                             {/* Main Row */}
-                            <tr 
+                            <tr
                               className={`border-b transition-colors hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
                               onClick={() => hasEntregas && toggleRow(carga.id)}
                             >
                               <td className="p-2 align-middle">
                                 {hasEntregas && (
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className="h-6 w-6"
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -995,9 +1011,9 @@ export default function HistoricoCargas() {
                                 </span>
                               </td>
                               <td className="p-4 align-middle">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   className="h-8 w-8"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1042,10 +1058,10 @@ export default function HistoricoCargas() {
                                             const isHighlighted = highlightedEntregaId === entrega.id;
                                             const docsCount = getDocsCount(entrega);
                                             const hasMissing = hasMissingCriticalDocs(entrega);
-                                            
+
                                             return (
-                                              <TableRow 
-                                                key={entrega.id} 
+                                              <TableRow
+                                                key={entrega.id}
                                                 className={`${isHighlighted ? 'bg-primary/10 animate-pulse' : ''}`}
                                               >
                                                 <TableCell className="text-xs font-mono">
@@ -1092,23 +1108,25 @@ export default function HistoricoCargas() {
                                                   </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                   <span className="text-xs font-mono text-muted-foreground">
-                                                     -
+                                                  <span className="text-xs font-mono text-muted-foreground">
+                                                    -
                                                   </span>
                                                 </TableCell>
                                                 <TableCell>
                                                   <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className={`h-7 px-2 gap-1 ${hasMissing ? 'text-amber-600' : 'text-green-600'}`}
+                                                    className="h-7 px-2 gap-1 text-primary hover:text-primary"
+                                                    title="Ver documentos"
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      handleOpenEntregaDetails(entrega, carga);
+                                                      setDocsEntregaId(entrega.id);
+                                                      setDocsEntregaCodigo(entrega.codigo);
+                                                      setDocsEntregaCanhoto(entrega.canhoto_url);
+                                                      setDocsDialogOpen(true);
                                                     }}
                                                   >
                                                     <FileText className="w-3 h-3" />
-                                                    {docsCount}
-                                                    {hasMissing && <AlertTriangle className="w-3 h-3" />}
                                                   </Button>
                                                 </TableCell>
                                                 <TableCell>
@@ -1225,6 +1243,15 @@ export default function HistoricoCargas() {
             setTrackingMapEntregaId(null);
             setTrackingMapInfo(null);
           }}
+        />
+
+        {/* Docs Dialog */}
+        <EntregaDocsDialog
+          open={docsDialogOpen}
+          onOpenChange={setDocsDialogOpen}
+          entregaId={docsEntregaId || ''}
+          entregaCodigo={docsEntregaCodigo}
+          canhotoUrl={docsEntregaCanhoto}
         />
       </TooltipProvider>
     </div>

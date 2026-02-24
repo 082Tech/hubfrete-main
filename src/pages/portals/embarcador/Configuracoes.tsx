@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
+import {
   User,
   Bell,
   Shield,
@@ -69,35 +69,35 @@ interface Integration {
 }
 
 const integrations: Integration[] = [
-  { 
-    id: 'totvs', 
-    name: 'TOTVS Protheus', 
-    description: 'Integração com módulos de faturamento e logística', 
-    icon: Database, 
+  {
+    id: 'totvs',
+    name: 'TOTVS Protheus',
+    description: 'Integração com módulos de faturamento e logística',
+    icon: Database,
     status: 'disconnected',
     category: 'erp'
   },
-  { 
-    id: 'emakers', 
-    name: 'Emakers TMS', 
-    description: 'Sistema de gerenciamento de transporte', 
-    icon: Database, 
+  {
+    id: 'emakers',
+    name: 'Emakers TMS',
+    description: 'Sistema de gerenciamento de transporte',
+    icon: Database,
     status: 'disconnected',
     category: 'erp'
   },
-  { 
-    id: 'sap', 
-    name: 'SAP S/4HANA', 
-    description: 'Integração com módulos de supply chain', 
-    icon: Database, 
+  {
+    id: 'sap',
+    name: 'SAP S/4HANA',
+    description: 'Integração com módulos de supply chain',
+    icon: Database,
     status: 'disconnected',
     category: 'erp'
   },
-  { 
-    id: 'api', 
-    name: 'API Própria', 
-    description: 'Conecte seu sistema através da nossa REST API', 
-    icon: Code, 
+  {
+    id: 'api',
+    name: 'API Própria',
+    description: 'Conecte seu sistema através da nossa REST API',
+    icon: Code,
     status: 'disconnected',
     category: 'api'
   },
@@ -115,7 +115,7 @@ export default function Configuracoes() {
     telefone: '',
     cargo: ''
   });
-  
+
   const [notificacoes, setNotificacoes] = useState({
     email: true,
     push: true,
@@ -130,16 +130,16 @@ export default function Configuracoes() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         const { data: { user: authUser } } = await supabase.auth.getUser();
-        
+
         if (authUser) {
           const { data: usuarioData } = await supabase
             .from('usuarios')
             .select('*')
             .eq('auth_user_id', authUser.id)
             .maybeSingle();
-          
+
           if (usuarioData) {
             setUserData({
               nome: usuarioData.nome || '',
@@ -153,14 +153,14 @@ export default function Configuracoes() {
               email: authUser.email || ''
             }));
           }
-          
+
           if (empresa?.id) {
             const { data: filiaisData } = await supabase
               .from('filiais')
               .select('*')
               .eq('empresa_id', empresa.id)
               .order('is_matriz', { ascending: false });
-            
+
             setFiliais(filiaisData || []);
           }
         }
@@ -171,14 +171,14 @@ export default function Configuracoes() {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [empresa?.id]);
 
   const handleSave = async () => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      
+
       if (authUser) {
         const { error } = await supabase
           .from('usuarios')
@@ -186,10 +186,10 @@ export default function Configuracoes() {
             nome: userData.nome
           })
           .eq('auth_user_id', authUser.id);
-        
+
         if (error) throw error;
       }
-      
+
       toast.success('Configurações salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -234,29 +234,29 @@ export default function Configuracoes() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="nome">Nome Completo</Label>
-                    <Input 
-                      id="nome" 
+                    <Input
+                      id="nome"
                       value={userData.nome}
                       onChange={(e) => setUserData(prev => ({ ...prev, nome: e.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cargo">Cargo</Label>
-                    <Input 
-                      id="cargo" 
-                      value={userData.cargo === 'ADMIN' ? 'Administrador' : 'Operador'} 
-                      disabled 
+                    <Input
+                      id="cargo"
+                      value={userData.cargo === 'ADMIN' ? 'Administrador' : 'Operador'}
+                      disabled
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input 
-                        id="email" 
-                        className="pl-10" 
-                        value={userData.email} 
-                        disabled 
+                      <Input
+                        id="email"
+                        className="pl-10"
+                        value={userData.email}
+                        disabled
                       />
                     </div>
                   </div>
@@ -264,9 +264,9 @@ export default function Configuracoes() {
                     <Label htmlFor="telefone">Telefone</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input 
-                        id="telefone" 
-                        className="pl-10" 
+                      <Input
+                        id="telefone"
+                        className="pl-10"
                         value={userData.telefone}
                         onChange={(e) => setUserData(prev => ({ ...prev, telefone: e.target.value }))}
                         placeholder="(00) 00000-0000"
@@ -333,7 +333,83 @@ export default function Configuracoes() {
                 </CardTitle>
                 <CardDescription>Informações da empresa vinculada</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+
+                {/* Logo Section */}
+                <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                  <div className="relative group shrink-0">
+                    <div className="w-24 h-24 rounded-lg bg-muted border-2 border-dashed border-muted-foreground/25 flex items-center justify-center overflow-hidden shrink-0">
+                      {companyInfo?.logo_url ? (
+                        <img
+                          src={companyInfo.logo_url}
+                          alt="Logo da Empresa"
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <Building2 className="w-8 h-8 text-muted-foreground/50" />
+                      )}
+                    </div>
+                    {/* Placeholder para upload de logo - funcionalidade a ser implementada na rotina `handleSave` com Storage */}
+                    <Label
+                      htmlFor="logo-upload"
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer rounded-lg"
+                    >
+                      <Plus className="w-6 h-6 text-white mb-1" />
+                      <span className="text-[10px] text-white font-medium uppercase tracking-wider">Alterar</span>
+                    </Label>
+                    <input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !companyInfo?.id) return;
+
+                        try {
+                          const fileExt = file.name.split('.').pop();
+                          const filePath = `${companyInfo.id}-${Math.random()}.${fileExt}`;
+
+                          toast.loading('Fazendo upload da logo...', { id: 'upload-logo' });
+
+                          const { error: uploadError } = await supabase.storage
+                            .from('logos')
+                            .upload(filePath, file);
+
+                          if (uploadError) throw uploadError;
+
+                          const { data: { publicUrl } } = supabase.storage
+                            .from('logos')
+                            .getPublicUrl(filePath);
+
+                          const { error: updateError } = await supabase
+                            .from('empresas')
+                            .update({ logo_url: publicUrl })
+                            .eq('id', Number(companyInfo.id));
+
+                          if (updateError) throw updateError;
+
+                          toast.success('Logo atualizada com sucesso!', { id: 'upload-logo' });
+                          // Force a page reload to update context or implement proper context refresh
+                          window.location.reload();
+                        } catch (error: any) {
+                          console.error(error);
+                          toast.error(`Erro: ${error.message || 'Falha desconhecida'}`, { id: 'upload-logo' });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Logo da Empresa</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Recomendado: 512x512px (PNG ou JPG, max 2MB).
+                      Esta logo será exibida no tracking para seus clientes.
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Razão Social</Label>
@@ -365,7 +441,7 @@ export default function Configuracoes() {
                     Filiais
                   </CardTitle>
                   <CardDescription>
-                    {filiais.length > 0 
+                    {filiais.length > 0
                       ? `${filiais.length} filial(is) vinculada(s) à sua empresa`
                       : 'Nenhuma filial cadastrada'}
                   </CardDescription>
@@ -383,14 +459,13 @@ export default function Configuracoes() {
                     </p>
                   ) : (
                     filiais.map((filial) => (
-                      <div 
+                      <div
                         key={filial.id}
                         className="flex items-center justify-between p-4 rounded-lg border border-border bg-card"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            filial.ativa ? 'bg-primary/10' : 'bg-muted'
-                          }`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${filial.ativa ? 'bg-primary/10' : 'bg-muted'
+                            }`}>
                             <MapPin className={`w-5 h-5 ${filial.ativa ? 'text-primary' : 'text-muted-foreground'}`} />
                           </div>
                           <div>
@@ -438,8 +513,8 @@ export default function Configuracoes() {
                       <p className="font-medium text-foreground">Email</p>
                       <p className="text-sm text-muted-foreground">Receber notificações por email</p>
                     </div>
-                    <Switch 
-                      checked={notificacoes.email} 
+                    <Switch
+                      checked={notificacoes.email}
                       onCheckedChange={(checked) => setNotificacoes(prev => ({ ...prev, email: checked }))}
                     />
                   </div>
@@ -448,8 +523,8 @@ export default function Configuracoes() {
                       <p className="font-medium text-foreground">Push</p>
                       <p className="text-sm text-muted-foreground">Notificações no navegador</p>
                     </div>
-                    <Switch 
-                      checked={notificacoes.push} 
+                    <Switch
+                      checked={notificacoes.push}
                       onCheckedChange={(checked) => setNotificacoes(prev => ({ ...prev, push: checked }))}
                     />
                   </div>
@@ -458,16 +533,16 @@ export default function Configuracoes() {
                       <p className="font-medium text-foreground">SMS</p>
                       <p className="text-sm text-muted-foreground">Notificações por mensagem de texto</p>
                     </div>
-                    <Switch 
-                      checked={notificacoes.sms} 
+                    <Switch
+                      checked={notificacoes.sms}
                       onCheckedChange={(checked) => setNotificacoes(prev => ({ ...prev, sms: checked }))}
                     />
                   </div>
                 </div>
               </div>
-              
+
               <Separator />
-              
+
               <div className="space-y-4">
                 <h4 className="text-sm font-medium text-foreground">Tipos de Alerta</h4>
                 <div className="space-y-3">
@@ -476,8 +551,8 @@ export default function Configuracoes() {
                       <p className="font-medium text-foreground">Novas Propostas</p>
                       <p className="text-sm text-muted-foreground">Quando receber propostas de transportadoras</p>
                     </div>
-                    <Switch 
-                      checked={notificacoes.novasProposta} 
+                    <Switch
+                      checked={notificacoes.novasProposta}
                       onCheckedChange={(checked) => setNotificacoes(prev => ({ ...prev, novasProposta: checked }))}
                     />
                   </div>
@@ -486,8 +561,8 @@ export default function Configuracoes() {
                       <p className="font-medium text-foreground">Status de Entrega</p>
                       <p className="text-sm text-muted-foreground">Atualizações sobre suas cargas em trânsito</p>
                     </div>
-                    <Switch 
-                      checked={notificacoes.statusEntrega} 
+                    <Switch
+                      checked={notificacoes.statusEntrega}
                       onCheckedChange={(checked) => setNotificacoes(prev => ({ ...prev, statusEntrega: checked }))}
                     />
                   </div>
@@ -496,8 +571,8 @@ export default function Configuracoes() {
                       <p className="font-medium text-foreground">Relatórios Semanais</p>
                       <p className="text-sm text-muted-foreground">Resumo semanal das operações</p>
                     </div>
-                    <Switch 
-                      checked={notificacoes.relatorios} 
+                    <Switch
+                      checked={notificacoes.relatorios}
                       onCheckedChange={(checked) => setNotificacoes(prev => ({ ...prev, relatorios: checked }))}
                     />
                   </div>
@@ -566,7 +641,7 @@ export default function Configuracoes() {
               <CardContent>
                 <div className="space-y-3">
                   {integrations.filter(i => i.category === 'erp').map((integration) => (
-                    <div 
+                    <div
                       key={integration.id}
                       className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
                     >
@@ -722,9 +797,9 @@ export default function Configuracoes() {
       </div>
 
       {/* Change Password Dialog */}
-      <ChangePasswordDialog 
-        open={changePasswordOpen} 
-        onOpenChange={setChangePasswordOpen} 
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
       />
     </div>
   );

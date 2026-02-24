@@ -598,7 +598,7 @@ export default function CargasDisponiveis() {
         .select('*')
         .eq('carga_id', cargaId)
         .eq('motorista_id', motoristaId)
-        .in('status', ['aguardando', 'programada', 'em_andamento'])
+        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
         .maybeSingle();
 
       if (checkError) throw checkError;

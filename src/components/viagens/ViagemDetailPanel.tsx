@@ -4,8 +4,8 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
-  Share, Printer, X, Weight, DollarSign, Clock, Upload, History,
-  Loader2, MoreVertical, Ban, Paperclip, AlertTriangle, AlertCircle
+  Share, Printer, X, Weight, DollarSign, Clock, History,
+  Loader2, MoreVertical, Ban, AlertTriangle, AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { AnexarManifestoViagemDialog } from './AnexarManifestoViagemDialog';
+import { ManifestoHistoricoPanel } from './ManifestoHistoricoPanel';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
@@ -120,7 +120,6 @@ export function ViagemDetailPanel({
   onFinalize,
   onCancel,
 }: ViagemDetailPanelProps) {
-  const [anexarManifestoOpen, setAnexarManifestoOpen] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   // iniciarDialogOpen removed - trips now start as aguardando
   const [finalizarDialogOpen, setFinalizarDialogOpen] = useState(false);
@@ -178,7 +177,19 @@ export function ViagemDetailPanel({
     };
   }, [viagem]);
 
-  // handleIniciarViagem removed - trips now start as aguardando automatically
+  const handleIniciarViagem = async () => {
+    if (!viagem || !onStart) return;
+
+    setIsProcessingViagem(true);
+    try {
+      await onStart(viagem.id);
+      toast.success('Viagem iniciada com sucesso');
+    } catch (error) {
+      toast.error('Erro ao iniciar viagem');
+    } finally {
+      setIsProcessingViagem(false);
+    }
+  };
 
   const handleFinalizarViagem = async () => {
     if (!viagem || !onFinalize) return;
@@ -384,67 +395,13 @@ export function ViagemDetailPanel({
 
           <Separator />
 
-          {/* Documentos da Viagem */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-medium text-xs">Documentos da Viagem</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2">
-              {activeManifesto ? (
-                <div className="flex items-center justify-between p-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 text-xs">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                    <div>
-                      <span className="font-medium text-emerald-700 block">MDF-e Ativo {activeManifesto.numero ? `(${activeManifesto.numero})` : ''}</span>
-                      <span className="text-[10px] text-emerald-600/70">{format(new Date(activeManifesto.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {activeManifesto.url && (
-                      <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => window.open(activeManifesto.url!, '_blank')}>
-                        Ver
-                      </Button>
-                    )}
-                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => setAnexarManifestoOpen(true)}>
-                      Substituir
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full h-10 gap-2 bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/30"
-                  onClick={() => setAnexarManifestoOpen(true)}
-                >
-                  <Upload className="w-4 h-4" />
-                  Anexar Manifesto (MDF-e)
-                </Button>
-              )}
-
-              {/* Encerrados/Inativos */}
-              {manifestosMap && viagem?.id && manifestosMap[viagem.id] && manifestosMap[viagem.id].filter(m => m.id !== activeManifesto?.id).map(m => (
-                <div key={m.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 border border-muted text-xs">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                    <div>
-                      <span className="font-medium text-muted-foreground block">MDF-e {m.status === 'cancelado' ? 'Cancelado' : 'Encerrado'} {m.numero ? `(${m.numero})` : ''}</span>
-                      <span className="text-[10px] text-muted-foreground/70">{format(new Date(m.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
-                    </div>
-                  </div>
-                  {m.url && (
-                    <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => window.open(m.url!, '_blank')}>
-                      Ver
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Documentos da Viagem — Manifesto Histórico */}
+          <ManifestoHistoricoPanel
+            viagemId={viagem.id}
+            viagemCodigo={viagem.codigo}
+            manifestos={manifestosMap?.[viagem.id] || []}
+            onRefresh={onRefresh}
+          />
 
           <Separator />
 
@@ -500,10 +457,6 @@ export function ViagemDetailPanel({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setAnexarManifestoOpen(true)}>
-                <Paperclip className="w-4 h-4 mr-2" />
-                Anexar Manifesto
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
@@ -515,8 +468,21 @@ export function ViagemDetailPanel({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Botão principal: Finalizar */}
-          {(isViagemAguardando || isViagemEmAndamento) ? (
+          {/* Botão principal: Iniciar ou Finalizar */}
+          {isViagemAguardando ? (
+            <Button
+              className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={isProcessingViagem}
+              onClick={handleIniciarViagem}
+            >
+              {isProcessingViagem ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ArrowRight className="w-4 h-4" />
+              )}
+              Iniciar Viagem
+            </Button>
+          ) : isViagemEmAndamento ? (
             <Button
               className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
               disabled={!entregasValidation.canFinalize || isProcessingViagem}
@@ -534,7 +500,7 @@ export function ViagemDetailPanel({
       )}
 
       {/* Aviso de entregas pendentes (apenas em andamento) */}
-      {(isViagemAguardando || isViagemEmAndamento) && !entregasValidation.canFinalize && (
+      {isViagemEmAndamento && !entregasValidation.canFinalize && (
         <div className="px-3 pb-3 mt-1">
           <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
@@ -615,21 +581,12 @@ export function ViagemDetailPanel({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog para anexar Manifesto */}
-      <AnexarManifestoViagemDialog
-        open={anexarManifestoOpen}
-        onOpenChange={setAnexarManifestoOpen}
-        viagemId={viagem.id}
-        viagemCodigo={viagem.codigo}
-        onSuccess={onRefresh}
-      />
-
       {/* Preview de documento */}
       <FilePreviewDialog
         open={!!previewDocUrl}
         onOpenChange={() => setPreviewDocUrl(null)}
         fileUrl={previewDocUrl}
-        title="Manifesto (MDF-e)"
+        title="Documento"
       />
     </div>
   );
