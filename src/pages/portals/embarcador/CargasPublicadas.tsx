@@ -143,6 +143,7 @@ interface CargaData {
   data_coleta_ate: string | null;
   data_entrega_limite: string | null;
   created_at: string;
+  expira_em: string;
   // Remetente fields
   remetente_razao_social: string | null;
   remetente_nome_fantasia: string | null;
@@ -248,6 +249,7 @@ export default function CargasPublicadas() {
           valor_mercadoria,
           valor_frete_tonelada,
           tipo_precificacao,
+          expira_em,
           valor_frete_m3,
           valor_frete_fixo,
           valor_frete_km,
@@ -989,6 +991,10 @@ export default function CargasPublicadas() {
                                     <p className="font-medium text-primary text-nowrap">{carga.codigo}</p>
                                     <p className="text-xs text-muted-foreground truncate max-w-[120px]">
                                       {carga.descricao}
+                                    </p>
+                                    <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 font-medium bg-muted/40 w-max px-1.5 py-0.5 rounded-sm">
+                                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                                      Expira: {formatDate(carga.expira_em)}
                                     </p>
                                   </div>
                                 </td>

@@ -41,14 +41,14 @@ export function AnexarManifestoViagemDialog({
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
-        .from('mdfes')
+        .from('documentos')
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('mdfes')
+        .from('documentos')
         .getPublicUrl(fileName);
 
       const manifestoUrl = urlData.publicUrl;

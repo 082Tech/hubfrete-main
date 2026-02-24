@@ -173,13 +173,13 @@ export function DetailPanelLeafletMap({
         center={mapCenter}
         zoom={10}
         style={{ width: '100%', height: '100%' }}
-        scrollWheelZoom={true}
+        scrollWheelZoom={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        
+
         <FitBoundsOnce points={allPoints} />
 
         {/* Origem - Marcador verde */}

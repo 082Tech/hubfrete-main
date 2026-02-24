@@ -49,7 +49,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
-import { DocumentButton } from '@/components/entregas/DocumentButton';
+import { EntregaDocumentosPanel } from '@/components/entregas/EntregaDocumentosPanel';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
@@ -332,7 +332,7 @@ function DetailPanel({
       return mData.map((m: any) => {
         let url = null;
         if (m.pdf_path) {
-          const { data: urlData } = supabase.storage.from('mdfes').getPublicUrl(m.pdf_path);
+          const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(m.pdf_path);
           url = urlData?.publicUrl || null;
         }
         return {
@@ -733,32 +733,74 @@ function DetailPanel({
                 )}
               </div>
 
-              {/* CT-e */}
-              <div className={`flex items-center justify-between p-3 rounded-xl border ${hasCte ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-muted/30 border-dashed'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`p-1.5 rounded-full ${hasCte ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted'}`}>
-                    {hasCte ? (
-                      <CheckCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                    ) : (
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                    )}
+              {/* CT-es - expandido com NF-es aninhadas */}
+              <div className={`flex flex-col p-3 rounded-xl border ${hasCte ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-muted/30 border-dashed'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-1.5 rounded-full ${hasCte ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted'}`}>
+                      {hasCte ? (
+                        <CheckCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className={`font-medium text-sm ${hasCte ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'}`}>
+                        CT-e {hasCte ? `(${ctes.length})` : ''}
+                      </span>
+                      {!hasCte && <span className="text-[10px] text-muted-foreground">Gerado/Anexado pela Transportadora</span>}
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className={`font-medium text-sm ${hasCte ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'}`}>
-                      CT-e {hasCte && ctes[0]?.numero ? `(${ctes[0].numero})` : ''}
-                    </span>
-                    {!hasCte && <span className="text-[10px] text-muted-foreground">Gerado/Anexado pela Transportadora</span>}
-                  </div>
+                  {!hasCte && <span className="text-xs text-muted-foreground">Pendente</span>}
                 </div>
-                {hasCte ? (
-                  <div className="flex items-center gap-2">
-                    {ctes.length > 1 && <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">+{ctes.length - 1}</Badge>}
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-100" onClick={() => handleDocClick(ctes[0].url, `CT-e ${ctes[0].numero || ''}`)}>
-                      <Download className="w-4 h-4" />
-                    </Button>
+                {hasCte && (
+                  <div className="mt-2 pt-2 border-t border-amber-100 dark:border-amber-800/50 space-y-2">
+                    {ctes.map((cte: any, cIdx: number) => (
+                      <div key={cte.id} className="rounded-lg border border-amber-100 dark:border-amber-800/30 overflow-hidden">
+                        <div className="flex items-center justify-between px-2.5 py-1.5 bg-amber-50/80 dark:bg-amber-900/20">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-3.5 h-3.5 text-amber-600" />
+                            <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                              CT-e {cte.numero || `#${cIdx + 1}`}
+                            </span>
+                            {cte.nfes?.length > 0 && (
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-300 text-amber-600">
+                                {cte.nfes.length} NF-e{cte.nfes.length !== 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                          </div>
+                          {cte.url && (
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-600"
+                              onClick={() => handleDocClick(cte.url, `CT-e ${cIdx + 1}`)}
+                            >
+                              <Download className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                        {cte.nfes?.length > 0 && (
+                          <div className="px-2 py-1.5 space-y-1">
+                            {cte.nfes.map((nf: any, ni: number) => (
+                              <div key={nf.id} className="flex items-center justify-between px-2 py-1 rounded-md bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
+                                <div className="flex items-center gap-1.5">
+                                  <FileCode className="w-3 h-3 text-indigo-400" />
+                                  <span className="text-indigo-800 dark:text-indigo-200">
+                                    NF-e {nf.numero || nf.chave_acesso?.slice(-6) || ni + 1}
+                                  </span>
+                                </div>
+                                {nf.url && (
+                                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-500"
+                                    onClick={() => handleDocClick(nf.url, `NF-e ${ni + 1}`)}
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <span className="text-xs text-muted-foreground text-right w-[80px]">Pendente</span>
                 )}
               </div>
               {/* Notas Fiscais */}
@@ -1209,7 +1251,7 @@ function GestaoMapDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0">
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
         <GestaoMapDialogContent entregas={entregas} localizacoes={localizacoes} />
       </DialogContent>
     </Dialog>

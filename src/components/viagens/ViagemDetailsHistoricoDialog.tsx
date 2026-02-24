@@ -21,9 +21,9 @@ interface Entrega {
   status: string | null;
   peso_alocado_kg: number | null;
   valor_frete: number | null;
-  cte_url: string | null;
+  ctes: { id: string }[];
   numero_cte: string | null;
-  notas_fiscais_urls: string[] | null;
+  nfes: { id: string }[];
   canhoto_url: string | null;
   entregue_em: string | null;
   carga: {
@@ -47,6 +47,7 @@ interface ViagemData {
   ended_at: string | null;
   manifesto_url: string | null;
   km_total: number | null;
+  mdfes?: { pdf_path: string | null }[];
   motorista: {
     id: string;
     nome_completo: string;
@@ -183,28 +184,38 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
               </div>
 
               {/* Manifesto */}
-              <div className="flex items-center justify-between p-3 rounded-lg border">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Manifesto MDF-e</span>
-                </div>
-                {viagem.manifesto_url ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1 text-green-600"
-                    onClick={() => { setFilePreviewUrl(viagem.manifesto_url!); setFilePreviewOpen(true); }}
-                  >
-                    <FileCheck className="w-3 h-3" />
-                    Ver Manifesto
-                  </Button>
-                ) : (
-                  <Badge variant="outline" className="text-amber-600 gap-1">
-                    <AlertTriangle className="w-3 h-3" />
-                    Pendente
-                  </Badge>
-                )}
-              </div>
+              {(() => {
+                const mdfe = viagem.mdfes?.find(m => m.pdf_path);
+                const rawPath = mdfe?.pdf_path || viagem.manifesto_url;
+                const isStoragePath = rawPath && !rawPath.startsWith('http');
+                const manifestoUrl = isStoragePath
+                  ? supabase.storage.from('documentos').getPublicUrl(rawPath!).data.publicUrl
+                  : rawPath;
+                return (
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Manifesto MDF-e</span>
+                    </div>
+                    {manifestoUrl ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1 text-green-600"
+                        onClick={() => { setFilePreviewUrl(manifestoUrl); setFilePreviewOpen(true); }}
+                      >
+                        <FileCheck className="w-3 h-3" />
+                        Ver Manifesto
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className="text-amber-600 gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Pendente
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })()}
 
               <Separator />
 
