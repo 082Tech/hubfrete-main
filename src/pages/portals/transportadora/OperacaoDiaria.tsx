@@ -1554,6 +1554,8 @@ export default function OperacaoDiaria() {
         throw error;
       }
 
+      console.log('[DEBUG] First entrega raw carga:', data?.[0]?.carga, 'peso_kg:', data?.[0]?.carga?.peso_kg);
+
       // Filter: active items ALWAYS show (regardless of date), terminal items only if finalized today
       const finalizedStatuses = ['entregue', 'cancelada'];
       const filtered = (data || []).filter(e => {
