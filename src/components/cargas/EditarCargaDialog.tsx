@@ -122,7 +122,7 @@ interface CargaToEdit {
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
   data_entrega_limite: string | null;
-  expira_em: string | null;
+  expira_em?: string | null;
   veiculo_requisitos: {
     tipos_veiculo?: string[];
     tipos_carroceria?: string[];
