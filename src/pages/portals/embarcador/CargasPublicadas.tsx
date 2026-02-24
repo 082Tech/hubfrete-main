@@ -102,6 +102,7 @@ interface EntregaData {
   coletado_em: string | null;
   entregue_em: string | null;
   created_at: string | null;
+  previsao_coleta: string | null;
   motorista_id: string | null;
   cte_url: string | null;
   manifesto_url: string | null;
@@ -1338,6 +1339,7 @@ export default function CargasPublicadas() {
               entregue_em: detailsEntrega.entrega.entregue_em,
               peso_alocado_kg: detailsEntrega.entrega.peso_alocado_kg,
               valor_frete: detailsEntrega.entrega.valor_frete,
+              previsao_coleta: detailsEntrega.entrega.previsao_coleta,
               motorista: detailsEntrega.entrega.motoristas ? {
                 id: detailsEntrega.entrega.motoristas.id,
                 nome_completo: detailsEntrega.entrega.motoristas.nome_completo,
