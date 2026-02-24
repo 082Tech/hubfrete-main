@@ -313,6 +313,7 @@ export default function CargasPublicadas() {
             status,
             coletado_em,
             entregue_em,
+            previsao_coleta,
             created_at,
             motorista_id,
             cte_url,
