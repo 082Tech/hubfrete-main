@@ -341,7 +341,7 @@ export default function CargasPublicadas() {
 
       if (error) throw error;
 
-      return (data || []).map(item => ({
+      return (data || []).map((item: any) => ({
         ...item,
         entregas: Array.isArray(item.entregas) ? item.entregas : (item.entregas ? [item.entregas] : [])
       })) as CargaData[];

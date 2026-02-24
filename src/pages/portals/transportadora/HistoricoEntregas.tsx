@@ -252,8 +252,9 @@ export default function HistoricoEntregas() {
 
       return (viagensData || []).map(v => ({
         ...v,
+        mdfes: Array.isArray((v as any).mdfes) ? (v as any).mdfes : [],
         entregas: viagemEntregasMap[v.id] || [],
-      })) as ViagemHistorico[];
+      })) as unknown as ViagemHistorico[];
     },
     enabled: !!empresa?.id,
   });
