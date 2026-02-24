@@ -69,9 +69,9 @@ export function ViagemSelector({
     enabled: !!motoristaId,
   });
 
-  const viagemEmAndamento = viagens.find(v => v.status === 'em_andamento') || null;
-  const viagemDisponivel = viagens.find(v => v.status === 'aguardando' || v.status === 'programada') || null;
-  const isBlocked = !!viagemEmAndamento;
+  // Motoristas podem receber entregas mesmo com viagem em andamento
+  const viagemDisponivel = viagens.find(v => v.status === 'em_andamento' || v.status === 'aguardando' || v.status === 'programada') || null;
+  const isBlocked = false;
 
   // Notify parent about block status
   useEffect(() => {
