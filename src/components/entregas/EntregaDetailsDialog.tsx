@@ -49,6 +49,7 @@ interface EntregaDetailsProps {
     entregue_em: string | null;
     peso_alocado_kg: number | null;
     valor_frete: number | null;
+    previsao_coleta?: string | null;
     canhoto_url?: string | null;
     motorista: {
       id: string;
