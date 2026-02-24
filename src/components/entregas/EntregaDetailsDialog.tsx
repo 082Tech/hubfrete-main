@@ -316,6 +316,13 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                   <p className="font-medium">{formatValor(entrega.valor_frete)}</p>
                 </div>
                 <div>
+                  <p className="text-muted-foreground">Previsão de Coleta</p>
+                  <p className="font-medium flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {(entrega as any).previsao_coleta ? formatDateTime((entrega as any).previsao_coleta) : '-'}
+                  </p>
+                </div>
+                <div>
                   <p className="text-muted-foreground">Previsão de Entrega</p>
                   <p className="font-medium flex items-center gap-1">
                     <Calendar className="w-3 h-3" />

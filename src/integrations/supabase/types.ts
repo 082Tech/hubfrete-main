@@ -1248,6 +1248,7 @@ export type Database = {
           numero_cte: string | null
           observacoes: string | null
           peso_alocado_kg: number | null
+          previsao_coleta: string | null
           status: Database["public"]["Enums"]["status_entrega"] | null
           tracking_code: string
           updated_at: string | null
@@ -1279,6 +1280,7 @@ export type Database = {
           numero_cte?: string | null
           observacoes?: string | null
           peso_alocado_kg?: number | null
+          previsao_coleta?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
           tracking_code: string
           updated_at?: string | null
@@ -1310,6 +1312,7 @@ export type Database = {
           numero_cte?: string | null
           observacoes?: string | null
           peso_alocado_kg?: number | null
+          previsao_coleta?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
           tracking_code?: string
           updated_at?: string | null
