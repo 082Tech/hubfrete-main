@@ -503,8 +503,8 @@ function DetailPanel({
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3" />
                 {entrega.peso_alocado_kg
-                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${(entrega.carga.peso_kg ?? 0).toLocaleString('pt-BR')} kg`
-                  : `${(entrega.carga.peso_kg ?? 0).toLocaleString('pt-BR')} kg`}
+                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
+                  : `${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`}
               </span>
               {entrega.carga.quantidade && (
                 <span className="flex items-center gap-1">
@@ -1535,7 +1535,7 @@ export default function OperacaoDiaria() {
           previsao_coleta, canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
-          carga:cargas!inner(
+          carga:cargas!entregas_carga_id_fkey(
             id, codigo, descricao, peso_kg, tipo, quantidade,
             remetente_razao_social, remetente_nome_fantasia,
             destinatario_razao_social, destinatario_nome_fantasia,
