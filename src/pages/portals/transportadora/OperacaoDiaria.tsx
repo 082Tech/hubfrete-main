@@ -500,40 +500,24 @@ function DetailPanel({
           {/* Cargo description */}
           <div className="text-sm">
             <p className="font-medium">{entrega.carga.descricao}</p>
-            <div className="flex flex-col gap-1.5 mt-1">
-              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
+              <span className="flex items-center gap-1">
+                <Weight className="w-3 h-3" />
+                {entrega.peso_alocado_kg
+                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg`
+                  : `${entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg`}
+              </span>
+              {entrega.carga.quantidade && (
                 <span className="flex items-center gap-1">
-                  <Weight className="w-3 h-3" />
-                  {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
-                  {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+                  <Package className="w-3 h-3" />
+                  {entrega.carga.quantidade} un
                 </span>
-                {entrega.carga.quantidade && (
-                  <span className="flex items-center gap-1">
-                    <Package className="w-3 h-3" />
-                    {entrega.carga.quantidade} un
-                  </span>
-                )}
-                {entrega.valor_frete && (
-                  <span className="flex items-center gap-1 text-primary font-semibold">
-                    <DollarSign className="w-3 h-3" />
-                    R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                )}
-              </div>
-
-              {/* Peso detalhado por carroceria (Multi-Trailer) */}
-              {entrega.carrocerias_alocadas && entrega.carrocerias_alocadas.length > 0 && (
-                <div className="flex flex-col gap-1 mt-2 pl-3 border-l-2 border-primary/20">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Distribuição do Peso</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    {entrega.carrocerias_alocadas.map((ca: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-1.5 text-xs">
-                        <Badge variant="outline" className="text-[10px] bg-muted/50 font-mono px-1 py-0">{ca.placa}</Badge>
-                        <span className="font-medium">{Number(ca.peso_kg || 0).toLocaleString('pt-BR')} kg</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              )}
+              {entrega.valor_frete && (
+                <span className="flex items-center gap-1 text-primary font-semibold">
+                  <DollarSign className="w-3 h-3" />
+                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
               )}
             </div>
           </div>
