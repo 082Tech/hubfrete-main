@@ -320,7 +320,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                   <p className="text-muted-foreground">Previsão de Coleta</p>
                   <p className="font-medium flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {(entrega as any).previsao_coleta ? formatDateTime((entrega as any).previsao_coleta) : '-'}
+                    {entrega.previsao_coleta ? formatDateTime(entrega.previsao_coleta) : '-'}
                   </p>
                 </div>
                 <div>
