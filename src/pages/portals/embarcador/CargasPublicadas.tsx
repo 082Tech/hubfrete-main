@@ -143,7 +143,7 @@ interface CargaData {
   data_coleta_ate: string | null;
   data_entrega_limite: string | null;
   created_at: string;
-  expira_em: string;
+  expira_em?: string | null;
   // Remetente fields
   remetente_razao_social: string | null;
   remetente_nome_fantasia: string | null;
@@ -249,7 +249,7 @@ export default function CargasPublicadas() {
           valor_mercadoria,
           valor_frete_tonelada,
           tipo_precificacao,
-          expira_em,
+          publicada_em,
           valor_frete_m3,
           valor_frete_fixo,
           valor_frete_km,
@@ -341,7 +341,7 @@ export default function CargasPublicadas() {
 
       if (error) throw error;
 
-      return (data || []).map(item => ({
+      return (data || []).map((item: any) => ({
         ...item,
         entregas: Array.isArray(item.entregas) ? item.entregas : (item.entregas ? [item.entregas] : [])
       })) as CargaData[];

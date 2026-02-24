@@ -385,7 +385,7 @@ export default function Configuracoes() {
                           const { error: updateError } = await supabase
                             .from('empresas')
                             .update({ logo_url: publicUrl })
-                            .eq('id', companyInfo.id);
+                            .eq('id', Number(companyInfo.id));
 
                           if (updateError) throw updateError;
 
