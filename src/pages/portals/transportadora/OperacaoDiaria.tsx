@@ -503,8 +503,8 @@ function DetailPanel({
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3" />
                 {entrega.peso_alocado_kg
-                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${(entrega.carga.peso_kg ?? 0).toLocaleString('pt-BR')} kg`
-                  : `${(entrega.carga.peso_kg ?? 0).toLocaleString('pt-BR')} kg`}
+                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
+                  : `${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`}
               </span>
               {entrega.carga.quantidade && (
                 <span className="flex items-center gap-1">
