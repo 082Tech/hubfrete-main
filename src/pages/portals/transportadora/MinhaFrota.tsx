@@ -238,7 +238,7 @@ export default function MinhaFrota() {
   const cardFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   // Height is now managed by CSS flexbox (flex-1 min-h-0) instead of JS calculation
-  
+
   const [newVeiculo, setNewVeiculo] = useState({
     placa: '',
     tipo: '',
@@ -443,7 +443,7 @@ export default function MinhaFrota() {
   // Handle photo removal for vehicle
   const handleRemoveVehiclePhoto = async (veiculoId: string, fotoUrl: string | null) => {
     if (!fotoUrl) return;
-    
+
     try {
       // Extract file path from URL
       const urlParts = fotoUrl.split('/fotos-frota/');
@@ -470,7 +470,7 @@ export default function MinhaFrota() {
   // Handle photo removal for carroceria
   const handleRemoveCarroceriaPhoto = async (carroceriaId: string, fotoUrl: string | null) => {
     if (!fotoUrl) return;
-    
+
     try {
       // Extract file path from URL
       const urlParts = fotoUrl.split('/fotos-frota/');
@@ -511,13 +511,13 @@ export default function MinhaFrota() {
       const filePath = `veiculos/${folder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .getPublicUrl(filePath);
 
       setNewVeiculo(prev => ({ ...prev, [fieldName]: urlData.publicUrl }));
@@ -1078,14 +1078,14 @@ export default function MinhaFrota() {
                   <div className="space-y-2">
                     <Label>Foto do Veículo</Label>
                     <div className="flex items-center gap-4">
-                      <div 
+                      <div
                         className="relative w-32 h-24 rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer overflow-hidden bg-muted/50"
                         onClick={() => fileInputRef.current?.click()}
                       >
                         {photoPreview ? (
-                          <img 
-                            src={photoPreview} 
-                            alt="Preview" 
+                          <img
+                            src={photoPreview}
+                            alt="Preview"
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -1141,8 +1141,8 @@ export default function MinhaFrota() {
                       onValueChange={(v) => {
                         // Auto-set carroceria_integrada based on vehicle type
                         const hasIntegrated = VEICULOS_COM_CARROCERIA_INTEGRADA.includes(v);
-                        setNewVeiculo({ 
-                          ...newVeiculo, 
+                        setNewVeiculo({
+                          ...newVeiculo,
                           tipo: v,
                           carroceria_integrada: hasIntegrated,
                           carroceria: hasIntegrated ? newVeiculo.carroceria : 'apenas_cavalo',
@@ -1172,8 +1172,8 @@ export default function MinhaFrota() {
                     </div>
                     <Switch
                       checked={newVeiculo.carroceria_integrada}
-                      onCheckedChange={(checked) => setNewVeiculo({ 
-                        ...newVeiculo, 
+                      onCheckedChange={(checked) => setNewVeiculo({
+                        ...newVeiculo,
                         carroceria_integrada: checked,
                         carroceria: checked ? (newVeiculo.carroceria === 'apenas_cavalo' ? 'fechada_bau' : newVeiculo.carroceria) : 'apenas_cavalo',
                         capacidade_kg: checked ? newVeiculo.capacidade_kg : '',
@@ -1462,14 +1462,14 @@ export default function MinhaFrota() {
                   <div className="space-y-2">
                     <Label>Foto da Carroceria</Label>
                     <div className="flex items-center gap-4">
-                      <div 
+                      <div
                         className="relative w-32 h-24 rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer overflow-hidden bg-muted/50"
                         onClick={() => fileInputRef.current?.click()}
                       >
                         {photoPreview ? (
-                          <img 
-                            src={photoPreview} 
-                            alt="Preview" 
+                          <img
+                            src={photoPreview}
+                            alt="Preview"
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -1771,7 +1771,7 @@ export default function MinhaFrota() {
                               onColumnDrop={handleVeiculoDrop}
                               className={
                                 col.sticky === 'left' ? 'sticky left-0 bg-muted/50 z-10' :
-                                col.sticky === 'right' ? 'sticky right-0 bg-muted/50 z-10' : ''
+                                  col.sticky === 'right' ? 'sticky right-0 bg-muted/50 z-10' : ''
                               }
                             >
                               {col.label}
@@ -1827,123 +1827,123 @@ export default function MinhaFrota() {
               <div className="flex flex-col flex-1 min-h-0">
                 <div className="flex-1 overflow-auto">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {paginatedVeiculos.map((veiculo) => (
-                  <Card key={veiculo.id} className={`border-border ${!veiculo.ativo ? 'opacity-60' : ''}`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          {/* Square photo avatar */}
-                          <div
-                            className="w-10 h-10 rounded-lg bg-muted/50 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer group relative"
-                            onClick={() => cardFileInputRefs.current[veiculo.id]?.click()}
-                          >
-                            {uploadingPhoto === veiculo.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                            ) : veiculo.foto_url ? (
-                              <img src={veiculo.foto_url} alt={veiculo.placa} className="w-full h-full object-cover" />
-                            ) : (
-                              <Truck className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                            )}
-                            <input
-                              ref={(el) => cardFileInputRefs.current[veiculo.id] = el}
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleVehiclePhotoUpload(veiculo.id, file);
-                              }}
-                              className="hidden"
-                            />
+                    {paginatedVeiculos.map((veiculo) => (
+                      <Card key={veiculo.id} className={`border-border ${!veiculo.ativo ? 'opacity-60' : ''}`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 min-w-0">
+                              {/* Square photo avatar */}
+                              <div
+                                className="w-10 h-10 rounded-lg bg-muted/50 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer group relative"
+                                onClick={() => cardFileInputRefs.current[veiculo.id]?.click()}
+                              >
+                                {uploadingPhoto === veiculo.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                ) : veiculo.foto_url ? (
+                                  <img src={veiculo.foto_url} alt={veiculo.placa} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Truck className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                )}
+                                <input
+                                  ref={(el) => cardFileInputRefs.current[veiculo.id] = el}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleVehiclePhotoUpload(veiculo.id, file);
+                                  }}
+                                  className="hidden"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="font-semibold text-foreground">{veiculo.placa}</h3>
+                                  <Badge variant={veiculo.ativo ? 'outline' : 'destructive'} className={`text-[10px] ${veiculo.ativo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''}`}>
+                                    {veiculo.ativo ? 'Ativo' : 'Inativo'}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate">{veiculo.marca} {veiculo.modelo} {veiculo.ano && `(${veiculo.ano})`}</p>
+                                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                  <Badge variant="secondary" className="text-[10px]">{tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}</Badge>
+                                  {veiculo.carroceria_integrada ? (
+                                    <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">{tipoCarroceriaLabels[veiculo.carroceria] || veiculo.carroceria}</Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Apenas Cavalo</Badge>
+                                  )}
+                                  {veiculo.seguro_ativo && <Badge variant="outline" className="text-[10px] gap-0.5"><Shield className="w-3 h-3" /></Badge>}
+                                  {veiculo.rastreador && <Badge variant="outline" className="text-[10px] gap-0.5"><Gauge className="w-3 h-3" /></Badge>}
+                                </div>
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setViewingVeiculo(veiculo)}>
+                                  <Search className="w-4 h-4 mr-2" />Ver mais
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => cardFileInputRefs.current[veiculo.id]?.click()}>
+                                  <Upload className="w-4 h-4 mr-2" />{veiculo.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
+                                </DropdownMenuItem>
+                                {veiculo.foto_url && (
+                                  <DropdownMenuItem onClick={() => handleRemoveVehiclePhoto(veiculo.id, veiculo.foto_url)}>
+                                    <ImageOff className="w-4 h-4 mr-2" />Remover Foto
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
+                                  <Edit className="w-4 h-4 mr-2" />Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive" onClick={() => deleteVeiculo.mutate(veiculo.id)}>
+                                  <Trash2 className="w-4 h-4 mr-2" />Remover
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold text-foreground">{veiculo.placa}</h3>
-                              <Badge variant={veiculo.ativo ? 'outline' : 'destructive'} className={`text-[10px] ${veiculo.ativo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''}`}>
-                                {veiculo.ativo ? 'Ativo' : 'Inativo'}
+                          {/* Motorista */}
+                          {veiculo.motorista && (
+                            <div className="flex gap-1 mt-3 flex-wrap">
+                              <Badge variant="outline" className="text-xs gap-1">
+                                <User className="w-3 h-3" />{veiculo.motorista.nome_completo}
                               </Badge>
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">{veiculo.marca} {veiculo.modelo} {veiculo.ano && `(${veiculo.ano})`}</p>
-                            <div className="flex items-center gap-2 mt-2 flex-wrap">
-                              <Badge variant="secondary" className="text-[10px]">{tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}</Badge>
-                              {veiculo.carroceria_integrada ? (
-                                <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">{tipoCarroceriaLabels[veiculo.carroceria] || veiculo.carroceria}</Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-[10px] text-muted-foreground">Apenas Cavalo</Badge>
-                              )}
-                              {veiculo.seguro_ativo && <Badge variant="outline" className="text-[10px] gap-0.5"><Shield className="w-3 h-3" /></Badge>}
-                              {veiculo.rastreador && <Badge variant="outline" className="text-[10px] gap-0.5"><Gauge className="w-3 h-3" /></Badge>}
-                            </div>
-                          </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setViewingVeiculo(veiculo)}>
-                              <Search className="w-4 h-4 mr-2" />Ver mais
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => cardFileInputRefs.current[veiculo.id]?.click()}>
-                              <Upload className="w-4 h-4 mr-2" />{veiculo.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
-                            </DropdownMenuItem>
-                            {veiculo.foto_url && (
-                              <DropdownMenuItem onClick={() => handleRemoveVehiclePhoto(veiculo.id, veiculo.foto_url)}>
-                                <ImageOff className="w-4 h-4 mr-2" />Remover Foto
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => setEditingVeiculo(veiculo)}>
-                              <Edit className="w-4 h-4 mr-2" />Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => deleteVeiculo.mutate(veiculo.id)}>
-                              <Trash2 className="w-4 h-4 mr-2" />Remover
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      {/* Motorista */}
-                      {veiculo.motorista && (
-                        <div className="flex gap-1 mt-3 flex-wrap">
-                          <Badge variant="outline" className="text-xs gap-1">
-                            <User className="w-3 h-3" />{veiculo.motorista.nome_completo}
-                          </Badge>
-                        </div>
-                      )}
-                     </CardContent>
-                  </Card>
-                ))}
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </div>
-              {/* Grid Pagination */}
-              {totalPagesVeiculos > 1 && (
-                <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4 shrink-0">
-                  <p className="text-sm text-muted-foreground">
-                    Mostrando {((currentPageVeiculos - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPageVeiculos * ITEMS_PER_PAGE, sortedVeiculos.length)} de {sortedVeiculos.length} registros
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPageVeiculos(p => Math.max(1, p - 1))} disabled={currentPageVeiculos === 1}>
-                      <ChevronLeft className="w-4 h-4 mr-1" />Anterior
-                    </Button>
-                    {Array.from({ length: Math.min(5, totalPagesVeiculos) }, (_, i) => {
-                      let pageNum: number;
-                      if (totalPagesVeiculos <= 5) pageNum = i + 1;
-                      else if (currentPageVeiculos <= 3) pageNum = i + 1;
-                      else if (currentPageVeiculos >= totalPagesVeiculos - 2) pageNum = totalPagesVeiculos - 4 + i;
-                      else pageNum = currentPageVeiculos - 2 + i;
-                      return (
-                        <Button key={pageNum} variant={currentPageVeiculos === pageNum ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPageVeiculos(pageNum)}>
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPageVeiculos(p => Math.min(totalPagesVeiculos, p + 1))} disabled={currentPageVeiculos === totalPagesVeiculos}>
-                      Próximo<ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
+                {/* Grid Pagination */}
+                {totalPagesVeiculos > 1 && (
+                  <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4 shrink-0">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {((currentPageVeiculos - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPageVeiculos * ITEMS_PER_PAGE, sortedVeiculos.length)} de {sortedVeiculos.length} registros
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="sm" onClick={() => setCurrentPageVeiculos(p => Math.max(1, p - 1))} disabled={currentPageVeiculos === 1}>
+                        <ChevronLeft className="w-4 h-4 mr-1" />Anterior
+                      </Button>
+                      {Array.from({ length: Math.min(5, totalPagesVeiculos) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPagesVeiculos <= 5) pageNum = i + 1;
+                        else if (currentPageVeiculos <= 3) pageNum = i + 1;
+                        else if (currentPageVeiculos >= totalPagesVeiculos - 2) pageNum = totalPagesVeiculos - 4 + i;
+                        else pageNum = currentPageVeiculos - 2 + i;
+                        return (
+                          <Button key={pageNum} variant={currentPageVeiculos === pageNum ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPageVeiculos(pageNum)}>
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                      <Button variant="outline" size="sm" onClick={() => setCurrentPageVeiculos(p => Math.min(totalPagesVeiculos, p + 1))} disabled={currentPageVeiculos === totalPagesVeiculos}>
+                        Próximo<ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             )}
           </div>}
 
@@ -2058,7 +2058,7 @@ export default function MinhaFrota() {
                               onColumnDrop={handleCarroceriaDrop}
                               className={
                                 col.sticky === 'left' ? 'sticky left-0 bg-muted/50 z-10' :
-                                col.sticky === 'right' ? 'sticky right-0 bg-muted/50 z-10' : ''
+                                  col.sticky === 'right' ? 'sticky right-0 bg-muted/50 z-10' : ''
                               }
                             >
                               {col.label}
@@ -2114,113 +2114,113 @@ export default function MinhaFrota() {
               <div className="flex flex-col flex-1 min-h-0">
                 <div className="flex-1 overflow-auto">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {paginatedCarrocerias.map((carroceria) => {
-                  const veiculoAtrelado = veiculos.find(
-                    (v) => v.motorista?.id === carroceria.motorista?.id && carroceria.motorista?.id
-                  );
-                  return (
-                  <Card key={carroceria.id} className={`border-border ${!carroceria.ativo ? 'opacity-60' : ''}`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div
-                            className="w-10 h-10 rounded-lg bg-muted/50 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer group"
-                            onClick={() => cardFileInputRefs.current[carroceria.id]?.click()}
-                          >
-                            {uploadingPhoto === carroceria.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                            ) : carroceria.foto_url ? (
-                              <img src={carroceria.foto_url} alt={carroceria.placa} className="w-full h-full object-cover" />
-                            ) : (
-                              <Container className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                            )}
-                            <input
-                              ref={(el) => cardFileInputRefs.current[carroceria.id] = el}
-                              type="file" accept="image/*"
-                              onChange={(e) => { const file = e.target.files?.[0]; if (file) handleCarroceriaPhotoUpload(carroceria.id, file); }}
-                              className="hidden"
-                            />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold text-foreground">{carroceria.placa}</h3>
-                              <Badge variant={carroceria.ativo ? 'outline' : 'destructive'} className={`text-[10px] ${carroceria.ativo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''}`}>
-                                {carroceria.ativo ? 'Ativa' : 'Inativa'}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground truncate">{carroceria.marca} {carroceria.modelo} {carroceria.ano && `(${carroceria.ano})`}</p>
-                            <div className="flex items-center gap-2 mt-2 flex-wrap">
-                              <Badge variant="secondary" className="text-[10px]">{tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}</Badge>
-                              {carroceria.capacidade_kg && (
-                                <Badge variant="outline" className="text-[10px] gap-0.5"><Weight className="w-3 h-3" />{(carroceria.capacidade_kg / 1000).toLocaleString('pt-BR')}t</Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setViewingCarroceria(carroceria)}>
-                              <Search className="w-4 h-4 mr-2" />Ver mais
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => cardFileInputRefs.current[carroceria.id]?.click()}>
-                              <Upload className="w-4 h-4 mr-2" />{carroceria.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
-                            </DropdownMenuItem>
-                            {carroceria.foto_url && (
-                              <DropdownMenuItem onClick={() => handleRemoveCarroceriaPhoto(carroceria.id, carroceria.foto_url)}>
-                                <ImageOff className="w-4 h-4 mr-2" />Remover Foto
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => setEditingCarroceria(carroceria)}>
-                              <Edit className="w-4 h-4 mr-2" />Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => deleteCarroceria.mutate(carroceria.id)}>
-                              <Trash2 className="w-4 h-4 mr-2" />Remover
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      <div className="flex gap-1 mt-3 flex-wrap">
-                        {veiculoAtrelado && (<Badge variant="outline" className="text-xs gap-1"><Car className="w-3 h-3" />{veiculoAtrelado.placa}</Badge>)}
-                        {carroceria.motorista && (<Badge variant="outline" className="text-xs gap-1"><User className="w-3 h-3" />{carroceria.motorista.nome_completo}</Badge>)}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  );
-                })}
-                  </div>
-                </div>
-              {/* Grid Pagination */}
-              {totalPagesCarrocerias > 1 && (
-                <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4 shrink-0">
-                  <p className="text-sm text-muted-foreground">
-                    Mostrando {((currentPageCarrocerias - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPageCarrocerias * ITEMS_PER_PAGE, sortedCarrocerias.length)} de {sortedCarrocerias.length} registros
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPageCarrocerias(p => Math.max(1, p - 1))} disabled={currentPageCarrocerias === 1}>
-                      <ChevronLeft className="w-4 h-4 mr-1" />Anterior
-                    </Button>
-                    {Array.from({ length: Math.min(5, totalPagesCarrocerias) }, (_, i) => {
-                      let pageNum: number;
-                      if (totalPagesCarrocerias <= 5) pageNum = i + 1;
-                      else if (currentPageCarrocerias <= 3) pageNum = i + 1;
-                      else if (currentPageCarrocerias >= totalPagesCarrocerias - 2) pageNum = totalPagesCarrocerias - 4 + i;
-                      else pageNum = currentPageCarrocerias - 2 + i;
+                    {paginatedCarrocerias.map((carroceria) => {
+                      const veiculoAtrelado = veiculos.find(
+                        (v) => v.motorista?.id === carroceria.motorista?.id && carroceria.motorista?.id
+                      );
                       return (
-                        <Button key={pageNum} variant={currentPageCarrocerias === pageNum ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPageCarrocerias(pageNum)}>
-                          {pageNum}
-                        </Button>
+                        <Card key={carroceria.id} className={`border-border ${!carroceria.ativo ? 'opacity-60' : ''}`}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3 min-w-0">
+                                <div
+                                  className="w-10 h-10 rounded-lg bg-muted/50 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer group"
+                                  onClick={() => cardFileInputRefs.current[carroceria.id]?.click()}
+                                >
+                                  {uploadingPhoto === carroceria.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                  ) : carroceria.foto_url ? (
+                                    <img src={carroceria.foto_url} alt={carroceria.placa} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Container className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                  )}
+                                  <input
+                                    ref={(el) => cardFileInputRefs.current[carroceria.id] = el}
+                                    type="file" accept="image/*"
+                                    onChange={(e) => { const file = e.target.files?.[0]; if (file) handleCarroceriaPhotoUpload(carroceria.id, file); }}
+                                    className="hidden"
+                                  />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="font-semibold text-foreground">{carroceria.placa}</h3>
+                                    <Badge variant={carroceria.ativo ? 'outline' : 'destructive'} className={`text-[10px] ${carroceria.ativo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20' : ''}`}>
+                                      {carroceria.ativo ? 'Ativa' : 'Inativa'}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground truncate">{carroceria.marca} {carroceria.modelo} {carroceria.ano && `(${carroceria.ano})`}</p>
+                                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                    <Badge variant="secondary" className="text-[10px]">{tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}</Badge>
+                                    {carroceria.capacidade_kg && (
+                                      <Badge variant="outline" className="text-[10px] gap-0.5"><Weight className="w-3 h-3" />{(carroceria.capacidade_kg / 1000).toLocaleString('pt-BR')}t</Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setViewingCarroceria(carroceria)}>
+                                    <Search className="w-4 h-4 mr-2" />Ver mais
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => cardFileInputRefs.current[carroceria.id]?.click()}>
+                                    <Upload className="w-4 h-4 mr-2" />{carroceria.foto_url ? 'Alterar Foto' : 'Adicionar Foto'}
+                                  </DropdownMenuItem>
+                                  {carroceria.foto_url && (
+                                    <DropdownMenuItem onClick={() => handleRemoveCarroceriaPhoto(carroceria.id, carroceria.foto_url)}>
+                                      <ImageOff className="w-4 h-4 mr-2" />Remover Foto
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem onClick={() => setEditingCarroceria(carroceria)}>
+                                    <Edit className="w-4 h-4 mr-2" />Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-destructive" onClick={() => deleteCarroceria.mutate(carroceria.id)}>
+                                    <Trash2 className="w-4 h-4 mr-2" />Remover
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                            <div className="flex gap-1 mt-3 flex-wrap">
+                              {veiculoAtrelado && (<Badge variant="outline" className="text-xs gap-1"><Car className="w-3 h-3" />{veiculoAtrelado.placa}</Badge>)}
+                              {carroceria.motorista && (<Badge variant="outline" className="text-xs gap-1"><User className="w-3 h-3" />{carroceria.motorista.nome_completo}</Badge>)}
+                            </div>
+                          </CardContent>
+                        </Card>
                       );
                     })}
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPageCarrocerias(p => Math.min(totalPagesCarrocerias, p + 1))} disabled={currentPageCarrocerias === totalPagesCarrocerias}>
-                      Próximo<ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
                   </div>
                 </div>
-              )}
-            </div>
+                {/* Grid Pagination */}
+                {totalPagesCarrocerias > 1 && (
+                  <div className="flex items-center justify-between border-t border-border bg-background px-4 py-3 mt-4 shrink-0">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {((currentPageCarrocerias - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPageCarrocerias * ITEMS_PER_PAGE, sortedCarrocerias.length)} de {sortedCarrocerias.length} registros
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="sm" onClick={() => setCurrentPageCarrocerias(p => Math.max(1, p - 1))} disabled={currentPageCarrocerias === 1}>
+                        <ChevronLeft className="w-4 h-4 mr-1" />Anterior
+                      </Button>
+                      {Array.from({ length: Math.min(5, totalPagesCarrocerias) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPagesCarrocerias <= 5) pageNum = i + 1;
+                        else if (currentPageCarrocerias <= 3) pageNum = i + 1;
+                        else if (currentPageCarrocerias >= totalPagesCarrocerias - 2) pageNum = totalPagesCarrocerias - 4 + i;
+                        else pageNum = currentPageCarrocerias - 2 + i;
+                        return (
+                          <Button key={pageNum} variant={currentPageCarrocerias === pageNum ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPageCarrocerias(pageNum)}>
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                      <Button variant="outline" size="sm" onClick={() => setCurrentPageCarrocerias(p => Math.min(totalPagesCarrocerias, p + 1))} disabled={currentPageCarrocerias === totalPagesCarrocerias}>
+                        Próximo<ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
           </div>}

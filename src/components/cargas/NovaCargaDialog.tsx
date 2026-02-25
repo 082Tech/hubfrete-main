@@ -59,28 +59,26 @@ const tipoCargaOptions: { value: TipoCarga; label: string }[] = [
   { value: 'container', label: 'Container' },
 ];
 
-type TipoPrecificacao = 'por_tonelada' | 'por_m3' | 'fixo' | 'por_km';
+type TipoPrecificacao = 'por_tonelada';
 
-const tipoPrecificacaoOptions: { value: TipoPrecificacao; label: string; suffix: string }[] = [
-  { value: 'por_tonelada', label: 'Por Tonelada', suffix: '/ton' },
-  { value: 'por_m3', label: 'Por m³', suffix: '/m³' },
-  { value: 'fixo', label: 'Fixo', suffix: '' },
-  { value: 'por_km', label: 'Por KM', suffix: '/km' },
-];
+// Helpers para calcular datas
+const todayStr = () => new Date().toISOString().split('T')[0];
+const addDays = (days: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+};
 
 const formSchema = z.object({
   // Dados da carga
   descricao: z.string().min(5, 'Descrição deve ter no mínimo 5 caracteres'),
   tipo: z.enum(['granel_solido', 'granel_liquido', 'carga_seca', 'refrigerada', 'congelada', 'perigosa', 'viva', 'indivisivel', 'container'] as const),
-  peso_kg: z.coerce.number().min(1, 'Peso deve ser maior que 0'),
+  peso_kg: z.coerce.number().int('O peso deve ser um número inteiro').min(1, 'Peso deve ser maior que 0'),
   volume_m3: z.coerce.number().optional(),
   quantidade_paletes: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
-  tipo_precificacao: z.enum(['por_tonelada', 'por_m3', 'fixo', 'por_km'] as const).default('por_tonelada'),
+  tipo_precificacao: z.literal('por_tonelada').default('por_tonelada'),
   valor_frete_tonelada: z.coerce.number().optional(),
-  valor_frete_m3: z.coerce.number().optional(),
-  valor_frete_fixo: z.coerce.number().optional(),
-  valor_frete_km: z.coerce.number().optional(),
   permite_fracionado: z.boolean().default(true),
 
   // Características especiais
@@ -97,6 +95,7 @@ const formSchema = z.object({
   data_coleta_de: z.string().min(1, 'Data de coleta é obrigatória'),
   data_coleta_ate: z.string().optional(),
   data_entrega_limite: z.string().optional(),
+  expira_em: z.string().min(1, 'Data de expiração é obrigatória'),
 
   // Regras de carregamento
   regras_carregamento: z.string().optional(),
@@ -161,9 +160,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       peso_kg: 0,
       tipo_precificacao: 'por_tonelada',
       valor_frete_tonelada: 0,
-      valor_frete_m3: undefined,
-      valor_frete_fixo: undefined,
-      valor_frete_km: undefined,
       permite_fracionado: true,
       carga_fragil: false,
       carga_perigosa: false,
@@ -171,27 +167,15 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       empilhavel: true,
       requer_refrigeracao: false,
       regras_carregamento: '',
+      expira_em: addDays(30),
     },
   });
 
   const pesoKg = form.watch('peso_kg');
-  const tipoPrecificacao = form.watch('tipo_precificacao');
   const valorFreteTonelada = form.watch('valor_frete_tonelada');
-  const valorFreteM3 = form.watch('valor_frete_m3');
-  const valorFreteFixo = form.watch('valor_frete_fixo');
-  const valorFreteKm = form.watch('valor_frete_km');
-  const volumeM3 = form.watch('volume_m3');
 
-  // Calcular preview do frete total baseado no tipo
-  const freteTotal = (() => {
-    switch (tipoPrecificacao) {
-      case 'por_tonelada': return pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
-      case 'por_m3': return volumeM3 && valorFreteM3 ? volumeM3 * valorFreteM3 : 0;
-      case 'fixo': return valorFreteFixo || 0;
-      case 'por_km': return 0; // Cannot calculate without distance
-      default: return 0;
-    }
-  })();
+  // Preview do frete total (por tonelada)
+  const freteTotal = pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
 
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
@@ -280,11 +264,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           volume_m3: values.volume_m3 || null,
           quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
-          tipo_precificacao: values.tipo_precificacao,
-          valor_frete_tonelada: values.tipo_precificacao === 'por_tonelada' ? (values.valor_frete_tonelada || null) : null,
-          valor_frete_m3: values.tipo_precificacao === 'por_m3' ? (values.valor_frete_m3 || null) : null,
-          valor_frete_fixo: values.tipo_precificacao === 'fixo' ? (values.valor_frete_fixo || null) : null,
-          valor_frete_km: values.tipo_precificacao === 'por_km' ? (values.valor_frete_km || null) : null,
+          tipo_precificacao: 'por_tonelada',
+          valor_frete_tonelada: values.valor_frete_tonelada || null,
+          valor_frete_m3: null,
+          valor_frete_fixo: null,
+          valor_frete_km: null,
           permite_fracionado: values.permite_fracionado,
           peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionadoCaptured : null,
           carga_fragil: values.carga_fragil,
@@ -299,6 +283,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           data_coleta_de: values.data_coleta_de ? `${values.data_coleta_de}T12:00:00` : values.data_coleta_de,
           data_coleta_ate: values.data_coleta_ate ? `${values.data_coleta_ate}T12:00:00` : null,
           data_entrega_limite: values.data_entrega_limite ? `${values.data_entrega_limite}T12:00:00` : null,
+          expira_em: `${values.expira_em}T23:59:59`,
           status: 'publicada',
           codigo: null as unknown as string,
           necessidades_especiais: necessidadesEspeciaisCaptured,
@@ -517,7 +502,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <FormItem>
                         <FormLabel>Peso (kg) *</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="0" {...field} />
+                          <Input
+                            type="number"
+                            step="1"
+                            placeholder="0"
+                            {...field}
+                            onChange={(e) => field.onChange(Math.floor(Number(e.target.value)))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -547,10 +538,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <FormItem>
                         <FormLabel>Qtd. Paletes</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="0" 
-                            value={field.value ?? ''} 
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={field.value ?? ''}
                             onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                           />
                         </FormControl>
@@ -581,118 +572,33 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     Valor do Frete
                   </h4>
 
-                  {/* Tipo de precificação - Radio buttons */}
-                  <FormField
-                    control={form.control}
-                    name="tipo_precificacao"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de Precificação</FormLabel>
-                        <div className="flex flex-wrap gap-2">
-                          {tipoPrecificacaoOptions.map((opt) => (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              onClick={() => field.onChange(opt.value)}
-                              className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                                field.value === opt.value
-                                  ? 'bg-primary text-primary-foreground border-primary'
-                                  : 'bg-background text-muted-foreground border-border hover:bg-muted'
-                              }`}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <div className="grid grid-cols-2 gap-4">
-                    {/* Dynamic value input based on pricing type */}
-                    {tipoPrecificacao === 'por_tonelada' && (
-                      <FormField
-                        control={form.control}
-                        name="valor_frete_tonelada"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Frete por Tonelada (R$)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-                    {tipoPrecificacao === 'por_m3' && (
-                      <FormField
-                        control={form.control}
-                        name="valor_frete_m3"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Frete por m³ (R$)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-                    {tipoPrecificacao === 'fixo' && (
-                      <FormField
-                        control={form.control}
-                        name="valor_frete_fixo"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Valor Fixo do Frete (R$)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-                    {tipoPrecificacao === 'por_km' && (
-                      <FormField
-                        control={form.control}
-                        name="valor_frete_km"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Frete por KM (R$)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
+                    <FormField
+                      control={form.control}
+                      name="valor_frete_tonelada"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Frete por Tonelada (R$)</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <div className="space-y-2">
-                      <Label className="text-sm">
-                        {tipoPrecificacao === 'por_km' ? 'Valor por KM' : 'Frete Total Estimado'}
-                      </Label>
+                      <Label className="text-sm">Frete Total Estimado</Label>
                       <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center">
                         <span className="font-bold text-primary">
-                          {tipoPrecificacao === 'por_km'
-                            ? (valorFreteKm ? `R$ ${valorFreteKm.toFixed(2)}/km` : 'Informe o valor/km')
-                            : freteTotal > 0
-                              ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
-                              : 'R$ 0,00'}
+                          {freteTotal > 0
+                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
+                            : 'R$ 0,00'}
                         </span>
                       </div>
-                      {tipoPrecificacao === 'por_tonelada' && pesoKg > 0 && (valorFreteTonelada ?? 0) > 0 && (
+                      {pesoKg > 0 && (valorFreteTonelada ?? 0) > 0 && (
                         <p className="text-xs text-muted-foreground">
                           {(pesoKg / 1000).toFixed(2)}t × R$ {(valorFreteTonelada ?? 0).toFixed(2)}/ton
-                        </p>
-                      )}
-                      {tipoPrecificacao === 'por_m3' && (volumeM3 ?? 0) > 0 && (valorFreteM3 ?? 0) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {(volumeM3 ?? 0).toFixed(2)}m³ × R$ {(valorFreteM3 ?? 0).toFixed(2)}/m³
                         </p>
                       )}
                     </div>
@@ -721,10 +627,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
                       <Input
                         type="number"
+                        step="1"
                         placeholder="Ex: 15000 (15 toneladas)"
                         className="mt-2"
                         value={pesoMinimoFracionado || ''}
-                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Number(e.target.value) : null)}
+                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Math.floor(Number(e.target.value)) : null)}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Deixe vazio para não ter limite mínimo
@@ -771,6 +678,33 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Expiração da publicação */}
+                <div className="p-4 rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/10">
+                  <FormField
+                    control={form.control}
+                    name="expira_em"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-amber-800 dark:text-amber-300 font-medium">
+                          Expiração da Publicação
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            min={todayStr()}
+                            max={addDays(365)}
+                            {...field}
+                          />
+                        </FormControl>
+                        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
+                          A carga será removida automaticamente nesta data se não for totalmente carregada. Máximo: 1 ano.
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}

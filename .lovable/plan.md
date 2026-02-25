@@ -1,86 +1,86 @@
 
 
-## Configuracao de Ambientes: Producao + Teste (Supabase Branching + GitHub)
+# Plano: Completar Schema Fiscal para API Focus NFe
 
-### Visao geral
+## Resumo
 
-Criar dois ambientes isolados:
-- **Producao** (branch `main`) -- o que ja esta rodando hoje
-- **Teste** (branch `develop`) -- para desenvolvimento e validacao
+Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
 
-Usando Supabase Branching (plano Pro) integrado ao GitHub.
+## Situacao Atual
+
+Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
+
+## Alteracoes Necessarias
+
+### Migracao Unica
+
+Adicionar duas colunas a tabela `config_fiscal`:
+
+| Coluna | Tipo | Default | Finalidade |
+|--------|------|---------|------------|
+| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
+| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
+
+### Atualizacao do Frontend
+
+Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
+- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
+- Campo numerico para o percentual da base de calculo do ICMS
+
+### Atualizacao dos Tipos TypeScript
+
+Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
 
 ---
 
-### Passo a passo
+## Secao Tecnica
 
-#### Etapa 1: Habilitar Supabase Branching (no Dashboard do Supabase)
+### SQL da Migracao
 
-1. Acesse **Supabase Dashboard > Project Settings > Branching**
-2. Clique em **Enable Branching**
-3. O Supabase vai pedir para conectar ao repositorio GitHub do projeto (se ainda nao estiver conectado)
-4. Autorize a integracao -- o Supabase precisa de acesso ao repo para detectar branches e PRs
+```sql
+ALTER TABLE public.config_fiscal
+  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
+  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
 
-> **Importante**: Ao habilitar, o Supabase passa a criar automaticamente uma instancia preview (banco isolado) para cada branch/PR no GitHub
-
-#### Etapa 2: Criar a branch `develop` no GitHub
-
-1. No GitHub, crie a branch `develop` a partir da `main`
-2. Assim que a branch existir e o Branching estiver habilitado, o Supabase cria automaticamente um **Preview Branch** com:
-   - Banco de dados isolado (copia do schema, sem dados de producao)
-   - Segredos herdados da producao
-   - URL propria para testes
-
-#### Etapa 3: Configurar o Lovable para trabalhar com a branch `develop`
-
-1. No Lovable, va em **Account Settings > Labs** e ative o **GitHub Branch Switching**
-2. Depois, no projeto, troque para a branch `develop`
-3. A partir dai, todas as alteracoes feitas no Lovable vao para a branch `develop` no GitHub
-4. O Supabase Preview Branch sera usado automaticamente (as migrations rodam contra o banco de teste)
-
-#### Etapa 4: Fluxo de trabalho
-
-```text
-Desenvolvimento (branch develop)
-        |
-        | -- push / alteracoes no Lovable
-        |
-        v
-  Supabase Preview Branch (banco de teste)
-        |
-        | -- quando pronto: abrir PR develop -> main
-        |
-        v
-  Merge na main --> Producao (banco principal)
+COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
+  IS '1 = Simples Nacional, 3 = Regime Normal';
+COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
+  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
 ```
 
-- **Develop**: toda experimentacao e desenvolvimento acontece aqui
-- **Main**: so recebe codigo validado via merge/PR
-- Os dados de producao nunca sao afetados pelo ambiente de teste
+### Mapeamento Completo: Banco -> Payload API
 
----
+Com essas 2 colunas adicionadas, o mapeamento fica completo:
 
-### O que eu NAO posso fazer por voce (precisa ser feito manualmente)
+**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
+- CNPJ: `empresas.cnpj_matriz`
+- IE: `empresas.inscricao_estadual`
+- Razao Social: `empresas.razao_social`
+- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
+- Municipio IBGE: `filiais.codigo_municipio_ibge`
+- UF: `filiais.estado`
+- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
 
-| Acao | Onde fazer |
-|------|-----------|
-| Habilitar Branching | Supabase Dashboard > Settings > Branching |
-| Conectar repo ao Supabase Branching | Supabase Dashboard (autorizacao GitHub) |
-| Criar branch `develop` | GitHub |
-| Ativar Branch Switching no Lovable | Account Settings > Labs |
+**Fiscal**: `config_fiscal`
+- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
+- Natureza: `natureza_operacao`
+- Serie/Numero: `serie_cte` / `proximo_numero_cte`
+- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
+- Ambiente: `ambiente`
 
-### O que eu POSSO fazer depois
+**Remetente/Destinatario**: `cargas` + `enderecos_carga`
+**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
+**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
 
-- Ajustar variaveis de ambiente se necessario
-- Criar migrations que rodem nos dois ambientes
-- Adaptar codigo para detectar ambiente (teste vs producao) se precisar de comportamento diferente
+### Campos Derivados por Logica (sem banco)
+- `data_emissao`: gerado no momento da emissao
+- `tipo_documento`: sempre `0` (Normal)
+- `modal`: sempre `01` (Rodoviario)
+- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
 
----
+### Sequencia de Implementacao
 
-### Observacoes importantes
-
-- **Dados NAO sao sincronizados** entre ambientes -- o banco de teste comeca vazio (apenas schema)
-- **Migrations sao compartilhadas** -- ao fazer merge da `develop` na `main`, as migrations rodam na producao
-- Se precisar de dados de teste, sera necessario criar seeds ou inserir manualmente no banco preview
-- O Supabase Branching cobra pelo tempo de uso das instancias preview (incluso no Pro com limites)
+1. Aplicar migracao SQL (1 migration)
+2. Atualizar types.ts
+3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
 

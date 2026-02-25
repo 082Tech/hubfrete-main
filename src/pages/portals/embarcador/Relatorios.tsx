@@ -1,7 +1,7 @@
 // Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   BarChart3,
   TrendingUp,
   TrendingDown,
@@ -19,12 +19,12 @@ import {
   Activity
 } from 'lucide-react';
 import {
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -195,35 +195,35 @@ export default function Relatorios() {
     const valorMercadoriaTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0);
     const pesoTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.peso_kg) || 0), 0);
     const volumeTotal = filteredCargas.reduce((acc, c) => acc + (Number(c.volume_m3) || 0), 0);
-    
+
     const freteTotal = filteredEntregas.reduce((acc, e) => acc + (Number(e.valor_frete) || 0), 0);
     const entregasComFrete = filteredEntregas.filter(e => Number(e.valor_frete) > 0).length;
     const ticketMedio = entregasComFrete > 0 ? freteTotal / entregasComFrete : 0;
-    
-    const custoFretePercentual = valorMercadoriaTotal > 0 
-      ? (freteTotal / valorMercadoriaTotal) * 100 
+
+    const custoFretePercentual = valorMercadoriaTotal > 0
+      ? (freteTotal / valorMercadoriaTotal) * 100
       : 0;
-    
+
     const entregues = filteredEntregas.filter(e => e.status === 'entregue').length;
     const emTransito = filteredEntregas.filter(e => e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega').length;
-    const aguardandoColeta = filteredEntregas.filter(e => 
+    const aguardandoColeta = filteredEntregas.filter(e =>
       e.status === 'aguardando'
     ).length;
     const problemas = filteredEntregas.filter(e => e.status === 'problema').length;
     const canceladas = filteredEntregas.filter(e => e.status === 'cancelada').length;
-    
-    const taxaConclusao = filteredEntregas.length > 0 
-      ? Math.round((entregues / filteredEntregas.length) * 100) 
+
+    const taxaConclusao = filteredEntregas.length > 0
+      ? Math.round((entregues / filteredEntregas.length) * 100)
       : 0;
-    
+
     // OTIF calculations
-    const entreguesComData = filteredEntregas.filter(e => 
+    const entreguesComData = filteredEntregas.filter(e =>
       e.status === 'entregue' && e.entregue_em
     );
-    
+
     let entreguesNoPrazo = 0;
     let totalLeadTime = 0;
-    
+
     entreguesComData.forEach(e => {
       const carga = e.cargas as any;
       if (carga?.data_entrega_limite && e.entregue_em) {
@@ -237,16 +237,16 @@ export default function Relatorios() {
         totalLeadTime += differenceInHours(parseISO(e.entregue_em), parseISO(e.coletado_em));
       }
     });
-    
-    const onTimeDelivery = entreguesComData.length > 0 
-      ? Math.round((entreguesNoPrazo / entreguesComData.length) * 100) 
+
+    const onTimeDelivery = entreguesComData.length > 0
+      ? Math.round((entreguesNoPrazo / entreguesComData.length) * 100)
       : 100;
-    const inFullDelivery = filteredEntregas.length > 0 
+    const inFullDelivery = filteredEntregas.length > 0
       ? Math.round(((filteredEntregas.length - canceladas) / filteredEntregas.length) * 100)
       : 100;
     const otifScore = Math.round((onTimeDelivery * inFullDelivery) / 100);
     const leadTimeAvg = entreguesComData.length > 0 ? totalLeadTime / entreguesComData.length : 0;
-    
+
     // Compare with previous period
     const periodDays = differenceInDays(dateRange.end, dateRange.start);
     const prevStart = subDays(dateRange.start, periodDays);
@@ -255,22 +255,22 @@ export default function Relatorios() {
       return createdAt >= prevStart && createdAt < dateRange.start;
     });
     const prevValor = prevCargas.reduce((acc, c) => acc + (Number(c.valor_mercadoria) || 0), 0);
-    
+
     const prevEntregas = entregas.filter(e => {
       const createdAt = parseISO(e.created_at);
       return createdAt >= prevStart && createdAt < dateRange.start;
     });
     const prevFrete = prevEntregas.reduce((acc, e) => acc + (Number(e.valor_frete) || 0), 0);
-    
-    const cargasChange = prevCargas.length > 0 
+
+    const cargasChange = prevCargas.length > 0
       ? Math.round(((totalCargas - prevCargas.length) / prevCargas.length) * 100)
       : totalCargas > 0 ? 100 : 0;
-    
-    const valorChange = prevValor > 0 
+
+    const valorChange = prevValor > 0
       ? Math.round(((valorMercadoriaTotal - prevValor) / prevValor) * 100)
       : valorMercadoriaTotal > 0 ? 100 : 0;
 
-    const freteChange = prevFrete > 0 
+    const freteChange = prevFrete > 0
       ? Math.round(((freteTotal - prevFrete) / prevFrete) * 100)
       : freteTotal > 0 ? 100 : 0;
 
@@ -313,12 +313,12 @@ export default function Relatorios() {
   // Top Destinos
   const topDestinosData = useMemo(() => {
     const destinoCounts: Record<string, { count: number; frete: number }> = {};
-    
+
     filteredEntregas.forEach(e => {
       const carga = e.cargas as any;
       const enderecoId = carga?.endereco_destino_id;
       const endereco = enderecosDestino.find(ed => ed.id === enderecoId);
-      
+
       if (endereco?.cidade && endereco?.estado) {
         const key = `${endereco.cidade}/${endereco.estado}`;
         if (!destinoCounts[key]) {
@@ -345,12 +345,12 @@ export default function Relatorios() {
     const maxPoints = 30;
     const step = Math.max(1, Math.ceil(totalDays / maxPoints));
     const days = [];
-    
+
     for (let i = 0; i <= totalDays; i += step) {
       const date = subDays(dateRange.end, totalDays - i);
       const dateStr = format(date, 'yyyy-MM-dd');
       const dayName = format(date, totalDays <= 7 ? 'EEE' : 'dd/MM', { locale: ptBR });
-      
+
       const cargasCount = filteredCargas.filter(c => {
         const cargaDate = format(parseISO(c.created_at), 'yyyy-MM-dd');
         if (step === 1) return cargaDate === dateStr;
@@ -358,7 +358,7 @@ export default function Relatorios() {
         const cargaParsed = parseISO(c.created_at);
         return cargaParsed >= startDate && cargaParsed <= date;
       }).length;
-      
+
       const entregasCount = filteredEntregas.filter(e => {
         if (!e.entregue_em) return false;
         const entregaDate = format(parseISO(e.entregue_em), 'yyyy-MM-dd');
@@ -425,7 +425,7 @@ export default function Relatorios() {
   // Monthly financial data for DRE
   const monthlyFinancialData = useMemo(() => {
     const months: Record<string, { receita: number; custo: number }> = {};
-    
+
     cargas.forEach(c => {
       const month = format(parseISO(c.created_at), 'MMM/yy', { locale: ptBR });
       if (!months[month]) months[month] = { receita: 0, custo: 0 };
@@ -452,12 +452,12 @@ export default function Relatorios() {
     for (let i = 3; i >= 0; i--) {
       const weekStart = subDays(new Date(), (i + 1) * 7);
       const weekEnd = subDays(new Date(), i * 7);
-      
+
       const weekEntregas = entregas.filter(e => {
         const date = parseISO(e.created_at);
         return date >= weekStart && date < weekEnd && e.status === 'entregue';
       });
-      
+
       let onTime = 0;
       weekEntregas.forEach(e => {
         const carga = e.cargas as any;
@@ -467,12 +467,12 @@ export default function Relatorios() {
           if (entregaDate <= limite) onTime++;
         }
       });
-      
+
       const canceladas = entregas.filter(e => {
         const date = parseISO(e.created_at);
         return date >= weekStart && date < weekEnd && e.status === 'cancelada';
       }).length;
-      
+
       const totalWeek = weekEntregas.length + canceladas;
       const onTimePercent = weekEntregas.length > 0 ? Math.round((onTime / weekEntregas.length) * 100) : 100;
       const inFullPercent = totalWeek > 0 ? Math.round(((totalWeek - canceladas) / totalWeek) * 100) : 100;
@@ -493,12 +493,12 @@ export default function Relatorios() {
     for (let i = 3; i >= 0; i--) {
       const weekStart = subDays(new Date(), (i + 1) * 7);
       const weekEnd = subDays(new Date(), i * 7);
-      
+
       const weekEntregas = entregas.filter(e => {
         const date = parseISO(e.created_at);
         return date >= weekStart && date < weekEnd && e.status === 'entregue' && e.coletado_em && e.entregue_em;
       });
-      
+
       let totalHours = 0;
       weekEntregas.forEach(e => {
         if (e.coletado_em && e.entregue_em) {
@@ -597,7 +597,7 @@ export default function Relatorios() {
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <ReportTabs>
+          <ReportTabs portalType="embarcador">
             {{
               overview: (
                 <>
@@ -630,7 +630,7 @@ export default function Relatorios() {
                       <CardContent className="p-5">
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-sm text-muted-foreground">Frete Total</p>
+                            <p className="text-sm text-muted-foreground">Gasto com Frete</p>
                             <p className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.freteTotal)}</p>
                             <p className="text-xs text-muted-foreground mt-1">
                               ~{formatCurrency(kpis.mediaFreteDia)}/dia
@@ -700,7 +700,7 @@ export default function Relatorios() {
                         </div>
                         <div>
                           <p className="text-lg font-bold text-foreground">{kpis.custoFretePercentual.toFixed(1)}%</p>
-                          <p className="text-xs text-muted-foreground">Frete/Mercad.</p>
+                          <p className="text-xs text-muted-foreground">% Frete/Mercadoria</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -802,20 +802,20 @@ export default function Relatorios() {
                           <AreaChart data={activityChartData}>
                             <defs>
                               <linearGradient id="colorCargasE" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                               </linearGradient>
                               <linearGradient id="colorEntregasE" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
+                                <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                             <XAxis dataKey="name" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                             <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                            <Tooltip 
-                              contentStyle={{ 
-                                backgroundColor: 'hsl(var(--popover))', 
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: 'hsl(var(--popover))',
                                 border: '1px solid hsl(var(--border))',
                                 borderRadius: '8px'
                               }}
@@ -854,9 +854,9 @@ export default function Relatorios() {
                                 <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                               ))}
                             </Pie>
-                            <Tooltip 
-                              contentStyle={{ 
-                                backgroundColor: 'hsl(var(--popover))', 
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: 'hsl(var(--popover))',
                                 border: '1px solid hsl(var(--border))',
                                 borderRadius: '8px'
                               }}
@@ -869,7 +869,7 @@ export default function Relatorios() {
                 </>
               ),
               financial: (
-                <FinancialTab 
+                <FinancialTab
                   metrics={financialMetrics}
                   monthlyData={monthlyFinancialData}
                   costBreakdown={tipoCargaData.map(t => ({ name: t.name, value: t.value }))}
@@ -878,7 +878,7 @@ export default function Relatorios() {
                 />
               ),
               performance: (
-                <PerformanceTab 
+                <PerformanceTab
                   metrics={performanceMetrics}
                   otifTrend={otifTrendData}
                   leadTimeData={leadTimeData}
@@ -886,7 +886,7 @@ export default function Relatorios() {
                 />
               ),
               operational: (
-                <OperationalTab 
+                <OperationalTab
                   metrics={operationalMetrics}
                   topRoutes={topDestinosData}
                   vehicleUsage={tipoCargaData}

@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -101,6 +102,7 @@ interface EntregaData {
   coletado_em: string | null;
   entregue_em: string | null;
   created_at: string | null;
+  previsao_coleta: string | null;
   motorista_id: string | null;
   cte_url: string | null;
   manifesto_url: string | null;
@@ -142,6 +144,7 @@ interface CargaData {
   data_coleta_ate: string | null;
   data_entrega_limite: string | null;
   created_at: string;
+  expira_em: string;
   // Remetente fields
   remetente_razao_social: string | null;
   remetente_nome_fantasia: string | null;
@@ -233,7 +236,7 @@ export default function CargasPublicadas() {
     queryKey: ['todas-cargas', filialAtiva?.id],
     queryFn: async () => {
       if (!filialAtiva?.id) return [];
-      
+
       const { data, error } = await supabase
         .from('cargas')
         .select(`
@@ -247,6 +250,7 @@ export default function CargasPublicadas() {
           valor_mercadoria,
           valor_frete_tonelada,
           tipo_precificacao,
+          expira_em,
           valor_frete_m3,
           valor_frete_fixo,
           valor_frete_km,
@@ -310,6 +314,7 @@ export default function CargasPublicadas() {
             status,
             coletado_em,
             entregue_em,
+            previsao_coleta,
             created_at,
             motorista_id,
             cte_url,
@@ -337,8 +342,8 @@ export default function CargasPublicadas() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      return (data || []).map(item => ({
+
+      return (data || []).map((item: any) => ({
         ...item,
         entregas: Array.isArray(item.entregas) ? item.entregas : (item.entregas ? [item.entregas] : [])
       })) as CargaData[];
@@ -348,7 +353,7 @@ export default function CargasPublicadas() {
 
   // Helper functions
   const getPesoDisponivel = (carga: CargaData) => carga.peso_disponivel_kg ?? carga.peso_kg;
-  
+
   const getPercentualAlocado = (carga: CargaData) => {
     const disponivel = getPesoDisponivel(carga);
     return ((carga.peso_kg - disponivel) / carga.peso_kg) * 100;
@@ -369,9 +374,9 @@ export default function CargasPublicadas() {
   const filteredCargas = useMemo(() => {
     // First, filter out all finalized cargas - this page only shows active ones
     let result = cargas.filter(carga => !allEntregasFinalized(carga));
-    
+
     // Apply search
-    result = result.filter(carga => 
+    result = result.filter(carga =>
       carga.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       carga.descricao.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -441,7 +446,7 @@ export default function CargasPublicadas() {
   const getEnderecoData = (carga: CargaData, tipo: 'origem' | 'destino') => {
     const endereco = tipo === 'origem' ? carga.endereco_origem : carga.endereco_destino;
     if (!endereco) return { empresa: '-', cidade: '-', enderecoCompleto: '-' };
-    
+
     const enderecoCompleto = [
       endereco.logradouro,
       endereco.numero,
@@ -449,7 +454,7 @@ export default function CargasPublicadas() {
       `${endereco.cidade}/${endereco.estado}`,
       endereco.cep
     ].filter(Boolean).join(', ');
-    
+
     let empresa: string;
     if (tipo === 'origem') {
       // Use remetente fields for origin
@@ -458,7 +463,7 @@ export default function CargasPublicadas() {
       // Use destinatario fields for destination
       empresa = carga.destinatario_nome_fantasia || carga.destinatario_razao_social || endereco.contato_nome || 'Destinatário';
     }
-    
+
     return { empresa, cidade: `${endereco.cidade}/${endereco.estado}`, enderecoCompleto };
   };
 
@@ -516,14 +521,14 @@ export default function CargasPublicadas() {
 
   // Stats - only for non-finalized cargas
   const activeCargas = useMemo(() => cargas.filter(c => !allEntregasFinalized(c)), [cargas]);
-  
+
   const stats = useMemo(() => {
     const freteEstimadoTotal = activeCargas.reduce((acc, c) => {
       const est = getFreteEstimado(c);
       return acc + (est || 0);
     }, 0);
     const freteAlocadoTotal = activeCargas.reduce((acc, c) => acc + getTotalFrete(c), 0);
-    
+
     return {
       total: activeCargas.length,
       aguardando: activeCargas.filter(c => getPercentualAlocado(c) === 0).length,
@@ -539,7 +544,7 @@ export default function CargasPublicadas() {
   // Handle delete cargo
   const handleDeleteCarga = async () => {
     if (!cargaToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       // Collect address IDs to delete after cargo deletion
@@ -618,8 +623,8 @@ export default function CargasPublicadas() {
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />;
-    return sortOrder === 'asc' 
-      ? <ArrowUp className="w-3 h-3 ml-1 text-primary" /> 
+    return sortOrder === 'asc'
+      ? <ArrowUp className="w-3 h-3 ml-1 text-primary" />
       : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
   };
 
@@ -629,22 +634,22 @@ export default function CargasPublicadas() {
 
     const getPageNumbers = () => {
       const pages: (number | 'ellipsis')[] = [];
-      
+
       if (totalPages <= 7) {
         for (let i = 1; i <= totalPages; i++) pages.push(i);
       } else {
         pages.push(1);
         if (currentPage > 3) pages.push('ellipsis');
-        
+
         const start = Math.max(2, currentPage - 1);
         const end = Math.min(totalPages - 1, currentPage + 1);
-        
+
         for (let i = start; i <= end; i++) pages.push(i);
-        
+
         if (currentPage < totalPages - 2) pages.push('ellipsis');
         pages.push(totalPages);
       }
-      
+
       return pages;
     };
 
@@ -672,8 +677,8 @@ export default function CargasPublicadas() {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          
-          {getPageNumbers().map((page, idx) => 
+
+          {getPageNumbers().map((page, idx) =>
             page === 'ellipsis' ? (
               <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
             ) : (
@@ -688,7 +693,7 @@ export default function CargasPublicadas() {
               </Button>
             )
           )}
-          
+
           <Button
             variant="outline"
             size="icon"
@@ -743,7 +748,7 @@ export default function CargasPublicadas() {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            <Card 
+            <Card
               className={`bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'all' ? 'ring-2 ring-primary ring-inset' : ''}`}
               onClick={() => setFilterStatus('all')}
             >
@@ -756,7 +761,7 @@ export default function CargasPublicadas() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'awaiting' ? 'ring-2 ring-amber-500 ring-inset' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'awaiting' ? 'all' : 'awaiting')}
             >
@@ -769,7 +774,7 @@ export default function CargasPublicadas() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'partial' ? 'ring-2 ring-sky-500 ring-inset' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'partial' ? 'all' : 'partial')}
             >
@@ -782,7 +787,7 @@ export default function CargasPublicadas() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className={`cursor-pointer hover:shadow-md transition-shadow ${filterStatus === 'allocated' ? 'ring-2 ring-emerald-500 ring-inset' : ''}`}
               onClick={() => setFilterStatus(filterStatus === 'allocated' ? 'all' : 'allocated')}
             >
@@ -955,20 +960,20 @@ export default function CargasPublicadas() {
                           const origem = getEnderecoData(carga, 'origem');
                           const destino = getEnderecoData(carga, 'destino');
                           const hasEntregas = carga.entregas.length > 0;
-                          
+
                           return (
-                            <>
+                            <React.Fragment key={carga.id}>
                               {/* Main Row */}
-                              <tr 
+                              <tr
                                 key={carga.id}
                                 className={`border-b transition-colors hover:bg-muted/50 ${hasEntregas ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
                                 onClick={() => hasEntregas && toggleRow(carga.id)}
                               >
                                 <td className="p-2 align-middle">
                                   {hasEntregas && (
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
                                       className="h-6 w-6"
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -988,6 +993,10 @@ export default function CargasPublicadas() {
                                     <p className="font-medium text-primary text-nowrap">{carga.codigo}</p>
                                     <p className="text-xs text-muted-foreground truncate max-w-[120px]">
                                       {carga.descricao}
+                                    </p>
+                                    <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 font-medium bg-muted/40 w-max px-1.5 py-0.5 rounded-sm">
+                                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                                      Expira: {formatDate(carga.expira_em)}
                                     </p>
                                   </div>
                                 </td>
@@ -1095,7 +1104,7 @@ export default function CargasPublicadas() {
                                         </DropdownMenuItem>
                                       )}
                                       {carga.entregas.length === 0 && (
-                                        <DropdownMenuItem 
+                                        <DropdownMenuItem
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setCargaToDelete(carga);
@@ -1142,7 +1151,7 @@ export default function CargasPublicadas() {
                                               const statusConfig = statusEntregaConfig[entrega.status] || statusEntregaConfig.aguardando;
                                               const StatusIcon = statusConfig.icon;
                                               const isHighlighted = highlightedEntregaId === entrega.id;
-                                              
+
                                               // Document count logic
                                               const hasCte = !!entrega.cte_url;
                                               const hasManifesto = !!entrega.manifesto_url;
@@ -1150,10 +1159,10 @@ export default function CargasPublicadas() {
                                               const hasNf = entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0;
                                               const docCount = [hasCte, hasManifesto, hasCanhoto, hasNf].filter(Boolean).length;
                                               const missingCritical = !hasCte || !hasManifesto;
-                                              
+
                                               return (
-                                                <tr 
-                                                  key={entrega.id} 
+                                                <tr
+                                                  key={entrega.id}
                                                   className={`border-b last:border-0 ${isHighlighted ? 'bg-primary/10 animate-pulse' : ''}`}
                                                 >
                                                   <td className="p-4 align-middle font-mono text-sm font-medium text-primary text-nowrap">
@@ -1238,7 +1247,7 @@ export default function CargasPublicadas() {
                                   </td>
                                 </tr>
                               )}
-                            </>
+                            </React.Fragment>
                           );
                         })}
                       </tbody>
@@ -1330,6 +1339,7 @@ export default function CargasPublicadas() {
               entregue_em: detailsEntrega.entrega.entregue_em,
               peso_alocado_kg: detailsEntrega.entrega.peso_alocado_kg,
               valor_frete: detailsEntrega.entrega.valor_frete,
+              previsao_coleta: detailsEntrega.entrega.previsao_coleta,
               motorista: detailsEntrega.entrega.motoristas ? {
                 id: detailsEntrega.entrega.motoristas.id,
                 nome_completo: detailsEntrega.entrega.motoristas.nome_completo,
@@ -1398,7 +1408,7 @@ export default function CargasPublicadas() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction 
+              <AlertDialogAction
                 onClick={handleDeleteCarga}
                 disabled={isDeleting}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

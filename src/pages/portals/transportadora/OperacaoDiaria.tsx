@@ -58,11 +58,12 @@ import {
   Download,
   FileText,
   Building2,
+  FileCode,
+  AlertTriangle,
   Calendar,
   Weight,
   DollarSign,
   Paperclip,
-  AlertTriangle,
   Search,
   HelpCircle,
   Route,
@@ -72,7 +73,7 @@ import { toast } from 'sonner';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
-import { DocumentButton } from '@/components/entregas/DocumentButton';
+import { EntregaDocumentosPanel } from '@/components/entregas/EntregaDocumentosPanel';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
@@ -108,11 +109,8 @@ interface Entrega {
   valor_frete: number | null;
   coletado_em: string | null;
   entregue_em: string | null;
+  previsao_coleta: string | null;
   // Documentos
-  cte_url: string | null;
-  numero_cte: string | null;
-  notas_fiscais_urls: string[] | null;
-  manifesto_url: string | null;
   canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
@@ -142,15 +140,13 @@ interface Entrega {
   }>;
 }
 
-// Helper para verificar documentos obrigatórios da entrega (3 docs: CT-e, Canhoto, NF-e)
-// Manifesto pertence à viagem, não à entrega
+// Helper para verificar documentos obrigatórios da entrega
+// Agora usa as tabelas ctes/nfes - placeholder local que verifica apenas canhoto
+// CT-e e NF-e são verificados via documentHelpers
 function checkRequiredDocuments(entrega: Entrega): { complete: boolean; missing: string[] } {
   const missing: string[] = [];
-
-  if (!entrega.cte_url) missing.push('CT-e');
+  // CT-e e NF-e agora vêm das tabelas separadas - por enquanto verificamos apenas canhoto localmente
   if (!entrega.canhoto_url) missing.push('Canhoto');
-  if (!entrega.notas_fiscais_urls || entrega.notas_fiscais_urls.length === 0) missing.push('Nota Fiscal');
-
   return { complete: missing.length === 0, missing };
 }
 
@@ -289,6 +285,51 @@ function DetailPanel({
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState<string>('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [nfeBlockMessage, setNfeBlockMessage] = useState<string | null>(null);
+  const [checkingNfe, setCheckingNfe] = useState(false);
+  const [existingCtes, setExistingCtes] = useState<any[]>([]);
+  const [unlinkedNfes, setUnlinkedNfes] = useState<any[]>([]);
+  const [docsRefreshKey, setDocsRefreshKey] = useState(0);
+
+  // Buscar status da viagem caso não venha nas props
+  const { data: fetchedViagemStatus } = useQuery({
+    queryKey: ['entrega-viagem-status-panel', entrega?.id],
+    queryFn: async () => {
+      if (!entrega?.id) return null;
+      const { data } = await supabase
+        .from('viagem_entregas')
+        .select('viagens(status)')
+        .eq('entrega_id', entrega.id)
+        .limit(1)
+        .maybeSingle();
+      return (data?.viagens as any)?.status || null;
+    },
+    enabled: !!entrega?.id && !viagemStatus,
+  });
+
+  const effectiveViagemStatus = viagemStatus || fetchedViagemStatus;
+
+  // Atualiza documentos quando entrega muda ou quando um doc é uploado
+  const refreshDocs = useCallback(() => {
+    setDocsRefreshKey(k => k + 1);
+    onRefresh();
+  }, [onRefresh]);
+
+  useEffect(() => {
+    if (entrega?.id) {
+      import('@/lib/documentHelpers').then(({ fetchCtesForEntregas, fetchNfesForEntrega }) => {
+        fetchCtesForEntregas([entrega.id]).then((map) => {
+          setExistingCtes(map[entrega.id] || []);
+        });
+        fetchNfesForEntrega(entrega.id).then((nfes) => {
+          setUnlinkedNfes(nfes.filter(nf => !nf.cte_id));
+        });
+      });
+    } else {
+      setExistingCtes([]);
+      setUnlinkedNfes([]);
+    }
+  }, [entrega?.id, docsRefreshKey]);
 
   if (!entrega) {
     return (
@@ -322,9 +363,9 @@ function DetailPanel({
 
   const nextStatus = getNextStatus();
   const isFinalized = entrega.status === 'entregue' || entrega.status === 'cancelada';
-  
-  // Verificar se a viagem está iniciada (não mais necessário, viagens já iniciam como aguardando)
-  const isViagemNotStarted = false;
+
+  // Verificar se a viagem está iniciada
+  const isViagemNotStarted = effectiveViagemStatus ? effectiveViagemStatus !== 'em_andamento' : false;
 
   const handleCancelConfirm = () => {
     onStatusChange('cancelada');
@@ -342,14 +383,31 @@ function DetailPanel({
     setActionConfirmDialogOpen(false);
   };
 
-  const handleActionClick = () => {
+  const handleActionClick = async () => {
     if (!nextStatus) return;
 
     if (nextStatus.status === 'entregue') {
-      // Precisa verificar documentos antes de marcar como entregue
       setEntregueDialogOpen(true);
+    } else if (nextStatus.status === 'saiu_para_entrega') {
+      // Check if NF-e is attached before allowing transition
+      setCheckingNfe(true);
+      try {
+        const { hasNfeAttached } = await import('@/lib/documentHelpers');
+        const hasNfe = await hasNfeAttached(entrega.id);
+        if (!hasNfe) {
+          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para entrega.');
+          setCheckingNfe(false);
+          return;
+        }
+        setNfeBlockMessage(null);
+        setActionConfirmDialogOpen(true);
+      } catch (err) {
+        console.error('Erro ao verificar NF-e:', err);
+        toast.error('Erro ao verificar documentos');
+      } finally {
+        setCheckingNfe(false);
+      }
     } else {
-      // Todas as ações precisam de confirmação
       setActionConfirmDialogOpen(true);
     }
   };
@@ -366,12 +424,11 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Contagem de documentos anexados (3 obrigatórios: CT-e, Canhoto, NF-e)
-  const docsCount = [
-    entrega.cte_url ? 1 : 0,
-    entrega.canhoto_url ? 1 : 0,
-    (entrega.notas_fiscais_urls?.length || 0) > 0 ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
+  // Contagem de documentos anexados - canhoto local, CT-es e NF-es
+  const docsCount = (entrega.canhoto_url ? 1 : 0)
+    + existingCtes.length
+    + existingCtes.reduce((acc, cte) => acc + (cte.nfes?.length || 0), 0)
+    + unlinkedNfes.length;
 
   return (
     <div className="h-full flex flex-col bg-card border-l">
@@ -441,13 +498,15 @@ function DetailPanel({
 
           {/* Cargo description */}
           <div className="text-sm">
-            <p className="font-medium">{entrega.carga.descricao}</p>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+            <p className="font-medium">{entrega.carga?.descricao}</p>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3" />
-                {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+                {entrega.peso_alocado_kg
+                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga?.peso_kg?.toLocaleString('pt-BR') ?? '-'} kg`
+                  : `${entrega.carga?.peso_kg?.toLocaleString('pt-BR') ?? '-'} kg`}
               </span>
-              {entrega.carga.quantidade && (
+              {entrega.carga?.quantidade && (
                 <span className="flex items-center gap-1">
                   <Package className="w-3 h-3" />
                   {entrega.carga.quantidade} un
@@ -527,6 +586,14 @@ function DetailPanel({
           {/* Datas da entrega */}
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="bg-muted/30 rounded-md p-2">
+              <p className="text-muted-foreground">Previsão Coleta</p>
+              <p className="font-medium">
+                {entrega.previsao_coleta
+                  ? format(new Date(entrega.previsao_coleta), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                  : 'Não informada'}
+              </p>
+            </div>
+            <div className="bg-muted/30 rounded-md p-2">
               <p className="text-muted-foreground">Data Coleta</p>
               <p className="font-medium">
                 {entrega.coletado_em
@@ -548,43 +615,24 @@ function DetailPanel({
 
           {/* Documentos */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-medium text-xs">Documentos</span>
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="font-semibold text-sm">Documentos</span>
               </div>
-              <Badge variant={docsCheck.complete ? "default" : "secondary"} className="text-[10px]">
-                {docsCount}/3 anexados
+              <Badge variant={docsCount > 0 ? "default" : "secondary"} className={`text-[11px] px-2 py-0.5 ${(!!entrega.canhoto_url && existingCtes.length > 0) ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}>
+                {docsCount} anexo{docsCount !== 1 ? 's' : ''}
               </Badge>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <DocumentButton
-                type="cte"
-                hasDoc={!!entrega.cte_url}
-                canAttach={true}
-                onView={() => handleDocClick(entrega.cte_url, 'CT-e')}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
-              <DocumentButton
-                type="canhoto"
-                hasDoc={!!entrega.canhoto_url}
-                canAttach={true}
-                onView={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
-              <DocumentButton
-                type="nfe"
-                hasDoc={(entrega.notas_fiscais_urls?.length || 0) > 0}
-                count={entrega.notas_fiscais_urls?.length || 0}
-                canAttach={false}
-                onView={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
-            </div>
+            <EntregaDocumentosPanel
+              perfil="transportadora"
+              entregaId={entrega.id}
+              ctes={existingCtes}
+              nfesDiretas={unlinkedNfes}
+              canhotoUrl={entrega.canhoto_url || null}
+              onRefresh={refreshDocs}
+            />
           </div>
 
           <Separator />
@@ -608,8 +656,8 @@ function DetailPanel({
                       <p className="font-medium text-sm truncate">{entrega.motorista.nome_completo}</p>
                       {/* Badge de status Online/Offline com tempo */}
                       <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${driverLocation?.isOnline
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${driverLocation?.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                         {driverLocation?.isOnline ? 'Online' : (() => {
@@ -675,14 +723,14 @@ function DetailPanel({
                     const userName = evento.user_nome || 'Sistema';
                     const isDocument = config.isDocument || evento.tipo.includes('documento') || evento.tipo.includes('anexa');
                     const isCreation = config.isCreation;
-                    const isLast = idx === entrega.eventos!.slice(0, 5).length - 1;
+                    const isLast = idx === (entrega.eventos!.length || 0) - 1;
 
                     return (
                       <div key={evento.id} className="relative flex items-start gap-3">
                         {/* Ícone com cor de fundo baseada no status */}
                         <div className={`relative z-10 w-8 h-8 rounded-md ${config.bgColor} flex items-center justify-center shrink-0`}>
                           {isDocument ? (
-                          <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           ) : isCreation ? (
                             <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                           ) : (
@@ -740,6 +788,23 @@ function DetailPanel({
         </div>
       )}
 
+      {/* Alerta de NF-e obrigatória */}
+      {nfeBlockMessage && !isFinalized && (
+        <div className="px-3 pt-3">
+          <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-300">
+                NF-e obrigatória
+              </p>
+              <p className="text-amber-700 dark:text-amber-400">
+                {nfeBlockMessage}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer actions - botão principal + menu de 3 pontos */}
       {!isFinalized && nextStatus && (
         <div className="p-3 border-t bg-muted/20">
@@ -770,14 +835,14 @@ function DetailPanel({
               size="sm"
               className="flex-1 text-xs"
               onClick={handleActionClick}
-              disabled={isChangingStatus || isViagemNotStarted}
+              disabled={isChangingStatus || isViagemNotStarted || checkingNfe}
             >
-              {isChangingStatus ? (
+              {(isChangingStatus || checkingNfe) ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
               ) : (
                 <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
               )}
-              {nextStatus.label}
+              {checkingNfe ? 'Verificando NF-e...' : nextStatus.label}
             </Button>
           </div>
         </div>
@@ -889,9 +954,6 @@ function DetailPanel({
       <AnexarDocumentosDialog
         entrega={{
           id: entrega.id,
-          cte_url: entrega.cte_url,
-          numero_cte: entrega.numero_cte,
-          notas_fiscais_urls: entrega.notas_fiscais_urls,
           canhoto_url: entrega.canhoto_url,
           carga: { codigo: entrega.carga.codigo },
         }}
@@ -1010,8 +1072,8 @@ function GestaoEntregasDialogContent({
           groups[key] = {
             id: viagemInfo.viagem_id,
             tipo: 'viagem',
-            viagemCodigo: viagemInfo.codigo,
-            viagemStatus: viagemInfo.status,
+            viagemCodigo: (viagemInfo as any).codigo,
+            viagemStatus: (viagemInfo as any).status,
             motorista: e.motorista,
             motorista_id: e.motorista_id,
             entregas: [],
@@ -1160,7 +1222,6 @@ function GestaoEntregasDialogContent({
       },
       pesoAlocado: entrega.peso_alocado_kg,
       valorFrete: entrega.valor_frete,
-      numeroCte: entrega.numero_cte,
     };
   }, [selectedEntregaId, entregas]);
 
@@ -1169,6 +1230,12 @@ function GestaoEntregasDialogContent({
     if (!selectedMotoristaId) return null;
     const group = viagemGroups.find(g => g.id === selectedMotoristaId);
     return group?.motorista_id || null;
+  }, [selectedMotoristaId, viagemGroups]);
+
+  const mapSelectedViagemId = useMemo(() => {
+    if (!selectedMotoristaId) return null;
+    const group = viagemGroups.find(g => g.id === selectedMotoristaId);
+    return group?.tipo === 'viagem' ? group.id : null;
   }, [selectedMotoristaId, viagemGroups]);
 
   return (
@@ -1185,6 +1252,7 @@ function GestaoEntregasDialogContent({
           <GestaoLeafletMap
             localizacoes={localizacoes}
             selectedMotoristaId={mapSelectedMotoristaId}
+            selectedViagemId={mapSelectedViagemId}
             selectedEntregaId={selectedEntregaId}
             onMotoristaClick={handleMapMotoristaClick}
             onEntregaDeselect={() => setSelectedEntregaId(null)}
@@ -1254,8 +1322,8 @@ function GestaoEntregasDialogContent({
                           <p className="font-medium text-sm truncate">{group.motorista?.nome_completo}</p>
                           {/* Badge de status Online/Offline com tempo */}
                           <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isOnline
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                             }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                             {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
@@ -1318,19 +1386,20 @@ function GestaoEntregasDialogContent({
 
                               {/* Rota */}
                               <div className="flex items-center gap-1.5 text-xs text-foreground">
-                <MapPin className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
+                                <MapPin className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
                                 <span className="truncate">{e.carga.endereco_origem?.cidade}/{e.carga.endereco_origem?.estado}</span>
                                 <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                <MapPin className="w-3 h-3 text-red-500 dark:text-red-400 shrink-0" />
+                                <MapPin className="w-3 h-3 text-red-500 dark:text-red-400 shrink-0" />
                                 <span className="truncate">{e.carga.endereco_destino?.cidade}/{e.carga.endereco_destino?.estado}</span>
                               </div>
 
                               {/* Info adicional: Peso + Valor */}
                               <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
-                                {e.peso_alocado_kg && (
+                                {e.carga.peso_kg && (
                                   <span className="flex items-center gap-1">
                                     <Weight className="w-3 h-3" />
-                                    {e.peso_alocado_kg.toLocaleString('pt-BR')} kg
+                                    {e.peso_alocado_kg ? `${e.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
+                                    {e.carga.peso_kg.toLocaleString('pt-BR')} kg
                                   </span>
                                 )}
                                 {e.valor_frete && (
@@ -1376,7 +1445,7 @@ function GestaoEntregasDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0">
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
         <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} />
       </DialogContent>
     </Dialog>
@@ -1392,7 +1461,7 @@ interface ViagemWithEntregas {
   updated_at?: string;
   started_at?: string | null;
   ended_at?: string | null;
-  manifesto_url: string | null;
+
   motorista_id: string;
   motorista: {
     id: string;
@@ -1409,8 +1478,6 @@ interface ViagemWithEntregas {
     status: string;
     peso_alocado_kg: number | null;
     valor_frete: number | null;
-    notas_fiscais_urls: string[] | null;
-    cte_url: string | null;
     canhoto_url: string | null;
     carga: {
       descricao: string;
@@ -1459,16 +1526,16 @@ export default function OperacaoDiaria() {
       // Fetch deliveries - usando apenas os status válidos
       const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('entregas')
         .select(`
           id, codigo, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em,
-          cte_url, numero_cte, notas_fiscais_urls, manifesto_url, canhoto_url,
+          previsao_coleta, canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
-          carga:cargas!inner(
+          carga:cargas!entregas_carga_id_fkey(
             id, codigo, descricao, peso_kg, tipo, quantidade,
             remetente_razao_social, remetente_nome_fantasia,
             destinatario_razao_social, destinatario_nome_fantasia,
@@ -1487,6 +1554,8 @@ export default function OperacaoDiaria() {
         throw error;
       }
 
+      console.log('[DEBUG] First entrega raw carga:', data?.[0]?.carga, 'peso_kg:', data?.[0]?.carga?.peso_kg);
+
       // Filter: active items ALWAYS show (regardless of date), terminal items only if finalized today
       const finalizedStatuses = ['entregue', 'cancelada'];
       const filtered = (data || []).filter(e => {
@@ -1498,7 +1567,7 @@ export default function OperacaoDiaria() {
 
       // Fetch eventos for each entrega
       const entregasWithEvents = await Promise.all(
-        filtered.map(async (entrega) => {
+        filtered.map(async (entrega: any) => {
           const { data: eventos } = await supabase
             .from('entrega_eventos')
             .select('id, tipo, timestamp, observacao, user_nome')
@@ -1510,7 +1579,7 @@ export default function OperacaoDiaria() {
         })
       );
 
-      return entregasWithEvents as Entrega[];
+      return entregasWithEvents as any as Entrega[];
     },
     enabled: !!empresa?.id,
     refetchInterval: 30000,
@@ -1536,7 +1605,7 @@ export default function OperacaoDiaria() {
       const { data: viagensData, error: viagensError } = await supabase
         .from('viagens')
         .select(`
-          id, codigo, status, created_at, updated_at, started_at, ended_at, manifesto_url, motorista_id,
+          id, codigo, status, created_at, updated_at, started_at, ended_at, motorista_id,
           motorista:motoristas(id, nome_completo, foto_url),
           veiculo:veiculos(placa, modelo)
         `)
@@ -1554,7 +1623,7 @@ export default function OperacaoDiaria() {
             .select(`
               entrega:entregas(
                 id, codigo, status, peso_alocado_kg, valor_frete, created_at, updated_at,
-                notas_fiscais_urls, cte_url, canhoto_url,
+                canhoto_url,
                 carga:cargas(
                   descricao,
                   endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
@@ -1593,7 +1662,7 @@ export default function OperacaoDiaria() {
       const startOfTodayViagem = startOfDay(today).toISOString();
       const activeViagemStatuses = ['programada', 'aguardando', 'em_andamento'];
       const terminalViagemStatuses = ['finalizada', 'cancelada'];
-      
+
       return viagensWithEntregas.filter(v => {
         if (v.entregas.length === 0) return false;
         if (activeViagemStatuses.includes(v.status)) return true;
@@ -1608,6 +1677,37 @@ export default function OperacaoDiaria() {
     enabled: viewMode === 'viagens' && !!empresa?.id,
     refetchInterval: 30000,
   });
+
+  // Mantém selectedViagem sempre sincronizado com os dados atuais da query
+  // Assim o painel atualiza automaticamente após iniciar/finalizar/cancelar sem reload
+  const selectedViagemLive = useMemo(
+    () => selectedViagem
+      ? viagens.find(v => v.id === selectedViagem.id) ?? selectedViagem
+      : null,
+    [selectedViagem, viagens]
+  );
+
+  // Mantém selectedEntrega sempre sincronizado com os dados live
+  const selectedEntregaLive = useMemo(
+    () => selectedEntrega
+      ? entregas.find(e => e.id === selectedEntrega.id) ?? selectedEntrega
+      : null,
+    [selectedEntrega, entregas]
+  );
+
+  // Mantém selectedEntregaInViagem sincronizado com as entregas da viagem live
+  const selectedEntregaInViagemLive = useMemo(
+    () => {
+      if (!selectedEntregaInViagem || !selectedViagemLive) return selectedEntregaInViagem;
+      const fromViagem = selectedViagemLive.entregas.find(e => e.id === selectedEntregaInViagem.id);
+      if (fromViagem) {
+        // Injeta campos extras que existem na Entrega mas não no tipo da viagem
+        return { ...selectedEntregaInViagem, ...fromViagem };
+      }
+      return selectedEntregaInViagem;
+    },
+    [selectedEntregaInViagem, selectedViagemLive]
+  );
 
   const motoristaGroups = useMemo(() => {
     const groups: Record<string, { motorista: Entrega['motorista']; entregas: Entrega[] }> = {};
@@ -1685,7 +1785,7 @@ export default function OperacaoDiaria() {
       // Registrar evento com auditoria (user_id e user_nome)
       const { error: eventoError } = await supabase.from('entrega_eventos').insert({
         entrega_id: entregaId,
-        tipo: eventoTipo,
+        tipo: eventoTipo as any,
         timestamp: new Date().toISOString(),
         observacao: `Status alterado para ${statusConfig[newStatus]?.label || newStatus}`,
         user_id: user?.id ?? null,
@@ -1695,10 +1795,12 @@ export default function OperacaoDiaria() {
       if (eventoError) {
         console.error('Erro ao registrar evento:', eventoError);
       }
+      toast.success('Status atualizado!');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['operacao-diaria'] });
-      toast.success('Status atualizado!');
+      // Refetch imediato após mudança de status para atualizar o painel sem reload
+      refetch();
+      refetchViagens();
     },
     onError: (error) => {
       toast.error('Erro ao atualizar status');
@@ -1706,16 +1808,16 @@ export default function OperacaoDiaria() {
     },
   });
 
-  // Mutation para iniciar viagem (programada -> aguardando)
+  // Mutation para iniciar viagem (aguardando -> em_andamento)
   const iniciarViagemMutation = useMutation({
     mutationFn: async (viagemId: string) => {
       const { error } = await supabase
         .from('viagens')
-        .update({ 
-          status: 'aguardando', 
+        .update({
+          status: 'em_andamento',
           inicio_em: new Date().toISOString(),
           started_at: new Date().toISOString(),
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString()
         })
         .eq('id', viagemId);
 
@@ -1736,11 +1838,11 @@ export default function OperacaoDiaria() {
     mutationFn: async (viagemId: string) => {
       const { error } = await supabase
         .from('viagens')
-        .update({ 
-          status: 'finalizada', 
+        .update({
+          status: 'finalizada',
           fim_em: new Date().toISOString(),
           ended_at: new Date().toISOString(),
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString()
         })
         .eq('id', viagemId);
 
@@ -1775,9 +1877,9 @@ export default function OperacaoDiaria() {
         // libera automaticamente o peso na carga
         const { error: entregasError } = await supabase
           .from('entregas')
-          .update({ 
-            status: 'cancelada', 
-            updated_at: new Date().toISOString() 
+          .update({
+            status: 'cancelada',
+            updated_at: new Date().toISOString()
           })
           .in('id', entregaIds)
           .not('status', 'in', '("entregue","cancelada")');
@@ -1788,9 +1890,9 @@ export default function OperacaoDiaria() {
       // 3. Cancelar a viagem
       const { error } = await supabase
         .from('viagens')
-        .update({ 
-          status: 'cancelada', 
-          updated_at: new Date().toISOString() 
+        .update({
+          status: 'cancelada',
+          updated_at: new Date().toISOString()
         })
         .eq('id', viagemId);
 
@@ -2051,7 +2153,7 @@ export default function OperacaoDiaria() {
             {/* Column 3: Detail Panel (40%) */}
             <div className="min-w-0 border border-l-0 rounded-r-md overflow-hidden flex flex-col shadow-sm">
               <DetailPanel
-                entrega={selectedEntrega}
+                entrega={selectedEntregaLive}
                 onClose={() => setSelectedEntrega(null)}
                 onStatusChange={handleStatusChange}
                 isChangingStatus={statusMutation.isPending}
@@ -2148,7 +2250,7 @@ export default function OperacaoDiaria() {
               {selectedEntregaInViagem ? (
                 /* Mostrar DetailPanel da entrega com botão voltar */
                 <DetailPanel
-                  entrega={selectedEntregaInViagem}
+                  entrega={selectedEntregaInViagemLive as any}
                   onClose={() => setSelectedEntregaInViagem(null)}
                   onStatusChange={handleStatusChange}
                   isChangingStatus={statusMutation.isPending}
@@ -2156,12 +2258,12 @@ export default function OperacaoDiaria() {
                   onRefresh={handleRefresh}
                   showBackButton
                   onBack={() => setSelectedEntregaInViagem(null)}
-                  viagemStatus={selectedViagem?.status}
+                  viagemStatus={selectedViagemLive?.status}
                 />
               ) : (
                 /* Mostrar ViagemDetailPanel */
                 <ViagemDetailPanel
-                  viagem={selectedViagem}
+                  viagem={selectedViagemLive}
                   onClose={() => setSelectedViagem(null)}
                   onSelectEntrega={(entregaId) => {
                     const entrega = entregas.find(e => e.id === entregaId);
@@ -2170,8 +2272,8 @@ export default function OperacaoDiaria() {
                     }
                   }}
                   onRefresh={() => refetchViagens()}
-                  driverLocation={selectedViagem?.motorista_id ? (() => {
-                    const loc = localizacoes.find(l => l.motorista_id === selectedViagem.motorista_id);
+                  driverLocation={selectedViagemLive?.motorista_id ? (() => {
+                    const loc = localizacoes.find(l => l.motorista_id === selectedViagemLive.motorista_id);
                     return loc?.latitude && loc?.longitude ? { lat: loc.latitude, lng: loc.longitude, heading: loc.heading, isOnline: loc.isOnline, updated_at: (loc as any)?.updated_at } : null;
                   })() : null}
                   onStart={async (viagemId) => {

@@ -1,20 +1,21 @@
-import { useState } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle 
+import { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
 } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { 
-  Package, 
-  MapPin, 
-  Calendar, 
-  Truck, 
-  User, 
+import {
+  Package,
+  MapPin,
+  Calendar,
+  Truck,
+  User,
   Building2,
   Weight,
   Route,
@@ -33,6 +34,7 @@ import {
 } from 'lucide-react';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import type { Database } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
 
@@ -40,16 +42,14 @@ interface EntregaDetailsProps {
   entrega: {
     id: string;
     codigo?: string | null;
+    tracking_code?: string;
     status: StatusEntrega | null;
     created_at: string | null;
     coletado_em: string | null;
     entregue_em: string | null;
     peso_alocado_kg: number | null;
     valor_frete: number | null;
-    cte_url?: string | null;
-    numero_cte?: string | null;
-    notas_fiscais_urls?: string[] | null;
-    manifesto_url?: string | null;
+    previsao_coleta?: string | null;
     canhoto_url?: string | null;
     motorista: {
       id: string;
@@ -133,6 +133,19 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
+  const [nfes, setNfes] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!entrega?.id || !open) { setNfes([]); return; }
+    (async () => {
+      const { data } = await (supabase as any)
+        .from('nfes')
+        .select('id, numero, chave_acesso, url, xml_url, valor, data_emissao')
+        .eq('entrega_id', entrega.id)
+        .order('created_at', { ascending: true });
+      setNfes(data || []);
+    })();
+  }, [entrega?.id, open]);
 
   if (!entrega) {
     return (
@@ -173,14 +186,10 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
     }
   };
 
-  // Calculate document status (3 obrigatórios: CT-e, NF-e, Canhoto - Manifesto pertence à viagem)
-  const hasCte = !!entrega.cte_url;
-  const hasNumeroCte = !!entrega.numero_cte;
-  const hasNfs = (entrega.notas_fiscais_urls?.length || 0) > 0;
+  // Document status
   const hasCanhoto = !!entrega.canhoto_url;
-  
-  const totalDocs = (hasCte ? 1 : 0) + (hasNfs ? entrega.notas_fiscais_urls!.length : 0) + (hasCanhoto ? 1 : 0);
-  const pendingDocs = (!hasCte ? 1 : 0) + (!hasNfs ? 1 : 0) + (!hasCanhoto ? 1 : 0);
+  const hasNfes = nfes.length > 0;
+  const pendingDocs = (!hasCanhoto ? 1 : 0) + (!hasNfes ? 1 : 0);
 
   return (
     <>
@@ -195,6 +204,21 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                 {config?.label}
               </Badge>
             </DialogTitle>
+            {entrega.tracking_code && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => {
+                  const url = `${window.location.origin}/rastreio?codigo=${entrega.tracking_code}`;
+                  navigator.clipboard.writeText(url);
+                  toast.success('Link de rastreio copiado!');
+                }}
+              >
+                <ExternalLink className="w-4 h-4" />
+                Link de Rastreio
+              </Button>
+            )}
           </DialogHeader>
 
           <div className="space-y-4">
@@ -282,8 +306,8 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                   <p className="text-muted-foreground">Peso Alocado</p>
                   <p className="font-medium flex items-center gap-1">
                     <Weight className="w-3 h-3" />
-                    {entrega.peso_alocado_kg 
-                      ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg`
+                    {entrega.peso_alocado_kg
+                      ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
                       : `${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
                     }
                   </p>
@@ -291,6 +315,13 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                 <div>
                   <p className="text-muted-foreground">Valor do Frete</p>
                   <p className="font-medium">{formatValor(entrega.valor_frete)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Previsão de Coleta</p>
+                  <p className="font-medium flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {entrega.previsao_coleta ? formatDateTime(entrega.previsao_coleta) : '-'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Previsão de Entrega</p>
@@ -335,69 +366,62 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {/* CT-e */}
+                {/* NF-es do Embarcador */}
+                {nfes.length > 0 ? (
+                  nfes.map((nfe: any, idx: number) => (
+                    <div key={nfe.id} className="flex items-center justify-between p-3 rounded-lg border bg-green-500/5 border-green-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-green-500/10">
+                          <Files className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">NF-e {nfe.numero || `#${idx + 1}`}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {nfe.chave_acesso ? `Chave: ...${nfe.chave_acesso.slice(-8)}` : 'Anexada pelo embarcador'}
+                            {nfe.valor ? ` · ${Number(nfe.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      {nfe.url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openPreview(nfe.url, `NF-e ${nfe.numero || idx + 1}`)}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Ver
+                        </Button>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted">
+                        <Files className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Notas Fiscais (NF-e)</p>
+                        <p className="text-xs text-muted-foreground">Nenhuma NF-e anexada pelo embarcador</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="bg-muted text-muted-foreground">
+                      Pendente
+                    </Badge>
+                  </div>
+                )}
+
+                {/* CT-e - read-only */}
                 <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasCte ? 'bg-green-500/10' : 'bg-amber-500/10'}`}>
-                      {hasCte ? (
-                        <FileCheck className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-amber-600" />
-                      )}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted">
+                      <FileCheck className="w-4 h-4 text-muted-foreground" />
                     </div>
                     <div>
                       <p className="font-medium text-sm">CT-e (Conhecimento de Transporte)</p>
-                      {hasNumeroCte && (
-                        <p className="text-xs text-muted-foreground font-mono">Nº {entrega.numero_cte}</p>
-                      )}
+                      <p className="text-xs text-muted-foreground">Geração automática (em breve)</p>
                     </div>
                   </div>
-                  {hasCte ? (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => openPreview(entrega.cte_url!, 'CT-e')}
-                    >
-                      <ExternalLink className="w-3 h-3 mr-1" />
-                      Visualizar
-                    </Button>
-                  ) : (
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-                      Pendente
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Notas Fiscais */}
-                <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasNfs ? 'bg-green-500/10' : 'bg-muted'}`}>
-                      <Files className={`w-4 h-4 ${hasNfs ? 'text-green-600' : 'text-muted-foreground'}`} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Notas Fiscais</p>
-                      <p className="text-xs text-muted-foreground">
-                        {hasNfs ? `${entrega.notas_fiscais_urls!.length} arquivo(s)` : 'Nenhuma anexada'}
-                      </p>
-                    </div>
-                  </div>
-                  {hasNfs && (
-                    <div className="flex gap-1">
-                      {entrega.notas_fiscais_urls!.slice(0, 3).map((url, index) => (
-                        <Button 
-                          key={index}
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => openPreview(url, `Nota Fiscal ${index + 1}`)}
-                        >
-                          NF {index + 1}
-                        </Button>
-                      ))}
-                      {entrega.notas_fiscais_urls!.length > 3 && (
-                        <Badge variant="secondary">+{entrega.notas_fiscais_urls!.length - 3}</Badge>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Canhoto */}
@@ -414,8 +438,8 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                     </div>
                   </div>
                   {hasCanhoto ? (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => openPreview(entrega.canhoto_url!, 'Canhoto de Entrega')}
                     >
@@ -446,8 +470,8 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                     <>
                       <div className="flex items-center gap-3">
                         {entrega.motorista.foto_url ? (
-                          <img 
-                            src={entrega.motorista.foto_url} 
+                          <img
+                            src={entrega.motorista.foto_url}
                             alt={entrega.motorista.nome_completo}
                             className="w-10 h-10 rounded-full object-cover"
                           />

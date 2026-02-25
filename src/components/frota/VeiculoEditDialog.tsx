@@ -20,12 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Car, 
-  Loader2, 
-  Upload, 
-  CheckCircle, 
-  FileText, 
+import {
+  Car,
+  Loader2,
+  Upload,
+  CheckCircle,
+  FileText,
   MapPin,
   User,
   CreditCard,
@@ -212,13 +212,13 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
       const filePath = `veiculos/${folder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .getPublicUrl(filePath);
 
       setFormData(prev => ({ ...prev, [fieldName]: urlData.publicUrl }));
@@ -318,8 +318,8 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
                   onValueChange={(v) => {
                     // Auto-set carroceria_integrada based on vehicle type
                     const hasIntegrated = VEICULOS_COM_CARROCERIA_INTEGRADA.includes(v);
-                    setFormData({ 
-                      ...formData, 
+                    setFormData({
+                      ...formData,
                       tipo: v,
                       carroceria_integrada: hasIntegrated,
                       carroceria: hasIntegrated ? (formData.carroceria === 'apenas_cavalo' ? 'fechada_bau' : formData.carroceria) : 'apenas_cavalo',
@@ -348,8 +348,8 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
               </div>
               <Switch
                 checked={formData.carroceria_integrada}
-                onCheckedChange={(checked) => setFormData({ 
-                  ...formData, 
+                onCheckedChange={(checked) => setFormData({
+                  ...formData,
                   carroceria_integrada: checked,
                   carroceria: checked ? (formData.carroceria === 'apenas_cavalo' ? 'fechada_bau' : formData.carroceria) : 'apenas_cavalo',
                   capacidade_kg: checked ? formData.capacidade_kg : '',

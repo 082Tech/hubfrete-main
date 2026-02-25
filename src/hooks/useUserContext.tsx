@@ -26,18 +26,21 @@ export interface CompanyInfo {
   razao_social: string;
   nome_fantasia: string | null;
   cnpj: string;
+  logo_url: string | null;
 }
 
 export interface UserContextData {
   userType: UserType;
   cargo: UserCargo;
   empresa: Empresa | null;
+  availableEmpresas: Empresa[];
   companyInfo: CompanyInfo | null;
   filiais: Filial[];
   filialAtiva: Filial | null;
   loading: boolean;
   switchingFilial: boolean;
   setFilialAtiva: (filial: Filial) => void;
+  switchEmpresa: (empresa: Empresa) => void;
   refresh: () => Promise<void>;
 }
 
@@ -49,11 +52,15 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   const [userType, setUserType] = useState<UserType>(null);
   const [cargo, setCargo] = useState<UserCargo>(null);
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
+  const [availableEmpresas, setAvailableEmpresas] = useState<Empresa[]>([]);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [filiais, setFiliais] = useState<Filial[]>([]);
   const [filialAtiva, setFilialAtivaState] = useState<Filial | null>(null);
   const [loading, setLoading] = useState(true);
   const [switchingFilial, setSwitchingFilial] = useState(false);
+
+  // Store user's explicit access (which filiais they belong to)
+  const [userAccessibleFilialIds, setUserAccessibleFilialIds] = useState<Set<number>>(new Set());
 
   const setFilialAtiva = useCallback((filial: Filial) => {
     // Only allow switching to filiais the user has access to
@@ -70,12 +77,95 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setSwitchingFilial(false), 500);
   }, []);
 
+  const loadFiliaisForEmpresa = useCallback(async (empresaId: number, accessibleIds: Set<number>) => {
+    const { data: allFiliais } = await supabase
+      .from('filiais')
+      .select('id, nome, cnpj')
+      .eq('empresa_id', empresaId)
+      .eq('ativa', true)
+      .order('is_matriz', { ascending: false })
+      .order('nome', { ascending: true });
+
+    if (allFiliais) {
+      const filiaisData = allFiliais.map(f => ({
+        id: f.id,
+        nome: f.nome,
+        cnpj: f.cnpj,
+        // Access is based solely on explicit filial assignments
+        hasAccess: accessibleIds.has(f.id),
+      }));
+
+      setFiliais(filiaisData);
+
+      // Try to restore filial ativa from localStorage, or use first ACCESSIBLE one
+      const accessibleFiliais = filiaisData.filter(f => f.hasAccess);
+      const storedFilial = localStorage.getItem('hubfrete_filial_ativa');
+      let foundStored = false;
+
+      if (storedFilial) {
+        try {
+          const parsed = JSON.parse(storedFilial);
+          // Only allow restoring if user has access to it AND it belongs to current company
+          const found = accessibleFiliais.find(f => f.id === parsed.id);
+          if (found) {
+            setFilialAtivaState(found);
+            foundStored = true;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!foundStored) {
+        if (accessibleFiliais.length > 0) {
+          setFilialAtivaState(accessibleFiliais[0]);
+        } else {
+          setFilialAtivaState(null);
+        }
+      }
+    }
+  }, []);
+
+  const switchEmpresa = useCallback(async (newEmpresa: Empresa) => {
+    setSwitchingFilial(true);
+    try {
+      setEmpresa(newEmpresa);
+
+      // Update User Type based on company type
+      const type: UserType = newEmpresa.tipo === 'EMBARCADOR'
+        ? 'embarcador'
+        : newEmpresa.tipo === 'TRANSPORTADORA'
+          ? 'transportadora'
+          : null;
+      setUserType(type);
+
+      // Update Company Info
+      setCompanyInfo({
+        id: String(newEmpresa.id),
+        razao_social: newEmpresa.nome || 'Empresa',
+        nome_fantasia: newEmpresa.nome,
+        cnpj: newEmpresa.cnpj_matriz || '',
+        logo_url: newEmpresa.logo_url || null,
+      });
+
+      // Persist active company preference
+      localStorage.setItem('hubfrete_empresa_id', String(newEmpresa.id));
+
+      // Reload filiais for this company
+      await loadFiliaisForEmpresa(newEmpresa.id, userAccessibleFilialIds);
+
+    } finally {
+      setSwitchingFilial(false);
+    }
+  }, [userAccessibleFilialIds, loadFiliaisForEmpresa]);
+
   const loadUserContext = useCallback(async () => {
     // IMPORTANT: depend only on userId so token refreshes don't reset UI state
     if (!userId) {
       setUserType(null);
       setCargo(null);
       setEmpresa(null);
+      setAvailableEmpresas([]);
       setCompanyInfo(null);
       setFiliais([]);
       setFilialAtivaState(null);
@@ -99,141 +189,99 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Get empresa tipo using database function
-      const { data: empresaTipo } = await supabase
-        .rpc('get_user_empresa_tipo', { _user_id: userId });
-
-      const type: UserType = empresaTipo === 'EMBARCADOR'
-        ? 'embarcador'
-        : empresaTipo === 'TRANSPORTADORA'
-          ? 'transportadora'
-          : null;
-
-      setUserType(type);
-
       // Load company structure for embarcador/transportadora
-      if (type) {
-        // Get Usuario record and their filiais
-        const { data: usuarioData } = await supabase
-          .from('usuarios')
-          .select(`
-            id,
-            cargo,
-            usuarios_filiais (
-              cargo_na_filial,
-              filial_id,
-              filiais (
+      // Get Usuario record and their filiais
+      const { data: usuarioData } = await supabase
+        .from('usuarios')
+        .select(`
+          id,
+          cargo,
+          usuarios_filiais (
+            cargo_na_filial,
+            filial_id,
+            filiais (
+              id,
+              nome,
+              cnpj,
+              empresa_id,
+              empresas (
                 id,
                 nome,
-                cnpj,
-                empresa_id,
-                empresas (
-                  id,
-                  nome,
-                  cnpj_matriz,
-                  tipo,
-                  classe,
-                  logo_url
-                )
+                cnpj_matriz,
+                tipo,
+                classe,
+                logo_url
               )
             )
-          `)
-          .eq('auth_user_id', userId)
-          .maybeSingle();
+          )
+        `)
+        .eq('auth_user_id', userId)
+        .maybeSingle();
 
-        if (usuarioData) {
-          // Set cargo (highest privilege if multiple)
-          const cargos = usuarioData.usuarios_filiais?.map((uf: any) => uf.cargo_na_filial) || [];
-          const userCargo = cargos.includes('ADMIN') ? 'ADMIN' : cargos[0] as UserCargo;
-          setCargo(userCargo);
+      if (usuarioData) {
+        // Set cargo (highest privilege if multiple)
+        const cargos = usuarioData.usuarios_filiais?.map((uf: any) => uf.cargo_na_filial) || [];
+        const userCargo = cargos.includes('ADMIN') ? 'ADMIN' : cargos[0] as UserCargo;
+        setCargo(userCargo);
 
-          // Extract empresa info from the first filial
-          let empresaData: Empresa | null = null;
-          let empresaId: number | null = null;
+        // Collect all accessible companies and filiais
+        const companiesMap = new Map<number, Empresa>();
+        const accessibleFiliais = new Set<number>();
 
-          usuarioData.usuarios_filiais?.forEach((uf: any) => {
-            if (uf.filiais) {
-              if (!empresaData && uf.filiais.empresas) {
-                empresaData = {
-                  id: uf.filiais.empresas.id,
-                  nome: uf.filiais.empresas.nome,
-                  cnpj_matriz: uf.filiais.empresas.cnpj_matriz,
-                  tipo: uf.filiais.empresas.tipo,
-                  classe: uf.filiais.empresas.classe,
-                  logo_url: uf.filiais.empresas.logo_url,
-                };
-                empresaId = uf.filiais.empresa_id;
+        usuarioData.usuarios_filiais?.forEach((uf: any) => {
+          if (uf.filiais) {
+            accessibleFiliais.add(uf.filiais.id);
+            if (uf.filiais.empresas) {
+              const emp = uf.filiais.empresas;
+              if (!companiesMap.has(emp.id)) {
+                companiesMap.set(emp.id, {
+                  id: emp.id,
+                  nome: emp.nome,
+                  cnpj_matriz: emp.cnpj_matriz,
+                  tipo: emp.tipo,
+                  classe: emp.classe,
+                  logo_url: emp.logo_url,
+                });
               }
             }
+          }
+        });
+
+        const companies = Array.from(companiesMap.values());
+        setAvailableEmpresas(companies);
+        setUserAccessibleFilialIds(accessibleFiliais);
+
+        // Determine active company
+        let activeEmpresa: Empresa | null = null;
+        const storedEmpresaId = localStorage.getItem('hubfrete_empresa_id');
+
+        if (storedEmpresaId && companiesMap.has(Number(storedEmpresaId))) {
+          activeEmpresa = companiesMap.get(Number(storedEmpresaId))!;
+        } else if (companies.length > 0) {
+          activeEmpresa = companies[0];
+        }
+
+        if (activeEmpresa) {
+          // Initialize state for the active company
+          setEmpresa(activeEmpresa);
+
+          const type: UserType = activeEmpresa.tipo === 'EMBARCADOR'
+            ? 'embarcador'
+            : activeEmpresa.tipo === 'TRANSPORTADORA'
+              ? 'transportadora'
+              : null;
+          setUserType(type);
+
+          setCompanyInfo({
+            id: String(activeEmpresa.id),
+            razao_social: activeEmpresa.nome || 'Empresa',
+            nome_fantasia: activeEmpresa.nome,
+            cnpj: activeEmpresa.cnpj_matriz || '',
+            logo_url: activeEmpresa.logo_url || null,
           });
 
-          setEmpresa(empresaData);
-
-          // Collect filial IDs the user has direct access to
-          const userAccessibleFilialIds = new Set<number>();
-          usuarioData.usuarios_filiais?.forEach((uf: any) => {
-            if (uf.filiais) {
-              userAccessibleFilialIds.add(uf.filiais.id);
-            }
-          });
-
-          // Always fetch ALL filiais of the empresa for display
-          // Mark each with hasAccess based on user's permissions
-          let filiaisData: Filial[] = [];
-          
-          if (empresaId) {
-            const { data: allFiliais } = await supabase
-              .from('filiais')
-              .select('id, nome, cnpj')
-              .eq('empresa_id', empresaId)
-              .eq('ativa', true)
-              .order('is_matriz', { ascending: false })
-              .order('nome', { ascending: true });
-            
-            if (allFiliais) {
-              filiaisData = allFiliais.map(f => ({
-                id: f.id,
-                nome: f.nome,
-                cnpj: f.cnpj,
-                // Access is based solely on explicit filial assignments
-                hasAccess: userAccessibleFilialIds.has(f.id),
-              }));
-            }
-          }
-
-          setFiliais(filiaisData);
-
-          // Get company info from empresa (not filial)
-          if (empresaData) {
-            setCompanyInfo({
-              id: String(empresaData.id),
-              razao_social: empresaData.nome || 'Empresa',
-              nome_fantasia: empresaData.nome,
-              cnpj: empresaData.cnpj_matriz || '',
-            });
-          }
-
-          // Try to restore filial ativa from localStorage, or use first ACCESSIBLE one
-          const accessibleFiliais = filiaisData.filter(f => f.hasAccess);
-          const storedFilial = localStorage.getItem('hubfrete_filial_ativa');
-          if (storedFilial) {
-            try {
-              const parsed = JSON.parse(storedFilial);
-              // Only allow restoring if user has access to it
-              const found = accessibleFiliais.find(f => f.id === parsed.id);
-              if (found) {
-                setFilialAtivaState(found);
-              } else if (accessibleFiliais.length > 0) {
-                setFilialAtivaState(accessibleFiliais[0]);
-              }
-            } catch {
-              if (accessibleFiliais.length > 0) {
-                setFilialAtivaState(accessibleFiliais[0]);
-              }
-            }
-          } else if (accessibleFiliais.length > 0) {
-            setFilialAtivaState(accessibleFiliais[0]);
-          }
+          // Load filiais for the active company
+          await loadFiliaisForEmpresa(activeEmpresa.id, accessibleFiliais);
         }
       }
     } catch (error) {
@@ -241,7 +289,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, loadFiliaisForEmpresa]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -255,12 +303,14 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         userType,
         cargo,
         empresa,
+        availableEmpresas,
         companyInfo,
         filiais,
         filialAtiva,
         loading: authLoading || loading,
         switchingFilial,
         setFilialAtiva,
+        switchEmpresa,
         refresh: loadUserContext,
       }}
     >

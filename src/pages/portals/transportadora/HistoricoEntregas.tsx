@@ -48,6 +48,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
+import { EntregaDocsDialog } from '@/components/entregas/EntregaDocsDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
@@ -61,9 +62,9 @@ interface EntregaInViagem {
   status: StatusEntrega | null;
   peso_alocado_kg: number | null;
   valor_frete: number | null;
-  cte_url: string | null;
+  ctes: { id: string }[];
   numero_cte: string | null;
-  notas_fiscais_urls: string[] | null;
+  nfes: { id: string }[];
   canhoto_url: string | null;
   entregue_em: string | null;
   updated_at: string | null;
@@ -98,6 +99,7 @@ interface ViagemHistorico {
   ended_at: string | null;
   manifesto_url: string | null;
   km_total: number | null;
+  mdfes: { pdf_path: string | null; status: string | null }[];
   motorista: {
     id: string;
     nome_completo: string;
@@ -167,6 +169,12 @@ export default function HistoricoEntregas() {
   const [detailViagemOpen, setDetailViagemOpen] = useState(false);
   const [selectedViagem, setSelectedViagem] = useState<ViagemHistorico | null>(null);
 
+  // Docs dialog
+  const [docsDialogOpen, setDocsDialogOpen] = useState(false);
+  const [docsEntregaId, setDocsEntregaId] = useState<string | null>(null);
+  const [docsEntregaCodigo, setDocsEntregaCodigo] = useState<string | null>(null);
+  const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
+
   const { data: viagens = [], isLoading } = useQuery({
     queryKey: ['historico_viagens_expandable', empresa?.id],
     queryFn: async () => {
@@ -186,6 +194,7 @@ export default function HistoricoEntregas() {
         .select(`
           id, codigo, status, created_at, updated_at, ended_at,
           manifesto_url, km_total,
+          mdfes(pdf_path, status),
           motorista:motoristas(id, nome_completo, telefone),
           veiculo:veiculos(placa, tipo)
         `)
@@ -212,8 +221,10 @@ export default function HistoricoEntregas() {
           .from('entregas')
           .select(`
             id, codigo, status, peso_alocado_kg, valor_frete,
-            cte_url, numero_cte, notas_fiscais_urls, canhoto_url,
+            numero_cte, canhoto_url, previsao_coleta,
             entregue_em, updated_at,
+            ctes(id),
+            nfes(id),
             motorista:motoristas(id, nome_completo, telefone),
             veiculo:veiculos(placa, tipo),
             carga:cargas(
@@ -241,8 +252,9 @@ export default function HistoricoEntregas() {
 
       return (viagensData || []).map(v => ({
         ...v,
+        mdfes: Array.isArray((v as any).mdfes) ? (v as any).mdfes : [],
         entregas: viagemEntregasMap[v.id] || [],
-      })) as ViagemHistorico[];
+      })) as unknown as ViagemHistorico[];
     },
     enabled: !!empresa?.id,
   });
@@ -713,22 +725,33 @@ export default function HistoricoEntregas() {
                                   </Badge>
                                 </td>
                                 <td className="p-4 align-middle text-nowrap">
-                                  {viagem.manifesto_url ? (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 px-2 gap-1 text-green-600"
-                                      onClick={(e) => { e.stopPropagation(); handleOpenFile(viagem.manifesto_url!, 'Manifesto MDF-e'); }}
-                                    >
-                                      <FileCheck className="w-3 h-3" />
-                                      Ver
-                                    </Button>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                      <AlertTriangle className="w-3 h-3 text-amber-500" />
-                                      Pendente
-                                    </span>
-                                  )}
+                                  {(() => {
+                                    // Prefer mdfes table (pdf_path), fallback to legacy manifesto_url
+                                    const mdfe = viagem.mdfes?.find(m => m.pdf_path);
+                                    const rawPath = mdfe?.pdf_path || viagem.manifesto_url;
+                                    if (!rawPath) return (
+                                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                        Pendente
+                                      </span>
+                                    );
+                                    // pdf_path is a storage path, not a full URL — generate public URL
+                                    const isStoragePath = !rawPath.startsWith('http');
+                                    const finalUrl = isStoragePath
+                                      ? supabase.storage.from('documentos').getPublicUrl(rawPath).data.publicUrl
+                                      : rawPath;
+                                    return (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 gap-1 text-green-600"
+                                        onClick={(e) => { e.stopPropagation(); handleOpenFile(finalUrl, 'Manifesto MDF-e'); }}
+                                      >
+                                        <FileCheck className="w-3 h-3" />
+                                        Ver
+                                      </Button>
+                                    );
+                                  })()}
                                 </td>
                                 <td className="p-4 align-middle text-sm text-muted-foreground text-center text-nowrap">
                                   {viagem.km_total ? `${viagem.km_total.toLocaleString('pt-BR')} km` : '-'}
@@ -799,11 +822,12 @@ export default function HistoricoEntregas() {
                                               const eConfig = entregaStatusConfig[eStatus] || entregaStatusConfig.aguardando;
                                               const EStatusIcon = eConfig.icon;
 
-                                              const hasCte = !!entrega.cte_url;
+                                              // Use real tables (same source as modal)
+                                              const hasCte = (entrega.ctes?.length ?? 0) > 0;
                                               const hasCanhoto = !!entrega.canhoto_url;
-                                              const hasNf = entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0;
-                                              const docCount = [hasCte, hasCanhoto, hasNf].filter(Boolean).length;
-                                              const missingCritical = !hasCte || !hasCanhoto || !hasNf;
+                                              const hasNf = (entrega.nfes?.length ?? 0) > 0;
+                                              const docsComplete = hasCte && hasCanhoto && hasNf;
+                                              const docCount = (entrega.ctes?.length ?? 0) + (entrega.nfes?.length ?? 0) + (hasCanhoto ? 1 : 0);
 
                                               const origem = entrega.carga.endereco_origem;
                                               const destino = entrega.carga.endereco_destino;
@@ -857,12 +881,19 @@ export default function HistoricoEntregas() {
                                                     <Button
                                                       variant="ghost"
                                                       size="sm"
-                                                      className={`h-7 px-2 gap-1 ${missingCritical ? 'text-amber-600' : 'text-green-600'}`}
-                                                      onClick={(e) => { e.stopPropagation(); handleOpenDetails(entrega); }}
+                                                      className={`h-7 px-2 gap-1 ${docsComplete ? 'text-green-600' : 'text-amber-600'}`}
+                                                      title="Ver documentos"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDocsEntregaId(entrega.id);
+                                                        setDocsEntregaCodigo(entrega.codigo || entrega.carga.codigo);
+                                                        setDocsEntregaCanhoto(entrega.canhoto_url);
+                                                        setDocsDialogOpen(true);
+                                                      }}
                                                     >
                                                       <FileText className="w-3 h-3" />
-                                                      <span className="text-xs">{docCount}/3</span>
-                                                      {missingCritical && <AlertTriangle className="w-3 h-3" />}
+                                                      <span className="text-xs font-medium">{docCount}</span>
+                                                      {!docsComplete && <AlertTriangle className="w-3 h-3" />}
                                                     </Button>
                                                   </td>
                                                   <td className="p-4 align-middle">
@@ -977,6 +1008,14 @@ export default function HistoricoEntregas() {
           entrega={selectedEntrega as any}
           open={detailsDialogOpen}
           onOpenChange={setDetailsDialogOpen}
+        />
+
+        <EntregaDocsDialog
+          open={docsDialogOpen}
+          onOpenChange={setDocsDialogOpen}
+          entregaId={docsEntregaId || ''}
+          entregaCodigo={docsEntregaCodigo}
+          canhotoUrl={docsEntregaCanhoto}
         />
 
         <ViagemTrackingMapDialog

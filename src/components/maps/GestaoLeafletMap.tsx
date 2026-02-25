@@ -69,6 +69,7 @@ interface SelectedEntregaData {
 interface GestaoLeafletMapProps {
   localizacoes: MotoristaLocation[];
   selectedMotoristaId: string | null;
+  selectedViagemId?: string | null;
   selectedEntregaId: string | null;
   onMotoristaClick: (motoristaId: string) => void;
   onEntregaDeselect?: () => void;
@@ -230,10 +231,10 @@ function DriverMarkerWithTooltip({
   const isOnline = loc.isOnline ?? motoristaInfo?.isOnline ?? true;
   const entregas = motoristaInfo?.entregas || [];
   const entregasCount = entregas.length;
-  
+
   // Calcular tempo desde última atualização para exibir "Offline há X"
   const lastSeenAt = loc.updated_at || motoristaInfo?.lastSeenAt;
-  const lastSeenText = lastSeenAt 
+  const lastSeenText = lastSeenAt
     ? formatDistanceToNow(new Date(lastSeenAt), { locale: ptBR, addSuffix: false })
     : null;
 
@@ -245,9 +246,9 @@ function DriverMarkerWithTooltip({
         click: () => onMotoristaClick(loc.motorista_id),
       }}
     >
-      <Tooltip 
-        direction="top" 
-        offset={[0, -30]} 
+      <Tooltip
+        direction="top"
+        offset={[0, -30]}
         opacity={1}
         className="driver-tooltip"
       >
@@ -255,16 +256,15 @@ function DriverMarkerWithTooltip({
           {/* Header */}
           <div className="flex items-center justify-between mb-2">
             <p className="font-semibold text-sm">{motoristaName}</p>
-            <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full ${
-              isOnline 
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' 
-                : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-            }`}>
+            <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full ${isOnline
+              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+              : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+              }`}>
               <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
               {isOnline ? 'Online' : `Offline há ${lastSeenText || '?'}`}
             </span>
           </div>
-          
+
           {/* Entregas list */}
           {entregasCount > 0 && (
             <div className="space-y-1.5">
@@ -274,7 +274,7 @@ function DriverMarkerWithTooltip({
               {entregas.slice(0, 3).map((e, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded-md px-2 py-1.5">
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusColors[e.status] || 'bg-muted-foreground'}`}
-                    title={statusLabels[e.status] || e.status} 
+                    title={statusLabels[e.status] || e.status}
                   />
                   <span className="font-mono text-[10px] text-muted-foreground shrink-0">{e.codigo}</span>
                   <span className="truncate text-foreground">{e.origemCidade} → {e.destinoCidade}</span>
@@ -287,11 +287,11 @@ function DriverMarkerWithTooltip({
               )}
             </div>
           )}
-          
+
           {entregasCount === 0 && (
             <p className="text-xs text-muted-foreground">Sem entregas ativas</p>
           )}
-          
+
           <p className="text-[10px] text-primary mt-2 text-center">Clique para ver detalhes</p>
         </div>
       </Tooltip>
@@ -347,6 +347,7 @@ function StatusIndicators({ statusCounts }: { statusCounts: GestaoLeafletMapProp
 export function GestaoLeafletMap({
   localizacoes,
   selectedMotoristaId,
+  selectedViagemId,
   selectedEntregaId,
   onMotoristaClick,
   onEntregaDeselect,
@@ -419,7 +420,7 @@ export function GestaoLeafletMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        
+
         <FitBounds points={allPoints} />
         <MapController selectedMotoristaId={selectedMotoristaId} localizacoes={localizacoes} />
 
@@ -466,8 +467,13 @@ export function GestaoLeafletMap({
           />
         )}
 
-        {/* Histórico de rastreamento - mostra apenas quando uma entrega está selecionada */}
-        {selectedEntregaId && <TrackingHistoryMarkers entregaId={selectedEntregaId} />}
+        {/* Histórico de rastreamento - mostra quando entrega ou viagem selecionada */}
+        {(selectedEntregaId || selectedViagemId) && (
+          <TrackingHistoryMarkers
+            entregaId={selectedEntregaId}
+            viagemId={selectedViagemId}
+          />
+        )}
 
         {/* Caminhões - quando uma entrega é selecionada, mostrar apenas o motorista dessa entrega */}
         {localizacoes.map(loc => {
@@ -514,7 +520,7 @@ export function GestaoLeafletMap({
                 </Badge>
               </div>
             </div>
-            <button 
+            <button
               onClick={onEntregaDeselect}
               className="p-1.5 rounded-full hover:bg-muted transition-colors"
             >
@@ -538,7 +544,7 @@ export function GestaoLeafletMap({
               <span className="text-muted-foreground">Carga:</span>
               <span className="font-medium truncate">{selectedEntregaData.carga.descricao}</span>
             </div>
-            
+
             {selectedEntregaData.carga.remetente && (
               <div className="flex items-center gap-2">
                 <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -546,7 +552,7 @@ export function GestaoLeafletMap({
                 <span className="font-medium truncate">{selectedEntregaData.carga.remetente}</span>
               </div>
             )}
-            
+
             {selectedEntregaData.carga.destinatario && (
               <div className="flex items-center gap-2">
                 <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -556,10 +562,13 @@ export function GestaoLeafletMap({
             )}
 
             <div className="flex items-center gap-4 pt-2 border-t mt-2">
-              {selectedEntregaData.pesoAlocado && (
+              {selectedEntregaData.carga.peso && (
                 <span className="flex items-center gap-1.5">
                   <Weight className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="font-medium">{selectedEntregaData.pesoAlocado.toLocaleString('pt-BR')} kg</span>
+                  <span className="font-medium">
+                    {selectedEntregaData.pesoAlocado ? `${selectedEntregaData.pesoAlocado.toLocaleString('pt-BR')} kg / ` : ''}
+                    {selectedEntregaData.carga.peso.toLocaleString('pt-BR')} kg
+                  </span>
                 </span>
               )}
               {selectedEntregaData.valorFrete && (
@@ -578,7 +587,7 @@ export function GestaoLeafletMap({
           </div>
         </div>
       )}
-      
+
       {/* Custom tooltip styles */}
       <style>{`
         .driver-tooltip {

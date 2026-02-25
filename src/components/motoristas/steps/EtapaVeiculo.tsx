@@ -59,13 +59,13 @@ export function EtapaVeiculo({
       const filePath = `veiculos/${folder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .getPublicUrl(filePath);
 
       updateFormData({ [fieldName]: urlData.publicUrl });
@@ -84,7 +84,7 @@ export function EtapaVeiculo({
           <Car className="w-4 h-4" />
           Veículo (Cavalo)
         </div>
-        
+
         <div className="space-y-2">
           <Label>Selecione o Veículo</Label>
           <Select
@@ -148,7 +148,7 @@ export function EtapaVeiculo({
       {formData.veiculo_id && (
         <>
           <Separator />
-          
+
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-primary">
               <FileText className="w-4 h-4" />
@@ -276,7 +276,7 @@ export function EtapaVeiculo({
             <Container className="w-4 h-4" />
             Carroceria (Implemento)
           </div>
-          
+
           <div className="space-y-2">
             <Label>Selecione a Carroceria</Label>
             <Select
@@ -312,7 +312,7 @@ export function EtapaVeiculo({
               </p>
               {(selectedCarroceria.capacidade_kg || selectedCarroceria.capacidade_m3) && (
                 <p className="text-sm text-muted-foreground">
-                  Capacidade: {selectedCarroceria.capacidade_kg?.toLocaleString()}kg 
+                  Capacidade: {selectedCarroceria.capacidade_kg?.toLocaleString()}kg
                   {selectedCarroceria.capacidade_m3 && ` / ${selectedCarroceria.capacidade_m3}m³`}
                 </p>
               )}

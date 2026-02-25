@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 
 export interface DriverWithLocation {
   motorista_id: string;
@@ -20,6 +21,7 @@ export interface DriverWithLocation {
   heading: number | null;
   entrega_ativa: boolean;
   entrega_codigo: string | null;
+  tracking_code: string | null;
   entrega_status: string | null;
 }
 
@@ -37,6 +39,7 @@ export function DriverListPanel({
   isLoading = false,
 }: DriverListPanelProps) {
   const [search, setSearch] = useState('');
+  const selectedDriver = drivers.find(d => d.motorista_id === selectedDriverId);
 
   const filteredDrivers = useMemo(() => {
     if (!search.trim()) return drivers;
@@ -112,7 +115,7 @@ export function DriverListPanel({
                 onClick={() => onSelectDriver(driver.motorista_id)}
               />
             ))}
-            
+
             {/* Separator if both groups exist */}
             {onlineDrivers.length > 0 && offlineDrivers.length > 0 && (
               <div className="py-2">
@@ -120,7 +123,7 @@ export function DriverListPanel({
                 <p className="text-xs text-muted-foreground mt-2 px-2">Offline</p>
               </div>
             )}
-            
+
             {/* Offline drivers */}
             {offlineDrivers.map((driver) => (
               <DriverCard
@@ -135,6 +138,59 @@ export function DriverListPanel({
           </div>
         )}
       </ScrollArea>
+      {selectedDriver && selectedDriver.entrega_ativa && (
+        <EntregaDetailsDialog
+          open={!!selectedDriver}
+          onOpenChange={(open) => !open && onSelectDriver(null)}
+          entrega={{
+            id: 'mock-id', // We don't have the ID here, would need to fetch or add to model
+            codigo: selectedDriver.entrega_codigo,
+            tracking_code: selectedDriver.tracking_code || undefined,
+            status: selectedDriver.entrega_status as any,
+            created_at: new Date().toISOString(),
+            // Mock data structure matching the interface
+            valor_frete: 0,
+            peso_alocado_kg: 0,
+            coletado_em: null,
+            entregue_em: null,
+            motorista: {
+              id: selectedDriver.motorista_id,
+              nome_completo: selectedDriver.nome,
+              foto_url: selectedDriver.foto_url,
+              telefone: selectedDriver.telefone,
+              email: null
+            },
+            veiculo: null,
+            carga: {
+              id: 'mock-id',
+              codigo: selectedDriver.entrega_codigo || '',
+              descricao: 'Carga em transporte',
+              peso_kg: 0,
+              tipo: 'diversos',
+              data_entrega_limite: null,
+              destinatario_nome_fantasia: 'Destinatário',
+              destinatario_razao_social: null,
+              endereco_origem: {
+                cidade: '-',
+                estado: '-',
+                logradouro: 'Origem',
+                latitude: null,
+                longitude: null
+              },
+              endereco_destino: {
+                cidade: '-',
+                estado: '-',
+                logradouro: 'Destino',
+                latitude: null,
+                longitude: null
+              },
+              empresa: {
+                nome: selectedDriver.empresa_nome
+              }
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

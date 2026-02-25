@@ -42,13 +42,13 @@ export function EtapaAjudante({ formData, updateFormData }: EtapaAjudanteProps) 
       const filePath = `ajudantes/${folder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('notas-fiscais')
+        .from('documentos')
         .getPublicUrl(filePath);
 
       updateFormData({ [fieldName]: urlData.publicUrl });
@@ -88,7 +88,7 @@ export function EtapaAjudante({ formData, updateFormData }: EtapaAjudanteProps) 
               <UserPlus className="w-4 h-4" />
               Dados do Ajudante
             </div>
-            
+
             <div className="space-y-2">
               <Label>Tipo do Ajudante *</Label>
               <Select

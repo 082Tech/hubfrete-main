@@ -29,54 +29,57 @@ interface ExtractedPath {
 function extractPathFromUrl(url: string): ExtractedPath | null {
   // Extract bucket and path from a Supabase storage URL or relative path
   // Supports:
-  // - Full URL: https://xxx.supabase.co/storage/v1/object/public/notas-fiscais/ctes/file.pdf
-  // - Relative path: ctes/file.pdf (assumes notas-fiscais bucket)
-  // - Bucket prefixed: notas-fiscais/ctes/file.pdf
-  
-  // Known buckets in the project
-  const knownBuckets = ['notas-fiscais', 'chat-anexos', 'fotos-frota'];
-  
+  // - Full URL: https://xxx.supabase.co/storage/v1/object/public/documentos/ctes/file.pdf
+  // - Relative path: ctes/file.pdf (assumes documentos bucket)
+  // - Bucket prefixed: documentos/ctes/file.pdf
+
+  // Standard buckets in the project
+  const knownBuckets = ['documentos', 'chat-anexos', 'fotos-frota', 'notas-fiscais', 'mdfes'];
+
   // Check if it's a full Supabase storage URL
   const storagePattern = /\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+?)(?:\?|$)/;
   const match = url.match(storagePattern);
-  
+
   if (match) {
     const bucket = match[1];
     const path = decodeURIComponent(match[2].split('?')[0]);
     return { bucket, path };
   }
-  
+
   // Check if URL contains a known bucket name
   for (const bucket of knownBuckets) {
     // Pattern: bucket/path or full URL with bucket
     const bucketPattern = new RegExp(`(?:^|/)${bucket}/(.+?)(?:\\?|$)`);
     const bucketMatch = url.match(bucketPattern);
     if (bucketMatch) {
-      return { 
-        bucket, 
-        path: decodeURIComponent(bucketMatch[1].split('?')[0]) 
+      return {
+        bucket,
+        path: decodeURIComponent(bucketMatch[1].split('?')[0])
       };
     }
   }
-  
-  // Fallback: If it's a relative path without bucket prefix, assume it's from notas-fiscais
+
+  // Fallback: If it's a relative path without bucket prefix, assume it's from documentos
   // Common patterns: ctes/file.pdf, manifestos/file.pdf, etc.
   if (!url.startsWith('http') && !url.startsWith('/storage')) {
     // Clean up path - remove any leading slashes
     const cleanPath = url.replace(/^\/+/, '');
-    
+
     // Determine bucket based on path prefix
-    if (cleanPath.startsWith('ctes/') || cleanPath.startsWith('manifestos/')) {
-      return { bucket: 'notas-fiscais', path: cleanPath };
+    if (cleanPath.startsWith('ctes/')) {
+      return { bucket: 'documentos', path: cleanPath };
+    }
+    if (cleanPath.startsWith('manifestos/')) {
+      return { bucket: 'mdfes', path: cleanPath };
     }
     if (cleanPath.startsWith('chat-anexos/')) {
       return { bucket: 'chat-anexos', path: cleanPath.replace('chat-anexos/', '') };
     }
-    
-    // Default to notas-fiscais for any other relative path
-    return { bucket: 'notas-fiscais', path: cleanPath };
+
+    // Default to documentos for any other relative path
+    return { bucket: 'documentos', path: cleanPath };
   }
-  
+
   return null;
 }
 
@@ -107,13 +110,13 @@ export function FilePreviewDialog({ open, onOpenChange, fileUrl, title = 'Visual
     try {
       const extracted = extractPathFromUrl(fileUrl);
       console.log('[FilePreviewDialog] Extracted path:', extracted);
-      
+
       if (!extracted) {
         throw new Error('Não foi possível extrair o caminho do arquivo');
       }
 
       console.log('[FilePreviewDialog] Requesting signed URL from bucket:', extracted.bucket, 'path:', extracted.path);
-      
+
       const { data, error: signError } = await supabase.storage
         .from(extracted.bucket)
         .createSignedUrl(extracted.path, 3600); // 1 hour expiry

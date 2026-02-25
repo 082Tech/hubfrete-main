@@ -19,11 +19,27 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
+import { Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -49,6 +65,7 @@ import {
   Layers,
   Info,
   Route,
+  Scale,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -153,6 +170,7 @@ interface Motorista {
   id: string;
   nome_completo: string;
   telefone: string | null;
+  foto_url?: string | null;
   veiculos: Veiculo[];
   carrocerias: Carroceria[];
 }
@@ -193,21 +211,29 @@ export default function CargasDisponiveis() {
   const [selectedMotorista, setSelectedMotorista] = useState<string>('');
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('');
   const [selectedCarroceria, setSelectedCarroceria] = useState<string | null>(null);
+
+  // NEW: State for multi-carroceria (Bitrem/Rodotrem)
+  const [selectedCarroceriasMulti, setSelectedCarroceriasMulti] = useState<string[]>([]);
+  const [pesoPorCarroceria, setPesoPorCarroceria] = useState<Record<string, number>>({});
+
+  const [openMotoristaCombobox, setOpenMotoristaCombobox] = useState(false);
+
   const [selectedViagemId, setSelectedViagemId] = useState<string | null>(null);
   const [isViagemBlocked, setIsViagemBlocked] = useState(false);
   const [isCreatingViagem, setIsCreatingViagem] = useState(false);
   const [pesoAlocadoInput, setPesoAlocadoInput] = useState<number>(0);
+  const [previsaoColeta, setPrevisaoColeta] = useState<string>('');
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [viewMode, setViewModeState] = useState<'list' | 'map'>(() => {
     try {
       const saved = localStorage.getItem('hubfrete_cargas_view_mode');
       if (saved === 'list' || saved === 'map') return saved;
-    } catch {}
+    } catch { }
     return isMobile ? 'list' : 'map';
   });
   const setViewMode = (mode: 'list' | 'map') => {
     setViewModeState(mode);
-    try { localStorage.setItem('hubfrete_cargas_view_mode', mode); } catch {}
+    try { localStorage.setItem('hubfrete_cargas_view_mode', mode); } catch { }
   };
   const [hoveredCargaId, setHoveredCargaId] = useState<string | null>(null);
   const [distancias, setDistancias] = useState<Map<string, { distance: string; duration: string }>>(new Map());
@@ -261,11 +287,11 @@ export default function CargasDisponiveis() {
           empresa:empresas!cargas_empresa_id_fkey(nome, logo_url),
           filial:filiais!cargas_filial_id_fkey(nome)
         `)
-        .in('status', ['publicada', 'parcialmente_alocada'])
+        .in('status', ['publicada', 'parcialmente_alocada'] as any)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as Carga[];
+      return (data || []) as any[];
     },
   });
 
@@ -273,11 +299,11 @@ export default function CargasDisponiveis() {
   useEffect(() => {
     const fetchDistances = async () => {
       const cargasSemDistancia = cargas.filter(c => !distancias.has(c.id));
-      
+
       for (const carga of cargasSemDistancia) {
         const origem = carga.endereco_origem;
         const destino = carga.endereco_destino;
-        
+
         if (!origem?.latitude || !origem?.longitude || !destino?.latitude || !destino?.longitude) {
           continue;
         }
@@ -287,13 +313,13 @@ export default function CargasDisponiveis() {
             `https://router.project-osrm.org/route/v1/driving/${origem.longitude},${origem.latitude};${destino.longitude},${destino.latitude}?overview=false`
           );
           const data = await response.json();
-          
+
           if (data.routes && data.routes.length > 0) {
             const route = data.routes[0];
             const distanceKm = (route.distance / 1000).toFixed(0);
             const durationHours = Math.floor(route.duration / 3600);
             const durationMinutes = Math.round((route.duration % 3600) / 60);
-            
+
             setDistancias(prev => {
               const updated = new Map(prev);
               updated.set(carga.id, {
@@ -323,7 +349,7 @@ export default function CargasDisponiveis() {
       const { data, error } = await supabase
         .from('veiculos')
         .select('id, tipo')
-        .eq('empresa_id', empresa.id)
+        .eq('empresa_id', empresa.id as any)
         .eq('ativo', true);
 
       if (error) throw error;
@@ -358,10 +384,11 @@ export default function CargasDisponiveis() {
           id,
           nome_completo,
           telefone,
+          foto_url,
           veiculos(id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada),
           carrocerias(id, placa, tipo, capacidade_kg)
         `)
-        .eq('empresa_id', empresa.id)
+        .eq('empresa_id', empresa.id as any)
         .eq('ativo', true);
 
       if (error) throw error;
@@ -393,13 +420,13 @@ export default function CargasDisponiveis() {
     queryKey: ['usuario_logado_nome', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      
-      const { data } = await supabase
+
+      const { data } = await (supabase
         .from('usuarios')
         .select('nome')
         .eq('auth_user_id', user.id)
-        .maybeSingle();
-      
+        .maybeSingle() as any);
+
       return data;
     },
     enabled: !!user?.id,
@@ -523,6 +550,8 @@ export default function CargasDisponiveis() {
       viagemId,
       userId,
       userName,
+      previsaoColeta,
+      carroceriasAlocadas,
     }: {
       cargaId: string;
       motoristaId: string;
@@ -535,9 +564,11 @@ export default function CargasDisponiveis() {
       viagemId: string | null;
       userId: string | null;
       userName: string;
+      previsaoColeta: string;
+      carroceriasAlocadas?: any;
     }) => {
       // Get current cargo to update peso_disponivel_kg
-      const { data: cargaAtual, error: fetchError } = await supabase
+      const { data: cargaAtualResult, error: fetchError } = await supabase
         .from('cargas')
         .select('peso_disponivel_kg, peso_kg')
         .eq('id', cargaId)
@@ -545,7 +576,8 @@ export default function CargasDisponiveis() {
 
       if (fetchError) throw fetchError;
 
-      const pesoDisponivel = cargaAtual.peso_disponivel_kg ?? cargaAtual.peso_kg;
+      const cargaAtual = cargaAtualResult as any;
+      const pesoDisponivel = cargaAtual?.peso_disponivel_kg ?? cargaAtual?.peso_kg ?? 0;
       const novoPesoDisponivel = pesoDisponivel - pesoAlocadoKg;
 
       // Update cargo status and available weight
@@ -560,6 +592,63 @@ export default function CargasDisponiveis() {
 
       if (cargaError) throw cargaError;
 
+      // Check if driver already has an active delivery for this load
+      const { data: entregaExistente, error: checkError } = await (supabase as any)
+        .from('entregas')
+        .select('*')
+        .eq('carga_id', cargaId)
+        .eq('motorista_id', motoristaId)
+        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (entregaExistente) {
+        // Merge weights and vehicles instead of duplicating
+        const updatePayload: any = {
+          peso_alocado_kg: Number(entregaExistente.peso_alocado_kg || 0) + Number(pesoAlocadoKg),
+          valor_frete: Number(entregaExistente.valor_frete || 0) + Number(valorFrete),
+        };
+
+        if (carroceriasAlocadas && carroceriasAlocadas.length > 0) {
+          const existingCarrocerias = Array.isArray(entregaExistente.carrocerias_alocadas)
+            ? [...entregaExistente.carrocerias_alocadas]
+            : [];
+
+          carroceriasAlocadas.forEach((ca: any) => {
+            const existingCa = existingCarrocerias.find((ec: any) => ec.carroceria_id === ca.carroceria_id);
+            if (existingCa) {
+              existingCa.peso_kg = Number(existingCa.peso_kg || 0) + Number(ca.peso_kg || 0);
+            } else {
+              existingCarrocerias.push(ca);
+            }
+          });
+          updatePayload.carrocerias_alocadas = existingCarrocerias;
+        }
+
+        const { data: updatedEntrega, error: updateError } = await supabase
+          .from('entregas')
+          .update(updatePayload)
+          .eq('id', entregaExistente.id)
+          .select('id')
+          .single();
+
+        if (updateError) throw updateError;
+
+        // Registrar evento de atualização
+        await supabase.from('entrega_eventos').insert({
+          entrega_id: updatedEntrega.id,
+          tipo: 'atualizacao',
+          timestamp: new Date().toISOString(),
+          observacao: `Peso adicional alocado (mais ${pesoAlocadoKg} kg)`,
+          user_id: userId,
+          user_nome: userName,
+        });
+
+        // Since it's an existing assignment, return early (bypassing chat/viagem duplication)
+        return { entregaId: updatedEntrega.id, viagemId: viagemId };
+      }
+
       // Create delivery record with simplified status enum
       const { data: entregaData, error: entregaError } = await supabase
         .from('entregas')
@@ -570,9 +659,11 @@ export default function CargasDisponiveis() {
           carroceria_id: carroceriaId,
           peso_alocado_kg: pesoAlocadoKg,
           valor_frete: valorFrete,
-          status: 'aguardando' as const,
+          previsao_coleta: previsaoColeta ? new Date(previsaoColeta).toISOString() : null,
+          status: 'aguardando',
           created_by: userId,
-        })
+          carrocerias_alocadas: carroceriasAlocadas || null,
+        } as any)
         .select('id')
         .single();
 
@@ -580,7 +671,7 @@ export default function CargasDisponiveis() {
 
       // Registrar eventos iniciais na timeline
       const now = new Date();
-      
+
       // Evento 1: Criação da entrega (pelo usuário)
       await supabase.from('entrega_eventos').insert({
         entrega_id: entregaData.id,
@@ -594,12 +685,12 @@ export default function CargasDisponiveis() {
       // Evento 2: Status inicial "Aguardando" (pelo Sistema)
       await supabase.from('entrega_eventos').insert({
         entrega_id: entregaData.id,
-        tipo: 'aceite',
+        tipo: 'criado' as const,
         timestamp: new Date(now.getTime() + 1).toISOString(), // +1ms para ordenação
         observacao: 'Status inicial definido automaticamente',
         user_id: null,
         user_nome: 'Sistema',
-      });
+      } as any);
 
       // Handle viagem - create new or add to existing
       let finalViagemId = viagemId;
@@ -619,14 +710,14 @@ export default function CargasDisponiveis() {
             codigo: '', // Will be overwritten by trigger
           })
           .select('id, codigo')
-          .single();
+          .single() as any;
 
         if (viagemError) {
           console.error('Erro ao criar viagem:', viagemError);
           // Don't throw - viagem is optional for now, delivery was already created
         } else {
           finalViagemId = novaViagem.id;
-          
+
           // Link entrega to the new viagem
           const { error: vinculoError } = await supabase
             .from('viagem_entregas')
@@ -688,6 +779,8 @@ export default function CargasDisponiveis() {
       setSelectedMotorista('');
       setSelectedVeiculo('');
       setSelectedCarroceria(null);
+      setSelectedCarroceriasMulti([]);
+      setPesoPorCarroceria({});
       setSelectedViagemId(null);
     },
     onError: (error) => {
@@ -700,51 +793,51 @@ export default function CargasDisponiveis() {
     return cargas.filter((carga) => {
       // Check if any advanced filter is active
       const hasAdvancedFilters = Object.values(advancedFilters).some(v => v.length > 0);
-      
+
       // If no advanced filters, just apply tipo and veiculo filters
       if (!hasAdvancedFilters) {
         const matchesTipo = filterTipo === 'all' || carga.tipo === filterTipo;
-        
+
         let matchesTipoVeiculo = true;
         if (filterTiposVeiculo.length > 0) {
           const requisitos = carga.veiculo_requisitos as VeiculoRequisitos | null;
           if (requisitos?.tipos_veiculo && requisitos.tipos_veiculo.length > 0) {
-            matchesTipoVeiculo = filterTiposVeiculo.some(tipo => 
+            matchesTipoVeiculo = filterTiposVeiculo.some(tipo =>
               requisitos.tipos_veiculo!.includes(tipo)
             );
           }
         }
-        
+
         return matchesTipo && matchesTipoVeiculo;
       }
-      
+
       // Apply advanced filters
-      const matchesCodigo = !advancedFilters.codigo || 
+      const matchesCodigo = !advancedFilters.codigo ||
         carga.codigo.toLowerCase().includes(advancedFilters.codigo.toLowerCase());
-      
-      const matchesDescricao = !advancedFilters.descricao || 
+
+      const matchesDescricao = !advancedFilters.descricao ||
         carga.descricao?.toLowerCase().includes(advancedFilters.descricao.toLowerCase());
-      
-      const matchesCidadeOrigem = !advancedFilters.cidadeOrigem || 
+
+      const matchesCidadeOrigem = !advancedFilters.cidadeOrigem ||
         carga.endereco_origem?.cidade?.toLowerCase().includes(advancedFilters.cidadeOrigem.toLowerCase());
-      
-      const matchesEstadoOrigem = !advancedFilters.estadoOrigem || 
+
+      const matchesEstadoOrigem = !advancedFilters.estadoOrigem ||
         carga.endereco_origem?.estado?.toLowerCase() === advancedFilters.estadoOrigem.toLowerCase();
-      
-      const matchesCidadeDestino = !advancedFilters.cidadeDestino || 
+
+      const matchesCidadeDestino = !advancedFilters.cidadeDestino ||
         carga.endereco_destino?.cidade?.toLowerCase().includes(advancedFilters.cidadeDestino.toLowerCase());
-      
-      const matchesEstadoDestino = !advancedFilters.estadoDestino || 
+
+      const matchesEstadoDestino = !advancedFilters.estadoDestino ||
         carga.endereco_destino?.estado?.toLowerCase() === advancedFilters.estadoDestino.toLowerCase();
-      
-      const matchesEmbarcador = !advancedFilters.embarcador || 
+
+      const matchesEmbarcador = !advancedFilters.embarcador ||
         carga.empresa?.nome?.toLowerCase().includes(advancedFilters.embarcador.toLowerCase());
-      
-      const matchesDestinatario = !advancedFilters.destinatario || 
+
+      const matchesDestinatario = !advancedFilters.destinatario ||
         carga.destinatario_razao_social?.toLowerCase().includes(advancedFilters.destinatario.toLowerCase()) ||
         carga.destinatario_nome_fantasia?.toLowerCase().includes(advancedFilters.destinatario.toLowerCase());
-      
-      const matchesCnpjDestinatario = !advancedFilters.cnpjDestinatario || 
+
+      const matchesCnpjDestinatario = !advancedFilters.cnpjDestinatario ||
         carga.destinatario_cnpj?.replace(/\D/g, '').includes(advancedFilters.cnpjDestinatario.replace(/\D/g, ''));
 
       const matchesTipo = filterTipo === 'all' || carga.tipo === filterTipo;
@@ -754,15 +847,15 @@ export default function CargasDisponiveis() {
       if (filterTiposVeiculo.length > 0) {
         const requisitos = carga.veiculo_requisitos as VeiculoRequisitos | null;
         if (requisitos?.tipos_veiculo && requisitos.tipos_veiculo.length > 0) {
-          matchesTipoVeiculo = filterTiposVeiculo.some(tipo => 
+          matchesTipoVeiculo = filterTiposVeiculo.some(tipo =>
             requisitos.tipos_veiculo!.includes(tipo)
           );
         }
       }
 
-      return matchesCodigo && matchesDescricao && matchesCidadeOrigem && matchesEstadoOrigem && 
-             matchesCidadeDestino && matchesEstadoDestino && matchesEmbarcador && 
-             matchesDestinatario && matchesCnpjDestinatario && matchesTipo && matchesTipoVeiculo;
+      return matchesCodigo && matchesDescricao && matchesCidadeOrigem && matchesEstadoOrigem &&
+        matchesCidadeDestino && matchesEstadoDestino && matchesEmbarcador &&
+        matchesDestinatario && matchesCnpjDestinatario && matchesTipo && matchesTipoVeiculo;
     });
   }, [cargas, advancedFilters, filterTipo, filterTiposVeiculo]);
 
@@ -805,12 +898,27 @@ export default function CargasDisponiveis() {
     return selectedMotoristaData?.veiculos?.find((v) => v.id === selectedVeiculo);
   }, [selectedMotoristaData, selectedVeiculo]);
 
+  // Derive if current vehicle is multi-trailer
+  const isMultiTrailer = useMemo(() => {
+    if (!selectedMotoristaData || !selectedVeiculoData) return false;
+    const v = selectedVeiculoData;
+    return v?.tipo === 'bitrem' || v?.tipo === 'rodotrem';
+  }, [selectedMotoristaData, selectedVeiculoData]);
+
+  // Derived total requested weight
+  const pesoTotalAlocado = useMemo(() => {
+    if (isMultiTrailer) {
+      return Object.values(pesoPorCarroceria).reduce((a, b) => a + (b || 0), 0);
+    }
+    return pesoAlocadoInput;
+  }, [isMultiTrailer, pesoPorCarroceria, pesoAlocadoInput]);
+
   const selectedCarroceriaData = useMemo(() => {
     if (!selectedMotoristaData || !selectedCarroceria) return null;
     return selectedMotoristaData.carrocerias?.find((c) => c.id === selectedCarroceria) || null;
   }, [selectedMotoristaData, selectedCarroceria]);
 
-  // Garantia: se só existe 1 carroceria e o veículo NÃO é integrado, seleciona automaticamente.
+  // Auto-select carroceria if only one is available for the selected driver/vehicle
   useEffect(() => {
     if (!selectedMotoristaData || !selectedVeiculoData) return;
 
@@ -895,7 +1003,15 @@ export default function CargasDisponiveis() {
 
   // Calculate freight based on allocated weight input
   const calculatedFrete = useMemo(() => {
-    if (!selectedCarga?.valor_frete_tonelada || !pesoAlocadoInput) return 0;
+    if (!selectedCarga) return 0;
+
+    // Se for frete fixo, o valor é o mesmo independentemente do peso
+    if (selectedCarga.tipo_precificacao === 'fixo' && selectedCarga.valor_frete_fixo) {
+      return selectedCarga.valor_frete_fixo;
+    }
+
+    // Senão, calcula baseado no peso alocado
+    if (!selectedCarga.valor_frete_tonelada || !pesoAlocadoInput) return selectedCarga.valor_frete_fixo || 0;
     return (pesoAlocadoInput / 1000) * selectedCarga.valor_frete_tonelada;
   }, [selectedCarga, pesoAlocadoInput]);
 
@@ -929,6 +1045,11 @@ export default function CargasDisponiveis() {
       return;
     }
 
+    if (!previsaoColeta) {
+      toast.error('Informe a previsão de coleta');
+      return;
+    }
+
     acceptCarga.mutate({
       cargaId: selectedCarga.id,
       motoristaId: selectedMotorista,
@@ -941,6 +1062,7 @@ export default function CargasDisponiveis() {
       viagemId: selectedViagemId,
       userId: user?.id ?? null,
       userName: usuarioLogado?.nome || user?.email || 'Sistema',
+      previsaoColeta,
     });
   };
 
@@ -994,9 +1116,14 @@ export default function CargasDisponiveis() {
 
   // Calculate total freight for a cargo
   const calcularFreteTotal = (carga: Carga) => {
-    if (!carga.valor_frete_tonelada) return null;
-    const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
-    return (pesoDisponivel / 1000) * carga.valor_frete_tonelada;
+    if (carga.tipo_precificacao === 'fixo' && carga.valor_frete_fixo) {
+      return carga.valor_frete_fixo;
+    }
+    if (carga.valor_frete_tonelada) {
+      const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
+      return (pesoDisponivel / 1000) * carga.valor_frete_tonelada;
+    }
+    return carga.valor_frete_fixo || null;
   };
 
   // Helper to format company + filial name
@@ -1164,14 +1291,36 @@ export default function CargasDisponiveis() {
           </div>
 
           {/* Details Row - Fixed position at bottom */}
-          <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between pt-3 mt-2 border-t border-border gap-y-2">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Weight className="w-3.5 h-3.5" />
                 <span className="font-medium text-foreground">
                   {pesoDisponivel.toLocaleString('pt-BR')} kg
                 </span>
               </span>
+
+              {/* Carregamento Mínimo */}
+              <div className="flex items-center">
+                {carga.peso_minimo_fracionado_kg ? (
+                  <Tooltip>
+                    <TooltipTrigger className="cursor-help flex items-center gap-1 text-[10px] bg-primary/10 text-primary font-medium px-1.5 py-0.5 rounded">
+                      <Scale className="w-3 h-3" />
+                      Mín: {carga.peso_minimo_fracionado_kg.toLocaleString('pt-BR')} kg
+                    </TooltipTrigger>
+                    <TooltipContent>Carregamento mínimo exigido por entrega</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger className="cursor-help flex items-center gap-1 text-[10px] bg-muted/60 text-muted-foreground font-medium px-1.5 py-0.5 rounded">
+                      <Scale className="w-3 h-3" />
+                      S/ Mínimo
+                    </TooltipTrigger>
+                    <TooltipContent>Esta carga não exige um carregamento mínimo fracionado</TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+
               {/* Cubagem */}
               {carga.volume_m3 && carga.volume_m3 > 0 && (
                 <span className="flex items-center gap-1">
@@ -1182,16 +1331,27 @@ export default function CargasDisponiveis() {
                 </span>
               )}
             </div>
-            {carga.valor_frete_tonelada && (
-              <div className="flex flex-col items-end gap-0.5">
-                <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
-                  {formatCurrency(calcularFreteTotal(carga))}
+            {(() => {
+              const totalFrete = calcularFreteTotal(carga);
+              if (totalFrete === null) return null;
+
+              return (
+                <div className="flex flex-col items-end gap-0.5">
+                  <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
+                    {formatCurrency(totalFrete)}
+                  </div>
+                  {carga.valor_frete_tonelada ? (
+                    <span className="text-xs text-muted-foreground">
+                      ({formatCurrency(carga.valor_frete_tonelada)}/ton)
+                    </span>
+                  ) : carga.tipo_precificacao === 'fixo' ? (
+                    <span className="text-xs text-muted-foreground">
+                      (Valor Fixo)
+                    </span>
+                  ) : null}
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  ({formatCurrency(carga.valor_frete_tonelada)}/ton)
-                </span>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Dates Row - Fixed at bottom */}
@@ -1271,9 +1431,9 @@ export default function CargasDisponiveis() {
           <CardContent className="p-4">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col md:flex-row gap-4">
-                <AdvancedSearchPopover 
-                  filters={advancedFilters} 
-                  onFiltersChange={setAdvancedFilters} 
+                <AdvancedSearchPopover
+                  filters={advancedFilters}
+                  onFiltersChange={setAdvancedFilters}
                 />
                 <Select value={filterTipo} onValueChange={setFilterTipo}>
                   <SelectTrigger className="w-full md:w-[200px]">
@@ -1290,7 +1450,7 @@ export default function CargasDisponiveis() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {/* Filtro de Tipo de Veículo */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1304,16 +1464,15 @@ export default function CargasDisponiveis() {
                   {(Object.entries(tipoVeiculoLabels) as [string, string][]).map(([value, label]) => {
                     const isInFleet = tiposVeiculoFrota.includes(value);
                     const isSelected = filterTiposVeiculo.includes(value);
-                    
+
                     return (
                       <Badge
                         key={value}
                         variant={isSelected ? 'default' : 'outline'}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'hover:bg-muted'
-                        }`}
+                        className={`cursor-pointer transition-colors ${isSelected
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted'
+                          }`}
                         onClick={() => {
                           if (isSelected) {
                             setFilterTiposVeiculo(prev => prev.filter(t => t !== value));
@@ -1332,9 +1491,9 @@ export default function CargasDisponiveis() {
                 </div>
                 <div className="flex gap-3">
                   {filterTiposVeiculo.length < tiposVeiculoFrota.length && (
-                    <Button 
-                      variant="link" 
-                      size="sm" 
+                    <Button
+                      variant="link"
+                      size="sm"
                       className="h-auto p-0 text-xs"
                       onClick={() => setFilterTiposVeiculo(tiposVeiculoFrota)}
                     >
@@ -1342,9 +1501,9 @@ export default function CargasDisponiveis() {
                     </Button>
                   )}
                   {filterTiposVeiculo.length > 0 && (
-                    <Button 
-                      variant="link" 
-                      size="sm" 
+                    <Button
+                      variant="link"
+                      size="sm"
                       className="h-auto p-0 text-xs text-muted-foreground"
                       onClick={() => setFilterTiposVeiculo([])}
                     >
@@ -1375,8 +1534,8 @@ export default function CargasDisponiveis() {
                   : 'Não há cargas publicadas no momento. Volte mais tarde.'}
               </p>
               {filterTiposVeiculo.length > 0 && cargas.length > 0 && (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => setFilterTiposVeiculo([])}
                 >
@@ -1674,86 +1833,147 @@ export default function CargasDisponiveis() {
                   {/* Driver Selection */}
                   <div className="space-y-2 px-1">
                     <Label>Motorista</Label>
-                    <Select
-                      value={selectedMotorista}
-                      onValueChange={(value) => {
-                        setSelectedMotorista(value);
-                        // Auto-select the first vehicle if available
-                        const motorista = motoristas.find(m => m.id === value);
-                        if (motorista?.veiculos?.length === 1) {
-                          const veiculo = motorista.veiculos[0] as any;
-                          setSelectedVeiculo(veiculo.id);
-                          // If vehicle has integrated body, no carroceria. Otherwise, auto-select first carroceria
-                          if (veiculo.carroceria_integrada) {
-                            setSelectedCarroceria(null);
-                          } else if (motorista.carrocerias?.length === 1) {
-                            setSelectedCarroceria(motorista.carrocerias[0].id);
-                          } else {
-                            setSelectedCarroceria(null);
-                          }
-                        } else {
-                          setSelectedVeiculo('');
-                          setSelectedCarroceria(null);
-                        }
-                        setPesoAlocadoInput(0);
-                        setSelectedViagemId(null);
-                        setIsViagemBlocked(false);
-                        // Scroll to equipment section after driver selection
-                        setTimeout(() => {
-                          equipmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 100);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um motorista" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {motoristas.length === 0 ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            Nenhum motorista cadastrado
-                          </div>
-                        ) : motoristas.filter(m => m.veiculos?.length > 0).length === 0 ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            Nenhum motorista com veículo vinculado
-                          </div>
-                        ) : (
-                          motoristas.filter(m => m.veiculos?.length > 0).map((motorista) => {
-                            // Capacidade de veículos com carroceria integrada
-                            const capacidadeVeiculosIntegrados = (motorista.veiculos as any[])
-                              ?.filter((v) => v.carroceria_integrada)
-                              ?.reduce((acc: number, v: any) => acc + (v.capacidade_kg || 0), 0) || 0;
-                            // Capacidade de carrocerias separadas
-                            const capacidadeCarrocerias = motorista.carrocerias?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
-                            const capacidadeTotal = capacidadeVeiculosIntegrados + capacidadeCarrocerias;
-                            const emUso = pesoEmUsoPorMotorista.get(motorista.id) || 0;
-                            const disponivel = Math.max(0, capacidadeTotal - emUso);
-                            const temCapacidade = disponivel > 0;
-
-                            return (
-                              <SelectItem key={motorista.id} value={motorista.id} disabled={!temCapacidade && capacidadeTotal > 0}>
-                                <div className="flex items-center gap-2">
-                                  <User className="w-4 h-4" />
-                                  <span>{motorista.nome_completo}</span>
-                                  {capacidadeTotal === 0 ? (
-                                    <Badge variant="outline" className="text-xs text-destructive">
-                                      Sem capacidade
-                                    </Badge>
-                                  ) : temCapacidade ? (
-                                    <Badge variant="outline" className="text-xs bg-primary/10 text-primary">
-                                      {(disponivel / 1000).toFixed(1)}t disp.
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="outline" className="text-xs text-muted-foreground">
-                                      Lotado
-                                    </Badge>
-                                  )}
+                    <Popover open={openMotoristaCombobox} onOpenChange={setOpenMotoristaCombobox}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openMotoristaCombobox}
+                          className="w-full justify-between mt-1 h-12"
+                        >
+                          {selectedMotorista ? (
+                            <div className="flex items-center gap-3 w-full overflow-hidden">
+                              {motoristas.find((m) => m.id === selectedMotorista)?.foto_url ? (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={motoristas.find((m) => m.id === selectedMotorista)?.foto_url as string} />
+                                  <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                                </Avatar>
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <User className="h-4 w-4 text-primary" />
                                 </div>
-                              </SelectItem>
-                            );
-                          })
-                        )}
-                      </SelectContent>
-                    </Select>
+                              )}
+                              <div className="flex flex-col items-start truncate overflow-hidden">
+                                <span className="font-medium text-sm truncate w-full text-left">
+                                  {motoristas.find((m) => m.id === selectedMotorista)?.nome_completo}
+                                </span>
+                                <span className="text-xs text-muted-foreground truncate w-full text-left">
+                                  ID: {motoristas.find((m) => m.id === selectedMotorista)?.id.substring(0, 8)}
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground font-normal">Selecione o motorista...</span>
+                          )}
+                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Buscar motorista..." />
+                          <CommandList className="max-h-[250px] overflow-y-auto">
+                            <CommandEmpty>Nenhum motorista encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {motoristas.map((motorista) => {
+                                // Capacidade de veículos com carroceria integrada
+                                const capacidadeVeiculosIntegrados = (motorista.veiculos as any[])
+                                  ?.filter((v) => v.carroceria_integrada)
+                                  ?.reduce((acc: number, v: any) => acc + (v.capacidade_kg || 0), 0) || 0;
+                                // Capacidade de carrocerias separadas
+                                const capacidadeCarrocerias = motorista.carrocerias?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
+                                const capacidadeTotal = capacidadeVeiculosIntegrados + capacidadeCarrocerias;
+                                const emUso = pesoEmUsoPorMotorista.get(motorista.id) || 0;
+                                const disponivel = Math.max(0, capacidadeTotal - emUso);
+                                const temCapacidade = disponivel > 0;
+                                const hasVeiculo = motorista.veiculos && motorista.veiculos.length > 0;
+
+                                return (
+                                  <CommandItem
+                                    key={motorista.id}
+                                    value={`${motorista.nome_completo} ${motorista.id}`}
+                                    disabled={!hasVeiculo || (!temCapacidade && capacidadeTotal > 0)}
+                                    onSelect={() => {
+                                      const value = motorista.id;
+                                      setSelectedMotorista(value);
+                                      // Auto-select the first vehicle if available
+                                      if (motorista?.veiculos && motorista.veiculos.length > 0) {
+                                        const veiculo = motorista.veiculos[0] as any;
+                                        setSelectedVeiculo(veiculo.id);
+                                        if (veiculo.carroceria_integrada) {
+                                          setSelectedCarroceria(null);
+                                        } else if (motorista.carrocerias && motorista.carrocerias.length > 0) {
+                                          setSelectedCarroceria(motorista.carrocerias[0].id);
+                                        } else {
+                                          setSelectedCarroceria(null);
+                                        }
+                                      } else {
+                                        setSelectedVeiculo('');
+                                        setSelectedCarroceria(null);
+                                      }
+                                      setPesoAlocadoInput(0);
+                                      setPesoPorCarroceria({});
+                                      setSelectedCarroceriasMulti([]);
+                                      setSelectedViagemId(null);
+                                      setIsViagemBlocked(false);
+                                      setOpenMotoristaCombobox(false);
+
+                                      // Scroll to equipment section after driver selection
+                                      setTimeout(() => {
+                                        equipmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                      }, 100);
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-3 w-full">
+                                      {motorista.foto_url ? (
+                                        <Avatar className="h-8 w-8">
+                                          <AvatarImage src={motorista.foto_url} />
+                                          <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                                        </Avatar>
+                                      ) : (
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                          <User className="h-4 w-4 text-primary" />
+                                        </div>
+                                      )}
+                                      <div className="flex flex-col overflow-hidden">
+                                        <span className="font-medium text-sm truncate">{motorista.nome_completo}</span>
+                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
+                                          ID: {motorista.id.substring(0, 8)}
+                                        </span>
+                                      </div>
+                                      <div className="ml-auto flex shrink-0 items-center justify-end">
+                                        {!hasVeiculo ? (
+                                          <Badge variant="outline" className="text-[10px] bg-muted truncate">
+                                            Sem Veículo
+                                          </Badge>
+                                        ) : capacidadeTotal === 0 ? (
+                                          <Badge variant="outline" className="text-[10px] text-destructive truncate">
+                                            Capac. 0
+                                          </Badge>
+                                        ) : temCapacidade ? (
+                                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary truncate">
+                                            {(disponivel / 1000).toFixed(1)}t disp.
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="outline" className="text-[10px] text-muted-foreground truncate">
+                                            Lotado
+                                          </Badge>
+                                        )}
+                                        <Check
+                                          className={cn(
+                                            "ml-2 h-4 w-4 text-primary",
+                                            selectedMotorista === motorista.id ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                      </div>
+                                    </div>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {/* Preview do Equipamento Vinculado */}
@@ -1775,39 +1995,16 @@ export default function CargasDisponiveis() {
                                 Nenhum veículo vinculado
                               </p>
                             </div>
-                          ) : (
-                            <Select 
-                              value={selectedVeiculo} 
-                              onValueChange={(value) => {
-                                setSelectedVeiculo(value);
-                                // Handle carroceria selection based on vehicle type
-                                const veiculo = selectedMotoristaData?.veiculos?.find(v => v.id === value) as any;
-                                if (veiculo?.carroceria_integrada) {
-                                  setSelectedCarroceria(null);
-                                } else if (selectedMotoristaData?.carrocerias?.length === 1) {
-                                  setSelectedCarroceria(selectedMotoristaData.carrocerias[0].id);
-                                } else {
-                                  setSelectedCarroceria(null);
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="bg-background">
-                                <SelectValue placeholder="Selecione o veículo" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {selectedMotoristaData.veiculos?.map((veiculo) => (
-                                  <SelectItem key={veiculo.id} value={veiculo.id}>
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">{veiculo.placa}</span>
-                                      <span className="text-xs text-muted-foreground">
-                                        {tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}
-                                      </span>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
+                          ) : selectedVeiculoData ? (
+                            <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-muted/30 px-3 py-2 text-sm ring-offset-background cursor-not-allowed opacity-80">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{selectedVeiculoData.placa}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {tipoVeiculoLabels[selectedVeiculoData.tipo] || selectedVeiculoData.tipo}
+                                </span>
+                              </div>
+                            </div>
+                          ) : null}
 
                           {/* Detalhes do veículo selecionado */}
                           {selectedVeiculoData && (
@@ -1843,92 +2040,161 @@ export default function CargasDisponiveis() {
                         {/* Carroceria */}
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">Carroceria (Reboque)</Label>
-                      {/* Se veículo tem carroceria integrada, mostrar isso */}
-                      {(selectedVeiculoData as any)?.carroceria_integrada ? (
-                        <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
-                          <p className="text-xs text-primary font-medium">Carroceria integrada ao veículo</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Capacidade: {(selectedVeiculoData as any)?.capacidade_kg?.toLocaleString('pt-BR') || 0} kg
-                          </p>
-                        </div>
-                      ) : selectedMotoristaData.carrocerias?.length === 0 ? (
-                        <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
-                          <p className="text-xs text-destructive flex items-center gap-1">
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            Nenhuma carroceria vinculada
-                          </p>
-                        </div>
-                      ) : selectedMotoristaData.carrocerias?.length === 1 ? (
-                        // Single carroceria - just display it
-                        <div className="p-2 bg-background rounded-md border space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Placa:</span>
-                            <span className="text-sm font-mono font-semibold">{selectedMotoristaData.carrocerias[0].placa}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Tipo:</span>
-                            <span className="text-sm">{tipoCarroceriaLabels[selectedMotoristaData.carrocerias[0].tipo] || selectedMotoristaData.carrocerias[0].tipo}</span>
-                          </div>
-                          {selectedMotoristaData.carrocerias[0].capacidade_kg && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">Capacidade:</span>
-                              <span className="text-sm font-medium">{selectedMotoristaData.carrocerias[0].capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                          {/* Se veículo tem carroceria integrada, mostrar isso */}
+                          {(selectedVeiculoData as any)?.carroceria_integrada ? (
+                            <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
+                              <p className="text-xs text-primary font-medium">Carroceria integrada ao veículo</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Capacidade: {(selectedVeiculoData as any)?.capacidade_kg?.toLocaleString('pt-BR') || 0} kg
+                              </p>
                             </div>
-                          )}
-                        </div>
-                      ) : (
-                        // Multiple carrocerias - show Select
-                        <>
-                          <Select 
-                            value={selectedCarroceria || ''} 
-                            onValueChange={(value) => setSelectedCarroceria(value || null)}
-                          >
-                            <SelectTrigger className="bg-background">
-                              <SelectValue placeholder="Selecione a carroceria" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {selectedMotoristaData.carrocerias?.map((carroceria) => (
-                                <SelectItem key={carroceria.id} value={carroceria.id}>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">{carroceria.placa}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}
-                                    </span>
-                                    {carroceria.capacidade_kg && (
-                                      <span className="text-xs text-primary">
-                                        {carroceria.capacidade_kg.toLocaleString('pt-BR')} kg
-                                      </span>
-                                    )}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {/* Show selected carroceria details */}
-                          {selectedCarroceria && (() => {
-                            const carroceria = selectedMotoristaData.carrocerias?.find(c => c.id === selectedCarroceria);
-                            if (!carroceria) return null;
-                            return (
-                              <div className="p-2 bg-background rounded-md border space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-muted-foreground">Placa:</span>
-                                  <span className="text-sm font-mono font-semibold">{carroceria.placa}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-muted-foreground">Tipo:</span>
-                                  <span className="text-sm">{tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}</span>
-                                </div>
-                                {carroceria.capacidade_kg && (
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs text-muted-foreground">Capacidade:</span>
-                                    <span className="text-sm font-medium">{carroceria.capacidade_kg.toLocaleString('pt-BR')} kg</span>
-                                  </div>
-                                )}
+                          ) : selectedMotoristaData.carrocerias?.length === 0 ? (
+                            <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
+                              <p className="text-xs text-destructive flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                Nenhuma carroceria vinculada
+                              </p>
+                            </div>
+                          ) : selectedMotoristaData.carrocerias?.length === 1 ? (
+                            // Single carroceria - just display it
+                            <div className="p-2 bg-background rounded-md border space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Placa:</span>
+                                <span className="text-sm font-mono font-semibold">{selectedMotoristaData.carrocerias[0].placa}</span>
                               </div>
-                            );
-                          })()}
-                        </>
-                      )}
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Tipo:</span>
+                                <span className="text-sm">{tipoCarroceriaLabels[selectedMotoristaData.carrocerias[0].tipo] || selectedMotoristaData.carrocerias[0].tipo}</span>
+                              </div>
+                              {selectedMotoristaData.carrocerias[0].capacidade_kg && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-muted-foreground">Capacidade:</span>
+                                  <span className="text-sm font-medium">{selectedMotoristaData.carrocerias[0].capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            // Multiple carrocerias - show Select (or Checkboxes if Bitrem/Rodotrem)
+                            <>
+                              {isMultiTrailer ? (
+                                <div className="space-y-3">
+                                  <div className="text-xs text-muted-foreground mb-1">
+                                    Selecione até 3 carrocerias vinculadas:
+                                  </div>
+                                  <div className="space-y-2 border rounded-md p-2 bg-background">
+                                    {selectedMotoristaData.carrocerias?.map((carroceria) => {
+                                      const isSelected = selectedCarroceriasMulti.includes(carroceria.id);
+                                      return (
+                                        <div key={carroceria.id} className="flex flex-col gap-2 p-2 bg-muted/30 rounded-md border border-border">
+                                          <div className="flex items-center gap-3">
+                                            <input
+                                              type="checkbox"
+                                              className="w-4 h-4 rounded border-primary text-primary focus:ring-primary"
+                                              checked={isSelected}
+                                              onChange={(e) => {
+                                                if (e.target.checked) {
+                                                  if (selectedCarroceriasMulti.length >= 3) {
+                                                    toast.error('Máximo de 3 carrocerias permitidas');
+                                                    return;
+                                                  }
+                                                  setSelectedCarroceriasMulti([...selectedCarroceriasMulti, carroceria.id]);
+                                                  setPesoPorCarroceria(prev => ({ ...prev, [carroceria.id]: 0 }));
+                                                } else {
+                                                  setSelectedCarroceriasMulti(prev => prev.filter(id => id !== carroceria.id));
+                                                  setPesoPorCarroceria(prev => {
+                                                    const next = { ...prev };
+                                                    delete next[carroceria.id];
+                                                    return next;
+                                                  });
+                                                }
+                                              }}
+                                            />
+                                            <div className="flex flex-col">
+                                              <span className="font-mono text-sm font-semibold">{carroceria.placa}</span>
+                                              <span className="text-xs text-muted-foreground">
+                                                {tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}
+                                              </span>
+                                            </div>
+                                            <div className="ml-auto text-xs font-medium text-primary">
+                                              Cap: {carroceria.capacidade_kg?.toLocaleString('pt-BR')} kg
+                                            </div>
+                                          </div>
+                                          {isSelected && (
+                                            <div className="pl-7 pr-2">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs font-medium">Peso (kg):</span>
+                                                <Input
+                                                  type="number"
+                                                  className="h-7 text-xs bg-background"
+                                                  placeholder="Ex: 15000"
+                                                  value={pesoPorCarroceria[carroceria.id] || ''}
+                                                  onChange={(e) => {
+                                                    const val = Math.floor(Number(e.target.value));
+                                                    setPesoPorCarroceria(prev => ({ ...prev, [carroceria.id]: val }));
+                                                  }}
+                                                />
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <Select
+                                    value={selectedCarroceria || ''}
+                                    onValueChange={(value) => setSelectedCarroceria(value || null)}
+                                  >
+                                    <SelectTrigger className="bg-background">
+                                      <SelectValue placeholder="Selecione a carroceria" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {selectedMotoristaData.carrocerias?.map((carroceria) => (
+                                        <SelectItem key={carroceria.id} value={carroceria.id}>
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-medium">{carroceria.placa}</span>
+                                            <span className="text-xs text-muted-foreground">
+                                              {tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}
+                                            </span>
+                                            {carroceria.capacidade_kg && (
+                                              <span className="text-xs text-primary">
+                                                {carroceria.capacidade_kg.toLocaleString('pt-BR')} kg
+                                              </span>
+                                            )}
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {/* Show selected carroceria details */}
+                                  {selectedCarroceria && (() => {
+                                    const carroceria = selectedMotoristaData.carrocerias?.find(c => c.id === selectedCarroceria);
+                                    if (!carroceria) return null;
+                                    return (
+                                      <div className="p-2 bg-background rounded-md border space-y-1">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs text-muted-foreground">Placa:</span>
+                                          <span className="text-sm font-mono font-semibold">{carroceria.placa}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs text-muted-foreground">Tipo:</span>
+                                          <span className="text-sm">{tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}</span>
+                                        </div>
+                                        {carroceria.capacidade_kg && (
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-xs text-muted-foreground">Capacidade:</span>
+                                            <span className="text-sm font-medium">{carroceria.capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+                                </>
+                              )}
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -1960,48 +2226,88 @@ export default function CargasDisponiveis() {
                         {/* Capacity Info */}
                         <div className="text-xs text-muted-foreground space-y-1">
                           <div className="flex justify-between">
-                             <span>Capacidade total do equipamento:</span>
-                             <span className="font-medium">{capacidadeEquipamentoTotal.toLocaleString('pt-BR')} kg</span>
+                            <span>Capacidade total do equipamento:</span>
+                            <span className="font-medium">{capacidadeEquipamentoTotal.toLocaleString('pt-BR')} kg</span>
                           </div>
-                           {capacidadeEquipamentoEmUso > 0 && (
-                             <div className="flex justify-between text-amber-600">
+                          {capacidadeEquipamentoEmUso > 0 && (
+                            <div className="flex justify-between text-amber-600">
                               <span>Em uso (outras entregas):</span>
-                               <span className="font-medium">-{capacidadeEquipamentoEmUso.toLocaleString('pt-BR')} kg</span>
+                              <span className="font-medium">-{capacidadeEquipamentoEmUso.toLocaleString('pt-BR')} kg</span>
                             </div>
                           )}
                           <div className="flex justify-between text-primary font-medium">
                             <span>Capacidade disponível:</span>
-                             <span>{capacidadeEquipamentoDisponivel.toLocaleString('pt-BR')} kg</span>
+                            <span>{capacidadeEquipamentoDisponivel.toLocaleString('pt-BR')} kg</span>
                           </div>
                         </div>
 
-                        {/* Peso Input */}
-                        <div className="space-y-2">
+                        {isMultiTrailer && selectedCarroceriasMulti.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-sm font-semibold">Resumo do Split (Total: {pesoTotalAlocado.toLocaleString('pt-BR')} kg)</p>
+                            {selectedCarga?.permite_fracionado === false && (
+                              <p className="text-xs text-amber-600">
+                                Esta carga não permite fracionamento - o somatório deve igualar o peso da carga.
+                              </p>
+                            )}
+                            {pesoValidationError && (
+                              <p className="text-xs text-destructive flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                {pesoValidationError}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Input
+                              type="number"
+                              step="1"
+                              value={pesoTotalAlocado || ''}
+                              onChange={(e) => setPesoAlocadoInput(Math.floor(Number(e.target.value)))}
+                              placeholder={`Máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg`}
+                              min={pesoMinimoRequirido}
+                              max={pesoMaximoAlocar}
+                              className="text-lg font-bold"
+                              disabled={isMultiTrailer}
+                            />
+                            {pesoMinimoRequirido > 0 ? (
+                              <p className="text-xs text-muted-foreground">
+                                Peso mínimo por entrega: {pesoMinimoRequirido.toLocaleString('pt-BR')} kg
+                              </p>
+                            ) : selectedCarga?.permite_fracionado ? (
+                              <p className="text-xs text-muted-foreground">
+                                Sem mínimo de carregamento exigido
+                              </p>
+                            ) : null}
+                            {!selectedCarga?.permite_fracionado && (
+                              <p className="text-xs text-amber-600">
+                                Esta carga não permite fracionamento - é necessário levar todo o peso disponível
+                              </p>
+                            )}
+                            {pesoValidationError && (
+                              <p className="text-xs text-destructive flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                {pesoValidationError}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Data Previsão Coleta */}
+                        <div className="space-y-2 pt-2 border-t">
+                          <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-primary" />
+                            Previsão de Coleta
+                          </label>
                           <Input
-                            type="number"
-                            value={pesoAlocadoInput || ''}
-                            onChange={(e) => setPesoAlocadoInput(Number(e.target.value))}
-                            placeholder={`Máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg`}
-                            min={pesoMinimoRequirido}
-                            max={pesoMaximoAlocar}
-                            className="text-lg font-bold"
+                            type="datetime-local"
+                            value={previsaoColeta}
+                            onChange={(e) => setPrevisaoColeta(e.target.value)}
+                            className="w-full text-base font-medium"
+                            min={new Date().toISOString().slice(0, 16)}
                           />
-                          {pesoMinimoRequirido > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              Peso mínimo por entrega: {pesoMinimoRequirido.toLocaleString('pt-BR')} kg
-                            </p>
-                          )}
-                          {!selectedCarga?.permite_fracionado && (
-                            <p className="text-xs text-amber-600">
-                              Esta carga não permite fracionamento - é necessário levar todo o peso disponível
-                            </p>
-                          )}
-                          {pesoValidationError && (
-                            <p className="text-xs text-destructive flex items-center gap-1">
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                              {pesoValidationError}
-                            </p>
-                          )}
+                          <p className="text-xs text-muted-foreground">
+                            Informe quando o motorista prevê chegar para coletar a carga.
+                          </p>
                         </div>
 
                         {capacidadeEquipamentoDisponivel <= 0 && (
@@ -2029,24 +2335,24 @@ export default function CargasDisponiveis() {
                             </div>
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Peso a alocar:</span>
-                              <span className="text-primary font-medium">- {pesoAlocadoInput.toLocaleString('pt-BR')} kg</span>
+                              <span className="text-primary font-medium">- {pesoTotalAlocado.toLocaleString('pt-BR')} kg</span>
                             </div>
                             <Separator className="my-2" />
                             <div className="flex justify-between text-sm font-semibold">
                               <span>Restará na carga:</span>
                               <span className={(() => {
-                                const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoAlocadoInput;
+                                const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoTotalAlocado;
                                 return restante <= 0 ? 'text-chart-2' : 'text-foreground';
                               })()}>
                                 {(() => {
-                                  const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoAlocadoInput;
+                                  const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoTotalAlocado;
                                   return Math.max(0, restante).toLocaleString('pt-BR');
                                 })()} kg
                               </span>
                             </div>
                             {(() => {
-                              const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoAlocadoInput;
-                              if (restante <= 0 && pesoAlocadoInput > 0) {
+                              const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoTotalAlocado;
+                              if (restante <= 0 && pesoTotalAlocado > 0) {
                                 return (
                                   <Badge variant="secondary" className="w-full justify-center mt-2 bg-chart-2/20 text-chart-2">
                                     <CheckCircle className="w-3.5 h-3.5 mr-1" />
@@ -2074,7 +2380,7 @@ export default function CargasDisponiveis() {
                             </div>
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Peso alocado:</span>
-                              <span>{(pesoAlocadoInput / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
+                              <span className="font-medium">{(pesoTotalAlocado / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
                             </div>
                             <Separator className="my-2" />
                             <div className="flex justify-between items-center">
@@ -2101,7 +2407,7 @@ export default function CargasDisponiveis() {
               </Button>
               <Button
                 onClick={handleConfirmAccept}
-                disabled={!selectedMotorista || !selectedVeiculo || pesoAlocadoInput <= 0 || !!pesoValidationError || isViagemBlocked || acceptCarga.isPending}
+                disabled={!selectedMotorista || !selectedVeiculo || pesoTotalAlocado <= 0 || !!pesoValidationError || isViagemBlocked || acceptCarga.isPending}
                 className="gap-2"
               >
                 {acceptCarga.isPending ? (

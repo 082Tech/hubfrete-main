@@ -42,6 +42,7 @@ import CadastroTransportadora from "./pages/CadastroTransportadora";
 import PreCadastroEmbarcador from "./pages/PreCadastroEmbarcador";
 import PreCadastroTransportadora from "./pages/PreCadastroTransportadora";
 import PreCadastroMotorista from "./pages/PreCadastroMotorista";
+import Rastreio from "./pages/public/Rastreio";
 import EmbarcadorDashboard from "./pages/portals/EmbarcadorDashboard";
 import CargasPublicadas from "./pages/portals/embarcador/CargasPublicadas";
 import CargasEmRota from "./pages/portals/embarcador/GestaoCargas";
@@ -92,93 +93,94 @@ const App = () => {
               <Toaster />
               <Sonner />
               {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
-              <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Login setShowSplash={setShowSplash} />} />
-                <Route path="/admin" element={<AdminLogin />} />
-                <Route path="/esqueci-senha" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                
-                {/* Admin Portal - Nested routes with shared layout */}
-                <Route path="/admin" element={<AdminLayoutWrapper />}>
-                  <Route path="torre-controle" element={<TorreControle />} />
-                  <Route path="pre-cadastros" element={<PreCadastros />} />
-                  <Route path="usuarios" element={<Usuarios />} />
-                  <Route path="monitoramento" element={<Monitoramento />} />
-                  <Route path="relatorios" element={<AdminRelatorios />} />
-                  <Route path="performance" element={<PerformanceKPIs />} />
-                  <Route path="documentos" element={<DocumentosValidacao />} />
-                  <Route path="chamados" element={<Chamados />} />
-                  <Route path="empresas" element={<Empresas />} />
-                  <Route path="motoristas" element={<MotoristasAdmin />} />
-                  <Route path="veiculos" element={<VeiculosAdmin />} />
-                  <Route path="cargas" element={<CargasAdmin />} />
-                  <Route path="cargas/historico" element={<CargasHistoricoAdmin />} />
-                  <Route path="entregas" element={<EntregasAdmin />} />
-                  <Route path="carrocerias" element={<CarroceriasAdmin />} />
-                  <Route path="ajudantes" element={<AjudantesAdmin />} />
-                  <Route path="provas-entrega" element={<ProvasEntregaAdmin />} />
-                  <Route path="storage" element={<StorageExplorer />} />
-                  <Route path="logs" element={<Logs />} />
-                </Route>
-                <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
-                <Route path="/cadastro/motorista/convite" element={<CadastroMotoristaConvite />} />
-                <Route path="/cadastro/motorista/convite/:linkId" element={<CadastroMotoristaConvite />} />
-                <Route path="/cadastro/embarcador" element={<CadastroEmbarcador />} />
-                <Route path="/cadastro/transportadora" element={<CadastroTransportadora />} />
-                
-                {/* Pré-cadastros públicos */}
-                <Route path="/pre-cadastro/embarcador" element={<PreCadastroEmbarcador />} />
-                <Route path="/pre-cadastro/transportadora" element={<PreCadastroTransportadora />} />
-                <Route path="/pre-cadastro/motorista" element={<PreCadastroMotorista />} />
-                
-                {/* Portal Embarcador - Nested routes with shared layout */}
-                <Route path="/embarcador" element={<PortalLayoutWrapper expectedUserType="embarcador" />}>
-                  <Route index element={<EmbarcadorDashboard />} />
-                  <Route path="cargas" element={<CargasPublicadas />} />
-                  <Route path="cargas/em-rota" element={<CargasEmRota />} />
-                  <Route path="cargas/historico" element={<HistoricoCargas />} />
-                  <Route path="relatorios" element={<Relatorios />} />
-                  <Route path="assistente" element={<Assistente />} />
-                  <Route path="mensagens" element={<EmbarcadorMensagens />} />
-                  <Route path="contatos" element={<ContatosSalvos />} />
-                  <Route path="notificacoes" element={<EmbarcadorNotificacoes />} />
-                  <Route path="filiais" element={<GerenciarFiliais />} />
-                  <Route path="usuarios" element={<UsuariosEmpresa />} />
-                  <Route path="configuracoes" element={<Configuracoes />} />
-                </Route>
-                
-                {/* Portal Transportadora - Nested routes with shared layout */}
-                <Route path="/transportadora" element={<PortalLayoutWrapper expectedUserType="transportadora" />}>
-                  <Route index element={<TransportadoraDashboard />} />
-                  <Route path="cargas" element={<TransportadoraCargas />} />
-                  <Route path="entregas" element={<TransportadoraOperacaoDiaria />} />
-                  <Route path="entregas/historico" element={<TransportadoraHistoricoEntregas />} />
-                  <Route path="frota" element={<TransportadoraFrota />} />
-                  <Route path="motoristas" element={<TransportadoraMotoristas />} />
-                  <Route path="relatorios" element={<TransportadoraRelatorios />} />
-                  <Route path="assistente" element={<TransportadoraAssistente />} />
-                  <Route path="mensagens" element={<TransportadoraMensagens />} />
-                  <Route path="notificacoes" element={<TransportadoraNotificacoes />} />
-                  <Route path="filiais" element={<TransportadoraFiliais />} />
-                  <Route path="usuarios" element={<TransportadoraUsuarios />} />
-                  <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />
-                </Route>
-                
-                {/* Portal Motorista: removido do site (apenas app) */}
-                
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </UserContextProvider>
-        </AuthProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/login" element={<Login setShowSplash={setShowSplash} />} />
+                  <Route path="/admin" element={<AdminLogin />} />
+                  <Route path="/esqueci-senha" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+
+                  {/* Admin Portal - Nested routes with shared layout */}
+                  <Route path="/admin" element={<AdminLayoutWrapper />}>
+                    <Route path="torre-controle" element={<TorreControle />} />
+                    <Route path="pre-cadastros" element={<PreCadastros />} />
+                    <Route path="usuarios" element={<Usuarios />} />
+                    <Route path="monitoramento" element={<Monitoramento />} />
+                    <Route path="relatorios" element={<AdminRelatorios />} />
+                    <Route path="performance" element={<PerformanceKPIs />} />
+                    <Route path="documentos" element={<DocumentosValidacao />} />
+                    <Route path="chamados" element={<Chamados />} />
+                    <Route path="empresas" element={<Empresas />} />
+                    <Route path="motoristas" element={<MotoristasAdmin />} />
+                    <Route path="veiculos" element={<VeiculosAdmin />} />
+                    <Route path="cargas" element={<CargasAdmin />} />
+                    <Route path="cargas/historico" element={<CargasHistoricoAdmin />} />
+                    <Route path="entregas" element={<EntregasAdmin />} />
+                    <Route path="carrocerias" element={<CarroceriasAdmin />} />
+                    <Route path="ajudantes" element={<AjudantesAdmin />} />
+                    <Route path="provas-entrega" element={<ProvasEntregaAdmin />} />
+                    <Route path="storage" element={<StorageExplorer />} />
+                    <Route path="logs" element={<Logs />} />
+                  </Route>
+                  <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
+                  <Route path="/cadastro/motorista/convite" element={<CadastroMotoristaConvite />} />
+                  <Route path="/cadastro/motorista/convite/:linkId" element={<CadastroMotoristaConvite />} />
+                  <Route path="/cadastro/embarcador" element={<CadastroEmbarcador />} />
+                  <Route path="/cadastro/transportadora" element={<CadastroTransportadora />} />
+
+                  {/* Pré-cadastros públicos */}
+                  <Route path="/rastreio" element={<Rastreio />} />
+                  <Route path="/pre-cadastro/embarcador" element={<PreCadastroEmbarcador />} />
+                  <Route path="/pre-cadastro/transportadora" element={<PreCadastroTransportadora />} />
+                  <Route path="/pre-cadastro/motorista" element={<PreCadastroMotorista />} />
+
+                  {/* Portal Embarcador - Nested routes with shared layout */}
+                  <Route path="/embarcador" element={<PortalLayoutWrapper expectedUserType="embarcador" />}>
+                    <Route index element={<EmbarcadorDashboard />} />
+                    <Route path="cargas" element={<CargasPublicadas />} />
+                    <Route path="cargas/em-rota" element={<CargasEmRota />} />
+                    <Route path="cargas/historico" element={<HistoricoCargas />} />
+                    <Route path="relatorios" element={<Relatorios />} />
+                    <Route path="assistente" element={<Assistente />} />
+                    <Route path="mensagens" element={<EmbarcadorMensagens />} />
+                    <Route path="contatos" element={<ContatosSalvos />} />
+                    <Route path="notificacoes" element={<EmbarcadorNotificacoes />} />
+                    <Route path="filiais" element={<GerenciarFiliais />} />
+                    <Route path="usuarios" element={<UsuariosEmpresa />} />
+                    <Route path="configuracoes" element={<Configuracoes />} />
+                  </Route>
+
+                  {/* Portal Transportadora - Nested routes with shared layout */}
+                  <Route path="/transportadora" element={<PortalLayoutWrapper expectedUserType="transportadora" />}>
+                    <Route index element={<TransportadoraDashboard />} />
+                    <Route path="cargas" element={<TransportadoraCargas />} />
+                    <Route path="entregas" element={<TransportadoraOperacaoDiaria />} />
+                    <Route path="entregas/historico" element={<TransportadoraHistoricoEntregas />} />
+                    <Route path="frota" element={<TransportadoraFrota />} />
+                    <Route path="motoristas" element={<TransportadoraMotoristas />} />
+                    <Route path="relatorios" element={<TransportadoraRelatorios />} />
+                    <Route path="assistente" element={<TransportadoraAssistente />} />
+                    <Route path="mensagens" element={<TransportadoraMensagens />} />
+                    <Route path="notificacoes" element={<TransportadoraNotificacoes />} />
+                    <Route path="filiais" element={<TransportadoraFiliais />} />
+                    <Route path="usuarios" element={<TransportadoraUsuarios />} />
+                    <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />
+                  </Route>
+
+                  {/* Portal Motorista: removido do site (apenas app) */}
+
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </UserContextProvider>
+          </AuthProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
 };
 
 export default App;

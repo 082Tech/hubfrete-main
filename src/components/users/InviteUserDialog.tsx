@@ -66,7 +66,7 @@ export function InviteUserDialog({
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         toast.error('Você precisa estar logado para convidar usuários');
         return;
@@ -84,6 +84,24 @@ export function InviteUserDialog({
 
       if (response.error) {
         throw new Error(response.error.message);
+      }
+
+      if (response.data?.invite_link) {
+        toast.success(response.data.message || 'Convite gerado com sucesso!', {
+          duration: 10000,
+          action: {
+            label: 'Copiar Link',
+            onClick: () => {
+              navigator.clipboard.writeText(response.data.invite_link);
+              toast.success('Link copiado!');
+            },
+          },
+          description: 'O usuário já possui cadastro. Envie o link manualmente.'
+        });
+        onOpenChange(false);
+        resetForm();
+        onSuccess?.();
+        return;
       }
 
       if (response.data?.error) {
@@ -122,7 +140,7 @@ export function InviteUserDialog({
             O usuário receberá um email com o convite para se cadastrar na plataforma
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="invite-email">Email do Usuário</Label>

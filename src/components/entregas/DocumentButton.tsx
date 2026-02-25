@@ -18,6 +18,8 @@ interface DocumentButtonProps {
   onView: () => void;
   /** Entrega ID for upload path */
   entregaId: string;
+  /** CT-e ID for NF-e uploads (required when type='nfe') */
+  cteId?: string;
   /** Called after successful upload */
   onUploaded: () => void;
 }
@@ -28,12 +30,6 @@ const docLabels: Record<DocType, string> = {
   canhoto: 'Canhoto',
 };
 
-const uploadPrefixes: Record<DocType, { prefix: string; folder?: string }> = {
-  nfe: { prefix: 'nota_fiscal' },
-  cte: { prefix: 'cte' },
-  canhoto: { prefix: 'canhoto', folder: 'canhotos' },
-};
-
 export function DocumentButton({
   type,
   hasDoc,
@@ -41,6 +37,7 @@ export function DocumentButton({
   canAttach,
   onView,
   entregaId,
+  cteId,
   onUploaded,
 }: DocumentButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,41 +72,51 @@ export function DocumentButton({
 
     setUploading(true);
     try {
-      const { prefix, folder } = uploadPrefixes[type];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${prefix}_${entregaId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = folder ? `${folder}/${fileName}` : `${prefix}s/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('notas-fiscais')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Update entrega record
-      let updatePayload: Record<string, any> = {};
+      const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
       if (type === 'cte') {
-        updatePayload = { cte_url: filePath };
+        // Upload file to storage
+        const fileName = `cte_${entregaId}_${uniqueId}.${fileExt}`;
+        const filePath = `ctes/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from('documentos').upload(filePath, file);
+        if (uploadError) throw uploadError;
+
+        // Insert into ctes table
+        const { error: dbError } = await (supabase as any).from('ctes').insert({
+          entrega_id: entregaId,
+          url: filePath,
+        });
+        if (dbError) throw dbError;
+
       } else if (type === 'canhoto') {
-        updatePayload = { canhoto_url: filePath };
+        // Canhoto stays on entregas table
+        const fileName = `canhoto_${entregaId}_${uniqueId}.${fileExt}`;
+        const filePath = `canhotos/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from('documentos').upload(filePath, file);
+        if (uploadError) throw uploadError;
+
+        const { error: dbError } = await supabase.from('entregas').update({ canhoto_url: filePath }).eq('id', entregaId);
+        if (dbError) throw dbError;
+
       } else if (type === 'nfe') {
-        // Append to existing array
-        const { data: current } = await supabase
-          .from('entregas')
-          .select('notas_fiscais_urls')
-          .eq('id', entregaId)
-          .single();
-        const existing = current?.notas_fiscais_urls || [];
-        updatePayload = { notas_fiscais_urls: [...existing, filePath] };
+        if (!cteId) {
+          toast.error('Selecione um CT-e antes de anexar NF-e.');
+          return;
+        }
+        // Upload file to storage
+        const fileName = `nota_fiscal_${entregaId}_${uniqueId}.${fileExt}`;
+        const filePath = `notas_fiscais/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from('documentos').upload(filePath, file);
+        if (uploadError) throw uploadError;
+
+        // Insert into nfes table
+        const { error: dbError } = await (supabase as any).from('nfes').insert({
+          cte_id: cteId,
+          url: filePath,
+        });
+        if (dbError) throw dbError;
       }
-
-      const { error: dbError } = await supabase
-        .from('entregas')
-        .update(updatePayload)
-        .eq('id', entregaId);
-
-      if (dbError) throw dbError;
 
       toast.success(`${docLabels[type]} anexado com sucesso!`);
       onUploaded();

@@ -1,9 +1,11 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { parseNfeXml } from '@/lib/nfeXmlParser';
+import { toast } from 'sonner';
 import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +33,7 @@ import {
   X,
   ArrowUpRight,
   FileText,
+  FileCode,
   Building2,
   Calendar,
   DollarSign,
@@ -41,11 +44,12 @@ import {
   Weight,
   Map,
   Search,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/AdvancedFiltersPopover';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
-import { DocumentButton } from '@/components/entregas/DocumentButton';
+import { EntregaDocumentosPanel } from '@/components/entregas/EntregaDocumentosPanel';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
@@ -70,6 +74,7 @@ interface EntregaEvento {
 interface Entrega {
   id: string;
   codigo: string;
+  tracking_code: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -78,9 +83,6 @@ interface Entrega {
   valor_frete: number | null;
   coletado_em: string | null;
   entregue_em: string | null;
-  cte_url: string | null;
-  numero_cte: string | null;
-  notas_fiscais_urls: string[] | null;
   canhoto_url: string | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
@@ -121,8 +123,8 @@ function EntregaListItem({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social || 'Remetente';
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário';
 
-  const hasNf = (entrega.notas_fiscais_urls?.length || 0) > 0;
-  const nfePending = !hasNf && entrega.status === 'aguardando';
+  // NF-e now in separate tables - pending check removed
+  const nfePending = false;
 
   return (
     <div
@@ -162,7 +164,7 @@ function EntregaListItem({
 
       {/* Linha 4: Descrição + peso */}
       <p className="text-xs text-muted-foreground truncate mb-1.5">
-        {entrega.carga.descricao} • {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+        {entrega.carga.descricao} • {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}{entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
       </p>
 
       {/* Rodapé: Motorista + frete + alerta NF-e */}
@@ -221,6 +223,232 @@ function DetailPanel({
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [isUploadingNfe, setIsUploadingNfe] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const nfeInputRef = useRef<HTMLInputElement>(null);
+
+  const handleShareTracking = async () => {
+    if (!entrega?.tracking_code) {
+      toast.error('Código de rastreio não disponível para esta entrega.');
+      return;
+    }
+    try {
+      // The public tracking route is /rastreio
+      const url = `${window.location.origin}/rastreio?codigo=${entrega.tracking_code}`;
+      await navigator.clipboard.writeText(url);
+      setIsCopied(true);
+      toast.success('Link de rastreio copiado para a área de transferência!');
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      toast.error('Erro ao copiar o link.');
+      console.error('Copy tracking link error:', err);
+    }
+  };
+
+  const handleNativeShare = async () => {
+    if (!entrega?.tracking_code) {
+      toast.error('Código de rastreio não disponível para esta entrega.');
+      return;
+    }
+    try {
+      const url = `${window.location.origin}/rastreio?codigo=${entrega.tracking_code}`;
+      if (navigator.share) {
+        await navigator.share({
+          title: `Rastreio de Entrega ${entrega.codigo || ''}`,
+          text: `Acompanhe em tempo real a entrega ${entrega.codigo || ''}`,
+          url: url,
+        });
+      } else {
+        toast.error('Seu navegador não suporta compartilhamento nativo.');
+      }
+    } catch (err) {
+      console.error('Native share error:', err);
+    }
+  };
+
+  // Fetch NF-es for this entrega from the nfes table
+  const [isDragging, setIsDragging] = useState(false);
+
+  const { data: nfes = [], refetch: refetchNfes } = useQuery({
+    queryKey: ['entrega-nfes', entrega?.id],
+    queryFn: async () => {
+      if (!entrega?.id) return [];
+      const { data, error } = await (supabase as any)
+        .from('nfes')
+        .select('*')
+        .eq('entrega_id', entrega.id)
+        .order('created_at', { ascending: true });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!entrega?.id,
+  });
+
+  const handleFilesSelection = (files: FileList | File[]) => {
+    Array.from(files).forEach(file => {
+      handleNfeXmlUpload(file);
+    });
+  };
+
+  // Fetch CT-es for this entrega
+  const { data: ctes = [] } = useQuery({
+    queryKey: ['entrega-ctes', entrega?.id],
+    queryFn: async () => {
+      if (!entrega?.id) return [];
+      const { data, error } = await (supabase as any)
+        .from('ctes')
+        .select('id, numero, chave_acesso, url, focus_status, valor')
+        .eq('entrega_id', entrega.id)
+        .order('created_at', { ascending: true });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!entrega?.id,
+  });
+
+  // Fetch Manifestos for this entrega (via viagem_entregas)
+  const { data: manifestos = [] } = useQuery({
+    queryKey: ['entrega-manifestos', entrega?.id],
+    queryFn: async () => {
+      if (!entrega?.id) return [];
+
+      const { data: veData } = await (supabase as any)
+        .from('viagem_entregas')
+        .select('viagem_id')
+        .eq('entrega_id', entrega.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (!veData?.viagem_id) return [];
+
+      const { data: mData } = await (supabase as any)
+        .from('mdfes')
+        .select('id, numero, chave_acesso, pdf_path, status, created_at')
+        .eq('viagem_id', veData.viagem_id)
+        .order('created_at', { ascending: false });
+
+      if (!mData) return [];
+
+      return mData.map((m: any) => {
+        let url = null;
+        if (m.pdf_path) {
+          const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(m.pdf_path);
+          url = urlData?.publicUrl || null;
+        }
+        return {
+          id: m.id,
+          numero: m.numero || '',
+          url,
+          status: m.status
+        };
+      });
+    },
+    enabled: !!entrega?.id,
+  });
+
+  const handleNfeXmlUpload = async (file: File) => {
+    if (!entrega) return;
+    setIsUploadingNfe(true);
+    try {
+      const xmlContent = await file.text();
+      const parsed = parseNfeXml(xmlContent);
+
+      if (!parsed.chaveAcesso) {
+        toast.error('Não foi possível extrair a chave de acesso do XML. Verifique o arquivo.');
+        setIsUploadingNfe(false);
+        return;
+      }
+
+      // 1. Validate with Focus NFe (Import + Query)
+      toast.info('Validando NFe na SEFAZ (Focus NFe)...');
+      const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-nfe', {
+        body: {
+          referencia: parsed.chaveAcesso,
+          xml_content: xmlContent
+        }
+      });
+
+      if (validationError) {
+        console.error('Validation function error:', validationError);
+        // Tenta extrair o corpo do erro se disponível
+        let errorMessage = validationError.message;
+        if (validationError instanceof Error && (validationError as any).context?.json) {
+          const body = await (validationError as any).context.json();
+          errorMessage = body.error || JSON.stringify(body);
+        }
+        throw new Error(`Erro na validação: ${errorMessage}`);
+      }
+
+      const nfeJson = validationData.data;
+
+      if (!validationData?.success) {
+        console.error('Validation failed (Logic):', validationData);
+        throw new Error(`Validação falhou: ${validationData?.error || 'Erro desconhecido'}`);
+      }
+      toast.success('NFe validada com sucesso!');
+
+      // 2. Upload XML file to storage
+      const fileName = `nfe-${entrega.id}-${Date.now()}.xml`;
+      const storagePath = `nfes/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('documentos')
+        .upload(storagePath, file, { contentType: 'text/xml' });
+
+      let fileUrl: string | null = null;
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(storagePath);
+        fileUrl = urlData?.publicUrl || null;
+      }
+
+      // 3. Insert into nfes table
+      // Prioritize data from Focus API, fallback to regex parse
+      // Focus NFe Import+Query returns data in 'requisicao_nota_fiscal' or 'nfe_completa' depending on endpoint version/flags
+      // But looking at user docs, it is inside 'requisicao_nota_fiscal'
+      const focusData = nfeJson.requisicao_nota_fiscal || nfeJson.nfe_completa?.infNFe || nfeJson;
+
+      const { error: dbError } = await (supabase as any)
+        .from('nfes')
+        .insert({
+          entrega_id: entrega.id,
+          numero: focusData.numero || nfeJson.numero || parsed.numero,
+          chave_acesso: focusData.chave_nfe || nfeJson.chave_nfe || parsed.chaveAcesso,
+          url: fileUrl,
+          xml_path: storagePath,
+          valor: focusData.valor_total || (focusData.total?.ICMSTot?.vNF) || parsed.valor,
+          data_emissao: focusData.data_emissao || (focusData.ide?.dhEmi) || parsed.dataEmissao,
+          peso_bruto: focusData.peso_bruto || (focusData.transp?.vol?.[0]?.pesoB) || parsed.pesoBruto,
+          remetente_cnpj: focusData.cnpj_emitente || (focusData.emit?.CNPJ) || parsed.remetenteCnpj,
+          remetente_razao_social: focusData.nome_emitente || (focusData.emit?.xNome) || parsed.remetenteRazaoSocial,
+          destinatario_cnpj: focusData.cnpj_destinatario || (focusData.dest?.CNPJ) || parsed.destinatarioCnpj,
+          destinatario_razao_social: focusData.nome_destinatario || (focusData.dest?.xNome) || parsed.destinatarioRazaoSocial,
+          xml_content: xmlContent,
+          status_validacao: 'autorizada',
+          validado_em: new Date().toISOString(),
+        });
+
+      if (dbError) {
+        console.error('Erro ao salvar NF-e:', dbError);
+        throw dbError;
+      }
+
+      toast.success(`NF-e ${parsed.numero || parsed.chaveAcesso?.slice(-6) || ''} anexada com sucesso!`);
+      refetchNfes();
+      onRefresh();
+    } catch (error: any) {
+      console.error('Erro no upload da NF-e:', error);
+      // Tratamento específico para erros conhecidos
+      if (error.message?.includes('schema "net" does not exist')) {
+        toast.error('Erro de configuração no servidor (Extensão net faltando). Contate o suporte.');
+      } else if (error.code === '23505') {
+        toast.error('Esta Nota Fiscal já foi importada anteriormente.');
+      } else {
+        toast.error(`Erro ao enviar NF-e: ${error.message || 'Erro desconhecido'}`);
+      }
+    } finally {
+      setIsUploadingNfe(false);
+      if (nfeInputRef.current) nfeInputRef.current.value = '';
+    }
+  };
 
   if (!entrega) {
     return (
@@ -243,15 +471,15 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Docs: 3 obrigatórios (NF-e, CT-e, Canhoto) - sem manifesto
-  const hasCte = !!entrega.cte_url;
+  // Docs: 3 obrigatórios (NF-e, CT-e, Canhoto)
   const hasCanhoto = !!entrega.canhoto_url;
-  const hasNf = (entrega.notas_fiscais_urls?.length || 0) > 0;
-  const docsCount = [hasCte, hasCanhoto, hasNf].filter(Boolean).length;
-  const docsComplete = docsCount === 3;
+  const hasNfe = nfes.length > 0;
+  const hasCte = ctes.length > 0;
+  const hasManifesto = manifestos.length > 0;
+  const docsCount = (hasNfe ? 1 : 0) + (hasCte ? 1 : 0) + (hasCanhoto ? 1 : 0) + (hasManifesto ? 1 : 0);
+  const docsComplete = hasNfe && hasCte && hasManifesto && hasCanhoto;
 
-  // NF-e alert
-  const nfePending = !hasNf && entrega.status === 'aguardando';
+  const nfePending = !hasNfe && entrega.status !== 'entregue' && entrega.status !== 'cancelada';
 
   const handleDocClick = (url: string | null, title: string) => {
     if (url) {
@@ -272,7 +500,47 @@ function DetailPanel({
             </Badge>
           </div>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7"><Share className="w-3.5 h-3.5" /></Button>
+            {/* Botão de Copiar Link */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={handleShareTracking}
+                  >
+                    {isCopied ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                    ) : (
+                      <LinkIcon className="w-3.5 h-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Copiar link de rastreio</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* Botão de Compartilhar Nativo */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={handleNativeShare}
+                  >
+                    <Share className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Compartilhar</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button variant="ghost" size="icon" className="h-7 w-7"><ArrowUpRight className="w-3.5 h-3.5" /></Button>
             <Button variant="ghost" size="icon" className="h-7 w-7"><Printer className="w-3.5 h-3.5" /></Button>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}><X className="w-3.5 h-3.5" /></Button>
@@ -281,7 +549,7 @@ function DetailPanel({
 
         {/* Carga description + entrega ref */}
         <p className="text-sm font-medium mb-1">{entrega.carga.descricao}</p>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 flex-wrap">
           <span>Entrega #{entrega.codigo || entrega.id.slice(0, 6)}</span>
           <span>•</span>
           <span>{format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
@@ -314,7 +582,10 @@ function DetailPanel({
             <div className="flex items-center gap-3 text-xs flex-wrap">
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3 text-muted-foreground" />
-                <span className="font-medium">{entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg</span>
+                <span className="font-medium">
+                  {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
+                  {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+                </span>
               </span>
               <span className="text-muted-foreground">Tipo: {entrega.carga.tipo}</span>
               {entrega.valor_frete && (
@@ -426,44 +697,194 @@ function DetailPanel({
 
           <Separator />
 
-          {/* Documentos - 3/3 (NF-e, CT-e, Canhoto) */}
+          {/* Documentos */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-medium text-xs">Documentos</span>
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="font-semibold text-sm">Documentos</span>
               </div>
-              <Badge variant={docsComplete ? 'default' : 'secondary'} className="text-[10px]">
-                {docsCount}/3 anexados
+              <Badge variant={docsComplete ? 'default' : 'secondary'} className={`text-[11px] px-2 py-0.5 ${docsComplete ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}>
+                {docsCount} anexo{docsCount !== 1 ? 's' : ''}
               </Badge>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <DocumentButton
-                type="cte"
-                hasDoc={hasCte}
-                canAttach={false}
-                onView={() => handleDocClick(entrega.cte_url, 'CT-e')}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
-              <DocumentButton
-                type="canhoto"
-                hasDoc={hasCanhoto}
-                canAttach={false}
-                onView={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
-              <DocumentButton
-                type="nfe"
-                hasDoc={hasNf}
-                count={entrega.notas_fiscais_urls?.length || 0}
-                canAttach={true}
-                onView={() => handleDocClick(entrega.notas_fiscais_urls?.[0] || null, 'Nota Fiscal')}
-                entregaId={entrega.id}
-                onUploaded={onRefresh}
-              />
+            <div className="space-y-2">
+              {/* Canhoto */}
+              <div className={`flex items-center justify-between p-3 rounded-xl border ${hasCanhoto ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-muted/30 border-dashed'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-1.5 rounded-full ${hasCanhoto ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted'}`}>
+                    {hasCanhoto ? (
+                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <span className={`font-medium text-sm ${hasCanhoto ? 'text-emerald-900 dark:text-emerald-100' : 'text-muted-foreground'}`}>
+                    Canhoto
+                  </span>
+                </div>
+                {hasCanhoto ? (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}>
+                    <Download className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Aguardando Transportadora</span>
+                )}
+              </div>
+
+              {/* CT-es - expandido com NF-es aninhadas */}
+              <div className={`flex flex-col p-3 rounded-xl border ${hasCte ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-muted/30 border-dashed'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-1.5 rounded-full ${hasCte ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted'}`}>
+                      {hasCte ? (
+                        <CheckCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className={`font-medium text-sm ${hasCte ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'}`}>
+                        CT-e {hasCte ? `(${ctes.length})` : ''}
+                      </span>
+                      {!hasCte && <span className="text-[10px] text-muted-foreground">Gerado/Anexado pela Transportadora</span>}
+                    </div>
+                  </div>
+                  {!hasCte && <span className="text-xs text-muted-foreground">Pendente</span>}
+                </div>
+                {hasCte && (
+                  <div className="mt-2 pt-2 border-t border-amber-100 dark:border-amber-800/50 space-y-2">
+                    {ctes.map((cte: any, cIdx: number) => (
+                      <div key={cte.id} className="rounded-lg border border-amber-100 dark:border-amber-800/30 overflow-hidden">
+                        <div className="flex items-center justify-between px-2.5 py-1.5 bg-amber-50/80 dark:bg-amber-900/20">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-3.5 h-3.5 text-amber-600" />
+                            <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                              CT-e {cte.numero || `#${cIdx + 1}`}
+                            </span>
+                            {cte.nfes?.length > 0 && (
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-300 text-amber-600">
+                                {cte.nfes.length} NF-e{cte.nfes.length !== 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                          </div>
+                          {cte.url && (
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-600"
+                              onClick={() => handleDocClick(cte.url, `CT-e ${cIdx + 1}`)}
+                            >
+                              <Download className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                        {cte.nfes?.length > 0 && (
+                          <div className="px-2 py-1.5 space-y-1">
+                            {cte.nfes.map((nf: any, ni: number) => (
+                              <div key={nf.id} className="flex items-center justify-between px-2 py-1 rounded-md bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
+                                <div className="flex items-center gap-1.5">
+                                  <FileCode className="w-3 h-3 text-indigo-400" />
+                                  <span className="text-indigo-800 dark:text-indigo-200">
+                                    NF-e {nf.numero || nf.chave_acesso?.slice(-6) || ni + 1}
+                                  </span>
+                                </div>
+                                {nf.url && (
+                                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-500"
+                                    onClick={() => handleDocClick(nf.url, `NF-e ${ni + 1}`)}
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Notas Fiscais */}
+              <div
+                className={`flex flex-col p-3 rounded-xl border transition-colors ${isDragging ? 'border-primary bg-primary/5' : hasNfe ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800' : 'bg-muted/30 border-dashed border-red-200'}`}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDragging(false);
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleFilesSelection(e.dataTransfer.files);
+                  }
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-1.5 rounded-full ${hasNfe ? 'bg-indigo-100 dark:bg-indigo-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                      {hasNfe ? (
+                        <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className={`font-medium text-sm ${hasNfe ? 'text-indigo-900 dark:text-indigo-100' : 'text-red-700 dark:text-red-400'}`}>
+                        Notas Fiscais {hasNfe ? `(${nfes.length})` : ''}
+                      </span>
+                      {!hasNfe && <span className="text-[10px] text-red-600/80">Obrigatório para iniciar viagem</span>}
+                    </div>
+                  </div>
+                  <Button
+                    variant={hasNfe ? "outline" : "default"}
+                    size="sm"
+                    className={`h-8 text-xs ${hasNfe ? 'border-indigo-200 text-indigo-700 hover:bg-indigo-100' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                    onClick={() => nfeInputRef.current?.click()}
+                    disabled={isUploadingNfe}
+                  >
+                    {isUploadingNfe ? (
+                      <Loader2 className="w-3 h-3 animate-spin mr-1.5" />
+                    ) : (
+                      <Upload className="w-3 h-3 mr-1.5" />
+                    )}
+                    {hasNfe ? 'Adicionar mais' : 'Anexar XML'}
+                  </Button>
+                  <input
+                    ref={nfeInputRef}
+                    type="file"
+                    multiple
+                    accept=".xml"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files) handleFilesSelection(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
+
+                {hasNfe && (
+                  <div className="grid gap-2 mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-800/50">
+                    {nfes.map((nfe: any) => (
+                      <div key={nfe.id} className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-indigo-100/50 dark:border-indigo-800/30">
+                        <div className="flex items-center gap-2">
+                          <FileCode className="w-3.5 h-3.5 text-indigo-400" />
+                          <span className="text-xs font-medium text-indigo-900 dark:text-indigo-200">
+                            NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || ''}
+                          </span>
+                          {nfe.valor && (
+                            <span className="text-[10px] text-muted-foreground ml-1">
+                              R$ {Number(nfe.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          )}
+                        </div>
+                        {nfe.url && (
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || ''}`)}>
+                            <Download className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -695,7 +1116,7 @@ function GestaoMapDialogContent({
         origemCidade: ent.carga.endereco_origem?.cidade, origemEstado: ent.carga.endereco_origem?.estado,
         destinoCidade: ent.carga.endereco_destino?.cidade, destinoEstado: ent.carga.endereco_destino?.estado,
       },
-      pesoAlocado: ent.peso_alocado_kg, valorFrete: ent.valor_frete, numeroCte: ent.numero_cte,
+      pesoAlocado: ent.peso_alocado_kg, valorFrete: ent.valor_frete,
     };
   }, [selectedEntregaId, entregas]);
 
@@ -830,7 +1251,7 @@ function GestaoMapDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0">
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
         <GestaoMapDialogContent entregas={entregas} localizacoes={localizacoes} />
       </DialogContent>
     </Dialog>
@@ -853,12 +1274,12 @@ export default function GestaoCargas() {
       const today = new Date();
       const startOfToday = startOfDay(today).toISOString();
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('entregas')
         .select(`
-          id, codigo, status, created_at, updated_at,
+          id, codigo, tracking_code, status, created_at, updated_at,
           motorista_id, peso_alocado_kg, valor_frete, coletado_em, entregue_em,
-          cte_url, numero_cte, notas_fiscais_urls, canhoto_url,
+          canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!inner(

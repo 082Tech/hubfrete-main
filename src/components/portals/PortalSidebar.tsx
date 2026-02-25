@@ -28,6 +28,7 @@ import {
   Building,
   MessageSquare,
   MoreVertical,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -143,7 +144,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
-  const { empresa, companyInfo, filiais, filialAtiva, setFilialAtiva, cargo, switchingFilial } = useUserContext();
+  const { empresa, companyInfo, filiais, filialAtiva, setFilialAtiva, cargo, switchingFilial, availableEmpresas, switchEmpresa } = useUserContext();
   const darkMode = useTheme().theme === 'dark';
   const allMenuItems = menusByType[userType];
   const menuItems = allMenuItems.filter(item => !item.adminOnly || cargo === 'ADMIN');
@@ -166,7 +167,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside 
+      <aside
         className={`bg-sidebar border-r border-sidebar-border h-full shrink-0 flex flex-col transition-all duration-300`}
         style={{ width: collapsed ? 64 : (width || 256) }}
       >
@@ -198,31 +199,122 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
         {!collapsed && (
           <div className="px-4 py-4 border-b border-sidebar-border bg-sidebar-accent/10">
             <div className="flex items-start gap-3 mb-3">
-              {empresa?.logo_url ? (
-                <img 
-                  src={empresa.logo_url} 
-                  alt={empresa.nome || 'Logo'} 
-                  className="w-10 h-10 rounded-lg object-contain bg-white border border-sidebar-border shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-lg bg-sidebar-primary/10 border border-sidebar-primary/20 flex items-center justify-center shrink-0">
-                  <Building2 className="w-5 h-5 text-sidebar-primary" />
+              {availableEmpresas.length > 1 ? (
+                <div className="flex items-start gap-3 w-full">
+                  {empresa?.logo_url ? (
+                    <img
+                      src={empresa.logo_url}
+                      alt={empresa.nome || 'Logo'}
+                      className="w-10 h-10 rounded-lg object-contain bg-white border border-sidebar-border shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-sidebar-primary/10 border border-sidebar-primary/20 flex items-center justify-center shrink-0">
+                      <Building2 className="w-5 h-5 text-sidebar-primary" />
+                    </div>
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <Badge variant={config.badgeVariant} className="text-[10px] py-0 px-1.5 h-5 mb-1">
+                      <PortalIcon className="w-2.5 h-2.5 mr-1" />
+                      {config.title}
+                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
+                        {empresa?.nome || companyName}
+                      </p>
+                    </div>
+                    {empresa?.cnpj_matriz && (
+                      <p className="text-[10px] text-sidebar-foreground/60">
+                        CNPJ: {empresa.cnpj_matriz}
+                      </p>
+                    )}
+                  </div>
+
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground border hover:bg-sidebar-accent"
+                          >
+                            <ArrowRightLeft className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        Trocar Empresa
+                      </TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="end" className="w-64">
+                      <div className="px-3 py-2 border-b border-border">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                          Trocar Empresa
+                        </p>
+                      </div>
+                      {availableEmpresas.map((emp) => {
+                        const isSelected = empresa?.id === emp.id;
+
+                        return (
+                          <DropdownMenuItem
+                            key={emp.id}
+                            onClick={() => switchEmpresa(emp)}
+                            className={`flex items-center gap-2 py-2.5 cursor-pointer ${isSelected ? 'bg-accent' : ''}`}
+                          >
+                            {emp.logo_url ? (
+                              <img src={emp.logo_url} alt="" className="w-6 h-6 rounded object-contain bg-white border border-border" />
+                            ) : (
+                              <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center border border-primary/20">
+                                <Building2 className="w-3 h-3 text-primary" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : ''}`}>
+                                {emp.nome}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {emp.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
+                              </p>
+                            </div>
+                            {isSelected && (
+                              <Check className="w-4 h-4 text-primary shrink-0" />
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
+              ) : (
+                <>
+                  {empresa?.logo_url ? (
+                    <img
+                      src={empresa.logo_url}
+                      alt={empresa.nome || 'Logo'}
+                      className="w-10 h-10 rounded-lg object-contain bg-white border border-sidebar-border shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-sidebar-primary/10 border border-sidebar-primary/20 flex items-center justify-center shrink-0">
+                      <Building2 className="w-5 h-5 text-sidebar-primary" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <Badge variant={config.badgeVariant} className="text-[10px] py-0 px-1.5 h-5 mb-1">
+                      <PortalIcon className="w-2.5 h-2.5 mr-1" />
+                      {config.title}
+                    </Badge>
+                    <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
+                      {empresa?.nome || companyName}
+                    </p>
+                    {empresa?.cnpj_matriz && (
+                      <p className="text-[10px] text-sidebar-foreground/60">
+                        CNPJ: {empresa.cnpj_matriz}
+                      </p>
+                    )}
+                  </div>
+                </>
               )}
-              <div className="flex-1 min-w-0">
-                <Badge variant={config.badgeVariant} className="text-[10px] py-0 px-1.5 h-5 mb-1">
-                  <PortalIcon className="w-2.5 h-2.5 mr-1" />
-                  {config.title}
-                </Badge>
-                <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
-                  {empresa?.nome || companyName}
-                </p>
-                {empresa?.cnpj_matriz && (
-                  <p className="text-[10px] text-sidebar-foreground/60">
-                    CNPJ: {empresa.cnpj_matriz}
-                  </p>
-                )}
-              </div>
             </div>
 
             {filiais.length > 0 && (
@@ -260,17 +352,16 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                     {filiais.map((filial) => {
                       const isSelected = filialAtiva?.id === filial.id;
                       const isDisabled = !filial.hasAccess;
-                      
+
                       return (
                         <DropdownMenuItem
                           key={filial.id}
                           onClick={() => !isDisabled && setFilialAtiva(filial)}
                           disabled={isDisabled}
-                          className={`flex items-center gap-2 py-2.5 ${
-                            isDisabled 
-                              ? 'opacity-50 cursor-not-allowed' 
-                              : 'cursor-pointer'
-                          } ${isSelected ? 'bg-accent' : ''}`}
+                          className={`flex items-center gap-2 py-2.5 ${isDisabled
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'cursor-pointer'
+                            } ${isSelected ? 'bg-accent' : ''}`}
                         >
                           <MapPin className={`w-3.5 h-3.5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
                           <div className="flex-1 min-w-0">
@@ -349,11 +440,10 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
                       <button
-                        className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${
-                          isCargasSubmenuActive
-                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
-                        }`}
+                        className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${isCargasSubmenuActive
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                          : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                          }`}
                       >
                         <Package className="w-5 h-5 shrink-0" />
                       </button>
@@ -379,11 +469,10 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               <Collapsible open={cargasOpen} onOpenChange={setCargasOpen}>
                 <CollapsibleTrigger asChild>
                   <button
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${
-                      isCargasSubmenuActive
-                        ? 'bg-sidebar-primary/10 text-sidebar-primary'
-                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
-                    }`}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${isCargasSubmenuActive
+                      ? 'bg-sidebar-primary/10 text-sidebar-primary'
+                      : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                      }`}
                   >
                     <Package className="w-5 h-5 shrink-0" />
                     <span className="font-medium flex-1 text-left">Cargas</span>
@@ -397,11 +486,10 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                       <Link
                         key={sub.href}
                         to={sub.href}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                          isSubActive
-                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
-                        }`}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isSubActive
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                          : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                          }`}
                       >
                         <sub.icon className="w-4 h-4 shrink-0" />
                         <span className="text-sm">{sub.label}</span>
@@ -507,8 +595,8 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
 
               {/* Rest of transportadora menu items */}
               {menuItems
-                .filter(item => 
-                  item.href !== '/transportadora' && 
+                .filter(item =>
+                  item.href !== '/transportadora' &&
                   item.href !== '/transportadora/cargas'
                 )
                 .map((item) => {
@@ -584,12 +672,12 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
         </nav>
 
         {/* User Footer with 3 dots menu */}
-        <UserFooter 
-          collapsed={collapsed} 
-          profile={profile} 
-          cargo={cargo} 
+        <UserFooter
+          collapsed={collapsed}
+          profile={profile}
+          cargo={cargo}
           userType={userType}
-          onLogout={handleLogout} 
+          onLogout={handleLogout}
         />
       </aside>
     </TooltipProvider>
@@ -619,9 +707,9 @@ function UserFooter({ collapsed, profile, cargo, userType, onLogout }: UserFoote
         <Tooltip>
           <TooltipTrigger asChild>
             {profile?.avatar_url ? (
-              <img 
-                src={profile.avatar_url} 
-                alt={profile.nome_completo || 'Logo'} 
+              <img
+                src={profile.avatar_url}
+                alt={profile.nome_completo || 'Logo'}
                 className="w-8 h-8 rounded-full object-contain bg-white border border-sidebar-border shrink-0"
               />
             ) : (
@@ -649,8 +737,8 @@ function UserFooter({ collapsed, profile, cargo, userType, onLogout }: UserFoote
                 >
                   <MoreVertical className="w-4 h-4" />
                   {unreadCount > 0 && (
-                    <Badge 
-                      variant="destructive" 
+                    <Badge
+                      variant="destructive"
                       className="absolute -top-1 -right-1 px-1 py-0 text-[10px] min-w-[16px] h-4"
                     >
                       {unreadCount > 99 ? '99+' : unreadCount}
@@ -674,8 +762,8 @@ function UserFooter({ collapsed, profile, cargo, userType, onLogout }: UserFoote
               )}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={onLogout} 
+            <DropdownMenuItem
+              onClick={onLogout}
               className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
             >
               <LogOut className="w-4 h-4" />
@@ -692,9 +780,9 @@ function UserFooter({ collapsed, profile, cargo, userType, onLogout }: UserFoote
       <div className="flex items-center gap-3">
         {/* Avatar */}
         {profile?.avatar_url ? (
-          <img 
-            src={profile.avatar_url} 
-            alt={profile.nome_completo || 'Logo'} 
+          <img
+            src={profile.avatar_url}
+            alt={profile.nome_completo || 'Logo'}
             className="w-10 h-10 rounded-full object-contain bg-white border border-sidebar-border shrink-0"
           />
         ) : (
@@ -732,8 +820,8 @@ function UserFooter({ collapsed, profile, cargo, userType, onLogout }: UserFoote
             >
               <MoreVertical className="w-4 h-4" />
               {unreadCount > 0 && (
-                <Badge 
-                  variant="destructive" 
+                <Badge
+                  variant="destructive"
                   className="absolute -top-1 -right-1 px-1 py-0 text-[10px] min-w-[16px] h-4"
                 >
                   {unreadCount > 99 ? '99+' : unreadCount}
@@ -752,8 +840,8 @@ function UserFooter({ collapsed, profile, cargo, userType, onLogout }: UserFoote
               )}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={onLogout} 
+            <DropdownMenuItem
+              onClick={onLogout}
               className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
             >
               <LogOut className="w-4 h-4" />
