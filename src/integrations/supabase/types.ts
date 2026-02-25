@@ -186,6 +186,7 @@ export type Database = {
           empresa_id: number | null
           endereco_destino_id: string | null
           endereco_origem_id: string | null
+          expira_em: string | null
           filial_id: number | null
           id: string
           necessidades_especiais: string[] | null
@@ -244,6 +245,7 @@ export type Database = {
           empresa_id?: number | null
           endereco_destino_id?: string | null
           endereco_origem_id?: string | null
+          expira_em?: string | null
           filial_id?: number | null
           id?: string
           necessidades_especiais?: string[] | null
@@ -302,6 +304,7 @@ export type Database = {
           empresa_id?: number | null
           endereco_destino_id?: string | null
           endereco_origem_id?: string | null
+          expira_em?: string | null
           filial_id?: number | null
           id?: string
           necessidades_especiais?: string[] | null
