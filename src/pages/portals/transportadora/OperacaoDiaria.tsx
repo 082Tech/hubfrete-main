@@ -309,22 +309,6 @@ function DetailPanel({
 
   const effectiveViagemStatus = viagemStatus || fetchedViagemStatus;
 
-  // Busca GNREs para esta entrega
-  const { data: gnres = [], refetch: refetchGnres } = useQuery({
-    queryKey: ['entrega-gnres', entrega?.id],
-    queryFn: async () => {
-      if (!entrega?.id) return [];
-      const { data, error } = await (supabase as any)
-        .from('gnres')
-        .select('*')
-        .eq('cargas_id', entrega.carga.id)
-        .order('created_at', { ascending: true });
-      if (error) return [];
-      return data || [];
-    },
-    enabled: !!entrega?.id,
-  });
-
   // Atualiza documentos quando entrega muda ou quando um doc é uploado
   const refreshDocs = useCallback(() => {
     setDocsRefreshKey(k => k + 1);
@@ -440,14 +424,11 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Contagem de documentos anexados - canhoto local, CT-es e NF-es e GNREs
+  // Contagem de documentos anexados - canhoto local, CT-es e NF-es
   const docsCount = (entrega.canhoto_url ? 1 : 0)
     + existingCtes.length
     + existingCtes.reduce((acc, cte) => acc + (cte.nfes?.length || 0), 0)
-    + unlinkedNfes.length
-    + gnres.length;
-
-  const hasPendingGnre = gnres.some((g: any) => g.status === 'pendente' || g.status === 'processando');
+    + unlinkedNfes.length;
 
   return (
     <div className="h-full flex flex-col bg-card border-l">
@@ -649,7 +630,6 @@ function DetailPanel({
               entregaId={entrega.id}
               ctes={existingCtes}
               nfesDiretas={unlinkedNfes}
-              gnres={gnres}
               canhotoUrl={entrega.canhoto_url || null}
               onRefresh={refreshDocs}
             />

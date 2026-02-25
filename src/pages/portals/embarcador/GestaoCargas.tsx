@@ -284,24 +284,6 @@ function DetailPanel({
     enabled: !!entrega?.id,
   });
 
-  // Fetch GNREs for this entrega
-  const { data: gnres = [], refetch: refetchGnres } = useQuery({
-    queryKey: ['entrega-gnres', entrega?.id],
-    queryFn: async () => {
-      if (!entrega?.id) return [];
-      const { data, error } = await (supabase as any)
-        .from('gnres')
-        .select('*')
-        // Na estrutura definimos cargas_id opcional na GNRE, podemos buscar por entrega cruzando nfe_id ou adicionar entrega_id na tabela
-        // Assumindo que a carga_id da GNRE bate com a carga_id da entrega para simplificar aqui (ou faremos match manual)
-        .eq('cargas_id', entrega.carga.id)
-        .order('created_at', { ascending: true });
-      if (error) return [];
-      return data || [];
-    },
-    enabled: !!entrega?.id,
-  });
-
   const handleFilesSelection = (files: FileList | File[]) => {
     Array.from(files).forEach(file => {
       handleNfeXmlUpload(file);
@@ -494,9 +476,7 @@ function DetailPanel({
   const hasNfe = nfes.length > 0;
   const hasCte = ctes.length > 0;
   const hasManifesto = manifestos.length > 0;
-  const hasGnre = gnres.length > 0;
-  
-  const docsCount = (hasNfe ? 1 : 0) + (hasCte ? 1 : 0) + (hasCanhoto ? 1 : 0) + (hasManifesto ? 1 : 0) + (hasGnre ? 1 : 0);
+  const docsCount = (hasNfe ? 1 : 0) + (hasCte ? 1 : 0) + (hasCanhoto ? 1 : 0) + (hasManifesto ? 1 : 0);
   const docsComplete = hasNfe && hasCte && hasManifesto && hasCanhoto;
 
   const nfePending = !hasNfe && entrega.status !== 'entregue' && entrega.status !== 'cancelada';
@@ -883,79 +863,28 @@ function DetailPanel({
                 {hasNfe && (
                   <div className="grid gap-2 mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-800/50">
                     {nfes.map((nfe: any) => (
-                      <div key={nfe.id} className="flex flex-col bg-white dark:bg-background/50 rounded-lg p-2 border border-indigo-100/50 dark:border-indigo-800/30">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <FileCode className="w-3.5 h-3.5 text-indigo-400" />
-                            <span className="text-xs font-medium text-indigo-900 dark:text-indigo-200">
-                              NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || ''}
+                      <div key={nfe.id} className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-indigo-100/50 dark:border-indigo-800/30">
+                        <div className="flex items-center gap-2">
+                          <FileCode className="w-3.5 h-3.5 text-indigo-400" />
+                          <span className="text-xs font-medium text-indigo-900 dark:text-indigo-200">
+                            NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || ''}
+                          </span>
+                          {nfe.valor && (
+                            <span className="text-[10px] text-muted-foreground ml-1">
+                              R$ {Number(nfe.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </span>
-                            {nfe.valor && (
-                              <span className="text-[10px] text-muted-foreground ml-1">
-                                R$ {Number(nfe.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
-                            )}
-                          </div>
-                          {nfe.url && (
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || ''}`)}>
-                              <Download className="w-3 h-3" />
-                            </Button>
                           )}
                         </div>
+                        {nfe.url && (
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || ''}`)}>
+                            <Download className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-              
-              {/* Guias GNRE */}
-              {hasGnre && (
-                <div className="flex flex-col p-3 rounded-xl border bg-slate-50/50 dark:bg-slate-900/10 border-slate-200 dark:border-slate-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-900/30">
-                        <DollarSign className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-sm text-slate-900 dark:text-slate-100">
-                          Guias GNRE ({gnres.length})
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/50">
-                    {gnres.map((gnre: any) => (
-                      <div key={gnre.id} className="flex flex-col bg-white dark:bg-background/50 rounded-lg p-2 border border-slate-100/50 dark:border-slate-800/30">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-slate-900 dark:text-slate-200">
-                            Guia {gnre.uf_favorecida}
-                          </span>
-                          <Badge variant="outline" className={`text-[9px] px-1 py-0
-                            ${gnre.status === 'autorizada' ? 'border-emerald-300 text-emerald-600' : 
-                              gnre.status === 'pendente' || gnre.status === 'processando' ? 'border-amber-300 text-amber-600' : 'border-red-300 text-red-600'}`
-                          }>
-                            {gnre.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-muted-foreground">
-                              R$ {Number(gnre.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} • Venc: {format(new Date(gnre.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })}
-                            </span>
-                            {gnre.status === 'autorizada' && gnre.codigo_barras && (
-                              <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-slate-600 hover:text-slate-700 hover:bg-slate-50" onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigator.clipboard.writeText(gnre.codigo_barras);
-                                  toast.success('Código de barras copiado!');
-                              }}>
-                                Copiar Linha
-                              </Button>
-                            )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 

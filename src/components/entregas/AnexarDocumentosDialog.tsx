@@ -93,13 +93,13 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
     if (file && validateFile(file)) setCanhotoFile(file);
   };
 
-  const uploadFile = async (file: File, folder: string): Promise<string> => {
+  const uploadFile = async (file: File, prefix: string, folder?: string): Promise<string> => {
     if (!entrega) throw new Error('Entrega não encontrada');
     const fileExt = file.name.split('.').pop();
-    const fileName = `${entrega.id}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `${folder}/${fileName}`;
+    const fileName = `${prefix}_${entrega.id}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = folder ? `${folder}/${fileName}` : `${prefix}s/${fileName}`;
     const { error: uploadError } = await supabase.storage.from('documentos').upload(filePath, file);
-    if (uploadError) throw new Error(`Erro ao fazer upload para ${folder}`);
+    if (uploadError) throw new Error(`Erro ao fazer upload do ${prefix}`);
     return filePath;
   };
 
@@ -110,7 +110,7 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
       // Upload NF-es and link to the delivery directly
       if (nfeFiles.length > 0) {
         for (const file of nfeFiles) {
-          const nfeUrl = await uploadFile(file, 'nfes');
+          const nfeUrl = await uploadFile(file, 'nota_fiscal');
           await (supabase as any).from('nfes').insert({ entrega_id: entrega.id, url: nfeUrl });
         }
       }
@@ -118,7 +118,7 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
       // Upload Canhoto
       let finalCanhotoUrl = canhotoUrl;
       if (canhotoFile) {
-        finalCanhotoUrl = await uploadFile(canhotoFile, 'canhotos');
+        finalCanhotoUrl = await uploadFile(canhotoFile, 'canhoto', 'canhotos');
       }
 
       // Update canhoto on entrega
