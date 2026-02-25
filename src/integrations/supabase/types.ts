@@ -178,6 +178,7 @@ export type Database = {
           destinatario_contato_email: string | null
           destinatario_contato_nome: string | null
           destinatario_contato_telefone: string | null
+          destinatario_inscricao_estadual: string | null
           destinatario_nome_fantasia: string | null
           destinatario_razao_social: string | null
           documentacao: Json | null
@@ -201,6 +202,7 @@ export type Database = {
           remetente_cnpj: string | null
           remetente_contato_nome: string | null
           remetente_contato_telefone: string | null
+          remetente_inscricao_estadual: string | null
           remetente_nome_fantasia: string | null
           remetente_razao_social: string | null
           requer_refrigeracao: boolean | null
@@ -234,6 +236,7 @@ export type Database = {
           destinatario_contato_email?: string | null
           destinatario_contato_nome?: string | null
           destinatario_contato_telefone?: string | null
+          destinatario_inscricao_estadual?: string | null
           destinatario_nome_fantasia?: string | null
           destinatario_razao_social?: string | null
           documentacao?: Json | null
@@ -257,6 +260,7 @@ export type Database = {
           remetente_cnpj?: string | null
           remetente_contato_nome?: string | null
           remetente_contato_telefone?: string | null
+          remetente_inscricao_estadual?: string | null
           remetente_nome_fantasia?: string | null
           remetente_razao_social?: string | null
           requer_refrigeracao?: boolean | null
@@ -290,6 +294,7 @@ export type Database = {
           destinatario_contato_email?: string | null
           destinatario_contato_nome?: string | null
           destinatario_contato_telefone?: string | null
+          destinatario_inscricao_estadual?: string | null
           destinatario_nome_fantasia?: string | null
           destinatario_razao_social?: string | null
           documentacao?: Json | null
@@ -313,6 +318,7 @@ export type Database = {
           remetente_cnpj?: string | null
           remetente_contato_nome?: string | null
           remetente_contato_telefone?: string | null
+          remetente_inscricao_estadual?: string | null
           remetente_nome_fantasia?: string | null
           remetente_razao_social?: string | null
           requer_refrigeracao?: boolean | null
@@ -716,6 +722,71 @@ export type Database = {
           },
         ]
       }
+      config_fiscal: {
+        Row: {
+          ambiente: number
+          cfop_estadual: string
+          cfop_interestadual: string
+          created_at: string
+          empresa_id: number
+          icms_aliquota: number
+          icms_base_calculo_percentual: number
+          icms_situacao_tributaria: string
+          id: number
+          natureza_operacao: string
+          proximo_numero_cte: number
+          regime_tributario_emitente: number
+          serie_cte: number
+          tipo_servico: number
+          tomador_padrao: string
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: number
+          cfop_estadual?: string
+          cfop_interestadual?: string
+          created_at?: string
+          empresa_id: number
+          icms_aliquota?: number
+          icms_base_calculo_percentual?: number
+          icms_situacao_tributaria?: string
+          id?: number
+          natureza_operacao?: string
+          proximo_numero_cte?: number
+          regime_tributario_emitente?: number
+          serie_cte?: number
+          tipo_servico?: number
+          tomador_padrao?: string
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: number
+          cfop_estadual?: string
+          cfop_interestadual?: string
+          created_at?: string
+          empresa_id?: number
+          icms_aliquota?: number
+          icms_base_calculo_percentual?: number
+          icms_situacao_tributaria?: string
+          id?: number
+          natureza_operacao?: string
+          proximo_numero_cte?: number
+          regime_tributario_emitente?: number
+          serie_cte?: number
+          tipo_servico?: number
+          tomador_padrao?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_fiscal_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contatos_destino: {
         Row: {
           bairro: string | null
@@ -795,6 +866,8 @@ export type Database = {
           chave_acesso: string | null
           created_at: string | null
           entrega_id: string
+          focus_ref: string | null
+          focus_status: string | null
           id: string
           numero: string | null
           updated_at: string | null
@@ -806,6 +879,8 @@ export type Database = {
           chave_acesso?: string | null
           created_at?: string | null
           entrega_id: string
+          focus_ref?: string | null
+          focus_status?: string | null
           id?: string
           numero?: string | null
           updated_at?: string | null
@@ -817,6 +892,8 @@ export type Database = {
           chave_acesso?: string | null
           created_at?: string | null
           entrega_id?: string
+          focus_ref?: string | null
+          focus_status?: string | null
           id?: string
           numero?: string | null
           updated_at?: string | null
@@ -948,27 +1025,42 @@ export type Database = {
           classe: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz: string | null
           created_at: string
+          email: string | null
           id: number
+          inscricao_estadual: string | null
           logo_url: string | null
           nome: string | null
+          nome_fantasia: string | null
+          razao_social: string | null
+          telefone: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
         Insert: {
           classe: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz?: string | null
           created_at?: string
+          email?: string | null
           id?: number
+          inscricao_estadual?: string | null
           logo_url?: string | null
           nome?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string | null
+          telefone?: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
         Update: {
           classe?: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz?: string | null
           created_at?: string
+          email?: string | null
           id?: number
+          inscricao_estadual?: string | null
           logo_url?: string | null
           nome?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string | null
+          telefone?: string | null
           tipo?: Database["public"]["Enums"]["tipo_empresa"]
         }
         Relationships: []
@@ -979,6 +1071,7 @@ export type Database = {
           carga_id: string | null
           cep: string
           cidade: string
+          codigo_municipio_ibge: string | null
           complemento: string | null
           contato_email: string | null
           contato_nome: string | null
@@ -1003,6 +1096,7 @@ export type Database = {
           carga_id?: string | null
           cep: string
           cidade: string
+          codigo_municipio_ibge?: string | null
           complemento?: string | null
           contato_email?: string | null
           contato_nome?: string | null
@@ -1027,6 +1121,7 @@ export type Database = {
           carga_id?: string | null
           cep?: string
           cidade?: string
+          codigo_municipio_ibge?: string | null
           complemento?: string | null
           contato_email?: string | null
           contato_nome?: string | null
@@ -1120,6 +1215,9 @@ export type Database = {
           coletado_em: string | null
           created_at: string | null
           created_by: string | null
+          cte_gerado_automaticamente: boolean | null
+          cte_tentativas_geracao: number | null
+          cte_ultimo_erro: string | null
           cte_url: string | null
           documento_recebedor: string | null
           entregue_em: string | null
@@ -1150,6 +1248,9 @@ export type Database = {
           coletado_em?: string | null
           created_at?: string | null
           created_by?: string | null
+          cte_gerado_automaticamente?: boolean | null
+          cte_tentativas_geracao?: number | null
+          cte_ultimo_erro?: string | null
           cte_url?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
@@ -1180,6 +1281,9 @@ export type Database = {
           coletado_em?: string | null
           created_at?: string | null
           created_by?: string | null
+          cte_gerado_automaticamente?: boolean | null
+          cte_tentativas_geracao?: number | null
+          cte_ultimo_erro?: string | null
           cte_url?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
@@ -1234,9 +1338,12 @@ export type Database = {
       filiais: {
         Row: {
           ativa: boolean | null
+          bairro: string | null
           cep: string | null
           cidade: string | null
           cnpj: string | null
+          codigo_municipio_ibge: string | null
+          complemento: string | null
           created_at: string
           email: string | null
           empresa_id: number | null
@@ -1245,16 +1352,21 @@ export type Database = {
           id: number
           is_matriz: boolean | null
           latitude: number | null
+          logradouro: string | null
           longitude: number | null
           nome: string | null
+          numero: string | null
           responsavel: string | null
           telefone: string | null
         }
         Insert: {
           ativa?: boolean | null
+          bairro?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          codigo_municipio_ibge?: string | null
+          complemento?: string | null
           created_at?: string
           email?: string | null
           empresa_id?: number | null
@@ -1263,16 +1375,21 @@ export type Database = {
           id?: number
           is_matriz?: boolean | null
           latitude?: number | null
+          logradouro?: string | null
           longitude?: number | null
           nome?: string | null
+          numero?: string | null
           responsavel?: string | null
           telefone?: string | null
         }
         Update: {
           ativa?: boolean | null
+          bairro?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          codigo_municipio_ibge?: string | null
+          complemento?: string | null
           created_at?: string
           email?: string | null
           empresa_id?: number | null
@@ -1281,8 +1398,10 @@ export type Database = {
           id?: number
           is_matriz?: boolean | null
           latitude?: number | null
+          logradouro?: string | null
           longitude?: number | null
           nome?: string | null
+          numero?: string | null
           responsavel?: string | null
           telefone?: string | null
         }
@@ -1447,6 +1566,69 @@ export type Database = {
           },
           {
             foreignKeyName: "locations_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: false
+            referencedRelation: "viagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdfes: {
+        Row: {
+          chave_acesso: string | null
+          created_at: string
+          empresa_id: number | null
+          encerrado_at: string | null
+          erro: string | null
+          focus_ref: string | null
+          id: string
+          numero: string | null
+          pdf_path: string | null
+          status: string | null
+          updated_at: string
+          viagem_id: string
+          xml_path: string | null
+        }
+        Insert: {
+          chave_acesso?: string | null
+          created_at?: string
+          empresa_id?: number | null
+          encerrado_at?: string | null
+          erro?: string | null
+          focus_ref?: string | null
+          id?: string
+          numero?: string | null
+          pdf_path?: string | null
+          status?: string | null
+          updated_at?: string
+          viagem_id: string
+          xml_path?: string | null
+        }
+        Update: {
+          chave_acesso?: string | null
+          created_at?: string
+          empresa_id?: number | null
+          encerrado_at?: string | null
+          erro?: string | null
+          focus_ref?: string | null
+          id?: string
+          numero?: string | null
+          pdf_path?: string | null
+          status?: string | null
+          updated_at?: string
+          viagem_id?: string
+          xml_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdfes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfes_viagem_id_fkey"
             columns: ["viagem_id"]
             isOneToOne: false
             referencedRelation: "viagens"
@@ -1726,9 +1908,12 @@ export type Database = {
           entrega_id: string
           id: string
           numero: string | null
+          status_validacao: string | null
           updated_at: string | null
           url: string | null
+          validado_em: string | null
           valor: number | null
+          xml_content: string | null
           xml_url: string | null
         }
         Insert: {
@@ -1739,9 +1924,12 @@ export type Database = {
           entrega_id: string
           id?: string
           numero?: string | null
+          status_validacao?: string | null
           updated_at?: string | null
           url?: string | null
+          validado_em?: string | null
           valor?: number | null
+          xml_content?: string | null
           xml_url?: string | null
         }
         Update: {
@@ -1752,9 +1940,12 @@ export type Database = {
           entrega_id?: string
           id?: string
           numero?: string | null
+          status_validacao?: string | null
           updated_at?: string | null
           url?: string | null
+          validado_em?: string | null
           valor?: number | null
+          xml_content?: string | null
           xml_url?: string | null
         }
         Relationships: [
