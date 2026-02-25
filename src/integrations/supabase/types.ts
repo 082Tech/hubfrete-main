@@ -469,6 +469,47 @@ export type Database = {
           },
         ]
       }
+      certificados_digitais: {
+        Row: {
+          cnpj_titular: string | null
+          created_at: string
+          data_validade: string | null
+          empresa_id: number
+          nome_titular: string | null
+          pfx_base64: string
+          senha_encriptada: string
+          updated_at: string
+        }
+        Insert: {
+          cnpj_titular?: string | null
+          created_at?: string
+          data_validade?: string | null
+          empresa_id: number
+          nome_titular?: string | null
+          pfx_base64: string
+          senha_encriptada: string
+          updated_at?: string
+        }
+        Update: {
+          cnpj_titular?: string | null
+          created_at?: string
+          data_validade?: string | null
+          empresa_id?: number
+          nome_titular?: string | null
+          pfx_base64?: string
+          senha_encriptada?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificados_digitais_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chamado_mensagens: {
         Row: {
           anexo_nome: string | null
@@ -1489,6 +1530,85 @@ export type Database = {
             columns: ["entrega_id"]
             isOneToOne: false
             referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gnres: {
+        Row: {
+          cargas_id: string | null
+          codigo_barras: string | null
+          created_at: string
+          data_vencimento: string
+          empresa_id: number
+          id: string
+          linha_digitavel: string | null
+          motivo_rejeicao: string | null
+          nfe_id: string | null
+          numero_recibo: string | null
+          receita: string
+          status: string
+          uf_favorecida: string
+          valor: number
+          xml_envio: string | null
+          xml_retorno: string | null
+        }
+        Insert: {
+          cargas_id?: string | null
+          codigo_barras?: string | null
+          created_at?: string
+          data_vencimento: string
+          empresa_id: number
+          id?: string
+          linha_digitavel?: string | null
+          motivo_rejeicao?: string | null
+          nfe_id?: string | null
+          numero_recibo?: string | null
+          receita: string
+          status?: string
+          uf_favorecida: string
+          valor: number
+          xml_envio?: string | null
+          xml_retorno?: string | null
+        }
+        Update: {
+          cargas_id?: string | null
+          codigo_barras?: string | null
+          created_at?: string
+          data_vencimento?: string
+          empresa_id?: number
+          id?: string
+          linha_digitavel?: string | null
+          motivo_rejeicao?: string | null
+          nfe_id?: string | null
+          numero_recibo?: string | null
+          receita?: string
+          status?: string
+          uf_favorecida?: string
+          valor?: number
+          xml_envio?: string | null
+          xml_retorno?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gnres_cargas_id_fkey"
+            columns: ["cargas_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gnres_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gnres_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfes"
             referencedColumns: ["id"]
           },
         ]
