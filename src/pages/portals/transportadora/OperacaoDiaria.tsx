@@ -2266,9 +2266,11 @@ export default function OperacaoDiaria() {
                   viagem={selectedViagemLive}
                   onClose={() => setSelectedViagem(null)}
                   onSelectEntrega={(entregaId) => {
-                    const entrega = entregas.find(e => e.id === entregaId);
+                    // Try from entregas array first, then from viagem's own entregas
+                    const entrega = entregas.find(e => e.id === entregaId)
+                      || selectedViagemLive?.entregas.find((e: any) => e.id === entregaId);
                     if (entrega) {
-                      setSelectedEntregaInViagem(entrega);
+                      setSelectedEntregaInViagem(entrega as any);
                     }
                   }}
                   onRefresh={() => refetchViagens()}
