@@ -74,7 +74,7 @@ interface EntregaEvento {
 interface Entrega {
   id: string;
   codigo: string;
-  tracking_code: string | null;
+  tracking_code?: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -228,13 +228,14 @@ function DetailPanel({
   const nfeInputRef = useRef<HTMLInputElement>(null);
 
   const handleShareTracking = async () => {
-    if (!entrega?.tracking_code) {
+    const trackCode = entrega?.tracking_code || entrega?.codigo;
+    if (!trackCode) {
       toast.error('Código de rastreio não disponível para esta entrega.');
       return;
     }
     try {
       // The public tracking route is /rastreio
-      const url = `${window.location.origin}/rastreio?codigo=${entrega.tracking_code}`;
+      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
       await navigator.clipboard.writeText(url);
       setIsCopied(true);
       toast.success('Link de rastreio copiado para a área de transferência!');
@@ -246,12 +247,13 @@ function DetailPanel({
   };
 
   const handleNativeShare = async () => {
-    if (!entrega?.tracking_code) {
+    const trackCode = entrega?.tracking_code || entrega?.codigo;
+    if (!trackCode) {
       toast.error('Código de rastreio não disponível para esta entrega.');
       return;
     }
     try {
-      const url = `${window.location.origin}/rastreio?codigo=${entrega.tracking_code}`;
+      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
       if (navigator.share) {
         await navigator.share({
           title: `Rastreio de Entrega ${entrega.codigo || ''}`,
@@ -1274,16 +1276,16 @@ export default function GestaoCargas() {
       const today = new Date();
       const startOfToday = startOfDay(today).toISOString();
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('entregas')
         .select(`
-          id, codigo, tracking_code, status, created_at, updated_at,
+          id, codigo, status, created_at, updated_at,
           motorista_id, peso_alocado_kg, valor_frete, coletado_em, entregue_em,
           canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!inner(
-            id, codigo, descricao, peso_kg, tipo,
+            id, codigo, descricao, peso_kg, tipo, filial_id,
             remetente_razao_social, remetente_nome_fantasia,
             destinatario_razao_social, destinatario_nome_fantasia,
             data_coleta_de, data_entrega_limite,
