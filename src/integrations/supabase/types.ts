@@ -868,11 +868,13 @@ export type Database = {
         Row: {
           chave_acesso: string | null
           created_at: string | null
+          empresa_id: number | null
           entrega_id: string
           focus_ref: string | null
           focus_status: string | null
           id: string
           numero: string | null
+          serie: string | null
           updated_at: string | null
           url: string | null
           valor: number | null
@@ -881,11 +883,13 @@ export type Database = {
         Insert: {
           chave_acesso?: string | null
           created_at?: string | null
+          empresa_id?: number | null
           entrega_id: string
           focus_ref?: string | null
           focus_status?: string | null
           id?: string
           numero?: string | null
+          serie?: string | null
           updated_at?: string | null
           url?: string | null
           valor?: number | null
@@ -894,17 +898,26 @@ export type Database = {
         Update: {
           chave_acesso?: string | null
           created_at?: string | null
+          empresa_id?: number | null
           entrega_id?: string
           focus_ref?: string | null
           focus_status?: string | null
           id?: string
           numero?: string | null
+          serie?: string | null
           updated_at?: string | null
           url?: string | null
           valor?: number | null
           xml_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ctes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ctes_entrega_id_fkey"
             columns: ["entrega_id"]
@@ -1213,6 +1226,7 @@ export type Database = {
           canhoto_url: string | null
           carga_id: string
           carroceria_id: string | null
+          carrocerias_alocadas: Json | null
           checklist_veiculo: Json | null
           codigo: string | null
           coletado_em: string | null
@@ -1236,6 +1250,7 @@ export type Database = {
           peso_alocado_kg: number | null
           previsao_coleta: string | null
           status: Database["public"]["Enums"]["status_entrega"] | null
+          tracking_code: string | null
           updated_at: string | null
           updated_by: string | null
           valor_frete: number | null
@@ -1246,6 +1261,7 @@ export type Database = {
           canhoto_url?: string | null
           carga_id: string
           carroceria_id?: string | null
+          carrocerias_alocadas?: Json | null
           checklist_veiculo?: Json | null
           codigo?: string | null
           coletado_em?: string | null
@@ -1269,6 +1285,7 @@ export type Database = {
           peso_alocado_kg?: number | null
           previsao_coleta?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
+          tracking_code?: string | null
           updated_at?: string | null
           updated_by?: string | null
           valor_frete?: number | null
@@ -1279,6 +1296,7 @@ export type Database = {
           canhoto_url?: string | null
           carga_id?: string
           carroceria_id?: string | null
+          carrocerias_alocadas?: Json | null
           checklist_veiculo?: Json | null
           codigo?: string | null
           coletado_em?: string | null
@@ -1302,6 +1320,7 @@ export type Database = {
           peso_alocado_kg?: number | null
           previsao_coleta?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
+          tracking_code?: string | null
           updated_at?: string | null
           updated_by?: string | null
           valor_frete?: number | null
@@ -1578,48 +1597,69 @@ export type Database = {
       }
       mdfes: {
         Row: {
+          autorizado_at: string | null
+          cancelado_at: string | null
           chave_acesso: string | null
           created_at: string
           empresa_id: number | null
           encerrado_at: string | null
           erro: string | null
           focus_ref: string | null
+          ftp_pdf_path: string | null
+          ftp_xml_path: string | null
           id: string
           numero: string | null
           pdf_path: string | null
+          protocolo: string | null
+          serie: string | null
           status: string | null
           updated_at: string
           viagem_id: string
+          xml_content: string | null
           xml_path: string | null
         }
         Insert: {
+          autorizado_at?: string | null
+          cancelado_at?: string | null
           chave_acesso?: string | null
           created_at?: string
           empresa_id?: number | null
           encerrado_at?: string | null
           erro?: string | null
           focus_ref?: string | null
+          ftp_pdf_path?: string | null
+          ftp_xml_path?: string | null
           id?: string
           numero?: string | null
           pdf_path?: string | null
+          protocolo?: string | null
+          serie?: string | null
           status?: string | null
           updated_at?: string
           viagem_id: string
+          xml_content?: string | null
           xml_path?: string | null
         }
         Update: {
+          autorizado_at?: string | null
+          cancelado_at?: string | null
           chave_acesso?: string | null
           created_at?: string
           empresa_id?: number | null
           encerrado_at?: string | null
           erro?: string | null
           focus_ref?: string | null
+          ftp_pdf_path?: string | null
+          ftp_xml_path?: string | null
           id?: string
           numero?: string | null
           pdf_path?: string | null
+          protocolo?: string | null
+          serie?: string | null
           status?: string | null
           updated_at?: string
           viagem_id?: string
+          xml_content?: string | null
           xml_path?: string | null
         }
         Relationships: [
@@ -1908,15 +1948,29 @@ export type Database = {
           created_at: string | null
           cte_id: string | null
           data_emissao: string | null
+          destinatario_cnpj: string | null
+          destinatario_inscricao_estadual: string | null
+          destinatario_razao_social: string | null
           entrega_id: string
+          erro_validacao: string | null
+          ftp_path: string | null
           id: string
+          modelo: string | null
           numero: string | null
+          numero_nfe: string | null
+          peso_bruto: number | null
+          remetente_cnpj: string | null
+          remetente_inscricao_estadual: string | null
+          remetente_razao_social: string | null
+          serie: string | null
           status_validacao: string | null
           updated_at: string | null
           url: string | null
           validado_em: string | null
           valor: number | null
+          valor_total: number | null
           xml_content: string | null
+          xml_path: string | null
           xml_url: string | null
         }
         Insert: {
@@ -1924,15 +1978,29 @@ export type Database = {
           created_at?: string | null
           cte_id?: string | null
           data_emissao?: string | null
+          destinatario_cnpj?: string | null
+          destinatario_inscricao_estadual?: string | null
+          destinatario_razao_social?: string | null
           entrega_id: string
+          erro_validacao?: string | null
+          ftp_path?: string | null
           id?: string
+          modelo?: string | null
           numero?: string | null
+          numero_nfe?: string | null
+          peso_bruto?: number | null
+          remetente_cnpj?: string | null
+          remetente_inscricao_estadual?: string | null
+          remetente_razao_social?: string | null
+          serie?: string | null
           status_validacao?: string | null
           updated_at?: string | null
           url?: string | null
           validado_em?: string | null
           valor?: number | null
+          valor_total?: number | null
           xml_content?: string | null
+          xml_path?: string | null
           xml_url?: string | null
         }
         Update: {
@@ -1940,15 +2008,29 @@ export type Database = {
           created_at?: string | null
           cte_id?: string | null
           data_emissao?: string | null
+          destinatario_cnpj?: string | null
+          destinatario_inscricao_estadual?: string | null
+          destinatario_razao_social?: string | null
           entrega_id?: string
+          erro_validacao?: string | null
+          ftp_path?: string | null
           id?: string
+          modelo?: string | null
           numero?: string | null
+          numero_nfe?: string | null
+          peso_bruto?: number | null
+          remetente_cnpj?: string | null
+          remetente_inscricao_estadual?: string | null
+          remetente_razao_social?: string | null
+          serie?: string | null
           status_validacao?: string | null
           updated_at?: string | null
           url?: string | null
           validado_em?: string | null
           valor?: number | null
+          valor_total?: number | null
           xml_content?: string | null
+          xml_path?: string | null
           xml_url?: string | null
         }
         Relationships: [
