@@ -36,7 +36,7 @@ import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
 import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
-import { fetchManifestosForViagens, getActiveManifesto } from '@/lib/documentHelpers';
+import { fetchManifestosForViagens, getActiveManifesto, fetchCtesForEntregas } from '@/lib/documentHelpers';
 import { supabase } from '@/integrations/supabase/client';
 interface ViagemEntregaEvento {
   id: string;
@@ -151,6 +151,35 @@ export function ViagemDetailPanel({
     enabled: !!viagem?.id,
   });
 
+  // Fetch CT-es and NF-es for document validation
+  const entregaIds = useMemo(() => {
+    if (!viagem) return [];
+    return viagem.entregas.filter(e => e.status === 'entregue').map(e => e.id);
+  }, [viagem]);
+
+  const { data: ctesMap } = useQuery({
+    queryKey: ['viagem-ctes-validation', viagem?.id, entregaIds],
+    queryFn: () => fetchCtesForEntregas(entregaIds),
+    enabled: entregaIds.length > 0,
+  });
+
+  const { data: nfesCountMap } = useQuery({
+    queryKey: ['viagem-nfes-validation', viagem?.id, entregaIds],
+    queryFn: async () => {
+      if (entregaIds.length === 0) return {};
+      const { data } = await (supabase as any)
+        .from('nfes')
+        .select('entrega_id')
+        .in('entrega_id', entregaIds);
+      const map: Record<string, number> = {};
+      (data || []).forEach((n: any) => {
+        map[n.entrega_id] = (map[n.entrega_id] || 0) + 1;
+      });
+      return map;
+    },
+    enabled: entregaIds.length > 0,
+  });
+
   const activeManifesto = useMemo(() => {
     if (!viagem?.id || !manifestosMap) return null;
     const manifestos = manifestosMap[viagem.id] || [];
@@ -162,21 +191,43 @@ export function ViagemDetailPanel({
   const isViagemEmAndamento = viagem?.status === 'em_andamento';
   const isViagemFinalized = viagem?.status === 'finalizada' || viagem?.status === 'cancelada';
 
-  // Verificar se todas as entregas estão finalizadas (entregue ou cancelada)
+  // Verificar se todas as entregas estão finalizadas E com documentos completos
   const entregasValidation = useMemo(() => {
-    if (!viagem) return { canFinalize: false, pendingCount: 0, pendingEntregas: [] };
+    if (!viagem) return { canFinalize: false, pendingCount: 0, pendingEntregas: [], docIssues: [] as string[] };
 
     const pendingEntregas = viagem.entregas.filter(
       e => e.status !== 'entregue' && e.status !== 'cancelada'
     );
 
+    const docIssues: string[] = [];
+
+    // Check documents for each delivered entrega
+    const entreguesEntregas = viagem.entregas.filter(e => e.status === 'entregue');
+    for (const e of entreguesEntregas) {
+      if (!e.canhoto_url) {
+        docIssues.push(`${e.codigo}: sem Canhoto`);
+      }
+      if (nfesCountMap && !(nfesCountMap[e.id])) {
+        docIssues.push(`${e.codigo}: sem NF-e`);
+      }
+      if (ctesMap && !(ctesMap[e.id]?.length)) {
+        docIssues.push(`${e.codigo}: sem CT-e`);
+      }
+    }
+
+    // Check manifesto
+    const hasManifesto = manifestosMap && viagem.id && (manifestosMap[viagem.id]?.length || 0) > 0;
+    if (!hasManifesto) {
+      docIssues.push('Viagem sem MDF-e (Manifesto)');
+    }
+
     return {
-      canFinalize: pendingEntregas.length === 0,
+      canFinalize: pendingEntregas.length === 0 && docIssues.length === 0,
       pendingCount: pendingEntregas.length,
       pendingEntregas: pendingEntregas.map(e => e.codigo),
+      docIssues,
     };
-  }, [viagem]);
-
+  }, [viagem, nfesCountMap, ctesMap, manifestosMap]);
   const handleIniciarViagem = async () => {
     if (!viagem || !onStart) return;
 
@@ -499,20 +550,37 @@ export function ViagemDetailPanel({
         </div>
       )}
 
-      {/* Aviso de entregas pendentes (apenas em andamento) */}
+      {/* Aviso de entregas pendentes ou documentos faltantes (apenas em andamento) */}
       {isViagemEmAndamento && !entregasValidation.canFinalize && (
-        <div className="px-3 pb-3 mt-1">
-          <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-amber-800 dark:text-amber-300">
-                {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}
-              </p>
-              <p className="text-amber-700 dark:text-amber-400">
-                Finalize ou cancele as entregas antes de finalizar a viagem.
-              </p>
+        <div className="px-3 pb-3 mt-1 space-y-2">
+          {entregasValidation.pendingCount > 0 && (
+            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800 dark:text-amber-300">
+                  {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}
+                </p>
+                <p className="text-amber-700 dark:text-amber-400">
+                  Finalize ou cancele as entregas antes de finalizar a viagem.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
+          {entregasValidation.docIssues.length > 0 && entregasValidation.pendingCount === 0 && (
+            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+              <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800 dark:text-amber-300">
+                  Documentos pendentes
+                </p>
+                <ul className="text-amber-700 dark:text-amber-400 mt-1 space-y-0.5">
+                  {entregasValidation.docIssues.map((issue, i) => (
+                    <li key={i}>• {issue}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -521,20 +589,35 @@ export function ViagemDetailPanel({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Finalizar Viagem</AlertDialogTitle>
-            <AlertDialogDescription>
-              {entregasValidation.canFinalize ? (
-                <>
-                  Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
-                  <br /><br />
-                  Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas.
-                </>
-              ) : (
-                <>
-                  Não é possível finalizar a viagem.
-                  <br /><br />
-                  Existem {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}: {entregasValidation.pendingEntregas.join(', ')}
-                </>
-              )}
+            <AlertDialogDescription asChild>
+              <div>
+                {entregasValidation.canFinalize ? (
+                  <p>
+                    Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
+                    <br /><br />
+                    Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas e com documentos completos.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <p>Não é possível finalizar a viagem.</p>
+                    {entregasValidation.pendingCount > 0 && (
+                      <p>
+                        Existem {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}: {entregasValidation.pendingEntregas.join(', ')}
+                      </p>
+                    )}
+                    {entregasValidation.docIssues.length > 0 && (
+                      <div>
+                        <p className="font-medium">Documentos pendentes:</p>
+                        <ul className="mt-1 space-y-0.5 text-sm">
+                          {entregasValidation.docIssues.map((issue, i) => (
+                            <li key={i}>• {issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -113,6 +113,21 @@ interface ViagemHistorico {
 }
 
 const viagemStatusConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
+  programada: {
+    color: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+    label: 'Programada',
+    icon: Clock,
+  },
+  aguardando: {
+    color: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+    label: 'Aguardando',
+    icon: Clock,
+  },
+  em_andamento: {
+    color: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+    label: 'Em Andamento',
+    icon: Truck,
+  },
   finalizada: {
     color: 'bg-green-500/10 text-green-600 border-green-500/20',
     label: 'Finalizada',
@@ -188,7 +203,7 @@ export default function HistoricoEntregas() {
       const motoristaIds = (motoristasData || []).map((m) => m.id);
       if (motoristaIds.length === 0) return [];
 
-      // Fetch finalized viagens
+      // Fetch all viagens (not just finalized)
       const { data: viagensData, error } = await supabase
         .from('viagens')
         .select(`
@@ -199,7 +214,6 @@ export default function HistoricoEntregas() {
           veiculo:veiculos(placa, tipo)
         `)
         .in('motorista_id', motoristaIds)
-        .in('status', ['finalizada', 'cancelada'])
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -262,6 +276,7 @@ export default function HistoricoEntregas() {
   // Stats
   const stats = useMemo(() => ({
     total: viagens.length,
+    ativas: viagens.filter(v => ['programada', 'aguardando', 'em_andamento'].includes(v.status)).length,
     finalizada: viagens.filter(v => v.status === 'finalizada').length,
     cancelada: viagens.filter(v => v.status === 'cancelada').length,
     totalEntregas: viagens.reduce((acc, v) => acc + v.entregas.length, 0),
@@ -272,7 +287,11 @@ export default function HistoricoEntregas() {
     let result = viagens;
 
     if (selectedStatus) {
-      result = result.filter(v => v.status === selectedStatus);
+      if (selectedStatus === 'ativas') {
+        result = result.filter(v => ['programada', 'aguardando', 'em_andamento'].includes(v.status));
+      } else {
+        result = result.filter(v => v.status === selectedStatus);
+      }
     }
 
     if (advancedFilters.codigo) {
@@ -480,7 +499,7 @@ export default function HistoricoEntregas() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Histórico</h1>
-              <p className="text-muted-foreground">Viagens e entregas finalizadas</p>
+              <p className="text-muted-foreground">Todas as viagens e entregas</p>
             </div>
             <div className="flex items-center gap-4">
               <AdvancedFiltersPopover
@@ -494,7 +513,7 @@ export default function HistoricoEntregas() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0 px-px">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 shrink-0 px-px">
             <Card
               className={`border-border cursor-pointer transition-all ${selectedStatus === null ? 'ring-2 ring-primary ring-inset' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(null)}
@@ -505,6 +524,18 @@ export default function HistoricoEntregas() {
                 </div>
                 <p className="text-2xl font-bold text-foreground">{stats.total}</p>
                 <p className="text-xs text-muted-foreground">Total Viagens</p>
+              </CardContent>
+            </Card>
+            <Card
+              className={`border-border cursor-pointer transition-all ${selectedStatus === 'ativas' ? 'ring-2 ring-blue-500 ring-inset' : 'hover:bg-muted/30'}`}
+              onClick={() => setSelectedStatus(selectedStatus === 'ativas' ? null : 'ativas')}
+            >
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Truck className="w-4 h-4 text-blue-600" />
+                </div>
+                <p className="text-2xl font-bold text-blue-600">{stats.ativas}</p>
+                <p className="text-xs text-muted-foreground">Ativas</p>
               </CardContent>
             </Card>
             <Card
