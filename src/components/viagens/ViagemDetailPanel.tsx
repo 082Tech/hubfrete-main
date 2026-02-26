@@ -151,6 +151,35 @@ export function ViagemDetailPanel({
     enabled: !!viagem?.id,
   });
 
+  // Fetch CT-es and NF-es for document validation
+  const entregaIds = useMemo(() => {
+    if (!viagem) return [];
+    return viagem.entregas.filter(e => e.status === 'entregue').map(e => e.id);
+  }, [viagem]);
+
+  const { data: ctesMap } = useQuery({
+    queryKey: ['viagem-ctes-validation', viagem?.id, entregaIds],
+    queryFn: () => fetchCtesForEntregas(entregaIds),
+    enabled: entregaIds.length > 0,
+  });
+
+  const { data: nfesCountMap } = useQuery({
+    queryKey: ['viagem-nfes-validation', viagem?.id, entregaIds],
+    queryFn: async () => {
+      if (entregaIds.length === 0) return {};
+      const { data } = await (supabase as any)
+        .from('nfes')
+        .select('entrega_id')
+        .in('entrega_id', entregaIds);
+      const map: Record<string, number> = {};
+      (data || []).forEach((n: any) => {
+        map[n.entrega_id] = (map[n.entrega_id] || 0) + 1;
+      });
+      return map;
+    },
+    enabled: entregaIds.length > 0,
+  });
+
   const activeManifesto = useMemo(() => {
     if (!viagem?.id || !manifestosMap) return null;
     const manifestos = manifestosMap[viagem.id] || [];
@@ -162,21 +191,43 @@ export function ViagemDetailPanel({
   const isViagemEmAndamento = viagem?.status === 'em_andamento';
   const isViagemFinalized = viagem?.status === 'finalizada' || viagem?.status === 'cancelada';
 
-  // Verificar se todas as entregas estão finalizadas (entregue ou cancelada)
+  // Verificar se todas as entregas estão finalizadas E com documentos completos
   const entregasValidation = useMemo(() => {
-    if (!viagem) return { canFinalize: false, pendingCount: 0, pendingEntregas: [] };
+    if (!viagem) return { canFinalize: false, pendingCount: 0, pendingEntregas: [], docIssues: [] as string[] };
 
     const pendingEntregas = viagem.entregas.filter(
       e => e.status !== 'entregue' && e.status !== 'cancelada'
     );
 
+    const docIssues: string[] = [];
+
+    // Check documents for each delivered entrega
+    const entreguesEntregas = viagem.entregas.filter(e => e.status === 'entregue');
+    for (const e of entreguesEntregas) {
+      if (!e.canhoto_url) {
+        docIssues.push(`${e.codigo}: sem Canhoto`);
+      }
+      if (nfesCountMap && !(nfesCountMap[e.id])) {
+        docIssues.push(`${e.codigo}: sem NF-e`);
+      }
+      if (ctesMap && !(ctesMap[e.id]?.length)) {
+        docIssues.push(`${e.codigo}: sem CT-e`);
+      }
+    }
+
+    // Check manifesto
+    const hasManifesto = manifestosMap && viagem.id && (manifestosMap[viagem.id]?.length || 0) > 0;
+    if (!hasManifesto) {
+      docIssues.push('Viagem sem MDF-e (Manifesto)');
+    }
+
     return {
-      canFinalize: pendingEntregas.length === 0,
+      canFinalize: pendingEntregas.length === 0 && docIssues.length === 0,
       pendingCount: pendingEntregas.length,
       pendingEntregas: pendingEntregas.map(e => e.codigo),
+      docIssues,
     };
-  }, [viagem]);
-
+  }, [viagem, nfesCountMap, ctesMap, manifestosMap]);
   const handleIniciarViagem = async () => {
     if (!viagem || !onStart) return;
 
