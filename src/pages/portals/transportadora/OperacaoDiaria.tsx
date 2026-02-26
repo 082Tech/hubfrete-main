@@ -2266,9 +2266,16 @@ export default function OperacaoDiaria() {
                   viagem={selectedViagemLive}
                   onClose={() => setSelectedViagem(null)}
                   onSelectEntrega={(entregaId) => {
+                    // First try the daily entregas list, then fall back to the viagem's own entregas
                     const entrega = entregas.find(e => e.id === entregaId);
                     if (entrega) {
                       setSelectedEntregaInViagem(entrega);
+                    } else if (selectedViagemLive) {
+                      // Entrega may have been finalized on a previous day - build from viagem data
+                      const viagemEntrega = selectedViagemLive.entregas.find(e => e.id === entregaId);
+                      if (viagemEntrega) {
+                        setSelectedEntregaInViagem(viagemEntrega as any);
+                      }
                     }
                   }}
                   onRefresh={() => refetchViagens()}

@@ -276,6 +276,7 @@ export default function HistoricoEntregas() {
   // Stats
   const stats = useMemo(() => ({
     total: viagens.length,
+    ativas: viagens.filter(v => ['programada', 'aguardando', 'em_andamento'].includes(v.status)).length,
     finalizada: viagens.filter(v => v.status === 'finalizada').length,
     cancelada: viagens.filter(v => v.status === 'cancelada').length,
     totalEntregas: viagens.reduce((acc, v) => acc + v.entregas.length, 0),
