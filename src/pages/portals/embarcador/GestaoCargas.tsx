@@ -746,8 +746,8 @@ function DetailPanel({
                   </span>
                 </div>
                 {hasCanhoto ? (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}>
-                    <Download className="w-4 h-4" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')} title="Visualizar Canhoto">
+                    <Eye className="w-4 h-4" />
                   </Button>
                 ) : (
                   <span className="text-xs text-muted-foreground">Aguardando Transportadora</span>
