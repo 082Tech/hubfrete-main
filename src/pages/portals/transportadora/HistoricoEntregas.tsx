@@ -509,7 +509,7 @@ export default function HistoricoEntregas() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0 px-px">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 shrink-0 px-px">
             <Card
               className={`border-border cursor-pointer transition-all ${selectedStatus === null ? 'ring-2 ring-primary ring-inset' : 'hover:bg-muted/30'}`}
               onClick={() => setSelectedStatus(null)}
@@ -520,6 +520,18 @@ export default function HistoricoEntregas() {
                 </div>
                 <p className="text-2xl font-bold text-foreground">{stats.total}</p>
                 <p className="text-xs text-muted-foreground">Total Viagens</p>
+              </CardContent>
+            </Card>
+            <Card
+              className={`border-border cursor-pointer transition-all ${selectedStatus === 'ativas' ? 'ring-2 ring-blue-500 ring-inset' : 'hover:bg-muted/30'}`}
+              onClick={() => setSelectedStatus(selectedStatus === 'ativas' ? null : 'ativas')}
+            >
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Truck className="w-4 h-4 text-blue-600" />
+                </div>
+                <p className="text-2xl font-bold text-blue-600">{stats.ativas}</p>
+                <p className="text-xs text-muted-foreground">Ativas</p>
               </CardContent>
             </Card>
             <Card
