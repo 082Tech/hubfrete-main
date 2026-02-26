@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { OverlayView, InfoWindow } from '@react-google-maps/api';
-import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
+import {
+  fetchAllTrackingHistoricoByViagemId,
+  fetchDeliveryEventsForViagem,
+  getEffectiveStatusAtTime,
+  type DeliveryEvent,
+} from '@/lib/fetchAllTrackingHistorico';
 import { Clock, MapPin, Loader2, MapPinOff } from 'lucide-react';
 
 interface TrackingPoint {
@@ -8,6 +13,7 @@ interface TrackingPoint {
   latitude: number;
   longitude: number;
   status: string | null;
+  effectiveStatus: string | null;
   tracked_at: string;
   observacao: string | null;
   speed: number | null;
@@ -64,23 +70,28 @@ export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange
 
     let isMounted = true;
 
-    const fetchTrackingHistory = async () => {
+    const fetchData = async () => {
       onLoadingChange?.(true);
       try {
-        const data = await fetchAllTrackingHistoricoByViagemId(viagemId, {
-          pageSize: 1000,
-          maxRows: 50000,
-        });
+        // Fetch tracking points and delivery events in parallel
+        const [rawPoints, deliveryEvents] = await Promise.all([
+          fetchAllTrackingHistoricoByViagemId(viagemId, {
+            pageSize: 1000,
+            maxRows: 50000,
+          }),
+          fetchDeliveryEventsForViagem(viagemId),
+        ]);
 
         if (!isMounted) return;
         
-        const validPoints: TrackingPoint[] = (data || [])
+        const validPoints: TrackingPoint[] = (rawPoints || [])
           .filter((p) => p.latitude != null && p.longitude != null)
           .map((p) => ({
             id: p.id,
             latitude: Number(p.latitude),
             longitude: Number(p.longitude),
             status: p.status,
+            effectiveStatus: getEffectiveStatusAtTime(deliveryEvents, p.tracked_at),
             tracked_at: p.tracked_at,
             observacao: p.observacao,
             speed: p.speed,
@@ -90,7 +101,6 @@ export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange
         onEmptyChange?.(validPoints.length === 0);
         onLoadingChange?.(false);
         
-        // Calculate bounds and notify parent
         if (validPoints.length > 0) {
           const bounds = new google.maps.LatLngBounds();
           validPoints.forEach(p => {
@@ -110,7 +120,7 @@ export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange
       }
     };
 
-    fetchTrackingHistory();
+    fetchData();
 
     return () => {
       isMounted = false;
@@ -124,10 +134,11 @@ export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange
 
   return (
     <>
-      {/* Tracking point markers */}
       {trackingPoints.map((point, index) => {
-        const color = statusColors[point.status || 'aguardando'] || '#6b7280';
-        const label = statusLabels[point.status || 'aguardando'] || point.status || 'Em trânsito';
+        // Use effectiveStatus (from delivery events) first, then raw status, then fallback
+        const resolvedStatus = point.effectiveStatus || point.status || 'aguardando';
+        const color = statusColors[resolvedStatus] || '#6b7280';
+        const label = statusLabels[resolvedStatus] || resolvedStatus || 'Em trânsito';
         const isFirst = index === 0;
         const isLast = index === trackingPoints.length - 1;
         const isHovered = point.id === hoveredPointId;
@@ -155,7 +166,6 @@ export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange
               onMouseEnter={() => setHoveredPointId(point.id)}
               onMouseLeave={() => setHoveredPointId(null)}
             >
-              {/* Tooltip on hover */}
               {isHovered && (
                 <div
                   className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl p-2 min-w-[140px]"
@@ -173,56 +183,57 @@ export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange
         );
       })}
 
-      {/* InfoWindow for selected point */}
-      {selectedPoint && (
-        <InfoWindow
-          position={{ lat: selectedPoint.latitude, lng: selectedPoint.longitude }}
-          onCloseClick={() => setSelectedPointId(null)}
-          options={{ pixelOffset: new google.maps.Size(0, -10) }}
-        >
-          <div className="min-w-[180px] p-1">
-            <div className="flex items-center gap-2 mb-2">
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: statusColors[selectedPoint.status || 'aguardando'] || '#6b7280' }}
-              >
-                <MapPin className="w-3 h-3 text-white" />
-              </div>
-              <div>
-                <p className="font-semibold text-sm">{statusLabels[selectedPoint.status || 'aguardando'] || selectedPoint.status || 'Em trânsito'}</p>
-                <p className="text-xs text-muted-foreground">
-                  Ponto #{trackingPoints.findIndex(p => p.id === selectedPoint.id) + 1} de {trackingPoints.length}
-                </p>
-              </div>
-            </div>
-            
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="w-3 h-3" />
-                <span>{formatDateTime(selectedPoint.tracked_at)}</span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="w-3 h-3" />
-                <span>
-                  {selectedPoint.latitude.toFixed(6)}, {selectedPoint.longitude.toFixed(6)}
-                </span>
-              </div>
-              
-              {selectedPoint.observacao && (
-                <div className="mt-2 p-2 bg-muted rounded text-foreground">
-                  {selectedPoint.observacao}
+      {selectedPoint && (() => {
+        const resolvedStatus = selectedPoint.effectiveStatus || selectedPoint.status || 'aguardando';
+        return (
+          <InfoWindow
+            position={{ lat: selectedPoint.latitude, lng: selectedPoint.longitude }}
+            onCloseClick={() => setSelectedPointId(null)}
+            options={{ pixelOffset: new google.maps.Size(0, -10) }}
+          >
+            <div className="min-w-[180px] p-1">
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: statusColors[resolvedStatus] || '#6b7280' }}
+                >
+                  <MapPin className="w-3 h-3 text-white" />
                 </div>
-              )}
+                <div>
+                  <p className="font-semibold text-sm">{statusLabels[resolvedStatus] || resolvedStatus || 'Em trânsito'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Ponto #{trackingPoints.findIndex(p => p.id === selectedPoint.id) + 1} de {trackingPoints.length}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="w-3 h-3" />
+                  <span>{formatDateTime(selectedPoint.tracked_at)}</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="w-3 h-3" />
+                  <span>
+                    {selectedPoint.latitude.toFixed(6)}, {selectedPoint.longitude.toFixed(6)}
+                  </span>
+                </div>
+                
+                {selectedPoint.observacao && (
+                  <div className="mt-2 p-2 bg-muted rounded text-foreground">
+                    {selectedPoint.observacao}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </InfoWindow>
-      )}
+          </InfoWindow>
+        );
+      })()}
     </>
   );
 }
 
-// Export loading and empty overlay components for use in parents
 export function TrackingHistoryLoadingOverlay() {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">

@@ -11,6 +11,42 @@ export type TrackingHistoricoRow = {
   heading: number | null;
 };
 
+export type DeliveryEvent = {
+  tipo: string;
+  timestamp: string;
+  entrega_id: string;
+};
+
+/** Map event types to effective delivery status */
+const eventToStatus: Record<string, string> = {
+  'criado': 'aguardando',
+  'aceite': 'aguardando',
+  'inicio_coleta': 'saiu_para_coleta',
+  'inicio_rota': 'saiu_para_entrega',
+  'finalizado': 'entregue',
+  'cancelado': 'cancelada',
+};
+
+/**
+ * Given a sorted list of delivery events and a timestamp,
+ * determine the effective status at that moment.
+ */
+export function getEffectiveStatusAtTime(
+  events: DeliveryEvent[],
+  trackedAt: string,
+): string | null {
+  const trackedTime = new Date(trackedAt).getTime();
+  let effectiveStatus: string | null = null;
+
+  for (const ev of events) {
+    if (new Date(ev.timestamp).getTime() > trackedTime) break;
+    const mapped = eventToStatus[ev.tipo];
+    if (mapped) effectiveStatus = mapped;
+  }
+
+  return effectiveStatus;
+}
+
 /**
  * Supabase/PostgREST pode impor max-rows=1000 por request.
  * Esta função pagina via range() para buscar todos os registros por viagem.
@@ -43,9 +79,39 @@ export async function fetchAllTrackingHistoricoByViagemId(
     const batch = (data ?? []) as TrackingHistoricoRow[];
     rows.push(...batch);
 
-    if (batch.length < pageSize) break; // acabou
+    if (batch.length < pageSize) break;
     from += pageSize;
   }
 
   return rows;
+}
+
+/**
+ * Fetch all entrega_eventos for deliveries belonging to a viagem,
+ * sorted by timestamp ascending.
+ */
+export async function fetchDeliveryEventsForViagem(
+  viagemId: string,
+): Promise<DeliveryEvent[]> {
+  // First get entrega IDs for this viagem
+  const { data: links, error: linksError } = await supabase
+    .from('viagem_entregas')
+    .select('entrega_id')
+    .eq('viagem_id', viagemId);
+
+  if (linksError) throw linksError;
+  if (!links || links.length === 0) return [];
+
+  const entregaIds = links.map(l => l.entrega_id);
+
+  // Fetch events for all entregas
+  const { data: events, error: eventsError } = await supabase
+    .from('entrega_eventos')
+    .select('tipo, timestamp, entrega_id')
+    .in('entrega_id', entregaIds)
+    .order('timestamp', { ascending: true });
+
+  if (eventsError) throw eventsError;
+
+  return (events ?? []) as DeliveryEvent[];
 }
