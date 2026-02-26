@@ -881,26 +881,53 @@ function DetailPanel({
 
                 {hasNfe && (
                   <div className="grid gap-2 mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-800/50">
-                    {nfes.map((nfe: any) => (
-                      <div key={nfe.id} className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-indigo-100/50 dark:border-indigo-800/30">
-                        <div className="flex items-center gap-2">
-                          <FileCode className="w-3.5 h-3.5 text-indigo-400" />
-                          <span className="text-xs font-medium text-indigo-900 dark:text-indigo-200">
-                            NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || ''}
-                          </span>
-                          {nfe.valor && (
-                            <span className="text-[10px] text-muted-foreground ml-1">
-                              R$ {Number(nfe.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {nfes.map((nfe: any, idx: number) => {
+                      const isPdf = nfe.url?.toLowerCase().endsWith('.pdf') || (!nfe.xml_content && !nfe.xml_path);
+                      return (
+                        <div key={nfe.id} className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-indigo-100/50 dark:border-indigo-800/30">
+                          <div className="flex items-center gap-2">
+                            <FileCode className="w-3.5 h-3.5 text-indigo-400" />
+                            <span className="text-xs font-medium text-indigo-900 dark:text-indigo-200">
+                              NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || `#${idx + 1}`}
                             </span>
-                          )}
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 border-indigo-200 text-indigo-500">
+                              {isPdf ? 'PDF' : 'XML'}
+                            </Badge>
+                            {nfe.valor && (
+                              <span className="text-[10px] text-muted-foreground ml-1">
+                                R$ {Number(nfe.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {nfe.url && (
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || idx + 1}`)}>
+                                <Download className="w-3 h-3" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={async () => {
+                                try {
+                                  const { error } = await (supabase as any).from('nfes').delete().eq('id', nfe.id);
+                                  if (error) throw error;
+                                  toast.success('NF-e removida com sucesso!');
+                                  refetchNfes();
+                                  onRefresh();
+                                } catch (err: any) {
+                                  toast.error('Erro ao remover NF-e');
+                                  console.error(err);
+                                }
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
-                        {nfe.url && (
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || ''}`)}>
-                            <Download className="w-3 h-3" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
