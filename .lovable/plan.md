@@ -1,66 +1,86 @@
 
 
-## Plan: Show Truck + Tracking History on Both Maps & Per-Delivery Dot Filtering
+# Plano: Completar Schema Fiscal para API Focus NFe
 
-### Problem Summary
-1. **Trip detail map (ViagemMultiPointMap)**: Shows truck icon + tracking dots, but the truck icon is already there. Need to confirm both work.
-2. **Delivery detail map (DetailPanelLeafletMap)**: Shows tracking history dots (via `TrackingHistoryMarkers`) but does NOT show the truck icon -- the `driverLocation` is passed but let me verify. Actually it does show the truck. The issue may be that `TrackingHistoryMarkers` fetches the full trip's history without filtering to the delivery's time window.
-3. **Per-delivery tracking dots**: The user wants that when viewing a specific delivery's map, the tracking history dots should only show points that fall within that delivery's active time window (from first status change to final status), colored by the delivery's status at each point.
+## Resumo
 
-### Approach
+Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
 
-#### 1. Ensure Both Maps Show Truck + Tracking History
-- **ViagemMultiPointMap**: Already shows both truck (`driverLocation`) and tracking dots (`trackingPoints`). Confirmed working.
-- **DetailPanelLeafletMap**: Already shows truck and uses `TrackingHistoryMarkers` with `entregaId`. The component fetches the full trip's tracking history. The fix needed is to **filter the tracking points to only the delivery's time window**.
+## Situacao Atual
 
-#### 2. Per-Delivery Tracking History Filtering (Core Change)
+Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
 
-The `TrackingHistoryMarkers` component currently fetches ALL tracking history for the entire trip (via `viagem_id` lookup from `entrega_id`). Instead, it should:
+## Alteracoes Necessarias
 
-1. **Fetch the delivery's event timeline** from `entrega_eventos` to determine the time boundaries:
-   - **Start time**: The first event for this delivery (e.g., `criado` or `aceite`)
-   - **End time**: The final terminal event (`entregue` or `cancelada`), or current time if still active
+### Migracao Unica
 
-2. **Filter tracking points** to only include those where `tracked_at` falls within `[start_time, end_time]`
+Adicionar duas colunas a tabela `config_fiscal`:
 
-3. **Color the dots** based on what status the delivery was in at each tracking point's timestamp. This is done by cross-referencing each `tracked_at` against the delivery's status change events:
-   - For each tracking point, find the most recent `entrega_evento` with `timestamp <= tracked_at`
-   - Map the evento `tipo` to the corresponding delivery status
-   - Use that status for the dot color
+| Coluna | Tipo | Default | Finalidade |
+|--------|------|---------|------------|
+| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
+| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
 
-### Technical Changes
+### Atualizacao do Frontend
 
-#### File: `src/components/maps/TrackingHistoryMarkers.tsx`
-- Add a new fetch step: when `entregaId` is provided, also fetch `entrega_eventos` for that delivery
-- Build a sorted list of status change timestamps from events
-- Filter `tracking_historico` points to only those within the delivery's active time window
-- Override each point's `status` color based on the delivery's status at that timestamp (using binary search through events)
+Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
+- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
+- Campo numerico para o percentual da base de calculo do ICMS
 
-#### File: `src/components/maps/ViagemMultiPointMap.tsx`
-- No changes needed -- already shows both truck and tracking dots
+### Atualizacao dos Tipos TypeScript
 
-#### File: `src/components/maps/DetailPanelLeafletMap.tsx`
-- No changes needed -- already renders truck icon and `TrackingHistoryMarkers`
+Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
 
-### Implementation Details
+---
 
-**Event-to-Status Mapping** (in TrackingHistoryMarkers):
-```text
-evento.tipo -> delivery status:
-  'criado'/'aceite'     -> 'aguardando'
-  'saiu_para_coleta'    -> 'saiu_para_coleta'
-  'saiu_para_entrega'   -> 'saiu_para_entrega'
-  'entregue'            -> 'entregue'
-  'cancelada'           -> 'cancelada'
-  'problema'            -> 'problema'
+## Secao Tecnica
+
+### SQL da Migracao
+
+```sql
+ALTER TABLE public.config_fiscal
+  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
+  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
+
+COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
+  IS '1 = Simples Nacional, 3 = Regime Normal';
+COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
+  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
 ```
 
-**Filtering Logic**:
-- Fetch `entrega_eventos` sorted by `timestamp ASC`
-- `windowStart` = first event's timestamp
-- `windowEnd` = last terminal event's timestamp (or `now()` if still active)
-- Filter tracking points: `windowStart <= tracked_at <= windowEnd`
-- For each remaining point, binary-search the events list to find the active status at `tracked_at`
+### Mapeamento Completo: Banco -> Payload API
 
-**No DB Changes Required**: All data already exists in `entrega_eventos` and `tracking_historico`. This is purely a frontend filtering/coloring change.
+Com essas 2 colunas adicionadas, o mapeamento fica completo:
+
+**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
+- CNPJ: `empresas.cnpj_matriz`
+- IE: `empresas.inscricao_estadual`
+- Razao Social: `empresas.razao_social`
+- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
+- Municipio IBGE: `filiais.codigo_municipio_ibge`
+- UF: `filiais.estado`
+- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
+
+**Fiscal**: `config_fiscal`
+- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
+- Natureza: `natureza_operacao`
+- Serie/Numero: `serie_cte` / `proximo_numero_cte`
+- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
+- Ambiente: `ambiente`
+
+**Remetente/Destinatario**: `cargas` + `enderecos_carga`
+**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
+**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
+
+### Campos Derivados por Logica (sem banco)
+- `data_emissao`: gerado no momento da emissao
+- `tipo_documento`: sempre `0` (Normal)
+- `modal`: sempre `01` (Rodoviario)
+- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
+
+### Sequencia de Implementacao
+
+1. Aplicar migracao SQL (1 migration)
+2. Atualizar types.ts
+3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
 
