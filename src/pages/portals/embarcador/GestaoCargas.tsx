@@ -880,6 +880,17 @@ function DetailPanel({
                   />
                 </div>
 
+                {/* Drop zone hint */}
+                <div
+                  className={`flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed transition-colors cursor-pointer ${isDragging ? 'border-primary bg-primary/10 text-primary' : 'border-muted-foreground/30 text-muted-foreground/60 hover:border-muted-foreground/50 hover:text-muted-foreground'}`}
+                  onClick={() => nfeInputRef.current?.click()}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span className="text-[11px]">
+                    {isDragging ? 'Solte os arquivos aqui' : 'Arraste PDF ou XML aqui, ou clique para selecionar'}
+                  </span>
+                </div>
+
                 {hasNfe && (
                   <div className="grid gap-2 mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-800/50">
                     {nfes.map((nfe: any, idx: number) => {
