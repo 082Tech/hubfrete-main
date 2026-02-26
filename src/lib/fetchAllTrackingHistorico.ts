@@ -20,7 +20,6 @@ export type DeliveryEvent = {
 export type ViagemStatus = {
   status: string;
   started_at: string | null;
-  finished_at: string | null;
   codigo: string;
 };
 
