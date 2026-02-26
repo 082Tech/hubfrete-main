@@ -41,6 +41,7 @@ import {
   HelpCircle,
   Upload,
   Download,
+  Eye,
   Weight,
   Map,
   Search,
