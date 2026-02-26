@@ -864,13 +864,13 @@ function DetailPanel({
                     ) : (
                       <Upload className="w-3 h-3 mr-1.5" />
                     )}
-                    {hasNfe ? 'Adicionar mais' : 'Anexar XML'}
+                    {hasNfe ? 'Adicionar mais' : 'Anexar NF-e'}
                   </Button>
                   <input
                     ref={nfeInputRef}
                     type="file"
                     multiple
-                    accept=".xml"
+                    accept=".xml,.pdf"
                     className="hidden"
                     onChange={(e) => {
                       if (e.target.files) handleFilesSelection(e.target.files);
