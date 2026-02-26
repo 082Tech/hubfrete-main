@@ -41,6 +41,7 @@ import {
   HelpCircle,
   Upload,
   Download,
+  Eye,
   Weight,
   Map,
   Search,
@@ -745,8 +746,8 @@ function DetailPanel({
                   </span>
                 </div>
                 {hasCanhoto ? (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')}>
-                    <Download className="w-4 h-4" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')} title="Visualizar Canhoto">
+                    <Eye className="w-4 h-4" />
                   </Button>
                 ) : (
                   <span className="text-xs text-muted-foreground">Aguardando Transportadora</span>
@@ -792,8 +793,9 @@ function DetailPanel({
                           {cte.url && (
                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-600"
                               onClick={() => handleDocClick(cte.url, `CT-e ${cIdx + 1}`)}
+                              title="Visualizar CT-e"
                             >
-                              <Download className="w-3 h-3" />
+                              <Eye className="w-3 h-3" />
                             </Button>
                           )}
                         </div>
@@ -810,8 +812,9 @@ function DetailPanel({
                                 {nf.url && (
                                   <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-500"
                                     onClick={() => handleDocClick(nf.url, `NF-e ${ni + 1}`)}
+                                    title="Visualizar NF-e"
                                   >
-                                    <Download className="w-3 h-3" />
+                                    <Eye className="w-3 h-3" />
                                   </Button>
                                 )}
                               </div>
@@ -913,8 +916,8 @@ function DetailPanel({
                           </div>
                           <div className="flex items-center gap-1">
                             {nfe.url && (
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || idx + 1}`)}>
-                                <Download className="w-3 h-3" />
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || idx + 1}`)} title="Visualizar NF-e">
+                                <Eye className="w-3 h-3" />
                               </Button>
                             )}
                             <Button
