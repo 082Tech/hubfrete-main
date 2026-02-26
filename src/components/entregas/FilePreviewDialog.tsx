@@ -105,33 +105,56 @@ export function FilePreviewDialog({ open, onOpenChange, fileUrl, title = 'Visual
     setIsLoading(true);
     setError(null);
 
-    console.log('[FilePreviewDialog] Loading signed URL for:', fileUrl);
-
     try {
       const extracted = extractPathFromUrl(fileUrl);
-      console.log('[FilePreviewDialog] Extracted path:', extracted);
 
       if (!extracted) {
-        throw new Error('Não foi possível extrair o caminho do arquivo');
+        // If we can't extract a path, the fileUrl might already be a full public URL
+        // Try using it directly
+        setSignedUrl(fileUrl);
+        if (getFileType(fileUrl) === 'xml') {
+          try {
+            const response = await fetch(fileUrl);
+            const text = await response.text();
+            setXmlContent(text);
+          } catch (e) {
+            console.error('Error fetching XML:', e);
+          }
+        }
+        setIsLoading(false);
+        return;
       }
 
-      console.log('[FilePreviewDialog] Requesting signed URL from bucket:', extracted.bucket, 'path:', extracted.path);
+      // Try signed URL first, fallback to public URL
+      let resolvedUrl: string | null = null;
 
-      const { data, error: signError } = await supabase.storage
-        .from(extracted.bucket)
-        .createSignedUrl(extracted.path, 3600); // 1 hour expiry
+      try {
+        const { data, error: signError } = await supabase.storage
+          .from(extracted.bucket)
+          .createSignedUrl(extracted.path, 3600);
 
-      console.log('[FilePreviewDialog] Signed URL response:', { data, error: signError });
+        if (!signError && data?.signedUrl) {
+          resolvedUrl = data.signedUrl;
+        }
+      } catch {
+        // Signed URL failed — bucket is likely public
+      }
 
-      if (signError) throw signError;
-      if (!data?.signedUrl) throw new Error('URL assinada não gerada');
+      // Fallback: use public URL
+      if (!resolvedUrl) {
+        const { data: publicData } = supabase.storage
+          .from(extracted.bucket)
+          .getPublicUrl(extracted.path);
 
-      setSignedUrl(data.signedUrl);
+        resolvedUrl = publicData?.publicUrl || fileUrl;
+      }
+
+      setSignedUrl(resolvedUrl);
 
       // If XML, fetch and display content
-      if (getFileType(fileUrl) === 'xml') {
+      if (getFileType(fileUrl) === 'xml' && resolvedUrl) {
         try {
-          const response = await fetch(data.signedUrl);
+          const response = await fetch(resolvedUrl);
           const text = await response.text();
           setXmlContent(text);
         } catch (e) {
@@ -139,8 +162,9 @@ export function FilePreviewDialog({ open, onOpenChange, fileUrl, title = 'Visual
         }
       }
     } catch (err) {
-      console.error('Error getting signed URL:', err);
-      setError('Não foi possível carregar o arquivo. Verifique se você tem permissão de acesso.');
+      console.error('Error loading file preview:', err);
+      // Last resort: try using the original URL directly
+      setSignedUrl(fileUrl);
     } finally {
       setIsLoading(false);
     }
