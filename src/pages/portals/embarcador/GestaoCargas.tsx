@@ -793,8 +793,9 @@ function DetailPanel({
                           {cte.url && (
                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-600"
                               onClick={() => handleDocClick(cte.url, `CT-e ${cIdx + 1}`)}
+                              title="Visualizar CT-e"
                             >
-                              <Download className="w-3 h-3" />
+                              <Eye className="w-3 h-3" />
                             </Button>
                           )}
                         </div>
