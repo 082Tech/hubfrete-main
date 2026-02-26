@@ -916,8 +916,8 @@ function DetailPanel({
                           </div>
                           <div className="flex items-center gap-1">
                             {nfe.url && (
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || idx + 1}`)}>
-                                <Download className="w-3 h-3" />
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || idx + 1}`)} title="Visualizar NF-e">
+                                <Eye className="w-3 h-3" />
                               </Button>
                             )}
                             <Button
