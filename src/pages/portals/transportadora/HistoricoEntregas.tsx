@@ -287,7 +287,11 @@ export default function HistoricoEntregas() {
     let result = viagens;
 
     if (selectedStatus) {
-      result = result.filter(v => v.status === selectedStatus);
+      if (selectedStatus === 'ativas') {
+        result = result.filter(v => ['programada', 'aguardando', 'em_andamento'].includes(v.status));
+      } else {
+        result = result.filter(v => v.status === selectedStatus);
+      }
     }
 
     if (advancedFilters.codigo) {
