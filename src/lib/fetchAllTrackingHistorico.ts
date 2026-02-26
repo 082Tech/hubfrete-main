@@ -17,6 +17,13 @@ export type DeliveryEvent = {
   entrega_id: string;
 };
 
+export type ViagemStatus = {
+  status: string;
+  started_at: string | null;
+  finished_at: string | null;
+  codigo: string;
+};
+
 /** Map event types to effective delivery status */
 const eventToStatus: Record<string, string> = {
   'criado': 'aguardando',
@@ -45,6 +52,20 @@ export function getEffectiveStatusAtTime(
   }
 
   return effectiveStatus;
+}
+
+/**
+ * Fetch the viagem record to get its status and timestamps.
+ */
+export async function fetchViagemStatus(viagemId: string): Promise<ViagemStatus | null> {
+  const { data, error } = await supabase
+    .from('viagens')
+    .select('status, started_at, finished_at, codigo')
+    .eq('id', viagemId)
+    .single();
+
+  if (error || !data) return null;
+  return data as ViagemStatus;
 }
 
 /**
@@ -93,7 +114,6 @@ export async function fetchAllTrackingHistoricoByViagemId(
 export async function fetchDeliveryEventsForViagem(
   viagemId: string,
 ): Promise<DeliveryEvent[]> {
-  // First get entrega IDs for this viagem
   const { data: links, error: linksError } = await supabase
     .from('viagem_entregas')
     .select('entrega_id')
@@ -104,7 +124,6 @@ export async function fetchDeliveryEventsForViagem(
 
   const entregaIds = links.map(l => l.entrega_id);
 
-  // Fetch events for all entregas
   const { data: events, error: eventsError } = await supabase
     .from('entrega_eventos')
     .select('tipo, timestamp, entrega_id')
