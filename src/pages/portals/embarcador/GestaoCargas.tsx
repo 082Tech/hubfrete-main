@@ -812,8 +812,9 @@ function DetailPanel({
                                 {nf.url && (
                                   <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-500"
                                     onClick={() => handleDocClick(nf.url, `NF-e ${ni + 1}`)}
+                                    title="Visualizar NF-e"
                                   >
-                                    <Download className="w-3 h-3" />
+                                    <Eye className="w-3 h-3" />
                                   </Button>
                                 )}
                               </div>
