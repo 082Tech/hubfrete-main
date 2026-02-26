@@ -59,7 +59,7 @@ export function getEffectiveStatusAtTime(
 export async function fetchViagemStatus(viagemId: string): Promise<ViagemStatus | null> {
   const { data, error } = await supabase
     .from('viagens')
-    .select('status, started_at, finished_at, codigo')
+    .select('status, started_at, codigo')
     .eq('id', viagemId)
     .single();
 
