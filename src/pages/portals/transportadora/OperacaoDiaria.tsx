@@ -1973,9 +1973,11 @@ export default function OperacaoDiaria() {
   }, [entregas, filters]);
 
   // Get driver location for selected delivery (includes heading and online status)
+  // Use selectedEntregaInViagem when in viagem view, otherwise selectedEntrega
   const driverLocation = useMemo(() => {
-    if (!selectedEntrega?.motorista_id) return null;
-    const loc = localizacoes.find(l => l.motorista_id === selectedEntrega.motorista_id);
+    const activeEntrega = selectedEntregaInViagem || selectedEntrega;
+    if (!activeEntrega?.motorista_id) return null;
+    const loc = localizacoes.find(l => l.motorista_id === activeEntrega.motorista_id);
     if (loc?.latitude && loc?.longitude) {
       return {
         lat: loc.latitude,
@@ -1985,7 +1987,7 @@ export default function OperacaoDiaria() {
       };
     }
     return null;
-  }, [selectedEntrega, localizacoes]);
+  }, [selectedEntrega, selectedEntregaInViagem, localizacoes]);
 
   const handleStatusChange = (newStatus: string) => {
     // In viagem view, the active entrega is selectedEntregaInViagem
