@@ -188,7 +188,7 @@ export default function HistoricoEntregas() {
       const motoristaIds = (motoristasData || []).map((m) => m.id);
       if (motoristaIds.length === 0) return [];
 
-      // Fetch finalized viagens
+      // Fetch all viagens (not just finalized)
       const { data: viagensData, error } = await supabase
         .from('viagens')
         .select(`
@@ -199,7 +199,6 @@ export default function HistoricoEntregas() {
           veiculo:veiculos(placa, tipo)
         `)
         .in('motorista_id', motoristaIds)
-        .in('status', ['finalizada', 'cancelada'])
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
