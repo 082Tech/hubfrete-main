@@ -494,7 +494,7 @@ export default function HistoricoEntregas() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Histórico</h1>
-              <p className="text-muted-foreground">Viagens e entregas finalizadas</p>
+              <p className="text-muted-foreground">Todas as viagens e entregas</p>
             </div>
             <div className="flex items-center gap-4">
               <AdvancedFiltersPopover
