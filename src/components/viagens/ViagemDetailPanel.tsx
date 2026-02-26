@@ -36,7 +36,7 @@ import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
 import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
-import { fetchManifestosForViagens, getActiveManifesto } from '@/lib/documentHelpers';
+import { fetchManifestosForViagens, getActiveManifesto, fetchCtesForEntregas } from '@/lib/documentHelpers';
 import { supabase } from '@/integrations/supabase/client';
 interface ViagemEntregaEvento {
   id: string;
