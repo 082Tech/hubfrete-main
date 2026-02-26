@@ -288,7 +288,7 @@ function DetailPanel({
 
   const handleFilesSelection = (files: FileList | File[]) => {
     Array.from(files).forEach(file => {
-      handleNfeXmlUpload(file);
+      handleNfeFileUpload(file);
     });
   };
 
