@@ -550,20 +550,37 @@ export function ViagemDetailPanel({
         </div>
       )}
 
-      {/* Aviso de entregas pendentes (apenas em andamento) */}
+      {/* Aviso de entregas pendentes ou documentos faltantes (apenas em andamento) */}
       {isViagemEmAndamento && !entregasValidation.canFinalize && (
-        <div className="px-3 pb-3 mt-1">
-          <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-amber-800 dark:text-amber-300">
-                {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}
-              </p>
-              <p className="text-amber-700 dark:text-amber-400">
-                Finalize ou cancele as entregas antes de finalizar a viagem.
-              </p>
+        <div className="px-3 pb-3 mt-1 space-y-2">
+          {entregasValidation.pendingCount > 0 && (
+            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800 dark:text-amber-300">
+                  {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}
+                </p>
+                <p className="text-amber-700 dark:text-amber-400">
+                  Finalize ou cancele as entregas antes de finalizar a viagem.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
+          {entregasValidation.docIssues.length > 0 && entregasValidation.pendingCount === 0 && (
+            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
+              <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800 dark:text-amber-300">
+                  Documentos pendentes
+                </p>
+                <ul className="text-amber-700 dark:text-amber-400 mt-1 space-y-0.5">
+                  {entregasValidation.docIssues.map((issue, i) => (
+                    <li key={i}>• {issue}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -572,20 +589,35 @@ export function ViagemDetailPanel({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Finalizar Viagem</AlertDialogTitle>
-            <AlertDialogDescription>
-              {entregasValidation.canFinalize ? (
-                <>
-                  Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
-                  <br /><br />
-                  Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas.
-                </>
-              ) : (
-                <>
-                  Não é possível finalizar a viagem.
-                  <br /><br />
-                  Existem {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}: {entregasValidation.pendingEntregas.join(', ')}
-                </>
-              )}
+            <AlertDialogDescription asChild>
+              <div>
+                {entregasValidation.canFinalize ? (
+                  <p>
+                    Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
+                    <br /><br />
+                    Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas e com documentos completos.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <p>Não é possível finalizar a viagem.</p>
+                    {entregasValidation.pendingCount > 0 && (
+                      <p>
+                        Existem {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}: {entregasValidation.pendingEntregas.join(', ')}
+                      </p>
+                    )}
+                    {entregasValidation.docIssues.length > 0 && (
+                      <div>
+                        <p className="font-medium">Documentos pendentes:</p>
+                        <ul className="mt-1 space-y-0.5 text-sm">
+                          {entregasValidation.docIssues.map((issue, i) => (
+                            <li key={i}>• {issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
