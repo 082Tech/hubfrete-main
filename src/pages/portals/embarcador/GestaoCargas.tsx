@@ -348,97 +348,114 @@ function DetailPanel({
     enabled: !!entrega?.id,
   });
 
-  const handleNfeXmlUpload = async (file: File) => {
+  const handleNfeFileUpload = async (file: File) => {
     if (!entrega) return;
     setIsUploadingNfe(true);
     try {
-      const xmlContent = await file.text();
-      const parsed = parseNfeXml(xmlContent);
+      const isXml = file.name.toLowerCase().endsWith('.xml') || file.type === 'application/xml' || file.type === 'text/xml';
+      const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
 
-      if (!parsed.chaveAcesso) {
-        toast.error('Não foi possível extrair a chave de acesso do XML. Verifique o arquivo.');
+      if (!isXml && !isPdf) {
+        toast.error('Tipo de arquivo não permitido. Use PDF ou XML.');
         setIsUploadingNfe(false);
         return;
       }
 
-      // 1. Validate with Focus NFe (Import + Query)
-      toast.info('Validando NFe na SEFAZ (Focus NFe)...');
-      const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-nfe', {
-        body: {
-          referencia: parsed.chaveAcesso,
-          xml_content: xmlContent
-        }
-      });
-
-      if (validationError) {
-        console.error('Validation function error:', validationError);
-        // Tenta extrair o corpo do erro se disponível
-        let errorMessage = validationError.message;
-        if (validationError instanceof Error && (validationError as any).context?.json) {
-          const body = await (validationError as any).context.json();
-          errorMessage = body.error || JSON.stringify(body);
-        }
-        throw new Error(`Erro na validação: ${errorMessage}`);
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Arquivo muito grande. Máximo 10MB.');
+        setIsUploadingNfe(false);
+        return;
       }
 
-      const nfeJson = validationData.data;
+      let parsed: any = {};
+      let xmlContent: string | null = null;
+      let focusData: any = null;
+      let nfeJson: any = null;
+      let statusValidacao = 'pendente';
 
-      if (!validationData?.success) {
-        console.error('Validation failed (Logic):', validationData);
-        throw new Error(`Validação falhou: ${validationData?.error || 'Erro desconhecido'}`);
+      // Se for XML, tenta parsear e validar
+      if (isXml) {
+        xmlContent = await file.text();
+        parsed = parseNfeXml(xmlContent);
+
+        if (parsed.chaveAcesso) {
+          try {
+            toast.info('Validando NF-e na SEFAZ (Focus NFe)...');
+            const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-nfe', {
+              body: { referencia: parsed.chaveAcesso, xml_content: xmlContent }
+            });
+
+            if (!validationError && validationData?.success) {
+              nfeJson = validationData.data;
+              focusData = nfeJson?.requisicao_nota_fiscal || nfeJson?.nfe_completa?.infNFe || nfeJson;
+              statusValidacao = 'autorizada';
+              toast.success('NF-e validada com sucesso!');
+            } else {
+              console.warn('Validação Focus NFe não concluída, salvando sem validação.');
+              statusValidacao = 'nao_validada';
+            }
+          } catch (valErr) {
+            console.warn('Erro na validação Focus, prosseguindo sem validar:', valErr);
+            statusValidacao = 'nao_validada';
+          }
+        }
       }
-      toast.success('NFe validada com sucesso!');
 
-      // 2. Upload XML file to storage
-      const fileName = `nfe-${entrega.id}-${Date.now()}.xml`;
+      // Upload do arquivo ao storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `nfe_${entrega.id}_${Date.now()}.${fileExt}`;
       const storagePath = `nfes/${fileName}`;
+      const contentType = isXml ? 'text/xml' : 'application/pdf';
+
       const { error: uploadError } = await supabase.storage
         .from('documentos')
-        .upload(storagePath, file, { contentType: 'text/xml' });
+        .upload(storagePath, file, { contentType });
+
+      if (uploadError) throw new Error('Erro ao fazer upload do arquivo');
 
       let fileUrl: string | null = null;
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(storagePath);
-        fileUrl = urlData?.publicUrl || null;
-      }
+      const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(storagePath);
+      fileUrl = urlData?.publicUrl || null;
 
-      // 3. Insert into nfes table
-      // Prioritize data from Focus API, fallback to regex parse
-      // Focus NFe Import+Query returns data in 'requisicao_nota_fiscal' or 'nfe_completa' depending on endpoint version/flags
-      // But looking at user docs, it is inside 'requisicao_nota_fiscal'
-      const focusData = nfeJson.requisicao_nota_fiscal || nfeJson.nfe_completa?.infNFe || nfeJson;
+      // Inserir na tabela nfes
+      const insertData: any = {
+        entrega_id: entrega.id,
+        url: fileUrl,
+        status_validacao: statusValidacao,
+      };
+
+      if (isXml) {
+        insertData.xml_path = storagePath;
+        insertData.xml_content = xmlContent;
+        insertData.numero = focusData?.numero || nfeJson?.numero || parsed.numero || null;
+        insertData.chave_acesso = focusData?.chave_nfe || nfeJson?.chave_nfe || parsed.chaveAcesso || null;
+        insertData.valor = focusData?.valor_total || parsed.valor || null;
+        insertData.data_emissao = focusData?.data_emissao || parsed.dataEmissao || null;
+        insertData.peso_bruto = focusData?.peso_bruto || parsed.pesoBruto || null;
+        insertData.remetente_cnpj = focusData?.cnpj_emitente || parsed.remetenteCnpj || null;
+        insertData.remetente_razao_social = focusData?.nome_emitente || parsed.remetenteRazaoSocial || null;
+        insertData.destinatario_cnpj = focusData?.cnpj_destinatario || parsed.destinatarioCnpj || null;
+        insertData.destinatario_razao_social = focusData?.nome_destinatario || parsed.destinatarioRazaoSocial || null;
+        if (statusValidacao === 'autorizada') {
+          insertData.validado_em = new Date().toISOString();
+        }
+      }
 
       const { error: dbError } = await (supabase as any)
         .from('nfes')
-        .insert({
-          entrega_id: entrega.id,
-          numero: focusData.numero || nfeJson.numero || parsed.numero,
-          chave_acesso: focusData.chave_nfe || nfeJson.chave_nfe || parsed.chaveAcesso,
-          url: fileUrl,
-          xml_path: storagePath,
-          valor: focusData.valor_total || (focusData.total?.ICMSTot?.vNF) || parsed.valor,
-          data_emissao: focusData.data_emissao || (focusData.ide?.dhEmi) || parsed.dataEmissao,
-          peso_bruto: focusData.peso_bruto || (focusData.transp?.vol?.[0]?.pesoB) || parsed.pesoBruto,
-          remetente_cnpj: focusData.cnpj_emitente || (focusData.emit?.CNPJ) || parsed.remetenteCnpj,
-          remetente_razao_social: focusData.nome_emitente || (focusData.emit?.xNome) || parsed.remetenteRazaoSocial,
-          destinatario_cnpj: focusData.cnpj_destinatario || (focusData.dest?.CNPJ) || parsed.destinatarioCnpj,
-          destinatario_razao_social: focusData.nome_destinatario || (focusData.dest?.xNome) || parsed.destinatarioRazaoSocial,
-          xml_content: xmlContent,
-          status_validacao: 'autorizada',
-          validado_em: new Date().toISOString(),
-        });
+        .insert(insertData);
 
       if (dbError) {
         console.error('Erro ao salvar NF-e:', dbError);
         throw dbError;
       }
 
-      toast.success(`NF-e ${parsed.numero || parsed.chaveAcesso?.slice(-6) || ''} anexada com sucesso!`);
+      const label = parsed.numero || parsed.chaveAcesso?.slice(-6) || file.name;
+      toast.success(`NF-e ${label} anexada com sucesso!`);
       refetchNfes();
       onRefresh();
     } catch (error: any) {
       console.error('Erro no upload da NF-e:', error);
-      // Tratamento específico para erros conhecidos
       if (error.message?.includes('schema "net" does not exist')) {
         toast.error('Erro de configuração no servidor (Extensão net faltando). Contate o suporte.');
       } else if (error.code === '23505') {
