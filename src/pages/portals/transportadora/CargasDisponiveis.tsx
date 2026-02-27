@@ -1309,6 +1309,12 @@ export default function CargasDisponiveis() {
     }).format(value);
   };
 
+  const getCapacityIndicatorClass = (percentualUso: number) => {
+    if (percentualUso > 90) return 'bg-destructive';
+    if (percentualUso >= 70) return 'bg-chart-4';
+    return 'bg-primary';
+  };
+
   // Calculate total freight for a cargo
   const calcularFreteTotal = (carga: Carga) => {
     if (carga.tipo_precificacao === 'fixo' && carga.valor_frete_fixo) {
