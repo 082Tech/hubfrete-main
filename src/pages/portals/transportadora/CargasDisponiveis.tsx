@@ -1637,18 +1637,28 @@ export default function CargasDisponiveis() {
         )}
 
         {/* Accept Dialog */}
-        <Dialog open={isAcceptDialogOpen} onOpenChange={setIsAcceptDialogOpen}>
+        <Dialog open={isAcceptDialogOpen} onOpenChange={(open) => { setIsAcceptDialogOpen(open); if (!open) setWizardStep(1); }}>
           <DialogContent className="max-w-2xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Aceitar Carga</DialogTitle>
               <DialogDescription>
-                Revise os detalhes da carga e selecione motorista e veículo.
+                {wizardStep === 1 && 'Etapa 1 de 3 — Detalhes da carga'}
+                {wizardStep === 2 && 'Etapa 2 de 3 — Selecione equipamento e motorista'}
+                {wizardStep === 3 && 'Etapa 3 de 3 — Peso, previsão e confirmação'}
               </DialogDescription>
+              {/* Step indicator */}
+              <div className="flex items-center gap-2 pt-2">
+                {[1, 2, 3].map((step) => (
+                  <div key={step} className={cn("h-1.5 flex-1 rounded-full transition-colors", step <= wizardStep ? 'bg-primary' : 'bg-muted')} />
+                ))}
+              </div>
             </DialogHeader>
 
             {selectedCarga && (
               <ScrollArea className="max-h-[60vh] pr-4">
                 <div className="space-y-4 mb-4">
+                  {/* === STEP 1: Detalhes da Carga === */}
+                  {wizardStep === 1 && (<div className="space-y-4">
                   {/* Header with Logo and Basic Info */}
                   <div className="flex items-start gap-4 p-4 bg-muted rounded-lg">
                     {/* Company Logo or Initials */}
@@ -1861,8 +1871,10 @@ export default function CargasDisponiveis() {
                     </div>
                   )}
 
-                  <Separator />
+                  </div>)}
 
+                  {/* === STEP 2: Equipamento + Motorista === */}
+                  {wizardStep === 2 && (<div className="space-y-4">
                   {/* Driver Selection */}
                   <div className="space-y-2 px-1">
                     <Label>Motorista</Label>
@@ -2214,7 +2226,11 @@ export default function CargasDisponiveis() {
                     </div>
                   )}
 
-                  {/* Viagem Selection - After driver/vehicle selection */}
+                  </div>)}
+
+                  {/* === STEP 3: Viagem + Peso + Confirmação === */}
+                  {wizardStep === 3 && (<div className="space-y-4">
+                  {/* Viagem Selection */}
                   {selectedMotorista && selectedVeiculo && (
                     <div ref={viagemSectionRef}>
                       <ViagemSelector
@@ -2226,8 +2242,8 @@ export default function CargasDisponiveis() {
                     </div>
                   )}
 
-                  {/* Weight Allocation - User can now input the weight */}
-                  {selectedVeiculo && selectedMotoristaData && (
+                  {/* Weight Allocation */}
+                  {selectedVeiculo && (
                     <div className="space-y-4">
                       {/* Input de Peso */}
                       <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-3">
@@ -2407,34 +2423,51 @@ export default function CargasDisponiveis() {
                       </div>
                     </div>
                   )}
+                  </div>)}
                 </div>
               </ScrollArea>
             )}
 
             <DialogFooter>
+              {wizardStep > 1 && (
+                <Button variant="outline" onClick={() => setWizardStep(s => s - 1)}>
+                  Voltar
+                </Button>
+              )}
               <Button
                 variant="outline"
-                onClick={() => setIsAcceptDialogOpen(false)}
+                onClick={() => { setIsAcceptDialogOpen(false); setWizardStep(1); }}
               >
                 Cancelar
               </Button>
-              <Button
-                onClick={handleConfirmAccept}
-                disabled={!selectedMotorista || !selectedVeiculo || pesoTotalAlocado <= 0 || !!pesoValidationError || isViagemBlocked || acceptCarga.isPending}
-                className="gap-2"
-              >
-                {acceptCarga.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processando...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4" />
-                    Confirmar Aceite
-                  </>
-                )}
-              </Button>
+              {wizardStep < 3 ? (
+                <Button
+                  onClick={() => setWizardStep(s => s + 1)}
+                  disabled={wizardStep === 2 && (!selectedMotorista || !selectedVeiculo)}
+                  className="gap-2"
+                >
+                  Próximo
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleConfirmAccept}
+                  disabled={!selectedMotorista || !selectedVeiculo || pesoTotalAlocado <= 0 || !!pesoValidationError || isViagemBlocked || acceptCarga.isPending}
+                  className="gap-2"
+                >
+                  {acceptCarga.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Confirmar Aceite
+                    </>
+                  )}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
