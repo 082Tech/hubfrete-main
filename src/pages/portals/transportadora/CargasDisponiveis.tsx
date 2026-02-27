@@ -940,10 +940,10 @@ export default function CargasDisponiveis() {
     return veiculosEmpresa.find((v: any) => v.id === selectedVeiculo);
   }, [veiculosEmpresa, selectedVeiculo]);
 
-  // Derive if current vehicle is multi-trailer
-  const isMultiTrailer = useMemo(() => {
-    if (!selectedVeiculoData) return false;
-    return selectedVeiculoData?.tipo === 'bitrem' || selectedVeiculoData?.tipo === 'rodotrem';
+  // Derive max carrocerias based on vehicle type
+  const maxCarrocerias = useMemo(() => {
+    if (!selectedVeiculoData) return 1;
+    return getMaxCarrocerias(selectedVeiculoData.tipo, (selectedVeiculoData as any)?.carroceria_integrada);
   }, [selectedVeiculoData]);
 
   // Derived total requested weight
