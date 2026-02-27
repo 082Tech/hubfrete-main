@@ -2061,28 +2061,28 @@ export default function CargasDisponiveis() {
                                 Capacidade: {(selectedVeiculoData as any)?.capacidade_kg?.toLocaleString('pt-BR') || 0} kg
                               </p>
                             </div>
-                          ) : selectedMotoristaData.carrocerias?.length === 0 ? (
+                          ) : carroceriasEmpresa.length === 0 ? (
                             <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
                               <p className="text-xs text-destructive flex items-center gap-1">
                                 <AlertTriangle className="w-3.5 h-3.5" />
-                                Nenhuma carroceria vinculada
+                                Nenhuma carroceria cadastrada na empresa
                               </p>
                             </div>
-                          ) : selectedMotoristaData.carrocerias?.length === 1 ? (
+                          ) : carroceriasEmpresa.length === 1 && !isMultiTrailer ? (
                             // Single carroceria - just display it
                             <div className="p-2 bg-background rounded-md border space-y-1">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs text-muted-foreground">Placa:</span>
-                                <span className="text-sm font-mono font-semibold">{selectedMotoristaData.carrocerias[0].placa}</span>
+                                <span className="text-sm font-mono font-semibold">{carroceriasEmpresa[0].placa}</span>
                               </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-xs text-muted-foreground">Tipo:</span>
-                                <span className="text-sm">{tipoCarroceriaLabels[selectedMotoristaData.carrocerias[0].tipo] || selectedMotoristaData.carrocerias[0].tipo}</span>
+                                <span className="text-sm">{tipoCarroceriaLabels[carroceriasEmpresa[0].tipo] || carroceriasEmpresa[0].tipo}</span>
                               </div>
-                              {selectedMotoristaData.carrocerias[0].capacidade_kg && (
+                              {carroceriasEmpresa[0].capacidade_kg && (
                                 <div className="flex items-center justify-between">
                                   <span className="text-xs text-muted-foreground">Capacidade:</span>
-                                  <span className="text-sm font-medium">{selectedMotoristaData.carrocerias[0].capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                                  <span className="text-sm font-medium">{carroceriasEmpresa[0].capacidade_kg.toLocaleString('pt-BR')} kg</span>
                                 </div>
                               )}
                             </div>
@@ -2092,10 +2092,10 @@ export default function CargasDisponiveis() {
                               {isMultiTrailer ? (
                                 <div className="space-y-3">
                                   <div className="text-xs text-muted-foreground mb-1">
-                                    Selecione até 3 carrocerias vinculadas:
+                                    Selecione até 3 carrocerias da empresa:
                                   </div>
                                   <div className="space-y-2 border rounded-md p-2 bg-background">
-                                    {selectedMotoristaData.carrocerias?.map((carroceria) => {
+                                    {carroceriasEmpresa.map((carroceria: any) => {
                                       const isSelected = selectedCarroceriasMulti.includes(carroceria.id);
                                       return (
                                         <div key={carroceria.id} className="flex flex-col gap-2 p-2 bg-muted/30 rounded-md border border-border">
