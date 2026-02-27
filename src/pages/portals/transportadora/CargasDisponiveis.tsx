@@ -948,11 +948,11 @@ export default function CargasDisponiveis() {
 
   // Derived total requested weight
   const pesoTotalAlocado = useMemo(() => {
-    if (isMultiTrailer) {
+    if (maxCarrocerias >= 2) {
       return Object.values(pesoPorCarroceria).reduce((a, b) => a + (b || 0), 0);
     }
     return pesoAlocadoInput;
-  }, [isMultiTrailer, pesoPorCarroceria, pesoAlocadoInput]);
+  }, [maxCarrocerias, pesoPorCarroceria, pesoAlocadoInput]);
 
   const selectedCarroceriaData = useMemo(() => {
     if (!selectedCarroceria) return null;
