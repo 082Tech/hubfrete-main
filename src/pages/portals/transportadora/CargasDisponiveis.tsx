@@ -1637,13 +1637,21 @@ export default function CargasDisponiveis() {
         )}
 
         {/* Accept Dialog */}
-        <Dialog open={isAcceptDialogOpen} onOpenChange={setIsAcceptDialogOpen}>
+        <Dialog open={isAcceptDialogOpen} onOpenChange={(open) => { setIsAcceptDialogOpen(open); if (!open) setWizardStep(1); }}>
           <DialogContent className="max-w-2xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Aceitar Carga</DialogTitle>
               <DialogDescription>
-                Revise os detalhes da carga e selecione motorista e veículo.
+                {wizardStep === 1 && 'Etapa 1 de 3 — Detalhes da carga'}
+                {wizardStep === 2 && 'Etapa 2 de 3 — Selecione equipamento e motorista'}
+                {wizardStep === 3 && 'Etapa 3 de 3 — Peso, previsão e confirmação'}
               </DialogDescription>
+              {/* Step indicator */}
+              <div className="flex items-center gap-2 pt-2">
+                {[1, 2, 3].map((step) => (
+                  <div key={step} className={cn("h-1.5 flex-1 rounded-full transition-colors", step <= wizardStep ? 'bg-primary' : 'bg-muted')} />
+                ))}
+              </div>
             </DialogHeader>
 
             {selectedCarga && (
