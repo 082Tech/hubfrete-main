@@ -2229,7 +2229,7 @@ export default function MinhaFrota() {
                             </div>
                             <div className="flex gap-1 mt-3 flex-wrap">
                               {veiculoAtrelado && (<Badge variant="outline" className="text-xs gap-1"><Car className="w-3 h-3" />{veiculoAtrelado.placa}</Badge>)}
-                              {carroceria.motorista && (<Badge variant="outline" className="text-xs gap-1"><User className="w-3 h-3" />{carroceria.motorista.nome_completo}</Badge>)}
+                              
                               {carroceriaTripMap[carroceria.id] && (
                                 <Badge className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/20" variant="outline">
                                   <Container className="w-3 h-3 mr-0.5" />Em Viagem • {carroceriaTripMap[carroceria.id].codigo}
