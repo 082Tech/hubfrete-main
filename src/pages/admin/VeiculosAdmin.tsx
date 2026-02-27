@@ -240,9 +240,9 @@ export default function VeiculosAdmin() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {veiculos.filter(v => v.motorista_id).length}
+                  {veiculos.filter(v => v.ativo).length}
                 </p>
-                <p className="text-sm text-muted-foreground">Com motorista</p>
+                <p className="text-sm text-muted-foreground">Ativos</p>
               </div>
             </div>
           </CardContent>
