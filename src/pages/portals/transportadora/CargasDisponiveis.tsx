@@ -1116,12 +1116,25 @@ export default function CargasDisponiveis() {
       return;
     }
 
+    // Build carroceriasAlocadas for multi-trailer
+    const carroceriasAlocadas = maxCarrocerias >= 2
+      ? selectedCarroceriasMulti.filter(Boolean).map(id => ({
+          carroceria_id: id,
+          peso_kg: pesoPorCarroceria[id] || 0,
+        }))
+      : undefined;
+
+    // For multi-trailer, use first carroceria as primary
+    const carroceriaIdFinal = maxCarrocerias >= 2
+      ? (selectedCarroceriasMulti.find(Boolean) || null)
+      : selectedCarroceria;
+
     acceptCarga.mutate({
       cargaId: selectedCarga.id,
       motoristaId: selectedMotorista,
       veiculoId: selectedVeiculo,
-      carroceriaId: selectedCarroceria,
-      pesoAlocadoKg: pesoAlocadoInput,
+      carroceriaId: carroceriaIdFinal,
+      pesoAlocadoKg: pesoTotalAlocado,
       valorFrete: calculatedFrete,
       embarcadorEmpresaId: selectedCarga.empresa_id,
       transportadoraEmpresaId: empresa.id,
@@ -1129,6 +1142,7 @@ export default function CargasDisponiveis() {
       userId: user?.id ?? null,
       userName: usuarioLogado?.nome || user?.email || 'Sistema',
       previsaoColeta,
+      carroceriasAlocadas,
     });
   };
 
