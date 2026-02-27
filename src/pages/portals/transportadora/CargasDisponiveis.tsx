@@ -454,7 +454,7 @@ export default function CargasDisponiveis() {
       if (!empresa?.id) return [];
       const { data, error } = await supabase
         .from('viagens')
-        .select('id, codigo, status, motorista_id, veiculo_id, carroceria_id, started_at, viagem_entregas(entrega_id, entregas(peso_alocado_kg, carga_id, cargas(descricao, endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado))))')
+        .select('id, codigo, status, motorista_id, veiculo_id, carroceria_id, started_at, viagem_entregas(entrega_id, entregas(peso_alocado_kg, carrocerias_alocadas, carga_id, cargas(descricao, endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado))))')
         .in('status', ['aguardando', 'em_andamento', 'programada'] as any[]);
       if (error) throw error;
       return (data || []) as any[];
