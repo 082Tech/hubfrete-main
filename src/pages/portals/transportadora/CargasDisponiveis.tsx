@@ -1005,14 +1005,19 @@ export default function CargasDisponiveis() {
   const capacidadeEquipamentoEmUso = useMemo(() => {
     if (!selectedVeiculoData) return 0;
 
-    const veiculo = selectedVeiculoData as any;
-    if (veiculo?.carroceria_integrada) {
+    if (maxCarrocerias === 0) {
       return pesoEmUsoPorVeiculo.get(selectedVeiculoData.id) || 0;
+    }
+
+    if (maxCarrocerias >= 2) {
+      return selectedCarroceriasMulti.filter(Boolean).reduce((total, carId) => {
+        return total + (pesoEmUsoPorCarroceria.get(carId) || 0);
+      }, 0);
     }
 
     if (!selectedCarroceria) return 0;
     return pesoEmUsoPorCarroceria.get(selectedCarroceria) || 0;
-  }, [selectedVeiculoData, selectedCarroceria, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
+  }, [selectedVeiculoData, selectedCarroceria, maxCarrocerias, selectedCarroceriasMulti, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
 
   const capacidadeEquipamentoDisponivel = useMemo(() => {
     return Math.max(0, capacidadeEquipamentoTotal - capacidadeEquipamentoEmUso);
