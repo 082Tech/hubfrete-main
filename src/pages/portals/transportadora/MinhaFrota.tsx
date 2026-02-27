@@ -89,7 +89,6 @@ const carroceriaColumns: ColumnDefinition[] = [
   { id: 'marca_modelo', label: 'Marca/Modelo', minWidth: '180px', sortable: true, sortKey: 'marca' },
   { id: 'capacidade', label: 'Capacidade', minWidth: '120px', sortable: true, sortKey: 'capacidade_kg' },
   { id: 'veiculo', label: 'Veículo', minWidth: '100px' },
-  { id: 'motorista', label: 'Motorista', minWidth: '180px' },
   { id: 'status', label: 'Status', minWidth: '80px', sortable: true, sortKey: 'ativo' },
   { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
 ];
