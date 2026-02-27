@@ -2001,7 +2001,7 @@ export default function CargasDisponiveis() {
                         {/* Veículo */}
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">Veículo (Cavalo)</Label>
-                          {selectedMotoristaData.veiculos?.length === 0 ? (
+                          {veiculosEmpresa.length === 0 ? (
                             <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
                               <p className="text-xs text-destructive flex items-center gap-1">
                                 <AlertTriangle className="w-3.5 h-3.5" />
