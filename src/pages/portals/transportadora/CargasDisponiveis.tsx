@@ -491,6 +491,38 @@ export default function CargasDisponiveis() {
     return motoristas.filter(m => m.nome_completo.toLowerCase().includes(search));
   }, [motoristas, motoristaSearchText]);
 
+  // When driver with active trip is selected, auto-fill vehicle & carroceria from trip
+  const driverActiveTrip = useMemo(() => {
+    if (!selectedMotorista) return null;
+    return viagemAtivaByMotorista.get(selectedMotorista) || null;
+  }, [selectedMotorista, viagemAtivaByMotorista]);
+
+  useEffect(() => {
+    if (!driverActiveTrip) return;
+    // Auto-select the vehicle from the active trip
+    if (driverActiveTrip.veiculo_id) {
+      setSelectedVeiculo(driverActiveTrip.veiculo_id);
+    }
+    // Auto-select the carroceria from the active trip
+    if (driverActiveTrip.carroceria_id) {
+      setSelectedCarroceria(driverActiveTrip.carroceria_id);
+    }
+    // Check if multi-trailer: look at entregas.carrocerias_alocadas
+    const allCarrocerias = new Set<string>();
+    if (driverActiveTrip.carroceria_id) allCarrocerias.add(driverActiveTrip.carroceria_id);
+    (driverActiveTrip.viagem_entregas || []).forEach((ve: any) => {
+      const ca = ve.entregas?.carrocerias_alocadas;
+      if (Array.isArray(ca)) {
+        ca.forEach((item: any) => {
+          if (item.carroceria_id) allCarrocerias.add(item.carroceria_id);
+        });
+      }
+    });
+    if (allCarrocerias.size > 1) {
+      setSelectedCarroceriasMulti(Array.from(allCarrocerias));
+    }
+  }, [driverActiveTrip]);
+
 
   const { data: usuarioLogado } = useQuery({
     queryKey: ['usuario_logado_nome', user?.id],
