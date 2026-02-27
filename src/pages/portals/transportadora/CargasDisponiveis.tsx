@@ -2956,7 +2956,7 @@ export default function CargasDisponiveis() {
               {wizardStep < 3 ? (
                 <Button
                   onClick={() => setWizardStep(s => s + 1)}
-                  disabled={wizardStep === 2 && (!selectedMotorista || !selectedVeiculo)}
+                  disabled={wizardStep === 2 && (!selectedMotorista || !selectedVeiculo || pesoTotalAlocado <= 0 || !!pesoValidationError || !previsaoColeta)}
                   className="gap-2"
                 >
                   Próximo
