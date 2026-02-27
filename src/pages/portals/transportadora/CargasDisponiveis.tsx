@@ -2423,34 +2423,51 @@ export default function CargasDisponiveis() {
                       </div>
                     </div>
                   )}
+                  </div>)}
                 </div>
               </ScrollArea>
             )}
 
             <DialogFooter>
+              {wizardStep > 1 && (
+                <Button variant="outline" onClick={() => setWizardStep(s => s - 1)}>
+                  Voltar
+                </Button>
+              )}
               <Button
                 variant="outline"
-                onClick={() => setIsAcceptDialogOpen(false)}
+                onClick={() => { setIsAcceptDialogOpen(false); setWizardStep(1); }}
               >
                 Cancelar
               </Button>
-              <Button
-                onClick={handleConfirmAccept}
-                disabled={!selectedMotorista || !selectedVeiculo || pesoTotalAlocado <= 0 || !!pesoValidationError || isViagemBlocked || acceptCarga.isPending}
-                className="gap-2"
-              >
-                {acceptCarga.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processando...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4" />
-                    Confirmar Aceite
-                  </>
-                )}
-              </Button>
+              {wizardStep < 3 ? (
+                <Button
+                  onClick={() => setWizardStep(s => s + 1)}
+                  disabled={wizardStep === 2 && (!selectedMotorista || !selectedVeiculo)}
+                  className="gap-2"
+                >
+                  Próximo
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleConfirmAccept}
+                  disabled={!selectedMotorista || !selectedVeiculo || pesoTotalAlocado <= 0 || !!pesoValidationError || isViagemBlocked || acceptCarga.isPending}
+                  className="gap-2"
+                >
+                  {acceptCarga.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Confirmar Aceite
+                    </>
+                  )}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
