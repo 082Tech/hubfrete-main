@@ -194,6 +194,24 @@ const getEmpresaInitials = (nome: string | undefined | null): string => {
   return (words[0][0] + words[1][0]).toUpperCase();
 };
 
+/**
+ * Retorna quantas carrocerias (semirreboques) um tipo de veículo aceita.
+ * 0 = carroceria integrada ao chassi (VUC, Toco, Truck, 3/4)
+ * 1 = 1 semirreboque (Carreta, Carreta LS, Vanderléia)
+ * 2 = 2 semirreboques (Bitrem, Bitruck)
+ * 3 = 3 semirreboques (Rodotrem)
+ */
+function getMaxCarrocerias(tipoVeiculo: string | undefined | null, carroceriaIntegrada?: boolean): number {
+  if (carroceriaIntegrada) return 0;
+  if (!tipoVeiculo) return 1;
+  const tipo = tipoVeiculo.toLowerCase();
+  if (['vuc', 'tres_quartos', 'toco', 'truck'].includes(tipo)) return 0;
+  if (['carreta', 'carreta_ls', 'vanderleia'].includes(tipo)) return 1;
+  if (['bitrem', 'bitruck'].includes(tipo)) return 2;
+  if (['rodotrem'].includes(tipo)) return 3;
+  return 1;
+}
+
 // Leaflet icons and functions removed - now using Google Maps components
 
 export default function CargasDisponiveis() {
@@ -922,70 +940,84 @@ export default function CargasDisponiveis() {
     return veiculosEmpresa.find((v: any) => v.id === selectedVeiculo);
   }, [veiculosEmpresa, selectedVeiculo]);
 
-  // Derive if current vehicle is multi-trailer
-  const isMultiTrailer = useMemo(() => {
-    if (!selectedVeiculoData) return false;
-    return selectedVeiculoData?.tipo === 'bitrem' || selectedVeiculoData?.tipo === 'rodotrem';
+  // Derive max carrocerias based on vehicle type
+  const maxCarrocerias = useMemo(() => {
+    if (!selectedVeiculoData) return 1;
+    return getMaxCarrocerias(selectedVeiculoData.tipo, (selectedVeiculoData as any)?.carroceria_integrada);
   }, [selectedVeiculoData]);
 
   // Derived total requested weight
   const pesoTotalAlocado = useMemo(() => {
-    if (isMultiTrailer) {
+    if (maxCarrocerias >= 2) {
       return Object.values(pesoPorCarroceria).reduce((a, b) => a + (b || 0), 0);
     }
     return pesoAlocadoInput;
-  }, [isMultiTrailer, pesoPorCarroceria, pesoAlocadoInput]);
+  }, [maxCarrocerias, pesoPorCarroceria, pesoAlocadoInput]);
 
   const selectedCarroceriaData = useMemo(() => {
     if (!selectedCarroceria) return null;
     return carroceriasEmpresa.find((c: any) => c.id === selectedCarroceria) || null;
   }, [carroceriasEmpresa, selectedCarroceria]);
 
-  // Auto-select carroceria if only one is available company-wide
+  // Auto-select/reset carroceria based on vehicle type
   useEffect(() => {
     if (!selectedVeiculoData) return;
 
-    const veiculo = selectedVeiculoData as any;
-    if (veiculo?.carroceria_integrada) {
-      if (selectedCarroceria !== null) setSelectedCarroceria(null);
+    if (maxCarrocerias === 0) {
+      // Integrated body - no carroceria needed
+      setSelectedCarroceria(null);
+      setSelectedCarroceriasMulti([]);
+      setPesoPorCarroceria({});
       return;
     }
 
-    if (carroceriasEmpresa.length === 1 && !selectedCarroceria) {
-      setSelectedCarroceria(carroceriasEmpresa[0].id);
+    if (maxCarrocerias === 1) {
+      // Single trailer - reset multi
+      setSelectedCarroceriasMulti([]);
+      setPesoPorCarroceria({});
+      if (carroceriasEmpresa.length === 1 && !selectedCarroceria) {
+        setSelectedCarroceria(carroceriasEmpresa[0].id);
+      }
+    } else {
+      // Multi-trailer - reset single
+      setSelectedCarroceria(null);
     }
-  }, [selectedVeiculoData, selectedCarroceria, carroceriasEmpresa]);
+  }, [selectedVeiculoData, maxCarrocerias, carroceriasEmpresa]);
 
   // Capacidade baseada no equipamento selecionado (carroceria OU veículo integrado)
   const capacidadeEquipamentoTotal = useMemo(() => {
     if (!selectedVeiculoData) return 0;
 
-    const veiculo = selectedVeiculoData as any;
-    if (veiculo?.carroceria_integrada) {
-      return veiculo.capacidade_kg || 0;
+    if (maxCarrocerias === 0) {
+      return (selectedVeiculoData as any).capacidade_kg || 0;
     }
 
-    if (isMultiTrailer && selectedCarroceriasMulti.length > 0) {
-      return selectedCarroceriasMulti.reduce((total, carId) => {
+    if (maxCarrocerias >= 2 && selectedCarroceriasMulti.length > 0) {
+      return selectedCarroceriasMulti.filter(Boolean).reduce((total, carId) => {
         const carroceria = carroceriasEmpresa.find((c: any) => c.id === carId);
         return total + (carroceria?.capacidade_kg || 0);
       }, 0);
     }
 
     return selectedCarroceriaData?.capacidade_kg || 0;
-  }, [selectedVeiculoData, selectedCarroceriaData, isMultiTrailer, selectedCarroceriasMulti, carroceriasEmpresa]);
+  }, [selectedVeiculoData, selectedCarroceriaData, maxCarrocerias, selectedCarroceriasMulti, carroceriasEmpresa]);
 
   const capacidadeEquipamentoEmUso = useMemo(() => {
     if (!selectedVeiculoData) return 0;
 
-    const veiculo = selectedVeiculoData as any;
-    if (veiculo?.carroceria_integrada) {
+    if (maxCarrocerias === 0) {
       return pesoEmUsoPorVeiculo.get(selectedVeiculoData.id) || 0;
+    }
+
+    if (maxCarrocerias >= 2) {
+      return selectedCarroceriasMulti.filter(Boolean).reduce((total, carId) => {
+        return total + (pesoEmUsoPorCarroceria.get(carId) || 0);
+      }, 0);
     }
 
     if (!selectedCarroceria) return 0;
     return pesoEmUsoPorCarroceria.get(selectedCarroceria) || 0;
-  }, [selectedVeiculoData, selectedCarroceria, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
+  }, [selectedVeiculoData, selectedCarroceria, maxCarrocerias, selectedCarroceriasMulti, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
 
   const capacidadeEquipamentoDisponivel = useMemo(() => {
     return Math.max(0, capacidadeEquipamentoTotal - capacidadeEquipamentoEmUso);
@@ -1051,19 +1083,20 @@ export default function CargasDisponiveis() {
       return;
     }
 
-    // Se o veículo NÃO tem carroceria integrada, é obrigatório definir a carroceria
-    const veiculo = selectedVeiculoData as any;
-    if (!veiculo?.carroceria_integrada) {
-      if (carroceriasEmpresa.length > 0 && !selectedCarroceria && !isMultiTrailer) {
-        toast.error('Selecione a carroceria');
+    // Validação de carroceria baseada no tipo de veículo
+    if (maxCarrocerias === 1) {
+      if (!selectedCarroceria) {
+        if (carroceriasEmpresa.length === 0) {
+          toast.error('Nenhuma carroceria cadastrada na empresa');
+        } else {
+          toast.error('Selecione a carroceria');
+        }
         return;
       }
-      if (isMultiTrailer && selectedCarroceriasMulti.length === 0) {
+    } else if (maxCarrocerias >= 2) {
+      const filledSlots = selectedCarroceriasMulti.filter(Boolean);
+      if (filledSlots.length === 0) {
         toast.error('Selecione ao menos uma carroceria');
-        return;
-      }
-      if (carroceriasEmpresa.length === 0) {
-        toast.error('Nenhuma carroceria cadastrada na empresa');
         return;
       }
     }
@@ -1083,12 +1116,25 @@ export default function CargasDisponiveis() {
       return;
     }
 
+    // Build carroceriasAlocadas for multi-trailer
+    const carroceriasAlocadas = maxCarrocerias >= 2
+      ? selectedCarroceriasMulti.filter(Boolean).map(id => ({
+          carroceria_id: id,
+          peso_kg: pesoPorCarroceria[id] || 0,
+        }))
+      : undefined;
+
+    // For multi-trailer, use first carroceria as primary
+    const carroceriaIdFinal = maxCarrocerias >= 2
+      ? (selectedCarroceriasMulti.find(Boolean) || null)
+      : selectedCarroceria;
+
     acceptCarga.mutate({
       cargaId: selectedCarga.id,
       motoristaId: selectedMotorista,
       veiculoId: selectedVeiculo,
-      carroceriaId: selectedCarroceria,
-      pesoAlocadoKg: pesoAlocadoInput,
+      carroceriaId: carroceriaIdFinal,
+      pesoAlocadoKg: pesoTotalAlocado,
       valorFrete: calculatedFrete,
       embarcadorEmpresaId: selectedCarga.empresa_id,
       transportadoraEmpresaId: empresa.id,
@@ -1096,6 +1142,7 @@ export default function CargasDisponiveis() {
       userId: user?.id ?? null,
       userName: usuarioLogado?.nome || user?.email || 'Sistema',
       previsaoColeta,
+      carroceriasAlocadas,
     });
   };
 
@@ -2062,11 +2109,14 @@ export default function CargasDisponiveis() {
                           )}
                         </div>
 
-                        {/* Carroceria */}
+                        {/* Carroceria - Dinâmica por tipo de veículo */}
                         <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Carroceria (Reboque)</Label>
-                          {/* Se veículo tem carroceria integrada, mostrar isso */}
-                          {(selectedVeiculoData as any)?.carroceria_integrada ? (
+                          <Label className="text-xs text-muted-foreground">
+                            Carroceria {maxCarrocerias >= 2 ? `(${maxCarrocerias} semirreboques)` : '(Reboque)'}
+                          </Label>
+
+                          {maxCarrocerias === 0 ? (
+                            /* Carroceria integrada */
                             <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
                               <p className="text-xs text-primary font-medium">Carroceria integrada ao veículo</p>
                               <p className="text-xs text-muted-foreground mt-1">
@@ -2080,91 +2130,113 @@ export default function CargasDisponiveis() {
                                 Nenhuma carroceria cadastrada na empresa
                               </p>
                             </div>
-                          ) : carroceriasEmpresa.length === 1 && !isMultiTrailer ? (
-                            // Single carroceria - just display it
-                            <div className="p-2 bg-background rounded-md border space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">Placa:</span>
-                                <span className="text-sm font-mono font-semibold">{carroceriasEmpresa[0].placa}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">Tipo:</span>
-                                <span className="text-sm">{tipoCarroceriaLabels[carroceriasEmpresa[0].tipo] || carroceriasEmpresa[0].tipo}</span>
-                              </div>
-                              {carroceriasEmpresa[0].capacidade_kg && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-muted-foreground">Capacidade:</span>
-                                  <span className="text-sm font-medium">{carroceriasEmpresa[0].capacidade_kg.toLocaleString('pt-BR')} kg</span>
-                                </div>
-                              )}
+                          ) : maxCarrocerias >= 2 ? (
+                            /* Multi-trailer: N selects independentes com peso por carroceria */
+                            <div className="space-y-3">
+                              {Array.from({ length: maxCarrocerias }, (_, idx) => {
+                                const selectedId = selectedCarroceriasMulti[idx] || '';
+                                const selectedCarr = carroceriasEmpresa.find((c: any) => c.id === selectedId);
+                                const emUso = selectedId ? (pesoEmUsoPorCarroceria.get(selectedId) || 0) : 0;
+                                const capDisp = selectedCarr ? (selectedCarr.capacidade_kg || 0) - emUso : 0;
+                                // Filter out already-selected in other slots
+                                const availableCarrocerias = carroceriasEmpresa.filter((c: any) =>
+                                  !selectedCarroceriasMulti.includes(c.id) || c.id === selectedId
+                                );
+
+                                return (
+                                  <div key={idx} className="p-3 bg-muted/30 rounded-md border border-border space-y-2">
+                                    <Label className="text-xs font-medium text-foreground">Carroceria {idx + 1}</Label>
+                                    <Select
+                                      value={selectedId}
+                                      onValueChange={(value) => {
+                                        setSelectedCarroceriasMulti(prev => {
+                                          const next = [...prev];
+                                          while (next.length <= idx) next.push('');
+                                          next[idx] = value;
+                                          return next;
+                                        });
+                                        // Reset peso for new selection
+                                        setPesoPorCarroceria(prev => {
+                                          const next = { ...prev };
+                                          if (selectedId && selectedId !== value) delete next[selectedId];
+                                          return { ...next, [value]: 0 };
+                                        });
+                                      }}
+                                    >
+                                      <SelectTrigger className="bg-background">
+                                        <SelectValue placeholder={`Selecione a carroceria ${idx + 1}...`} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {availableCarrocerias.map((c: any) => (
+                                          <SelectItem key={c.id} value={c.id}>
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-mono font-medium">{c.placa}</span>
+                                              <span className="text-xs text-muted-foreground">
+                                                {tipoCarroceriaLabels[c.tipo] || c.tipo}
+                                              </span>
+                                              {c.capacidade_kg && (
+                                                <span className="text-xs text-primary">
+                                                  {c.capacidade_kg.toLocaleString('pt-BR')} kg
+                                                </span>
+                                              )}
+                                            </div>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+
+                                    {selectedId && selectedCarr && (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                          <span>Capacidade: {(selectedCarr.capacidade_kg || 0).toLocaleString('pt-BR')} kg</span>
+                                          {emUso > 0 && <span className="text-amber-600">Em uso: {emUso.toLocaleString('pt-BR')} kg</span>}
+                                          <span className="text-primary font-medium">Disp: {Math.max(0, capDisp).toLocaleString('pt-BR')} kg</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <Label className="text-xs whitespace-nowrap font-medium">Peso (kg):</Label>
+                                          <Input
+                                            type="number"
+                                            className="h-8 text-sm bg-background"
+                                            placeholder={`Máx: ${Math.max(0, capDisp).toLocaleString('pt-BR')}`}
+                                            value={pesoPorCarroceria[selectedId] || ''}
+                                            onChange={(e) => {
+                                              const val = Math.floor(Number(e.target.value));
+                                              setPesoPorCarroceria(prev => ({ ...prev, [selectedId]: val }));
+                                            }}
+                                            max={Math.max(0, capDisp)}
+                                          />
+                                        </div>
+                                        {(pesoPorCarroceria[selectedId] || 0) > capDisp && capDisp > 0 && (
+                                          <p className="text-xs text-destructive flex items-center gap-1">
+                                            <AlertTriangle className="w-3 h-3" />
+                                            Excede capacidade disponível desta carroceria
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : (
-                            // Multiple carrocerias - show Select (or Checkboxes if Bitrem/Rodotrem)
+                            /* Single trailer: 1 Select */
                             <>
-                              {isMultiTrailer ? (
-                                <div className="space-y-3">
-                                  <div className="text-xs text-muted-foreground mb-1">
-                                    Selecione até 3 carrocerias da empresa:
+                              {carroceriasEmpresa.length === 1 ? (
+                                <div className="p-2 bg-background rounded-md border space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-muted-foreground">Placa:</span>
+                                    <span className="text-sm font-mono font-semibold">{carroceriasEmpresa[0].placa}</span>
                                   </div>
-                                  <div className="space-y-2 border rounded-md p-2 bg-background">
-                                    {carroceriasEmpresa.map((carroceria: any) => {
-                                      const isSelected = selectedCarroceriasMulti.includes(carroceria.id);
-                                      return (
-                                        <div key={carroceria.id} className="flex flex-col gap-2 p-2 bg-muted/30 rounded-md border border-border">
-                                          <div className="flex items-center gap-3">
-                                            <input
-                                              type="checkbox"
-                                              className="w-4 h-4 rounded border-primary text-primary focus:ring-primary"
-                                              checked={isSelected}
-                                              onChange={(e) => {
-                                                if (e.target.checked) {
-                                                  if (selectedCarroceriasMulti.length >= 3) {
-                                                    toast.error('Máximo de 3 carrocerias permitidas');
-                                                    return;
-                                                  }
-                                                  setSelectedCarroceriasMulti([...selectedCarroceriasMulti, carroceria.id]);
-                                                  setPesoPorCarroceria(prev => ({ ...prev, [carroceria.id]: 0 }));
-                                                } else {
-                                                  setSelectedCarroceriasMulti(prev => prev.filter(id => id !== carroceria.id));
-                                                  setPesoPorCarroceria(prev => {
-                                                    const next = { ...prev };
-                                                    delete next[carroceria.id];
-                                                    return next;
-                                                  });
-                                                }
-                                              }}
-                                            />
-                                            <div className="flex flex-col">
-                                              <span className="font-mono text-sm font-semibold">{carroceria.placa}</span>
-                                              <span className="text-xs text-muted-foreground">
-                                                {tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}
-                                              </span>
-                                            </div>
-                                            <div className="ml-auto text-xs font-medium text-primary">
-                                              Cap: {carroceria.capacidade_kg?.toLocaleString('pt-BR')} kg
-                                            </div>
-                                          </div>
-                                          {isSelected && (
-                                            <div className="pl-7 pr-2">
-                                              <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium">Peso (kg):</span>
-                                                <Input
-                                                  type="number"
-                                                  className="h-7 text-xs bg-background"
-                                                  placeholder="Ex: 15000"
-                                                  value={pesoPorCarroceria[carroceria.id] || ''}
-                                                  onChange={(e) => {
-                                                    const val = Math.floor(Number(e.target.value));
-                                                    setPesoPorCarroceria(prev => ({ ...prev, [carroceria.id]: val }));
-                                                  }}
-                                                />
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-muted-foreground">Tipo:</span>
+                                    <span className="text-sm">{tipoCarroceriaLabels[carroceriasEmpresa[0].tipo] || carroceriasEmpresa[0].tipo}</span>
                                   </div>
+                                  {carroceriasEmpresa[0].capacidade_kg && (
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs text-muted-foreground">Capacidade:</span>
+                                      <span className="text-sm font-medium">{carroceriasEmpresa[0].capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
                                 <>
@@ -2193,7 +2265,6 @@ export default function CargasDisponiveis() {
                                       ))}
                                     </SelectContent>
                                   </Select>
-                                  {/* Show selected carroceria details */}
                                   {selectedCarroceria && (() => {
                                     const carroceria = carroceriasEmpresa.find((c: any) => c.id === selectedCarroceria);
                                     if (!carroceria) return null;
@@ -2270,7 +2341,7 @@ export default function CargasDisponiveis() {
                           </div>
                         </div>
 
-                        {isMultiTrailer && selectedCarroceriasMulti.length > 0 ? (
+                        {maxCarrocerias >= 2 && selectedCarroceriasMulti.filter(Boolean).length > 0 ? (
                           <div className="space-y-2">
                             <p className="text-sm font-semibold">Resumo do Split (Total: {pesoTotalAlocado.toLocaleString('pt-BR')} kg)</p>
                             {selectedCarga?.permite_fracionado === false && (
@@ -2296,7 +2367,7 @@ export default function CargasDisponiveis() {
                               min={pesoMinimoRequirido}
                               max={pesoMaximoAlocar}
                               className="text-lg font-bold"
-                              disabled={isMultiTrailer}
+                              disabled={maxCarrocerias >= 2}
                             />
                             {pesoMinimoRequirido > 0 ? (
                               <p className="text-xs text-muted-foreground">
