@@ -2213,7 +2213,7 @@ export default function CargasDisponiveis() {
                                 })}
                               </div>
                             )}
-                          </ScrollArea>
+                          </div>
                         </div>
                       )}
                     </div>
