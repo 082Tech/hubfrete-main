@@ -1979,12 +1979,39 @@ export default function MinhaFrota() {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                          {/* Motorista */}
-                          {veiculo.motorista && (
-                            <div className="flex gap-1 mt-3 flex-wrap">
+                          {/* Motorista + Trip Status */}
+                          <div className="flex gap-1 mt-3 flex-wrap">
+                            {veiculo.motorista && (
                               <Badge variant="outline" className="text-xs gap-1">
                                 <User className="w-3 h-3" />{veiculo.motorista.nome_completo}
                               </Badge>
+                            )}
+                            {veiculoTripMap[veiculo.id] && (
+                              <Badge className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/20" variant="outline">
+                                <Truck className="w-3 h-3 mr-0.5" />Em Viagem • {veiculoTripMap[veiculo.id].codigo}
+                              </Badge>
+                            )}
+                          </div>
+                          {/* Capacity Progress (for integrated bodywork) */}
+                          {veiculo.carroceria_integrada && veiculo.capacidade_kg && veiculo.capacidade_kg > 0 && (
+                            <div className="mt-3 space-y-1">
+                              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                <span className="flex items-center gap-1"><Weight className="w-3 h-3" />Capacidade</span>
+                                <span>
+                                  {((pesoAlocadoPorVeiculo[veiculo.id] || 0) / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}t / {(veiculo.capacidade_kg / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}t
+                                </span>
+                              </div>
+                              <Progress
+                                value={Math.min(100, ((pesoAlocadoPorVeiculo[veiculo.id] || 0) / veiculo.capacidade_kg) * 100)}
+                                className="h-1.5"
+                                indicatorClassName={
+                                  ((pesoAlocadoPorVeiculo[veiculo.id] || 0) / veiculo.capacidade_kg) > 0.9
+                                    ? 'bg-destructive'
+                                    : ((pesoAlocadoPorVeiculo[veiculo.id] || 0) / veiculo.capacidade_kg) > 0.7
+                                      ? 'bg-chart-4'
+                                      : 'bg-chart-2'
+                                }
+                              />
                             </div>
                           )}
                         </CardContent>
