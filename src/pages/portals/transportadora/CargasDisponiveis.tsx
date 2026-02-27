@@ -1824,7 +1824,7 @@ export default function CargasDisponiveis() {
 
             {selectedCarga && (
               <ScrollArea className="flex-1 min-h-0 pr-4 overflow-visible">
-                <div className="space-y-4 mb-4">
+                <div className="space-y-4 mb-4 px-6">
                   {/* === STEP 1: Detalhes da Carga === */}
                   {wizardStep === 1 && (<div className="space-y-4">
                   {/* Header with Logo and Basic Info */}
