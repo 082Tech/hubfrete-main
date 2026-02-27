@@ -485,6 +485,37 @@ export default function CargasDisponiveis() {
     return map;
   }, [viagensAtivas]);
 
+  const viagemAtivaByVeiculo = useMemo(() => {
+    const map = new Map<string, any>();
+    viagensAtivas.forEach((v: any) => {
+      if (v.veiculo_id && !map.has(v.veiculo_id)) {
+        map.set(v.veiculo_id, v);
+      }
+    });
+    return map;
+  }, [viagensAtivas]);
+
+  const viagemAtivaByCarroceria = useMemo(() => {
+    const map = new Map<string, any>();
+    viagensAtivas.forEach((v: any) => {
+      if (v.carroceria_id && !map.has(v.carroceria_id)) {
+        map.set(v.carroceria_id, v);
+      }
+
+      (v.viagem_entregas || []).forEach((ve: any) => {
+        const alocadas = ve.entregas?.carrocerias_alocadas;
+        if (Array.isArray(alocadas)) {
+          alocadas.forEach((item: any) => {
+            if (item?.carroceria_id && !map.has(item.carroceria_id)) {
+              map.set(item.carroceria_id, v);
+            }
+          });
+        }
+      });
+    });
+    return map;
+  }, [viagensAtivas]);
+
   // Motoristas filtrados pela busca de texto
   const motoristasFiltrados = useMemo(() => {
     if (!motoristaSearchText.trim()) return motoristas;
