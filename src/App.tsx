@@ -70,7 +70,7 @@ import TransportadoraMensagens from "./pages/portals/transportadora/Mensagens";
 import TransportadoraRelatorios from "./pages/portals/transportadora/Relatorios";
 import TransportadoraNotificacoes from "./pages/portals/transportadora/Notificacoes";
 import TransportadoraOperacaoDiaria from "./pages/portals/transportadora/OperacaoDiaria";
-import TransportadoraPainelFrota from "./pages/portals/transportadora/PainelFrota";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -160,7 +160,7 @@ const App = () => {
                     <Route path="entregas" element={<TransportadoraOperacaoDiaria />} />
                     <Route path="entregas/historico" element={<TransportadoraHistoricoEntregas />} />
                     <Route path="frota" element={<TransportadoraFrota />} />
-                    <Route path="painel-frota" element={<TransportadoraPainelFrota />} />
+                    
                     <Route path="motoristas" element={<TransportadoraMotoristas />} />
                     <Route path="relatorios" element={<TransportadoraRelatorios />} />
                     <Route path="assistente" element={<TransportadoraAssistente />} />
