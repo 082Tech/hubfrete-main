@@ -1871,8 +1871,10 @@ export default function CargasDisponiveis() {
                     </div>
                   )}
 
-                  <Separator />
+                  </div>)}
 
+                  {/* === STEP 2: Equipamento + Motorista === */}
+                  {wizardStep === 2 && (<div className="space-y-4">
                   {/* Driver Selection */}
                   <div className="space-y-2 px-1">
                     <Label>Motorista</Label>
