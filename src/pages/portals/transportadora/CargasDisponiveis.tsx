@@ -973,7 +973,7 @@ export default function CargasDisponiveis() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openMotoristaCombobox]);
 
-
+  const handleAcceptClick = (carga: Carga) => {
     setSelectedCarga(carga);
     setSelectedMotorista('');
     setSelectedVeiculo('');
