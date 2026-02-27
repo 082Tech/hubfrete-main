@@ -1962,21 +1962,13 @@ export default function CargasDisponiveis() {
                                         </span>
                                       </div>
                                       <div className="ml-auto flex shrink-0 items-center justify-end">
-                                        {!hasVeiculo ? (
-                                          <Badge variant="outline" className="text-[10px] bg-muted truncate">
-                                            Sem Veículo
-                                          </Badge>
-                                        ) : capacidadeTotal === 0 ? (
-                                          <Badge variant="outline" className="text-[10px] text-destructive truncate">
-                                            Capac. 0
-                                          </Badge>
-                                        ) : temCapacidade ? (
-                                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary truncate">
-                                            {(disponivel / 1000).toFixed(1)}t disp.
+                                        {emUso > 0 ? (
+                                          <Badge variant="outline" className="text-[10px] text-muted-foreground truncate">
+                                            {(emUso / 1000).toFixed(1)}t em uso
                                           </Badge>
                                         ) : (
-                                          <Badge variant="outline" className="text-[10px] text-muted-foreground truncate">
-                                            Lotado
+                                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary truncate">
+                                            Disponível
                                           </Badge>
                                         )}
                                         <Check
