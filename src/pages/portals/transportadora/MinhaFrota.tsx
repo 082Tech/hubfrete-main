@@ -1060,7 +1060,7 @@ export default function MinhaFrota() {
     }
   };
 
-  const isLoading = activeTab === 'veiculos' ? isLoadingVeiculos : isLoadingCarrocerias;
+  const isLoading = activeTab === 'veiculos' ? isLoadingVeiculos : activeTab === 'carrocerias' ? isLoadingCarrocerias : (isLoadingVeiculos || isLoadingCarrocerias);
 
   return (
     <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
