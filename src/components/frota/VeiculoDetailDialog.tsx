@@ -144,24 +144,6 @@ export function VeiculoDetailDialog({ veiculo, open, onOpenChange }: Props) {
             )}
           </div>
 
-          {/* Motorista */}
-          {veiculo.motorista && (
-            <>
-              <Separator />
-              <div className="flex items-center gap-3">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={veiculo.motorista.foto_url || undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                    {getInitials(veiculo.motorista.nome_completo)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-xs text-muted-foreground">Motorista</p>
-                  <p className="text-sm font-medium">{veiculo.motorista.nome_completo}</p>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </DialogContent>
     </Dialog>
