@@ -55,9 +55,6 @@ interface Props {
 export function VeiculoDetailDialog({ veiculo, open, onOpenChange }: Props) {
   if (!veiculo) return null;
 
-  const getInitials = (name: string) =>
-    name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
