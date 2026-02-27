@@ -43,7 +43,7 @@ interface Veiculo {
   rastreador: boolean;
   foto_url: string | null;
   carroceria_integrada: boolean;
-  motorista: { id: string; nome_completo: string; foto_url: string | null } | null;
+  
 }
 
 interface Props {
