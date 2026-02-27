@@ -1908,34 +1908,22 @@ export default function CargasDisponiveis() {
                             <CommandEmpty>Nenhum motorista encontrado.</CommandEmpty>
                             <CommandGroup>
                               {motoristas.map((motorista) => {
-                                // Capacidade de veículos com carroceria integrada
-                                const capacidadeVeiculosIntegrados = (motorista.veiculos as any[])
-                                  ?.filter((v) => v.carroceria_integrada)
-                                  ?.reduce((acc: number, v: any) => acc + (v.capacidade_kg || 0), 0) || 0;
-                                // Capacidade de carrocerias separadas
-                                const capacidadeCarrocerias = motorista.carrocerias?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
-                                const capacidadeTotal = capacidadeVeiculosIntegrados + capacidadeCarrocerias;
                                 const emUso = pesoEmUsoPorMotorista.get(motorista.id) || 0;
-                                const disponivel = Math.max(0, capacidadeTotal - emUso);
-                                const temCapacidade = disponivel > 0;
-                                const hasVeiculo = motorista.veiculos && motorista.veiculos.length > 0;
 
                                 return (
                                   <CommandItem
                                     key={motorista.id}
                                     value={`${motorista.nome_completo} ${motorista.id}`}
-                                    disabled={!hasVeiculo || (!temCapacidade && capacidadeTotal > 0)}
                                     onSelect={() => {
-                                      const value = motorista.id;
-                                      setSelectedMotorista(value);
-                                      // Auto-select the first vehicle if available
-                                      if (motorista?.veiculos && motorista.veiculos.length > 0) {
-                                        const veiculo = motorista.veiculos[0] as any;
+                                      setSelectedMotorista(motorista.id);
+                                      // Auto-select first company vehicle
+                                      if (veiculosEmpresa.length > 0) {
+                                        const veiculo = veiculosEmpresa[0] as any;
                                         setSelectedVeiculo(veiculo.id);
                                         if (veiculo.carroceria_integrada) {
                                           setSelectedCarroceria(null);
-                                        } else if (motorista.carrocerias && motorista.carrocerias.length > 0) {
-                                          setSelectedCarroceria(motorista.carrocerias[0].id);
+                                        } else if (carroceriasEmpresa.length > 0) {
+                                          setSelectedCarroceria(carroceriasEmpresa[0].id);
                                         } else {
                                           setSelectedCarroceria(null);
                                         }
