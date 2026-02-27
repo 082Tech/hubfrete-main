@@ -53,6 +53,9 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
+  Link2,
+  Lock,
+  Unlink,
 } from 'lucide-react';
 import {
   DropdownMenu,
