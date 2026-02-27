@@ -171,8 +171,6 @@ interface Motorista {
   nome_completo: string;
   telefone: string | null;
   foto_url?: string | null;
-  veiculos: Veiculo[];
-  carrocerias: Carroceria[];
 }
 
 const tipoCargaLabels: Record<string, string> = {
