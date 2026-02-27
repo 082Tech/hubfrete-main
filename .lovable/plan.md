@@ -1,86 +1,59 @@
 
+# Refatorar Wizard de Aceite de Carga (Etapas 2 e 3)
 
-# Plano: Completar Schema Fiscal para API Focus NFe
+## Problema Atual
+- Seleção de motorista, veículo e carroceria são dropdowns simples sem fotos/placas visuais
+- O peso por carroceria fica na etapa 3, separado da seleção de carroceria (etapa 2)
+- Etapa 3 mistura peso, previsão de coleta e viagem -- deveria ser apenas revisão
 
-## Resumo
+## Mudanças Planejadas
 
-Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
+### Etapa 2 -- Motorista + Equipamento + Peso
 
-## Situacao Atual
+**Motorista** (melhorar visual):
+- Manter o campo de busca atual mas melhorar os itens do dropdown: foto maior, nome em destaque, telefone visível, badge de status (Disponivel / Em Viagem VGM-XXX)
+- Ao selecionar, exibir card visual com foto, nome, telefone e status
 
-Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
+**Veiculo** (melhorar visual):
+- No dropdown de seleção, mostrar foto thumbnail (se houver) + placa em destaque + tipo + capacidade
+- Ao selecionar, exibir card com foto do veículo, placa em badge, tipo e capacidade
 
-## Alteracoes Necessarias
+**Carroceria + Peso (juntar na etapa 2)**:
+- Mover a entrada de peso para junto da seleção de carroceria
+- Para veículos de carroceria integrada: mostrar capacidade e campo de peso direto
+- Para 1 carroceria: ao selecionar, mostrar card com placa em badge, tipo, capacidade e campo de peso. Se for unica, auto-preencher o peso maximo
+- Para multi-carrocerias (bitrem/rodotrem): manter o layout atual de slots, cada um com seu campo de peso (ja funciona assim)
+- Previsão de coleta tambem fica na etapa 2
 
-### Migracao Unica
+### Etapa 3 -- Revisão (somente leitura)
 
-Adicionar duas colunas a tabela `config_fiscal`:
+Transformar a etapa 3 em uma tela de revisão com todos os dados consolidados:
+- Resumo da carga (codigo, descricao, peso)
+- Motorista selecionado (foto + nome)
+- Veiculo (foto + placa + tipo)
+- Carroceria(s) com peso por carroceria
+- Previsão de coleta
+- Viagem (ViagemSelector permanece aqui para decidir se cria nova ou adiciona a existente)
+- Simulação visual: peso restante na carga + valor do frete
+- Botão "Confirmar Aceite"
 
-| Coluna | Tipo | Default | Finalidade |
-|--------|------|---------|------------|
-| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
-| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
+### Detalhes Tecnicos
 
-### Atualizacao do Frontend
+**Arquivo**: `src/pages/portals/transportadora/CargasDisponiveis.tsx`
 
-Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
-- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
-- Campo numerico para o percentual da base de calculo do ICMS
+**Etapa 2 (linhas ~2046-2570)**:
+- Manter toda a logica de motorista, veiculo e carroceria
+- Adicionar thumbnails de foto nos cards de seleção usando `foto_url` (ja disponivel nas queries)
+- Mover o bloco de peso (linhas ~2586-2690) e previsão de coleta (linhas ~2665-2681) para dentro da etapa 2, posicionado abaixo da seleção de carroceria
+- Para single carroceria sem viagem ativa: auto-preencher peso com `pesoMaximoAlocar`
 
-### Atualizacao dos Tipos TypeScript
+**Etapa 3 (linhas ~2572-2767)**:
+- Substituir todo o conteudo por cards de revisão somente-leitura
+- ViagemSelector permanece interativo
+- Manter os paineis de simulação (peso restante + frete) como estão
 
-Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
+**Header do dialog (linhas ~1813-1816)**:
+- Atualizar descrições: Etapa 2 = "Equipamento, motorista e peso" / Etapa 3 = "Revisão e confirmação"
 
----
-
-## Secao Tecnica
-
-### SQL da Migracao
-
-```sql
-ALTER TABLE public.config_fiscal
-  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
-  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
-
-COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
-  IS '1 = Simples Nacional, 3 = Regime Normal';
-COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
-  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
-```
-
-### Mapeamento Completo: Banco -> Payload API
-
-Com essas 2 colunas adicionadas, o mapeamento fica completo:
-
-**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
-- CNPJ: `empresas.cnpj_matriz`
-- IE: `empresas.inscricao_estadual`
-- Razao Social: `empresas.razao_social`
-- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
-- Municipio IBGE: `filiais.codigo_municipio_ibge`
-- UF: `filiais.estado`
-- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
-
-**Fiscal**: `config_fiscal`
-- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
-- Natureza: `natureza_operacao`
-- Serie/Numero: `serie_cte` / `proximo_numero_cte`
-- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
-- Ambiente: `ambiente`
-
-**Remetente/Destinatario**: `cargas` + `enderecos_carga`
-**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
-**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
-
-### Campos Derivados por Logica (sem banco)
-- `data_emissao`: gerado no momento da emissao
-- `tipo_documento`: sempre `0` (Normal)
-- `modal`: sempre `01` (Rodoviario)
-- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
-
-### Sequencia de Implementacao
-
-1. Aplicar migracao SQL (1 migration)
-2. Atualizar types.ts
-3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
-
+**Footer (linhas ~2784-2787)**:
+- Ajustar validação do botão "Proximo" na etapa 2 para incluir peso valido e previsão de coleta
