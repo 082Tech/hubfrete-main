@@ -66,15 +66,10 @@ type Carroceria = {
   foto_url: string | null;
   fotos_urls: string[] | null;
   empresa_id: number | null;
-  motorista_id: string | null;
   created_at: string | null;
   empresa?: {
     id: number;
     nome: string | null;
-  };
-  motorista?: {
-    id: string;
-    nome_completo: string;
   };
 };
 
@@ -252,9 +247,9 @@ export default function CarroceriasAdmin() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {carrocerias.filter(c => c.motorista_id).length}
+                  {carrocerias.filter(c => c.ativo).length}
                 </p>
-                <p className="text-sm text-muted-foreground">Com motorista</p>
+                <p className="text-sm text-muted-foreground">Ativas</p>
               </div>
             </div>
           </CardContent>
@@ -367,7 +362,7 @@ export default function CarroceriasAdmin() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {carroceria.motorista?.nome_completo || '-'}
+                        -
                       </TableCell>
                       <TableCell>
                         {carroceria.empresa?.nome || '-'}
@@ -481,10 +476,6 @@ export default function CarroceriasAdmin() {
                     {selectedCarroceria.capacidade_kg ? `${(selectedCarroceria.capacidade_kg / 1000).toFixed(1)} ton` : '-'}
                     {selectedCarroceria.capacidade_m3 && ` / ${selectedCarroceria.capacidade_m3} m³`}
                   </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Motorista</p>
-                  <p>{selectedCarroceria.motorista?.nome_completo || '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Empresa</p>

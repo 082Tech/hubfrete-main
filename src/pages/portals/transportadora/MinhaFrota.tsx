@@ -78,7 +78,6 @@ const veiculoColumns: ColumnDefinition[] = [
   { id: 'tipo', label: 'Tipo', minWidth: '100px', sortable: true, sortKey: 'tipo' },
   { id: 'carroceria', label: 'Carroceria', minWidth: '120px', sortable: true, sortKey: 'carroceria' },
   { id: 'marca_modelo', label: 'Marca/Modelo', minWidth: '180px', sortable: true, sortKey: 'marca' },
-  { id: 'motorista', label: 'Motorista', minWidth: '180px' },
   { id: 'status', label: 'Status', minWidth: '100px', sortable: true, sortKey: 'ativo' },
   { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
 ];
@@ -90,7 +89,6 @@ const carroceriaColumns: ColumnDefinition[] = [
   { id: 'marca_modelo', label: 'Marca/Modelo', minWidth: '180px', sortable: true, sortKey: 'marca' },
   { id: 'capacidade', label: 'Capacidade', minWidth: '120px', sortable: true, sortKey: 'capacidade_kg' },
   { id: 'veiculo', label: 'Veículo', minWidth: '100px' },
-  { id: 'motorista', label: 'Motorista', minWidth: '180px' },
   { id: 'status', label: 'Status', minWidth: '80px', sortable: true, sortKey: 'ativo' },
   { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
 ];
@@ -773,7 +771,6 @@ export default function MinhaFrota() {
     return veiculos.filter(
       (v) =>
         v.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.motorista?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.marca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.modelo?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -783,7 +780,6 @@ export default function MinhaFrota() {
     return carrocerias.filter(
       (c) =>
         c.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.motorista?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.marca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.modelo?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -942,24 +938,6 @@ export default function MinhaFrota() {
         return (
           <td className="p-4 align-middle text-muted-foreground text-nowrap">{veiculo.marca} {veiculo.modelo} {veiculo.ano && `(${veiculo.ano})`}</td>
         );
-      case 'motorista':
-        return (
-          <td className="p-4 align-middle">
-            {veiculo.motorista ? (
-              <div className="flex items-center gap-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src={veiculo.motorista.foto_url || undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                    {getDriverInitials(veiculo.motorista.nome_completo)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-nowrap">{veiculo.motorista.nome_completo}</span>
-              </div>
-            ) : (
-              <span className="text-muted-foreground">-</span>
-            )}
-          </td>
-        );
       case 'status':
         return (
           <td className="p-4 align-middle">
@@ -1002,9 +980,7 @@ export default function MinhaFrota() {
 
   // Render carroceria cell based on column ID
   const renderCarroceriaCell = (columnId: string, carroceria: Carroceria) => {
-    const veiculoAtrelado = veiculos.find(
-      (v) => v.motorista?.id === carroceria.motorista?.id && carroceria.motorista?.id
-    );
+    const veiculoAtrelado = carroceria.veiculo_id ? veiculos.find(v => v.id === carroceria.veiculo_id) : null;
     switch (columnId) {
       case 'placa':
         return (
@@ -1043,24 +1019,6 @@ export default function MinhaFrota() {
               <Badge variant="outline" className="text-xs gap-1">
                 <Car className="w-3 h-3" />{veiculoAtrelado.placa}
               </Badge>
-            ) : (
-              <span className="text-muted-foreground">-</span>
-            )}
-          </td>
-        );
-      case 'motorista':
-        return (
-          <td className="p-4 align-middle">
-            {carroceria.motorista ? (
-              <div className="flex items-center gap-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src={carroceria.motorista.foto_url || undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                    {getDriverInitials(carroceria.motorista.nome_completo)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-nowrap">{carroceria.motorista.nome_completo}</span>
-              </div>
             ) : (
               <span className="text-muted-foreground">-</span>
             )}
@@ -1971,11 +1929,6 @@ export default function MinhaFrota() {
                           </div>
                           {/* Motorista + Trip Status */}
                           <div className="flex gap-1 mt-3 flex-wrap">
-                            {veiculo.motorista && (
-                              <Badge variant="outline" className="text-xs gap-1">
-                                <User className="w-3 h-3" />{veiculo.motorista.nome_completo}
-                              </Badge>
-                            )}
                             {veiculoTripMap[veiculo.id] && (
                               <Badge className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/20" variant="outline">
                                 <Truck className="w-3 h-3 mr-0.5" />Em Viagem • {veiculoTripMap[veiculo.id].codigo}
@@ -2209,9 +2162,7 @@ export default function MinhaFrota() {
                 <div className="flex-1 overflow-auto">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {paginatedCarrocerias.map((carroceria) => {
-                      const veiculoAtrelado = veiculos.find(
-                        (v) => v.motorista?.id === carroceria.motorista?.id && carroceria.motorista?.id
-                      );
+                      const veiculoAtrelado = carroceria.veiculo_id ? veiculos.find(v => v.id === carroceria.veiculo_id) : null;
                       return (
                         <Card key={carroceria.id} className={`border-border ${!carroceria.ativo ? 'opacity-60' : ''}`}>
                           <CardContent className="p-4">
@@ -2278,7 +2229,7 @@ export default function MinhaFrota() {
                             </div>
                             <div className="flex gap-1 mt-3 flex-wrap">
                               {veiculoAtrelado && (<Badge variant="outline" className="text-xs gap-1"><Car className="w-3 h-3" />{veiculoAtrelado.placa}</Badge>)}
-                              {carroceria.motorista && (<Badge variant="outline" className="text-xs gap-1"><User className="w-3 h-3" />{carroceria.motorista.nome_completo}</Badge>)}
+                              
                               {carroceriaTripMap[carroceria.id] && (
                                 <Badge className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/20" variant="outline">
                                   <Container className="w-3 h-3 mr-0.5" />Em Viagem • {carroceriaTripMap[carroceria.id].codigo}
@@ -2357,7 +2308,7 @@ export default function MinhaFrota() {
           carroceria={viewingCarroceria}
           open={!!viewingCarroceria}
           onOpenChange={(open) => !open && setViewingCarroceria(null)}
-          veiculoAtrelado={viewingCarroceria?.motorista ? veiculos.find(v => v.motorista?.id === viewingCarroceria.motorista?.id) : null}
+          veiculoAtrelado={viewingCarroceria?.veiculo_id ? veiculos.find(v => v.id === viewingCarroceria.veiculo_id) : null}
         />
 
         {/* Edit Dialogs */}

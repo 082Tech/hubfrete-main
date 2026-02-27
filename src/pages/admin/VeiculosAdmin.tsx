@@ -65,14 +65,9 @@ type Veiculo = {
   ativo: boolean;
   created_at: string;
   empresa_id: number | null;
-  motorista_id: string | null;
   empresa?: {
     id: number;
     nome: string | null;
-  };
-  motorista?: {
-    id: string;
-    nome_completo: string;
   };
 };
 
@@ -245,9 +240,9 @@ export default function VeiculosAdmin() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {veiculos.filter(v => v.motorista_id).length}
+                  {veiculos.filter(v => v.ativo).length}
                 </p>
-                <p className="text-sm text-muted-foreground">Com motorista</p>
+                <p className="text-sm text-muted-foreground">Ativos</p>
               </div>
             </div>
           </CardContent>
@@ -346,7 +341,7 @@ export default function VeiculosAdmin() {
                         }
                       </TableCell>
                       <TableCell>
-                        {veiculo.motorista?.nome_completo || '-'}
+                        -
                       </TableCell>
                       <TableCell>
                         {veiculo.empresa?.nome || '-'}
@@ -457,10 +452,6 @@ export default function VeiculosAdmin() {
                 <div>
                   <p className="text-sm text-muted-foreground">Capacidade</p>
                   <p>{selectedVeiculo.capacidade_kg ? `${(selectedVeiculo.capacidade_kg / 1000).toFixed(1)} ton` : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Motorista</p>
-                  <p>{selectedVeiculo.motorista?.nome_completo || '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Empresa</p>
