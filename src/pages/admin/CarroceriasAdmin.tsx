@@ -362,7 +362,7 @@ export default function CarroceriasAdmin() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {carroceria.motorista?.nome_completo || '-'}
+                        -
                       </TableCell>
                       <TableCell>
                         {carroceria.empresa?.nome || '-'}
