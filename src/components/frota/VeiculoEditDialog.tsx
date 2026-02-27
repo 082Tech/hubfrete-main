@@ -595,6 +595,14 @@ export function VeiculoEditDialog({ veiculo, open, onOpenChange }: VeiculoEditDi
             </div>
           </div>
 
+          {/* Carrocerias Vinculadas */}
+          {!formData.carroceria_integrada && (
+            <>
+              <Separator />
+              <VinculosCarrocerias veiculoId={veiculo?.id || ''} empresaId={veiculo ? undefined : undefined} />
+            </>
+          )}
+
           <Separator />
 
           {/* Status */}
