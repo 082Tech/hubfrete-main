@@ -2596,7 +2596,7 @@ export default function CargasDisponiveis() {
                                         <img src={(selectedCarroceriaData as any).foto_url} alt="" className="w-12 h-12 rounded-md object-cover shrink-0 border" />
                                       ) : (
                                         <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center shrink-0 border">
-                                          <Layers className="w-5 h-5 text-muted-foreground" />
+                                          <Container className="w-5 h-5 text-muted-foreground" />
                                         </div>
                                       )}
                                       <div className="flex-1 space-y-1">
