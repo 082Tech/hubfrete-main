@@ -160,7 +160,7 @@ const App = () => {
                     <Route path="entregas" element={<TransportadoraOperacaoDiaria />} />
                     <Route path="entregas/historico" element={<TransportadoraHistoricoEntregas />} />
                     <Route path="frota" element={<TransportadoraFrota />} />
-                    <Route path="painel-frota" element={<TransportadoraPainelFrota />} />
+                    
                     <Route path="motoristas" element={<TransportadoraMotoristas />} />
                     <Route path="relatorios" element={<TransportadoraRelatorios />} />
                     <Route path="assistente" element={<TransportadoraAssistente />} />

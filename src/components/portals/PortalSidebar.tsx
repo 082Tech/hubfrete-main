@@ -109,7 +109,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: Package, label: 'Cargas Disponíveis', href: '/transportadora/cargas' },
     // Gestão de Entregas and Histórico de Entregas are handled separately in entregasItems
     { icon: Truck, label: 'Minha Frota', href: '/transportadora/frota' },
-    { icon: BarChart3, label: 'Painel de Frota', href: '/transportadora/painel-frota' },
+    
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
     { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
