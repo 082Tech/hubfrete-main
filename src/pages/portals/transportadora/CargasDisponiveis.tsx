@@ -1083,19 +1083,20 @@ export default function CargasDisponiveis() {
       return;
     }
 
-    // Se o veículo NÃO tem carroceria integrada, é obrigatório definir a carroceria
-    const veiculo = selectedVeiculoData as any;
-    if (!veiculo?.carroceria_integrada) {
-      if (carroceriasEmpresa.length > 0 && !selectedCarroceria && !isMultiTrailer) {
-        toast.error('Selecione a carroceria');
+    // Validação de carroceria baseada no tipo de veículo
+    if (maxCarrocerias === 1) {
+      if (!selectedCarroceria) {
+        if (carroceriasEmpresa.length === 0) {
+          toast.error('Nenhuma carroceria cadastrada na empresa');
+        } else {
+          toast.error('Selecione a carroceria');
+        }
         return;
       }
-      if (isMultiTrailer && selectedCarroceriasMulti.length === 0) {
+    } else if (maxCarrocerias >= 2) {
+      const filledSlots = selectedCarroceriasMulti.filter(Boolean);
+      if (filledSlots.length === 0) {
         toast.error('Selecione ao menos uma carroceria');
-        return;
-      }
-      if (carroceriasEmpresa.length === 0) {
-        toast.error('Nenhuma carroceria cadastrada na empresa');
         return;
       }
     }
