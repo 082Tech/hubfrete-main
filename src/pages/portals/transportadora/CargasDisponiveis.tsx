@@ -209,6 +209,7 @@ export default function CargasDisponiveis() {
   const [selectedMotorista, setSelectedMotorista] = useState<string>('');
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('');
   const [selectedCarroceria, setSelectedCarroceria] = useState<string | null>(null);
+  const [wizardStep, setWizardStep] = useState<number>(1);
 
   // NEW: State for multi-carroceria (Bitrem/Rodotrem)
   const [selectedCarroceriasMulti, setSelectedCarroceriasMulti] = useState<string[]>([]);
