@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Truck, Shield, Gauge, User, Container, Weight, Boxes, FileText } from 'lucide-react';
+import { Truck, Shield, Gauge, Container, Weight, Boxes, FileText } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const tipoVeiculoLabels: Record<string, string> = {
