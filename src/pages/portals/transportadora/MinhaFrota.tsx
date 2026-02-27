@@ -2162,9 +2162,7 @@ export default function MinhaFrota() {
                 <div className="flex-1 overflow-auto">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {paginatedCarrocerias.map((carroceria) => {
-                      const veiculoAtrelado = veiculos.find(
-                        (v) => v.motorista?.id === carroceria.motorista?.id && carroceria.motorista?.id
-                      );
+                      const veiculoAtrelado = carroceria.veiculo_id ? veiculos.find(v => v.id === carroceria.veiculo_id) : null;
                       return (
                         <Card key={carroceria.id} className={`border-border ${!carroceria.ativo ? 'opacity-60' : ''}`}>
                           <CardContent className="p-4">
