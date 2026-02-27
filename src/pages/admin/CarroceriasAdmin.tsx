@@ -247,9 +247,9 @@ export default function CarroceriasAdmin() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {carrocerias.filter(c => c.motorista_id).length}
+                  {carrocerias.filter(c => c.ativo).length}
                 </p>
-                <p className="text-sm text-muted-foreground">Com motorista</p>
+                <p className="text-sm text-muted-foreground">Ativas</p>
               </div>
             </div>
           </CardContent>
