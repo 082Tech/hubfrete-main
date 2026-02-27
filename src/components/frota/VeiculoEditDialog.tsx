@@ -145,6 +145,25 @@ const tipoCarroceriaLabels: Record<string, string> = {
 function VinculosCarrocerias({ veiculoId }: { veiculoId: string; empresaId?: number }) {
   const queryClient = useQueryClient();
 
+  // Check if vehicle is on an active trip
+  const { data: viagemAtiva } = useQuery({
+    queryKey: ['viagem_ativa_veiculo', veiculoId],
+    queryFn: async () => {
+      if (!veiculoId) return null;
+      const { data } = await supabase
+        .from('viagens')
+        .select('id, codigo, status')
+        .eq('veiculo_id', veiculoId)
+        .in('status', ['aguardando', 'programada', 'em_andamento'])
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!veiculoId,
+  });
+
+  const emViagem = !!viagemAtiva;
+
   // Fetch carrocerias linked to this vehicle
   const { data: vinculadas = [], isLoading: loadingVinculadas } = useQuery({
     queryKey: ['carrocerias_vinculadas', veiculoId],
@@ -215,9 +234,19 @@ function VinculosCarrocerias({ veiculoId }: { veiculoId: string; empresaId?: num
         <Link2 className="w-4 h-4" />
         Carrocerias Vinculadas
       </div>
-      <p className="text-xs text-muted-foreground">
-        Carrocerias que compõem este veículo. No aceite de carga, elas serão selecionadas automaticamente.
-      </p>
+
+      {emViagem ? (
+        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-200 dark:border-amber-800">
+          <p className="text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">
+            <Container className="w-4 h-4 shrink-0" />
+            Vínculos bloqueados — veículo em viagem <span className="font-mono font-semibold">{viagemAtiva?.codigo}</span> ({viagemAtiva?.status === 'em_andamento' ? 'em andamento' : viagemAtiva?.status === 'programada' ? 'programada' : 'aguardando'}).
+          </p>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Carrocerias que compõem este veículo. No aceite de carga, elas serão selecionadas automaticamente.
+        </p>
+      )}
 
       {/* Linked list */}
       {loadingVinculadas ? (
@@ -246,22 +275,24 @@ function VinculosCarrocerias({ veiculoId }: { veiculoId: string; empresaId?: num
                   </Badge>
                 )}
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-destructive hover:text-destructive"
-                onClick={() => handleDesvincular(c.id)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              {!emViagem && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-destructive hover:text-destructive"
+                  onClick={() => handleDesvincular(c.id)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* Add available */}
-      {disponiveis.length > 0 && (
+      {/* Add available — only when not on a trip */}
+      {!emViagem && disponiveis.length > 0 && (
         <div className="space-y-2">
           <Label className="text-xs">Adicionar carroceria</Label>
           <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
