@@ -938,24 +938,6 @@ export default function MinhaFrota() {
         return (
           <td className="p-4 align-middle text-muted-foreground text-nowrap">{veiculo.marca} {veiculo.modelo} {veiculo.ano && `(${veiculo.ano})`}</td>
         );
-      case 'motorista':
-        return (
-          <td className="p-4 align-middle">
-            {veiculo.motorista ? (
-              <div className="flex items-center gap-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src={veiculo.motorista.foto_url || undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                    {getDriverInitials(veiculo.motorista.nome_completo)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-nowrap">{veiculo.motorista.nome_completo}</span>
-              </div>
-            ) : (
-              <span className="text-muted-foreground">-</span>
-            )}
-          </td>
-        );
       case 'status':
         return (
           <td className="p-4 align-middle">
