@@ -1990,11 +1990,11 @@ export default function CargasDisponiveis() {
                   </div>
 
                   {/* Preview do Equipamento Vinculado */}
-                  {selectedMotorista && selectedMotoristaData && (
+                  {selectedMotorista && (
                     <div ref={equipmentSectionRef} className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
                       <h4 className="font-semibold text-sm flex items-center gap-2 text-primary">
                         <Truck className="w-4 h-4" />
-                        Equipamento Vinculado ao Motorista
+                        Equipamento da Empresa
                       </h4>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
