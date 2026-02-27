@@ -1657,8 +1657,6 @@ export default function CargasDisponiveis() {
             {selectedCarga && (
               <ScrollArea className="max-h-[60vh] pr-4">
                 <div className="space-y-4 mb-4">
-                  {/* === STEP 1: Cargo Details === */}
-                  {wizardStep === 1 && (<>
                   {/* Header with Logo and Basic Info */}
                   <div className="flex items-start gap-4 p-4 bg-muted rounded-lg">
                     {/* Company Logo or Initials */}
