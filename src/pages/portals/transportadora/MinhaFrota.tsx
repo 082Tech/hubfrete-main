@@ -78,7 +78,6 @@ const veiculoColumns: ColumnDefinition[] = [
   { id: 'tipo', label: 'Tipo', minWidth: '100px', sortable: true, sortKey: 'tipo' },
   { id: 'carroceria', label: 'Carroceria', minWidth: '120px', sortable: true, sortKey: 'carroceria' },
   { id: 'marca_modelo', label: 'Marca/Modelo', minWidth: '180px', sortable: true, sortKey: 'marca' },
-  { id: 'motorista', label: 'Motorista', minWidth: '180px' },
   { id: 'status', label: 'Status', minWidth: '100px', sortable: true, sortKey: 'ativo' },
   { id: 'acoes', label: '', minWidth: '50px', sticky: 'right' },
 ];
