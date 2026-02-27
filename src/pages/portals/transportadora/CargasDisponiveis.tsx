@@ -2507,7 +2507,7 @@ export default function CargasDisponiveis() {
                                                   <img src={c.foto_url} alt="" className="w-5 h-5 rounded object-cover shrink-0" />
                                                 ) : (
                                                   <div className="w-5 h-5 rounded bg-muted flex items-center justify-center shrink-0">
-                                                    <Layers className="w-3 h-3 text-muted-foreground" />
+                                                    <Container className="w-3 h-3 text-muted-foreground" />
                                                   </div>
                                                 )}
                                                 <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{c.placa}</Badge>
