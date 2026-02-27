@@ -1929,11 +1929,6 @@ export default function MinhaFrota() {
                           </div>
                           {/* Motorista + Trip Status */}
                           <div className="flex gap-1 mt-3 flex-wrap">
-                            {veiculo.motorista && (
-                              <Badge variant="outline" className="text-xs gap-1">
-                                <User className="w-3 h-3" />{veiculo.motorista.nome_completo}
-                              </Badge>
-                            )}
                             {veiculoTripMap[veiculo.id] && (
                               <Badge className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/20" variant="outline">
                                 <Truck className="w-3 h-3 mr-0.5" />Em Viagem • {veiculoTripMap[veiculo.id].codigo}
