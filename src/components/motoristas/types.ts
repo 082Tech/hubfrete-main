@@ -103,7 +103,6 @@ export interface VeiculoSimples {
   comprovante_endereco_proprietario_url: string | null;
   proprietario_nome: string | null;
   proprietario_cpf_cnpj: string | null;
-  motorista_id: string | null;
   carroceria_integrada: boolean | null;
   capacidade_kg: number | null;
   capacidade_m3: number | null;
