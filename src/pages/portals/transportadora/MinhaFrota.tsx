@@ -53,6 +53,9 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
+  Link2,
+  Lock,
+  Unlink,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -209,7 +212,7 @@ export default function MinhaFrota() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'veiculos' | 'carrocerias'>('veiculos');
+  const [activeTab, setActiveTab] = useState<'veiculos' | 'carrocerias' | 'vinculos'>('veiculos');
   const { viewMode, setViewMode } = useViewModePreference();
   const [currentPageVeiculos, setCurrentPageVeiculos] = useState(1);
   const [currentPageCarrocerias, setCurrentPageCarrocerias] = useState(1);
@@ -1060,7 +1063,7 @@ export default function MinhaFrota() {
     }
   };
 
-  const isLoading = activeTab === 'veiculos' ? isLoadingVeiculos : isLoadingCarrocerias;
+  const isLoading = activeTab === 'veiculos' ? isLoadingVeiculos : activeTab === 'carrocerias' ? isLoadingCarrocerias : (isLoadingVeiculos || isLoadingCarrocerias);
 
   return (
     <div className="flex flex-col h-full p-4 md:p-8 overflow-hidden">
@@ -1651,8 +1654,8 @@ export default function MinhaFrota() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'veiculos' | 'carrocerias')} className="flex flex-col flex-1 min-h-0">
-          <TabsList className="grid w-full max-w-md grid-cols-2 shrink-0">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'veiculos' | 'carrocerias' | 'vinculos')} className="flex flex-col flex-1 min-h-0">
+          <TabsList className="grid w-full max-w-lg grid-cols-3 shrink-0">
             <TabsTrigger value="veiculos" className="gap-2">
               <Car className="w-4 h-4" />
               Veículos ({veiculos.length})
@@ -1660,6 +1663,10 @@ export default function MinhaFrota() {
             <TabsTrigger value="carrocerias" className="gap-2">
               <Container className="w-4 h-4" />
               Carrocerias ({carrocerias.length})
+            </TabsTrigger>
+            <TabsTrigger value="vinculos" className="gap-2">
+              <Link2 className="w-4 h-4" />
+              Vínculos
             </TabsTrigger>
           </TabsList>
 
@@ -2295,6 +2302,171 @@ export default function MinhaFrota() {
               </div>
             )}
 
+          </div>}
+
+          {/* ===== VÍNCULOS TAB ===== */}
+          {activeTab === 'vinculos' && <div className="flex flex-col flex-1 min-h-0 gap-6 mt-6">
+            {/* Info Banner */}
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg flex items-start gap-3">
+              <Link2 className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Vínculos Veículo ↔ Carroceria</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Vincule carrocerias a veículos para agilizar o aceite de cargas. Veículos com carroceria integrada não precisam de vínculo. Equipamentos em viagem ativa ficam bloqueados.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {veiculos
+                  .filter(v => !v.carroceria_integrada && v.ativo)
+                  .map((veiculo) => {
+                    const linkedCarrocerias = carrocerias.filter(c => c.veiculo_id === veiculo.id);
+                    const isInTrip = !!veiculoTripMap[veiculo.id];
+                    // Determine max trailer slots based on vehicle type
+                    const maxSlots = ['bitrem', 'rodotrem'].includes(veiculo.tipo) ? 2 : ['vanderleia'].includes(veiculo.tipo) ? 3 : 1;
+                    const availableCarrocerias = carrocerias.filter(c => !c.veiculo_id && c.ativo);
+
+                    return (
+                      <Card key={veiculo.id} className="border-border">
+                        <CardContent className="p-4 space-y-3">
+                          {/* Vehicle Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded bg-muted/50 overflow-hidden shrink-0 flex items-center justify-center">
+                                {veiculo.foto_url ? (
+                                  <img src={veiculo.foto_url} alt={veiculo.placa} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Truck className="w-4 h-4 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-sm">{veiculo.placa}</h3>
+                                <p className="text-[10px] text-muted-foreground">{tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {isInTrip && (
+                                <Badge className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/20 gap-1" variant="outline">
+                                  <Lock className="w-3 h-3" />Em Viagem
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="text-[10px]">
+                                {linkedCarrocerias.length}/{maxSlots} slot{maxSlots > 1 ? 's' : ''}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Carroceria Slots */}
+                          <div className="space-y-2">
+                            <p className="text-xs text-muted-foreground font-medium">Carrocerias vinculadas</p>
+                            {linkedCarrocerias.map((c) => {
+                              const carroceriaInTrip = !!carroceriaTripMap[c.id];
+                              return (
+                                <div key={c.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <Container className="w-4 h-4 text-muted-foreground" />
+                                    <div>
+                                      <span className="text-sm font-medium">{c.placa}</span>
+                                      <span className="text-xs text-muted-foreground ml-2">{tipoCarroceriaLabels[c.tipo] || c.tipo}</span>
+                                    </div>
+                                    {c.capacidade_kg && (
+                                      <Badge variant="outline" className="text-[10px] gap-0.5">
+                                        <Weight className="w-3 h-3" />{(c.capacidade_kg / 1000).toLocaleString('pt-BR')}t
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                    disabled={isInTrip || carroceriaInTrip}
+                                    title={isInTrip || carroceriaInTrip ? 'Bloqueado: em viagem ativa' : 'Desvincular'}
+                                    onClick={async () => {
+                                      const { error } = await supabase
+                                        .from('carrocerias')
+                                        .update({ veiculo_id: null })
+                                        .eq('id', c.id);
+                                      if (error) {
+                                        toast.error('Erro ao desvincular');
+                                      } else {
+                                        toast.success('Carroceria desvinculada!');
+                                        queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
+                                      }
+                                    }}
+                                  >
+                                    {isInTrip || carroceriaInTrip ? <Lock className="w-3.5 h-3.5" /> : <Unlink className="w-3.5 h-3.5" />}
+                                  </Button>
+                                </div>
+                              );
+                            })}
+
+                            {/* Empty Slots */}
+                            {Array.from({ length: maxSlots - linkedCarrocerias.length }).map((_, i) => (
+                              <div key={`empty-${i}`} className="border border-dashed border-border rounded-lg p-2">
+                                {isInTrip ? (
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Lock className="w-4 h-4" />
+                                    <span className="text-xs">Slot vazio (bloqueado em viagem)</span>
+                                  </div>
+                                ) : (
+                                  <Select
+                                    onValueChange={async (carroceriaId) => {
+                                      const { error } = await supabase
+                                        .from('carrocerias')
+                                        .update({ veiculo_id: veiculo.id })
+                                        .eq('id', carroceriaId);
+                                      if (error) {
+                                        toast.error('Erro ao vincular');
+                                      } else {
+                                        toast.success('Carroceria vinculada!');
+                                        queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs border-dashed">
+                                      <SelectValue placeholder="+ Vincular carroceria" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {availableCarrocerias.length === 0 ? (
+                                        <SelectItem value="__none" disabled>Nenhuma carroceria disponível</SelectItem>
+                                      ) : (
+                                        availableCarrocerias.map((ac) => (
+                                          <SelectItem key={ac.id} value={ac.id}>
+                                            {ac.placa} - {tipoCarroceriaLabels[ac.tipo] || ac.tipo}
+                                            {ac.capacidade_kg ? ` (${(ac.capacidade_kg / 1000).toLocaleString('pt-BR')}t)` : ''}
+                                          </SelectItem>
+                                        ))
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+
+                {/* Vehicles with integrated bodywork - informational */}
+                {veiculos.filter(v => v.carroceria_integrada && v.ativo).length > 0 && (
+                  <Card className="border-border bg-muted/30 col-span-full">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <CheckCircle className="w-4 h-4 text-chart-2" />
+                        <span>
+                          <strong>{veiculos.filter(v => v.carroceria_integrada && v.ativo).length}</strong> veículo(s) com carroceria integrada (não necessitam vínculo)
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
           </div>}
         </Tabs>
 
