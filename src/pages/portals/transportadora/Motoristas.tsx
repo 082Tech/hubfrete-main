@@ -139,7 +139,7 @@ export default function Motoristas() {
       if (!empresa?.id) return [];
       const { data, error } = await supabase
         .from('veiculos')
-        .select('id, placa, tipo, marca, modelo, uf, antt_rntrc, documento_veiculo_url, comprovante_endereco_proprietario_url, proprietario_nome, proprietario_cpf_cnpj, motorista_id')
+        .select('id, placa, tipo, marca, modelo, uf, antt_rntrc, documento_veiculo_url, comprovante_endereco_proprietario_url, proprietario_nome, proprietario_cpf_cnpj')
         .eq('empresa_id', empresa.id)
         .eq('ativo', true)
         .order('placa');
