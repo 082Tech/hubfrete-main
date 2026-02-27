@@ -7,7 +7,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Truck, Shield, Gauge, Container, Weight, Boxes, FileText } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 const tipoVeiculoLabels: Record<string, string> = {
   truck: 'Truck', toco: 'Toco', tres_quartos: '3/4', vuc: 'VUC',
