@@ -912,22 +912,21 @@ export default function CargasDisponiveis() {
     setIsAcceptDialogOpen(true);
   };
 
-  // Get vehicles for selected driver
+  // Get selected driver data
   const selectedMotoristaData = useMemo(() => {
     return motoristas.find((m) => m.id === selectedMotorista);
   }, [motoristas, selectedMotorista]);
 
-  // Get selected vehicle data
+  // Get selected vehicle data (from company-wide list)
   const selectedVeiculoData = useMemo(() => {
-    return selectedMotoristaData?.veiculos?.find((v) => v.id === selectedVeiculo);
-  }, [selectedMotoristaData, selectedVeiculo]);
+    return veiculosEmpresa.find((v: any) => v.id === selectedVeiculo);
+  }, [veiculosEmpresa, selectedVeiculo]);
 
   // Derive if current vehicle is multi-trailer
   const isMultiTrailer = useMemo(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return false;
-    const v = selectedVeiculoData;
-    return v?.tipo === 'bitrem' || v?.tipo === 'rodotrem';
-  }, [selectedMotoristaData, selectedVeiculoData]);
+    if (!selectedVeiculoData) return false;
+    return selectedVeiculoData?.tipo === 'bitrem' || selectedVeiculoData?.tipo === 'rodotrem';
+  }, [selectedVeiculoData]);
 
   // Derived total requested weight
   const pesoTotalAlocado = useMemo(() => {
@@ -938,9 +937,9 @@ export default function CargasDisponiveis() {
   }, [isMultiTrailer, pesoPorCarroceria, pesoAlocadoInput]);
 
   const selectedCarroceriaData = useMemo(() => {
-    if (!selectedMotoristaData || !selectedCarroceria) return null;
-    return selectedMotoristaData.carrocerias?.find((c) => c.id === selectedCarroceria) || null;
-  }, [selectedMotoristaData, selectedCarroceria]);
+    if (!selectedCarroceria) return null;
+    return carroceriasEmpresa.find((c: any) => c.id === selectedCarroceria) || null;
+  }, [carroceriasEmpresa, selectedCarroceria]);
 
   // Auto-select carroceria if only one is available for the selected driver/vehicle
   useEffect(() => {
