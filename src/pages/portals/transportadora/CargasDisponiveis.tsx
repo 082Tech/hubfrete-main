@@ -1812,8 +1812,8 @@ export default function CargasDisponiveis() {
               <DialogTitle>Aceitar Carga</DialogTitle>
               <DialogDescription>
                 {wizardStep === 1 && 'Etapa 1 de 3 — Detalhes da carga'}
-                {wizardStep === 2 && 'Etapa 2 de 3 — Selecione equipamento e motorista'}
-                {wizardStep === 3 && 'Etapa 3 de 3 — Peso, previsão e confirmação'}
+                {wizardStep === 2 && 'Etapa 2 de 3 — Equipamento, motorista e peso'}
+                {wizardStep === 3 && 'Etapa 3 de 3 — Revisão e confirmação'}
               </DialogDescription>
               {/* Step indicator */}
               <div className="flex items-center gap-2 pt-2">
