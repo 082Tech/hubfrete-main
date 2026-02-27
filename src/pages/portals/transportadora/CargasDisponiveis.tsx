@@ -959,20 +959,30 @@ export default function CargasDisponiveis() {
     return carroceriasEmpresa.find((c: any) => c.id === selectedCarroceria) || null;
   }, [carroceriasEmpresa, selectedCarroceria]);
 
-  // Auto-select carroceria if only one is available company-wide
+  // Auto-select/reset carroceria based on vehicle type
   useEffect(() => {
     if (!selectedVeiculoData) return;
 
-    const veiculo = selectedVeiculoData as any;
-    if (veiculo?.carroceria_integrada) {
-      if (selectedCarroceria !== null) setSelectedCarroceria(null);
+    if (maxCarrocerias === 0) {
+      // Integrated body - no carroceria needed
+      setSelectedCarroceria(null);
+      setSelectedCarroceriasMulti([]);
+      setPesoPorCarroceria({});
       return;
     }
 
-    if (carroceriasEmpresa.length === 1 && !selectedCarroceria) {
-      setSelectedCarroceria(carroceriasEmpresa[0].id);
+    if (maxCarrocerias === 1) {
+      // Single trailer - reset multi
+      setSelectedCarroceriasMulti([]);
+      setPesoPorCarroceria({});
+      if (carroceriasEmpresa.length === 1 && !selectedCarroceria) {
+        setSelectedCarroceria(carroceriasEmpresa[0].id);
+      }
+    } else {
+      // Multi-trailer - reset single
+      setSelectedCarroceria(null);
     }
-  }, [selectedVeiculoData, selectedCarroceria, carroceriasEmpresa]);
+  }, [selectedVeiculoData, maxCarrocerias, carroceriasEmpresa]);
 
   // Capacidade baseada no equipamento selecionado (carroceria OU veículo integrado)
   const capacidadeEquipamentoTotal = useMemo(() => {
