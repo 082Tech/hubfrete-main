@@ -371,7 +371,7 @@ export default function CargasDisponiveis() {
     }
   }, [tiposVeiculoFrota, tiposVeiculoInitialized]);
 
-  // Fetch motoristas da transportadora com status de disponibilidade
+  // Fetch motoristas da transportadora
   const { data: motoristas = [] } = useQuery({
     queryKey: ['motoristas_transportadora', empresa?.id],
     queryFn: async () => {
@@ -379,19 +379,44 @@ export default function CargasDisponiveis() {
 
       const { data, error } = await supabase
         .from('motoristas')
-        .select(`
-          id,
-          nome_completo,
-          telefone,
-          foto_url,
-          veiculos(id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada),
-          carrocerias(id, placa, tipo, capacidade_kg)
-        `)
+        .select('id, nome_completo, telefone, foto_url')
         .eq('empresa_id', empresa.id as any)
         .eq('ativo', true);
 
       if (error) throw error;
       return (data || []) as Motorista[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Fetch ALL vehicles from company (company-wide, not driver-specific)
+  const { data: veiculosEmpresa = [] } = useQuery({
+    queryKey: ['veiculos_empresa_aceite', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('veiculos')
+        .select('id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada, foto_url')
+        .eq('empresa_id', empresa.id as any)
+        .eq('ativo', true);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Fetch ALL carrocerias from company
+  const { data: carroceriasEmpresa = [] } = useQuery({
+    queryKey: ['carrocerias_empresa_aceite', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('carrocerias')
+        .select('id, placa, tipo, capacidade_kg, marca, modelo, foto_url')
+        .eq('empresa_id', empresa.id as any)
+        .eq('ativo', true);
+      if (error) throw error;
+      return (data || []) as any[];
     },
     enabled: !!empresa?.id,
   });
@@ -887,22 +912,21 @@ export default function CargasDisponiveis() {
     setIsAcceptDialogOpen(true);
   };
 
-  // Get vehicles for selected driver
+  // Get selected driver data
   const selectedMotoristaData = useMemo(() => {
     return motoristas.find((m) => m.id === selectedMotorista);
   }, [motoristas, selectedMotorista]);
 
-  // Get selected vehicle data
+  // Get selected vehicle data (from company-wide list)
   const selectedVeiculoData = useMemo(() => {
-    return selectedMotoristaData?.veiculos?.find((v) => v.id === selectedVeiculo);
-  }, [selectedMotoristaData, selectedVeiculo]);
+    return veiculosEmpresa.find((v: any) => v.id === selectedVeiculo);
+  }, [veiculosEmpresa, selectedVeiculo]);
 
   // Derive if current vehicle is multi-trailer
   const isMultiTrailer = useMemo(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return false;
-    const v = selectedVeiculoData;
-    return v?.tipo === 'bitrem' || v?.tipo === 'rodotrem';
-  }, [selectedMotoristaData, selectedVeiculoData]);
+    if (!selectedVeiculoData) return false;
+    return selectedVeiculoData?.tipo === 'bitrem' || selectedVeiculoData?.tipo === 'rodotrem';
+  }, [selectedVeiculoData]);
 
   // Derived total requested weight
   const pesoTotalAlocado = useMemo(() => {
@@ -913,13 +937,13 @@ export default function CargasDisponiveis() {
   }, [isMultiTrailer, pesoPorCarroceria, pesoAlocadoInput]);
 
   const selectedCarroceriaData = useMemo(() => {
-    if (!selectedMotoristaData || !selectedCarroceria) return null;
-    return selectedMotoristaData.carrocerias?.find((c) => c.id === selectedCarroceria) || null;
-  }, [selectedMotoristaData, selectedCarroceria]);
+    if (!selectedCarroceria) return null;
+    return carroceriasEmpresa.find((c: any) => c.id === selectedCarroceria) || null;
+  }, [carroceriasEmpresa, selectedCarroceria]);
 
-  // Auto-select carroceria if only one is available for the selected driver/vehicle
+  // Auto-select carroceria if only one is available company-wide
   useEffect(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return;
+    if (!selectedVeiculoData) return;
 
     const veiculo = selectedVeiculoData as any;
     if (veiculo?.carroceria_integrada) {
@@ -927,25 +951,32 @@ export default function CargasDisponiveis() {
       return;
     }
 
-    if ((selectedMotoristaData.carrocerias?.length || 0) === 1 && !selectedCarroceria) {
-      setSelectedCarroceria(selectedMotoristaData.carrocerias[0].id);
+    if (carroceriasEmpresa.length === 1 && !selectedCarroceria) {
+      setSelectedCarroceria(carroceriasEmpresa[0].id);
     }
-  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceria]);
+  }, [selectedVeiculoData, selectedCarroceria, carroceriasEmpresa]);
 
   // Capacidade baseada no equipamento selecionado (carroceria OU veículo integrado)
   const capacidadeEquipamentoTotal = useMemo(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return 0;
+    if (!selectedVeiculoData) return 0;
 
     const veiculo = selectedVeiculoData as any;
     if (veiculo?.carroceria_integrada) {
       return veiculo.capacidade_kg || 0;
     }
 
+    if (isMultiTrailer && selectedCarroceriasMulti.length > 0) {
+      return selectedCarroceriasMulti.reduce((total, carId) => {
+        const carroceria = carroceriasEmpresa.find((c: any) => c.id === carId);
+        return total + (carroceria?.capacidade_kg || 0);
+      }, 0);
+    }
+
     return selectedCarroceriaData?.capacidade_kg || 0;
-  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceriaData]);
+  }, [selectedVeiculoData, selectedCarroceriaData, isMultiTrailer, selectedCarroceriasMulti, carroceriasEmpresa]);
 
   const capacidadeEquipamentoEmUso = useMemo(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return 0;
+    if (!selectedVeiculoData) return 0;
 
     const veiculo = selectedVeiculoData as any;
     if (veiculo?.carroceria_integrada) {
@@ -954,7 +985,7 @@ export default function CargasDisponiveis() {
 
     if (!selectedCarroceria) return 0;
     return pesoEmUsoPorCarroceria.get(selectedCarroceria) || 0;
-  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceria, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
+  }, [selectedVeiculoData, selectedCarroceria, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
 
   const capacidadeEquipamentoDisponivel = useMemo(() => {
     return Math.max(0, capacidadeEquipamentoTotal - capacidadeEquipamentoEmUso);
@@ -1020,16 +1051,19 @@ export default function CargasDisponiveis() {
       return;
     }
 
-    // Se o veículo NÃO tem carroceria integrada, é obrigatório definir a carroceria (quando existir)
+    // Se o veículo NÃO tem carroceria integrada, é obrigatório definir a carroceria
     const veiculo = selectedVeiculoData as any;
     if (!veiculo?.carroceria_integrada) {
-      const qtdeCarrocerias = selectedMotoristaData?.carrocerias?.length || 0;
-      if (qtdeCarrocerias > 0 && !selectedCarroceria) {
+      if (carroceriasEmpresa.length > 0 && !selectedCarroceria && !isMultiTrailer) {
         toast.error('Selecione a carroceria');
         return;
       }
-      if (qtdeCarrocerias === 0) {
-        toast.error('Motorista sem carroceria vinculada');
+      if (isMultiTrailer && selectedCarroceriasMulti.length === 0) {
+        toast.error('Selecione ao menos uma carroceria');
+        return;
+      }
+      if (carroceriasEmpresa.length === 0) {
+        toast.error('Nenhuma carroceria cadastrada na empresa');
         return;
       }
     }
@@ -1874,34 +1908,22 @@ export default function CargasDisponiveis() {
                             <CommandEmpty>Nenhum motorista encontrado.</CommandEmpty>
                             <CommandGroup>
                               {motoristas.map((motorista) => {
-                                // Capacidade de veículos com carroceria integrada
-                                const capacidadeVeiculosIntegrados = (motorista.veiculos as any[])
-                                  ?.filter((v) => v.carroceria_integrada)
-                                  ?.reduce((acc: number, v: any) => acc + (v.capacidade_kg || 0), 0) || 0;
-                                // Capacidade de carrocerias separadas
-                                const capacidadeCarrocerias = motorista.carrocerias?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
-                                const capacidadeTotal = capacidadeVeiculosIntegrados + capacidadeCarrocerias;
                                 const emUso = pesoEmUsoPorMotorista.get(motorista.id) || 0;
-                                const disponivel = Math.max(0, capacidadeTotal - emUso);
-                                const temCapacidade = disponivel > 0;
-                                const hasVeiculo = motorista.veiculos && motorista.veiculos.length > 0;
 
                                 return (
                                   <CommandItem
                                     key={motorista.id}
                                     value={`${motorista.nome_completo} ${motorista.id}`}
-                                    disabled={!hasVeiculo || (!temCapacidade && capacidadeTotal > 0)}
                                     onSelect={() => {
-                                      const value = motorista.id;
-                                      setSelectedMotorista(value);
-                                      // Auto-select the first vehicle if available
-                                      if (motorista?.veiculos && motorista.veiculos.length > 0) {
-                                        const veiculo = motorista.veiculos[0] as any;
+                                      setSelectedMotorista(motorista.id);
+                                      // Auto-select first company vehicle
+                                      if (veiculosEmpresa.length > 0) {
+                                        const veiculo = veiculosEmpresa[0] as any;
                                         setSelectedVeiculo(veiculo.id);
                                         if (veiculo.carroceria_integrada) {
                                           setSelectedCarroceria(null);
-                                        } else if (motorista.carrocerias && motorista.carrocerias.length > 0) {
-                                          setSelectedCarroceria(motorista.carrocerias[0].id);
+                                        } else if (carroceriasEmpresa.length > 0) {
+                                          setSelectedCarroceria(carroceriasEmpresa[0].id);
                                         } else {
                                           setSelectedCarroceria(null);
                                         }
@@ -1940,21 +1962,13 @@ export default function CargasDisponiveis() {
                                         </span>
                                       </div>
                                       <div className="ml-auto flex shrink-0 items-center justify-end">
-                                        {!hasVeiculo ? (
-                                          <Badge variant="outline" className="text-[10px] bg-muted truncate">
-                                            Sem Veículo
-                                          </Badge>
-                                        ) : capacidadeTotal === 0 ? (
-                                          <Badge variant="outline" className="text-[10px] text-destructive truncate">
-                                            Capac. 0
-                                          </Badge>
-                                        ) : temCapacidade ? (
-                                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary truncate">
-                                            {(disponivel / 1000).toFixed(1)}t disp.
+                                        {emUso > 0 ? (
+                                          <Badge variant="outline" className="text-[10px] text-muted-foreground truncate">
+                                            {(emUso / 1000).toFixed(1)}t em uso
                                           </Badge>
                                         ) : (
-                                          <Badge variant="outline" className="text-[10px] text-muted-foreground truncate">
-                                            Lotado
+                                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary truncate">
+                                            Disponível
                                           </Badge>
                                         )}
                                         <Check
@@ -1976,22 +1990,22 @@ export default function CargasDisponiveis() {
                   </div>
 
                   {/* Preview do Equipamento Vinculado */}
-                  {selectedMotorista && selectedMotoristaData && (
+                  {selectedMotorista && (
                     <div ref={equipmentSectionRef} className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
                       <h4 className="font-semibold text-sm flex items-center gap-2 text-primary">
                         <Truck className="w-4 h-4" />
-                        Equipamento Vinculado ao Motorista
+                        Equipamento da Empresa
                       </h4>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {/* Veículo */}
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">Veículo (Cavalo)</Label>
-                          {selectedMotoristaData.veiculos?.length === 0 ? (
+                          {veiculosEmpresa.length === 0 ? (
                             <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
                               <p className="text-xs text-destructive flex items-center gap-1">
                                 <AlertTriangle className="w-3.5 h-3.5" />
-                                Nenhum veículo vinculado
+                                Nenhum veículo cadastrado na empresa
                               </p>
                             </div>
                           ) : selectedVeiculoData ? (
