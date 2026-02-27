@@ -2226,7 +2226,11 @@ export default function CargasDisponiveis() {
                     </div>
                   )}
 
-                  {/* Viagem Selection - After driver/vehicle selection */}
+                  </div>)}
+
+                  {/* === STEP 3: Viagem + Peso + Confirmação === */}
+                  {wizardStep === 3 && (<div className="space-y-4">
+                  {/* Viagem Selection */}
                   {selectedMotorista && selectedVeiculo && (
                     <div ref={viagemSectionRef}>
                       <ViagemSelector
@@ -2238,8 +2242,8 @@ export default function CargasDisponiveis() {
                     </div>
                   )}
 
-                  {/* Weight Allocation - User can now input the weight */}
-                  {selectedVeiculo && selectedMotoristaData && (
+                  {/* Weight Allocation */}
+                  {selectedVeiculo && (
                     <div className="space-y-4">
                       {/* Input de Peso */}
                       <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-3">
