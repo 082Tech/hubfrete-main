@@ -771,7 +771,6 @@ export default function MinhaFrota() {
     return veiculos.filter(
       (v) =>
         v.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.motorista?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.marca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.modelo?.toLowerCase().includes(searchTerm.toLowerCase())
     );
