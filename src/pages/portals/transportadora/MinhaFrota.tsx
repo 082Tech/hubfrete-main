@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { MaskedInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
