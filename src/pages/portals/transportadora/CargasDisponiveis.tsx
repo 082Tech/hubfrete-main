@@ -956,7 +956,24 @@ export default function CargasDisponiveis() {
     }, 400);
   };
 
-  const handleAcceptClick = (carga: Carga) => {
+  // Close motorista dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        openMotoristaCombobox &&
+        motoristaDropdownRef.current &&
+        !motoristaDropdownRef.current.contains(e.target as Node) &&
+        motoristaInputRef.current &&
+        !motoristaInputRef.current.contains(e.target as Node)
+      ) {
+        setOpenMotoristaCombobox(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMotoristaCombobox]);
+
+
     setSelectedCarga(carga);
     setSelectedMotorista('');
     setSelectedVeiculo('');
