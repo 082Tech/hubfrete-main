@@ -2390,24 +2390,33 @@ export default function CargasDisponiveis() {
                                     <SelectValue placeholder="Selecione o veículo" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {veiculosEmpresa.map((v: any) => (
-                                      <SelectItem key={v.id} value={v.id}>
-                                        <div className="flex items-center gap-2">
-                                          {v.foto_url ? (
-                                            <img src={v.foto_url} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
-                                          ) : (
-                                            <div className="w-6 h-6 rounded bg-muted flex items-center justify-center shrink-0">
-                                              <Truck className="w-3 h-3 text-muted-foreground" />
-                                            </div>
-                                          )}
-                                          <Badge variant="outline" className="font-mono text-xs px-1.5 py-0">{v.placa}</Badge>
-                                          <span className="text-xs text-muted-foreground">{tipoVeiculoLabels[v.tipo] || v.tipo}</span>
-                                          {v.capacidade_kg && (
-                                            <span className="text-xs text-primary">{v.capacidade_kg.toLocaleString('pt-BR')} kg</span>
-                                          )}
-                                        </div>
-                                      </SelectItem>
-                                    ))}
+                                    {veiculosEmpresa.map((v: any) => {
+                                      const viagemVeiculo = viagemAtivaByVeiculo.get(v.id);
+                                      return (
+                                        <SelectItem key={v.id} value={v.id} disabled={!!viagemVeiculo}>
+                                          <div className="flex items-center gap-2">
+                                            {v.foto_url ? (
+                                              <img src={v.foto_url} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
+                                            ) : (
+                                              <div className="w-6 h-6 rounded bg-muted flex items-center justify-center shrink-0">
+                                                <Truck className="w-3 h-3 text-muted-foreground" />
+                                              </div>
+                                            )}
+                                            <Badge variant="outline" className="font-mono text-xs px-1.5 py-0">{v.placa}</Badge>
+                                            <span className="text-xs text-muted-foreground">{tipoVeiculoLabels[v.tipo] || v.tipo}</span>
+                                            {v.capacidade_kg && (
+                                              <span className="text-xs text-primary">{v.capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                                            )}
+                                            {viagemVeiculo && (
+                                              <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 ml-auto">
+                                                <Route className="w-3 h-3 mr-0.5" />
+                                                {viagemVeiculo.codigo}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </SelectItem>
+                                      );
+                                    })}
                                   </SelectContent>
                                 </Select>
                                 {selectedVeiculoData && (
