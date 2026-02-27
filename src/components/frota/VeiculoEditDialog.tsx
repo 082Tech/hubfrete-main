@@ -145,6 +145,25 @@ const tipoCarroceriaLabels: Record<string, string> = {
 function VinculosCarrocerias({ veiculoId }: { veiculoId: string; empresaId?: number }) {
   const queryClient = useQueryClient();
 
+  // Check if vehicle is on an active trip
+  const { data: viagemAtiva } = useQuery({
+    queryKey: ['viagem_ativa_veiculo', veiculoId],
+    queryFn: async () => {
+      if (!veiculoId) return null;
+      const { data } = await supabase
+        .from('viagens')
+        .select('id, codigo, status')
+        .eq('veiculo_id', veiculoId)
+        .in('status', ['aguardando', 'programada', 'em_andamento'])
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!veiculoId,
+  });
+
+  const emViagem = !!viagemAtiva;
+
   // Fetch carrocerias linked to this vehicle
   const { data: vinculadas = [], isLoading: loadingVinculadas } = useQuery({
     queryKey: ['carrocerias_vinculadas', veiculoId],
