@@ -23,12 +23,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import {
   Package,
   MapPin,
@@ -480,6 +482,37 @@ export default function CargasDisponiveis() {
         }));
         map.set(v.motorista_id, { ...v, totalPeso, entregasResumo: entregas });
       }
+    });
+    return map;
+  }, [viagensAtivas]);
+
+  const viagemAtivaByVeiculo = useMemo(() => {
+    const map = new Map<string, any>();
+    viagensAtivas.forEach((v: any) => {
+      if (v.veiculo_id && !map.has(v.veiculo_id)) {
+        map.set(v.veiculo_id, v);
+      }
+    });
+    return map;
+  }, [viagensAtivas]);
+
+  const viagemAtivaByCarroceria = useMemo(() => {
+    const map = new Map<string, any>();
+    viagensAtivas.forEach((v: any) => {
+      if (v.carroceria_id && !map.has(v.carroceria_id)) {
+        map.set(v.carroceria_id, v);
+      }
+
+      (v.viagem_entregas || []).forEach((ve: any) => {
+        const alocadas = ve.entregas?.carrocerias_alocadas;
+        if (Array.isArray(alocadas)) {
+          alocadas.forEach((item: any) => {
+            if (item?.carroceria_id && !map.has(item.carroceria_id)) {
+              map.set(item.carroceria_id, v);
+            }
+          });
+        }
+      });
     });
     return map;
   }, [viagensAtivas]);
@@ -1277,6 +1310,12 @@ export default function CargasDisponiveis() {
     }).format(value);
   };
 
+  const getCapacityIndicatorClass = (percentualUso: number) => {
+    if (percentualUso > 90) return 'bg-destructive';
+    if (percentualUso >= 70) return 'bg-chart-4';
+    return 'bg-primary';
+  };
+
   // Calculate total freight for a cargo
   const calcularFreteTotal = (carga: Carga) => {
     if (carga.tipo_precificacao === 'fixo' && carga.valor_frete_fixo) {
@@ -1768,8 +1807,8 @@ export default function CargasDisponiveis() {
 
         {/* Accept Dialog */}
         <Dialog open={isAcceptDialogOpen} onOpenChange={(open) => { setIsAcceptDialogOpen(open); if (!open) setWizardStep(1); }}>
-          <DialogContent className="max-w-2xl max-h-[90vh]">
-            <DialogHeader>
+          <DialogContent className="w-[96vw] max-w-5xl h-[92vh] sm:h-[88vh] p-0 gap-0 flex flex-col">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b">
               <DialogTitle>Aceitar Carga</DialogTitle>
               <DialogDescription>
                 {wizardStep === 1 && 'Etapa 1 de 3 — Detalhes da carga'}
@@ -1785,8 +1824,8 @@ export default function CargasDisponiveis() {
             </DialogHeader>
 
             {selectedCarga && (
-              <ScrollArea className="max-h-[60vh] pr-4">
-                <div className="space-y-4 mb-4">
+              <ScrollArea className="flex-1 min-h-0 pr-4 overflow-visible">
+                <div className="space-y-4 mb-4 px-6">
                   {/* === STEP 1: Detalhes da Carga === */}
                   {wizardStep === 1 && (<div className="space-y-4">
                   {/* Header with Logo and Basic Info */}
@@ -2730,7 +2769,7 @@ export default function CargasDisponiveis() {
               </ScrollArea>
             )}
 
-            <DialogFooter>
+            <DialogFooter className="px-6 py-4 border-t">
               {wizardStep > 1 && (
                 <Button variant="outline" onClick={() => setWizardStep(s => s - 1)}>
                   Voltar
