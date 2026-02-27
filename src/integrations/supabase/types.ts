@@ -411,6 +411,7 @@ export type Database = {
           tipo: string
           updated_at: string | null
           updated_by: string | null
+          veiculo_id: string | null
         }
         Insert: {
           ano?: number | null
@@ -431,6 +432,7 @@ export type Database = {
           tipo: string
           updated_at?: string | null
           updated_by?: string | null
+          veiculo_id?: string | null
         }
         Update: {
           ano?: number | null
@@ -451,6 +453,7 @@ export type Database = {
           tipo?: string
           updated_at?: string | null
           updated_by?: string | null
+          veiculo_id?: string | null
         }
         Relationships: [
           {
@@ -465,6 +468,13 @@ export type Database = {
             columns: ["motorista_id"]
             isOneToOne: false
             referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carrocerias_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
             referencedColumns: ["id"]
           },
         ]
