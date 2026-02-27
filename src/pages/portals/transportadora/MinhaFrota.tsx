@@ -1024,24 +1024,6 @@ export default function MinhaFrota() {
             )}
           </td>
         );
-      case 'motorista':
-        return (
-          <td className="p-4 align-middle">
-            {carroceria.motorista ? (
-              <div className="flex items-center gap-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src={carroceria.motorista.foto_url || undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                    {getDriverInitials(carroceria.motorista.nome_completo)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-nowrap">{carroceria.motorista.nome_completo}</span>
-              </div>
-            ) : (
-              <span className="text-muted-foreground">-</span>
-            )}
-          </td>
-        );
       case 'status':
         return (
           <td className="p-4 align-middle">
