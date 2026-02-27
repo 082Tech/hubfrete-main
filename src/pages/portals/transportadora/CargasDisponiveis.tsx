@@ -2005,7 +2005,7 @@ export default function CargasDisponiveis() {
                             <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
                               <p className="text-xs text-destructive flex items-center gap-1">
                                 <AlertTriangle className="w-3.5 h-3.5" />
-                                Nenhum veículo vinculado
+                                Nenhum veículo cadastrado na empresa
                               </p>
                             </div>
                           ) : selectedVeiculoData ? (
