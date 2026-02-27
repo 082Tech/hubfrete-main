@@ -2829,7 +2829,7 @@ export default function CargasDisponiveis() {
                             <img src={(selectedCarroceriaData as any).foto_url} alt="" className="w-10 h-10 rounded object-cover shrink-0 border" />
                           ) : (
                             <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0 border">
-                              <Layers className="w-4 h-4 text-muted-foreground" />
+                              <Container className="w-4 h-4 text-muted-foreground" />
                             </div>
                           )}
                           <div>
