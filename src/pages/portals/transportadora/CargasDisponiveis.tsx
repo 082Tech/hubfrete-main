@@ -2768,7 +2768,7 @@ export default function CargasDisponiveis() {
               </ScrollArea>
             )}
 
-            <DialogFooter>
+            <DialogFooter className="px-6 py-4 border-t">
               {wizardStep > 1 && (
                 <Button variant="outline" onClick={() => setWizardStep(s => s - 1)}>
                   Voltar
