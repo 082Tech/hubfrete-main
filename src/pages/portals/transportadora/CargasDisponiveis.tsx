@@ -19,19 +19,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -234,6 +221,9 @@ export default function CargasDisponiveis() {
   const [pesoPorCarroceria, setPesoPorCarroceria] = useState<Record<string, number>>({});
 
   const [openMotoristaCombobox, setOpenMotoristaCombobox] = useState(false);
+  const [motoristaSearchText, setMotoristaSearchText] = useState('');
+  const motoristaInputRef = useRef<HTMLInputElement>(null);
+  const motoristaDropdownRef = useRef<HTMLDivElement>(null);
 
   const [selectedViagemId, setSelectedViagemId] = useState<string | null>(null);
   const [isViagemBlocked, setIsViagemBlocked] = useState(false);
@@ -457,7 +447,51 @@ export default function CargasDisponiveis() {
     enabled: !!empresa?.id,
   });
 
-  // Fetch nome do usuário logado para registrar eventos
+  // Fetch viagens ativas para mostrar status do motorista
+  const { data: viagensAtivas = [] } = useQuery({
+    queryKey: ['viagens_ativas_empresa', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('viagens')
+        .select('id, codigo, status, motorista_id, veiculo_id, carroceria_id, started_at, viagem_entregas(entrega_id, entregas(peso_alocado_kg, carga_id, cargas(descricao, endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado))))')
+        .in('status', ['aguardando', 'em_andamento', 'programada'] as any[]);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Map motorista_id -> viagem ativa (para badge de status)
+  const viagemAtivaByMotorista = useMemo(() => {
+    const map = new Map<string, any>();
+    viagensAtivas.forEach((v: any) => {
+      if (v.motorista_id && !map.has(v.motorista_id)) {
+        // Calculate total weight in this trip
+        const totalPeso = (v.viagem_entregas || []).reduce((sum: number, ve: any) => {
+          return sum + (ve.entregas?.peso_alocado_kg || 0);
+        }, 0);
+        const entregas = (v.viagem_entregas || []).map((ve: any) => ({
+          peso: ve.entregas?.peso_alocado_kg || 0,
+          descricao: ve.entregas?.cargas?.descricao || '',
+          destino: ve.entregas?.cargas?.endereco_destino
+            ? `${ve.entregas.cargas.endereco_destino.cidade}/${ve.entregas.cargas.endereco_destino.estado}`
+            : '',
+        }));
+        map.set(v.motorista_id, { ...v, totalPeso, entregasResumo: entregas });
+      }
+    });
+    return map;
+  }, [viagensAtivas]);
+
+  // Motoristas filtrados pela busca de texto
+  const motoristasFiltrados = useMemo(() => {
+    if (!motoristaSearchText.trim()) return motoristas;
+    const search = motoristaSearchText.toLowerCase();
+    return motoristas.filter(m => m.nome_completo.toLowerCase().includes(search));
+  }, [motoristas, motoristaSearchText]);
+
+
   const { data: usuarioLogado } = useQuery({
     queryKey: ['usuario_logado_nome', user?.id],
     queryFn: async () => {
@@ -922,7 +956,24 @@ export default function CargasDisponiveis() {
     }, 400);
   };
 
-  const handleAcceptClick = (carga: Carga) => {
+  // Close motorista dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        openMotoristaCombobox &&
+        motoristaDropdownRef.current &&
+        !motoristaDropdownRef.current.contains(e.target as Node) &&
+        motoristaInputRef.current &&
+        !motoristaInputRef.current.contains(e.target as Node)
+      ) {
+        setOpenMotoristaCombobox(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMotoristaCombobox]);
+
+
     setSelectedCarga(carga);
     setSelectedMotorista('');
     setSelectedVeiculo('');
@@ -1922,130 +1973,206 @@ export default function CargasDisponiveis() {
 
                   {/* === STEP 2: Equipamento + Motorista === */}
                   {wizardStep === 2 && (<div className="space-y-4">
-                  {/* Driver Selection */}
+                  {/* Driver Selection - Free text input + dropdown */}
                   <div className="space-y-2 px-1">
                     <Label>Motorista</Label>
-                    <Popover open={openMotoristaCombobox} onOpenChange={setOpenMotoristaCombobox}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openMotoristaCombobox}
-                          className="w-full justify-between mt-1 h-12"
+                    <div className="relative">
+                      {/* Selected motorista display OR search input */}
+                      {selectedMotorista && !openMotoristaCombobox ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenMotoristaCombobox(true);
+                            setMotoristaSearchText('');
+                            setTimeout(() => motoristaInputRef.current?.focus(), 50);
+                          }}
+                          className="flex items-center gap-3 w-full h-12 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent/50 transition-colors"
                         >
-                          {selectedMotorista ? (
-                            <div className="flex items-center gap-3 w-full overflow-hidden">
-                              {motoristas.find((m) => m.id === selectedMotorista)?.foto_url ? (
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={motoristas.find((m) => m.id === selectedMotorista)?.foto_url as string} />
-                                  <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                                </Avatar>
-                              ) : (
-                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                  <User className="h-4 w-4 text-primary" />
+                          {(() => {
+                            const mot = motoristas.find(m => m.id === selectedMotorista);
+                            const viagem = viagemAtivaByMotorista.get(selectedMotorista);
+                            if (!mot) return null;
+                            return (
+                              <>
+                                {mot.foto_url ? (
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={mot.foto_url} />
+                                    <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                                  </Avatar>
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                    <User className="h-4 w-4 text-primary" />
+                                  </div>
+                                )}
+                                <div className="flex flex-col items-start truncate overflow-hidden flex-1">
+                                  <span className="font-medium text-sm truncate w-full text-left">{mot.nome_completo}</span>
                                 </div>
-                              )}
-                              <div className="flex flex-col items-start truncate overflow-hidden">
-                                <span className="font-medium text-sm truncate w-full text-left">
-                                  {motoristas.find((m) => m.id === selectedMotorista)?.nome_completo}
-                                </span>
-                                <span className="text-xs text-muted-foreground truncate w-full text-left">
-                                  ID: {motoristas.find((m) => m.id === selectedMotorista)?.id.substring(0, 8)}
-                                </span>
+                                {viagem ? (
+                                  <Badge variant="outline" className="text-[10px] shrink-0 border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">
+                                    <Route className="w-3 h-3 mr-1" />
+                                    {viagem.codigo}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] shrink-0 bg-primary/10 text-primary border-primary/30">
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Disponível
+                                  </Badge>
+                                )}
+                                <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                              </>
+                            );
+                          })()}
+                        </button>
+                      ) : (
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            ref={motoristaInputRef}
+                            placeholder="Buscar motorista por nome..."
+                            value={motoristaSearchText}
+                            onChange={(e) => {
+                              setMotoristaSearchText(e.target.value);
+                              if (!openMotoristaCombobox) setOpenMotoristaCombobox(true);
+                            }}
+                            onFocus={() => setOpenMotoristaCombobox(true)}
+                            className="pl-9 h-12"
+                          />
+                        </div>
+                      )}
+
+                      {/* Dropdown list */}
+                      {openMotoristaCombobox && (
+                        <div
+                          ref={motoristaDropdownRef}
+                          className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-md shadow-lg overflow-hidden"
+                        >
+                          <ScrollArea className="max-h-[300px]">
+                            {motoristasFiltrados.length === 0 ? (
+                              <div className="p-4 text-center text-sm text-muted-foreground">
+                                Nenhum motorista encontrado.
                               </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground font-normal">Selecione o motorista...</span>
-                          )}
-                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="Buscar motorista..." />
-                          <CommandList className="max-h-[250px] overflow-y-auto">
-                            <CommandEmpty>Nenhum motorista encontrado.</CommandEmpty>
-                            <CommandGroup>
-                              {motoristas.map((motorista) => {
-                                const emUso = pesoEmUsoPorMotorista.get(motorista.id) || 0;
+                            ) : (
+                              <div className="p-1">
+                                {motoristasFiltrados.map((motorista) => {
+                                  const viagem = viagemAtivaByMotorista.get(motorista.id);
+                                  const isSelected = selectedMotorista === motorista.id;
 
-                                return (
-                                  <CommandItem
-                                    key={motorista.id}
-                                    value={`${motorista.nome_completo} ${motorista.id}`}
-                                    onSelect={() => {
-                                      setSelectedMotorista(motorista.id);
-                                      // Auto-select first company vehicle
-                                      if (veiculosEmpresa.length > 0) {
-                                        const veiculo = veiculosEmpresa[0] as any;
-                                        setSelectedVeiculo(veiculo.id);
-                                        if (veiculo.carroceria_integrada) {
-                                          setSelectedCarroceria(null);
-                                        } else if (carroceriasEmpresa.length > 0) {
-                                          setSelectedCarroceria(carroceriasEmpresa[0].id);
-                                        } else {
-                                          setSelectedCarroceria(null);
-                                        }
-                                      } else {
-                                        setSelectedVeiculo('');
-                                        setSelectedCarroceria(null);
-                                      }
-                                      setPesoAlocadoInput(0);
-                                      setPesoPorCarroceria({});
-                                      setSelectedCarroceriasMulti([]);
-                                      setSelectedViagemId(null);
-                                      setIsViagemBlocked(false);
-                                      setOpenMotoristaCombobox(false);
+                                  return (
+                                    <button
+                                      key={motorista.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedMotorista(motorista.id);
+                                        setMotoristaSearchText('');
+                                        setOpenMotoristaCombobox(false);
+                                        setPesoAlocadoInput(0);
+                                        setPesoPorCarroceria({});
+                                        setSelectedCarroceriasMulti([]);
+                                        setSelectedViagemId(null);
+                                        setIsViagemBlocked(false);
+                                        setTimeout(() => {
+                                          equipmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }, 100);
+                                      }}
+                                      className={cn(
+                                        "flex flex-col w-full rounded-md px-3 py-2.5 text-sm hover:bg-accent transition-colors text-left",
+                                        isSelected && "bg-accent"
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-3 w-full">
+                                        {motorista.foto_url ? (
+                                          <Avatar className="h-8 w-8 shrink-0">
+                                            <AvatarImage src={motorista.foto_url} />
+                                            <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                                          </Avatar>
+                                        ) : (
+                                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                            <User className="h-4 w-4 text-primary" />
+                                          </div>
+                                        )}
+                                        <div className="flex flex-col overflow-hidden flex-1">
+                                          <span className="font-medium text-sm truncate">{motorista.nome_completo}</span>
+                                          {motorista.telefone && (
+                                            <span className="text-[10px] text-muted-foreground truncate">{motorista.telefone}</span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          {viagem ? (
+                                            <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">
+                                              <Route className="w-3 h-3 mr-1" />
+                                              Em Viagem
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                                              Disponível
+                                            </Badge>
+                                          )}
+                                          {isSelected && <Check className="h-4 w-4 text-primary" />}
+                                        </div>
+                                      </div>
 
-                                      // Scroll to equipment section after driver selection
-                                      setTimeout(() => {
-                                        equipmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                      }, 100);
-                                    }}
-                                  >
-                                    <div className="flex items-center gap-3 w-full">
-                                      {motorista.foto_url ? (
-                                        <Avatar className="h-8 w-8">
-                                          <AvatarImage src={motorista.foto_url} />
-                                          <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                                        </Avatar>
-                                      ) : (
-                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                          <User className="h-4 w-4 text-primary" />
+                                      {/* Trip summary when driver has active trip */}
+                                      {viagem && (
+                                        <div className="ml-11 mt-1.5 p-2 bg-muted/50 rounded border border-border/50 space-y-1">
+                                          <div className="flex items-center gap-2 text-[11px] font-medium text-foreground">
+                                            <Route className="w-3 h-3 text-amber-600" />
+                                            {viagem.codigo} — {viagem.status === 'em_andamento' ? 'Em andamento' : viagem.status === 'aguardando' ? 'Aguardando' : 'Programada'}
+                                          </div>
+                                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                            <Weight className="w-3 h-3" />
+                                            {(viagem.totalPeso / 1000).toFixed(1)}t carregado
+                                            <span className="text-muted-foreground/60">•</span>
+                                            {viagem.entregasResumo?.length || 0} entrega(s)
+                                          </div>
+                                          {viagem.entregasResumo?.slice(0, 2).map((e: any, i: number) => (
+                                            <div key={i} className="text-[10px] text-muted-foreground truncate pl-5">
+                                              → {e.destino}{e.descricao ? ` (${e.descricao.substring(0, 30)}${e.descricao.length > 30 ? '...' : ''})` : ''}
+                                            </div>
+                                          ))}
+                                          {(viagem.entregasResumo?.length || 0) > 2 && (
+                                            <div className="text-[10px] text-muted-foreground/60 pl-5">
+                                              +{viagem.entregasResumo.length - 2} mais...
+                                            </div>
+                                          )}
                                         </div>
                                       )}
-                                      <div className="flex flex-col overflow-hidden">
-                                        <span className="font-medium text-sm truncate">{motorista.nome_completo}</span>
-                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
-                                          ID: {motorista.id.substring(0, 8)}
-                                        </span>
-                                      </div>
-                                      <div className="ml-auto flex shrink-0 items-center justify-end">
-                                        {emUso > 0 ? (
-                                          <Badge variant="outline" className="text-[10px] text-muted-foreground truncate">
-                                            {(emUso / 1000).toFixed(1)}t em uso
-                                          </Badge>
-                                        ) : (
-                                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary truncate">
-                                            Disponível
-                                          </Badge>
-                                        )}
-                                        <Check
-                                          className={cn(
-                                            "ml-2 h-4 w-4 text-primary",
-                                            selectedMotorista === motorista.id ? "opacity-100" : "opacity-0"
-                                          )}
-                                        />
-                                      </div>
-                                    </div>
-                                  </CommandItem>
-                                );
-                              })}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </ScrollArea>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Selected driver trip info card */}
+                    {selectedMotorista && !openMotoristaCombobox && (() => {
+                      const viagem = viagemAtivaByMotorista.get(selectedMotorista);
+                      if (!viagem) return null;
+                      return (
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-md border border-amber-200 dark:border-amber-800/40 space-y-1.5">
+                          <div className="flex items-center gap-2 text-xs font-medium text-amber-800 dark:text-amber-300">
+                            <Route className="w-3.5 h-3.5" />
+                            Viagem ativa: {viagem.codigo}
+                          </div>
+                          <div className="text-[11px] text-amber-700 dark:text-amber-400 space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <Weight className="w-3 h-3" />
+                              {(viagem.totalPeso / 1000).toFixed(1)}t carregado • {viagem.entregasResumo?.length || 0} entrega(s)
+                            </div>
+                            {viagem.entregasResumo?.slice(0, 3).map((e: any, i: number) => (
+                              <div key={i} className="truncate pl-4.5">
+                                → {e.destino} — {(e.peso / 1000).toFixed(1)}t
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-amber-600 dark:text-amber-500 italic">
+                            Este motorista pode receber novas entregas na viagem existente.
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Preview do Equipamento Vinculado */}
