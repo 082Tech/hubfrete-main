@@ -165,11 +165,7 @@ interface Carroceria {
   renavam: string | null;
   ativo: boolean;
   foto_url: string | null;
-  motorista: {
-    id: string;
-    nome_completo: string;
-    foto_url: string | null;
-  } | null;
+  veiculo_id: string | null;
 }
 
 const tipoVeiculoLabels: Record<string, string> = {
