@@ -2289,7 +2289,34 @@ export default function MinhaFrota() {
                             <div className="flex gap-1 mt-3 flex-wrap">
                               {veiculoAtrelado && (<Badge variant="outline" className="text-xs gap-1"><Car className="w-3 h-3" />{veiculoAtrelado.placa}</Badge>)}
                               {carroceria.motorista && (<Badge variant="outline" className="text-xs gap-1"><User className="w-3 h-3" />{carroceria.motorista.nome_completo}</Badge>)}
+                              {carroceriaTripMap[carroceria.id] && (
+                                <Badge className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/20" variant="outline">
+                                  <Container className="w-3 h-3 mr-0.5" />Em Viagem • {carroceriaTripMap[carroceria.id].codigo}
+                                </Badge>
+                              )}
                             </div>
+                            {/* Capacity Progress */}
+                            {carroceria.capacidade_kg && carroceria.capacidade_kg > 0 && (
+                              <div className="mt-3 space-y-1">
+                                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                  <span className="flex items-center gap-1"><Weight className="w-3 h-3" />Capacidade</span>
+                                  <span>
+                                    {((pesoAlocadoPorCarroceria[carroceria.id] || 0) / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}t / {(carroceria.capacidade_kg / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}t
+                                  </span>
+                                </div>
+                                <Progress
+                                  value={Math.min(100, ((pesoAlocadoPorCarroceria[carroceria.id] || 0) / carroceria.capacidade_kg) * 100)}
+                                  className="h-1.5"
+                                  indicatorClassName={
+                                    ((pesoAlocadoPorCarroceria[carroceria.id] || 0) / carroceria.capacidade_kg) > 0.9
+                                      ? 'bg-destructive'
+                                      : ((pesoAlocadoPorCarroceria[carroceria.id] || 0) / carroceria.capacidade_kg) > 0.7
+                                        ? 'bg-chart-4'
+                                        : 'bg-chart-2'
+                                  }
+                                />
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                       );
