@@ -371,7 +371,7 @@ export default function CargasDisponiveis() {
     }
   }, [tiposVeiculoFrota, tiposVeiculoInitialized]);
 
-  // Fetch motoristas da transportadora com status de disponibilidade
+  // Fetch motoristas da transportadora
   const { data: motoristas = [] } = useQuery({
     queryKey: ['motoristas_transportadora', empresa?.id],
     queryFn: async () => {
@@ -379,19 +379,44 @@ export default function CargasDisponiveis() {
 
       const { data, error } = await supabase
         .from('motoristas')
-        .select(`
-          id,
-          nome_completo,
-          telefone,
-          foto_url,
-          veiculos(id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada),
-          carrocerias(id, placa, tipo, capacidade_kg)
-        `)
+        .select('id, nome_completo, telefone, foto_url')
         .eq('empresa_id', empresa.id as any)
         .eq('ativo', true);
 
       if (error) throw error;
       return (data || []) as Motorista[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Fetch ALL vehicles from company (company-wide, not driver-specific)
+  const { data: veiculosEmpresa = [] } = useQuery({
+    queryKey: ['veiculos_empresa_aceite', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('veiculos')
+        .select('id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada, foto_url')
+        .eq('empresa_id', empresa.id as any)
+        .eq('ativo', true);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Fetch ALL carrocerias from company
+  const { data: carroceriasEmpresa = [] } = useQuery({
+    queryKey: ['carrocerias_empresa_aceite', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('carrocerias')
+        .select('id, placa, tipo, capacidade_kg, marca, modelo, foto_url')
+        .eq('empresa_id', empresa.id as any)
+        .eq('ativo', true);
+      if (error) throw error;
+      return (data || []) as any[];
     },
     enabled: !!empresa?.id,
   });
