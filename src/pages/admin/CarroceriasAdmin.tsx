@@ -66,15 +66,10 @@ type Carroceria = {
   foto_url: string | null;
   fotos_urls: string[] | null;
   empresa_id: number | null;
-  motorista_id: string | null;
   created_at: string | null;
   empresa?: {
     id: number;
     nome: string | null;
-  };
-  motorista?: {
-    id: string;
-    nome_completo: string;
   };
 };
 

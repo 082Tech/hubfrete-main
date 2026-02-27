@@ -2308,7 +2308,7 @@ export default function MinhaFrota() {
           carroceria={viewingCarroceria}
           open={!!viewingCarroceria}
           onOpenChange={(open) => !open && setViewingCarroceria(null)}
-          veiculoAtrelado={viewingCarroceria?.motorista ? veiculos.find(v => v.motorista?.id === viewingCarroceria.motorista?.id) : null}
+          veiculoAtrelado={viewingCarroceria?.veiculo_id ? veiculos.find(v => v.id === viewingCarroceria.veiculo_id) : null}
         />
 
         {/* Edit Dialogs */}

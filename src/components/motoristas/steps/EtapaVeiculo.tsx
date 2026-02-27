@@ -34,8 +34,8 @@ export function EtapaVeiculo({
   const docVeiculoInputRef = useRef<HTMLInputElement>(null);
   const enderecoProprietarioInputRef = useRef<HTMLInputElement>(null);
 
-  const veiculosSemMotorista = veiculosDisponiveis.filter(v => !v.motorista_id);
-  const carroceriasSemMotorista = carroceriasDisponiveis.filter(c => !c.motorista_id);
+  const veiculosSemMotorista = veiculosDisponiveis;
+  const carroceriasSemMotorista = carroceriasDisponiveis;
 
   const selectedVeiculo = veiculosDisponiveis.find(v => v.id === formData.veiculo_id);
   const selectedCarroceria = carroceriasDisponiveis.find(c => c.id === formData.carroceria_id);

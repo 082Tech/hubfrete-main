@@ -65,14 +65,9 @@ type Veiculo = {
   ativo: boolean;
   created_at: string;
   empresa_id: number | null;
-  motorista_id: string | null;
   empresa?: {
     id: number;
     nome: string | null;
-  };
-  motorista?: {
-    id: string;
-    nome_completo: string;
   };
 };
 
