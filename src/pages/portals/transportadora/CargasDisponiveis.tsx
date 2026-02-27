@@ -460,7 +460,51 @@ export default function CargasDisponiveis() {
     enabled: !!empresa?.id,
   });
 
-  // Fetch nome do usuário logado para registrar eventos
+  // Fetch viagens ativas para mostrar status do motorista
+  const { data: viagensAtivas = [] } = useQuery({
+    queryKey: ['viagens_ativas_empresa', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('viagens')
+        .select('id, codigo, status, motorista_id, veiculo_id, carroceria_id, started_at, viagem_entregas(entrega_id, entregas(peso_alocado_kg, carga_id, cargas(descricao, endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado))))')
+        .in('status', ['aguardando', 'em_andamento', 'programada'] as any[]);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Map motorista_id -> viagem ativa (para badge de status)
+  const viagemAtivaByMotorista = useMemo(() => {
+    const map = new Map<string, any>();
+    viagensAtivas.forEach((v: any) => {
+      if (v.motorista_id && !map.has(v.motorista_id)) {
+        // Calculate total weight in this trip
+        const totalPeso = (v.viagem_entregas || []).reduce((sum: number, ve: any) => {
+          return sum + (ve.entregas?.peso_alocado_kg || 0);
+        }, 0);
+        const entregas = (v.viagem_entregas || []).map((ve: any) => ({
+          peso: ve.entregas?.peso_alocado_kg || 0,
+          descricao: ve.entregas?.cargas?.descricao || '',
+          destino: ve.entregas?.cargas?.endereco_destino
+            ? `${ve.entregas.cargas.endereco_destino.cidade}/${ve.entregas.cargas.endereco_destino.estado}`
+            : '',
+        }));
+        map.set(v.motorista_id, { ...v, totalPeso, entregasResumo: entregas });
+      }
+    });
+    return map;
+  }, [viagensAtivas]);
+
+  // Motoristas filtrados pela busca de texto
+  const motoristasFiltrados = useMemo(() => {
+    if (!motoristaSearchText.trim()) return motoristas;
+    const search = motoristaSearchText.toLowerCase();
+    return motoristas.filter(m => m.nome_completo.toLowerCase().includes(search));
+  }, [motoristas, motoristaSearchText]);
+
+
   const { data: usuarioLogado } = useQuery({
     queryKey: ['usuario_logado_nome', user?.id],
     queryFn: async () => {
