@@ -194,6 +194,24 @@ const getEmpresaInitials = (nome: string | undefined | null): string => {
   return (words[0][0] + words[1][0]).toUpperCase();
 };
 
+/**
+ * Retorna quantas carrocerias (semirreboques) um tipo de veículo aceita.
+ * 0 = carroceria integrada ao chassi (VUC, Toco, Truck, 3/4)
+ * 1 = 1 semirreboque (Carreta, Carreta LS, Vanderléia)
+ * 2 = 2 semirreboques (Bitrem, Bitruck)
+ * 3 = 3 semirreboques (Rodotrem)
+ */
+function getMaxCarrocerias(tipoVeiculo: string | undefined | null, carroceriaIntegrada?: boolean): number {
+  if (carroceriaIntegrada) return 0;
+  if (!tipoVeiculo) return 1;
+  const tipo = tipoVeiculo.toLowerCase();
+  if (['vuc', 'tres_quartos', 'toco', 'truck'].includes(tipo)) return 0;
+  if (['carreta', 'carreta_ls', 'vanderleia'].includes(tipo)) return 1;
+  if (['bitrem', 'bitruck'].includes(tipo)) return 2;
+  if (['rodotrem'].includes(tipo)) return 3;
+  return 1;
+}
+
 // Leaflet icons and functions removed - now using Google Maps components
 
 export default function CargasDisponiveis() {
