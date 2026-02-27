@@ -988,20 +988,19 @@ export default function CargasDisponiveis() {
   const capacidadeEquipamentoTotal = useMemo(() => {
     if (!selectedVeiculoData) return 0;
 
-    const veiculo = selectedVeiculoData as any;
-    if (veiculo?.carroceria_integrada) {
-      return veiculo.capacidade_kg || 0;
+    if (maxCarrocerias === 0) {
+      return (selectedVeiculoData as any).capacidade_kg || 0;
     }
 
-    if (isMultiTrailer && selectedCarroceriasMulti.length > 0) {
-      return selectedCarroceriasMulti.reduce((total, carId) => {
+    if (maxCarrocerias >= 2 && selectedCarroceriasMulti.length > 0) {
+      return selectedCarroceriasMulti.filter(Boolean).reduce((total, carId) => {
         const carroceria = carroceriasEmpresa.find((c: any) => c.id === carId);
         return total + (carroceria?.capacidade_kg || 0);
       }, 0);
     }
 
     return selectedCarroceriaData?.capacidade_kg || 0;
-  }, [selectedVeiculoData, selectedCarroceriaData, isMultiTrailer, selectedCarroceriasMulti, carroceriasEmpresa]);
+  }, [selectedVeiculoData, selectedCarroceriaData, maxCarrocerias, selectedCarroceriasMulti, carroceriasEmpresa]);
 
   const capacidadeEquipamentoEmUso = useMemo(() => {
     if (!selectedVeiculoData) return 0;
