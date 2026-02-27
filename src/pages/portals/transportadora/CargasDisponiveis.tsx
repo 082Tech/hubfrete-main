@@ -958,18 +958,25 @@ export default function CargasDisponiveis() {
 
   // Capacidade baseada no equipamento selecionado (carroceria OU veículo integrado)
   const capacidadeEquipamentoTotal = useMemo(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return 0;
+    if (!selectedVeiculoData) return 0;
 
     const veiculo = selectedVeiculoData as any;
     if (veiculo?.carroceria_integrada) {
       return veiculo.capacidade_kg || 0;
     }
 
+    if (isMultiTrailer && selectedCarroceriasMulti.length > 0) {
+      return selectedCarroceriasMulti.reduce((total, carId) => {
+        const carroceria = carroceriasEmpresa.find((c: any) => c.id === carId);
+        return total + (carroceria?.capacidade_kg || 0);
+      }, 0);
+    }
+
     return selectedCarroceriaData?.capacidade_kg || 0;
-  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceriaData]);
+  }, [selectedVeiculoData, selectedCarroceriaData, isMultiTrailer, selectedCarroceriasMulti, carroceriasEmpresa]);
 
   const capacidadeEquipamentoEmUso = useMemo(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return 0;
+    if (!selectedVeiculoData) return 0;
 
     const veiculo = selectedVeiculoData as any;
     if (veiculo?.carroceria_integrada) {
@@ -978,7 +985,7 @@ export default function CargasDisponiveis() {
 
     if (!selectedCarroceria) return 0;
     return pesoEmUsoPorCarroceria.get(selectedCarroceria) || 0;
-  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceria, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
+  }, [selectedVeiculoData, selectedCarroceria, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
 
   const capacidadeEquipamentoDisponivel = useMemo(() => {
     return Math.max(0, capacidadeEquipamentoTotal - capacidadeEquipamentoEmUso);
