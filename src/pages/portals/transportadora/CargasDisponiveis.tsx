@@ -413,15 +413,15 @@ export default function CargasDisponiveis() {
     enabled: !!empresa?.id,
   });
 
-  // Fetch ALL carrocerias from company
+  // Fetch ALL carrocerias from company (including veiculo_id for auto-linking)
   const { data: carroceriasEmpresa = [] } = useQuery({
     queryKey: ['carrocerias_empresa_aceite', empresa?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('carrocerias')
-        .select('id, placa, tipo, capacidade_kg, marca, modelo, foto_url')
-        .eq('empresa_id', empresa.id as any)
+        .select('id, placa, tipo, capacidade_kg, marca, modelo, foto_url, veiculo_id')
+        .eq('empresa_id', empresa.id)
         .eq('ativo', true);
       if (error) throw error;
       return (data || []) as any[];
