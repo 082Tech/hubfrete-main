@@ -29,7 +29,13 @@ import {
   MapPin,
   User,
   CreditCard,
+  Container,
+  Link2,
+  X,
+  Plus,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
