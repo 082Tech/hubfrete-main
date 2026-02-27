@@ -780,7 +780,6 @@ export default function MinhaFrota() {
     return carrocerias.filter(
       (c) =>
         c.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.motorista?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.marca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.modelo?.toLowerCase().includes(searchTerm.toLowerCase())
     );
