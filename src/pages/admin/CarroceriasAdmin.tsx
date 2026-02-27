@@ -478,10 +478,6 @@ export default function CarroceriasAdmin() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Motorista</p>
-                  <p>{selectedCarroceria.motorista?.nome_completo || '-'}</p>
-                </div>
-                <div>
                   <p className="text-sm text-muted-foreground">Empresa</p>
                   <p>{selectedCarroceria.empresa?.nome || '-'}</p>
                 </div>

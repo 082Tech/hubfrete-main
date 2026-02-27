@@ -454,10 +454,6 @@ export default function VeiculosAdmin() {
                   <p>{selectedVeiculo.capacidade_kg ? `${(selectedVeiculo.capacidade_kg / 1000).toFixed(1)} ton` : '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Motorista</p>
-                  <p>{selectedVeiculo.motorista?.nome_completo || '-'}</p>
-                </div>
-                <div>
                   <p className="text-sm text-muted-foreground">Empresa</p>
                   <p>{selectedVeiculo.empresa?.nome || '-'}</p>
                 </div>

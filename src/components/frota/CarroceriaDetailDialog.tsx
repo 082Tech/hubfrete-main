@@ -129,24 +129,6 @@ export function CarroceriaDetailDialog({ carroceria, open, onOpenChange, veiculo
             </>
           )}
 
-          {/* Motorista */}
-          {carroceria.motorista && (
-            <>
-              <Separator />
-              <div className="flex items-center gap-3">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={carroceria.motorista.foto_url || undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                    {getInitials(carroceria.motorista.nome_completo)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-xs text-muted-foreground">Motorista</p>
-                  <p className="text-sm font-medium">{carroceria.motorista.nome_completo}</p>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </DialogContent>
     </Dialog>
