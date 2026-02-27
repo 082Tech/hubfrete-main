@@ -1,117 +1,86 @@
 
-# Reestruturar Alocacao de Equipamento: Vinculos Flexiveis por Viagem
+
+# Plano: Completar Schema Fiscal para API Focus NFe
 
 ## Resumo
 
-Mudar o modelo de alocacao de equipamento de "vinculo fixo motorista-veiculo-carroceria" para "alocacao por viagem/carga". Isso envolve 3 grandes mudancas:
+Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
 
-1. **Remover vinculos fixos** do dialog de motoristas
-2. **Redesenhar o dialog de aceite de carga** em etapas (wizard) com selecao independente de veiculo, carroceria e motorista
-3. **Criar tela de Painel de Frota** para visibilidade operacional (quem esta com o que, disponibilidade)
+## Situacao Atual
 
----
+Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
 
-## Parte 1: Remover Vinculos Fixos
+## Alteracoes Necessarias
 
-### O que muda
-- Remover a opcao "Gerenciar Vinculos" do dropdown de acoes na tela de Motoristas (`Motoristas.tsx`)
-- Remover o componente `MotoristaVinculosDialog.tsx` (ou manter apenas como consulta historica)
-- Na tela de Motoristas, a coluna "Equipamentos" passa a mostrar o equipamento da **viagem ativa** do motorista (se houver), em vez do vinculo fixo
-- O cadastro de motorista (`MotoristaFormDialog`) nao exigira mais vinculo com veiculo/carroceria nas etapas de cadastro
+### Migracao Unica
 
-### Importante
-- As colunas `motorista_id` nas tabelas `veiculos` e `carrocerias` continuam existindo no banco, porem deixam de ser gerenciadas como "vinculo permanente". Elas passam a refletir a **ultima alocacao** ou podem ser ignoradas em favor dos dados da viagem.
+Adicionar duas colunas a tabela `config_fiscal`:
 
----
+| Coluna | Tipo | Default | Finalidade |
+|--------|------|---------|------------|
+| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
+| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
 
-## Parte 2: Redesenhar Dialog de Aceite de Carga (Wizard em Etapas)
+### Atualizacao do Frontend
 
-### Fluxo atual (tudo em uma tela so)
-O dialog atual mostra detalhes da carga + selecao de motorista + equipamento vinculado ao motorista + viagem + peso, tudo em um scroll longo.
+Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
+- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
+- Campo numerico para o percentual da base de calculo do ICMS
 
-### Novo fluxo (wizard em 3-4 etapas)
+### Atualizacao dos Tipos TypeScript
 
-**Etapa 1 - Detalhes da Carga**
-- Mostra todas as informacoes da carga (origem, destino, mapa, requisitos, peso, frete)
-- Botao "Proximo" para avancar
-
-**Etapa 2 - Selecao de Equipamento**
-- Selecao de Veiculo: lista TODOS os veiculos ativos da empresa (nao apenas os vinculados a um motorista)
-  - Mostra capacidade disponivel (descontando entregas ativas naquele veiculo)
-  - Filtra automaticamente por requisitos da carga (tipo de veiculo)
-- Selecao de Carroceria: se o veiculo nao tem carroceria integrada, lista TODAS as carrocerias ativas da empresa
-  - Filtra por requisitos da carga (tipo de carroceria)
-  - Suporte multi-carroceria para Bitrem/Rodotrem (ja existe)
-- Botao "Proximo"
-
-**Etapa 3 - Selecao de Motorista**
-- Lista todos os motoristas ativos da empresa
-- Mostra status: disponivel, em viagem, etc.
-- Combobox com busca (reutilizar componente existente)
-- Selecao de viagem (ViagemSelector existente)
-- Botao "Proximo"
-
-**Etapa 4 - Confirmacao**
-- Resumo visual: Carga + Veiculo + Carroceria + Motorista + Peso + Frete
-- Input de peso a carregar
-- Input de previsao de coleta
-- Simulacao de frete e peso restante (ja existe)
-- Botao "Confirmar Aceite"
-
-### Mudancas tecnicas
-- Fetch de veiculos e carrocerias passa a buscar TODOS da empresa (nao filtra por `motorista_id`)
-- Calculo de capacidade disponivel usa `pesoEmUsoPorVeiculo` e `pesoEmUsoPorCarroceria` (ja existem)
-- Validacao: veiculo e carroceria devem estar disponiveis (nao em manutencao, etc.)
+Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
 
 ---
 
-## Parte 3: Nova Tela - Painel de Frota (Alocacao Operacional)
+## Secao Tecnica
 
-### Onde fica
-- Nova rota no portal da Transportadora (ex: `/transportadora/painel-frota`)
-- Novo item no sidebar, pode ficar proximo a "Minha Frota"
+### SQL da Migracao
 
-### O que mostra
+```sql
+ALTER TABLE public.config_fiscal
+  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
+  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
 
-**Visao principal: Tabela/Grid de Veiculos**
-- Cada veiculo com: placa, tipo, foto, capacidade total
-- Motorista atual (da viagem ativa, se houver)
-- Carroceria(s) atual(is) (da viagem ativa)
-- Status: Disponivel / Em Viagem / Em Manutencao
-- % de ocupacao (peso alocado / capacidade)
-- Barra de progresso visual da ocupacao
+COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
+  IS '1 = Simples Nacional, 3 = Regime Normal';
+COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
+  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
+```
 
-**Filtros**
-- Por status (disponivel, em viagem, manutencao)
-- Por tipo de veiculo
-- Busca por placa
+### Mapeamento Completo: Banco -> Payload API
 
-**Dados vem de**
-- Tabela `veiculos` + `carrocerias` (cadastro)
-- Tabela `viagens` (viagens ativas com `motorista_id`, `veiculo_id`, `carroceria_id`)
-- Tabela `entregas` (peso alocado por veiculo/carroceria)
+Com essas 2 colunas adicionadas, o mapeamento fica completo:
 
----
+**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
+- CNPJ: `empresas.cnpj_matriz`
+- IE: `empresas.inscricao_estadual`
+- Razao Social: `empresas.razao_social`
+- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
+- Municipio IBGE: `filiais.codigo_municipio_ibge`
+- UF: `filiais.estado`
+- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
 
-## Detalhes Tecnicos
+**Fiscal**: `config_fiscal`
+- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
+- Natureza: `natureza_operacao`
+- Serie/Numero: `serie_cte` / `proximo_numero_cte`
+- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
+- Ambiente: `ambiente`
 
-### Arquivos a criar
-- `src/pages/portals/transportadora/PainelFrota.tsx` - nova tela de painel
+**Remetente/Destinatario**: `cargas` + `enderecos_carga`
+**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
+**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
 
-### Arquivos a modificar
-- `src/pages/portals/transportadora/CargasDisponiveis.tsx` - refatorar dialog de aceite para wizard em etapas, buscar veiculos/carrocerias da empresa inteira
-- `src/pages/portals/transportadora/Motoristas.tsx` - remover opcao "Gerenciar Vinculos" do dropdown, atualizar coluna "Equipamentos"
-- `src/components/portals/PortalSidebar.tsx` - adicionar link para Painel de Frota
-- `src/App.tsx` - adicionar rota `/transportadora/painel-frota`
-- `src/components/motoristas/MotoristaFormDialog.tsx` - remover etapas obrigatorias de vinculo veiculo/carroceria no cadastro
+### Campos Derivados por Logica (sem banco)
+- `data_emissao`: gerado no momento da emissao
+- `tipo_documento`: sempre `0` (Normal)
+- `modal`: sempre `01` (Rodoviario)
+- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
 
-### Sem mudancas no banco de dados
-- As tabelas `veiculos` e `carrocerias` ja possuem `empresa_id` para filtrar por empresa
-- A tabela `viagens` ja possui `veiculo_id`, `carroceria_id`, `motorista_id` para rastrear alocacao por viagem
-- Nenhuma migration necessaria
+### Sequencia de Implementacao
 
-### Ordem de implementacao
-1. Modificar o dialog de aceite para wizard em etapas (maior impacto)
-2. Limpar vinculos fixos da tela de Motoristas
-3. Criar a tela Painel de Frota
-4. Adicionar rota e sidebar
+1. Aplicar migracao SQL (1 migration)
+2. Atualizar types.ts
+3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
+

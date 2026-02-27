@@ -415,9 +415,6 @@ export default function Motoristas() {
                 <DropdownMenuItem onClick={() => handleEdit(motorista)}>
                   <Edit className="w-4 h-4 mr-2" />Editar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleVinculos(motorista)}>
-                  <Link2 className="w-4 h-4 mr-2" />Gerenciar Vínculos
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => toggleAtivo.mutate({ id: motorista.id, ativo: !isAtivo })}>
                   {isAtivo ? <XCircle className="w-4 h-4 mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
@@ -487,9 +484,6 @@ export default function Motoristas() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleEdit(motorista)}>
                   <Edit className="w-4 h-4 mr-2" />Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleVinculos(motorista)}>
-                  <Link2 className="w-4 h-4 mr-2" />Gerenciar Vínculos
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => toggleAtivo.mutate({ id: motorista.id, ativo: !isAtivo })}>
