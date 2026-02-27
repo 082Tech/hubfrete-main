@@ -2164,7 +2164,7 @@ export default function CargasDisponiveis() {
                                       <SelectValue placeholder="Selecione a carroceria" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {selectedMotoristaData.carrocerias?.map((carroceria) => (
+                                      {carroceriasEmpresa.map((carroceria: any) => (
                                         <SelectItem key={carroceria.id} value={carroceria.id}>
                                           <div className="flex items-center gap-2">
                                             <span className="font-medium">{carroceria.placa}</span>
