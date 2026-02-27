@@ -323,7 +323,7 @@ export default function MinhaFrota() {
           renavam,
           ativo,
           foto_url,
-          motorista:motoristas(id, nome_completo, foto_url)
+          veiculo_id
         `)
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });

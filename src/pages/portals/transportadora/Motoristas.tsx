@@ -156,7 +156,7 @@ export default function Motoristas() {
       if (!empresa?.id) return [];
       const { data, error } = await supabase
         .from('carrocerias')
-        .select('id, placa, tipo, marca, modelo, capacidade_kg, capacidade_m3, motorista_id')
+        .select('id, placa, tipo, marca, modelo, capacidade_kg, capacidade_m3')
         .eq('empresa_id', empresa.id)
         .eq('ativo', true)
         .order('placa');

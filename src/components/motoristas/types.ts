@@ -122,7 +122,7 @@ export interface CarroceriaSimples {
   modelo: string | null;
   capacidade_kg: number | null;
   capacidade_m3: number | null;
-  motorista_id: string | null;
+  
 }
 
 export interface AjudanteSimples {

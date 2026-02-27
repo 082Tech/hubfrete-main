@@ -102,8 +102,7 @@ export default function VeiculosAdmin() {
         .from('veiculos')
         .select(`
           *,
-          empresa:empresas(id, nome),
-          motorista:motoristas(id, nome_completo)
+          empresa:empresas(id, nome)
         `)
         .order('created_at', { ascending: false });
 

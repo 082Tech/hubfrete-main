@@ -119,8 +119,7 @@ export default function CarroceriasAdmin() {
         .from('carrocerias')
         .select(`
           *,
-          empresa:empresas(id, nome),
-          motorista:motoristas(id, nome_completo)
+          empresa:empresas(id, nome)
         `)
         .order('created_at', { ascending: false });
 

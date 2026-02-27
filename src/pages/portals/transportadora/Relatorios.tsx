@@ -99,7 +99,7 @@ export default function TransportadoraRelatorios() {
 
       const { data, error } = await supabase
         .from('veiculos')
-        .select('id, placa, tipo, ativo, motorista_id')
+        .select('id, placa, tipo, ativo')
         .eq('empresa_id', empresa.id);
 
       if (error) throw error;
