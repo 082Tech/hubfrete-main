@@ -2183,7 +2183,7 @@ export default function CargasDisponiveis() {
                                   </Select>
                                   {/* Show selected carroceria details */}
                                   {selectedCarroceria && (() => {
-                                    const carroceria = selectedMotoristaData.carrocerias?.find(c => c.id === selectedCarroceria);
+                                    const carroceria = carroceriasEmpresa.find((c: any) => c.id === selectedCarroceria);
                                     if (!carroceria) return null;
                                     return (
                                       <div className="p-2 bg-background rounded-md border space-y-1">
