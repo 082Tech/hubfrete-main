@@ -141,6 +141,154 @@ const tipoCarroceriaLabels: Record<string, string> = {
   hopper: 'Hopper',
 };
 
+// Sub-component: Manage linked carrocerias
+function VinculosCarrocerias({ veiculoId }: { veiculoId: string; empresaId?: number }) {
+  const queryClient = useQueryClient();
+
+  // Fetch carrocerias linked to this vehicle
+  const { data: vinculadas = [], isLoading: loadingVinculadas } = useQuery({
+    queryKey: ['carrocerias_vinculadas', veiculoId],
+    queryFn: async () => {
+      if (!veiculoId) return [];
+      const { data, error } = await (supabase as any)
+        .from('carrocerias')
+        .select('id, placa, tipo, capacidade_kg, marca, modelo')
+        .eq('veiculo_id', veiculoId)
+        .eq('ativo', true);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!veiculoId,
+  });
+
+  // Fetch available (unlinked) carrocerias from the same empresa
+  const { data: disponiveis = [] } = useQuery({
+    queryKey: ['carrocerias_disponiveis_vincular', veiculoId],
+    queryFn: async () => {
+      if (!veiculoId) return [];
+      // Get empresa_id from the vehicle
+      const { data: veic } = await (supabase as any)
+        .from('veiculos')
+        .select('empresa_id')
+        .eq('id', veiculoId)
+        .single();
+      if (!veic?.empresa_id) return [];
+      const { data, error } = await (supabase as any)
+        .from('carrocerias')
+        .select('id, placa, tipo, capacidade_kg')
+        .eq('empresa_id', veic.empresa_id)
+        .eq('ativo', true)
+        .is('veiculo_id', null);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!veiculoId,
+  });
+
+  const handleVincular = async (carroceriaId: string) => {
+    const { error } = await (supabase as any)
+      .from('carrocerias')
+      .update({ veiculo_id: veiculoId })
+      .eq('id', carroceriaId);
+    if (error) { toast.error('Erro ao vincular'); return; }
+    toast.success('Carroceria vinculada!');
+    queryClient.invalidateQueries({ queryKey: ['carrocerias_vinculadas', veiculoId] });
+    queryClient.invalidateQueries({ queryKey: ['carrocerias_disponiveis_vincular', veiculoId] });
+    queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
+  };
+
+  const handleDesvincular = async (carroceriaId: string) => {
+    const { error } = await (supabase as any)
+      .from('carrocerias')
+      .update({ veiculo_id: null })
+      .eq('id', carroceriaId);
+    if (error) { toast.error('Erro ao desvincular'); return; }
+    toast.success('Carroceria desvinculada!');
+    queryClient.invalidateQueries({ queryKey: ['carrocerias_vinculadas', veiculoId] });
+    queryClient.invalidateQueries({ queryKey: ['carrocerias_disponiveis_vincular', veiculoId] });
+    queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-sm font-medium text-primary">
+        <Link2 className="w-4 h-4" />
+        Carrocerias Vinculadas
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Carrocerias que compõem este veículo. No aceite de carga, elas serão selecionadas automaticamente.
+      </p>
+
+      {/* Linked list */}
+      {loadingVinculadas ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
+        </div>
+      ) : vinculadas.length === 0 ? (
+        <div className="p-3 bg-muted/30 rounded-md border border-border text-center">
+          <p className="text-xs text-muted-foreground">Nenhuma carroceria vinculada</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {vinculadas.map((c: any) => (
+            <div key={c.id} className="flex items-center justify-between p-2.5 bg-background rounded-md border border-border">
+              <div className="flex items-center gap-3">
+                <Container className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <span className="font-mono font-semibold text-sm">{c.placa}</span>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    {tipoCarroceriaLabels[c.tipo] || c.tipo}
+                  </span>
+                </div>
+                {c.capacidade_kg && (
+                  <Badge variant="outline" className="text-xs">
+                    {c.capacidade_kg.toLocaleString('pt-BR')} kg
+                  </Badge>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive hover:text-destructive"
+                onClick={() => handleDesvincular(c.id)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add available */}
+      {disponiveis.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-xs">Adicionar carroceria</Label>
+          <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
+            {disponiveis.map((c: any) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => handleVincular(c.id)}
+                className="flex items-center justify-between w-full p-2 rounded-md border border-dashed border-border hover:bg-accent transition-colors text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-mono text-sm">{c.placa}</span>
+                  <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[c.tipo] || c.tipo}</span>
+                </div>
+                {c.capacidade_kg && (
+                  <span className="text-xs text-primary">{c.capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface VeiculoEditDialogProps {
   veiculo: Veiculo | null;
   open: boolean;
