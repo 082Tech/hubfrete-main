@@ -405,7 +405,6 @@ export type Database = {
           id: string
           marca: string | null
           modelo: string | null
-          motorista_id: string | null
           placa: string
           renavam: string | null
           tipo: string
@@ -426,7 +425,6 @@ export type Database = {
           id?: string
           marca?: string | null
           modelo?: string | null
-          motorista_id?: string | null
           placa: string
           renavam?: string | null
           tipo: string
@@ -447,7 +445,6 @@ export type Database = {
           id?: string
           marca?: string | null
           modelo?: string | null
-          motorista_id?: string | null
           placa?: string
           renavam?: string | null
           tipo?: string
@@ -461,13 +458,6 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "carrocerias_motorista_id_fkey"
-            columns: ["motorista_id"]
-            isOneToOne: false
-            referencedRelation: "motoristas"
             referencedColumns: ["id"]
           },
           {
@@ -2759,7 +2749,6 @@ export type Database = {
           capacidade_kg: number | null
           capacidade_m3: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
-          carroceria_id: string | null
           carroceria_integrada: boolean | null
           comprovante_endereco_proprietario_url: string | null
           created_at: string | null
@@ -2771,7 +2760,6 @@ export type Database = {
           id: string
           marca: string | null
           modelo: string | null
-          motorista_id: string | null
           placa: string
           proprietario_cpf_cnpj: string | null
           proprietario_nome: string | null
@@ -2793,7 +2781,6 @@ export type Database = {
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
-          carroceria_id?: string | null
           carroceria_integrada?: boolean | null
           comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
@@ -2805,7 +2792,6 @@ export type Database = {
           id?: string
           marca?: string | null
           modelo?: string | null
-          motorista_id?: string | null
           placa: string
           proprietario_cpf_cnpj?: string | null
           proprietario_nome?: string | null
@@ -2827,7 +2813,6 @@ export type Database = {
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria?: Database["public"]["Enums"]["tipo_carroceria"]
-          carroceria_id?: string | null
           carroceria_integrada?: boolean | null
           comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
@@ -2839,7 +2824,6 @@ export type Database = {
           id?: string
           marca?: string | null
           modelo?: string | null
-          motorista_id?: string | null
           placa?: string
           proprietario_cpf_cnpj?: string | null
           proprietario_nome?: string | null
@@ -2856,24 +2840,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "veiculos_carroceria_id_fkey"
-            columns: ["carroceria_id"]
-            isOneToOne: false
-            referencedRelation: "carrocerias"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "veiculos_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "veiculos_motorista_id_fkey"
-            columns: ["motorista_id"]
-            isOneToOne: false
-            referencedRelation: "motoristas"
             referencedColumns: ["id"]
           },
         ]

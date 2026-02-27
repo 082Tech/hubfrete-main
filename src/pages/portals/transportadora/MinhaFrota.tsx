@@ -148,11 +148,6 @@ interface Veiculo {
   rastreador: boolean;
   foto_url: string | null;
   carroceria_integrada: boolean;
-  motorista: {
-    id: string;
-    nome_completo: string;
-    foto_url: string | null;
-  } | null;
 }
 
 // Tipos de veículo que tipicamente têm carroceria integrada
@@ -170,11 +165,7 @@ interface Carroceria {
   renavam: string | null;
   ativo: boolean;
   foto_url: string | null;
-  motorista: {
-    id: string;
-    nome_completo: string;
-    foto_url: string | null;
-  } | null;
+  veiculo_id: string | null;
 }
 
 const tipoVeiculoLabels: Record<string, string> = {
@@ -301,8 +292,7 @@ export default function MinhaFrota() {
           seguro_ativo,
           rastreador,
           foto_url,
-          carroceria_integrada,
-          motorista:motoristas(id, nome_completo, foto_url)
+          carroceria_integrada
         `)
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });
@@ -333,7 +323,7 @@ export default function MinhaFrota() {
           renavam,
           ativo,
           foto_url,
-          motorista:motoristas(id, nome_completo, foto_url)
+          veiculo_id
         `)
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });

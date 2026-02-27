@@ -6,8 +6,8 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Truck, Shield, Gauge, User, Container, Weight, Boxes, FileText } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Truck, Shield, Gauge, Container, Weight, Boxes, FileText } from 'lucide-react';
+
 
 const tipoVeiculoLabels: Record<string, string> = {
   truck: 'Truck', toco: 'Toco', tres_quartos: '3/4', vuc: 'VUC',
@@ -43,7 +43,7 @@ interface Veiculo {
   rastreador: boolean;
   foto_url: string | null;
   carroceria_integrada: boolean;
-  motorista: { id: string; nome_completo: string; foto_url: string | null } | null;
+  
 }
 
 interface Props {
@@ -54,9 +54,6 @@ interface Props {
 
 export function VeiculoDetailDialog({ veiculo, open, onOpenChange }: Props) {
   if (!veiculo) return null;
-
-  const getInitials = (name: string) =>
-    name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -147,24 +144,6 @@ export function VeiculoDetailDialog({ veiculo, open, onOpenChange }: Props) {
             )}
           </div>
 
-          {/* Motorista */}
-          {veiculo.motorista && (
-            <>
-              <Separator />
-              <div className="flex items-center gap-3">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={veiculo.motorista.foto_url || undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                    {getInitials(veiculo.motorista.nome_completo)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-xs text-muted-foreground">Motorista</p>
-                  <p className="text-sm font-medium">{veiculo.motorista.nome_completo}</p>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </DialogContent>
     </Dialog>
