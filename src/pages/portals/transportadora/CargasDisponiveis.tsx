@@ -234,6 +234,9 @@ export default function CargasDisponiveis() {
   const [pesoPorCarroceria, setPesoPorCarroceria] = useState<Record<string, number>>({});
 
   const [openMotoristaCombobox, setOpenMotoristaCombobox] = useState(false);
+  const [motoristaSearchText, setMotoristaSearchText] = useState('');
+  const motoristaInputRef = useRef<HTMLInputElement>(null);
+  const motoristaDropdownRef = useRef<HTMLDivElement>(null);
 
   const [selectedViagemId, setSelectedViagemId] = useState<string | null>(null);
   const [isViagemBlocked, setIsViagemBlocked] = useState(false);
