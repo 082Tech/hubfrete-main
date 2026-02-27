@@ -2341,7 +2341,7 @@ export default function CargasDisponiveis() {
                           </div>
                         </div>
 
-                        {isMultiTrailer && selectedCarroceriasMulti.length > 0 ? (
+                        {maxCarrocerias >= 2 && selectedCarroceriasMulti.filter(Boolean).length > 0 ? (
                           <div className="space-y-2">
                             <p className="text-sm font-semibold">Resumo do Split (Total: {pesoTotalAlocado.toLocaleString('pt-BR')} kg)</p>
                             {selectedCarga?.permite_fracionado === false && (
@@ -2367,7 +2367,7 @@ export default function CargasDisponiveis() {
                               min={pesoMinimoRequirido}
                               max={pesoMaximoAlocar}
                               className="text-lg font-bold"
-                              disabled={isMultiTrailer}
+                              disabled={maxCarrocerias >= 2}
                             />
                             {pesoMinimoRequirido > 0 ? (
                               <p className="text-xs text-muted-foreground">
