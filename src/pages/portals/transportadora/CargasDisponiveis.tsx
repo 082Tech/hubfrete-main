@@ -2118,7 +2118,7 @@ export default function CargasDisponiveis() {
                           ref={motoristaDropdownRef}
                           className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-md shadow-lg overflow-hidden"
                         >
-                          <ScrollArea className="max-h-[300px]">
+                          <div className="max-h-[300px] overflow-y-auto">
                             {motoristasFiltrados.length === 0 ? (
                               <div className="p-4 text-center text-sm text-muted-foreground">
                                 Nenhum motorista encontrado.
