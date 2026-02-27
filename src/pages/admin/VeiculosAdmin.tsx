@@ -341,7 +341,7 @@ export default function VeiculosAdmin() {
                         }
                       </TableCell>
                       <TableCell>
-                        {veiculo.motorista?.nome_completo || '-'}
+                        -
                       </TableCell>
                       <TableCell>
                         {veiculo.empresa?.nome || '-'}
