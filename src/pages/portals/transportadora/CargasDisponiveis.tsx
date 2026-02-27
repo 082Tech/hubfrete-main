@@ -1806,8 +1806,8 @@ export default function CargasDisponiveis() {
 
         {/* Accept Dialog */}
         <Dialog open={isAcceptDialogOpen} onOpenChange={(open) => { setIsAcceptDialogOpen(open); if (!open) setWizardStep(1); }}>
-          <DialogContent className="max-w-2xl max-h-[90vh]">
-            <DialogHeader>
+          <DialogContent className="w-[96vw] max-w-5xl h-[92vh] sm:h-[88vh] p-0 gap-0 flex flex-col">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b">
               <DialogTitle>Aceitar Carga</DialogTitle>
               <DialogDescription>
                 {wizardStep === 1 && 'Etapa 1 de 3 — Detalhes da carga'}
@@ -1823,7 +1823,7 @@ export default function CargasDisponiveis() {
             </DialogHeader>
 
             {selectedCarga && (
-              <ScrollArea className="max-h-[60vh] pr-4">
+              <ScrollArea className="flex-1 min-h-0 pr-4 overflow-visible">
                 <div className="space-y-4 mb-4">
                   {/* === STEP 1: Detalhes da Carga === */}
                   {wizardStep === 1 && (<div className="space-y-4">
