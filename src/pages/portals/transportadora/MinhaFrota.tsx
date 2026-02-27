@@ -980,9 +980,7 @@ export default function MinhaFrota() {
 
   // Render carroceria cell based on column ID
   const renderCarroceriaCell = (columnId: string, carroceria: Carroceria) => {
-    const veiculoAtrelado = veiculos.find(
-      (v) => v.motorista?.id === carroceria.motorista?.id && carroceria.motorista?.id
-    );
+    const veiculoAtrelado = carroceria.veiculo_id ? veiculos.find(v => v.id === carroceria.veiculo_id) : null;
     switch (columnId) {
       case 'placa':
         return (
