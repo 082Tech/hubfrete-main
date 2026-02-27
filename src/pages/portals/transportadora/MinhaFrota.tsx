@@ -292,8 +292,7 @@ export default function MinhaFrota() {
           seguro_ativo,
           rastreador,
           foto_url,
-          carroceria_integrada,
-          motorista:motoristas(id, nome_completo, foto_url)
+          carroceria_integrada
         `)
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });
