@@ -344,6 +344,82 @@ export default function MinhaFrota() {
     enabled: !!empresa?.id,
   });
 
+  // Fetch active viagens (to know which vehicles/carrocerias are on trips)
+  const { data: viagensAtivas = [] } = useQuery({
+    queryKey: ['viagens_ativas_frota', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('viagens')
+        .select('id, codigo, status, veiculo_id, carroceria_id')
+        .in('status', ['aguardando', 'programada', 'em_andamento']);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Fetch peso alocado from entregas for active viagens
+  const { data: entregasAlocadas = [] } = useQuery({
+    queryKey: ['entregas_alocadas_frota', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('entregas')
+        .select('id, veiculo_id, carroceria_id, peso_alocado_kg, carrocerias_alocadas, status')
+        .not('status', 'in', '("entregue","cancelada")')
+        .not('veiculo_id', 'is', null);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Build lookup maps for trip status and weight usage
+  const veiculoTripMap = useMemo(() => {
+    const map: Record<string, { codigo: string; status: string }> = {};
+    viagensAtivas.forEach((v) => {
+      if (v.veiculo_id) map[v.veiculo_id] = { codigo: v.codigo, status: v.status };
+    });
+    return map;
+  }, [viagensAtivas]);
+
+  const carroceriaTripMap = useMemo(() => {
+    const map: Record<string, { codigo: string; status: string }> = {};
+    viagensAtivas.forEach((v) => {
+      if (v.carroceria_id) map[v.carroceria_id] = { codigo: v.codigo, status: v.status };
+    });
+    return map;
+  }, [viagensAtivas]);
+
+  // Calculate peso alocado per veículo (for integrated bodywork) and per carroceria
+  const pesoAlocadoPorVeiculo = useMemo(() => {
+    const map: Record<string, number> = {};
+    entregasAlocadas.forEach((e) => {
+      if (e.veiculo_id && e.peso_alocado_kg) {
+        map[e.veiculo_id] = (map[e.veiculo_id] || 0) + e.peso_alocado_kg;
+      }
+    });
+    return map;
+  }, [entregasAlocadas]);
+
+  const pesoAlocadoPorCarroceria = useMemo(() => {
+    const map: Record<string, number> = {};
+    entregasAlocadas.forEach((e) => {
+      // Check carrocerias_alocadas JSON for detailed per-carroceria weights
+      if (e.carrocerias_alocadas && Array.isArray(e.carrocerias_alocadas)) {
+        (e.carrocerias_alocadas as Array<{ carroceria_id: string; peso_kg: number }>).forEach((ca) => {
+          if (ca.carroceria_id && ca.peso_kg) {
+            map[ca.carroceria_id] = (map[ca.carroceria_id] || 0) + ca.peso_kg;
+          }
+        });
+      } else if (e.carroceria_id && e.peso_alocado_kg) {
+        map[e.carroceria_id] = (map[e.carroceria_id] || 0) + e.peso_alocado_kg;
+      }
+    });
+    return map;
+  }, [entregasAlocadas]);
+
   // Handle photo selection for new vehicle/carroceria
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
