@@ -2827,7 +2827,6 @@ export default function CargasDisponiveis() {
                             Equipamento selecionado não possui capacidade disponível
                           </p>
                         )}
-                      </div>
                     </div>
                   )}
 
