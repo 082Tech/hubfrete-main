@@ -54,7 +54,7 @@ import {
   ChevronRight,
   RotateCcw,
   Link2,
-  Lock,
+  
   Unlink,
 } from 'lucide-react';
 import {
@@ -2312,7 +2312,7 @@ export default function MinhaFrota() {
               <div>
                 <p className="text-sm font-medium text-foreground">Vínculos Veículo ↔ Carroceria</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Vincule carrocerias a veículos para agilizar o aceite de cargas. Veículos com carroceria integrada não precisam de vínculo. Equipamentos em viagem ativa ficam bloqueados.
+                  Vincule carrocerias a veículos para agilizar o aceite de cargas. Veículos com carroceria integrada não precisam de vínculo.
                 </p>
               </div>
             </div>
@@ -2323,7 +2323,6 @@ export default function MinhaFrota() {
                   .filter(v => !v.carroceria_integrada && v.ativo)
                   .map((veiculo) => {
                     const linkedCarrocerias = carrocerias.filter(c => c.veiculo_id === veiculo.id);
-                    const isInTrip = !!veiculoTripMap[veiculo.id];
                     // Determine max trailer slots based on vehicle type
                     const maxSlots = ['bitrem', 'rodotrem'].includes(veiculo.tipo) ? 2 : ['vanderleia'].includes(veiculo.tipo) ? 3 : 1;
                     const availableCarrocerias = carrocerias.filter(c => !c.veiculo_id && c.ativo);
@@ -2347,11 +2346,6 @@ export default function MinhaFrota() {
                               </div>
                             </div>
                             <div className="flex items-center gap-1">
-                              {isInTrip && (
-                                <Badge className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/20 gap-1" variant="outline">
-                                  <Lock className="w-3 h-3" />Em Viagem
-                                </Badge>
-                              )}
                               <Badge variant="outline" className="text-[10px]">
                                 {linkedCarrocerias.length}/{maxSlots} slot{maxSlots > 1 ? 's' : ''}
                               </Badge>
@@ -2363,9 +2357,7 @@ export default function MinhaFrota() {
                           {/* Carroceria Slots */}
                           <div className="space-y-2">
                             <p className="text-xs text-muted-foreground font-medium">Carrocerias vinculadas</p>
-                            {linkedCarrocerias.map((c) => {
-                              const carroceriaInTrip = !!carroceriaTripMap[c.id];
-                              return (
+                            {linkedCarrocerias.map((c) => (
                                 <div key={c.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
                                   <div className="flex items-center gap-2">
                                     <Container className="w-4 h-4 text-muted-foreground" />
@@ -2383,8 +2375,7 @@ export default function MinhaFrota() {
                                     variant="ghost"
                                     size="icon"
                                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                    disabled={isInTrip || carroceriaInTrip}
-                                    title={isInTrip || carroceriaInTrip ? 'Bloqueado: em viagem ativa' : 'Desvincular'}
+                                    title="Desvincular"
                                     onClick={async () => {
                                       const { error } = await supabase
                                         .from('carrocerias')
@@ -2398,52 +2389,44 @@ export default function MinhaFrota() {
                                       }
                                     }}
                                   >
-                                    {isInTrip || carroceriaInTrip ? <Lock className="w-3.5 h-3.5" /> : <Unlink className="w-3.5 h-3.5" />}
+                                    <Unlink className="w-3.5 h-3.5" />
                                   </Button>
                                 </div>
-                              );
-                            })}
+                            ))}
 
                             {/* Empty Slots */}
                             {Array.from({ length: maxSlots - linkedCarrocerias.length }).map((_, i) => (
                               <div key={`empty-${i}`} className="border border-dashed border-border rounded-lg p-2">
-                                {isInTrip ? (
-                                  <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Lock className="w-4 h-4" />
-                                    <span className="text-xs">Slot vazio (bloqueado em viagem)</span>
-                                  </div>
-                                ) : (
-                                  <Select
-                                    onValueChange={async (carroceriaId) => {
-                                      const { error } = await supabase
-                                        .from('carrocerias')
-                                        .update({ veiculo_id: veiculo.id })
-                                        .eq('id', carroceriaId);
-                                      if (error) {
-                                        toast.error('Erro ao vincular');
-                                      } else {
-                                        toast.success('Carroceria vinculada!');
-                                        queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
-                                      }
-                                    }}
-                                  >
-                                    <SelectTrigger className="h-8 text-xs border-dashed">
-                                      <SelectValue placeholder="+ Vincular carroceria" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {availableCarrocerias.length === 0 ? (
-                                        <SelectItem value="__none" disabled>Nenhuma carroceria disponível</SelectItem>
-                                      ) : (
-                                        availableCarrocerias.map((ac) => (
-                                          <SelectItem key={ac.id} value={ac.id}>
-                                            {ac.placa} - {tipoCarroceriaLabels[ac.tipo] || ac.tipo}
-                                            {ac.capacidade_kg ? ` (${(ac.capacidade_kg / 1000).toLocaleString('pt-BR')}t)` : ''}
-                                          </SelectItem>
-                                        ))
-                                      )}
-                                    </SelectContent>
-                                  </Select>
-                                )}
+                                <Select
+                                  onValueChange={async (carroceriaId) => {
+                                    const { error } = await supabase
+                                      .from('carrocerias')
+                                      .update({ veiculo_id: veiculo.id })
+                                      .eq('id', carroceriaId);
+                                    if (error) {
+                                      toast.error('Erro ao vincular');
+                                    } else {
+                                      toast.success('Carroceria vinculada!');
+                                      queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 text-xs border-dashed">
+                                    <SelectValue placeholder="+ Vincular carroceria" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableCarrocerias.length === 0 ? (
+                                      <SelectItem value="__none" disabled>Nenhuma carroceria disponível</SelectItem>
+                                    ) : (
+                                      availableCarrocerias.map((ac) => (
+                                        <SelectItem key={ac.id} value={ac.id}>
+                                          {ac.placa} - {tipoCarroceriaLabels[ac.tipo] || ac.tipo}
+                                          {ac.capacidade_kg ? ` (${(ac.capacidade_kg / 1000).toLocaleString('pt-BR')}t)` : ''}
+                                        </SelectItem>
+                                      ))
+                                    )}
+                                  </SelectContent>
+                                </Select>
                               </div>
                             ))}
                           </div>
