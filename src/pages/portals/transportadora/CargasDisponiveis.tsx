@@ -2631,10 +2631,13 @@ export default function CargasDisponiveis() {
                                               placeholder={`Máx: ${Math.max(0, capDisp).toLocaleString('pt-BR')}`}
                                               value={pesoPorCarroceria[selectedId] || ''}
                                               onChange={(e) => {
-                                                let val = Math.floor(Number(e.target.value));
-                                                if (val < 0) val = 0;
+                                                const val = Math.floor(Number(e.target.value));
+                                                setPesoPorCarroceria(prev => ({ ...prev, [selectedId]: val < 0 ? 0 : val }));
+                                              }}
+                                              onBlur={() => {
+                                                let val = pesoPorCarroceria[selectedId] || 0;
                                                 if (val > capDisp) val = capDisp;
-                                                // Also cap total across all trailers to cargo available
+                                                if (val < 0) val = 0;
                                                 const pesoDisponivel = selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0;
                                                 const outrosTotal = Object.entries(pesoPorCarroceria)
                                                   .filter(([k]) => k !== selectedId)
@@ -2801,14 +2804,19 @@ export default function CargasDisponiveis() {
                               <Input
                                 type="number"
                                 step="1"
-                                value={pesoTotalAlocado || ''}
+                              value={pesoTotalAlocado || ''}
                                 onChange={(e) => {
-                                  let val = Math.floor(Number(e.target.value));
-                                  if (val < 0) val = 0;
-                                  if (val > pesoMaximoAlocar) val = pesoMaximoAlocar;
-                                  setPesoAlocadoInput(val);
+                                  const val = Math.floor(Number(e.target.value));
+                                  setPesoAlocadoInput(val < 0 ? 0 : val);
                                 }}
-                                onBlur={() => setPesoBarPercent(pesoMaximoAlocar > 0 ? Math.min(100, (pesoTotalAlocado / pesoMaximoAlocar) * 100) : 0)}
+                                onBlur={() => {
+                                  // Clamp on blur: ajusta o valor para dentro dos limites
+                                  let val = pesoAlocadoInput;
+                                  if (val > pesoMaximoAlocar) val = pesoMaximoAlocar;
+                                  if (val < 0) val = 0;
+                                  setPesoAlocadoInput(val);
+                                  setPesoBarPercent(pesoMaximoAlocar > 0 ? Math.min(100, (val / pesoMaximoAlocar) * 100) : 0);
+                                }}
                                 placeholder={`Informe o peso (máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg)`}
                                 min={pesoMinimoRequirido}
                                 max={pesoMaximoAlocar}
