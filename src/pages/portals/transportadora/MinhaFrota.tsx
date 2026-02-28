@@ -2392,43 +2392,36 @@ export default function MinhaFrota() {
                             {/* Empty Slots */}
                             {Array.from({ length: maxSlots - linkedCarrocerias.length }).map((_, i) => (
                               <div key={`empty-${i}`} className="border border-dashed border-border rounded-lg p-2">
-                                {isInTrip ? (
-                                  <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Lock className="w-4 h-4" />
-                                    <span className="text-xs">Slot vazio (bloqueado em viagem)</span>
-                                  </div>
-                                ) : (
-                                  <Select
-                                    onValueChange={async (carroceriaId) => {
-                                      const { error } = await supabase
-                                        .from('carrocerias')
-                                        .update({ veiculo_id: veiculo.id })
-                                        .eq('id', carroceriaId);
-                                      if (error) {
-                                        toast.error('Erro ao vincular');
-                                      } else {
-                                        toast.success('Carroceria vinculada!');
-                                        queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
-                                      }
-                                    }}
-                                  >
-                                    <SelectTrigger className="h-8 text-xs border-dashed">
-                                      <SelectValue placeholder="+ Vincular carroceria" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {availableCarrocerias.length === 0 ? (
-                                        <SelectItem value="__none" disabled>Nenhuma carroceria disponível</SelectItem>
-                                      ) : (
-                                        availableCarrocerias.map((ac) => (
-                                          <SelectItem key={ac.id} value={ac.id}>
-                                            {ac.placa} - {tipoCarroceriaLabels[ac.tipo] || ac.tipo}
-                                            {ac.capacidade_kg ? ` (${(ac.capacidade_kg / 1000).toLocaleString('pt-BR')}t)` : ''}
-                                          </SelectItem>
-                                        ))
-                                      )}
-                                    </SelectContent>
-                                  </Select>
-                                )}
+                                <Select
+                                  onValueChange={async (carroceriaId) => {
+                                    const { error } = await supabase
+                                      .from('carrocerias')
+                                      .update({ veiculo_id: veiculo.id })
+                                      .eq('id', carroceriaId);
+                                    if (error) {
+                                      toast.error('Erro ao vincular');
+                                    } else {
+                                      toast.success('Carroceria vinculada!');
+                                      queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 text-xs border-dashed">
+                                    <SelectValue placeholder="+ Vincular carroceria" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableCarrocerias.length === 0 ? (
+                                      <SelectItem value="__none" disabled>Nenhuma carroceria disponível</SelectItem>
+                                    ) : (
+                                      availableCarrocerias.map((ac) => (
+                                        <SelectItem key={ac.id} value={ac.id}>
+                                          {ac.placa} - {tipoCarroceriaLabels[ac.tipo] || ac.tipo}
+                                          {ac.capacidade_kg ? ` (${(ac.capacidade_kg / 1000).toLocaleString('pt-BR')}t)` : ''}
+                                        </SelectItem>
+                                      ))
+                                    )}
+                                  </SelectContent>
+                                </Select>
                               </div>
                             ))}
                           </div>
