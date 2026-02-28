@@ -2331,9 +2331,9 @@ export default function MinhaFrota() {
             <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg flex items-start gap-3">
               <Link2 className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground">Vínculos Veículo ↔ Carroceria</p>
+                <p className="text-sm font-medium text-foreground">Vínculos Motorista + Veículo + Carroceria</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Vincule carrocerias a veículos para agilizar o aceite de cargas. Veículos com carroceria integrada não precisam de vínculo.
+                  Vincule motoristas e carrocerias a veículos para agilizar o aceite de cargas. Os vínculos são usados como padrão no wizard de aceite.
                 </p>
               </div>
             </div>
