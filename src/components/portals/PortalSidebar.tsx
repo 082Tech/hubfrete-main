@@ -94,6 +94,16 @@ const entregasItems = [
   { icon: History, label: 'Histórico de Entregas', href: '/transportadora/entregas/historico' },
 ];
 
+// Frota submenu for transportadora
+const frotaSubmenu: MenuGroup = {
+  icon: Truck,
+  label: 'Minha Frota',
+  subItems: [
+    { icon: Truck, label: 'Veículos e Carrocerias', href: '/transportadora/frota' },
+    { icon: Link2, label: 'Vínculos', href: '/transportadora/frota/vinculos' },
+  ],
+};
+
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: Home, label: 'Home', href: '/embarcador' },
