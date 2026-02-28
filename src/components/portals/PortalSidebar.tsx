@@ -99,7 +99,8 @@ const frotaSubmenu: MenuGroup = {
   icon: Truck,
   label: 'Minha Frota',
   subItems: [
-    { icon: Truck, label: 'Veículos e Carrocerias', href: '/transportadora/frota' },
+    { icon: Truck, label: 'Veículos', href: '/transportadora/frota' },
+    { icon: Container, label: 'Carrocerias', href: '/transportadora/frota/carrocerias' },
     { icon: Link2, label: 'Vínculos', href: '/transportadora/frota/vinculos' },
   ],
 };
