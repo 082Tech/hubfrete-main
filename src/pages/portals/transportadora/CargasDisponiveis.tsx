@@ -147,6 +147,7 @@ interface Veiculo {
   capacidade_kg: number | null;
   marca: string | null;
   modelo: string | null;
+  motorista_padrao_id?: string | null;
 }
 
 interface Carroceria {
