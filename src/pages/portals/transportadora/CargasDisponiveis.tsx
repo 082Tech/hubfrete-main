@@ -2794,12 +2794,12 @@ export default function CargasDisponiveis() {
                                       "h-full rounded-full transition-all duration-300",
                                       pesoValidationError ? 'bg-destructive' : 'bg-primary'
                                     )}
-                                    style={{ width: `${Math.min(100, (pesoTotalAlocado / pesoMaximoAlocar) * 100)}%` }}
+                                    style={{ width: `${pesoBarPercent}%` }}
                                   />
                                 </div>
                                 <div className="flex justify-between text-[10px] text-muted-foreground">
                                   <span>{pesoMinimoRequirido > 0 ? `Mín: ${pesoMinimoRequirido.toLocaleString('pt-BR')} kg` : 'Sem mínimo'}</span>
-                                  <span className="font-medium">{Math.round((pesoTotalAlocado / pesoMaximoAlocar) * 100) || 0}%</span>
+                                  <span className="font-medium">{Math.round(pesoBarPercent)}%</span>
                                   <span>Máx: {pesoMaximoAlocar.toLocaleString('pt-BR')} kg</span>
                                 </div>
                               </div>
