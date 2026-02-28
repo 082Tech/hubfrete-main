@@ -1809,20 +1809,62 @@ export default function CargasDisponiveis() {
         {/* Accept Dialog */}
         <Dialog open={isAcceptDialogOpen} onOpenChange={(open) => { setIsAcceptDialogOpen(open); if (!open) setWizardStep(1); }}>
           <DialogContent className="w-[96vw] max-w-5xl h-[92vh] sm:h-[88vh] p-0 gap-0 flex flex-col">
-            <DialogHeader className="px-6 pt-6 pb-4 border-b">
-              <DialogTitle>Aceitar Carga</DialogTitle>
-              <DialogDescription>
-                {wizardStep === 1 && 'Etapa 1 de 3 — Detalhes da carga'}
-                {wizardStep === 2 && 'Etapa 2 de 3 — Equipamento, motorista e peso'}
-                {wizardStep === 3 && 'Etapa 3 de 3 — Revisão e confirmação'}
-              </DialogDescription>
-              {/* Step indicator */}
-              <div className="flex items-center gap-2 pt-2">
-                {[1, 2, 3].map((step) => (
-                  <div key={step} className={cn("h-1.5 flex-1 rounded-full transition-colors", step <= wizardStep ? 'bg-primary' : 'bg-muted')} />
+            <DialogHeader className="px-6 pt-5 pb-3 border-b space-y-0">
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-lg">Aceitar Carga</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground m-0">
+                  Etapa {wizardStep} de 3
+                </DialogDescription>
+              </div>
+              {/* Step indicator with labels */}
+              <div className="flex items-center gap-1 pt-2">
+                {[
+                  { n: 1, label: 'Detalhes' },
+                  { n: 2, label: 'Alocação' },
+                  { n: 3, label: 'Confirmar' },
+                ].map(({ n, label }) => (
+                  <div key={n} className="flex-1 flex flex-col items-center gap-1">
+                    <div className={cn("h-1.5 w-full rounded-full transition-colors", n <= wizardStep ? 'bg-primary' : 'bg-muted')} />
+                    <span className={cn("text-[10px] font-medium transition-colors", n <= wizardStep ? 'text-primary' : 'text-muted-foreground')}>{label}</span>
+                  </div>
                 ))}
               </div>
             </DialogHeader>
+
+            {/* Sticky cargo summary strip — visible on steps 2 & 3 */}
+            {selectedCarga && wizardStep >= 2 && (
+              <div className="px-6 py-2.5 border-b bg-muted/40 flex items-center gap-4 text-xs shrink-0">
+                <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                  <Package className="w-3.5 h-3.5 text-primary" />
+                  {selectedCarga.codigo}
+                </div>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-muted-foreground">
+                    {selectedCarga.endereco_origem?.cidade}/{selectedCarga.endereco_origem?.estado}
+                  </span>
+                  <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">
+                    {selectedCarga.endereco_destino?.cidade}/{selectedCarga.endereco_destino?.estado}
+                  </span>
+                </div>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1.5">
+                  <Scale className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium text-foreground">
+                    {(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg
+                  </span>
+                  <span className="text-muted-foreground">disponíveis</span>
+                </div>
+                {selectedCarga.valor_frete_tonelada && (
+                  <>
+                    <Separator orientation="vertical" className="h-4" />
+                    <span className="text-chart-2 font-semibold">{formatCurrency(selectedCarga.valor_frete_tonelada)}/ton</span>
+                  </>
+                )}
+              </div>
+            )}
 
             {selectedCarga && (
               <ScrollArea className="flex-1 min-h-0 pr-4 overflow-visible">
