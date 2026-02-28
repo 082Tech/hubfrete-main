@@ -2801,14 +2801,19 @@ export default function CargasDisponiveis() {
                               <Input
                                 type="number"
                                 step="1"
-                                value={pesoTotalAlocado || ''}
+                              value={pesoTotalAlocado || ''}
                                 onChange={(e) => {
-                                  let val = Math.floor(Number(e.target.value));
-                                  if (val < 0) val = 0;
-                                  if (val > pesoMaximoAlocar) val = pesoMaximoAlocar;
-                                  setPesoAlocadoInput(val);
+                                  const val = Math.floor(Number(e.target.value));
+                                  setPesoAlocadoInput(val < 0 ? 0 : val);
                                 }}
-                                onBlur={() => setPesoBarPercent(pesoMaximoAlocar > 0 ? Math.min(100, (pesoTotalAlocado / pesoMaximoAlocar) * 100) : 0)}
+                                onBlur={() => {
+                                  // Clamp on blur: ajusta o valor para dentro dos limites
+                                  let val = pesoAlocadoInput;
+                                  if (val > pesoMaximoAlocar) val = pesoMaximoAlocar;
+                                  if (val < 0) val = 0;
+                                  setPesoAlocadoInput(val);
+                                  setPesoBarPercent(pesoMaximoAlocar > 0 ? Math.min(100, (val / pesoMaximoAlocar) * 100) : 0);
+                                }}
                                 placeholder={`Informe o peso (máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg)`}
                                 min={pesoMinimoRequirido}
                                 max={pesoMaximoAlocar}
