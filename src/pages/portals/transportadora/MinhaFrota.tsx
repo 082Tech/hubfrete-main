@@ -338,6 +338,22 @@ export default function MinhaFrota() {
     enabled: !!empresa?.id,
   });
 
+  // Fetch motoristas da empresa (para vínculos)
+  const { data: motoristasEmpresa = [] } = useQuery({
+    queryKey: ['motoristas_empresa_vinculos', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('motoristas')
+        .select('id, nome_completo, telefone, foto_url')
+        .eq('empresa_id', empresa.id as any)
+        .eq('ativo', true);
+      if (error) throw error;
+      return (data || []) as { id: string; nome_completo: string; telefone: string | null; foto_url: string | null }[];
+    },
+    enabled: !!empresa?.id,
+  });
+
   // Fetch active viagens (to know which vehicles/carrocerias are on trips)
   const { data: viagensAtivas = [] } = useQuery({
     queryKey: ['viagens_ativas_frota', empresa?.id],
