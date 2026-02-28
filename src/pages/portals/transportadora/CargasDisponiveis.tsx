@@ -2137,9 +2137,12 @@ export default function CargasDisponiveis() {
                                         setSelectedMotorista(motorista.id);
                                         setMotoristaSearchText('');
                                         setOpenMotoristaCombobox(false);
+                                        // Reset all equipment state so stale blocked selections don't persist
+                                        setSelectedVeiculo('');
+                                        setSelectedCarroceria(null);
+                                        setSelectedCarroceriasMulti([]);
                                         setPesoAlocadoInput(0);
                                         setPesoPorCarroceria({});
-                                        setSelectedCarroceriasMulti([]);
                                         setSelectedViagemId(null);
                                         setIsViagemBlocked(false);
                                         setTimeout(() => {
