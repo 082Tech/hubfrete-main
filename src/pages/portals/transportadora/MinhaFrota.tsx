@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -213,8 +214,10 @@ const tipoCarroceriaLabels: Record<string, string> = {
 export default function MinhaFrota() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'veiculos' | 'carrocerias'>('veiculos');
+  const initialTab = location.pathname.endsWith('/carrocerias') ? 'carrocerias' : 'veiculos';
+  const [activeTab, setActiveTab] = useState<'veiculos' | 'carrocerias'>(initialTab);
   const { viewMode, setViewMode } = useViewModePreference();
   const [currentPageVeiculos, setCurrentPageVeiculos] = useState(1);
   const [currentPageCarrocerias, setCurrentPageCarrocerias] = useState(1);
