@@ -2631,10 +2631,13 @@ export default function CargasDisponiveis() {
                                               placeholder={`Máx: ${Math.max(0, capDisp).toLocaleString('pt-BR')}`}
                                               value={pesoPorCarroceria[selectedId] || ''}
                                               onChange={(e) => {
-                                                let val = Math.floor(Number(e.target.value));
-                                                if (val < 0) val = 0;
+                                                const val = Math.floor(Number(e.target.value));
+                                                setPesoPorCarroceria(prev => ({ ...prev, [selectedId]: val < 0 ? 0 : val }));
+                                              }}
+                                              onBlur={() => {
+                                                let val = pesoPorCarroceria[selectedId] || 0;
                                                 if (val > capDisp) val = capDisp;
-                                                // Also cap total across all trailers to cargo available
+                                                if (val < 0) val = 0;
                                                 const pesoDisponivel = selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0;
                                                 const outrosTotal = Object.entries(pesoPorCarroceria)
                                                   .filter(([k]) => k !== selectedId)
