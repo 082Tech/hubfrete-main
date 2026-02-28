@@ -54,7 +54,7 @@ import {
   ChevronRight,
   RotateCcw,
   Link2,
-  Lock, // still used elsewhere if needed
+  
   Unlink,
 } from 'lucide-react';
 import {
