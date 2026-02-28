@@ -232,6 +232,7 @@ export default function CargasDisponiveis() {
   const [isViagemBlocked, setIsViagemBlocked] = useState(false);
   const [isCreatingViagem, setIsCreatingViagem] = useState(false);
   const [pesoAlocadoInput, setPesoAlocadoInput] = useState<number>(0);
+  const [pesoBarPercent, setPesoBarPercent] = useState<number>(0);
   const [previsaoColeta, setPrevisaoColeta] = useState<string>('');
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [viewMode, setViewModeState] = useState<'list' | 'map'>(() => {
