@@ -2769,7 +2769,13 @@ export default function CargasDisponiveis() {
                                 type="number"
                                 step="1"
                                 value={pesoTotalAlocado || ''}
-                                onChange={(e) => setPesoAlocadoInput(Math.floor(Number(e.target.value)))}
+                                onChange={(e) => {
+                                  let val = Math.floor(Number(e.target.value));
+                                  if (val < 0) val = 0;
+                                  if (val > pesoMaximoAlocar) val = pesoMaximoAlocar;
+                                  setPesoAlocadoInput(val);
+                                }}
+                                onBlur={() => setPesoBarPercent(pesoMaximoAlocar > 0 ? Math.min(100, (pesoTotalAlocado / pesoMaximoAlocar) * 100) : 0)}
                                 placeholder={`Informe o peso (máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg)`}
                                 min={pesoMinimoRequirido}
                                 max={pesoMaximoAlocar}
