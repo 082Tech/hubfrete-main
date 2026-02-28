@@ -2358,9 +2358,7 @@ export default function MinhaFrota() {
                           {/* Carroceria Slots */}
                           <div className="space-y-2">
                             <p className="text-xs text-muted-foreground font-medium">Carrocerias vinculadas</p>
-                            {linkedCarrocerias.map((c) => {
-                              return (
-                              return (
+                            {linkedCarrocerias.map((c) => (
                                 <div key={c.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
                                   <div className="flex items-center gap-2">
                                     <Container className="w-4 h-4 text-muted-foreground" />
@@ -2380,14 +2378,22 @@ export default function MinhaFrota() {
                                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                     title="Desvincular"
                                     onClick={async () => {
-...
+                                      const { error } = await supabase
+                                        .from('carrocerias')
+                                        .update({ veiculo_id: null })
+                                        .eq('id', c.id);
+                                      if (error) {
+                                        toast.error('Erro ao desvincular');
+                                      } else {
+                                        toast.success('Carroceria desvinculada!');
+                                        queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
+                                      }
                                     }}
                                   >
                                     <Unlink className="w-3.5 h-3.5" />
                                   </Button>
                                 </div>
-                              );
-                            })}
+                            ))}
 
                             {/* Empty Slots */}
                             {Array.from({ length: maxSlots - linkedCarrocerias.length }).map((_, i) => (
