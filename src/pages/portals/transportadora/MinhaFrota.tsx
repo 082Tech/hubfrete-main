@@ -273,6 +273,7 @@ export default function MinhaFrota() {
         .from('veiculos')
         .select(`
           id,
+          id,
           placa,
           tipo,
           carroceria,
@@ -293,7 +294,9 @@ export default function MinhaFrota() {
           seguro_ativo,
           rastreador,
           foto_url,
-          carroceria_integrada
+          carroceria_integrada,
+          motorista_padrao_id,
+          motorista_padrao:motoristas!veiculos_motorista_padrao_id_fkey(id, nome_completo, telefone, foto_url)
         `)
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });
