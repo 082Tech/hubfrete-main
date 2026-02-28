@@ -1675,8 +1675,8 @@ export default function MinhaFrota() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'veiculos' | 'carrocerias' | 'vinculos')} className="flex flex-col flex-1 min-h-0">
-          <TabsList className="grid w-full max-w-lg grid-cols-3 shrink-0">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'veiculos' | 'carrocerias')} className="flex flex-col flex-1 min-h-0">
+          <TabsList className="grid w-full max-w-md grid-cols-2 shrink-0">
             <TabsTrigger value="veiculos" className="gap-2">
               <Car className="w-4 h-4" />
               Veículos ({veiculos.length})
@@ -1684,10 +1684,6 @@ export default function MinhaFrota() {
             <TabsTrigger value="carrocerias" className="gap-2">
               <Container className="w-4 h-4" />
               Carrocerias ({carrocerias.length})
-            </TabsTrigger>
-            <TabsTrigger value="vinculos" className="gap-2">
-              <Link2 className="w-4 h-4" />
-              Vínculos
             </TabsTrigger>
           </TabsList>
 
