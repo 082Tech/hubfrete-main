@@ -149,6 +149,8 @@ interface Veiculo {
   rastreador: boolean;
   foto_url: string | null;
   carroceria_integrada: boolean;
+  motorista_padrao_id: string | null;
+  motorista_padrao: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
 }
 
 // Tipos de veículo que tipicamente têm carroceria integrada
