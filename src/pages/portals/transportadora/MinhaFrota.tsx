@@ -2347,11 +2347,6 @@ export default function MinhaFrota() {
                               </div>
                             </div>
                             <div className="flex items-center gap-1">
-                              {isInTrip && (
-                                <Badge className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/20 gap-1" variant="outline">
-                                  <Lock className="w-3 h-3" />Em Viagem
-                                </Badge>
-                              )}
                               <Badge variant="outline" className="text-[10px]">
                                 {linkedCarrocerias.length}/{maxSlots} slot{maxSlots > 1 ? 's' : ''}
                               </Badge>
