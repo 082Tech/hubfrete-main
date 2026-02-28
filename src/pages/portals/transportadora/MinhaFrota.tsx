@@ -2341,7 +2341,7 @@ export default function MinhaFrota() {
             <div className="flex-1 overflow-auto">
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {veiculos
-                  .filter(v => !v.carroceria_integrada && v.ativo)
+                  .filter(v => v.ativo)
                   .map((veiculo) => {
                     const linkedCarrocerias = carrocerias.filter(c => c.veiculo_id === veiculo.id);
                     // Determine max trailer slots based on vehicle type
