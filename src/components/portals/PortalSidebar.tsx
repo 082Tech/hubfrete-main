@@ -29,6 +29,7 @@ import {
   MessageSquare,
   MoreVertical,
   ArrowRightLeft,
+  Link2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -93,6 +94,16 @@ const entregasItems = [
   { icon: History, label: 'Histórico de Entregas', href: '/transportadora/entregas/historico' },
 ];
 
+// Frota submenu for transportadora
+const frotaSubmenu: MenuGroup = {
+  icon: Truck,
+  label: 'Minha Frota',
+  subItems: [
+    { icon: Truck, label: 'Veículos e Carrocerias', href: '/transportadora/frota' },
+    { icon: Link2, label: 'Vínculos', href: '/transportadora/frota/vinculos' },
+  ],
+};
+
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: Home, label: 'Home', href: '/embarcador' },
@@ -108,7 +119,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: Home, label: 'Home', href: '/transportadora' },
     { icon: Package, label: 'Cargas Disponíveis', href: '/transportadora/cargas' },
     // Gestão de Entregas and Histórico de Entregas are handled separately in entregasItems
-    { icon: Truck, label: 'Minha Frota', href: '/transportadora/frota' },
+    // Minha Frota is handled as a submenu (frotaSubmenu)
     
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
     { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
@@ -157,6 +168,11 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
     (sub) => location.pathname === sub.href
   );
   const [cargasOpen, setCargasOpen] = useState(isCargasSubmenuActive);
+
+  const isFrotaSubmenuActive = frotaSubmenu.subItems.some(
+    (sub) => location.pathname === sub.href
+  );
+  const [frotaOpen, setFrotaOpen] = useState(isFrotaSubmenuActive);
 
   const handleLogout = async () => {
     await signOut();
@@ -593,6 +609,72 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
 
                 return linkContent;
               })}
+
+              {/* Frota Submenu */}
+              {collapsed ? (
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${isFrotaSubmenuActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                            }`}
+                        >
+                          <Truck className="w-5 h-5 shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={10}>Minha Frota</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent side="right" align="start" className="w-48">
+                    {frotaSubmenu.subItems.map((sub) => (
+                      <DropdownMenuItem
+                        key={sub.href}
+                        onClick={() => navigate(sub.href)}
+                        className={location.pathname === sub.href ? 'bg-accent' : ''}
+                      >
+                        <sub.icon className="w-4 h-4 mr-2" />
+                        {sub.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Collapsible open={frotaOpen} onOpenChange={setFrotaOpen}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${isFrotaSubmenuActive
+                        ? 'bg-sidebar-primary/10 text-sidebar-primary'
+                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                        }`}
+                    >
+                      <Truck className="w-5 h-5 shrink-0" />
+                      <span className="font-medium flex-1 text-left">Minha Frota</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${frotaOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                    {frotaSubmenu.subItems.map((sub) => {
+                      const isSubActive = location.pathname === sub.href;
+                      return (
+                        <Link
+                          key={sub.href}
+                          to={sub.href}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isSubActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                            }`}
+                        >
+                          <sub.icon className="w-4 h-4 shrink-0" />
+                          <span className="text-sm">{sub.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
 
               {/* Rest of transportadora menu items */}
               {menuItems
