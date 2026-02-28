@@ -232,6 +232,7 @@ export default function CargasDisponiveis() {
   const [isViagemBlocked, setIsViagemBlocked] = useState(false);
   const [isCreatingViagem, setIsCreatingViagem] = useState(false);
   const [pesoAlocadoInput, setPesoAlocadoInput] = useState<number>(0);
+  const [pesoBarPercent, setPesoBarPercent] = useState<number>(0);
   const [previsaoColeta, setPrevisaoColeta] = useState<string>('');
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [viewMode, setViewModeState] = useState<'list' | 'map'>(() => {
@@ -1161,9 +1162,11 @@ export default function CargasDisponiveis() {
   // Auto-set peso alocado when driver/vehicle changes
   useMemo(() => {
     if (selectedVeiculo && pesoMaximoAlocar > 0) {
-      // Default to max possible
       const defaultPeso = pesoMaximoAlocar;
       setPesoAlocadoInput(defaultPeso);
+      setPesoBarPercent(100);
+    } else {
+      setPesoBarPercent(0);
     }
   }, [selectedVeiculo, pesoMaximoAlocar]);
 
@@ -2597,7 +2600,17 @@ export default function CargasDisponiveis() {
                                               placeholder={`Máx: ${Math.max(0, capDisp).toLocaleString('pt-BR')}`}
                                               value={pesoPorCarroceria[selectedId] || ''}
                                               onChange={(e) => {
-                                                const val = Math.floor(Number(e.target.value));
+                                                let val = Math.floor(Number(e.target.value));
+                                                if (val < 0) val = 0;
+                                                if (val > capDisp) val = capDisp;
+                                                // Also cap total across all trailers to cargo available
+                                                const pesoDisponivel = selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0;
+                                                const outrosTotal = Object.entries(pesoPorCarroceria)
+                                                  .filter(([k]) => k !== selectedId)
+                                                  .reduce((sum, [, v]) => sum + (v || 0), 0);
+                                                if (val + outrosTotal > pesoDisponivel) {
+                                                  val = Math.max(0, pesoDisponivel - outrosTotal);
+                                                }
                                                 setPesoPorCarroceria(prev => ({ ...prev, [selectedId]: val }));
                                               }}
                                               max={Math.max(0, capDisp)}
@@ -2758,7 +2771,13 @@ export default function CargasDisponiveis() {
                                 type="number"
                                 step="1"
                                 value={pesoTotalAlocado || ''}
-                                onChange={(e) => setPesoAlocadoInput(Math.floor(Number(e.target.value)))}
+                                onChange={(e) => {
+                                  let val = Math.floor(Number(e.target.value));
+                                  if (val < 0) val = 0;
+                                  if (val > pesoMaximoAlocar) val = pesoMaximoAlocar;
+                                  setPesoAlocadoInput(val);
+                                }}
+                                onBlur={() => setPesoBarPercent(pesoMaximoAlocar > 0 ? Math.min(100, (pesoTotalAlocado / pesoMaximoAlocar) * 100) : 0)}
                                 placeholder={`Informe o peso (máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg)`}
                                 min={pesoMinimoRequirido}
                                 max={pesoMaximoAlocar}
@@ -2777,12 +2796,12 @@ export default function CargasDisponiveis() {
                                       "h-full rounded-full transition-all duration-300",
                                       pesoValidationError ? 'bg-destructive' : 'bg-primary'
                                     )}
-                                    style={{ width: `${Math.min(100, (pesoTotalAlocado / pesoMaximoAlocar) * 100)}%` }}
+                                    style={{ width: `${pesoBarPercent}%` }}
                                   />
                                 </div>
                                 <div className="flex justify-between text-[10px] text-muted-foreground">
                                   <span>{pesoMinimoRequirido > 0 ? `Mín: ${pesoMinimoRequirido.toLocaleString('pt-BR')} kg` : 'Sem mínimo'}</span>
-                                  <span className="font-medium">{Math.round((pesoTotalAlocado / pesoMaximoAlocar) * 100) || 0}%</span>
+                                  <span className="font-medium">{Math.round(pesoBarPercent)}%</span>
                                   <span>Máx: {pesoMaximoAlocar.toLocaleString('pt-BR')} kg</span>
                                 </div>
                               </div>
