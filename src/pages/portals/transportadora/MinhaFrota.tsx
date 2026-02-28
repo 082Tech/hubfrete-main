@@ -2359,7 +2359,7 @@ export default function MinhaFrota() {
                           <div className="space-y-2">
                             <p className="text-xs text-muted-foreground font-medium">Carrocerias vinculadas</p>
                             {linkedCarrocerias.map((c) => {
-                              const carroceriaInTrip = !!carroceriaTripMap[c.id];
+                              return (
                               return (
                                 <div key={c.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
                                   <div className="flex items-center gap-2">
