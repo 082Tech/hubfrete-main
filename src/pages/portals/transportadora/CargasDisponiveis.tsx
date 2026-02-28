@@ -2684,28 +2684,60 @@ export default function CargasDisponiveis() {
                   {selectedVeiculo && (
                     <div className="space-y-4">
                       <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Weight className="w-5 h-5 text-primary" />
-                          <span className="font-semibold text-foreground">Peso a Carregar (kg)</span>
-                        </div>
-
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          <div className="flex justify-between">
-                            <span>Capacidade total do equipamento:</span>
-                            <span className="font-medium">{capacidadeEquipamentoTotal.toLocaleString('pt-BR')} kg</span>
-                          </div>
-                          {capacidadeEquipamentoEmUso > 0 && (
-                            <div className="flex justify-between text-amber-600">
-                              <span>Em uso (outras entregas):</span>
-                              <span className="font-medium">-{capacidadeEquipamentoEmUso.toLocaleString('pt-BR')} kg</span>
+                      <div className="space-y-4">
+                        {/* Visual Weight Gauge */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Scale className="w-5 h-5 text-primary" />
+                              <span className="font-semibold text-foreground">Peso a Carregar</span>
                             </div>
-                          )}
-                          <div className="flex justify-between text-primary font-medium">
-                            <span>Capacidade disponível:</span>
-                            <span>{capacidadeEquipamentoDisponivel.toLocaleString('pt-BR')} kg</span>
+                            {pesoTotalAlocado > 0 && !pesoValidationError && (
+                              <Badge variant="outline" className="bg-chart-2/10 text-chart-2 border-chart-2/30 text-xs gap-1">
+                                <DollarSign className="w-3 h-3" />
+                                {formatCurrency(calculatedFrete)}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Two-sided gauge: Carga disponível vs Equipamento disponível */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 rounded-lg border bg-background space-y-1.5">
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Carga disponível</div>
+                              <div className="text-xl font-bold text-foreground">
+                                {(selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0).toLocaleString('pt-BR')}
+                                <span className="text-xs font-normal text-muted-foreground ml-1">kg</span>
+                              </div>
+                              {selectedCarga && selectedCarga.peso_disponivel_kg !== null && selectedCarga.peso_disponivel_kg < selectedCarga.peso_kg && (
+                                <div className="text-[10px] text-muted-foreground">
+                                  de {selectedCarga.peso_kg.toLocaleString('pt-BR')} kg totais
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-3 rounded-lg border bg-background space-y-1.5">
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Equip. disponível</div>
+                              <div className={cn("text-xl font-bold", capacidadeEquipamentoDisponivel <= 0 ? 'text-destructive' : 'text-foreground')}>
+                                {capacidadeEquipamentoDisponivel.toLocaleString('pt-BR')}
+                                <span className="text-xs font-normal text-muted-foreground ml-1">kg</span>
+                              </div>
+                              {capacidadeEquipamentoEmUso > 0 && (
+                                <div className="text-[10px] text-amber-600">
+                                  {capacidadeEquipamentoEmUso.toLocaleString('pt-BR')} kg em uso
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Max available callout */}
+                          <div className="flex items-center justify-center gap-2 py-1">
+                            <ArrowRight className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-sm text-muted-foreground">
+                              Máximo alocável: <span className="font-semibold text-primary">{pesoMaximoAlocar.toLocaleString('pt-BR')} kg</span>
+                            </span>
                           </div>
                         </div>
 
+                        {/* Input + visual bar */}
                         {maxCarrocerias >= 2 && selectedCarroceriasMulti.filter(Boolean).length > 0 ? (
                           <div className="space-y-2">
                             <p className="text-sm font-semibold">Resumo do Split (Total: {pesoTotalAlocado.toLocaleString('pt-BR')} kg)</p>
@@ -2722,30 +2754,46 @@ export default function CargasDisponiveis() {
                             )}
                           </div>
                         ) : (
-                          <div className="space-y-2">
-                            <Input
-                              type="number"
-                              step="1"
-                              value={pesoTotalAlocado || ''}
-                              onChange={(e) => setPesoAlocadoInput(Math.floor(Number(e.target.value)))}
-                              placeholder={`Máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg`}
-                              min={pesoMinimoRequirido}
-                              max={pesoMaximoAlocar}
-                              className="text-lg font-bold"
-                              disabled={maxCarrocerias >= 2}
-                            />
-                            {pesoMinimoRequirido > 0 ? (
-                              <p className="text-xs text-muted-foreground">
-                                Peso mínimo por entrega: {pesoMinimoRequirido.toLocaleString('pt-BR')} kg
-                              </p>
-                            ) : selectedCarga?.permite_fracionado ? (
-                              <p className="text-xs text-muted-foreground">
-                                Sem mínimo de carregamento exigido
-                              </p>
-                            ) : null}
+                          <div className="space-y-3">
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                step="1"
+                                value={pesoTotalAlocado || ''}
+                                onChange={(e) => setPesoAlocadoInput(Math.floor(Number(e.target.value)))}
+                                placeholder={`Informe o peso (máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg)`}
+                                min={pesoMinimoRequirido}
+                                max={pesoMaximoAlocar}
+                                className="text-xl font-bold h-14 pr-12"
+                                disabled={maxCarrocerias >= 2}
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">kg</span>
+                            </div>
+
+                            {/* Visual fill bar */}
+                            {pesoMaximoAlocar > 0 && (
+                              <div className="space-y-1.5">
+                                <div className="h-3 bg-muted rounded-full overflow-hidden relative">
+                                  <div
+                                    className={cn(
+                                      "h-full rounded-full transition-all duration-300",
+                                      pesoValidationError ? 'bg-destructive' : 'bg-primary'
+                                    )}
+                                    style={{ width: `${Math.min(100, (pesoTotalAlocado / pesoMaximoAlocar) * 100)}%` }}
+                                  />
+                                </div>
+                                <div className="flex justify-between text-[10px] text-muted-foreground">
+                                  <span>{pesoMinimoRequirido > 0 ? `Mín: ${pesoMinimoRequirido.toLocaleString('pt-BR')} kg` : 'Sem mínimo'}</span>
+                                  <span className="font-medium">{Math.round((pesoTotalAlocado / pesoMaximoAlocar) * 100) || 0}%</span>
+                                  <span>Máx: {pesoMaximoAlocar.toLocaleString('pt-BR')} kg</span>
+                                </div>
+                              </div>
+                            )}
+
                             {!selectedCarga?.permite_fracionado && (
-                              <p className="text-xs text-amber-600">
-                                Esta carga não permite fracionamento - é necessário levar todo o peso disponível
+                              <p className="text-xs text-amber-600 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Carga não permite fracionamento — necessário levar todo o peso disponível
                               </p>
                             )}
                             {pesoValidationError && (
@@ -2758,7 +2806,7 @@ export default function CargasDisponiveis() {
                         )}
 
                         {/* Data Previsão Coleta */}
-                        <div className="space-y-2 pt-2 border-t">
+                        <div className="space-y-2 pt-3 border-t">
                           <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-primary" />
                             Previsão de Coleta
@@ -2767,7 +2815,7 @@ export default function CargasDisponiveis() {
                             type="datetime-local"
                             value={previsaoColeta}
                             onChange={(e) => setPrevisaoColeta(e.target.value)}
-                            className="w-full text-base font-medium"
+                            className="w-full text-base font-medium h-12"
                             min={new Date().toISOString().slice(0, 16)}
                           />
                           <p className="text-xs text-muted-foreground">
@@ -2776,9 +2824,9 @@ export default function CargasDisponiveis() {
                         </div>
 
                         {capacidadeEquipamentoDisponivel <= 0 && (
-                          <p className="text-xs text-destructive flex items-center gap-1">
+                          <p className="text-xs text-destructive flex items-center gap-1 p-2 bg-destructive/10 rounded-md">
                             <AlertTriangle className="w-3.5 h-3.5" />
-                            Motorista não possui capacidade disponível
+                            Equipamento selecionado não possui capacidade disponível
                           </p>
                         )}
                       </div>
