@@ -2682,9 +2682,7 @@ export default function CargasDisponiveis() {
 
                   {/* Weight Allocation - moved into Step 2 */}
                   {selectedVeiculo && (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-3">
-                      <div className="space-y-4">
+                    <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-4">
                         {/* Visual Weight Gauge */}
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
