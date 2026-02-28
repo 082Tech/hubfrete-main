@@ -2598,7 +2598,17 @@ export default function CargasDisponiveis() {
                                               placeholder={`Máx: ${Math.max(0, capDisp).toLocaleString('pt-BR')}`}
                                               value={pesoPorCarroceria[selectedId] || ''}
                                               onChange={(e) => {
-                                                const val = Math.floor(Number(e.target.value));
+                                                let val = Math.floor(Number(e.target.value));
+                                                if (val < 0) val = 0;
+                                                if (val > capDisp) val = capDisp;
+                                                // Also cap total across all trailers to cargo available
+                                                const pesoDisponivel = selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0;
+                                                const outrosTotal = Object.entries(pesoPorCarroceria)
+                                                  .filter(([k]) => k !== selectedId)
+                                                  .reduce((sum, [, v]) => sum + (v || 0), 0);
+                                                if (val + outrosTotal > pesoDisponivel) {
+                                                  val = Math.max(0, pesoDisponivel - outrosTotal);
+                                                }
                                                 setPesoPorCarroceria(prev => ({ ...prev, [selectedId]: val }));
                                               }}
                                               max={Math.max(0, capDisp)}
