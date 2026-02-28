@@ -1095,9 +1095,9 @@ export default function MinhaFrota() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 shrink-0">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Minha Frota</h1>
+            <h1 className="text-3xl font-bold text-foreground">Veículos</h1>
             <p className="text-muted-foreground">
-              Gerencie veículos e carrocerias da sua transportadora
+              Gerencie os veículos da sua frota
             </p>
           </div>
           <div className="flex gap-2">
