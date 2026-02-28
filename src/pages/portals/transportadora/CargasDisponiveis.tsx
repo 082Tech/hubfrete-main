@@ -1162,9 +1162,11 @@ export default function CargasDisponiveis() {
   // Auto-set peso alocado when driver/vehicle changes
   useMemo(() => {
     if (selectedVeiculo && pesoMaximoAlocar > 0) {
-      // Default to max possible
       const defaultPeso = pesoMaximoAlocar;
       setPesoAlocadoInput(defaultPeso);
+      setPesoBarPercent(100);
+    } else {
+      setPesoBarPercent(0);
     }
   }, [selectedVeiculo, pesoMaximoAlocar]);
 
