@@ -214,7 +214,7 @@ export default function MinhaFrota() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'veiculos' | 'carrocerias' | 'vinculos'>('veiculos');
+  const [activeTab, setActiveTab] = useState<'veiculos' | 'carrocerias'>('veiculos');
   const { viewMode, setViewMode } = useViewModePreference();
   const [currentPageVeiculos, setCurrentPageVeiculos] = useState(1);
   const [currentPageCarrocerias, setCurrentPageCarrocerias] = useState(1);
