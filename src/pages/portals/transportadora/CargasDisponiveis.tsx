@@ -409,7 +409,7 @@ export default function CargasDisponiveis() {
       if (!empresa?.id) return [];
       const { data, error } = await supabase
         .from('veiculos')
-        .select('id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada, foto_url')
+        .select('id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada, foto_url, motorista_padrao_id')
         .eq('empresa_id', empresa.id as any)
         .eq('ativo', true);
       if (error) throw error;
