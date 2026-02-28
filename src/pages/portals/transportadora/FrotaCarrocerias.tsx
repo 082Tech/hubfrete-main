@@ -580,17 +580,21 @@ export default function FrotaCarrocerias() {
                       {orderedColumns.map((col) => (
                         <DraggableTableHead
                           key={col.id}
-                          column={col}
-                          onDragStart={handleDragStart}
-                          onDragEnd={handleDragEnd}
-                          onDragOver={handleDragOver}
-                          onDragLeave={handleDragLeave}
-                          onDrop={handleDrop}
+                          columnId={col.id}
+                          onColumnDragStart={handleDragStart}
+                          onColumnDragEnd={handleDragEnd}
+                          onColumnDragOver={handleDragOver}
+                          onColumnDragLeave={handleDragLeave}
+                          onColumnDrop={handleDrop}
                           isDragging={draggedColumn === col.id}
                           isDragOver={dragOverColumn === col.id}
+                          sortable={col.sortable}
                           sortDirection={col.sortable ? getSortDirection(col.sortKey!) : undefined}
                           onSort={col.sortable ? () => requestSort(col.sortKey!) : undefined}
-                        />
+                          isSticky={col.sticky === 'left' || col.sticky === 'right'}
+                        >
+                          {col.label}
+                        </DraggableTableHead>
                       ))}
                     </tr>
                   </thead>
