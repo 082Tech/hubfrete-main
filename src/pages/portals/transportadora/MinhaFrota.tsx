@@ -2378,22 +2378,12 @@ export default function MinhaFrota() {
                                     variant="ghost"
                                     size="icon"
                                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                    disabled={isInTrip || carroceriaInTrip}
-                                    title={isInTrip || carroceriaInTrip ? 'Bloqueado: em viagem ativa' : 'Desvincular'}
+                                    title="Desvincular"
                                     onClick={async () => {
-                                      const { error } = await supabase
-                                        .from('carrocerias')
-                                        .update({ veiculo_id: null })
-                                        .eq('id', c.id);
-                                      if (error) {
-                                        toast.error('Erro ao desvincular');
-                                      } else {
-                                        toast.success('Carroceria desvinculada!');
-                                        queryClient.invalidateQueries({ queryKey: ['carrocerias_transportadora'] });
-                                      }
+...
                                     }}
                                   >
-                                    {isInTrip || carroceriaInTrip ? <Lock className="w-3.5 h-3.5" /> : <Unlink className="w-3.5 h-3.5" />}
+                                    <Unlink className="w-3.5 h-3.5" />
                                   </Button>
                                 </div>
                               );
