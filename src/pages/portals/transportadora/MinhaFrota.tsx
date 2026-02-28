@@ -2323,7 +2323,6 @@ export default function MinhaFrota() {
                   .filter(v => !v.carroceria_integrada && v.ativo)
                   .map((veiculo) => {
                     const linkedCarrocerias = carrocerias.filter(c => c.veiculo_id === veiculo.id);
-                    const isInTrip = !!veiculoTripMap[veiculo.id];
                     // Determine max trailer slots based on vehicle type
                     const maxSlots = ['bitrem', 'rodotrem'].includes(veiculo.tipo) ? 2 : ['vanderleia'].includes(veiculo.tipo) ? 3 : 1;
                     const availableCarrocerias = carrocerias.filter(c => !c.veiculo_id && c.ativo);
