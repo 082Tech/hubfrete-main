@@ -2312,7 +2312,7 @@ export default function MinhaFrota() {
               <div>
                 <p className="text-sm font-medium text-foreground">Vínculos Veículo ↔ Carroceria</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Vincule carrocerias a veículos para agilizar o aceite de cargas. Veículos com carroceria integrada não precisam de vínculo. Equipamentos em viagem ativa ficam bloqueados.
+                  Vincule carrocerias a veículos para agilizar o aceite de cargas. Veículos com carroceria integrada não precisam de vínculo.
                 </p>
               </div>
             </div>
