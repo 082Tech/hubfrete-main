@@ -1,37 +1,86 @@
 
 
-# Correção no Banco de Produção: Mover Entrega para Nova Viagem
+# Plano: Completar Schema Fiscal para API Focus NFe
 
-## Problema
-A entrega **CRG-2026-0303-E01** (status "aguardando") foi vinculada à viagem **VGM-2026-0083** que já está **finalizada**. Isso não deveria ter acontecido.
+## Resumo
 
-## Solução (3 operações SQL diretas no banco)
+Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
 
-1. **Remover** o vínculo da entrega com a viagem finalizada (tabela `viagem_entregas`)
-2. **Criar** uma nova viagem com status "aguardando" para o mesmo motorista, veículo e carroceria (o código VGM será gerado automaticamente pelo trigger `generate_viagem_codigo`)
-3. **Vincular** a entrega à nova viagem (tabela `viagem_entregas`, ordem = 1)
+## Situacao Atual
 
-### Dados confirmados
-- Entrega ID: `04a2ecef-92a3-4476-b995-c788f8e41b57`
-- Motorista: `6f49498a-3b61-473a-a91e-45e608df6335`
-- Veículo: `3d2203e9-5554-49cb-b837-097809593725`
-- Carroceria: `ac01cb38-bde9-430f-a28b-5a11e1748d62`
-- Viagem antiga: `787aa089-0d47-4dd6-a1ba-2334ca7ee2f7` (VGM-2026-0083, finalizada)
+Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
 
-### Detalhes Tecnicos
+## Alteracoes Necessarias
 
-Sera executada uma migration SQL que faz:
+### Migracao Unica
 
-```text
--- 1. Remove vinculo antigo
-DELETE FROM viagem_entregas WHERE entrega_id = '04a2ecef-...' AND viagem_id = '787aa089-...';
+Adicionar duas colunas a tabela `config_fiscal`:
 
--- 2. Cria nova viagem (codigo gerado por trigger)
-INSERT INTO viagens (motorista_id, veiculo_id, carroceria_id, status, codigo)
-VALUES (..., 'aguardando', '');
+| Coluna | Tipo | Default | Finalidade |
+|--------|------|---------|------------|
+| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
+| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
 
--- 3. Vincula entrega a nova viagem
-INSERT INTO viagem_entregas (viagem_id, entrega_id, ordem) VALUES (nova_viagem, entrega, 1);
+### Atualizacao do Frontend
+
+Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
+- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
+- Campo numerico para o percentual da base de calculo do ICMS
+
+### Atualizacao dos Tipos TypeScript
+
+Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
+
+---
+
+## Secao Tecnica
+
+### SQL da Migracao
+
+```sql
+ALTER TABLE public.config_fiscal
+  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
+  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
+
+COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
+  IS '1 = Simples Nacional, 3 = Regime Normal';
+COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
+  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
 ```
 
-Nenhum arquivo de codigo sera alterado -- apenas operacoes no banco de dados.
+### Mapeamento Completo: Banco -> Payload API
+
+Com essas 2 colunas adicionadas, o mapeamento fica completo:
+
+**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
+- CNPJ: `empresas.cnpj_matriz`
+- IE: `empresas.inscricao_estadual`
+- Razao Social: `empresas.razao_social`
+- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
+- Municipio IBGE: `filiais.codigo_municipio_ibge`
+- UF: `filiais.estado`
+- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
+
+**Fiscal**: `config_fiscal`
+- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
+- Natureza: `natureza_operacao`
+- Serie/Numero: `serie_cte` / `proximo_numero_cte`
+- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
+- Ambiente: `ambiente`
+
+**Remetente/Destinatario**: `cargas` + `enderecos_carga`
+**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
+**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
+
+### Campos Derivados por Logica (sem banco)
+- `data_emissao`: gerado no momento da emissao
+- `tipo_documento`: sempre `0` (Normal)
+- `modal`: sempre `01` (Rodoviario)
+- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
+
+### Sequencia de Implementacao
+
+1. Aplicar migracao SQL (1 migration)
+2. Atualizar types.ts
+3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
+
