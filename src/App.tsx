@@ -60,6 +60,7 @@ import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraCargas from "./pages/portals/transportadora/CargasDisponiveis";
 import TransportadoraFrota from "./pages/portals/transportadora/MinhaFrota";
 import TransportadoraFrotaVinculos from "./pages/portals/transportadora/FrotaVinculos";
+import TransportadoraFrotaCarrocerias from "./pages/portals/transportadora/FrotaCarrocerias";
 import TransportadoraMotoristas from "./pages/portals/transportadora/Motoristas";
 // GestaoEntregas removed - replaced by OperacaoDiaria
 import TransportadoraHistoricoEntregas from "./pages/portals/transportadora/HistoricoEntregas";
