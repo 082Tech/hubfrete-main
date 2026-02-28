@@ -1,62 +1,86 @@
 
 
-# Adicionar Motorista Padrão nos Vínculos + Auto-preenchimento no Wizard
+# Plano: Completar Schema Fiscal para API Focus NFe
 
-## Contexto
-Atualmente, os cards de vínculo na aba "Vínculos" da Minha Frota mostram apenas Veículo + Carrocerias. O usuário quer adicionar um slot de motorista padrão a cada veículo, e usar isso para auto-preencher o wizard de aceite de carga.
+## Resumo
 
-## Mudanças
+Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
 
-### 1. Banco de Dados -- Nova coluna `motorista_padrao_id` em `veiculos`
+## Situacao Atual
 
-Adicionar coluna `motorista_padrao_id` (uuid, nullable, FK para `motoristas.id`) na tabela `veiculos`. Essa coluna representa o motorista que normalmente opera aquele veículo, sem bloqueios operacionais.
+Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
 
-### 2. Minha Frota -- Slot de Motorista no Card de Vínculos
+## Alteracoes Necessarias
 
-Cada card de vínculo ganhará um slot de motorista acima das carrocerias:
-- Avatar redondo com foto do motorista ou fallback com iniciais
-- Nome + telefone
-- Botão de desvincular (Unlink)
-- Se vazio: dropdown para selecionar motorista (lista motoristas da empresa sem vínculo padrão com outro veículo)
-- O info banner será atualizado: "Vínculos Motorista + Veículo + Carroceria"
+### Migracao Unica
 
-### 3. Wizard de Aceite -- Auto-preenchimento em cadeia
+Adicionar duas colunas a tabela `config_fiscal`:
 
-**Ao selecionar motorista (sem viagem ativa)**:
-- Buscar se existe algum veículo com `motorista_padrao_id` = motorista selecionado
-- Se sim: auto-preencher `selectedVeiculo` com esse veículo
-- As carrocerias vinculadas a esse veículo (`carrocerias.veiculo_id`) serão auto-preenchidas automaticamente (lógica que ja existe parcialmente)
+| Coluna | Tipo | Default | Finalidade |
+|--------|------|---------|------------|
+| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
+| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
 
-**Ao trocar veículo manualmente**:
-- Buscar carrocerias vinculadas ao novo veículo (`carrocerias.veiculo_id = novoVeiculoId`)
-- Auto-preencher `selectedCarroceria` / `selectedCarroceriasMulti` com essas carrocerias
-- Limpar peso alocado
+### Atualizacao do Frontend
 
-**Motorista com viagem ativa**: comportamento atual permanece (equipamento bloqueado da viagem).
+Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
+- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
+- Campo numerico para o percentual da base de calculo do ICMS
 
-### Detalhes Tecnico
+### Atualizacao dos Tipos TypeScript
 
-**Migration SQL:**
-```text
-ALTER TABLE veiculos ADD COLUMN motorista_padrao_id uuid REFERENCES motoristas(id);
+Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
+
+---
+
+## Secao Tecnica
+
+### SQL da Migracao
+
+```sql
+ALTER TABLE public.config_fiscal
+  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
+  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
+
+COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
+  IS '1 = Simples Nacional, 3 = Regime Normal';
+COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
+  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
 ```
 
-**MinhaFrota.tsx -- Aba Vinculos (linhas ~2330-2435):**
-- Incluir query de motoristas da empresa (reutilizar query existente ou adicionar)
-- Acima do separador de carrocerias, adicionar seção "Motorista padrão" com Avatar + Select
-- Operações: `supabase.from('veiculos').update({ motorista_padrao_id })` para vincular/desvincular
+### Mapeamento Completo: Banco -> Payload API
 
-**CargasDisponiveis.tsx -- useEffect apos selectedMotorista (linhas ~535-559):**
-- Adicionar bloco: se `!driverActiveTrip`, buscar veículo onde `motorista_padrao_id = selectedMotorista`
-- Se encontrado, chamar `setSelectedVeiculo(veiculo.id)`
+Com essas 2 colunas adicionadas, o mapeamento fica completo:
 
-**CargasDisponiveis.tsx -- novo useEffect para selectedVeiculo:**
-- Quando `selectedVeiculo` muda e nao ha viagem ativa bloqueando:
-  - Buscar carrocerias com `veiculo_id = selectedVeiculo`
-  - Auto-preencher single ou multi conforme tipo do veículo
-  - Limpar peso
+**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
+- CNPJ: `empresas.cnpj_matriz`
+- IE: `empresas.inscricao_estadual`
+- Razao Social: `empresas.razao_social`
+- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
+- Municipio IBGE: `filiais.codigo_municipio_ibge`
+- UF: `filiais.estado`
+- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
 
-**Queries afetadas:**
-- Query de veículos em MinhaFrota precisa incluir `motorista_padrao_id` e join com motoristas para foto/nome
-- Query de veículos em CargasDisponiveis precisa incluir `motorista_padrao_id`
+**Fiscal**: `config_fiscal`
+- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
+- Natureza: `natureza_operacao`
+- Serie/Numero: `serie_cte` / `proximo_numero_cte`
+- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
+- Ambiente: `ambiente`
+
+**Remetente/Destinatario**: `cargas` + `enderecos_carga`
+**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
+**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
+
+### Campos Derivados por Logica (sem banco)
+- `data_emissao`: gerado no momento da emissao
+- `tipo_documento`: sempre `0` (Normal)
+- `modal`: sempre `01` (Rodoviario)
+- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
+
+### Sequencia de Implementacao
+
+1. Aplicar migracao SQL (1 migration)
+2. Atualizar types.ts
+3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
 

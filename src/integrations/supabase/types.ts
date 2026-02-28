@@ -2760,6 +2760,7 @@ export type Database = {
           id: string
           marca: string | null
           modelo: string | null
+          motorista_padrao_id: string | null
           placa: string
           proprietario_cpf_cnpj: string | null
           proprietario_nome: string | null
@@ -2792,6 +2793,7 @@ export type Database = {
           id?: string
           marca?: string | null
           modelo?: string | null
+          motorista_padrao_id?: string | null
           placa: string
           proprietario_cpf_cnpj?: string | null
           proprietario_nome?: string | null
@@ -2824,6 +2826,7 @@ export type Database = {
           id?: string
           marca?: string | null
           modelo?: string | null
+          motorista_padrao_id?: string | null
           placa?: string
           proprietario_cpf_cnpj?: string | null
           proprietario_nome?: string | null
@@ -2844,6 +2847,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_motorista_padrao_id_fkey"
+            columns: ["motorista_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
             referencedColumns: ["id"]
           },
         ]

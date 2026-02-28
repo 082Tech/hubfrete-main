@@ -147,6 +147,7 @@ interface Veiculo {
   capacidade_kg: number | null;
   marca: string | null;
   modelo: string | null;
+  motorista_padrao_id?: string | null;
 }
 
 interface Carroceria {
@@ -408,7 +409,7 @@ export default function CargasDisponiveis() {
       if (!empresa?.id) return [];
       const { data, error } = await supabase
         .from('veiculos')
-        .select('id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada, foto_url')
+        .select('id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada, foto_url, motorista_padrao_id')
         .eq('empresa_id', empresa.id as any)
         .eq('ativo', true);
       if (error) throw error;
@@ -557,6 +558,36 @@ export default function CargasDisponiveis() {
       setSelectedCarroceriasMulti(Array.from(allCarrocerias));
     }
   }, [driverActiveTrip]);
+
+  // Auto-fill vehicle from motorista_padrao_id binding (when no active trip)
+  useEffect(() => {
+    if (!selectedMotorista || driverActiveTrip) return;
+    const veiculoPadrao = veiculosEmpresa.find((v: any) => v.motorista_padrao_id === selectedMotorista);
+    if (veiculoPadrao) {
+      setSelectedVeiculo(veiculoPadrao.id);
+    }
+  }, [selectedMotorista, driverActiveTrip, veiculosEmpresa]);
+
+  // Auto-fill carrocerias when vehicle changes (and no active trip blocking)
+  useEffect(() => {
+    if (!selectedVeiculo || driverActiveTrip) return;
+    const veiculo = veiculosEmpresa.find((v: any) => v.id === selectedVeiculo);
+    if (!veiculo || veiculo.carroceria_integrada) return;
+    const vinculadas = carroceriasEmpresa.filter((c: any) => c.veiculo_id === selectedVeiculo);
+    if (vinculadas.length === 0) return;
+    const maxC = getMaxCarrocerias(veiculo.tipo, veiculo.carroceria_integrada);
+    if (maxC > 1) {
+      setSelectedCarroceriasMulti(vinculadas.map((c: any) => c.id));
+      setSelectedCarroceria(vinculadas[0]?.id || null);
+    } else {
+      setSelectedCarroceria(vinculadas[0]?.id || null);
+      setSelectedCarroceriasMulti([]);
+    }
+    // Reset weight allocations
+    setPesoPorCarroceria({});
+    setPesoAlocadoInput(0);
+    setPesoBarPercent(0);
+  }, [selectedVeiculo, driverActiveTrip, veiculosEmpresa, carroceriasEmpresa]);
 
 
   const { data: usuarioLogado } = useQuery({
