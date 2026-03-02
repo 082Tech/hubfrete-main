@@ -2636,7 +2636,7 @@ export default function CargasDisponiveis() {
                               </div>
                               {selectedCarga && selectedCarga.peso_disponivel_kg !== null && selectedCarga.peso_disponivel_kg < selectedCarga.peso_kg && (
                                 <div className="text-[10px] text-muted-foreground">
-                                  de {selectedCarga.peso_kg.toLocaleString('pt-BR')} kg totais
+                                  de {formatWeight(selectedCarga.peso_kg)} totais
                                 </div>
                               )}
                             </div>
