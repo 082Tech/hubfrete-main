@@ -2760,7 +2760,8 @@ export default function CargasDisponiveis() {
                               const emUso = pesoEmUsoPorCarroceria.get(carId) || 0;
                               const capDisp = Math.max(0, (carr.capacidade_kg || 0) - emUso);
                               const pesoCarr = pesoPorCarroceria[carId] || 0;
-                              const percentCarr = pesoTotalAlocado > 0 ? (pesoCarr / pesoTotalAlocado) * 100 : 0;
+                              const pesoDisp = selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0;
+                              const percentCarr = pesoDisp > 0 ? (pesoCarr / pesoDisp) * 100 : 0;
 
                               return (
                                 <div key={carId} className="space-y-2 p-3 rounded-lg border bg-background">
@@ -2803,7 +2804,7 @@ export default function CargasDisponiveis() {
                                     </div>
                                     <div className="flex justify-between text-[10px] text-muted-foreground">
                                       <span>{pesoCarr.toLocaleString('pt-BR')} kg</span>
-                                      <span className="font-medium">{Math.round(percentCarr)}% do total</span>
+                                      <span className="font-medium">{Math.round(percentCarr)}% do máx. alocável</span>
                                     </div>
                                   </div>
                                   {pesoCarr > capDisp && capDisp > 0 && (
