@@ -843,11 +843,11 @@ export default function MinhaFrota() {
                               }}
                             />
                           </div>
-                          <Badge variant={veiculo.ativo ? 'outline' : 'destructive'} className={`absolute top-2 left-2 text-xs ${veiculo.ativo ? 'bg-chart-2/10 text-chart-2 border-chart-2/20 backdrop-blur-sm' : ''}`}>
+                          <Badge variant={veiculo.ativo ? 'outline' : 'destructive'} className={`absolute top-2 left-2 text-xs ${veiculo.ativo ? 'bg-chart-2/80 text-white border-chart-2/40 backdrop-blur-sm' : ''}`}>
                             {veiculo.ativo ? 'Ativo' : 'Inativo'}
                           </Badge>
                           {veiculoTripMap[veiculo.id] && (
-                            <Badge className="absolute bottom-2 left-2 text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/20 backdrop-blur-sm" variant="outline">
+                            <Badge className="absolute bottom-2 left-2 text-[10px] bg-chart-4/80 text-white border-chart-4/40 backdrop-blur-sm" variant="outline">
                               <Truck className="w-3 h-3 mr-0.5" />Em Viagem • {veiculoTripMap[veiculo.id].codigo}
                             </Badge>
                           )}
@@ -875,6 +875,9 @@ export default function MinhaFrota() {
                               <Badge className="text-xs bg-primary/10 text-primary border-primary/20">{tipoCarroceriaLabels[veiculo.carroceria] || veiculo.carroceria}</Badge>
                             ) : (
                               <Badge variant="outline" className="text-xs text-muted-foreground">Apenas Cavalo</Badge>
+                            )}
+                            {veiculo.carroceria_integrada && veiculo.capacidade_kg && (
+                              <Badge variant="outline" className="text-xs gap-1"><Weight className="w-3 h-3" />{(veiculo.capacidade_kg / 1000).toLocaleString('pt-BR')}t</Badge>
                             )}
                             {veiculo.seguro_ativo && <Badge variant="outline" className="text-xs gap-0.5"><Shield className="w-3 h-3" /></Badge>}
                             {veiculo.rastreador && <Badge variant="outline" className="text-xs gap-0.5"><Gauge className="w-3 h-3" /></Badge>}
