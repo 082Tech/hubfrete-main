@@ -3010,7 +3010,7 @@ export default function CargasDisponiveis() {
                       <div className="space-y-1">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Peso atual disponível:</span>
-                          <span>{(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg</span>
+                          <span>{formatWeight(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Peso a alocar:</span>
