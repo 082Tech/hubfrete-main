@@ -522,6 +522,9 @@ function DetailPanel({
             </div>
           </div>
 
+          {/* Carregamento por Carroceria */}
+          <CarregamentoCarroceriasSection carroceriasAlocadas={entrega.carrocerias_alocadas as any} />
+
           <Separator />
 
           {/* Origem */}
