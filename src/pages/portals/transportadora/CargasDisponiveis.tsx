@@ -2632,8 +2632,7 @@ export default function CargasDisponiveis() {
                             <div className="p-3 rounded-lg border bg-background space-y-1.5">
                               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Carga disponível</div>
                               <div className="text-xl font-bold text-foreground">
-                                {(selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0).toLocaleString('pt-BR')}
-                                <span className="text-xs font-normal text-muted-foreground ml-1">kg</span>
+                                {formatWeight(selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0)}
                               </div>
                               {selectedCarga && selectedCarga.peso_disponivel_kg !== null && selectedCarga.peso_disponivel_kg < selectedCarga.peso_kg && (
                                 <div className="text-[10px] text-muted-foreground">
