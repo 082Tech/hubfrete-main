@@ -534,7 +534,7 @@ export default function TransportadoraRelatorios() {
     return `R$ ${value.toFixed(0)}`;
   };
 
-  const formatWeightLocal = (value: number) => formatWeightUtil(value);
+  const formatWeightLocal = formatWeight;
 
   // Prepare data for tabs
   const financialMetrics = {
