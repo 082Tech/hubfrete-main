@@ -2688,12 +2688,12 @@ export default function CargasDisponiveis() {
                                   </div>
                                   <Input
                                     type="number"
-                                    step="1"
+                                    step="0.0001"
                                     className="h-10 text-base font-semibold"
                                     placeholder=""
                                     value={pesoCarr || ''}
                                     onChange={(e) => {
-                                      const val = Math.floor(Number(e.target.value));
+                                      const val = Number(e.target.value);
                                       setPesoPorCarroceria(prev => ({ ...prev, [carId]: val < 0 ? 0 : val }));
                                     }}
                                     onBlur={() => {
@@ -2707,6 +2707,7 @@ export default function CargasDisponiveis() {
                                       if (val + outrosTotal > pesoDisponivel) {
                                         val = Math.max(0, pesoDisponivel - outrosTotal);
                                       }
+                                      val = parseFloat(val.toFixed(4));
                                       setPesoPorCarroceria(prev => ({ ...prev, [carId]: val }));
                                     }}
                                     max={capDisp}
