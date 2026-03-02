@@ -202,7 +202,7 @@ export default function FrotaVinculos() {
         <Input
           placeholder="Buscar por placa, tipo, motorista..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => handleSearch(e.target.value)}
           className="pl-9 h-9"
         />
       </div>
