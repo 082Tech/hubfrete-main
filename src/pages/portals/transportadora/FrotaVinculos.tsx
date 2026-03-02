@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -88,11 +88,13 @@ interface Carroceria {
   veiculo_id: string | null;
 }
 
+const PAGE_SIZE = 12;
+
 export default function FrotaVinculos() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { data: veiculos = [], isLoading: isLoadingVeiculos } = useQuery({
     queryKey: ['veiculos_transportadora', empresa?.id],
     queryFn: async () => {
@@ -160,6 +162,19 @@ export default function FrotaVinculos() {
     });
   }, [veiculos, carrocerias, searchTerm]);
 
+  // Reset pagination when search changes
+  const handleSearch = useCallback((value: string) => {
+    setSearchTerm(value);
+    setVisibleCount(PAGE_SIZE);
+  }, []);
+
+  const paginatedVeiculos = useMemo(() => filteredVeiculos.slice(0, visibleCount), [filteredVeiculos, visibleCount]);
+  const hasMore = filteredVeiculos.length > visibleCount;
+
+  // Pre-compute shared data to avoid recalculating per card
+  const availableCarrocerias = useMemo(() => carrocerias.filter(c => !c.veiculo_id && c.ativo), [carrocerias]);
+  const motoristaPadraoIds = useMemo(() => new Set(veiculos.filter(v => v.motorista_padrao_id).map(v => v.motorista_padrao_id!)), [veiculos]);
+
   return (
     <div className="flex flex-col h-full gap-6 p-4 md:p-8">
       {/* Header */}
@@ -187,7 +202,7 @@ export default function FrotaVinculos() {
         <Input
           placeholder="Buscar por placa, tipo, motorista..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => handleSearch(e.target.value)}
           className="pl-9 h-9"
         />
       </div>
@@ -223,13 +238,14 @@ export default function FrotaVinculos() {
           </div>
         ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredVeiculos.map((veiculo) => {
+          {paginatedVeiculos.map((veiculo) => {
               const linkedCarrocerias = carrocerias.filter(c => c.veiculo_id === veiculo.id);
               const maxSlots = veiculo.carroceria_integrada ? 0 : (['bitrem', 'rodotrem'].includes(veiculo.tipo) ? 2 : ['vanderleia'].includes(veiculo.tipo) ? 3 : 1);
-              const availableCarrocerias = carrocerias.filter(c => !c.veiculo_id && c.ativo);
               const motoristaPadrao = veiculo.motorista_padrao as any;
-              const veiculosComMotorista = veiculos.filter(v => v.motorista_padrao_id && v.id !== veiculo.id).map(v => v.motorista_padrao_id);
-              const availableMotoristas = motoristasEmpresa.filter(m => !veiculosComMotorista.includes(m.id));
+              // Filter out motoristas already assigned to other vehicles
+              const availableMotoristas = motoristasEmpresa.filter(m =>
+                !motoristaPadraoIds.has(m.id) || m.id === veiculo.motorista_padrao_id
+              );
 
               return (
                 <Card key={veiculo.id} className="border-border">
@@ -446,6 +462,22 @@ export default function FrotaVinculos() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Load More */}
+          {hasMore && (
+            <div className="col-span-full flex flex-col items-center gap-2 py-4">
+              <p className="text-xs text-muted-foreground">
+                Exibindo {paginatedVeiculos.length} de {filteredVeiculos.length} veículos
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+              >
+                Carregar mais
+              </Button>
+            </div>
           )}
         </div>
         )}
