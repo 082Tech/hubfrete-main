@@ -2347,7 +2347,7 @@ export default function CargasDisponiveis() {
                                         <span className="font-mono font-semibold">{carr.placa}</span>
                                         <span className="text-muted-foreground">{tipoCarroceriaLabels[carr.tipo] || carr.tipo}</span>
                                       </div>
-                                      <span className="font-medium text-primary">{Math.max(0, cap - emUso).toLocaleString('pt-BR')} kg livres</span>
+                                      <span className="font-medium text-primary">{formatWeight(Math.max(0, cap - emUso))} livres</span>
                                     </div>
                                     <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                                       <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${100 - pct}%` }} />
