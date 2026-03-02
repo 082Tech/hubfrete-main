@@ -292,7 +292,7 @@ export function EtapaVeiculo({
                   <SelectItem key={c.id} value={c.id}>
                     {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
                     {c.marca && ` (${c.marca})`}
-                    {c.capacidade_kg && ` - ${c.capacidade_kg.toLocaleString()}kg`}
+                    {c.capacidade_kg && ` - ${formatWeight(c.capacidade_kg)}`}
                   </SelectItem>
                 ))}
               </SelectContent>
