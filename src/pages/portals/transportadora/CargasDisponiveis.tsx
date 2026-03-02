@@ -2940,7 +2940,7 @@ export default function CargasDisponiveis() {
                                   <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{carr.placa}</Badge>
                                   <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[carr.tipo] || carr.tipo}</span>
                                 </div>
-                                <span className="font-medium">{(pesoPorCarroceria[carId] || 0).toLocaleString('pt-BR')} kg</span>
+                                <span className="font-medium">{formatWeight(pesoPorCarroceria[carId] || 0)}</span>
                               </div>
                             );
                           })}
