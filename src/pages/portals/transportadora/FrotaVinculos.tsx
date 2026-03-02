@@ -463,6 +463,22 @@ export default function FrotaVinculos() {
               </CardContent>
             </Card>
           )}
+
+          {/* Load More */}
+          {hasMore && (
+            <div className="col-span-full flex flex-col items-center gap-2 py-4">
+              <p className="text-xs text-muted-foreground">
+                Exibindo {paginatedVeiculos.length} de {filteredVeiculos.length} veículos
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+              >
+                Carregar mais
+              </Button>
+            </div>
+          )}
         </div>
         )}
       </div>
