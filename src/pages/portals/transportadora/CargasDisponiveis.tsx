@@ -3014,7 +3014,7 @@ export default function CargasDisponiveis() {
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Peso a alocar:</span>
-                          <span className="text-primary font-medium">- {pesoTotalAlocado.toLocaleString('pt-BR')} kg</span>
+                          <span className="text-primary font-medium">- {formatWeight(pesoTotalAlocado)}</span>
                         </div>
                         <Separator className="my-2" />
                         <div className="flex justify-between text-sm font-semibold">
