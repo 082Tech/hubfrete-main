@@ -238,13 +238,14 @@ export default function FrotaVinculos() {
           </div>
         ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredVeiculos.map((veiculo) => {
+          {paginatedVeiculos.map((veiculo) => {
               const linkedCarrocerias = carrocerias.filter(c => c.veiculo_id === veiculo.id);
               const maxSlots = veiculo.carroceria_integrada ? 0 : (['bitrem', 'rodotrem'].includes(veiculo.tipo) ? 2 : ['vanderleia'].includes(veiculo.tipo) ? 3 : 1);
-              const availableCarrocerias = carrocerias.filter(c => !c.veiculo_id && c.ativo);
               const motoristaPadrao = veiculo.motorista_padrao as any;
-              const veiculosComMotorista = veiculos.filter(v => v.motorista_padrao_id && v.id !== veiculo.id).map(v => v.motorista_padrao_id);
-              const availableMotoristas = motoristasEmpresa.filter(m => !veiculosComMotorista.includes(m.id));
+              // Filter out motoristas already assigned to other vehicles
+              const availableMotoristas = motoristasEmpresa.filter(m =>
+                !motoristaPadraoIds.has(m.id) || m.id === veiculo.motorista_padrao_id
+              );
 
               return (
                 <Card key={veiculo.id} className="border-border">
