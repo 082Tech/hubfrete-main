@@ -375,7 +375,7 @@ export default function FrotaVinculos() {
                               </div>
                               {c.capacidade_kg && (
                                 <Badge variant="outline" className="text-[10px] gap-0.5">
-                                  <Weight className="w-3 h-3" />{(c.capacidade_kg / 1000).toLocaleString('pt-BR')}t
+                                  <Weight className="w-3 h-3" />{formatWeight(c.capacidade_kg)}
                                 </Badge>
                               )}
                             </div>
