@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Car, Container, Upload, CheckCircle, FileText, User, Weight } from 'lucide-react';
+import { formatWeight } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 

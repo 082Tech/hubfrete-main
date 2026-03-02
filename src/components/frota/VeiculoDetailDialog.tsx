@@ -7,6 +7,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Truck, Shield, Gauge, Container, Weight, Boxes, FileText } from 'lucide-react';
+import { formatWeight } from '@/lib/utils';
 
 
 const tipoVeiculoLabels: Record<string, string> = {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { Truck, Weight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';

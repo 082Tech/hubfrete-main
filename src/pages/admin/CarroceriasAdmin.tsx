@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { 
   Container, 
   Search, 

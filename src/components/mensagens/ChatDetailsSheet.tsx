@@ -14,6 +14,7 @@ import {
   Route,
   Users
 } from 'lucide-react';
+import { formatWeight } from '@/lib/utils';
 import { 
   Sheet, 
   SheetContent, 

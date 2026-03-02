@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { NfeValidationStatus } from './NfeValidationStatus';
 import type { Database } from '@/integrations/supabase/types';
+import { formatWeight } from '@/lib/utils';
 
 type StatusCarga = Database['public']['Enums']['status_carga'];
 type StatusEntrega = Database['public']['Enums']['status_entrega'];

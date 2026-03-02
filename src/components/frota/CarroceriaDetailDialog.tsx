@@ -7,6 +7,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Container, User, Weight, Car } from 'lucide-react';
+import { formatWeight } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const tipoCarroceriaLabels: Record<string, string> = {
