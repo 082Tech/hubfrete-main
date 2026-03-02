@@ -272,7 +272,7 @@ function VinculosCarrocerias({ veiculoId }: { veiculoId: string; empresaId?: num
                 </div>
                 {c.capacidade_kg && (
                   <Badge variant="outline" className="text-xs">
-                    {c.capacidade_kg.toLocaleString('pt-BR')} kg
+                    {formatWeight(c.capacidade_kg)}
                   </Badge>
                 )}
               </div>
