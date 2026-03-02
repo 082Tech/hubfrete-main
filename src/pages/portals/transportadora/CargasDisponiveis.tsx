@@ -2976,7 +2976,7 @@ export default function CargasDisponiveis() {
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="text-muted-foreground">Peso a carregar:</span>
-                        <span className="ml-2 font-semibold text-primary">{pesoTotalAlocado.toLocaleString('pt-BR')} kg</span>
+                        <span className="ml-2 font-semibold text-primary">{formatWeight(pesoTotalAlocado)}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Previsão de coleta:</span>
