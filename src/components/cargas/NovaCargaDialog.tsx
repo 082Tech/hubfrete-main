@@ -73,7 +73,7 @@ const formSchema = z.object({
   // Dados da carga
   descricao: z.string().min(5, 'Descrição deve ter no mínimo 5 caracteres'),
   tipo: z.enum(['granel_solido', 'granel_liquido', 'carga_seca', 'refrigerada', 'congelada', 'perigosa', 'viva', 'indivisivel', 'container'] as const),
-  peso_kg: z.coerce.number().int('O peso deve ser um número inteiro').min(1, 'Peso deve ser maior que 0'),
+  peso_kg: z.coerce.number().min(0.0001, 'Peso deve ser maior que 0'),
   volume_m3: z.coerce.number().optional(),
   quantidade_paletes: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
@@ -504,10 +504,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                         <FormControl>
                           <Input
                             type="number"
-                            step="1"
+                            step="0.0001"
                             placeholder="0"
                             {...field}
-                            onChange={(e) => field.onChange(Math.floor(Number(e.target.value)))}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
@@ -627,11 +627,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
                       <Input
                         type="number"
-                        step="1"
+                        step="0.0001"
                         placeholder="Ex: 15000 (15 toneladas)"
                         className="mt-2"
                         value={pesoMinimoFracionado || ''}
-                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Math.floor(Number(e.target.value)) : null)}
+                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Number(e.target.value) : null)}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Deixe vazio para não ter limite mínimo
