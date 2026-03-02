@@ -444,7 +444,7 @@ export default function CargasGoogleMap({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
               <Weight className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-foreground">{(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg</span>
+              <span className="text-sm text-foreground">{formatWeight((selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg))}</span>
             </div>
             <div className="text-right">
               <span className="text-lg font-bold text-primary">

@@ -114,7 +114,7 @@ export function CarregamentoCarroceriasSection({ carroceriasAlocadas, carroceria
                   </p>
                   {capacidade && (
                     <p className="text-[10px] text-muted-foreground">
-                      de {capacidade.toLocaleString('pt-BR')} kg
+                      de {formatWeight(capacidade)}
                     </p>
                   )}
                 </div>

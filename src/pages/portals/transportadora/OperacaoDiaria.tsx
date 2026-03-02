@@ -1408,8 +1408,8 @@ function GestaoEntregasDialogContent({
                                 {e.carga.peso_kg && (
                                   <span className="flex items-center gap-1">
                                     <Weight className="w-3 h-3" />
-                                    {e.peso_alocado_kg ? `${e.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
-                                    {e.carga.peso_kg.toLocaleString('pt-BR')} kg
+                                    {e.peso_alocado_kg ? `${formatWeight(e.peso_alocado_kg)} / ` : ''}
+                                    {formatWeight(e.carga.peso_kg)}
                                   </span>
                                 )}
                                 {e.valor_frete && (

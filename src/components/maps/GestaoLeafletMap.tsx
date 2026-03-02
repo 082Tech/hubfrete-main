@@ -567,8 +567,8 @@ export function GestaoLeafletMap({
                 <span className="flex items-center gap-1.5">
                   <Weight className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="font-medium">
-                    {selectedEntregaData.pesoAlocado ? `${selectedEntregaData.pesoAlocado.toLocaleString('pt-BR')} kg / ` : ''}
-                    {selectedEntregaData.carga.peso.toLocaleString('pt-BR')} kg
+                    {selectedEntregaData.pesoAlocado ? `${formatWeight(selectedEntregaData.pesoAlocado)} / ` : ''}
+                    {formatWeight(selectedEntregaData.carga.peso)}
                   </span>
                 </span>
               )}

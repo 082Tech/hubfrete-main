@@ -1823,10 +1823,10 @@ export default function CargasDisponiveis() {
                         <span className="flex items-center gap-1">
                           <Weight className="w-4 h-4" />
                           <span className="font-medium">
-                            {(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg disponíveis
+                            {formatWeight((selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg))} disponíveis
                           </span>
                           {selectedCarga.peso_disponivel_kg !== null && selectedCarga.peso_disponivel_kg < selectedCarga.peso_kg && (
-                            <span className="text-muted-foreground">/ {selectedCarga.peso_kg.toLocaleString('pt-BR')} kg total</span>
+                            <span className="text-muted-foreground">/ {formatWeight(selectedCarga.peso_kg)} total</span>
                           )}
                         </span>
                       </div>
