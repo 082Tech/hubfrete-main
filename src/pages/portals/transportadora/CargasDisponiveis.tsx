@@ -2568,7 +2568,7 @@ export default function CargasDisponiveis() {
                                             )}
                                             <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{c.placa}</Badge>
                                             <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[c.tipo] || c.tipo}</span>
-                                            {c.capacidade_kg && <span className="text-xs text-primary ml-1">{c.capacidade_kg.toLocaleString('pt-BR')} kg</span>}
+                                            {c.capacidade_kg && <span className="text-xs text-primary ml-1">{formatWeight(c.capacidade_kg)}</span>}
                                             {viagemCarr && (
                                               <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 ml-auto">
                                                 <Route className="w-3 h-3 mr-0.5" />
