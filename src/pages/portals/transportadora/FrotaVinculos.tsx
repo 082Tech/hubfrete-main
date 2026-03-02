@@ -162,6 +162,19 @@ export default function FrotaVinculos() {
     });
   }, [veiculos, carrocerias, searchTerm]);
 
+  // Reset pagination when search changes
+  const handleSearch = useCallback((value: string) => {
+    setSearchTerm(value);
+    setVisibleCount(PAGE_SIZE);
+  }, []);
+
+  const paginatedVeiculos = useMemo(() => filteredVeiculos.slice(0, visibleCount), [filteredVeiculos, visibleCount]);
+  const hasMore = filteredVeiculos.length > visibleCount;
+
+  // Pre-compute shared data to avoid recalculating per card
+  const availableCarrocerias = useMemo(() => carrocerias.filter(c => !c.veiculo_id && c.ativo), [carrocerias]);
+  const motoristaPadraoIds = useMemo(() => new Set(veiculos.filter(v => v.motorista_padrao_id).map(v => v.motorista_padrao_id!)), [veiculos]);
+
   return (
     <div className="flex flex-col h-full gap-6 p-4 md:p-8">
       {/* Header */}
