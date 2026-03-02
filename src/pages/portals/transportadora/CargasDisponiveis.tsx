@@ -2862,7 +2862,7 @@ export default function CargasDisponiveis() {
                       </div>
                       <div>
                         <span className="text-muted-foreground">Peso disponível:</span>
-                        <span className="ml-2 font-medium">{(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg</span>
+                        <span className="ml-2 font-medium">{formatWeight(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg)}</span>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">{selectedCarga.descricao}</p>
