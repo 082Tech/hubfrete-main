@@ -2774,7 +2774,7 @@ export default function CargasDisponiveis() {
                                   setPesoAlocadoInput(val);
                                   setPesoBarPercent(pesoMaximoAlocar > 0 ? Math.min(100, (val / pesoMaximoAlocar) * 100) : 0);
                                 }}
-                                placeholder={`Informe o peso (máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg)`}
+                                placeholder={`Informe o peso (máx: ${formatWeight(pesoMaximoAlocar)})`}
                                 min={pesoMinimoRequirido}
                                 max={pesoMaximoAlocar}
                                 className="text-xl font-bold h-14 pr-12"
