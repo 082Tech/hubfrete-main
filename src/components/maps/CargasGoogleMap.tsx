@@ -1,6 +1,7 @@
 import { GoogleMap, InfoWindow, MarkerF, DirectionsRenderer } from '@react-google-maps/api';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ArrowRight, Loader2, Weight, Package } from 'lucide-react';
+import { formatWeight } from '@/lib/utils';
 import { useGoogleMaps, defaultMapContainerStyle, defaultCenter, airbnbMapStyles } from './GoogleMapsLoader';
 
 interface Carga {
