@@ -351,6 +351,9 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
               </CardContent>
             </Card>
 
+            {/* Carregamento por Carroceria */}
+            <CarregamentoCarroceriasSection carroceriasAlocadas={entrega.carrocerias_alocadas as any} />
+
             {/* Documentos - Enhanced Section */}
             <Card>
               <CardHeader className="pb-2">
