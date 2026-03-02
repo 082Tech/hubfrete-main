@@ -1076,10 +1076,10 @@ export default function CargasDisponiveis() {
     if (!selectedCarga || !selectedVeiculo) return null;
     if (pesoAlocadoInput <= 0) return 'Informe o peso a carregar';
     if (pesoAlocadoInput > pesoMaximoAlocar) {
-      return `Peso máximo disponível: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg`;
+      return `Peso máximo disponível: ${formatWeight(pesoMaximoAlocar)}`;
     }
     if (pesoAlocadoInput < pesoMinimoRequirido && pesoMinimoRequirido > 0) {
-      return `Peso mínimo exigido: ${pesoMinimoRequirido.toLocaleString('pt-BR')} kg`;
+      return `Peso mínimo exigido: ${formatWeight(pesoMinimoRequirido)}`;
     }
     return null;
   }, [selectedCarga, selectedVeiculo, pesoAlocadoInput, pesoMaximoAlocar, pesoMinimoRequirido]);
