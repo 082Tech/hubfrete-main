@@ -325,7 +325,7 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
                 </Badge>
                 <Badge variant="secondary">
                   <Weight className="w-3 h-3 mr-1" />
-                  {carga.peso_kg.toLocaleString('pt-BR')} kg
+                  {formatWeight(carga.peso_kg)}
                 </Badge>
                 {carga.volume_m3 && (
                   <Badge variant="secondary">
