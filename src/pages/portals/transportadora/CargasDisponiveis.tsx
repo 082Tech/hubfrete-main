@@ -442,7 +442,7 @@ export default function CargasDisponiveis() {
 
       const { data, error } = await supabase
         .from('entregas')
-        .select('motorista_id, veiculo_id, carroceria_id, peso_alocado_kg')
+        .select('motorista_id, veiculo_id, carroceria_id, peso_alocado_kg, carga_id, status, codigo')
         .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
         .not('motorista_id', 'is', null);
 
