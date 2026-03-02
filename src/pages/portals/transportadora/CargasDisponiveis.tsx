@@ -3025,8 +3025,8 @@ export default function CargasDisponiveis() {
                           })()}>
                             {(() => {
                               const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoTotalAlocado;
-                              return Math.max(0, restante).toLocaleString('pt-BR');
-                            })()} kg
+                              return formatWeight(Math.max(0, restante));
+                            })()}
                           </span>
                         </div>
                         {(() => {
