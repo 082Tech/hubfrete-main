@@ -16,9 +16,8 @@ interface CarroceriaInfo {
   capacidade_kg: number | null;
 }
 
-interface CarregamentoCarrocerias SectionProps {
+interface CarregamentoSectionProps {
   carroceriasAlocadas: AlocacaoItem[] | null;
-  pesoAlocadoTotal?: number | null;
 }
 
 const tipoCarroceriaLabels: Record<string, string> = {
@@ -35,7 +34,7 @@ const tipoCarroceriaLabels: Record<string, string> = {
   gaiola: 'Gaiola',
 };
 
-export function CarregamentoCarroceriasSection({ carroceriasAlocadas, pesoAlocadoTotal }: CarregamentoCarrocerias SectionProps) {
+export function CarregamentoCarroceriasSection({ carroceriasAlocadas }: CarregamentoSectionProps) {
   const [carroceriasInfo, setCarroceriasInfo] = useState<Record<string, CarroceriaInfo>>({});
 
   const alocacoes = useMemo(() => {
