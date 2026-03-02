@@ -335,10 +335,7 @@ export default function VeiculosAdmin() {
                         {veiculo.carroceria.replace(/_/g, ' ')}
                       </TableCell>
                       <TableCell>
-                        {veiculo.capacidade_kg 
-                          ? `${(veiculo.capacidade_kg / 1000).toFixed(1)} ton`
-                          : '-'
-                        }
+                        {veiculo.capacidade_kg ? formatWeight(veiculo.capacidade_kg) : '-'}
                       </TableCell>
                       <TableCell>
                         -
