@@ -2207,6 +2207,39 @@ export default function CargasDisponiveis() {
                         </div>
                       );
                     })()}
+
+                    {/* Merge alert: driver already has delivery for same cargo */}
+                    {selectedMotorista && !openMotoristaCombobox && entregaExistenteMesmaCarga && (() => {
+                      const e = entregaExistenteMesmaCarga;
+                      const isMergeable = e.status === 'aguardando' || e.status === 'saiu_para_coleta';
+                      return (
+                        <div className={cn(
+                          "p-3 rounded-md border space-y-1",
+                          isMergeable
+                            ? "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/40"
+                            : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40"
+                        )}>
+                          <div className={cn(
+                            "flex items-center gap-2 text-xs font-medium",
+                            isMergeable ? "text-blue-800 dark:text-blue-300" : "text-amber-800 dark:text-amber-300"
+                          )}>
+                            <Info className="w-3.5 h-3.5 shrink-0" />
+                            {isMergeable
+                              ? `Este motorista já possui uma entrega desta carga (${e.codigo || 'em andamento'})`
+                              : `Este motorista já possui uma entrega desta carga em trânsito (${e.codigo || ''})`
+                            }
+                          </div>
+                          <p className={cn(
+                            "text-[11px] pl-5",
+                            isMergeable ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"
+                          )}>
+                            {isMergeable
+                              ? `O peso adicional será somado à entrega existente (${(e.peso_alocado_kg / 1000).toFixed(1)}t alocado).`
+                              : 'Como a entrega já saiu para entrega, uma nova entrega separada será criada.'}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Equipamento */}
