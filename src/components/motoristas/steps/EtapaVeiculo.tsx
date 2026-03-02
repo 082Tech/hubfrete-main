@@ -134,7 +134,7 @@ export function EtapaVeiculo({
             <p className="text-sm text-muted-foreground">
               <strong>Carroceria:</strong> {tipoCarroceriaLabels[selectedVeiculo.carroceria] || selectedVeiculo.carroceria}
               {' • Capacidade: '}
-              {selectedVeiculo.capacidade_kg ? `${(selectedVeiculo.capacidade_kg / 1000).toLocaleString('pt-BR')}t` : 'Não informada'}
+              {selectedVeiculo.capacidade_kg ? formatWeight(selectedVeiculo.capacidade_kg) : 'Não informada'}
               {selectedVeiculo.capacidade_m3 && ` / ${selectedVeiculo.capacidade_m3}m³`}
             </p>
             <p className="text-xs text-primary mt-2">
