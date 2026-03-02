@@ -164,7 +164,7 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
                 <Card className="border-border">
                   <CardContent className="p-3 text-center">
                     <Scale className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-                    <p className="text-lg font-bold">{totalPeso >= 1000 ? `${(totalPeso / 1000).toFixed(1)}t` : `${totalPeso} kg`}</p>
+                    <p className="text-lg font-bold">{formatWeight(totalPeso)}</p>
                     <p className="text-[10px] text-muted-foreground">Peso Total</p>
                   </CardContent>
                 </Card>

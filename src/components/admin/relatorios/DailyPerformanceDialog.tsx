@@ -346,7 +346,7 @@ export function DailyPerformanceDialog({
                   Peso Total
                 </div>
                 <p className="text-xl font-bold">
-                  {metrics.pesoTotal.toLocaleString('pt-BR')} kg
+                  {formatWeight(metrics.pesoTotal)}
                 </p>
               </CardContent>
             </Card>
