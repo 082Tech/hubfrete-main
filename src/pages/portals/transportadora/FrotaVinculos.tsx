@@ -429,7 +429,7 @@ export default function FrotaVinculos() {
                                   availableCarrocerias.map((ac) => (
                                     <SelectItem key={ac.id} value={ac.id}>
                                       {ac.placa} - {tipoCarroceriaLabels[ac.tipo] || ac.tipo}
-                                      {ac.capacidade_kg ? ` (${(ac.capacidade_kg / 1000).toLocaleString('pt-BR')}t)` : ''}
+                                      {ac.capacidade_kg ? ` (${formatWeight(ac.capacidade_kg)})` : ''}
                                     </SelectItem>
                                   ))
                                 )}

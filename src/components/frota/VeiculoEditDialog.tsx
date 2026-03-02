@@ -310,7 +310,7 @@ function VinculosCarrocerias({ veiculoId }: { veiculoId: string; empresaId?: num
                   <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[c.tipo] || c.tipo}</span>
                 </div>
                 {c.capacidade_kg && (
-                  <span className="text-xs text-primary">{c.capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                  <span className="text-xs text-primary">{formatWeight(c.capacidade_kg)}</span>
                 )}
               </button>
             ))}

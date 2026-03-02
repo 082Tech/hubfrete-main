@@ -684,7 +684,7 @@ export default function FrotaCarrocerias() {
                         <p className="text-sm text-muted-foreground">{carroceria.marca} {carroceria.modelo} {carroceria.ano && `(${carroceria.ano})`}</p>
                         <div className="flex gap-2 flex-wrap">
                           {carroceria.capacidade_kg && (
-                            <Badge variant="outline" className="text-xs gap-1"><Weight className="w-3 h-3" />{(carroceria.capacidade_kg / 1000).toLocaleString('pt-BR')}t</Badge>
+                            <Badge variant="outline" className="text-xs gap-1"><Weight className="w-3 h-3" />{formatWeight(carroceria.capacidade_kg)}</Badge>
                           )}
                           {veiculoAtrelado && (
                             <Badge variant="outline" className="text-xs gap-1"><Car className="w-3 h-3" />{veiculoAtrelado.placa}</Badge>

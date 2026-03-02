@@ -878,7 +878,7 @@ export default function MinhaFrota() {
                               <Badge variant="outline" className="text-xs text-muted-foreground">Apenas Cavalo</Badge>
                             )}
                             {veiculo.carroceria_integrada && veiculo.capacidade_kg && (
-                              <Badge variant="outline" className="text-xs gap-1"><Weight className="w-3 h-3" />{(veiculo.capacidade_kg / 1000).toLocaleString('pt-BR')}t</Badge>
+                              <Badge variant="outline" className="text-xs gap-1"><Weight className="w-3 h-3" />{formatWeight(veiculo.capacidade_kg)}</Badge>
                             )}
                             {veiculo.seguro_ativo && <Badge variant="outline" className="text-xs gap-0.5"><Shield className="w-3 h-3" /></Badge>}
                             {veiculo.rastreador && <Badge variant="outline" className="text-xs gap-0.5"><Gauge className="w-3 h-3" /></Badge>}
