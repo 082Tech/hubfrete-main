@@ -243,6 +243,7 @@ export function CarroceriaEditDialog({ carroceria, open, onOpenChange }: Carroce
                 </Label>
                 <Input
                   type="number"
+                  step="0.0001"
                   placeholder="30000"
                   value={formData.capacidade_kg}
                   onChange={(e) => setFormData({ ...formData, capacidade_kg: e.target.value })}

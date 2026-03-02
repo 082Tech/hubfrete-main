@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -374,7 +375,7 @@ export default function FrotaVinculos() {
                               </div>
                               {c.capacidade_kg && (
                                 <Badge variant="outline" className="text-[10px] gap-0.5">
-                                  <Weight className="w-3 h-3" />{(c.capacidade_kg / 1000).toLocaleString('pt-BR')}t
+                                  <Weight className="w-3 h-3" />{formatWeight(c.capacidade_kg)}
                                 </Badge>
                               )}
                             </div>
@@ -428,7 +429,7 @@ export default function FrotaVinculos() {
                                   availableCarrocerias.map((ac) => (
                                     <SelectItem key={ac.id} value={ac.id}>
                                       {ac.placa} - {tipoCarroceriaLabels[ac.tipo] || ac.tipo}
-                                      {ac.capacidade_kg ? ` (${(ac.capacidade_kg / 1000).toLocaleString('pt-BR')}t)` : ''}
+                                      {ac.capacidade_kg ? ` (${formatWeight(ac.capacidade_kg)})` : ''}
                                     </SelectItem>
                                   ))
                                 )}

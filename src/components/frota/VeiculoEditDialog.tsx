@@ -39,6 +39,7 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatWeight } from '@/lib/utils';
 
 const ESTADOS_BRASIL = [
   { value: 'AC', label: 'Acre' },
@@ -271,7 +272,7 @@ function VinculosCarrocerias({ veiculoId }: { veiculoId: string; empresaId?: num
                 </div>
                 {c.capacidade_kg && (
                   <Badge variant="outline" className="text-xs">
-                    {c.capacidade_kg.toLocaleString('pt-BR')} kg
+                    {formatWeight(c.capacidade_kg)}
                   </Badge>
                 )}
               </div>
@@ -309,7 +310,7 @@ function VinculosCarrocerias({ veiculoId }: { veiculoId: string; empresaId?: num
                   <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[c.tipo] || c.tipo}</span>
                 </div>
                 {c.capacidade_kg && (
-                  <span className="text-xs text-primary">{c.capacidade_kg.toLocaleString('pt-BR')} kg</span>
+                  <span className="text-xs text-primary">{formatWeight(c.capacidade_kg)}</span>
                 )}
               </button>
             ))}

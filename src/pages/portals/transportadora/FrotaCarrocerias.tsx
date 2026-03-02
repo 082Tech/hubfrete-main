@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -364,7 +365,7 @@ export default function FrotaCarrocerias() {
       case 'capacidade':
         return (
           <td className="p-4 align-middle text-muted-foreground">
-            {carroceria.capacidade_kg ? `${(carroceria.capacidade_kg / 1000).toLocaleString('pt-BR')}t` : '-'}
+            {carroceria.capacidade_kg ? formatWeight(carroceria.capacidade_kg) : '-'}
             {carroceria.capacidade_m3 && ` / ${carroceria.capacidade_m3}m³`}
           </td>
         );
@@ -683,7 +684,7 @@ export default function FrotaCarrocerias() {
                         <p className="text-sm text-muted-foreground">{carroceria.marca} {carroceria.modelo} {carroceria.ano && `(${carroceria.ano})`}</p>
                         <div className="flex gap-2 flex-wrap">
                           {carroceria.capacidade_kg && (
-                            <Badge variant="outline" className="text-xs gap-1"><Weight className="w-3 h-3" />{(carroceria.capacidade_kg / 1000).toLocaleString('pt-BR')}t</Badge>
+                            <Badge variant="outline" className="text-xs gap-1"><Weight className="w-3 h-3" />{formatWeight(carroceria.capacidade_kg)}</Badge>
                           )}
                           {veiculoAtrelado && (
                             <Badge variant="outline" className="text-xs gap-1"><Car className="w-3 h-3" />{veiculoAtrelado.placa}</Badge>
