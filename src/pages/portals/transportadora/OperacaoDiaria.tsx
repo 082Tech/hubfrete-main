@@ -74,6 +74,7 @@ import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { EntregaDocumentosPanel } from '@/components/entregas/EntregaDocumentosPanel';
+import { CarregamentoCarroceriasSection } from '@/components/entregas/CarregamentoCarroceriasSection';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
