@@ -2749,11 +2749,85 @@ export default function CargasDisponiveis() {
 
                         {/* Input + visual bar */}
                         {maxCarrocerias >= 2 && selectedCarroceriasMulti.filter(Boolean).length > 0 ? (
-                          <div className="space-y-2">
-                            <p className="text-sm font-semibold">Resumo do Split (Total: {pesoTotalAlocado.toLocaleString('pt-BR')} kg)</p>
+                          <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                              Distribua o peso entre as carrocerias selecionadas.
+                            </p>
+
+                            {selectedCarroceriasMulti.filter(Boolean).map((carId) => {
+                              const carr = carroceriasEmpresa.find((c: any) => c.id === carId);
+                              if (!carr) return null;
+                              const emUso = pesoEmUsoPorCarroceria.get(carId) || 0;
+                              const capDisp = Math.max(0, (carr.capacidade_kg || 0) - emUso);
+                              const pesoCarr = pesoPorCarroceria[carId] || 0;
+                              const percentCarr = pesoTotalAlocado > 0 ? (pesoCarr / pesoTotalAlocado) * 100 : 0;
+
+                              return (
+                                <div key={carId} className="space-y-2 p-3 rounded-lg border bg-background">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="secondary" className="font-mono text-xs px-1.5 py-0.5">{carr.placa}</Badge>
+                                    <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[carr.tipo] || carr.tipo}</span>
+                                    <span className="text-xs text-primary font-medium ml-auto">Cap: {capDisp.toLocaleString('pt-BR')} kg</span>
+                                  </div>
+                                  <Input
+                                    type="number"
+                                    step="1"
+                                    className="h-10 text-base font-semibold"
+                                    placeholder={`Máx: ${capDisp.toLocaleString('pt-BR')} kg`}
+                                    value={pesoCarr || ''}
+                                    onChange={(e) => {
+                                      const val = Math.floor(Number(e.target.value));
+                                      setPesoPorCarroceria(prev => ({ ...prev, [carId]: val < 0 ? 0 : val }));
+                                    }}
+                                    onBlur={() => {
+                                      let val = pesoPorCarroceria[carId] || 0;
+                                      if (val > capDisp) val = capDisp;
+                                      if (val < 0) val = 0;
+                                      const pesoDisponivel = selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0;
+                                      const outrosTotal = Object.entries(pesoPorCarroceria)
+                                        .filter(([k]) => k !== carId)
+                                        .reduce((sum, [, v]) => sum + (v || 0), 0);
+                                      if (val + outrosTotal > pesoDisponivel) {
+                                        val = Math.max(0, pesoDisponivel - outrosTotal);
+                                      }
+                                      setPesoPorCarroceria(prev => ({ ...prev, [carId]: val }));
+                                    }}
+                                    max={capDisp}
+                                  />
+                                  <div className="space-y-1">
+                                    <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full rounded-full transition-all duration-300 bg-primary"
+                                        style={{ width: `${Math.min(100, percentCarr)}%` }}
+                                      />
+                                    </div>
+                                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                                      <span>{pesoCarr.toLocaleString('pt-BR')} kg</span>
+                                      <span className="font-medium">{Math.round(percentCarr)}% do total</span>
+                                    </div>
+                                  </div>
+                                  {pesoCarr > capDisp && capDisp > 0 && (
+                                    <p className="text-xs text-destructive flex items-center gap-1">
+                                      <AlertTriangle className="w-3 h-3" />
+                                      Excede capacidade disponível
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                            {/* Total summary */}
+                            <div className="flex items-center justify-between p-2.5 rounded-md bg-muted/50 border">
+                              <span className="text-sm font-semibold">Total alocado</span>
+                              <span className={cn("text-sm font-bold", pesoValidationError ? 'text-destructive' : 'text-primary')}>
+                                {pesoTotalAlocado.toLocaleString('pt-BR')} kg
+                              </span>
+                            </div>
+
                             {selectedCarga?.permite_fracionado === false && (
-                              <p className="text-xs text-amber-600">
-                                Esta carga não permite fracionamento - o somatório deve igualar o peso da carga.
+                              <p className="text-xs text-amber-600 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Esta carga não permite fracionamento — o somatório deve igualar o peso da carga.
                               </p>
                             )}
                             {pesoValidationError && (
