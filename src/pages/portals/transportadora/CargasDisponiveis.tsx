@@ -2595,7 +2595,7 @@ export default function CargasDisponiveis() {
                                         <Badge variant="secondary" className="font-mono text-sm">{selectedCarroceriaData.placa}</Badge>
                                         <p className="text-xs text-muted-foreground">{tipoCarroceriaLabels[selectedCarroceriaData.tipo] || selectedCarroceriaData.tipo}</p>
                                         {selectedCarroceriaData.capacidade_kg && (
-                                          <p className="text-xs font-medium text-primary">{selectedCarroceriaData.capacidade_kg.toLocaleString('pt-BR')} kg</p>
+                                          <p className="text-xs font-medium text-primary">{formatWeight(selectedCarroceriaData.capacidade_kg)}</p>
                                         )}
                                       </div>
                                     </div>
