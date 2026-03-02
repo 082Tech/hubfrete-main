@@ -504,10 +504,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                         <FormControl>
                           <Input
                             type="number"
-                            step="1"
+                            step="0.0001"
                             placeholder="0"
                             {...field}
-                            onChange={(e) => field.onChange(Math.floor(Number(e.target.value)))}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
