@@ -55,6 +55,7 @@ import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColum
 import { DraggableTableHead } from '@/components/ui/draggable-table-head';
 import { toast } from 'sonner';
 import { CarroceriaEditDialog, CarroceriaDetailDialog } from '@/components/frota';
+import { Pagination } from '@/components/admin/Pagination';
 
 const ITEMS_PER_PAGE = 12;
 
