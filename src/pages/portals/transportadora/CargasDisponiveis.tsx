@@ -2643,8 +2643,7 @@ export default function CargasDisponiveis() {
                             <div className="p-3 rounded-lg border bg-background space-y-1.5">
                               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Equip. disponível</div>
                               <div className={cn("text-xl font-bold", capacidadeEquipamentoDisponivel <= 0 ? 'text-destructive' : 'text-foreground')}>
-                                {capacidadeEquipamentoDisponivel.toLocaleString('pt-BR')}
-                                <span className="text-xs font-normal text-muted-foreground ml-1">kg</span>
+                                {formatWeight(capacidadeEquipamentoDisponivel)}
                               </div>
                               {capacidadeEquipamentoEmUso > 0 && (
                                 <div className="text-[10px] text-amber-600">
