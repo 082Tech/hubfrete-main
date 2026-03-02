@@ -38,8 +38,6 @@ import {
   ImageOff,
   LayoutGrid,
   List,
-  ChevronLeft,
-  ChevronRight,
   RotateCcw,
 } from 'lucide-react';
 import {

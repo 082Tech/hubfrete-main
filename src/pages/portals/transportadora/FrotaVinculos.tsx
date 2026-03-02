@@ -138,7 +138,7 @@ export default function FrotaVinculos() {
   });
 
   return (
-    <div className="flex flex-col h-full gap-6">
+    <div className="flex flex-col h-full gap-6 p-4 md:p-8">
       {/* Header */}
       <div className="shrink-0">
         <h1 className="text-2xl font-bold text-foreground">Vínculos da Frota</h1>
