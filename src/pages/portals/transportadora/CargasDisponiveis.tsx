@@ -2302,8 +2302,8 @@ export default function CargasDisponiveis() {
                                       <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${100 - pct}%` }} />
                                     </div>
                                     <div className="flex justify-between text-[10px] text-muted-foreground">
-                                      <span>Usado: {emUso.toLocaleString('pt-BR')} kg</span>
-                                      <span>Total: {cap.toLocaleString('pt-BR')} kg</span>
+                                      <span>Usado: {formatWeight(emUso)}</span>
+                                      <span>Total: {formatWeight(cap)}</span>
                                     </div>
                                   </div>
                                 );
