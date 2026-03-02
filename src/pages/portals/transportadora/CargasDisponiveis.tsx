@@ -2683,7 +2683,7 @@ export default function CargasDisponiveis() {
                                   <div className="flex items-center gap-2">
                                     <Badge variant="secondary" className="font-mono text-xs px-1.5 py-0.5">{carr.placa}</Badge>
                                     <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[carr.tipo] || carr.tipo}</span>
-                                    <span className="text-xs text-primary font-medium ml-auto">Cap: {capDisp.toLocaleString('pt-BR')} kg</span>
+                                    <span className="text-xs text-primary font-medium ml-auto">Cap: {formatWeight(capDisp)}</span>
                                   </div>
                                   <Input
                                     type="number"
