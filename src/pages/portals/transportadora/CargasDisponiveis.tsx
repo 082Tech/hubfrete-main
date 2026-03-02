@@ -945,6 +945,14 @@ export default function CargasDisponiveis() {
     return motoristas.find((m) => m.id === selectedMotorista);
   }, [motoristas, selectedMotorista]);
 
+  // Detect if selected driver already has a delivery for the same cargo
+  const entregaExistenteMesmaCarga = useMemo(() => {
+    if (!selectedMotorista || !selectedCarga) return null;
+    return entregasAtivas.find(
+      (e: any) => e.carga_id === selectedCarga.id && e.motorista_id === selectedMotorista
+    ) || null;
+  }, [selectedMotorista, selectedCarga, entregasAtivas]);
+
   // Get selected vehicle data (from company-wide list)
   const selectedVeiculoData = useMemo(() => {
     return veiculosEmpresa.find((v: any) => v.id === selectedVeiculo);
