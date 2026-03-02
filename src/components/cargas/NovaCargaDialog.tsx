@@ -627,7 +627,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
                       <Input
                         type="number"
-                        step="1"
+                        step="0.0001"
                         placeholder="Ex: 15000 (15 toneladas)"
                         className="mt-2"
                         value={pesoMinimoFracionado || ''}
