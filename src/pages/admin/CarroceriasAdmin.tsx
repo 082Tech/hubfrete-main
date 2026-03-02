@@ -353,7 +353,7 @@ export default function CarroceriasAdmin() {
                       <TableCell>
                         <div className="text-sm">
                           {carroceria.capacidade_kg && (
-                            <p>{(carroceria.capacidade_kg / 1000).toFixed(1)} ton</p>
+                            <p>{formatWeight(carroceria.capacidade_kg)}</p>
                           )}
                           {carroceria.capacidade_m3 && (
                             <p className="text-muted-foreground">{carroceria.capacidade_m3} m³</p>
