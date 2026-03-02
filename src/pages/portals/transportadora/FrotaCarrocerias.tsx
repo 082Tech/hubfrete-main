@@ -660,7 +660,7 @@ export default function FrotaCarrocerias() {
                             }}
                           />
                         </div>
-                        <Badge variant={carroceria.ativo ? 'outline' : 'destructive'} className={`absolute top-2 left-2 text-xs ${carroceria.ativo ? 'bg-chart-2/80 text-white border-chart-2/40 backdrop-blur-sm' : ''}`}>
+                        <Badge className={`absolute top-2 left-2 text-xs backdrop-blur-md border ${carroceria.ativo ? 'bg-emerald-600/90 text-white border-emerald-500/50' : 'bg-destructive/90 text-white border-destructive/50'}`}>
                           {carroceria.ativo ? 'Ativa' : 'Inativa'}
                         </Badge>
                       </div>

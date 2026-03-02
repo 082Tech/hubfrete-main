@@ -843,11 +843,11 @@ export default function MinhaFrota() {
                               }}
                             />
                           </div>
-                          <Badge variant={veiculo.ativo ? 'outline' : 'destructive'} className={`absolute top-2 left-2 text-xs ${veiculo.ativo ? 'bg-chart-2/80 text-white border-chart-2/40 backdrop-blur-sm' : ''}`}>
+                          <Badge className={`absolute top-2 left-2 text-xs backdrop-blur-md border ${veiculo.ativo ? 'bg-emerald-600/90 text-white border-emerald-500/50' : 'bg-destructive/90 text-white border-destructive/50'}`}>
                             {veiculo.ativo ? 'Ativo' : 'Inativo'}
                           </Badge>
                           {veiculoTripMap[veiculo.id] && (
-                            <Badge className="absolute bottom-2 left-2 text-[10px] bg-chart-4/80 text-white border-chart-4/40 backdrop-blur-sm" variant="outline">
+                            <Badge className="absolute bottom-2 left-2 text-[10px] bg-blue-600/90 text-white border-blue-500/50 backdrop-blur-md">
                               <Truck className="w-3 h-3 mr-0.5" />Em Viagem • {veiculoTripMap[veiculo.id].codigo}
                             </Badge>
                           )}
