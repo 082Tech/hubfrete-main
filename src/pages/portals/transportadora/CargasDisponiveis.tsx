@@ -2737,7 +2737,7 @@ export default function CargasDisponiveis() {
                             <div className="flex items-center justify-between p-2.5 rounded-md bg-muted/50 border">
                               <span className="text-sm font-semibold">Total alocado</span>
                               <span className={cn("text-sm font-bold", pesoValidationError ? 'text-destructive' : 'text-primary')}>
-                                {pesoTotalAlocado.toLocaleString('pt-BR')} kg
+                                {formatWeight(pesoTotalAlocado)}
                               </span>
                             </div>
 
