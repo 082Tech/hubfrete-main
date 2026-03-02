@@ -2773,7 +2773,7 @@ export default function CargasDisponiveis() {
                                     type="number"
                                     step="1"
                                     className="h-10 text-base font-semibold"
-                                    placeholder={`Máx: ${capDisp.toLocaleString('pt-BR')} kg`}
+                                    placeholder=""
                                     value={pesoCarr || ''}
                                     onChange={(e) => {
                                       const val = Math.floor(Number(e.target.value));
