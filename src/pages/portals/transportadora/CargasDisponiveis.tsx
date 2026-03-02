@@ -1397,7 +1397,7 @@ export default function CargasDisponiveis() {
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Disponível</span>
               <span className="font-medium text-foreground">
-                {(pesoDisponivel / 1000).toFixed(1)} ton / {(carga.peso_kg / 1000).toFixed(1)} ton
+                {formatWeight(pesoDisponivel)} / {formatWeight(carga.peso_kg)}
               </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
