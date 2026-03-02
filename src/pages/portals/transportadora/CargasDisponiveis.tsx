@@ -2534,7 +2534,7 @@ export default function CargasDisponiveis() {
                                                 <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{selectedCarr.placa}</Badge>
                                                 <span>{tipoCarroceriaLabels[selectedCarr.tipo] || selectedCarr.tipo}</span>
                                               </div>
-                                              <span className="text-primary font-medium">Disp: {Math.max(0, capDisp).toLocaleString('pt-BR')} kg</span>
+                                              <span className="text-primary font-medium">Disp: {formatWeight(Math.max(0, capDisp))}</span>
                                             </div>
                                             {emUso > 0 && <span className="text-[10px] text-amber-600">Em uso: {emUso.toLocaleString('pt-BR')} kg</span>}
                                           </div>
