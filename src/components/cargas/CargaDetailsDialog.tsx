@@ -528,10 +528,7 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
                               </Badge>
                             </TableCell>
                             <TableCell className="text-xs">
-                              {entrega.peso_alocado_kg 
-                                ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg`
-                                : '-'
-                              }
+                              {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
                             </TableCell>
                             <TableCell className="text-xs">
                               {entrega.valor_frete 

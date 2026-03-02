@@ -137,7 +137,7 @@ export function VeiculoDetailDialog({ veiculo, open, onOpenChange }: Props) {
               <div>
                 <p className="text-muted-foreground">Capacidade</p>
                 <p className="font-medium">
-                  {(veiculo.capacidade_kg / 1000).toLocaleString('pt-BR')}t
+                  {formatWeight(veiculo.capacidade_kg)}
                   {veiculo.capacidade_m3 && ` / ${veiculo.capacidade_m3}m³`}
                 </p>
               </div>

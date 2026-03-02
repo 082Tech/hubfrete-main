@@ -312,7 +312,7 @@ export function EtapaVeiculo({
               </p>
               {(selectedCarroceria.capacidade_kg || selectedCarroceria.capacidade_m3) && (
                 <p className="text-sm text-muted-foreground">
-                  Capacidade: {selectedCarroceria.capacidade_kg?.toLocaleString()}kg
+                  Capacidade: {formatWeight(selectedCarroceria.capacidade_kg)}
                   {selectedCarroceria.capacidade_m3 && ` / ${selectedCarroceria.capacidade_m3}m³`}
                 </p>
               )}

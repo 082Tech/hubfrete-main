@@ -56,9 +56,7 @@ export function ChatDetailsSheet({ chat, open, onOpenChange, userType }: ChatDet
   const statusInfo = statusConfig[status];
   const StatusIcon = statusInfo?.icon || Package;
 
-  const formatPeso = (peso: number | null | undefined) => {
-    if (!peso) return '-';
-    if (peso >= 1000) return `${(peso / 1000).toFixed(1)}t`;
+  const formatPeso = (peso: number | null | undefined) => formatWeight(peso);
     return `${peso.toLocaleString('pt-BR')} kg`;
   };
 

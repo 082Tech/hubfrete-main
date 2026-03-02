@@ -604,8 +604,8 @@ function DetailPanel({
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3 text-muted-foreground" />
                 <span className="font-medium">
-                  {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
-                  {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+                  {entrega.peso_alocado_kg ? `${formatWeight(entrega.peso_alocado_kg)} / ` : ''}
+                  {formatWeight(entrega.carga.peso_kg)}
                 </span>
               </span>
               <span className="text-muted-foreground">Tipo: {entrega.carga.tipo}</span>

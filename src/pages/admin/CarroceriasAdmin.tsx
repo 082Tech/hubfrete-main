@@ -473,7 +473,7 @@ export default function CarroceriasAdmin() {
                 <div>
                   <p className="text-sm text-muted-foreground">Capacidade</p>
                   <p>
-                    {selectedCarroceria.capacidade_kg ? `${(selectedCarroceria.capacidade_kg / 1000).toFixed(1)} ton` : '-'}
+                    {selectedCarroceria.capacidade_kg ? formatWeight(selectedCarroceria.capacidade_kg) : '-'}
                     {selectedCarroceria.capacidade_m3 && ` / ${selectedCarroceria.capacidade_m3} m³`}
                   </p>
                 </div>

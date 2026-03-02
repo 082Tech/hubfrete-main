@@ -448,7 +448,7 @@ export default function VeiculosAdmin() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Capacidade</p>
-                  <p>{selectedVeiculo.capacidade_kg ? `${(selectedVeiculo.capacidade_kg / 1000).toFixed(1)} ton` : '-'}</p>
+                  <p>{selectedVeiculo.capacidade_kg ? formatWeight(selectedVeiculo.capacidade_kg) : '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Empresa</p>
