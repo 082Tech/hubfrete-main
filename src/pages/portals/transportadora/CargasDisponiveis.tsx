@@ -1427,7 +1427,7 @@ export default function CargasDisponiveis() {
                   <Tooltip>
                     <TooltipTrigger className="cursor-help flex items-center gap-1 text-[10px] bg-primary/10 text-primary font-medium px-1.5 py-0.5 rounded">
                       <Scale className="w-3 h-3" />
-                      Mín: {carga.peso_minimo_fracionado_kg.toLocaleString('pt-BR')} kg
+                      Mín: {formatWeight(carga.peso_minimo_fracionado_kg)}
                     </TooltipTrigger>
                     <TooltipContent>Carregamento mínimo exigido por entrega</TooltipContent>
                   </Tooltip>
