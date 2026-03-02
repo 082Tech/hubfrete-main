@@ -166,7 +166,7 @@ function EntregaListItem({
 
       {/* Linha 4: Descrição + peso */}
       <p className="text-xs text-muted-foreground truncate mb-1.5">
-        {entrega.carga.descricao} • {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}{entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+        {entrega.carga.descricao} • {entrega.peso_alocado_kg ? `${formatWeight(entrega.peso_alocado_kg)} / ` : ''}{formatWeight(entrega.carga.peso_kg)}
       </p>
 
       {/* Rodapé: Motorista + frete + alerta NF-e */}
