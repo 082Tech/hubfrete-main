@@ -88,11 +88,13 @@ interface Carroceria {
   veiculo_id: string | null;
 }
 
+const PAGE_SIZE = 12;
+
 export default function FrotaVinculos() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { data: veiculos = [], isLoading: isLoadingVeiculos } = useQuery({
     queryKey: ['veiculos_transportadora', empresa?.id],
     queryFn: async () => {
