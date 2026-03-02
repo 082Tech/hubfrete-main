@@ -74,6 +74,7 @@ import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { EntregaDocumentosPanel } from '@/components/entregas/EntregaDocumentosPanel';
+import { CarregamentoCarroceriasSection } from '@/components/entregas/CarregamentoCarroceriasSection';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
@@ -106,6 +107,7 @@ interface Entrega {
   veiculo_id: string | null;
   carroceria_id: string | null;
   peso_alocado_kg: number | null;
+  carrocerias_alocadas: Array<{ carroceria_id: string; peso_kg: number }> | null;
   valor_frete: number | null;
   coletado_em: string | null;
   entregue_em: string | null;
@@ -520,6 +522,9 @@ function DetailPanel({
               )}
             </div>
           </div>
+
+          {/* Carregamento por Carroceria */}
+          <CarregamentoCarroceriasSection carroceriasAlocadas={entrega.carrocerias_alocadas as any} />
 
           <Separator />
 
@@ -1531,7 +1536,7 @@ export default function OperacaoDiaria() {
         .select(`
           id, codigo, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
-          peso_alocado_kg, valor_frete, coletado_em, entregue_em,
+          peso_alocado_kg, valor_frete, coletado_em, entregue_em, carrocerias_alocadas,
           previsao_coleta, canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
