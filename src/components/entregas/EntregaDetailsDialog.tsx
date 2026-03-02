@@ -50,6 +50,7 @@ interface EntregaDetailsProps {
     entregue_em: string | null;
     peso_alocado_kg: number | null;
     carrocerias_alocadas?: Array<{ carroceria_id: string; peso_kg: number }> | null;
+    carroceria_id?: string | null;
     valor_frete: number | null;
     previsao_coleta?: string | null;
     canhoto_url?: string | null;
@@ -352,7 +353,11 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
             </Card>
 
             {/* Carregamento por Carroceria */}
-            <CarregamentoCarroceriasSection carroceriasAlocadas={entrega.carrocerias_alocadas as any} />
+            <CarregamentoCarroceriasSection
+              carroceriasAlocadas={entrega.carrocerias_alocadas as any}
+              carroceriaId={entrega.carroceria_id}
+              pesoAlocadoKg={entrega.peso_alocado_kg}
+            />
 
             {/* Documentos - Enhanced Section */}
             <Card>

@@ -524,7 +524,11 @@ function DetailPanel({
           </div>
 
           {/* Carregamento por Carroceria */}
-          <CarregamentoCarroceriasSection carroceriasAlocadas={entrega.carrocerias_alocadas as any} />
+          <CarregamentoCarroceriasSection
+            carroceriasAlocadas={entrega.carrocerias_alocadas as any}
+            carroceriaId={entrega.carroceria_id}
+            pesoAlocadoKg={entrega.peso_alocado_kg}
+          />
 
           <Separator />
 
