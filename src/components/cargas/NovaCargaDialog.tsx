@@ -631,7 +631,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                         placeholder="Ex: 15000 (15 toneladas)"
                         className="mt-2"
                         value={pesoMinimoFracionado || ''}
-                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Math.floor(Number(e.target.value)) : null)}
+                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Number(e.target.value) : null)}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Deixe vazio para não ter limite mínimo
