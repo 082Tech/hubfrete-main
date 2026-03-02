@@ -609,22 +609,13 @@ export default function FrotaCarrocerias() {
                 </table>
               </div>
               {totalPages > 1 && (
-                <div className="p-4 border-t border-border shrink-0">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">{sorted.length} carroceria(s)</p>
-                    <div className="flex items-center gap-1">
-                      <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                        <ChevronLeft className="w-4 h-4 mr-1" />Anterior
-                      </Button>
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                        <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPage(pageNum)}>{pageNum}</Button>
-                      ))}
-                      <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                        Próximo<ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={sorted.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setCurrentPage}
+                />
               )}
             </CardContent>
           </Card>
