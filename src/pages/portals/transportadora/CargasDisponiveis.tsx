@@ -1267,6 +1267,20 @@ export default function CargasDisponiveis() {
       }
     }
 
+    // Validate no carroceria is in active trip with a different driver
+    const carroceriasToCheck = maxCarrocerias >= 2
+      ? selectedCarroceriasMulti.filter(Boolean)
+      : selectedCarroceria ? [selectedCarroceria] : [];
+    const carroceriaEmConflito = carroceriasToCheck.find(cId => {
+      const viagemCarr = viagemAtivaByCarroceria.get(cId);
+      return viagemCarr && viagemCarr.motorista_id !== selectedMotorista;
+    });
+    if (carroceriaEmConflito) {
+      const carr = carroceriasEmpresa.find((c: any) => c.id === carroceriaEmConflito);
+      toast.error(`Carroceria ${carr?.placa || ''} está em viagem ativa com outro motorista`);
+      return;
+    }
+
     if (pesoValidationError) {
       toast.error(pesoValidationError);
       return;
