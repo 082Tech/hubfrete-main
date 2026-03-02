@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -18,12 +20,14 @@ import {
   CheckCircle,
   Link2,
   Unlink,
+  Search,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { toast } from 'sonner';
 
+// ... keep existing code (tipoVeiculoLabels, tipoCarroceriaLabels, interfaces)
 const tipoVeiculoLabels: Record<string, string> = {
   truck: 'Truck',
   toco: 'Toco',
@@ -87,6 +91,7 @@ interface Carroceria {
 export default function FrotaVinculos() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: veiculos = [], isLoading: isLoadingVeiculos } = useQuery({
     queryKey: ['veiculos_transportadora', empresa?.id],
@@ -107,7 +112,7 @@ export default function FrotaVinculos() {
     enabled: !!empresa?.id,
   });
 
-  const { data: carrocerias = [] } = useQuery({
+  const { data: carrocerias = [], isLoading: isLoadingCarrocerias } = useQuery({
     queryKey: ['carrocerias_transportadora', empresa?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
@@ -137,6 +142,24 @@ export default function FrotaVinculos() {
     enabled: !!empresa?.id,
   });
 
+  const isLoading = isLoadingVeiculos || isLoadingCarrocerias;
+
+  const filteredVeiculos = useMemo(() => {
+    const ativos = veiculos.filter(v => v.ativo);
+    if (!searchTerm.trim()) return ativos;
+    const term = searchTerm.toLowerCase();
+    return ativos.filter(v => {
+      const motorista = v.motorista_padrao as any;
+      const linkedCarrs = carrocerias.filter(c => c.veiculo_id === v.id);
+      return (
+        v.placa.toLowerCase().includes(term) ||
+        (tipoVeiculoLabels[v.tipo] || v.tipo).toLowerCase().includes(term) ||
+        motorista?.nome_completo?.toLowerCase().includes(term) ||
+        linkedCarrs.some(c => c.placa.toLowerCase().includes(term))
+      );
+    });
+  }, [veiculos, carrocerias, searchTerm]);
+
   return (
     <div className="flex flex-col h-full gap-6 p-4 md:p-8">
       {/* Header */}
@@ -158,12 +181,49 @@ export default function FrotaVinculos() {
         </div>
       </div>
 
+      {/* Search */}
+      <div className="relative shrink-0 max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por placa, tipo, motorista..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9 h-9"
+        />
+      </div>
+
       {/* Content */}
       <div className="flex-1 overflow-auto">
+        {isLoading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="border-border">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-8 h-8 rounded" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-3 w-14" />
+                    </div>
+                    <Skeleton className="h-5 w-16 ml-auto rounded-full" />
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-10 w-full rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-10 w-full rounded-lg" />
+                    <Skeleton className="h-10 w-full rounded-lg" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {veiculos
-            .filter(v => v.ativo)
-            .map((veiculo) => {
+          {filteredVeiculos.map((veiculo) => {
               const linkedCarrocerias = carrocerias.filter(c => c.veiculo_id === veiculo.id);
               const maxSlots = veiculo.carroceria_integrada ? 0 : (['bitrem', 'rodotrem'].includes(veiculo.tipo) ? 2 : ['vanderleia'].includes(veiculo.tipo) ? 3 : 1);
               const availableCarrocerias = carrocerias.filter(c => !c.veiculo_id && c.ativo);
@@ -367,8 +427,15 @@ export default function FrotaVinculos() {
               );
             })}
 
+          {filteredVeiculos.length === 0 && !isLoading && (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              <Truck className="w-10 h-10 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">{searchTerm ? 'Nenhum veículo encontrado para esta busca' : 'Nenhum veículo ativo cadastrado'}</p>
+            </div>
+          )}
+
           {/* Vehicles with integrated bodywork - informational */}
-          {veiculos.filter(v => v.carroceria_integrada && v.ativo).length > 0 && (
+          {!searchTerm && veiculos.filter(v => v.carroceria_integrada && v.ativo).length > 0 && (
             <Card className="border-border bg-muted/30 col-span-full">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -381,6 +448,7 @@ export default function FrotaVinculos() {
             </Card>
           )}
         </div>
+        )}
       </div>
     </div>
   );
