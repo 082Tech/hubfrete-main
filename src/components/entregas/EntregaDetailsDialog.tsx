@@ -33,6 +33,7 @@ import {
   Receipt
 } from 'lucide-react';
 import { FilePreviewDialog } from './FilePreviewDialog';
+import { CarregamentoCarroceriasSection } from './CarregamentoCarroceriasSection';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
