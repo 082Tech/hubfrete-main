@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatWeight } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import {
   BarChart,
