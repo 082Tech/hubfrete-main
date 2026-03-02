@@ -2452,7 +2452,7 @@ export default function CargasDisponiveis() {
                               <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
                                 <p className="text-xs text-primary font-medium">Carroceria integrada ao veículo</p>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  Capacidade: {(selectedVeiculoData as any)?.capacidade_kg?.toLocaleString('pt-BR') || 0} kg
+                                  Capacidade: {formatWeight((selectedVeiculoData as any)?.capacidade_kg)}
                                 </p>
                               </div>
                             ) : carroceriasEmpresa.length === 0 ? (
