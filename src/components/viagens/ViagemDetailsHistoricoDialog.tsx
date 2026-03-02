@@ -6,6 +6,7 @@ import {
   FileText, FileCheck, AlertTriangle, Ban, Clock, Scale, DollarSign,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { formatWeight } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
