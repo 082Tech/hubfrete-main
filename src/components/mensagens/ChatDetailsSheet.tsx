@@ -57,8 +57,6 @@ export function ChatDetailsSheet({ chat, open, onOpenChange, userType }: ChatDet
   const StatusIcon = statusInfo?.icon || Package;
 
   const formatPeso = (peso: number | null | undefined) => formatWeight(peso);
-    return `${peso.toLocaleString('pt-BR')} kg`;
-  };
 
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return '-';
