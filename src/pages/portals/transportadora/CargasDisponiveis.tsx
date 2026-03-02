@@ -2796,9 +2796,9 @@ export default function CargasDisponiveis() {
                                   />
                                 </div>
                                 <div className="flex justify-between text-[10px] text-muted-foreground">
-                                  <span>{pesoMinimoRequirido > 0 ? `Mín: ${pesoMinimoRequirido.toLocaleString('pt-BR')} kg` : 'Sem mínimo'}</span>
+                                  <span>{pesoMinimoRequirido > 0 ? `Mín: ${formatWeight(pesoMinimoRequirido)}` : 'Sem mínimo'}</span>
                                   <span className="font-medium">{Math.round(pesoBarPercent)}%</span>
-                                  <span>Máx: {pesoMaximoAlocar.toLocaleString('pt-BR')} kg</span>
+                                  <span>Máx: {formatWeight(pesoMaximoAlocar)}</span>
                                 </div>
                               </div>
                             )}
