@@ -365,7 +365,7 @@ export default function FrotaCarrocerias() {
       case 'capacidade':
         return (
           <td className="p-4 align-middle text-muted-foreground">
-            {carroceria.capacidade_kg ? `${(carroceria.capacidade_kg / 1000).toLocaleString('pt-BR')}t` : '-'}
+            {carroceria.capacidade_kg ? formatWeight(carroceria.capacidade_kg) : '-'}
             {carroceria.capacidade_m3 && ` / ${carroceria.capacidade_m3}m³`}
           </td>
         );
