@@ -620,8 +620,9 @@ export default function FrotaCarrocerias() {
             </CardContent>
           </Card>
         ) : (
-          <div className="flex-1 overflow-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="flex flex-col flex-1 min-h-0">
+            <div className="flex-1 overflow-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {paginated.map((carroceria) => {
                 const veiculoAtrelado = carroceria.veiculo_id ? veiculos.find(v => v.id === carroceria.veiculo_id) : null;
                 return (
@@ -693,6 +694,7 @@ export default function FrotaCarrocerias() {
                   </Card>
                 );
               })}
+              </div>
             </div>
             {totalPages > 1 && (
               <Pagination
