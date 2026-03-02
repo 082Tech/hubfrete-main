@@ -2432,7 +2432,7 @@ export default function CargasDisponiveis() {
                                           <p className="text-xs text-muted-foreground">{selectedVeiculoData.marca} {selectedVeiculoData.modelo}</p>
                                         )}
                                         {selectedVeiculoData.capacidade_kg && (
-                                          <p className="text-xs font-medium text-primary">{selectedVeiculoData.capacidade_kg.toLocaleString('pt-BR')} kg</p>
+                                          <p className="text-xs font-medium text-primary">{formatWeight(selectedVeiculoData.capacidade_kg)}</p>
                                         )}
                                       </div>
                                     </div>
