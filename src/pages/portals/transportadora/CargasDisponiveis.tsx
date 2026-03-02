@@ -2719,7 +2719,7 @@ export default function CargasDisponiveis() {
                                       />
                                     </div>
                                     <div className="flex justify-between text-[10px] text-muted-foreground">
-                                      <span>{pesoCarr.toLocaleString('pt-BR')} kg</span>
+                                      <span>{formatWeight(pesoCarr)}</span>
                                       <span className="font-medium">{Math.round(percentCarr)}% do máx. alocável</span>
                                     </div>
                                   </div>
