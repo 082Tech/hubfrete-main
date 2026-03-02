@@ -6,6 +6,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { formatWeight } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -310,8 +311,8 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                   <p className="font-medium flex items-center gap-1">
                     <Weight className="w-3 h-3" />
                     {entrega.peso_alocado_kg
-                      ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
-                      : `${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
+                      ? `${formatWeight(entrega.peso_alocado_kg)} / ${formatWeight(entrega.carga.peso_kg)}`
+                      : formatWeight(entrega.carga.peso_kg)
                     }
                   </p>
                 </div>

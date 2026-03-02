@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -505,8 +506,8 @@ function DetailPanel({
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3" />
                 {entrega.peso_alocado_kg
-                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga?.peso_kg?.toLocaleString('pt-BR') ?? '-'} kg`
-                  : `${entrega.carga?.peso_kg?.toLocaleString('pt-BR') ?? '-'} kg`}
+                  ? `${formatWeight(entrega.peso_alocado_kg)} / ${formatWeight(entrega.carga?.peso_kg)}`
+                  : formatWeight(entrega.carga?.peso_kg)}
               </span>
               {entrega.carga?.quantidade && (
                 <span className="flex items-center gap-1">
@@ -1407,8 +1408,8 @@ function GestaoEntregasDialogContent({
                                 {e.carga.peso_kg && (
                                   <span className="flex items-center gap-1">
                                     <Weight className="w-3 h-3" />
-                                    {e.peso_alocado_kg ? `${e.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
-                                    {e.carga.peso_kg.toLocaleString('pt-BR')} kg
+                                    {e.peso_alocado_kg ? `${formatWeight(e.peso_alocado_kg)} / ` : ''}
+                                    {formatWeight(e.carga.peso_kg)}
                                   </span>
                                 )}
                                 {e.valor_frete && (

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { Truck, Weight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -109,11 +110,11 @@ export function CarregamentoCarroceriasSection({ carroceriasAlocadas, carroceria
                 <div className="text-right">
                   <p className="font-semibold text-sm flex items-center gap-1 justify-end">
                     <Weight className="w-3 h-3" />
-                    {alocacao.peso_kg.toLocaleString('pt-BR')} kg
+                    {formatWeight(alocacao.peso_kg)}
                   </p>
                   {capacidade && (
                     <p className="text-[10px] text-muted-foreground">
-                      de {capacidade.toLocaleString('pt-BR')} kg
+                      de {formatWeight(capacidade)}
                     </p>
                   )}
                 </div>

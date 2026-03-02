@@ -7,6 +7,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Container, User, Weight, Car } from 'lucide-react';
+import { formatWeight } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const tipoCarroceriaLabels: Record<string, string> = {
@@ -104,7 +105,7 @@ export function CarroceriaDetailDialog({ carroceria, open, onOpenChange, veiculo
             {carroceria.capacidade_kg && (
               <div>
                 <p className="text-muted-foreground">Capacidade (peso)</p>
-                <p className="font-medium">{(carroceria.capacidade_kg / 1000).toLocaleString('pt-BR')}t</p>
+                <p className="font-medium">{formatWeight(carroceria.capacidade_kg)}</p>
               </div>
             )}
             {carroceria.capacidade_m3 && (

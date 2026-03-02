@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { 
   Truck, 
   Search, 
@@ -335,10 +336,7 @@ export default function VeiculosAdmin() {
                         {veiculo.carroceria.replace(/_/g, ' ')}
                       </TableCell>
                       <TableCell>
-                        {veiculo.capacidade_kg 
-                          ? `${(veiculo.capacidade_kg / 1000).toFixed(1)} ton`
-                          : '-'
-                        }
+                        {veiculo.capacidade_kg ? formatWeight(veiculo.capacidade_kg) : '-'}
                       </TableCell>
                       <TableCell>
                         -
@@ -451,7 +449,7 @@ export default function VeiculosAdmin() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Capacidade</p>
-                  <p>{selectedVeiculo.capacidade_kg ? `${(selectedVeiculo.capacidade_kg / 1000).toFixed(1)} ton` : '-'}</p>
+                  <p>{selectedVeiculo.capacidade_kg ? formatWeight(selectedVeiculo.capacidade_kg) : '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Empresa</p>

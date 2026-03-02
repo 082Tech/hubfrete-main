@@ -7,6 +7,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Truck, Shield, Gauge, Container, Weight, Boxes, FileText } from 'lucide-react';
+import { formatWeight } from '@/lib/utils';
 
 
 const tipoVeiculoLabels: Record<string, string> = {
@@ -137,7 +138,7 @@ export function VeiculoDetailDialog({ veiculo, open, onOpenChange }: Props) {
               <div>
                 <p className="text-muted-foreground">Capacidade</p>
                 <p className="font-medium">
-                  {(veiculo.capacidade_kg / 1000).toLocaleString('pt-BR')}t
+                  {formatWeight(veiculo.capacidade_kg)}
                   {veiculo.capacidade_m3 && ` / ${veiculo.capacidade_m3}m³`}
                 </p>
               </div>

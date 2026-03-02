@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -166,7 +167,7 @@ function EntregaListItem({
 
       {/* Linha 4: Descrição + peso */}
       <p className="text-xs text-muted-foreground truncate mb-1.5">
-        {entrega.carga.descricao} • {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}{entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+        {entrega.carga.descricao} • {entrega.peso_alocado_kg ? `${formatWeight(entrega.peso_alocado_kg)} / ` : ''}{formatWeight(entrega.carga.peso_kg)}
       </p>
 
       {/* Rodapé: Motorista + frete + alerta NF-e */}
@@ -604,8 +605,8 @@ function DetailPanel({
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3 text-muted-foreground" />
                 <span className="font-medium">
-                  {entrega.peso_alocado_kg ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
-                  {entrega.carga.peso_kg?.toLocaleString('pt-BR')} kg
+                  {entrega.peso_alocado_kg ? `${formatWeight(entrega.peso_alocado_kg)} / ` : ''}
+                  {formatWeight(entrega.carga.peso_kg)}
                 </span>
               </span>
               <span className="text-muted-foreground">Tipo: {entrega.carga.tipo}</span>

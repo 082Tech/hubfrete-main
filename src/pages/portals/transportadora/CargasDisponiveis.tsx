@@ -62,6 +62,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AdvancedSearchPopover, AdvancedSearchFilters, emptyFilters } from '@/components/cargas/AdvancedSearchPopover';
 import { format } from 'date-fns';
@@ -1075,10 +1076,10 @@ export default function CargasDisponiveis() {
     if (!selectedCarga || !selectedVeiculo) return null;
     if (pesoAlocadoInput <= 0) return 'Informe o peso a carregar';
     if (pesoAlocadoInput > pesoMaximoAlocar) {
-      return `Peso máximo disponível: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg`;
+      return `Peso máximo disponível: ${formatWeight(pesoMaximoAlocar)}`;
     }
     if (pesoAlocadoInput < pesoMinimoRequirido && pesoMinimoRequirido > 0) {
-      return `Peso mínimo exigido: ${pesoMinimoRequirido.toLocaleString('pt-BR')} kg`;
+      return `Peso mínimo exigido: ${formatWeight(pesoMinimoRequirido)}`;
     }
     return null;
   }, [selectedCarga, selectedVeiculo, pesoAlocadoInput, pesoMaximoAlocar, pesoMinimoRequirido]);
@@ -1396,7 +1397,7 @@ export default function CargasDisponiveis() {
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Disponível</span>
               <span className="font-medium text-foreground">
-                {(pesoDisponivel / 1000).toFixed(1)} ton / {(carga.peso_kg / 1000).toFixed(1)} ton
+                {formatWeight(pesoDisponivel)} / {formatWeight(carga.peso_kg)}
               </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -1416,7 +1417,7 @@ export default function CargasDisponiveis() {
               <span className="flex items-center gap-1">
                 <Weight className="w-3.5 h-3.5" />
                 <span className="font-medium text-foreground">
-                  {pesoDisponivel.toLocaleString('pt-BR')} kg
+                  {formatWeight(pesoDisponivel)}
                 </span>
               </span>
 
@@ -1426,7 +1427,7 @@ export default function CargasDisponiveis() {
                   <Tooltip>
                     <TooltipTrigger className="cursor-help flex items-center gap-1 text-[10px] bg-primary/10 text-primary font-medium px-1.5 py-0.5 rounded">
                       <Scale className="w-3 h-3" />
-                      Mín: {carga.peso_minimo_fracionado_kg.toLocaleString('pt-BR')} kg
+                      Mín: {formatWeight(carga.peso_minimo_fracionado_kg)}
                     </TooltipTrigger>
                     <TooltipContent>Carregamento mínimo exigido por entrega</TooltipContent>
                   </Tooltip>
@@ -1770,7 +1771,7 @@ export default function CargasDisponiveis() {
                 <div className="flex items-center gap-1.5">
                   <Scale className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="font-medium text-foreground">
-                    {(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg
+                    {formatWeight((selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg))}
                   </span>
                   <span className="text-muted-foreground">disponíveis</span>
                 </div>
@@ -1822,10 +1823,10 @@ export default function CargasDisponiveis() {
                         <span className="flex items-center gap-1">
                           <Weight className="w-4 h-4" />
                           <span className="font-medium">
-                            {(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg disponíveis
+                            {formatWeight((selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg))} disponíveis
                           </span>
                           {selectedCarga.peso_disponivel_kg !== null && selectedCarga.peso_disponivel_kg < selectedCarga.peso_kg && (
-                            <span className="text-muted-foreground">/ {selectedCarga.peso_kg.toLocaleString('pt-BR')} kg total</span>
+                            <span className="text-muted-foreground">/ {formatWeight(selectedCarga.peso_kg)} total</span>
                           )}
                         </span>
                       </div>

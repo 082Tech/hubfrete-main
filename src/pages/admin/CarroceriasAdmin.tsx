@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { 
   Container, 
   Search, 
@@ -353,7 +354,7 @@ export default function CarroceriasAdmin() {
                       <TableCell>
                         <div className="text-sm">
                           {carroceria.capacidade_kg && (
-                            <p>{(carroceria.capacidade_kg / 1000).toFixed(1)} ton</p>
+                            <p>{formatWeight(carroceria.capacidade_kg)}</p>
                           )}
                           {carroceria.capacidade_m3 && (
                             <p className="text-muted-foreground">{carroceria.capacidade_m3} m³</p>
@@ -473,7 +474,7 @@ export default function CarroceriasAdmin() {
                 <div>
                   <p className="text-sm text-muted-foreground">Capacidade</p>
                   <p>
-                    {selectedCarroceria.capacidade_kg ? `${(selectedCarroceria.capacidade_kg / 1000).toFixed(1)} ton` : '-'}
+                    {selectedCarroceria.capacidade_kg ? formatWeight(selectedCarroceria.capacidade_kg) : '-'}
                     {selectedCarroceria.capacidade_m3 && ` / ${selectedCarroceria.capacidade_m3} m³`}
                   </p>
                 </div>

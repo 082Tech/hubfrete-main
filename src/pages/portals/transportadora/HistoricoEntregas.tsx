@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -418,11 +419,7 @@ export default function HistoricoEntregas() {
       : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
   };
 
-  const formatPeso = (peso: number | null) => {
-    if (!peso) return '-';
-    if (peso >= 1000) return `${(peso / 1000).toFixed(1)}t`;
-    return `${peso.toLocaleString('pt-BR')} kg`;
-  };
+  const formatPeso = (peso: number | null) => formatWeight(peso);
 
   const formatCurrency = (value: number | null) => {
     if (!value) return '-';
