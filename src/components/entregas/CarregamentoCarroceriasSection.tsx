@@ -18,6 +18,9 @@ interface CarroceriaInfo {
 
 interface CarregamentoSectionProps {
   carroceriasAlocadas: AlocacaoItem[] | null;
+  /** Fallback for legacy data: single carroceria_id + peso_alocado_kg */
+  carroceriaId?: string | null;
+  pesoAlocadoKg?: number | null;
 }
 
 const tipoCarroceriaLabels: Record<string, string> = {
