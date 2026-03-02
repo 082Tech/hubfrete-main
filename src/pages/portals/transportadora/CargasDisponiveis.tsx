@@ -756,210 +756,56 @@ export default function CargasDisponiveis() {
       previsaoColeta: string;
       carroceriasAlocadas?: any;
     }) => {
-      // Get current cargo to update peso_disponivel_kg
-      const { data: cargaAtualResult, error: fetchError } = await supabase
-        .from('cargas')
-        .select('peso_disponivel_kg, peso_kg')
-        .eq('id', cargaId)
-        .single();
+      // Call the atomic RPC that handles weight deduction, merge detection,
+      // delivery creation/update, timeline events, and viagem management
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('accept_carga_tx', {
+        p_carga_id: cargaId,
+        p_motorista_id: motoristaId,
+        p_veiculo_id: veiculoId,
+        p_carroceria_id: carroceriaId,
+        p_peso_kg: pesoAlocadoKg,
+        p_valor_frete: valorFrete,
+        p_viagem_id: viagemId,
+        p_user_name: userName,
+        p_previsao_coleta: previsaoColeta ? new Date(previsaoColeta).toISOString() : null,
+        p_carrocerias_alocadas: carroceriasAlocadas || null,
+      });
 
-      if (fetchError) throw fetchError;
+      if (rpcError) throw rpcError;
 
-      const cargaAtual = cargaAtualResult as any;
-      const pesoDisponivel = cargaAtual?.peso_disponivel_kg ?? cargaAtual?.peso_kg ?? 0;
-      const novoPesoDisponivel = pesoDisponivel - pesoAlocadoKg;
+      const result = rpcResult as any;
 
-      // Update cargo status and available weight
-      const novoStatus = novoPesoDisponivel <= 0 ? 'totalmente_alocada' : 'parcialmente_alocada';
-      const { error: cargaError } = await supabase
-        .from('cargas')
-        .update({
-          status: novoStatus,
-          peso_disponivel_kg: Math.max(0, novoPesoDisponivel)
-        })
-        .eq('id', cargaId);
+      if (!result?.success) {
+        throw new Error(result?.mensagem || 'Erro ao aceitar carga');
+      }
 
-      if (cargaError) throw cargaError;
-
-      // Check if driver already has an active delivery for this load
-      const { data: entregaExistente, error: checkError } = await (supabase as any)
-        .from('entregas')
-        .select('*')
-        .eq('carga_id', cargaId)
-        .eq('motorista_id', motoristaId)
-        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      if (entregaExistente) {
-        // Merge weights and vehicles instead of duplicating
-        const updatePayload: any = {
-          peso_alocado_kg: Number(entregaExistente.peso_alocado_kg || 0) + Number(pesoAlocadoKg),
-          valor_frete: Number(entregaExistente.valor_frete || 0) + Number(valorFrete),
-        };
-
-        if (carroceriasAlocadas && carroceriasAlocadas.length > 0) {
-          const existingCarrocerias = Array.isArray(entregaExistente.carrocerias_alocadas)
-            ? [...entregaExistente.carrocerias_alocadas]
-            : [];
-
-          carroceriasAlocadas.forEach((ca: any) => {
-            const existingCa = existingCarrocerias.find((ec: any) => ec.carroceria_id === ca.carroceria_id);
-            if (existingCa) {
-              existingCa.peso_kg = Number(existingCa.peso_kg || 0) + Number(ca.peso_kg || 0);
-            } else {
-              existingCarrocerias.push(ca);
-            }
-          });
-          updatePayload.carrocerias_alocadas = existingCarrocerias;
-        }
-
-        const { data: updatedEntrega, error: updateError } = await supabase
-          .from('entregas')
-          .update(updatePayload)
-          .eq('id', entregaExistente.id)
-          .select('id')
-          .single();
-
-        if (updateError) throw updateError;
-
-        // Registrar evento de atualização
-        await supabase.from('entrega_eventos').insert({
-          entrega_id: updatedEntrega.id,
-          tipo: 'atualizacao',
-          timestamp: new Date().toISOString(),
-          observacao: `Peso adicional alocado (mais ${pesoAlocadoKg} kg)`,
-          user_id: userId,
-          user_nome: userName,
+      // If it was a merge, skip chat creation (chat already exists)
+      if (!result.merged) {
+        // Create chat for this new delivery with all participants
+        await createChatForEntrega({
+          entregaId: result.entrega_id,
+          cargaId,
+          motoristaId,
+          embarcadorEmpresaId,
+          transportadoraEmpresaId,
         });
-
-        // Since it's an existing assignment, return early (bypassing chat/viagem duplication)
-        return { entregaId: updatedEntrega.id, viagemId: viagemId };
       }
 
-      // Create delivery record with simplified status enum
-      const { data: entregaData, error: entregaError } = await supabase
-        .from('entregas')
-        .insert({
-          carga_id: cargaId,
-          motorista_id: motoristaId,
-          veiculo_id: veiculoId,
-          carroceria_id: carroceriaId,
-          peso_alocado_kg: pesoAlocadoKg,
-          valor_frete: valorFrete,
-          previsao_coleta: previsaoColeta ? new Date(previsaoColeta).toISOString() : null,
-          status: 'aguardando',
-          created_by: userId,
-          carrocerias_alocadas: carroceriasAlocadas || null,
-        } as any)
-        .select('id')
-        .single();
-
-      if (entregaError) throw entregaError;
-
-      // Registrar eventos iniciais na timeline
-      const now = new Date();
-
-      // Evento 1: Criação da entrega (pelo usuário)
-      await supabase.from('entrega_eventos').insert({
-        entrega_id: entregaData.id,
-        tipo: 'criado',
-        timestamp: now.toISOString(),
-        observacao: 'Entrega criada',
-        user_id: userId,
-        user_nome: userName,
-      });
-
-      // Evento 2: Status inicial "Aguardando" (pelo Sistema)
-      await supabase.from('entrega_eventos').insert({
-        entrega_id: entregaData.id,
-        tipo: 'criado' as const,
-        timestamp: new Date(now.getTime() + 1).toISOString(), // +1ms para ordenação
-        observacao: 'Status inicial definido automaticamente',
-        user_id: null,
-        user_nome: 'Sistema',
-      } as any);
-
-      // Handle viagem - create new or add to existing
-      let finalViagemId = viagemId;
-
-      if (!viagemId) {
-        // Create new viagem directly
-        // Note: codigo is auto-generated by trigger generate_viagem_codigo
-        // Criar viagem com status 'aguardando' - pronta para execução imediata
-        const { data: novaViagem, error: viagemError } = await supabase
-          .from('viagens')
-          .insert({
-            motorista_id: motoristaId,
-            veiculo_id: veiculoId,
-            carroceria_id: carroceriaId,
-            status: 'aguardando' as const,
-            started_at: new Date().toISOString(),
-            codigo: '', // Will be overwritten by trigger
-          })
-          .select('id, codigo')
-          .single() as any;
-
-        if (viagemError) {
-          console.error('Erro ao criar viagem:', viagemError);
-          // Don't throw - viagem is optional for now, delivery was already created
-        } else {
-          finalViagemId = novaViagem.id;
-
-          // Link entrega to the new viagem
-          const { error: vinculoError } = await supabase
-            .from('viagem_entregas')
-            .insert({
-              viagem_id: novaViagem.id,
-              entrega_id: entregaData.id,
-              ordem: 1,
-            });
-
-          if (vinculoError) {
-            console.error('Erro ao vincular entrega à viagem:', vinculoError);
-          }
-        }
-      } else {
-        // Add entrega to existing viagem
-        // Get current max ordem
-        const { data: maxOrdem } = await supabase
-          .from('viagem_entregas')
-          .select('ordem')
-          .eq('viagem_id', viagemId)
-          .order('ordem', { ascending: false })
-          .limit(1)
-          .single();
-
-        const novaOrdem = (maxOrdem?.ordem || 0) + 1;
-
-        const { error: vinculoError } = await supabase
-          .from('viagem_entregas')
-          .insert({
-            viagem_id: viagemId,
-            entrega_id: entregaData.id,
-            ordem: novaOrdem,
-          });
-
-        if (vinculoError) {
-          console.error('Erro ao vincular entrega à viagem:', vinculoError);
-        }
-      }
-
-      // Create chat for this delivery with all participants
-      await createChatForEntrega({
-        entregaId: entregaData.id,
-        cargaId,
-        motoristaId,
-        embarcadorEmpresaId,
-        transportadoraEmpresaId,
-      });
-
-      return { entregaId: entregaData.id, viagemId: finalViagemId };
+      return {
+        entregaId: result.entrega_id,
+        viagemId: result.viagem_id || viagemId,
+        merged: result.merged,
+        mensagem: result.mensagem,
+        entregaCodigo: result.entrega_codigo,
+      };
     },
     onSuccess: (data) => {
-      const viagemMsg = data.viagemId ? ' e vinculada à viagem' : '';
-      toast.success(`Carga aceita com sucesso${viagemMsg}!`);
+      if (data.merged) {
+        toast.success(`Peso adicionado à entrega existente (${data.entregaCodigo || ''})`);
+      } else {
+        const viagemMsg = data.viagemId ? ' e vinculada à viagem' : '';
+        toast.success(`Carga aceita com sucesso${viagemMsg}!`);
+      }
       queryClient.invalidateQueries({ queryKey: ['cargas_disponiveis'] });
       queryClient.invalidateQueries({ queryKey: ['viagens_motorista'] });
       queryClient.invalidateQueries({ queryKey: ['entregas_ativas_motoristas', empresa?.id] });

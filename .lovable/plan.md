@@ -1,103 +1,86 @@
 
 
-# Corrigir Merge de Entregas da Mesma Carga
+# Plano: Completar Schema Fiscal para API Focus NFe
 
-## Contexto
+## Resumo
 
-A logica de merge ja existe parcialmente no codigo (`CargasDisponiveis.tsx`, linhas 784-838). Quando o mesmo motorista recebe uma segunda alocacao da mesma carga, o sistema soma o peso na entrega existente em vez de criar uma duplicata. Porem, o filtro atual inclui `saiu_para_entrega` como status "mergeavel", o que esta incorreto segundo sua regra de negocio.
+Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
 
-## Problema Atual
+## Situacao Atual
 
-```typescript
-// Linha 790 - inclui 'saiu_para_entrega' indevidamente
-.in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
-```
+Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
 
-Quando a entrega ja saiu para entrega, o peso nao deveria ser somado - uma nova entrega deve ser criada.
+## Alteracoes Necessarias
 
-## Plano de Implementacao
+### Migracao Unica
 
-### 1. Corrigir o filtro de status mergeavel (Frontend)
+Adicionar duas colunas a tabela `config_fiscal`:
 
-No `CargasDisponiveis.tsx`, remover `saiu_para_entrega` da lista de status que permitem merge:
+| Coluna | Tipo | Default | Finalidade |
+|--------|------|---------|------------|
+| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
+| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
 
-```typescript
-.in('status', ['aguardando', 'saiu_para_coleta'])
-```
+### Atualizacao do Frontend
 
-### 2. Mover a logica de merge para o RPC no banco de dados
+Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
+- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
+- Campo numerico para o percentual da base de calculo do ICMS
 
-Atualmente, o frontend faz a verificacao de entrega existente e o merge manualmente, enquanto o RPC `accept_carga_tx` sempre cria uma entrega nova. Isso e inconsistente e inseguro (race conditions).
+### Atualizacao dos Tipos TypeScript
 
-A alteracao no RPC `accept_carga_tx` sera:
+Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
 
-- **Antes de criar a entrega** (Etapa 3), verificar se ja existe uma entrega do mesmo `carga_id` + `motorista_id` com status `aguardando` ou `saiu_para_coleta`
-- Se existir: somar `p_peso_kg` ao `peso_alocado_kg` existente, somar `p_valor_frete`, fazer merge do JSON `carrocerias_alocadas`, e registrar evento de "peso adicional alocado"
-- Se nao existir: criar entrega nova normalmente (fluxo atual)
-- O retorno incluira um campo `merged: true/false` para o frontend saber o que aconteceu
+---
 
-### 3. Atualizar o frontend para usar o resultado do RPC
+## Secao Tecnica
 
-No `handleConfirmAccept` / `mutationFn`:
-
-- Remover a logica manual de merge do frontend (linhas 784-838 que verificam `entregaExistente` e fazem UPDATE)
-- Confiar no RPC para fazer o merge atomicamente
-- Usar o campo `merged` do retorno para exibir toast adequado ("Peso adicionado a entrega existente" vs "Entrega criada com sucesso")
-
-### 4. Feedback visual ao usuario
-
-- Quando o merge acontecer, exibir toast de sucesso diferenciado: "Peso adicionado a entrega existente (ENT-XXXX)"
-- Quando criar nova entrega, manter o toast atual
-
-## Detalhes Tecnicos
-
-### Alteracao no RPC (migracao SQL)
+### SQL da Migracao
 
 ```sql
--- Dentro de accept_carga_tx, antes da Etapa 3 (INSERT INTO entregas):
+ALTER TABLE public.config_fiscal
+  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
+  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
 
--- Verificar merge: mesma carga + mesmo motorista + status mergeavel
-SELECT id, peso_alocado_kg, valor_frete, carrocerias_alocadas, codigo
-INTO v_entrega_existente
-FROM entregas
-WHERE carga_id = p_carga_id
-  AND motorista_id = p_motorista_id
-  AND status IN ('aguardando', 'saiu_para_coleta')
-FOR UPDATE
-LIMIT 1;
-
-IF v_entrega_existente.id IS NOT NULL THEN
-  -- MERGE: somar peso e valor
-  UPDATE entregas SET
-    peso_alocado_kg = v_entrega_existente.peso_alocado_kg + p_peso_kg,
-    valor_frete = COALESCE(v_entrega_existente.valor_frete, 0) + COALESCE(p_valor_frete, 0),
-    carrocerias_alocadas = /* merge JSON logic */,
-    updated_at = v_now
-  WHERE id = v_entrega_existente.id;
-
-  -- Evento de timeline
-  INSERT INTO entrega_eventos (...) VALUES (
-    v_entrega_existente.id, 'atualizacao', v_now,
-    'Peso adicional alocado (mais ' || p_peso_kg || ' kg)'
-  );
-
-  -- Retornar com merged = true (pular criacao de viagem)
-  RETURN jsonb_build_object('success', true, 'merged', true, ...);
-END IF;
-
--- Caso contrario, fluxo normal de INSERT continua...
+COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
+  IS '1 = Simples Nacional, 3 = Regime Normal';
+COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
+  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
 ```
 
-### Alteracao no Frontend
+### Mapeamento Completo: Banco -> Payload API
 
-- Remover verificacao manual de `entregaExistente` (linhas ~784-838)
-- Voltar a usar o RPC `accept_carga_tx` como unica fonte de verdade
-- Tratar o retorno `merged: true` para toast diferenciado
+Com essas 2 colunas adicionadas, o mapeamento fica completo:
 
-## Resumo das Alteracoes
+**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
+- CNPJ: `empresas.cnpj_matriz`
+- IE: `empresas.inscricao_estadual`
+- Razao Social: `empresas.razao_social`
+- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
+- Municipio IBGE: `filiais.codigo_municipio_ibge`
+- UF: `filiais.estado`
+- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
 
-| Arquivo | Tipo | Descricao |
-|---------|------|-----------|
-| `accept_carga_tx` (SQL migration) | Migracao | Adicionar logica de merge atomico no RPC |
-| `CargasDisponiveis.tsx` | Edicao | Remover merge manual do frontend, usar RPC |
+**Fiscal**: `config_fiscal`
+- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
+- Natureza: `natureza_operacao`
+- Serie/Numero: `serie_cte` / `proximo_numero_cte`
+- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
+- Ambiente: `ambiente`
+
+**Remetente/Destinatario**: `cargas` + `enderecos_carga`
+**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
+**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
+
+### Campos Derivados por Logica (sem banco)
+- `data_emissao`: gerado no momento da emissao
+- `tipo_documento`: sempre `0` (Normal)
+- `modal`: sempre `01` (Rodoviario)
+- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
+
+### Sequencia de Implementacao
+
+1. Aplicar migracao SQL (1 migration)
+2. Atualizar types.ts
+3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
 
