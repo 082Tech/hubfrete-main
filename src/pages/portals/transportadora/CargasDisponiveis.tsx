@@ -2657,7 +2657,7 @@ export default function CargasDisponiveis() {
                           <div className="flex items-center justify-center gap-2 py-1">
                             <ArrowRight className="w-3.5 h-3.5 text-primary" />
                             <span className="text-sm text-muted-foreground">
-                              Máximo alocável: <span className="font-semibold text-primary">{pesoMaximoAlocar.toLocaleString('pt-BR')} kg</span>
+                              Máximo alocável: <span className="font-semibold text-primary">{formatWeight(pesoMaximoAlocar)}</span>
                             </span>
                           </div>
                         </div>
