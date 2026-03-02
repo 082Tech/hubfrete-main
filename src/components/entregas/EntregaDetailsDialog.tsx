@@ -352,7 +352,11 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
             </Card>
 
             {/* Carregamento por Carroceria */}
-            <CarregamentoCarroceriasSection carroceriasAlocadas={entrega.carrocerias_alocadas as any} />
+            <CarregamentoCarroceriasSection
+              carroceriasAlocadas={entrega.carrocerias_alocadas as any}
+              carroceriaId={entrega.carroceria_id}
+              pesoAlocadoKg={entrega.peso_alocado_kg}
+            />
 
             {/* Documentos - Enhanced Section */}
             <Card>
