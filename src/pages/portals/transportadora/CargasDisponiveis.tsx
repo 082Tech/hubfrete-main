@@ -2759,10 +2759,10 @@ export default function CargasDisponiveis() {
                             <div className="relative">
                               <Input
                                 type="number"
-                                step="1"
+                                step="0.0001"
                               value={pesoTotalAlocado || ''}
                                 onChange={(e) => {
-                                  const val = Math.floor(Number(e.target.value));
+                                  const val = Number(e.target.value);
                                   setPesoAlocadoInput(val < 0 ? 0 : val);
                                 }}
                                 onBlur={() => {
@@ -2770,6 +2770,7 @@ export default function CargasDisponiveis() {
                                   let val = pesoAlocadoInput;
                                   if (val > pesoMaximoAlocar) val = pesoMaximoAlocar;
                                   if (val < 0) val = 0;
+                                  val = parseFloat(val.toFixed(4));
                                   setPesoAlocadoInput(val);
                                   setPesoBarPercent(pesoMaximoAlocar > 0 ? Math.min(100, (val / pesoMaximoAlocar) * 100) : 0);
                                 }}
