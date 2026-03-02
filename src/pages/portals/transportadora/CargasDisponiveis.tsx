@@ -2296,7 +2296,7 @@ export default function CargasDisponiveis() {
                                   <div className="p-3 bg-background rounded-md border space-y-1.5">
                                     <div className="flex items-center justify-between text-xs">
                                       <span className="text-muted-foreground">Carroceria integrada</span>
-                                      <span className="font-medium">{Math.max(0, cap - emUso).toLocaleString('pt-BR')} kg livres</span>
+                                      <span className="font-medium">{formatWeight(Math.max(0, cap - emUso))} livres</span>
                                     </div>
                                     <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                                       <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${100 - pct}%` }} />
