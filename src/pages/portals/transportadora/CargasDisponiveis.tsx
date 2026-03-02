@@ -2647,7 +2647,7 @@ export default function CargasDisponiveis() {
                               </div>
                               {capacidadeEquipamentoEmUso > 0 && (
                                 <div className="text-[10px] text-amber-600">
-                                  {capacidadeEquipamentoEmUso.toLocaleString('pt-BR')} kg em uso
+                                  {formatWeight(capacidadeEquipamentoEmUso)} em uso
                                 </div>
                               )}
                             </div>
