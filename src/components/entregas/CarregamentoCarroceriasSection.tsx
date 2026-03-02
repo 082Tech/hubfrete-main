@@ -37,13 +37,20 @@ const tipoCarroceriaLabels: Record<string, string> = {
   gaiola: 'Gaiola',
 };
 
-export function CarregamentoCarroceriasSection({ carroceriasAlocadas }: CarregamentoSectionProps) {
+export function CarregamentoCarroceriasSection({ carroceriasAlocadas, carroceriaId, pesoAlocadoKg }: CarregamentoSectionProps) {
   const [carroceriasInfo, setCarroceriasInfo] = useState<Record<string, CarroceriaInfo>>({});
 
   const alocacoes = useMemo(() => {
-    if (!Array.isArray(carroceriasAlocadas) || carroceriasAlocadas.length === 0) return [];
-    return carroceriasAlocadas.filter(a => a.carroceria_id && a.peso_kg > 0);
-  }, [carroceriasAlocadas]);
+    // Try new JSON format first
+    if (Array.isArray(carroceriasAlocadas) && carroceriasAlocadas.length > 0) {
+      return carroceriasAlocadas.filter(a => a.carroceria_id && a.peso_kg > 0);
+    }
+    // Fallback: legacy single carroceria_id + peso_alocado_kg
+    if (carroceriaId && pesoAlocadoKg && pesoAlocadoKg > 0) {
+      return [{ carroceria_id: carroceriaId, peso_kg: pesoAlocadoKg }];
+    }
+    return [];
+  }, [carroceriasAlocadas, carroceriaId, pesoAlocadoKg]);
 
   useEffect(() => {
     if (alocacoes.length === 0) return;
