@@ -2536,7 +2536,7 @@ export default function CargasDisponiveis() {
                                               </div>
                                               <span className="text-primary font-medium">Disp: {formatWeight(Math.max(0, capDisp))}</span>
                                             </div>
-                                            {emUso > 0 && <span className="text-[10px] text-amber-600">Em uso: {emUso.toLocaleString('pt-BR')} kg</span>}
+                                            {emUso > 0 && <span className="text-[10px] text-amber-600">Em uso: {formatWeight(emUso)}</span>}
                                           </div>
                                         </div>
                                       )}
