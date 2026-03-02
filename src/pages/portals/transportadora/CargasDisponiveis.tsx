@@ -575,19 +575,34 @@ export default function CargasDisponiveis() {
     if (!veiculo || veiculo.carroceria_integrada) return;
     const vinculadas = carroceriasEmpresa.filter((c: any) => c.veiculo_id === selectedVeiculo);
     if (vinculadas.length === 0) return;
+
+    // Filter out carrocerias that are in active trips with a DIFFERENT driver
+    const disponiveis = vinculadas.filter((c: any) => {
+      const viagemCarr = viagemAtivaByCarroceria.get(c.id);
+      if (!viagemCarr) return true; // not in any trip
+      // Allow if it's the same driver's trip
+      return viagemCarr.motorista_id === selectedMotorista;
+    });
+    const bloqueadas = vinculadas.filter((c: any) => !disponiveis.includes(c));
+
+    if (bloqueadas.length > 0) {
+      const placas = bloqueadas.map((c: any) => c.placa).join(', ');
+      toast.warning(`Carroceria(s) ${placas} removida(s) da seleção automática pois está(ão) em viagem ativa com outro motorista.`, { duration: 6000 });
+    }
+
     const maxC = getMaxCarrocerias(veiculo.tipo, veiculo.carroceria_integrada);
     if (maxC > 1) {
-      setSelectedCarroceriasMulti(vinculadas.map((c: any) => c.id));
-      setSelectedCarroceria(vinculadas[0]?.id || null);
+      setSelectedCarroceriasMulti(disponiveis.map((c: any) => c.id));
+      setSelectedCarroceria(disponiveis[0]?.id || null);
     } else {
-      setSelectedCarroceria(vinculadas[0]?.id || null);
+      setSelectedCarroceria(disponiveis[0]?.id || null);
       setSelectedCarroceriasMulti([]);
     }
     // Reset weight allocations
     setPesoPorCarroceria({});
     setPesoAlocadoInput(0);
     setPesoBarPercent(0);
-  }, [selectedVeiculo, driverActiveTrip, veiculosEmpresa, carroceriasEmpresa]);
+  }, [selectedVeiculo, driverActiveTrip, veiculosEmpresa, carroceriasEmpresa, viagemAtivaByCarroceria, selectedMotorista]);
 
 
   const { data: usuarioLogado } = useQuery({
