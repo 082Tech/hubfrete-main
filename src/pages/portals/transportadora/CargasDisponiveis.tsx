@@ -1417,7 +1417,7 @@ export default function CargasDisponiveis() {
               <span className="flex items-center gap-1">
                 <Weight className="w-3.5 h-3.5" />
                 <span className="font-medium text-foreground">
-                  {pesoDisponivel.toLocaleString('pt-BR')} kg
+                  {formatWeight(pesoDisponivel)}
                 </span>
               </span>
 
