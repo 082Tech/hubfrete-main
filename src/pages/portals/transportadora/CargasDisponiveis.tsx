@@ -2607,55 +2607,20 @@ export default function CargasDisponiveis() {
                                         </SelectContent>
                                       </Select>
                                       {selectedId && selectedCarr && (
-                                        <div className="space-y-2">
-                                          <div className="flex items-center gap-2">
-                                            {selectedCarr.foto_url && (
-                                              <img src={selectedCarr.foto_url} alt="" className="w-10 h-10 rounded object-cover shrink-0 border" />
-                                            )}
-                                            <div className="flex-1">
-                                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                                <div className="flex items-center gap-1.5">
-                                                  <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{selectedCarr.placa}</Badge>
-                                                  <span>{tipoCarroceriaLabels[selectedCarr.tipo] || selectedCarr.tipo}</span>
-                                                </div>
-                                                <span className="text-primary font-medium">Disp: {Math.max(0, capDisp).toLocaleString('pt-BR')} kg</span>
-                                              </div>
-                                              {emUso > 0 && <span className="text-[10px] text-amber-600">Em uso: {emUso.toLocaleString('pt-BR')} kg</span>}
-                                            </div>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <Label className="text-xs whitespace-nowrap font-medium">Peso (kg):</Label>
-                                            <Input
-                                              type="number"
-                                              className="h-8 text-sm bg-background"
-                                              placeholder={`Máx: ${Math.max(0, capDisp).toLocaleString('pt-BR')}`}
-                                              value={pesoPorCarroceria[selectedId] || ''}
-                                              onChange={(e) => {
-                                                const val = Math.floor(Number(e.target.value));
-                                                setPesoPorCarroceria(prev => ({ ...prev, [selectedId]: val < 0 ? 0 : val }));
-                                              }}
-                                              onBlur={() => {
-                                                let val = pesoPorCarroceria[selectedId] || 0;
-                                                if (val > capDisp) val = capDisp;
-                                                if (val < 0) val = 0;
-                                                const pesoDisponivel = selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0;
-                                                const outrosTotal = Object.entries(pesoPorCarroceria)
-                                                  .filter(([k]) => k !== selectedId)
-                                                  .reduce((sum, [, v]) => sum + (v || 0), 0);
-                                                if (val + outrosTotal > pesoDisponivel) {
-                                                  val = Math.max(0, pesoDisponivel - outrosTotal);
-                                                }
-                                                setPesoPorCarroceria(prev => ({ ...prev, [selectedId]: val }));
-                                              }}
-                                              max={Math.max(0, capDisp)}
-                                            />
-                                          </div>
-                                          {(pesoPorCarroceria[selectedId] || 0) > capDisp && capDisp > 0 && (
-                                            <p className="text-xs text-destructive flex items-center gap-1">
-                                              <AlertTriangle className="w-3 h-3" />
-                                              Excede capacidade disponível
-                                            </p>
+                                        <div className="flex items-center gap-2">
+                                          {selectedCarr.foto_url && (
+                                            <img src={selectedCarr.foto_url} alt="" className="w-10 h-10 rounded object-cover shrink-0 border" />
                                           )}
+                                          <div className="flex-1">
+                                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                              <div className="flex items-center gap-1.5">
+                                                <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{selectedCarr.placa}</Badge>
+                                                <span>{tipoCarroceriaLabels[selectedCarr.tipo] || selectedCarr.tipo}</span>
+                                              </div>
+                                              <span className="text-primary font-medium">Disp: {Math.max(0, capDisp).toLocaleString('pt-BR')} kg</span>
+                                            </div>
+                                            {emUso > 0 && <span className="text-[10px] text-amber-600">Em uso: {emUso.toLocaleString('pt-BR')} kg</span>}
+                                          </div>
                                         </div>
                                       )}
                                     </div>
