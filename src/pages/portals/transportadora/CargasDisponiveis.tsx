@@ -2296,14 +2296,14 @@ export default function CargasDisponiveis() {
                                   <div className="p-3 bg-background rounded-md border space-y-1.5">
                                     <div className="flex items-center justify-between text-xs">
                                       <span className="text-muted-foreground">Carroceria integrada</span>
-                                      <span className="font-medium">{Math.max(0, cap - emUso).toLocaleString('pt-BR')} kg livres</span>
+                                      <span className="font-medium">{formatWeight(Math.max(0, cap - emUso))} livres</span>
                                     </div>
                                     <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                                       <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${100 - pct}%` }} />
                                     </div>
                                     <div className="flex justify-between text-[10px] text-muted-foreground">
-                                      <span>Usado: {emUso.toLocaleString('pt-BR')} kg</span>
-                                      <span>Total: {cap.toLocaleString('pt-BR')} kg</span>
+                                      <span>Usado: {formatWeight(emUso)}</span>
+                                      <span>Total: {formatWeight(cap)}</span>
                                     </div>
                                   </div>
                                 );
@@ -2347,14 +2347,14 @@ export default function CargasDisponiveis() {
                                         <span className="font-mono font-semibold">{carr.placa}</span>
                                         <span className="text-muted-foreground">{tipoCarroceriaLabels[carr.tipo] || carr.tipo}</span>
                                       </div>
-                                      <span className="font-medium text-primary">{Math.max(0, cap - emUso).toLocaleString('pt-BR')} kg livres</span>
+                                      <span className="font-medium text-primary">{formatWeight(Math.max(0, cap - emUso))} livres</span>
                                     </div>
                                     <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                                       <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${100 - pct}%` }} />
                                     </div>
                                     <div className="flex justify-between text-[10px] text-muted-foreground">
-                                      <span>Usado: {emUso.toLocaleString('pt-BR')} kg</span>
-                                      <span>Total: {cap.toLocaleString('pt-BR')} kg</span>
+                                      <span>Usado: {formatWeight(emUso)}</span>
+                                      <span>Total: {formatWeight(cap)}</span>
                                     </div>
                                   </div>
                                 );
@@ -2534,9 +2534,9 @@ export default function CargasDisponiveis() {
                                                 <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{selectedCarr.placa}</Badge>
                                                 <span>{tipoCarroceriaLabels[selectedCarr.tipo] || selectedCarr.tipo}</span>
                                               </div>
-                                              <span className="text-primary font-medium">Disp: {Math.max(0, capDisp).toLocaleString('pt-BR')} kg</span>
+                                              <span className="text-primary font-medium">Disp: {formatWeight(Math.max(0, capDisp))}</span>
                                             </div>
-                                            {emUso > 0 && <span className="text-[10px] text-amber-600">Em uso: {emUso.toLocaleString('pt-BR')} kg</span>}
+                                            {emUso > 0 && <span className="text-[10px] text-amber-600">Em uso: {formatWeight(emUso)}</span>}
                                           </div>
                                         </div>
                                       )}
@@ -2683,7 +2683,7 @@ export default function CargasDisponiveis() {
                                   <div className="flex items-center gap-2">
                                     <Badge variant="secondary" className="font-mono text-xs px-1.5 py-0.5">{carr.placa}</Badge>
                                     <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[carr.tipo] || carr.tipo}</span>
-                                    <span className="text-xs text-primary font-medium ml-auto">Cap: {capDisp.toLocaleString('pt-BR')} kg</span>
+                                    <span className="text-xs text-primary font-medium ml-auto">Cap: {formatWeight(capDisp)}</span>
                                   </div>
                                   <Input
                                     type="number"
@@ -2719,7 +2719,7 @@ export default function CargasDisponiveis() {
                                       />
                                     </div>
                                     <div className="flex justify-between text-[10px] text-muted-foreground">
-                                      <span>{pesoCarr.toLocaleString('pt-BR')} kg</span>
+                                      <span>{formatWeight(pesoCarr)}</span>
                                       <span className="font-medium">{Math.round(percentCarr)}% do máx. alocável</span>
                                     </div>
                                   </div>
@@ -2737,7 +2737,7 @@ export default function CargasDisponiveis() {
                             <div className="flex items-center justify-between p-2.5 rounded-md bg-muted/50 border">
                               <span className="text-sm font-semibold">Total alocado</span>
                               <span className={cn("text-sm font-bold", pesoValidationError ? 'text-destructive' : 'text-primary')}>
-                                {pesoTotalAlocado.toLocaleString('pt-BR')} kg
+                                {formatWeight(pesoTotalAlocado)}
                               </span>
                             </div>
 
@@ -2774,7 +2774,7 @@ export default function CargasDisponiveis() {
                                   setPesoAlocadoInput(val);
                                   setPesoBarPercent(pesoMaximoAlocar > 0 ? Math.min(100, (val / pesoMaximoAlocar) * 100) : 0);
                                 }}
-                                placeholder={`Informe o peso (máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg)`}
+                                placeholder={`Informe o peso (máx: ${formatWeight(pesoMaximoAlocar)})`}
                                 min={pesoMinimoRequirido}
                                 max={pesoMaximoAlocar}
                                 className="text-xl font-bold h-14 pr-12"
@@ -2796,9 +2796,9 @@ export default function CargasDisponiveis() {
                                   />
                                 </div>
                                 <div className="flex justify-between text-[10px] text-muted-foreground">
-                                  <span>{pesoMinimoRequirido > 0 ? `Mín: ${pesoMinimoRequirido.toLocaleString('pt-BR')} kg` : 'Sem mínimo'}</span>
+                                  <span>{pesoMinimoRequirido > 0 ? `Mín: ${formatWeight(pesoMinimoRequirido)}` : 'Sem mínimo'}</span>
                                   <span className="font-medium">{Math.round(pesoBarPercent)}%</span>
-                                  <span>Máx: {pesoMaximoAlocar.toLocaleString('pt-BR')} kg</span>
+                                  <span>Máx: {formatWeight(pesoMaximoAlocar)}</span>
                                 </div>
                               </div>
                             )}
@@ -2940,7 +2940,7 @@ export default function CargasDisponiveis() {
                                   <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{carr.placa}</Badge>
                                   <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[carr.tipo] || carr.tipo}</span>
                                 </div>
-                                <span className="font-medium">{(pesoPorCarroceria[carId] || 0).toLocaleString('pt-BR')} kg</span>
+                                <span className="font-medium">{formatWeight(pesoPorCarroceria[carId] || 0)}</span>
                               </div>
                             );
                           })}
@@ -2976,7 +2976,7 @@ export default function CargasDisponiveis() {
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="text-muted-foreground">Peso a carregar:</span>
-                        <span className="ml-2 font-semibold text-primary">{pesoTotalAlocado.toLocaleString('pt-BR')} kg</span>
+                        <span className="ml-2 font-semibold text-primary">{formatWeight(pesoTotalAlocado)}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Previsão de coleta:</span>

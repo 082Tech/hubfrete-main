@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { formatWeight } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
   BarChart3,
@@ -533,12 +534,7 @@ export default function TransportadoraRelatorios() {
     return `R$ ${value.toFixed(0)}`;
   };
 
-  const formatWeight = (value: number) => {
-    if (value >= 1000) {
-      return `${(value / 1000).toFixed(1)}t`;
-    }
-    return `${value.toFixed(0)}kg`;
-  };
+  // formatWeight is now imported from @/lib/utils
 
   // Prepare data for tabs
   const financialMetrics = {
