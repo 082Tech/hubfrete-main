@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { NfeValidationStatus } from './NfeValidationStatus';
 import type { Database } from '@/integrations/supabase/types';
+import { formatWeight } from '@/lib/utils';
 
 type StatusCarga = Database['public']['Enums']['status_carga'];
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
@@ -325,7 +326,7 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
                 </Badge>
                 <Badge variant="secondary">
                   <Weight className="w-3 h-3 mr-1" />
-                  {carga.peso_kg.toLocaleString('pt-BR')} kg
+                  {formatWeight(carga.peso_kg)}
                 </Badge>
                 {carga.volume_m3 && (
                   <Badge variant="secondary">
@@ -528,10 +529,7 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
                               </Badge>
                             </TableCell>
                             <TableCell className="text-xs">
-                              {entrega.peso_alocado_kg 
-                                ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg`
-                                : '-'
-                              }
+                              {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
                             </TableCell>
                             <TableCell className="text-xs">
                               {entrega.valor_frete 

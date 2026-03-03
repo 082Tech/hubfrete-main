@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { CircleMarker, Tooltip, Popup } from 'react-leaflet';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
-import { Clock, MapPin, AlertCircle, CheckCircle, Package, Truck, Route } from 'lucide-react';
+import { Clock, MapPin, AlertCircle, CheckCircle, Package, Truck } from 'lucide-react';
 
 interface TrackingPoint {
   id: string;
@@ -12,6 +12,11 @@ interface TrackingPoint {
   tracked_at: string;
   observacao: string | null;
   speed: number | null;
+}
+
+interface EntregaEvento {
+  tipo: string;
+  timestamp: string;
 }
 
 interface TrackingHistoryMarkersProps {
@@ -37,6 +42,23 @@ const statusColors: Record<string, string> = {
   'cancelada': '#ef4444',
 };
 
+/** Maps entrega_eventos.tipo to a delivery status for dot coloring */
+const eventoToStatus: Record<string, string> = {
+  'criado': 'aguardando',
+  'aceite': 'aguardando',
+  'aguardando': 'aguardando',
+  'saiu_para_coleta': 'saiu_para_coleta',
+  'coletado': 'saiu_para_coleta',
+  'saiu_para_entrega': 'saiu_para_entrega',
+  'em_transito': 'saiu_para_entrega',
+  'entregue': 'entregue',
+  'finalizada': 'entregue',
+  'problema': 'problema',
+  'cancelada': 'cancelada',
+};
+
+const terminalEventos = new Set(['entregue', 'finalizada', 'cancelada']);
+
 const StatusIcon = ({ status }: { status: string | null }) => {
   const iconClass = "w-3 h-3";
   switch (status) {
@@ -57,19 +79,32 @@ const StatusIcon = ({ status }: { status: string | null }) => {
 };
 
 function formatDateTime(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Date(dateString).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
   });
+}
+
+/**
+ * Given a sorted list of events and a timestamp, find the delivery status
+ * at that point in time via binary search.
+ */
+function getStatusAtTimestamp(events: EntregaEvento[], trackedAt: string): string {
+  if (events.length === 0) return 'aguardando';
+  const t = new Date(trackedAt).getTime();
+  let activeStatus = 'aguardando';
+  for (const ev of events) {
+    if (new Date(ev.timestamp).getTime() <= t) {
+      activeStatus = eventoToStatus[ev.tipo] ?? activeStatus;
+    } else {
+      break;
+    }
+  }
+  return activeStatus;
 }
 
 export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryMarkersProps) {
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!entregaId && !viagemId) {
@@ -78,11 +113,10 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
     }
 
     const fetchTrackingHistory = async () => {
-      setIsLoading(true);
       try {
         let finalViagemId = viagemId;
 
-        // Se não foi passado viagemId, precisamos buscar através da entrega
+        // If no viagemId, look it up from the entrega
         if (!finalViagemId && entregaId) {
           const { data: viagemEntrega, error: veError } = await supabase
             .from('viagem_entregas')
@@ -90,7 +124,6 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
             .eq('entrega_id', entregaId)
             .limit(1)
             .maybeSingle();
-
           if (veError) throw veError;
           finalViagemId = viagemEntrega?.viagem_id;
         }
@@ -100,12 +133,13 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
           return;
         }
 
+        // Fetch all tracking points for the trip
         const data = await fetchAllTrackingHistoricoByViagemId(finalViagemId, {
           pageSize: 1000,
           maxRows: 50000,
         });
 
-        const validPoints: TrackingPoint[] = (data || [])
+        let validPoints: TrackingPoint[] = (data || [])
           .filter((p) => p.latitude != null && p.longitude != null)
           .map((p) => ({
             id: p.id,
@@ -117,12 +151,42 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
             speed: p.speed,
           }));
 
+        // Per-delivery filtering: if entregaId is provided, fetch events and filter
+        if (entregaId && validPoints.length > 0) {
+          const { data: eventos, error: evError } = await supabase
+            .from('entrega_eventos')
+            .select('tipo, timestamp')
+            .eq('entrega_id', entregaId)
+            .order('timestamp', { ascending: true });
+
+          if (!evError && eventos && eventos.length > 0) {
+            const sortedEvents: EntregaEvento[] = eventos;
+
+            // Time window: first event -> terminal event (or now)
+            const windowStart = new Date(sortedEvents[0].timestamp).getTime();
+            const terminalEvent = sortedEvents.find(e => terminalEventos.has(e.tipo));
+            const windowEnd = terminalEvent
+              ? new Date(terminalEvent.timestamp).getTime()
+              : Date.now();
+
+            // Filter points to delivery's time window
+            validPoints = validPoints.filter(p => {
+              const t = new Date(p.tracked_at).getTime();
+              return t >= windowStart && t <= windowEnd;
+            });
+
+            // Override status color based on delivery events timeline
+            validPoints = validPoints.map(p => ({
+              ...p,
+              status: getStatusAtTimestamp(sortedEvents, p.tracked_at),
+            }));
+          }
+        }
+
         setTrackingPoints(validPoints);
       } catch (error) {
         console.error(error);
         setTrackingPoints([]);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -133,8 +197,6 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
 
   return (
     <>
-
-      {/* Tracking point markers */}
       {trackingPoints.map((point, index) => {
         const color = statusColors[point.status || 'aguardando'] || '#6b7280';
         const label = statusLabels[point.status || 'aguardando'] || point.status || 'Em trânsito';
@@ -153,11 +215,7 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
               fillOpacity: isFirst || isLast ? 1 : 0.8,
             }}
           >
-            <Tooltip
-              direction="top"
-              offset={[0, -8]}
-              opacity={0.95}
-            >
+            <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
               <div className="text-xs min-w-[120px]">
                 <div className="flex items-center gap-1 font-medium">
                   <StatusIcon status={point.status} />
@@ -197,14 +255,10 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
                     <Clock className="w-3 h-3" />
                     <span>{formatDateTime(point.tracked_at)}</span>
                   </div>
-
                   <div className="flex items-center gap-2 text-gray-600">
                     <MapPin className="w-3 h-3" />
-                    <span>
-                      {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
-                    </span>
+                    <span>{point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}</span>
                   </div>
-
                   {point.observacao && (
                     <div className="mt-2 p-2 bg-gray-50 rounded text-gray-700">
                       {point.observacao}
@@ -219,7 +273,6 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
                     </span>
                   </div>
                 )}
-
                 {isLast && trackingPoints.length > 1 && (
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <span className="text-xs text-blue-600 font-medium">

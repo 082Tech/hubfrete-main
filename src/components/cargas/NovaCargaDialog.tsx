@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
+import { WeightInput } from '@/components/ui/weight-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
@@ -73,7 +75,7 @@ const formSchema = z.object({
   // Dados da carga
   descricao: z.string().min(5, 'Descrição deve ter no mínimo 5 caracteres'),
   tipo: z.enum(['granel_solido', 'granel_liquido', 'carga_seca', 'refrigerada', 'congelada', 'perigosa', 'viva', 'indivisivel', 'container'] as const),
-  peso_kg: z.coerce.number().int('O peso deve ser um número inteiro').min(1, 'Peso deve ser maior que 0'),
+  peso_kg: z.coerce.number().min(0.0001, 'Peso deve ser maior que 0'),
   volume_m3: z.coerce.number().optional(),
   quantidade_paletes: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
@@ -112,7 +114,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('carga');
-  const { filialAtiva } = useUserContext();
+  const { filialAtiva, empresa, userType } = useUserContext();
 
   const initialLocationData: LocationData = {
     latitude: 0,
@@ -175,7 +177,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const valorFreteTonelada = form.watch('valor_frete_tonelada');
 
   // Preview do frete total (por tonelada)
-  const freteTotal = pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
+  const freteTotal = pesoKg && valorFreteTonelada ? Math.round((pesoKg / 1000) * valorFreteTonelada * 100) / 100 : 0;
 
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
@@ -195,6 +197,17 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   };
 
   const onSubmit = async (values: FormValues) => {
+    // Validação crítica: somente embarcadores podem publicar cargas
+    if (userType !== 'embarcador') {
+      toast.error('Somente embarcadores podem publicar cargas. Verifique a empresa selecionada.');
+      return;
+    }
+
+    if (!empresa?.id) {
+      toast.error('Nenhuma empresa selecionada. Faça login novamente.');
+      return;
+    }
+
     if (!validateLocations()) return;
 
     // Capturar dados antes de fechar
@@ -205,6 +218,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     const capturedVeiculos = [...veiculosSelecionados];
     const capturedCarrocerias = [...carroceriasSelecionadas];
     const capturedFilialId = filialAtiva?.id || null;
+    const capturedEmpresaId = empresa.id;
 
     // Fechar modal imediatamente e mostrar notificação
     resetDialogState();
@@ -221,7 +235,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       capturedPesoMinimo,
       capturedVeiculos,
       capturedCarrocerias,
-      capturedFilialId
+      capturedFilialId,
+      capturedEmpresaId
     );
   };
 
@@ -234,22 +249,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     pesoMinimoFracionadoCaptured: number | null,
     veiculosSelecionadosCaptured: string[],
     carroceriasSelecionadasCaptured: string[],
-    filialIdCaptured: number | null
+    filialIdCaptured: number | null,
+    empresaIdCaptured: number
   ) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Você precisa estar logado para criar uma carga', { id: 'creating-carga' });
-        return;
-      }
-
-      const { data: empresaId, error: empresaError } = await supabase
-        .rpc('get_user_empresa_id', { _user_id: user.id });
-
-      if (empresaError || !empresaId) {
-        toast.error('Você precisa estar vinculado a uma empresa para criar cargas', { id: 'creating-carga' });
-        return;
-      }
+      // Use the empresa_id from the UI context (not from RPC) to prevent
+      // publishing under the wrong company after a company switch
+      const empresaId = empresaIdCaptured;
 
       // Create the load with filial_id and destinatario fields
       const { data: carga, error: cargaError } = await supabase
@@ -265,7 +271,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
           tipo_precificacao: 'por_tonelada',
-          valor_frete_tonelada: values.valor_frete_tonelada || null,
+          valor_frete_tonelada: values.valor_frete_tonelada ? Math.round(values.valor_frete_tonelada * 100) / 100 : null,
           valor_frete_m3: null,
           valor_frete_fixo: null,
           valor_frete_km: null,
@@ -502,12 +508,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <FormItem>
                         <FormLabel>Peso (kg) *</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            step="1"
+                          <WeightInput
                             placeholder="0"
-                            {...field}
-                            onChange={(e) => field.onChange(Math.floor(Number(e.target.value)))}
+                            value={field.value}
+                            onValueChange={field.onChange}
                           />
                         </FormControl>
                         <FormMessage />
@@ -555,9 +559,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     name="valor_mercadoria"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Valor Mercadoria (R$)</FormLabel>
+                        <FormLabel>Valor Mercadoria</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0,00" {...field} />
+                          <CurrencyInput
+                            placeholder="0,00"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -578,9 +586,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       name="valor_frete_tonelada"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Frete por Tonelada (R$)</FormLabel>
+                          <FormLabel>Frete por Tonelada</FormLabel>
                           <FormControl>
-                            <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} />
+                            <CurrencyInput
+                              placeholder="0,00"
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -625,13 +637,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   {form.watch('permite_fracionado') && (
                     <div className="ml-6 p-3 bg-muted/50 rounded-md border">
                       <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
-                      <Input
-                        type="number"
-                        step="1"
-                        placeholder="Ex: 15000 (15 toneladas)"
+                      <WeightInput
+                        placeholder="Ex: 15.000 (15 toneladas)"
                         className="mt-2"
-                        value={pesoMinimoFracionado || ''}
-                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Math.floor(Number(e.target.value)) : null)}
+                        value={pesoMinimoFracionado || undefined}
+                        onValueChange={(v) => setPesoMinimoFracionado(v || null)}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Deixe vazio para não ter limite mínimo

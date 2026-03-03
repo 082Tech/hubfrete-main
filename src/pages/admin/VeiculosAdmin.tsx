@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { 
   Truck, 
   Search, 
@@ -65,14 +66,9 @@ type Veiculo = {
   ativo: boolean;
   created_at: string;
   empresa_id: number | null;
-  motorista_id: string | null;
   empresa?: {
     id: number;
     nome: string | null;
-  };
-  motorista?: {
-    id: string;
-    nome_completo: string;
   };
 };
 
@@ -102,8 +98,7 @@ export default function VeiculosAdmin() {
         .from('veiculos')
         .select(`
           *,
-          empresa:empresas(id, nome),
-          motorista:motoristas(id, nome_completo)
+          empresa:empresas(id, nome)
         `)
         .order('created_at', { ascending: false });
 
@@ -246,9 +241,9 @@ export default function VeiculosAdmin() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {veiculos.filter(v => v.motorista_id).length}
+                  {veiculos.filter(v => v.ativo).length}
                 </p>
-                <p className="text-sm text-muted-foreground">Com motorista</p>
+                <p className="text-sm text-muted-foreground">Ativos</p>
               </div>
             </div>
           </CardContent>
@@ -341,13 +336,10 @@ export default function VeiculosAdmin() {
                         {veiculo.carroceria.replace(/_/g, ' ')}
                       </TableCell>
                       <TableCell>
-                        {veiculo.capacidade_kg 
-                          ? `${(veiculo.capacidade_kg / 1000).toFixed(1)} ton`
-                          : '-'
-                        }
+                        {veiculo.capacidade_kg ? formatWeight(veiculo.capacidade_kg) : '-'}
                       </TableCell>
                       <TableCell>
-                        {veiculo.motorista?.nome_completo || '-'}
+                        -
                       </TableCell>
                       <TableCell>
                         {veiculo.empresa?.nome || '-'}
@@ -457,11 +449,7 @@ export default function VeiculosAdmin() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Capacidade</p>
-                  <p>{selectedVeiculo.capacidade_kg ? `${(selectedVeiculo.capacidade_kg / 1000).toFixed(1)} ton` : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Motorista</p>
-                  <p>{selectedVeiculo.motorista?.nome_completo || '-'}</p>
+                  <p>{selectedVeiculo.capacidade_kg ? formatWeight(selectedVeiculo.capacidade_kg) : '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Empresa</p>

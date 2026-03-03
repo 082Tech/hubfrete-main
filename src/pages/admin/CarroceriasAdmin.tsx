@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { 
   Container, 
   Search, 
@@ -66,15 +67,10 @@ type Carroceria = {
   foto_url: string | null;
   fotos_urls: string[] | null;
   empresa_id: number | null;
-  motorista_id: string | null;
   created_at: string | null;
   empresa?: {
     id: number;
     nome: string | null;
-  };
-  motorista?: {
-    id: string;
-    nome_completo: string;
   };
 };
 
@@ -119,8 +115,7 @@ export default function CarroceriasAdmin() {
         .from('carrocerias')
         .select(`
           *,
-          empresa:empresas(id, nome),
-          motorista:motoristas(id, nome_completo)
+          empresa:empresas(id, nome)
         `)
         .order('created_at', { ascending: false });
 
@@ -253,9 +248,9 @@ export default function CarroceriasAdmin() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {carrocerias.filter(c => c.motorista_id).length}
+                  {carrocerias.filter(c => c.ativo).length}
                 </p>
-                <p className="text-sm text-muted-foreground">Com motorista</p>
+                <p className="text-sm text-muted-foreground">Ativas</p>
               </div>
             </div>
           </CardContent>
@@ -359,7 +354,7 @@ export default function CarroceriasAdmin() {
                       <TableCell>
                         <div className="text-sm">
                           {carroceria.capacidade_kg && (
-                            <p>{(carroceria.capacidade_kg / 1000).toFixed(1)} ton</p>
+                            <p>{formatWeight(carroceria.capacidade_kg)}</p>
                           )}
                           {carroceria.capacidade_m3 && (
                             <p className="text-muted-foreground">{carroceria.capacidade_m3} m³</p>
@@ -368,7 +363,7 @@ export default function CarroceriasAdmin() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {carroceria.motorista?.nome_completo || '-'}
+                        -
                       </TableCell>
                       <TableCell>
                         {carroceria.empresa?.nome || '-'}
@@ -479,13 +474,9 @@ export default function CarroceriasAdmin() {
                 <div>
                   <p className="text-sm text-muted-foreground">Capacidade</p>
                   <p>
-                    {selectedCarroceria.capacidade_kg ? `${(selectedCarroceria.capacidade_kg / 1000).toFixed(1)} ton` : '-'}
+                    {selectedCarroceria.capacidade_kg ? formatWeight(selectedCarroceria.capacidade_kg) : '-'}
                     {selectedCarroceria.capacidade_m3 && ` / ${selectedCarroceria.capacidade_m3} m³`}
                   </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Motorista</p>
-                  <p>{selectedCarroceria.motorista?.nome_completo || '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Empresa</p>

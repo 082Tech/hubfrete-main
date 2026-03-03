@@ -36,6 +36,8 @@ import {
   ChevronDown,
   Check,
   Loader2,
+  Link2,
+  Container,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
@@ -66,7 +68,9 @@ const embarcadorMenuItems: MenuItem[] = [
 const transportadoraMenuItems: MenuItem[] = [
   { icon: Home, label: 'Home', href: '/transportadora' },
   { icon: Package, label: 'Cargas Disponíveis', href: '/transportadora/cargas' },
-  { icon: Truck, label: 'Minha Frota', href: '/transportadora/frota' },
+  { icon: Truck, label: 'Veículos', href: '/transportadora/frota' },
+  { icon: Container, label: 'Carrocerias', href: '/transportadora/frota/carrocerias' },
+  { icon: Link2, label: 'Vínculos', href: '/transportadora/frota/vinculos' },
   { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
   { icon: Route, label: 'Gestão de Entregas', href: '/transportadora/entregas' },
   { icon: History, label: 'Histórico de Entregas', href: '/transportadora/entregas/historico' },

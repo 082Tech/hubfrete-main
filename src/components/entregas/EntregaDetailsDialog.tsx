@@ -6,6 +6,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { formatWeight } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -33,6 +34,7 @@ import {
   Receipt
 } from 'lucide-react';
 import { FilePreviewDialog } from './FilePreviewDialog';
+import { CarregamentoCarroceriasSection } from './CarregamentoCarroceriasSection';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
@@ -48,6 +50,8 @@ interface EntregaDetailsProps {
     coletado_em: string | null;
     entregue_em: string | null;
     peso_alocado_kg: number | null;
+    carrocerias_alocadas?: Array<{ carroceria_id: string; peso_kg: number }> | null;
+    carroceria_id?: string | null;
     valor_frete: number | null;
     previsao_coleta?: string | null;
     canhoto_url?: string | null;
@@ -307,8 +311,8 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                   <p className="font-medium flex items-center gap-1">
                     <Weight className="w-3 h-3" />
                     {entrega.peso_alocado_kg
-                      ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
-                      : `${entrega.carga.peso_kg.toLocaleString('pt-BR')} kg`
+                      ? `${formatWeight(entrega.peso_alocado_kg)} / ${formatWeight(entrega.carga.peso_kg)}`
+                      : formatWeight(entrega.carga.peso_kg)
                     }
                   </p>
                 </div>
@@ -348,6 +352,13 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                 )}
               </CardContent>
             </Card>
+
+            {/* Carregamento por Carroceria */}
+            <CarregamentoCarroceriasSection
+              carroceriasAlocadas={entrega.carrocerias_alocadas as any}
+              carroceriaId={entrega.carroceria_id}
+              pesoAlocadoKg={entrega.peso_alocado_kg}
+            />
 
             {/* Documentos - Enhanced Section */}
             <Card>

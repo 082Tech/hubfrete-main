@@ -1,0 +1,1 @@
+ALTER TABLE public.veiculos ADD COLUMN motorista_padrao_id uuid REFERENCES public.motoristas(id);

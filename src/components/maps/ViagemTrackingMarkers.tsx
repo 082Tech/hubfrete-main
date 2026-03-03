@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { OverlayView, InfoWindow } from '@react-google-maps/api';
-import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
-import { Clock, MapPin, Loader2, MapPinOff } from 'lucide-react';
+import {
+  fetchAllTrackingHistoricoByViagemId,
+  fetchViagemStatus,
+  type ViagemStatus,
+} from '@/lib/fetchAllTrackingHistorico';
+import { Clock, MapPin, Loader2, MapPinOff, Gauge, Navigation } from 'lucide-react';
 
 interface TrackingPoint {
   id: string;
@@ -11,6 +15,7 @@ interface TrackingPoint {
   tracked_at: string;
   observacao: string | null;
   speed: number | null;
+  heading: number | null;
 }
 
 interface ViagemTrackingMarkersProps {
@@ -18,24 +23,36 @@ interface ViagemTrackingMarkersProps {
   onBoundsReady?: (bounds: google.maps.LatLngBounds | null) => void;
   onLoadingChange?: (isLoading: boolean) => void;
   onEmptyChange?: (isEmpty: boolean) => void;
+  onStatsReady?: (stats: TrackingStats | null) => void;
+  onViagemStatusReady?: (status: ViagemStatus | null) => void;
 }
 
-const statusLabels: Record<string, string> = {
-  'aguardando': 'Aguardando',
-  'saiu_para_coleta': 'Saiu para Coleta',
-  'saiu_para_entrega': 'Saiu para Entrega',
-  'entregue': 'Entregue',
-  'problema': 'Problema',
-  'cancelada': 'Cancelada',
+export interface TrackingStats {
+  totalPoints: number;
+  firstTimestamp: string;
+  lastTimestamp: string;
+  durationMinutes: number;
+  avgSpeed: number | null;
+  maxSpeed: number | null;
+}
+
+/** Trip-level status colors */
+const viagemStatusColors: Record<string, string> = {
+  'aguardando': '#f59e0b',     // Amber/Orange
+  'programada': '#f59e0b',     // Amber/Orange
+  'em_andamento': '#3b82f6',   // Blue
+  'finalizada': '#22c55e',     // Green
+  'concluida': '#22c55e',      // Green
+  'cancelada': '#ef4444',      // Red
 };
 
-const statusColors: Record<string, string> = {
-  'aguardando': '#f59e0b',
-  'saiu_para_coleta': '#06b6d4',
-  'saiu_para_entrega': '#a855f7',
-  'entregue': '#22c55e',
-  'problema': '#ef4444',
-  'cancelada': '#6b7280',
+const viagemStatusLabels: Record<string, string> = {
+  'aguardando': 'Aguardando',
+  'programada': 'Programada',
+  'em_andamento': 'Em Andamento',
+  'finalizada': 'Finalizada',
+  'concluida': 'Concluída',
+  'cancelada': 'Cancelada',
 };
 
 function formatDateTime(dateString: string): string {
@@ -49,32 +66,55 @@ function formatDateTime(dateString: string): string {
   });
 }
 
-export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange, onEmptyChange }: ViagemTrackingMarkersProps) {
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${Math.round(minutes)}min`;
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return m > 0 ? `${h}h ${m}min` : `${h}h`;
+}
+
+export function ViagemTrackingMarkers({
+  viagemId,
+  onBoundsReady,
+  onLoadingChange,
+  onEmptyChange,
+  onStatsReady,
+  onViagemStatusReady,
+}: ViagemTrackingMarkersProps) {
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [hoveredPointId, setHoveredPointId] = useState<string | null>(null);
+  const [viagemStatus, setViagemStatus] = useState<ViagemStatus | null>(null);
 
   useEffect(() => {
     if (!viagemId) {
       setTrackingPoints([]);
       onLoadingChange?.(false);
       onEmptyChange?.(true);
+      onStatsReady?.(null);
+      onViagemStatusReady?.(null);
       return;
     }
 
     let isMounted = true;
 
-    const fetchTrackingHistory = async () => {
+    const fetchData = async () => {
       onLoadingChange?.(true);
       try {
-        const data = await fetchAllTrackingHistoricoByViagemId(viagemId, {
-          pageSize: 1000,
-          maxRows: 50000,
-        });
+        const [rawPoints, vStatus] = await Promise.all([
+          fetchAllTrackingHistoricoByViagemId(viagemId, {
+            pageSize: 1000,
+            maxRows: 50000,
+          }),
+          fetchViagemStatus(viagemId),
+        ]);
 
         if (!isMounted) return;
-        
-        const validPoints: TrackingPoint[] = (data || [])
+
+        setViagemStatus(vStatus);
+        onViagemStatusReady?.(vStatus);
+
+        const validPoints: TrackingPoint[] = (rawPoints || [])
           .filter((p) => p.latitude != null && p.longitude != null)
           .map((p) => ({
             id: p.id,
@@ -84,20 +124,36 @@ export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange
             tracked_at: p.tracked_at,
             observacao: p.observacao,
             speed: p.speed,
+            heading: p.heading,
           }));
-        
+
         setTrackingPoints(validPoints);
         onEmptyChange?.(validPoints.length === 0);
         onLoadingChange?.(false);
-        
-        // Calculate bounds and notify parent
+
+        // Calculate stats
         if (validPoints.length > 0) {
-          const bounds = new google.maps.LatLngBounds();
-          validPoints.forEach(p => {
-            bounds.extend({ lat: p.latitude, lng: p.longitude });
+          const speeds = validPoints
+            .map((p) => p.speed)
+            .filter((s): s is number => s != null && s > 0);
+          const firstTs = validPoints[0].tracked_at;
+          const lastTs = validPoints[validPoints.length - 1].tracked_at;
+          const durationMs = new Date(lastTs).getTime() - new Date(firstTs).getTime();
+
+          onStatsReady?.({
+            totalPoints: validPoints.length,
+            firstTimestamp: firstTs,
+            lastTimestamp: lastTs,
+            durationMinutes: durationMs / 60000,
+            avgSpeed: speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : null,
+            maxSpeed: speeds.length > 0 ? Math.max(...speeds) : null,
           });
+
+          const bounds = new google.maps.LatLngBounds();
+          validPoints.forEach((p) => bounds.extend({ lat: p.latitude, lng: p.longitude }));
           onBoundsReady?.(bounds);
         } else {
+          onStatsReady?.(null);
           onBoundsReady?.(null);
         }
       } catch (error) {
@@ -106,33 +162,37 @@ export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange
         setTrackingPoints([]);
         onEmptyChange?.(true);
         onLoadingChange?.(false);
+        onStatsReady?.(null);
         onBoundsReady?.(null);
       }
     };
 
-    fetchTrackingHistory();
+    fetchData();
 
     return () => {
       isMounted = false;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viagemId]);
 
   if (!viagemId || trackingPoints.length === 0) return null;
 
-  const selectedPoint = selectedPointId ? trackingPoints.find(p => p.id === selectedPointId) : null;
+  const selectedPoint = selectedPointId ? trackingPoints.find((p) => p.id === selectedPointId) : null;
+
+  // Resolve color based on viagem status
+  const resolvedViagemStatus = viagemStatus?.status || 'aguardando';
+  const dotColor = viagemStatusColors[resolvedViagemStatus] || '#3b82f6';
+  const statusLabel = viagemStatusLabels[resolvedViagemStatus] || resolvedViagemStatus;
 
   return (
     <>
-      {/* Tracking point markers */}
       {trackingPoints.map((point, index) => {
-        const color = statusColors[point.status || 'aguardando'] || '#6b7280';
-        const label = statusLabels[point.status || 'aguardando'] || point.status || 'Em trânsito';
         const isFirst = index === 0;
         const isLast = index === trackingPoints.length - 1;
         const isHovered = point.id === hoveredPointId;
-        const size = isFirst || isLast ? 16 : 12;
-        
+        const isSelected = point.id === selectedPointId;
+        const size = isFirst || isLast ? 16 : isHovered || isSelected ? 14 : 10;
+
         return (
           <OverlayView
             key={point.id}
@@ -141,31 +201,42 @@ export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange
             getPixelPositionOffset={() => ({ x: -size / 2, y: -size / 2 })}
           >
             <div
-              className="cursor-pointer transition-transform"
+              className="cursor-pointer transition-all duration-150"
               style={{
                 width: size,
                 height: size,
                 borderRadius: '50%',
-                backgroundColor: color,
-                border: '2px solid white',
-                boxShadow: isHovered ? '0 0 8px rgba(0,0,0,0.5)' : '0 2px 4px rgba(0,0,0,0.3)',
-                transform: isHovered ? 'scale(1.3)' : 'scale(1)',
+                backgroundColor: dotColor,
+                border: `2px solid ${isFirst || isLast ? 'white' : 'rgba(255,255,255,0.7)'}`,
+                boxShadow: isHovered || isSelected
+                  ? `0 0 10px ${dotColor}80`
+                  : '0 1px 3px rgba(0,0,0,0.3)',
+                transform: isHovered ? 'scale(1.4)' : 'scale(1)',
+                opacity: isFirst || isLast ? 1 : 0.85,
               }}
               onClick={() => setSelectedPointId(point.id === selectedPointId ? null : point.id)}
               onMouseEnter={() => setHoveredPointId(point.id)}
               onMouseLeave={() => setHoveredPointId(null)}
             >
-              {/* Tooltip on hover */}
               {isHovered && (
                 <div
-                  className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl p-2 min-w-[140px]"
+                  className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl p-2.5 min-w-[160px] pointer-events-none"
                   style={{ bottom: size + 8, left: '50%', transform: 'translateX(-50%)' }}
                 >
-                  <div className="text-xs font-medium text-foreground">{label}</div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor }} />
+                    <span className="text-xs font-semibold text-foreground">{statusLabel}</span>
+                  </div>
                   <div className="text-xs text-muted-foreground">{formatDateTime(point.tracked_at)}</div>
-                  {point.speed != null && <div className="text-xs text-muted-foreground">{Math.round(point.speed)} km/h</div>}
+                  {point.speed != null && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Gauge className="w-3 h-3" /> {Math.round(point.speed)} km/h
+                    </div>
+                  )}
                   {isFirst && <div className="text-xs text-green-600 font-medium mt-1">📍 Início da viagem</div>}
-                  {isLast && trackingPoints.length > 1 && <div className="text-xs text-blue-600 font-medium mt-1">📍 Posição atual</div>}
+                  {isLast && trackingPoints.length > 1 && (
+                    <div className="text-xs text-blue-600 font-medium mt-1">📍 Última posição</div>
+                  )}
                 </div>
               )}
             </div>
@@ -173,62 +244,75 @@ export function ViagemTrackingMarkers({ viagemId, onBoundsReady, onLoadingChange
         );
       })}
 
-      {/* InfoWindow for selected point */}
-      {selectedPoint && (
+      {selectedPoint && (() => (
         <InfoWindow
           position={{ lat: selectedPoint.latitude, lng: selectedPoint.longitude }}
           onCloseClick={() => setSelectedPointId(null)}
           options={{ pixelOffset: new google.maps.Size(0, -10) }}
         >
-          <div className="min-w-[180px] p-1">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="min-w-[200px] p-1.5">
+            <div className="flex items-center gap-2 mb-2.5">
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: statusColors[selectedPoint.status || 'aguardando'] || '#6b7280' }}
+                className="w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: dotColor }}
               >
-                <MapPin className="w-3 h-3 text-white" />
+                <MapPin className="w-3.5 h-3.5 text-white" />
               </div>
               <div>
-                <p className="font-semibold text-sm">{statusLabels[selectedPoint.status || 'aguardando'] || selectedPoint.status || 'Em trânsito'}</p>
+                <p className="font-semibold text-sm">{statusLabel}</p>
                 <p className="text-xs text-muted-foreground">
-                  Ponto #{trackingPoints.findIndex(p => p.id === selectedPoint.id) + 1} de {trackingPoints.length}
+                  Ponto #{trackingPoints.findIndex((p) => p.id === selectedPoint.id) + 1} de{' '}
+                  {trackingPoints.length}
                 </p>
               </div>
             </div>
-            
-            <div className="space-y-1 text-xs">
+
+            <div className="space-y-1.5 text-xs">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="w-3 h-3" />
+                <Clock className="w-3 h-3 flex-shrink-0" />
                 <span>{formatDateTime(selectedPoint.tracked_at)}</span>
               </div>
-              
+
+              {selectedPoint.speed != null && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Gauge className="w-3 h-3 flex-shrink-0" />
+                  <span>{Math.round(selectedPoint.speed)} km/h</span>
+                </div>
+              )}
+
+              {selectedPoint.heading != null && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Navigation className="w-3 h-3 flex-shrink-0" style={{ transform: `rotate(${selectedPoint.heading}deg)` }} />
+                  <span>Direção: {Math.round(selectedPoint.heading)}°</span>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="w-3 h-3" />
+                <MapPin className="w-3 h-3 flex-shrink-0" />
                 <span>
                   {selectedPoint.latitude.toFixed(6)}, {selectedPoint.longitude.toFixed(6)}
                 </span>
               </div>
-              
+
               {selectedPoint.observacao && (
-                <div className="mt-2 p-2 bg-muted rounded text-foreground">
-                  {selectedPoint.observacao}
-                </div>
+                <div className="mt-2 p-2 bg-muted rounded text-foreground">{selectedPoint.observacao}</div>
               )}
             </div>
           </div>
         </InfoWindow>
-      )}
+      ))()}
     </>
   );
 }
 
-// Export loading and empty overlay components for use in parents
+export { formatDuration };
+
 export function TrackingHistoryLoadingOverlay() {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
       <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Carregando histórico...</p>
+        <p className="text-sm text-muted-foreground">Carregando histórico de rastreamento...</p>
       </div>
     </div>
   );

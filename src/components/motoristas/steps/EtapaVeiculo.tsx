@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Car, Container, Upload, CheckCircle, FileText, User, Weight } from 'lucide-react';
+import { formatWeight } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -34,8 +35,8 @@ export function EtapaVeiculo({
   const docVeiculoInputRef = useRef<HTMLInputElement>(null);
   const enderecoProprietarioInputRef = useRef<HTMLInputElement>(null);
 
-  const veiculosSemMotorista = veiculosDisponiveis.filter(v => !v.motorista_id);
-  const carroceriasSemMotorista = carroceriasDisponiveis.filter(c => !c.motorista_id);
+  const veiculosSemMotorista = veiculosDisponiveis;
+  const carroceriasSemMotorista = carroceriasDisponiveis;
 
   const selectedVeiculo = veiculosDisponiveis.find(v => v.id === formData.veiculo_id);
   const selectedCarroceria = carroceriasDisponiveis.find(c => c.id === formData.carroceria_id);
@@ -134,7 +135,7 @@ export function EtapaVeiculo({
             <p className="text-sm text-muted-foreground">
               <strong>Carroceria:</strong> {tipoCarroceriaLabels[selectedVeiculo.carroceria] || selectedVeiculo.carroceria}
               {' • Capacidade: '}
-              {selectedVeiculo.capacidade_kg ? `${(selectedVeiculo.capacidade_kg / 1000).toLocaleString('pt-BR')}t` : 'Não informada'}
+              {selectedVeiculo.capacidade_kg ? formatWeight(selectedVeiculo.capacidade_kg) : 'Não informada'}
               {selectedVeiculo.capacidade_m3 && ` / ${selectedVeiculo.capacidade_m3}m³`}
             </p>
             <p className="text-xs text-primary mt-2">
@@ -292,7 +293,7 @@ export function EtapaVeiculo({
                   <SelectItem key={c.id} value={c.id}>
                     {c.placa} - {tipoCarroceriaLabels[c.tipo] || c.tipo}
                     {c.marca && ` (${c.marca})`}
-                    {c.capacidade_kg && ` - ${c.capacidade_kg.toLocaleString()}kg`}
+                    {c.capacidade_kg && ` - ${formatWeight(c.capacidade_kg)}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -312,7 +313,7 @@ export function EtapaVeiculo({
               </p>
               {(selectedCarroceria.capacidade_kg || selectedCarroceria.capacidade_m3) && (
                 <p className="text-sm text-muted-foreground">
-                  Capacidade: {selectedCarroceria.capacidade_kg?.toLocaleString()}kg
+                  Capacidade: {formatWeight(selectedCarroceria.capacidade_kg)}
                   {selectedCarroceria.capacidade_m3 && ` / ${selectedCarroceria.capacidade_m3}m³`}
                 </p>
               )}

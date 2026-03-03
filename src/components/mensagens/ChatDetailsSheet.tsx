@@ -14,6 +14,7 @@ import {
   Route,
   Users
 } from 'lucide-react';
+import { formatWeight } from '@/lib/utils';
 import { 
   Sheet, 
   SheetContent, 
@@ -56,11 +57,7 @@ export function ChatDetailsSheet({ chat, open, onOpenChange, userType }: ChatDet
   const statusInfo = statusConfig[status];
   const StatusIcon = statusInfo?.icon || Package;
 
-  const formatPeso = (peso: number | null | undefined) => {
-    if (!peso) return '-';
-    if (peso >= 1000) return `${(peso / 1000).toFixed(1)}t`;
-    return `${peso.toLocaleString('pt-BR')} kg`;
-  };
+  const formatPeso = (peso: number | null | undefined) => formatWeight(peso);
 
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return '-';

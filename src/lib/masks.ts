@@ -101,6 +101,71 @@ export const unmask = {
   alphanumeric: (value: string): string => value.replace(/[^A-Za-z0-9]/g, ''),
 };
 
+// Currency formatting helpers (BRL)
+export const currencyMask = {
+  /** Format a number to BRL display: 1234.56 → "1.234,56" */
+  format: (value: number | null | undefined): string => {
+    if (value == null || value === 0) return '';
+    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  },
+  /** Parse a BRL formatted string back to number: "1.234,56" → 1234.56 */
+  parse: (text: string): number => {
+    if (!text) return 0;
+    // Remove thousand separators (dots), replace comma with dot
+    const cleaned = text.replace(/[^\d,]/g, '').replace(',', '.');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+  },
+  /** Apply mask as user types */
+  apply: (raw: string): string => {
+    // Keep only digits
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return '';
+    const cents = parseInt(digits, 10);
+    const reais = cents / 100;
+    return reais.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  },
+};
+
+// Weight formatting helpers (kg with up to 4 decimal places)
+export const weightMask = {
+  /** Format a number to weight display: 15000.5 → "15.000,5" */
+  format: (value: number | null | undefined): string => {
+    if (value == null || value === 0) return '';
+    // Show up to 4 decimals, trim trailing zeros
+    const formatted = value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+    return formatted;
+  },
+  /** Parse a BR formatted string back to number: "15.000,5" → 15000.5 */
+  parse: (text: string): number => {
+    if (!text) return 0;
+    // Remove thousand separators (dots), replace comma with dot
+    const cleaned = text.replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : Math.max(0, parseFloat(num.toFixed(4)));
+  },
+  /** Apply mask as user types - allows comma for decimals */
+  apply: (raw: string): string => {
+    // Allow digits, one comma, and up to 4 decimal places
+    let cleaned = raw.replace(/[^\d,]/g, '');
+    // Only allow one comma
+    const parts = cleaned.split(',');
+    if (parts.length > 2) {
+      cleaned = parts[0] + ',' + parts.slice(1).join('');
+    }
+    // Limit decimal places to 4
+    if (parts.length === 2 && parts[1].length > 4) {
+      cleaned = parts[0] + ',' + parts[1].slice(0, 4);
+    }
+    // Add thousand separators to integer part
+    const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    if (parts.length === 2) {
+      return intPart + ',' + parts[1].slice(0, 4);
+    }
+    return intPart;
+  },
+};
+
 // Validation functions
 export const validators = {
   cpf: (value: string): boolean => {

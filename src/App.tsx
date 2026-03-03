@@ -59,6 +59,8 @@ import EmbarcadorNotificacoes from "./pages/portals/embarcador/Notificacoes";
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraCargas from "./pages/portals/transportadora/CargasDisponiveis";
 import TransportadoraFrota from "./pages/portals/transportadora/MinhaFrota";
+import TransportadoraFrotaVinculos from "./pages/portals/transportadora/FrotaVinculos";
+import TransportadoraFrotaCarrocerias from "./pages/portals/transportadora/FrotaCarrocerias";
 import TransportadoraMotoristas from "./pages/portals/transportadora/Motoristas";
 // GestaoEntregas removed - replaced by OperacaoDiaria
 import TransportadoraHistoricoEntregas from "./pages/portals/transportadora/HistoricoEntregas";
@@ -70,6 +72,7 @@ import TransportadoraMensagens from "./pages/portals/transportadora/Mensagens";
 import TransportadoraRelatorios from "./pages/portals/transportadora/Relatorios";
 import TransportadoraNotificacoes from "./pages/portals/transportadora/Notificacoes";
 import TransportadoraOperacaoDiaria from "./pages/portals/transportadora/OperacaoDiaria";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -159,6 +162,9 @@ const App = () => {
                     <Route path="entregas" element={<TransportadoraOperacaoDiaria />} />
                     <Route path="entregas/historico" element={<TransportadoraHistoricoEntregas />} />
                     <Route path="frota" element={<TransportadoraFrota />} />
+                    <Route path="frota/carrocerias" element={<TransportadoraFrotaCarrocerias />} />
+                    <Route path="frota/vinculos" element={<TransportadoraFrotaVinculos />} />
+                    
                     <Route path="motoristas" element={<TransportadoraMotoristas />} />
                     <Route path="relatorios" element={<TransportadoraRelatorios />} />
                     <Route path="assistente" element={<TransportadoraAssistente />} />

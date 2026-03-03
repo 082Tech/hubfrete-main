@@ -1174,7 +1174,29 @@ export default function HistoricoCargas() {
 
         {/* Details Dialog */}
         <CargaDetailsDialog
-          carga={detailsCarga}
+          carga={detailsCarga ? {
+            ...detailsCarga,
+            remetente: {
+              nome: detailsCarga.remetente_nome_fantasia || detailsCarga.remetente_razao_social || null,
+              cidade: detailsCarga.endereco_origem?.cidade || null,
+              estado: detailsCarga.endereco_origem?.estado || null,
+              endereco: detailsCarga.endereco_origem
+                ? [detailsCarga.endereco_origem.logradouro, detailsCarga.endereco_origem.numero, detailsCarga.endereco_origem.bairro].filter(Boolean).join(', ')
+                : null,
+              contato_nome: detailsCarga.endereco_origem?.contato_nome || null,
+              contato_telefone: detailsCarga.endereco_origem?.contato_telefone || null,
+            },
+            destinatario: {
+              nome: detailsCarga.destinatario_nome_fantasia || detailsCarga.destinatario_razao_social || null,
+              cidade: detailsCarga.endereco_destino?.cidade || null,
+              estado: detailsCarga.endereco_destino?.estado || null,
+              endereco: detailsCarga.endereco_destino
+                ? [detailsCarga.endereco_destino.logradouro, detailsCarga.endereco_destino.numero, detailsCarga.endereco_destino.bairro].filter(Boolean).join(', ')
+                : null,
+              contato_nome: detailsCarga.endereco_destino?.contato_nome || null,
+              contato_telefone: detailsCarga.endereco_destino?.contato_telefone || null,
+            },
+          } : null}
           open={!!detailsCarga}
           onOpenChange={(open) => !open && setDetailsCarga(null)}
         />

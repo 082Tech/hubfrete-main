@@ -19,29 +19,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import {
   Package,
   MapPin,
@@ -63,6 +52,7 @@ import {
   Rabbit,
   Ban,
   Layers,
+  Container,
   Info,
   Route,
   Scale,
@@ -72,6 +62,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AdvancedSearchPopover, AdvancedSearchFilters, emptyFilters } from '@/components/cargas/AdvancedSearchPopover';
 import { format } from 'date-fns';
@@ -157,6 +148,7 @@ interface Veiculo {
   capacidade_kg: number | null;
   marca: string | null;
   modelo: string | null;
+  motorista_padrao_id?: string | null;
 }
 
 interface Carroceria {
@@ -171,8 +163,6 @@ interface Motorista {
   nome_completo: string;
   telefone: string | null;
   foto_url?: string | null;
-  veiculos: Veiculo[];
-  carrocerias: Carroceria[];
 }
 
 const tipoCargaLabels: Record<string, string> = {
@@ -196,6 +186,24 @@ const getEmpresaInitials = (nome: string | undefined | null): string => {
   return (words[0][0] + words[1][0]).toUpperCase();
 };
 
+/**
+ * Retorna quantas carrocerias (semirreboques) um tipo de veículo aceita.
+ * 0 = carroceria integrada ao chassi (VUC, Toco, Truck, 3/4)
+ * 1 = 1 semirreboque (Carreta, Carreta LS, Vanderléia)
+ * 2 = 2 semirreboques (Bitrem, Bitruck)
+ * 3 = 3 semirreboques (Rodotrem)
+ */
+function getMaxCarrocerias(tipoVeiculo: string | undefined | null, carroceriaIntegrada?: boolean): number {
+  if (carroceriaIntegrada) return 0;
+  if (!tipoVeiculo) return 1;
+  const tipo = tipoVeiculo.toLowerCase();
+  if (['vuc', 'tres_quartos', 'toco', 'truck'].includes(tipo)) return 0;
+  if (['carreta', 'carreta_ls', 'vanderleia'].includes(tipo)) return 1;
+  if (['bitrem', 'bitruck'].includes(tipo)) return 2;
+  if (['rodotrem'].includes(tipo)) return 3;
+  return 1;
+}
+
 // Leaflet icons and functions removed - now using Google Maps components
 
 export default function CargasDisponiveis() {
@@ -211,17 +219,22 @@ export default function CargasDisponiveis() {
   const [selectedMotorista, setSelectedMotorista] = useState<string>('');
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('');
   const [selectedCarroceria, setSelectedCarroceria] = useState<string | null>(null);
+  const [wizardStep, setWizardStep] = useState<number>(1);
 
   // NEW: State for multi-carroceria (Bitrem/Rodotrem)
   const [selectedCarroceriasMulti, setSelectedCarroceriasMulti] = useState<string[]>([]);
   const [pesoPorCarroceria, setPesoPorCarroceria] = useState<Record<string, number>>({});
 
   const [openMotoristaCombobox, setOpenMotoristaCombobox] = useState(false);
+  const [motoristaSearchText, setMotoristaSearchText] = useState('');
+  const motoristaInputRef = useRef<HTMLInputElement>(null);
+  const motoristaDropdownRef = useRef<HTMLDivElement>(null);
 
   const [selectedViagemId, setSelectedViagemId] = useState<string | null>(null);
   const [isViagemBlocked, setIsViagemBlocked] = useState(false);
   const [isCreatingViagem, setIsCreatingViagem] = useState(false);
   const [pesoAlocadoInput, setPesoAlocadoInput] = useState<number>(0);
+  const [pesoBarPercent, setPesoBarPercent] = useState<number>(0);
   const [previsaoColeta, setPrevisaoColeta] = useState<string>('');
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [viewMode, setViewModeState] = useState<'list' | 'map'>(() => {
@@ -372,7 +385,7 @@ export default function CargasDisponiveis() {
     }
   }, [tiposVeiculoFrota, tiposVeiculoInitialized]);
 
-  // Fetch motoristas da transportadora com status de disponibilidade
+  // Fetch motoristas da transportadora
   const { data: motoristas = [] } = useQuery({
     queryKey: ['motoristas_transportadora', empresa?.id],
     queryFn: async () => {
@@ -380,19 +393,44 @@ export default function CargasDisponiveis() {
 
       const { data, error } = await supabase
         .from('motoristas')
-        .select(`
-          id,
-          nome_completo,
-          telefone,
-          foto_url,
-          veiculos(id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada),
-          carrocerias(id, placa, tipo, capacidade_kg)
-        `)
+        .select('id, nome_completo, telefone, foto_url')
         .eq('empresa_id', empresa.id as any)
         .eq('ativo', true);
 
       if (error) throw error;
       return (data || []) as Motorista[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Fetch ALL vehicles from company (company-wide, not driver-specific)
+  const { data: veiculosEmpresa = [] } = useQuery({
+    queryKey: ['veiculos_empresa_aceite', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('veiculos')
+        .select('id, placa, tipo, carroceria, capacidade_kg, marca, modelo, carroceria_integrada, foto_url, motorista_padrao_id')
+        .eq('empresa_id', empresa.id as any)
+        .eq('ativo', true);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Fetch ALL carrocerias from company (including veiculo_id for auto-linking)
+  const { data: carroceriasEmpresa = [] } = useQuery({
+    queryKey: ['carrocerias_empresa_aceite', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await (supabase as any)
+        .from('carrocerias')
+        .select('id, placa, tipo, capacidade_kg, marca, modelo, foto_url, veiculo_id')
+        .eq('empresa_id', empresa.id)
+        .eq('ativo', true);
+      if (error) throw error;
+      return (data || []) as any[];
     },
     enabled: !!empresa?.id,
   });
@@ -405,7 +443,7 @@ export default function CargasDisponiveis() {
 
       const { data, error } = await supabase
         .from('entregas')
-        .select('motorista_id, veiculo_id, carroceria_id, peso_alocado_kg')
+        .select('motorista_id, veiculo_id, carroceria_id, peso_alocado_kg, carga_id, status, codigo')
         .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
         .not('motorista_id', 'is', null);
 
@@ -415,7 +453,159 @@ export default function CargasDisponiveis() {
     enabled: !!empresa?.id,
   });
 
-  // Fetch nome do usuário logado para registrar eventos
+  // Fetch viagens ativas para mostrar status do motorista
+  const { data: viagensAtivas = [] } = useQuery({
+    queryKey: ['viagens_ativas_empresa', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('viagens')
+        .select('id, codigo, status, motorista_id, veiculo_id, carroceria_id, started_at, viagem_entregas(entrega_id, entregas(peso_alocado_kg, carrocerias_alocadas, carga_id, cargas(descricao, endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado))))')
+        .in('status', ['aguardando', 'em_andamento', 'programada'] as any[]);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  // Map motorista_id -> viagem ativa (para badge de status)
+  const viagemAtivaByMotorista = useMemo(() => {
+    const map = new Map<string, any>();
+    viagensAtivas.forEach((v: any) => {
+      if (v.motorista_id && !map.has(v.motorista_id)) {
+        // Calculate total weight in this trip
+        const totalPeso = (v.viagem_entregas || []).reduce((sum: number, ve: any) => {
+          return sum + (ve.entregas?.peso_alocado_kg || 0);
+        }, 0);
+        const entregas = (v.viagem_entregas || []).map((ve: any) => ({
+          peso: ve.entregas?.peso_alocado_kg || 0,
+          descricao: ve.entregas?.cargas?.descricao || '',
+          destino: ve.entregas?.cargas?.endereco_destino
+            ? `${ve.entregas.cargas.endereco_destino.cidade}/${ve.entregas.cargas.endereco_destino.estado}`
+            : '',
+        }));
+        map.set(v.motorista_id, { ...v, totalPeso, entregasResumo: entregas });
+      }
+    });
+    return map;
+  }, [viagensAtivas]);
+
+  const viagemAtivaByVeiculo = useMemo(() => {
+    const map = new Map<string, any>();
+    viagensAtivas.forEach((v: any) => {
+      if (v.veiculo_id && !map.has(v.veiculo_id)) {
+        map.set(v.veiculo_id, v);
+      }
+    });
+    return map;
+  }, [viagensAtivas]);
+
+  const viagemAtivaByCarroceria = useMemo(() => {
+    const map = new Map<string, any>();
+    viagensAtivas.forEach((v: any) => {
+      if (v.carroceria_id && !map.has(v.carroceria_id)) {
+        map.set(v.carroceria_id, v);
+      }
+
+      (v.viagem_entregas || []).forEach((ve: any) => {
+        const alocadas = ve.entregas?.carrocerias_alocadas;
+        if (Array.isArray(alocadas)) {
+          alocadas.forEach((item: any) => {
+            if (item?.carroceria_id && !map.has(item.carroceria_id)) {
+              map.set(item.carroceria_id, v);
+            }
+          });
+        }
+      });
+    });
+    return map;
+  }, [viagensAtivas]);
+
+  // Motoristas filtrados pela busca de texto
+  const motoristasFiltrados = useMemo(() => {
+    if (!motoristaSearchText.trim()) return motoristas;
+    const search = motoristaSearchText.toLowerCase();
+    return motoristas.filter(m => m.nome_completo.toLowerCase().includes(search));
+  }, [motoristas, motoristaSearchText]);
+
+  // When driver with active trip is selected, auto-fill vehicle & carroceria from trip
+  const driverActiveTrip = useMemo(() => {
+    if (!selectedMotorista) return null;
+    return viagemAtivaByMotorista.get(selectedMotorista) || null;
+  }, [selectedMotorista, viagemAtivaByMotorista]);
+
+  useEffect(() => {
+    if (!driverActiveTrip) return;
+    // Auto-select the vehicle from the active trip
+    if (driverActiveTrip.veiculo_id) {
+      setSelectedVeiculo(driverActiveTrip.veiculo_id);
+    }
+    // Auto-select the carroceria from the active trip
+    if (driverActiveTrip.carroceria_id) {
+      setSelectedCarroceria(driverActiveTrip.carroceria_id);
+    }
+    // Check if multi-trailer: look at entregas.carrocerias_alocadas
+    const allCarrocerias = new Set<string>();
+    if (driverActiveTrip.carroceria_id) allCarrocerias.add(driverActiveTrip.carroceria_id);
+    (driverActiveTrip.viagem_entregas || []).forEach((ve: any) => {
+      const ca = ve.entregas?.carrocerias_alocadas;
+      if (Array.isArray(ca)) {
+        ca.forEach((item: any) => {
+          if (item.carroceria_id) allCarrocerias.add(item.carroceria_id);
+        });
+      }
+    });
+    if (allCarrocerias.size > 1) {
+      setSelectedCarroceriasMulti(Array.from(allCarrocerias));
+    }
+  }, [driverActiveTrip]);
+
+  // Auto-fill vehicle from motorista_padrao_id binding (when no active trip)
+  useEffect(() => {
+    if (!selectedMotorista || driverActiveTrip) return;
+    const veiculoPadrao = veiculosEmpresa.find((v: any) => v.motorista_padrao_id === selectedMotorista);
+    if (veiculoPadrao) {
+      setSelectedVeiculo(veiculoPadrao.id);
+    }
+  }, [selectedMotorista, driverActiveTrip, veiculosEmpresa]);
+
+  // Auto-fill carrocerias when vehicle changes (and no active trip blocking)
+  useEffect(() => {
+    if (!selectedVeiculo || driverActiveTrip) return;
+    const veiculo = veiculosEmpresa.find((v: any) => v.id === selectedVeiculo);
+    if (!veiculo || veiculo.carroceria_integrada) return;
+    const vinculadas = carroceriasEmpresa.filter((c: any) => c.veiculo_id === selectedVeiculo);
+    if (vinculadas.length === 0) return;
+
+    // Filter out carrocerias that are in active trips with a DIFFERENT driver
+    const disponiveis = vinculadas.filter((c: any) => {
+      const viagemCarr = viagemAtivaByCarroceria.get(c.id);
+      if (!viagemCarr) return true; // not in any trip
+      // Allow if it's the same driver's trip
+      return viagemCarr.motorista_id === selectedMotorista;
+    });
+    const bloqueadas = vinculadas.filter((c: any) => !disponiveis.includes(c));
+
+    if (bloqueadas.length > 0) {
+      const placas = bloqueadas.map((c: any) => c.placa).join(', ');
+      toast.warning(`Carroceria(s) ${placas} removida(s) da seleção automática pois está(ão) em viagem ativa com outro motorista.`, { duration: 6000 });
+    }
+
+    const maxC = getMaxCarrocerias(veiculo.tipo, veiculo.carroceria_integrada);
+    if (maxC > 1) {
+      setSelectedCarroceriasMulti(disponiveis.map((c: any) => c.id));
+      setSelectedCarroceria(disponiveis[0]?.id || null);
+    } else {
+      setSelectedCarroceria(disponiveis[0]?.id || null);
+      setSelectedCarroceriasMulti([]);
+    }
+    // Reset weight allocations
+    setPesoPorCarroceria({});
+    setPesoAlocadoInput(0);
+    setPesoBarPercent(0);
+  }, [selectedVeiculo, driverActiveTrip, veiculosEmpresa, carroceriasEmpresa, viagemAtivaByCarroceria, selectedMotorista]);
+
+
   const { data: usuarioLogado } = useQuery({
     queryKey: ['usuario_logado_nome', user?.id],
     queryFn: async () => {
@@ -567,210 +757,56 @@ export default function CargasDisponiveis() {
       previsaoColeta: string;
       carroceriasAlocadas?: any;
     }) => {
-      // Get current cargo to update peso_disponivel_kg
-      const { data: cargaAtualResult, error: fetchError } = await supabase
-        .from('cargas')
-        .select('peso_disponivel_kg, peso_kg')
-        .eq('id', cargaId)
-        .single();
+      // Call the atomic RPC that handles weight deduction, merge detection,
+      // delivery creation/update, timeline events, and viagem management
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('accept_carga_tx', {
+        p_carga_id: cargaId,
+        p_motorista_id: motoristaId,
+        p_veiculo_id: veiculoId,
+        p_carroceria_id: carroceriaId,
+        p_peso_kg: pesoAlocadoKg,
+        p_valor_frete: valorFrete,
+        p_viagem_id: viagemId,
+        p_user_name: userName,
+        p_previsao_coleta: previsaoColeta ? new Date(previsaoColeta).toISOString() : null,
+        p_carrocerias_alocadas: carroceriasAlocadas || null,
+      });
 
-      if (fetchError) throw fetchError;
+      if (rpcError) throw rpcError;
 
-      const cargaAtual = cargaAtualResult as any;
-      const pesoDisponivel = cargaAtual?.peso_disponivel_kg ?? cargaAtual?.peso_kg ?? 0;
-      const novoPesoDisponivel = pesoDisponivel - pesoAlocadoKg;
+      const result = rpcResult as any;
 
-      // Update cargo status and available weight
-      const novoStatus = novoPesoDisponivel <= 0 ? 'totalmente_alocada' : 'parcialmente_alocada';
-      const { error: cargaError } = await supabase
-        .from('cargas')
-        .update({
-          status: novoStatus,
-          peso_disponivel_kg: Math.max(0, novoPesoDisponivel)
-        })
-        .eq('id', cargaId);
+      if (!result?.success) {
+        throw new Error(result?.mensagem || 'Erro ao aceitar carga');
+      }
 
-      if (cargaError) throw cargaError;
-
-      // Check if driver already has an active delivery for this load
-      const { data: entregaExistente, error: checkError } = await (supabase as any)
-        .from('entregas')
-        .select('*')
-        .eq('carga_id', cargaId)
-        .eq('motorista_id', motoristaId)
-        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      if (entregaExistente) {
-        // Merge weights and vehicles instead of duplicating
-        const updatePayload: any = {
-          peso_alocado_kg: Number(entregaExistente.peso_alocado_kg || 0) + Number(pesoAlocadoKg),
-          valor_frete: Number(entregaExistente.valor_frete || 0) + Number(valorFrete),
-        };
-
-        if (carroceriasAlocadas && carroceriasAlocadas.length > 0) {
-          const existingCarrocerias = Array.isArray(entregaExistente.carrocerias_alocadas)
-            ? [...entregaExistente.carrocerias_alocadas]
-            : [];
-
-          carroceriasAlocadas.forEach((ca: any) => {
-            const existingCa = existingCarrocerias.find((ec: any) => ec.carroceria_id === ca.carroceria_id);
-            if (existingCa) {
-              existingCa.peso_kg = Number(existingCa.peso_kg || 0) + Number(ca.peso_kg || 0);
-            } else {
-              existingCarrocerias.push(ca);
-            }
-          });
-          updatePayload.carrocerias_alocadas = existingCarrocerias;
-        }
-
-        const { data: updatedEntrega, error: updateError } = await supabase
-          .from('entregas')
-          .update(updatePayload)
-          .eq('id', entregaExistente.id)
-          .select('id')
-          .single();
-
-        if (updateError) throw updateError;
-
-        // Registrar evento de atualização
-        await supabase.from('entrega_eventos').insert({
-          entrega_id: updatedEntrega.id,
-          tipo: 'atualizacao',
-          timestamp: new Date().toISOString(),
-          observacao: `Peso adicional alocado (mais ${pesoAlocadoKg} kg)`,
-          user_id: userId,
-          user_nome: userName,
+      // If it was a merge, skip chat creation (chat already exists)
+      if (!result.merged) {
+        // Create chat for this new delivery with all participants
+        await createChatForEntrega({
+          entregaId: result.entrega_id,
+          cargaId,
+          motoristaId,
+          embarcadorEmpresaId,
+          transportadoraEmpresaId,
         });
-
-        // Since it's an existing assignment, return early (bypassing chat/viagem duplication)
-        return { entregaId: updatedEntrega.id, viagemId: viagemId };
       }
 
-      // Create delivery record with simplified status enum
-      const { data: entregaData, error: entregaError } = await supabase
-        .from('entregas')
-        .insert({
-          carga_id: cargaId,
-          motorista_id: motoristaId,
-          veiculo_id: veiculoId,
-          carroceria_id: carroceriaId,
-          peso_alocado_kg: pesoAlocadoKg,
-          valor_frete: valorFrete,
-          previsao_coleta: previsaoColeta ? new Date(previsaoColeta).toISOString() : null,
-          status: 'aguardando',
-          created_by: userId,
-          carrocerias_alocadas: carroceriasAlocadas || null,
-        } as any)
-        .select('id')
-        .single();
-
-      if (entregaError) throw entregaError;
-
-      // Registrar eventos iniciais na timeline
-      const now = new Date();
-
-      // Evento 1: Criação da entrega (pelo usuário)
-      await supabase.from('entrega_eventos').insert({
-        entrega_id: entregaData.id,
-        tipo: 'criado',
-        timestamp: now.toISOString(),
-        observacao: 'Entrega criada',
-        user_id: userId,
-        user_nome: userName,
-      });
-
-      // Evento 2: Status inicial "Aguardando" (pelo Sistema)
-      await supabase.from('entrega_eventos').insert({
-        entrega_id: entregaData.id,
-        tipo: 'criado' as const,
-        timestamp: new Date(now.getTime() + 1).toISOString(), // +1ms para ordenação
-        observacao: 'Status inicial definido automaticamente',
-        user_id: null,
-        user_nome: 'Sistema',
-      } as any);
-
-      // Handle viagem - create new or add to existing
-      let finalViagemId = viagemId;
-
-      if (!viagemId) {
-        // Create new viagem directly
-        // Note: codigo is auto-generated by trigger generate_viagem_codigo
-        // Criar viagem com status 'aguardando' - pronta para execução imediata
-        const { data: novaViagem, error: viagemError } = await supabase
-          .from('viagens')
-          .insert({
-            motorista_id: motoristaId,
-            veiculo_id: veiculoId,
-            carroceria_id: carroceriaId,
-            status: 'aguardando' as const,
-            started_at: new Date().toISOString(),
-            codigo: '', // Will be overwritten by trigger
-          })
-          .select('id, codigo')
-          .single() as any;
-
-        if (viagemError) {
-          console.error('Erro ao criar viagem:', viagemError);
-          // Don't throw - viagem is optional for now, delivery was already created
-        } else {
-          finalViagemId = novaViagem.id;
-
-          // Link entrega to the new viagem
-          const { error: vinculoError } = await supabase
-            .from('viagem_entregas')
-            .insert({
-              viagem_id: novaViagem.id,
-              entrega_id: entregaData.id,
-              ordem: 1,
-            });
-
-          if (vinculoError) {
-            console.error('Erro ao vincular entrega à viagem:', vinculoError);
-          }
-        }
-      } else {
-        // Add entrega to existing viagem
-        // Get current max ordem
-        const { data: maxOrdem } = await supabase
-          .from('viagem_entregas')
-          .select('ordem')
-          .eq('viagem_id', viagemId)
-          .order('ordem', { ascending: false })
-          .limit(1)
-          .single();
-
-        const novaOrdem = (maxOrdem?.ordem || 0) + 1;
-
-        const { error: vinculoError } = await supabase
-          .from('viagem_entregas')
-          .insert({
-            viagem_id: viagemId,
-            entrega_id: entregaData.id,
-            ordem: novaOrdem,
-          });
-
-        if (vinculoError) {
-          console.error('Erro ao vincular entrega à viagem:', vinculoError);
-        }
-      }
-
-      // Create chat for this delivery with all participants
-      await createChatForEntrega({
-        entregaId: entregaData.id,
-        cargaId,
-        motoristaId,
-        embarcadorEmpresaId,
-        transportadoraEmpresaId,
-      });
-
-      return { entregaId: entregaData.id, viagemId: finalViagemId };
+      return {
+        entregaId: result.entrega_id,
+        viagemId: result.viagem_id || viagemId,
+        merged: result.merged,
+        mensagem: result.mensagem,
+        entregaCodigo: result.entrega_codigo,
+      };
     },
     onSuccess: (data) => {
-      const viagemMsg = data.viagemId ? ' e vinculada à viagem' : '';
-      toast.success(`Carga aceita com sucesso${viagemMsg}!`);
+      if (data.merged) {
+        toast.success(`Peso adicionado à entrega existente (${data.entregaCodigo || ''})`);
+      } else {
+        const viagemMsg = data.viagemId ? ' e vinculada à viagem' : '';
+        toast.success(`Carga aceita com sucesso${viagemMsg}!`);
+      }
       queryClient.invalidateQueries({ queryKey: ['cargas_disponiveis'] });
       queryClient.invalidateQueries({ queryKey: ['viagens_motorista'] });
       queryClient.invalidateQueries({ queryKey: ['entregas_ativas_motoristas', empresa?.id] });
@@ -783,9 +819,16 @@ export default function CargasDisponiveis() {
       setPesoPorCarroceria({});
       setSelectedViagemId(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Erro ao aceitar carga:', error);
-      toast.error('Erro ao aceitar carga');
+      const msg = error?.message || '';
+      if (msg.includes('VEICULO_EM_USO')) {
+        toast.error('Este veículo já está em viagem ativa com outro motorista. Selecione outro veículo.');
+      } else if (msg.includes('CARROCERIA_EM_USO')) {
+        toast.error('Uma das carrocerias selecionadas já está em viagem ativa com outro motorista.');
+      } else {
+        toast.error('Erro ao aceitar carga');
+      }
     },
   });
 
@@ -880,6 +923,23 @@ export default function CargasDisponiveis() {
     }, 400);
   };
 
+  // Close motorista dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        openMotoristaCombobox &&
+        motoristaDropdownRef.current &&
+        !motoristaDropdownRef.current.contains(e.target as Node) &&
+        motoristaInputRef.current &&
+        !motoristaInputRef.current.contains(e.target as Node)
+      ) {
+        setOpenMotoristaCombobox(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMotoristaCombobox]);
+
   const handleAcceptClick = (carga: Carga) => {
     setSelectedCarga(carga);
     setSelectedMotorista('');
@@ -888,74 +948,102 @@ export default function CargasDisponiveis() {
     setIsAcceptDialogOpen(true);
   };
 
-  // Get vehicles for selected driver
+  // Get selected driver data
   const selectedMotoristaData = useMemo(() => {
     return motoristas.find((m) => m.id === selectedMotorista);
   }, [motoristas, selectedMotorista]);
 
-  // Get selected vehicle data
-  const selectedVeiculoData = useMemo(() => {
-    return selectedMotoristaData?.veiculos?.find((v) => v.id === selectedVeiculo);
-  }, [selectedMotoristaData, selectedVeiculo]);
+  // Detect if selected driver already has a delivery for the same cargo
+  const entregaExistenteMesmaCarga = useMemo(() => {
+    if (!selectedMotorista || !selectedCarga) return null;
+    return entregasAtivas.find(
+      (e: any) => e.carga_id === selectedCarga.id && e.motorista_id === selectedMotorista
+    ) || null;
+  }, [selectedMotorista, selectedCarga, entregasAtivas]);
 
-  // Derive if current vehicle is multi-trailer
-  const isMultiTrailer = useMemo(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return false;
-    const v = selectedVeiculoData;
-    return v?.tipo === 'bitrem' || v?.tipo === 'rodotrem';
-  }, [selectedMotoristaData, selectedVeiculoData]);
+  // Get selected vehicle data (from company-wide list)
+  const selectedVeiculoData = useMemo(() => {
+    return veiculosEmpresa.find((v: any) => v.id === selectedVeiculo);
+  }, [veiculosEmpresa, selectedVeiculo]);
+
+  // Derive max carrocerias based on vehicle type
+  const maxCarrocerias = useMemo(() => {
+    if (!selectedVeiculoData) return 1;
+    return getMaxCarrocerias(selectedVeiculoData.tipo, (selectedVeiculoData as any)?.carroceria_integrada);
+  }, [selectedVeiculoData]);
 
   // Derived total requested weight
   const pesoTotalAlocado = useMemo(() => {
-    if (isMultiTrailer) {
+    if (maxCarrocerias >= 2) {
       return Object.values(pesoPorCarroceria).reduce((a, b) => a + (b || 0), 0);
     }
     return pesoAlocadoInput;
-  }, [isMultiTrailer, pesoPorCarroceria, pesoAlocadoInput]);
+  }, [maxCarrocerias, pesoPorCarroceria, pesoAlocadoInput]);
 
   const selectedCarroceriaData = useMemo(() => {
-    if (!selectedMotoristaData || !selectedCarroceria) return null;
-    return selectedMotoristaData.carrocerias?.find((c) => c.id === selectedCarroceria) || null;
-  }, [selectedMotoristaData, selectedCarroceria]);
+    if (!selectedCarroceria) return null;
+    return carroceriasEmpresa.find((c: any) => c.id === selectedCarroceria) || null;
+  }, [carroceriasEmpresa, selectedCarroceria]);
 
-  // Auto-select carroceria if only one is available for the selected driver/vehicle
+  // Auto-select/reset carroceria based on vehicle type
   useEffect(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return;
+    if (!selectedVeiculoData) return;
 
-    const veiculo = selectedVeiculoData as any;
-    if (veiculo?.carroceria_integrada) {
-      if (selectedCarroceria !== null) setSelectedCarroceria(null);
+    if (maxCarrocerias === 0) {
+      // Integrated body - no carroceria needed
+      setSelectedCarroceria(null);
+      setSelectedCarroceriasMulti([]);
+      setPesoPorCarroceria({});
       return;
     }
 
-    if ((selectedMotoristaData.carrocerias?.length || 0) === 1 && !selectedCarroceria) {
-      setSelectedCarroceria(selectedMotoristaData.carrocerias[0].id);
+    if (maxCarrocerias === 1) {
+      // Single trailer - reset multi
+      setSelectedCarroceriasMulti([]);
+      setPesoPorCarroceria({});
+      if (carroceriasEmpresa.length === 1 && !selectedCarroceria) {
+        setSelectedCarroceria(carroceriasEmpresa[0].id);
+      }
+    } else {
+      // Multi-trailer - reset single
+      setSelectedCarroceria(null);
     }
-  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceria]);
+  }, [selectedVeiculoData, maxCarrocerias, carroceriasEmpresa]);
 
   // Capacidade baseada no equipamento selecionado (carroceria OU veículo integrado)
   const capacidadeEquipamentoTotal = useMemo(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return 0;
+    if (!selectedVeiculoData) return 0;
 
-    const veiculo = selectedVeiculoData as any;
-    if (veiculo?.carroceria_integrada) {
-      return veiculo.capacidade_kg || 0;
+    if (maxCarrocerias === 0) {
+      return (selectedVeiculoData as any).capacidade_kg || 0;
+    }
+
+    if (maxCarrocerias >= 2 && selectedCarroceriasMulti.length > 0) {
+      return selectedCarroceriasMulti.filter(Boolean).reduce((total, carId) => {
+        const carroceria = carroceriasEmpresa.find((c: any) => c.id === carId);
+        return total + (carroceria?.capacidade_kg || 0);
+      }, 0);
     }
 
     return selectedCarroceriaData?.capacidade_kg || 0;
-  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceriaData]);
+  }, [selectedVeiculoData, selectedCarroceriaData, maxCarrocerias, selectedCarroceriasMulti, carroceriasEmpresa]);
 
   const capacidadeEquipamentoEmUso = useMemo(() => {
-    if (!selectedMotoristaData || !selectedVeiculoData) return 0;
+    if (!selectedVeiculoData) return 0;
 
-    const veiculo = selectedVeiculoData as any;
-    if (veiculo?.carroceria_integrada) {
+    if (maxCarrocerias === 0) {
       return pesoEmUsoPorVeiculo.get(selectedVeiculoData.id) || 0;
+    }
+
+    if (maxCarrocerias >= 2) {
+      return selectedCarroceriasMulti.filter(Boolean).reduce((total, carId) => {
+        return total + (pesoEmUsoPorCarroceria.get(carId) || 0);
+      }, 0);
     }
 
     if (!selectedCarroceria) return 0;
     return pesoEmUsoPorCarroceria.get(selectedCarroceria) || 0;
-  }, [selectedMotoristaData, selectedVeiculoData, selectedCarroceria, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
+  }, [selectedVeiculoData, selectedCarroceria, maxCarrocerias, selectedCarroceriasMulti, pesoEmUsoPorVeiculo, pesoEmUsoPorCarroceria]);
 
   const capacidadeEquipamentoDisponivel = useMemo(() => {
     return Math.max(0, capacidadeEquipamentoTotal - capacidadeEquipamentoEmUso);
@@ -982,9 +1070,11 @@ export default function CargasDisponiveis() {
   // Auto-set peso alocado when driver/vehicle changes
   useMemo(() => {
     if (selectedVeiculo && pesoMaximoAlocar > 0) {
-      // Default to max possible
       const defaultPeso = pesoMaximoAlocar;
       setPesoAlocadoInput(defaultPeso);
+      setPesoBarPercent(100);
+    } else {
+      setPesoBarPercent(0);
     }
   }, [selectedVeiculo, pesoMaximoAlocar]);
 
@@ -993,10 +1083,10 @@ export default function CargasDisponiveis() {
     if (!selectedCarga || !selectedVeiculo) return null;
     if (pesoAlocadoInput <= 0) return 'Informe o peso a carregar';
     if (pesoAlocadoInput > pesoMaximoAlocar) {
-      return `Peso máximo disponível: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg`;
+      return `Peso máximo disponível: ${formatWeight(pesoMaximoAlocar)}`;
     }
     if (pesoAlocadoInput < pesoMinimoRequirido && pesoMinimoRequirido > 0) {
-      return `Peso mínimo exigido: ${pesoMinimoRequirido.toLocaleString('pt-BR')} kg`;
+      return `Peso mínimo exigido: ${formatWeight(pesoMinimoRequirido)}`;
     }
     return null;
   }, [selectedCarga, selectedVeiculo, pesoAlocadoInput, pesoMaximoAlocar, pesoMinimoRequirido]);
@@ -1012,7 +1102,7 @@ export default function CargasDisponiveis() {
 
     // Senão, calcula baseado no peso alocado
     if (!selectedCarga.valor_frete_tonelada || !pesoAlocadoInput) return selectedCarga.valor_frete_fixo || 0;
-    return (pesoAlocadoInput / 1000) * selectedCarga.valor_frete_tonelada;
+    return Math.round((pesoAlocadoInput / 1000) * selectedCarga.valor_frete_tonelada * 100) / 100;
   }, [selectedCarga, pesoAlocadoInput]);
 
   const handleConfirmAccept = () => {
@@ -1021,18 +1111,36 @@ export default function CargasDisponiveis() {
       return;
     }
 
-    // Se o veículo NÃO tem carroceria integrada, é obrigatório definir a carroceria (quando existir)
-    const veiculo = selectedVeiculoData as any;
-    if (!veiculo?.carroceria_integrada) {
-      const qtdeCarrocerias = selectedMotoristaData?.carrocerias?.length || 0;
-      if (qtdeCarrocerias > 0 && !selectedCarroceria) {
-        toast.error('Selecione a carroceria');
+    // Validação de carroceria baseada no tipo de veículo
+    if (maxCarrocerias === 1) {
+      if (!selectedCarroceria) {
+        if (carroceriasEmpresa.length === 0) {
+          toast.error('Nenhuma carroceria cadastrada na empresa');
+        } else {
+          toast.error('Selecione a carroceria');
+        }
         return;
       }
-      if (qtdeCarrocerias === 0) {
-        toast.error('Motorista sem carroceria vinculada');
+    } else if (maxCarrocerias >= 2) {
+      const filledSlots = selectedCarroceriasMulti.filter(Boolean);
+      if (filledSlots.length === 0) {
+        toast.error('Selecione ao menos uma carroceria');
         return;
       }
+    }
+
+    // Validate no carroceria is in active trip with a different driver
+    const carroceriasToCheck = maxCarrocerias >= 2
+      ? selectedCarroceriasMulti.filter(Boolean)
+      : selectedCarroceria ? [selectedCarroceria] : [];
+    const carroceriaEmConflito = carroceriasToCheck.find(cId => {
+      const viagemCarr = viagemAtivaByCarroceria.get(cId);
+      return viagemCarr && viagemCarr.motorista_id !== selectedMotorista;
+    });
+    if (carroceriaEmConflito) {
+      const carr = carroceriasEmpresa.find((c: any) => c.id === carroceriaEmConflito);
+      toast.error(`Carroceria ${carr?.placa || ''} está em viagem ativa com outro motorista`);
+      return;
     }
 
     if (pesoValidationError) {
@@ -1050,12 +1158,25 @@ export default function CargasDisponiveis() {
       return;
     }
 
+    // Build carroceriasAlocadas for multi-trailer
+    const carroceriasAlocadas = maxCarrocerias >= 2
+      ? selectedCarroceriasMulti.filter(Boolean).map(id => ({
+          carroceria_id: id,
+          peso_kg: pesoPorCarroceria[id] || 0,
+        }))
+      : undefined;
+
+    // For multi-trailer, use first carroceria as primary
+    const carroceriaIdFinal = maxCarrocerias >= 2
+      ? (selectedCarroceriasMulti.find(Boolean) || null)
+      : selectedCarroceria;
+
     acceptCarga.mutate({
       cargaId: selectedCarga.id,
       motoristaId: selectedMotorista,
       veiculoId: selectedVeiculo,
-      carroceriaId: selectedCarroceria,
-      pesoAlocadoKg: pesoAlocadoInput,
+      carroceriaId: carroceriaIdFinal,
+      pesoAlocadoKg: pesoTotalAlocado,
       valorFrete: calculatedFrete,
       embarcadorEmpresaId: selectedCarga.empresa_id,
       transportadoraEmpresaId: empresa.id,
@@ -1063,6 +1184,7 @@ export default function CargasDisponiveis() {
       userId: user?.id ?? null,
       userName: usuarioLogado?.nome || user?.email || 'Sistema',
       previsaoColeta,
+      carroceriasAlocadas,
     });
   };
 
@@ -1114,6 +1236,12 @@ export default function CargasDisponiveis() {
     }).format(value);
   };
 
+  const getCapacityIndicatorClass = (percentualUso: number) => {
+    if (percentualUso > 90) return 'bg-destructive';
+    if (percentualUso >= 70) return 'bg-chart-4';
+    return 'bg-primary';
+  };
+
   // Calculate total freight for a cargo
   const calcularFreteTotal = (carga: Carga) => {
     if (carga.tipo_precificacao === 'fixo' && carga.valor_frete_fixo) {
@@ -1121,7 +1249,7 @@ export default function CargasDisponiveis() {
     }
     if (carga.valor_frete_tonelada) {
       const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
-      return (pesoDisponivel / 1000) * carga.valor_frete_tonelada;
+      return Math.round((pesoDisponivel / 1000) * carga.valor_frete_tonelada * 100) / 100;
     }
     return carga.valor_frete_fixo || null;
   };
@@ -1276,7 +1404,7 @@ export default function CargasDisponiveis() {
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Disponível</span>
               <span className="font-medium text-foreground">
-                {(pesoDisponivel / 1000).toFixed(1)} ton / {(carga.peso_kg / 1000).toFixed(1)} ton
+                {formatWeight(pesoDisponivel)} / {formatWeight(carga.peso_kg)}
               </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -1296,7 +1424,7 @@ export default function CargasDisponiveis() {
               <span className="flex items-center gap-1">
                 <Weight className="w-3.5 h-3.5" />
                 <span className="font-medium text-foreground">
-                  {pesoDisponivel.toLocaleString('pt-BR')} kg
+                  {formatWeight(pesoDisponivel)}
                 </span>
               </span>
 
@@ -1306,7 +1434,7 @@ export default function CargasDisponiveis() {
                   <Tooltip>
                     <TooltipTrigger className="cursor-help flex items-center gap-1 text-[10px] bg-primary/10 text-primary font-medium px-1.5 py-0.5 rounded">
                       <Scale className="w-3 h-3" />
-                      Mín: {carga.peso_minimo_fracionado_kg.toLocaleString('pt-BR')} kg
+                      Mín: {formatWeight(carga.peso_minimo_fracionado_kg)}
                     </TooltipTrigger>
                     <TooltipContent>Carregamento mínimo exigido por entrega</TooltipContent>
                   </Tooltip>
@@ -1604,18 +1732,70 @@ export default function CargasDisponiveis() {
         )}
 
         {/* Accept Dialog */}
-        <Dialog open={isAcceptDialogOpen} onOpenChange={setIsAcceptDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh]">
-            <DialogHeader>
-              <DialogTitle>Aceitar Carga</DialogTitle>
-              <DialogDescription>
-                Revise os detalhes da carga e selecione motorista e veículo.
-              </DialogDescription>
+        <Dialog open={isAcceptDialogOpen} onOpenChange={(open) => { setIsAcceptDialogOpen(open); if (!open) setWizardStep(1); }}>
+          <DialogContent className="w-[96vw] max-w-5xl h-[92vh] sm:h-[88vh] p-0 gap-0 flex flex-col">
+            <DialogHeader className="px-6 pt-5 pb-3 border-b space-y-0">
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-lg">Aceitar Carga</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground m-0">
+                  Etapa {wizardStep} de 3
+                </DialogDescription>
+              </div>
+              {/* Step indicator with labels */}
+              <div className="flex items-center gap-1 pt-2">
+                {[
+                  { n: 1, label: 'Detalhes' },
+                  { n: 2, label: 'Alocação' },
+                  { n: 3, label: 'Confirmar' },
+                ].map(({ n, label }) => (
+                  <div key={n} className="flex-1 flex flex-col items-center gap-1">
+                    <div className={cn("h-1.5 w-full rounded-full transition-colors", n <= wizardStep ? 'bg-primary' : 'bg-muted')} />
+                    <span className={cn("text-[10px] font-medium transition-colors", n <= wizardStep ? 'text-primary' : 'text-muted-foreground')}>{label}</span>
+                  </div>
+                ))}
+              </div>
             </DialogHeader>
 
+            {/* Sticky cargo summary strip — visible on steps 2 & 3 */}
+            {selectedCarga && wizardStep >= 2 && (
+              <div className="px-6 py-2.5 border-b bg-muted/40 flex items-center gap-4 text-xs shrink-0">
+                <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                  <Package className="w-3.5 h-3.5 text-primary" />
+                  {selectedCarga.codigo}
+                </div>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-muted-foreground">
+                    {selectedCarga.endereco_origem?.cidade}/{selectedCarga.endereco_origem?.estado}
+                  </span>
+                  <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">
+                    {selectedCarga.endereco_destino?.cidade}/{selectedCarga.endereco_destino?.estado}
+                  </span>
+                </div>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1.5">
+                  <Scale className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium text-foreground">
+                    {formatWeight((selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg))}
+                  </span>
+                  <span className="text-muted-foreground">disponíveis</span>
+                </div>
+                {selectedCarga.valor_frete_tonelada && (
+                  <>
+                    <Separator orientation="vertical" className="h-4" />
+                    <span className="text-chart-2 font-semibold">{formatCurrency(selectedCarga.valor_frete_tonelada)}/ton</span>
+                  </>
+                )}
+              </div>
+            )}
+
             {selectedCarga && (
-              <ScrollArea className="max-h-[60vh] pr-4">
-                <div className="space-y-4 mb-4">
+              <ScrollArea className="flex-1 min-h-0 pr-4 overflow-visible">
+                <div className="space-y-4 mb-4 px-6">
+                  {/* === STEP 1: Detalhes da Carga === */}
+                  {wizardStep === 1 && (<div className="space-y-4">
                   {/* Header with Logo and Basic Info */}
                   <div className="flex items-start gap-4 p-4 bg-muted rounded-lg">
                     {/* Company Logo or Initials */}
@@ -1650,10 +1830,10 @@ export default function CargasDisponiveis() {
                         <span className="flex items-center gap-1">
                           <Weight className="w-4 h-4" />
                           <span className="font-medium">
-                            {(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg disponíveis
+                            {formatWeight((selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg))} disponíveis
                           </span>
                           {selectedCarga.peso_disponivel_kg !== null && selectedCarga.peso_disponivel_kg < selectedCarga.peso_kg && (
-                            <span className="text-muted-foreground">/ {selectedCarga.peso_kg.toLocaleString('pt-BR')} kg total</span>
+                            <span className="text-muted-foreground">/ {formatWeight(selectedCarga.peso_kg)} total</span>
                           )}
                         </span>
                       </div>
@@ -1828,425 +2008,750 @@ export default function CargasDisponiveis() {
                     </div>
                   )}
 
-                  <Separator />
+                  </div>)}
 
-                  {/* Driver Selection */}
+                  {/* === STEP 2: Equipamento + Motorista === */}
+                  {wizardStep === 2 && (<div className="space-y-4">
+                  {/* Driver Selection - Free text input + dropdown */}
                   <div className="space-y-2 px-1">
                     <Label>Motorista</Label>
-                    <Popover open={openMotoristaCombobox} onOpenChange={setOpenMotoristaCombobox}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openMotoristaCombobox}
-                          className="w-full justify-between mt-1 h-12"
+                    <div className="relative">
+                      {/* Selected motorista display OR search input */}
+                      {selectedMotorista && !openMotoristaCombobox ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenMotoristaCombobox(true);
+                            setMotoristaSearchText('');
+                            setTimeout(() => motoristaInputRef.current?.focus(), 50);
+                          }}
+                          className="flex items-center gap-3 w-full h-12 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent/50 transition-colors"
                         >
-                          {selectedMotorista ? (
-                            <div className="flex items-center gap-3 w-full overflow-hidden">
-                              {motoristas.find((m) => m.id === selectedMotorista)?.foto_url ? (
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={motoristas.find((m) => m.id === selectedMotorista)?.foto_url as string} />
-                                  <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                                </Avatar>
-                              ) : (
-                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                  <User className="h-4 w-4 text-primary" />
+                          {(() => {
+                            const mot = motoristas.find(m => m.id === selectedMotorista);
+                            const viagem = viagemAtivaByMotorista.get(selectedMotorista);
+                            if (!mot) return null;
+                            return (
+                              <>
+                                {mot.foto_url ? (
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={mot.foto_url} />
+                                    <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                                  </Avatar>
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                    <User className="h-4 w-4 text-primary" />
+                                  </div>
+                                )}
+                                <div className="flex flex-col items-start truncate overflow-hidden flex-1">
+                                  <span className="font-medium text-sm truncate w-full text-left">{mot.nome_completo}</span>
                                 </div>
-                              )}
-                              <div className="flex flex-col items-start truncate overflow-hidden">
-                                <span className="font-medium text-sm truncate w-full text-left">
-                                  {motoristas.find((m) => m.id === selectedMotorista)?.nome_completo}
-                                </span>
-                                <span className="text-xs text-muted-foreground truncate w-full text-left">
-                                  ID: {motoristas.find((m) => m.id === selectedMotorista)?.id.substring(0, 8)}
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground font-normal">Selecione o motorista...</span>
-                          )}
-                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="Buscar motorista..." />
-                          <CommandList className="max-h-[250px] overflow-y-auto">
-                            <CommandEmpty>Nenhum motorista encontrado.</CommandEmpty>
-                            <CommandGroup>
-                              {motoristas.map((motorista) => {
-                                // Capacidade de veículos com carroceria integrada
-                                const capacidadeVeiculosIntegrados = (motorista.veiculos as any[])
-                                  ?.filter((v) => v.carroceria_integrada)
-                                  ?.reduce((acc: number, v: any) => acc + (v.capacidade_kg || 0), 0) || 0;
-                                // Capacidade de carrocerias separadas
-                                const capacidadeCarrocerias = motorista.carrocerias?.reduce((acc, c) => acc + (c.capacidade_kg || 0), 0) || 0;
-                                const capacidadeTotal = capacidadeVeiculosIntegrados + capacidadeCarrocerias;
-                                const emUso = pesoEmUsoPorMotorista.get(motorista.id) || 0;
-                                const disponivel = Math.max(0, capacidadeTotal - emUso);
-                                const temCapacidade = disponivel > 0;
-                                const hasVeiculo = motorista.veiculos && motorista.veiculos.length > 0;
+                                {viagem ? (
+                                  <Badge variant="outline" className="text-[10px] shrink-0 border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">
+                                    <Route className="w-3 h-3 mr-1" />
+                                    {viagem.codigo}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] shrink-0 bg-primary/10 text-primary border-primary/30">
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Disponível
+                                  </Badge>
+                                )}
+                                <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                              </>
+                            );
+                          })()}
+                        </button>
+                      ) : (
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            ref={motoristaInputRef}
+                            placeholder="Buscar motorista por nome..."
+                            value={motoristaSearchText}
+                            onChange={(e) => {
+                              setMotoristaSearchText(e.target.value);
+                              if (!openMotoristaCombobox) setOpenMotoristaCombobox(true);
+                            }}
+                            onFocus={() => setOpenMotoristaCombobox(true)}
+                            className="pl-9 h-12"
+                          />
+                        </div>
+                      )}
 
-                                return (
-                                  <CommandItem
-                                    key={motorista.id}
-                                    value={`${motorista.nome_completo} ${motorista.id}`}
-                                    disabled={!hasVeiculo || (!temCapacidade && capacidadeTotal > 0)}
-                                    onSelect={() => {
-                                      const value = motorista.id;
-                                      setSelectedMotorista(value);
-                                      // Auto-select the first vehicle if available
-                                      if (motorista?.veiculos && motorista.veiculos.length > 0) {
-                                        const veiculo = motorista.veiculos[0] as any;
-                                        setSelectedVeiculo(veiculo.id);
-                                        if (veiculo.carroceria_integrada) {
-                                          setSelectedCarroceria(null);
-                                        } else if (motorista.carrocerias && motorista.carrocerias.length > 0) {
-                                          setSelectedCarroceria(motorista.carrocerias[0].id);
-                                        } else {
-                                          setSelectedCarroceria(null);
-                                        }
-                                      } else {
+                      {/* Dropdown list */}
+                      {openMotoristaCombobox && (
+                        <div
+                          ref={motoristaDropdownRef}
+                          className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-md shadow-lg overflow-hidden"
+                        >
+                          <div className="max-h-[300px] overflow-y-auto">
+                            {motoristasFiltrados.length === 0 ? (
+                              <div className="p-4 text-center text-sm text-muted-foreground">
+                                Nenhum motorista encontrado.
+                              </div>
+                            ) : (
+                              <div className="p-1">
+                                {motoristasFiltrados.map((motorista) => {
+                                  const viagem = viagemAtivaByMotorista.get(motorista.id);
+                                  const isSelected = selectedMotorista === motorista.id;
+
+                                  return (
+                                    <button
+                                      key={motorista.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedMotorista(motorista.id);
+                                        setMotoristaSearchText('');
+                                        setOpenMotoristaCombobox(false);
+                                        // Reset all equipment state so stale blocked selections don't persist
                                         setSelectedVeiculo('');
                                         setSelectedCarroceria(null);
-                                      }
-                                      setPesoAlocadoInput(0);
-                                      setPesoPorCarroceria({});
-                                      setSelectedCarroceriasMulti([]);
-                                      setSelectedViagemId(null);
-                                      setIsViagemBlocked(false);
-                                      setOpenMotoristaCombobox(false);
+                                        setSelectedCarroceriasMulti([]);
+                                        setPesoAlocadoInput(0);
+                                        setPesoPorCarroceria({});
+                                        setSelectedViagemId(null);
+                                        setIsViagemBlocked(false);
+                                        setTimeout(() => {
+                                          equipmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }, 100);
+                                      }}
+                                      className={cn(
+                                        "flex flex-col w-full rounded-md px-3 py-2.5 text-sm hover:bg-accent transition-colors text-left",
+                                        isSelected && "bg-accent"
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-3 w-full">
+                                        {motorista.foto_url ? (
+                                          <Avatar className="h-8 w-8 shrink-0">
+                                            <AvatarImage src={motorista.foto_url} />
+                                            <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                                          </Avatar>
+                                        ) : (
+                                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                            <User className="h-4 w-4 text-primary" />
+                                          </div>
+                                        )}
+                                        <div className="flex flex-col overflow-hidden flex-1">
+                                          <span className="font-medium text-sm truncate">{motorista.nome_completo}</span>
+                                          {motorista.telefone && (
+                                            <span className="text-[10px] text-muted-foreground truncate">{motorista.telefone}</span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          {viagem ? (
+                                            <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">
+                                              <Route className="w-3 h-3 mr-1" />
+                                              Em Viagem
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                                              Disponível
+                                            </Badge>
+                                          )}
+                                          {isSelected && <Check className="h-4 w-4 text-primary" />}
+                                        </div>
+                                      </div>
 
-                                      // Scroll to equipment section after driver selection
-                                      setTimeout(() => {
-                                        equipmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                      }, 100);
-                                    }}
-                                  >
-                                    <div className="flex items-center gap-3 w-full">
-                                      {motorista.foto_url ? (
-                                        <Avatar className="h-8 w-8">
-                                          <AvatarImage src={motorista.foto_url} />
-                                          <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                                        </Avatar>
-                                      ) : (
-                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                          <User className="h-4 w-4 text-primary" />
+                                      {/* Trip summary when driver has active trip */}
+                                      {viagem && (
+                                        <div className="ml-11 mt-1.5 p-2 bg-muted/50 rounded border border-border/50 space-y-1">
+                                          <div className="flex items-center gap-2 text-[11px] font-medium text-foreground">
+                                            <Route className="w-3 h-3 text-amber-600" />
+                                            {viagem.codigo} — {viagem.status === 'em_andamento' ? 'Em andamento' : viagem.status === 'aguardando' ? 'Aguardando' : 'Programada'}
+                                          </div>
+                                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                            <Weight className="w-3 h-3" />
+                                            {(viagem.totalPeso / 1000).toFixed(1)}t carregado
+                                            <span className="text-muted-foreground/60">•</span>
+                                            {viagem.entregasResumo?.length || 0} entrega(s)
+                                          </div>
+                                          {viagem.entregasResumo?.slice(0, 2).map((e: any, i: number) => (
+                                            <div key={i} className="text-[10px] text-muted-foreground truncate pl-5">
+                                              → {e.destino}{e.descricao ? ` (${e.descricao.substring(0, 30)}${e.descricao.length > 30 ? '...' : ''})` : ''}
+                                            </div>
+                                          ))}
+                                          {(viagem.entregasResumo?.length || 0) > 2 && (
+                                            <div className="text-[10px] text-muted-foreground/60 pl-5">
+                                              +{viagem.entregasResumo.length - 2} mais...
+                                            </div>
+                                          )}
                                         </div>
                                       )}
-                                      <div className="flex flex-col overflow-hidden">
-                                        <span className="font-medium text-sm truncate">{motorista.nome_completo}</span>
-                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
-                                          ID: {motorista.id.substring(0, 8)}
-                                        </span>
-                                      </div>
-                                      <div className="ml-auto flex shrink-0 items-center justify-end">
-                                        {!hasVeiculo ? (
-                                          <Badge variant="outline" className="text-[10px] bg-muted truncate">
-                                            Sem Veículo
-                                          </Badge>
-                                        ) : capacidadeTotal === 0 ? (
-                                          <Badge variant="outline" className="text-[10px] text-destructive truncate">
-                                            Capac. 0
-                                          </Badge>
-                                        ) : temCapacidade ? (
-                                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary truncate">
-                                            {(disponivel / 1000).toFixed(1)}t disp.
-                                          </Badge>
-                                        ) : (
-                                          <Badge variant="outline" className="text-[10px] text-muted-foreground truncate">
-                                            Lotado
-                                          </Badge>
-                                        )}
-                                        <Check
-                                          className={cn(
-                                            "ml-2 h-4 w-4 text-primary",
-                                            selectedMotorista === motorista.id ? "opacity-100" : "opacity-0"
-                                          )}
-                                        />
-                                      </div>
-                                    </div>
-                                  </CommandItem>
-                                );
-                              })}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Selected driver trip info card */}
+                    {selectedMotorista && !openMotoristaCombobox && (() => {
+                      const viagem = viagemAtivaByMotorista.get(selectedMotorista);
+                      if (!viagem) return null;
+                      return (
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-md border border-amber-200 dark:border-amber-800/40 space-y-1.5">
+                          <div className="flex items-center gap-2 text-xs font-medium text-amber-800 dark:text-amber-300">
+                            <Route className="w-3.5 h-3.5" />
+                            Viagem ativa: {viagem.codigo}
+                          </div>
+                          <div className="text-[11px] text-amber-700 dark:text-amber-400 space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <Weight className="w-3 h-3" />
+                              {(viagem.totalPeso / 1000).toFixed(1)}t carregado • {viagem.entregasResumo?.length || 0} entrega(s)
+                            </div>
+                            {viagem.entregasResumo?.slice(0, 3).map((e: any, i: number) => (
+                              <div key={i} className="truncate pl-4.5">
+                                → {e.destino} — {(e.peso / 1000).toFixed(1)}t
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-amber-600 dark:text-amber-500 italic">
+                            Este motorista pode receber novas entregas na viagem existente.
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Merge alert: driver already has delivery for same cargo */}
+                    {selectedMotorista && !openMotoristaCombobox && entregaExistenteMesmaCarga && (() => {
+                      const e = entregaExistenteMesmaCarga;
+                      const isMergeable = e.status === 'aguardando' || e.status === 'saiu_para_coleta';
+                      return (
+                        <div className={cn(
+                          "p-3 rounded-md border space-y-1",
+                          isMergeable
+                            ? "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/40"
+                            : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40"
+                        )}>
+                          <div className={cn(
+                            "flex items-center gap-2 text-xs font-medium",
+                            isMergeable ? "text-blue-800 dark:text-blue-300" : "text-amber-800 dark:text-amber-300"
+                          )}>
+                            <Info className="w-3.5 h-3.5 shrink-0" />
+                            {isMergeable
+                              ? `Este motorista já possui uma entrega desta carga (${e.codigo || 'em andamento'})`
+                              : `Este motorista já possui uma entrega desta carga em trânsito (${e.codigo || ''})`
+                            }
+                          </div>
+                          <p className={cn(
+                            "text-[11px] pl-5",
+                            isMergeable ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"
+                          )}>
+                            {isMergeable
+                              ? `O peso adicional será somado à entrega existente (${(e.peso_alocado_kg / 1000).toFixed(1)}t alocado).`
+                              : 'Como a entrega já saiu para entrega, uma nova entrega separada será criada.'}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
 
-                  {/* Preview do Equipamento Vinculado */}
-                  {selectedMotorista && selectedMotoristaData && (
+                  {/* Equipamento */}
+                  {selectedMotorista && (
                     <div ref={equipmentSectionRef} className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
                       <h4 className="font-semibold text-sm flex items-center gap-2 text-primary">
                         <Truck className="w-4 h-4" />
-                        Equipamento Vinculado ao Motorista
+                        {driverActiveTrip ? 'Equipamento da Viagem' : 'Selecionar Equipamento'}
                       </h4>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {/* Veículo */}
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Veículo (Cavalo)</Label>
-                          {selectedMotoristaData.veiculos?.length === 0 ? (
-                            <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
-                              <p className="text-xs text-destructive flex items-center gap-1">
-                                <AlertTriangle className="w-3.5 h-3.5" />
-                                Nenhum veículo vinculado
-                              </p>
-                            </div>
-                          ) : selectedVeiculoData ? (
-                            <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-muted/30 px-3 py-2 text-sm ring-offset-background cursor-not-allowed opacity-80">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{selectedVeiculoData.placa}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {tipoVeiculoLabels[selectedVeiculoData.tipo] || selectedVeiculoData.tipo}
-                                </span>
+                      {/* === DRIVER HAS ACTIVE TRIP: locked vehicle + capacity bars === */}
+                      {driverActiveTrip ? (
+                        <div className="space-y-3">
+                          {/* Locked vehicle display */}
+                          {(() => {
+                            const veiculo = veiculosEmpresa.find((v: any) => v.id === driverActiveTrip.veiculo_id);
+                            if (!veiculo) return <p className="text-xs text-muted-foreground">Veículo não encontrado</p>;
+                            return (
+                              <div className="p-3 bg-background rounded-md border space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Truck className="w-4 h-4 text-muted-foreground" />
+                                    <span className="font-mono font-semibold text-sm">{veiculo.placa}</span>
+                                    <Badge variant="outline" className="text-[10px]">
+                                      {tipoVeiculoLabels[veiculo.tipo] || veiculo.tipo}
+                                    </Badge>
+                                  </div>
+                                  <Badge variant="secondary" className="text-[10px] gap-1">
+                                    <Route className="w-3 h-3" />
+                                    Em uso
+                                  </Badge>
+                                </div>
+                                {veiculo.marca && veiculo.modelo && (
+                                  <p className="text-xs text-muted-foreground pl-6">{veiculo.marca} {veiculo.modelo}</p>
+                                )}
                               </div>
-                            </div>
-                          ) : null}
+                            );
+                          })()}
 
-                          {/* Detalhes do veículo selecionado */}
-                          {selectedVeiculoData && (
-                            <div className="p-2 bg-background rounded-md border space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">Placa:</span>
-                                <span className="text-sm font-mono font-semibold">{selectedVeiculoData.placa}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">Tipo:</span>
-                                <span className="text-sm">{tipoVeiculoLabels[selectedVeiculoData.tipo] || selectedVeiculoData.tipo}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">Carroceria:</span>
-                                <span className="text-sm">{tipoCarroceriaLabels[selectedVeiculoData.carroceria] || selectedVeiculoData.carroceria}</span>
-                              </div>
-                              {selectedVeiculoData.marca && selectedVeiculoData.modelo && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-muted-foreground">Modelo:</span>
-                                  <span className="text-sm">{selectedVeiculoData.marca} {selectedVeiculoData.modelo}</span>
-                                </div>
-                              )}
-                              {selectedVeiculoData.capacidade_kg && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-muted-foreground">Capacidade:</span>
-                                  <span className="text-sm font-medium">{selectedVeiculoData.capacidade_kg.toLocaleString('pt-BR')} kg</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                          {/* Capacity bars per trailer (or vehicle if integrated) */}
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Capacidade disponível:</p>
+                            {(() => {
+                              const veiculo = veiculosEmpresa.find((v: any) => v.id === driverActiveTrip.veiculo_id);
+                              const veiculoMaxCarr = veiculo ? getMaxCarrocerias(veiculo.tipo, veiculo.carroceria_integrada) : 1;
+
+                              if (veiculoMaxCarr === 0 && veiculo) {
+                                // Integrated body
+                                const cap = veiculo.capacidade_kg || 0;
+                                const emUso = pesoEmUsoPorVeiculo.get(veiculo.id) || 0;
+                                const pct = cap > 0 ? Math.min(100, (emUso / cap) * 100) : 0;
+                                return (
+                                  <div className="p-3 bg-background rounded-md border space-y-1.5">
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className="text-muted-foreground">Carroceria integrada</span>
+                                      <span className="font-medium">{formatWeight(Math.max(0, cap - emUso))} livres</span>
+                                    </div>
+                                    <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${100 - pct}%` }} />
+                                    </div>
+                                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                                      <span>Usado: {formatWeight(emUso)}</span>
+                                      <span>Total: {formatWeight(cap)}</span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              // Find all carrocerias from the trip's entregas
+                              const tripCarrocerias = new Map<string, number>();
+                              if (driverActiveTrip.carroceria_id) {
+                                tripCarrocerias.set(driverActiveTrip.carroceria_id, 0);
+                              }
+                              (driverActiveTrip.viagem_entregas || []).forEach((ve: any) => {
+                                const ca = ve.entregas?.carrocerias_alocadas;
+                                if (Array.isArray(ca)) {
+                                  ca.forEach((item: any) => {
+                                    if (item.carroceria_id) {
+                                      tripCarrocerias.set(item.carroceria_id, (tripCarrocerias.get(item.carroceria_id) || 0) + (item.peso_kg || 0));
+                                    }
+                                  });
+                                } else if (ve.entregas?.peso_alocado_kg && driverActiveTrip.carroceria_id) {
+                                  tripCarrocerias.set(
+                                    driverActiveTrip.carroceria_id,
+                                    (tripCarrocerias.get(driverActiveTrip.carroceria_id) || 0) + (ve.entregas.peso_alocado_kg || 0)
+                                  );
+                                }
+                              });
+
+                              if (tripCarrocerias.size === 0) {
+                                return <p className="text-xs text-muted-foreground italic">Sem carrocerias vinculadas à viagem</p>;
+                              }
+
+                              return Array.from(tripCarrocerias.entries()).map(([carId, pesoUsado]) => {
+                                const carr = carroceriasEmpresa.find((c: any) => c.id === carId);
+                                if (!carr) return null;
+                                const cap = carr.capacidade_kg || 0;
+                                const emUso = pesoEmUsoPorCarroceria.get(carId) || 0;
+                                const pct = cap > 0 ? Math.min(100, (emUso / cap) * 100) : 0;
+                                return (
+                                  <div key={carId} className="p-3 bg-background rounded-md border space-y-1.5">
+                                    <div className="flex items-center justify-between text-xs">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono font-semibold">{carr.placa}</span>
+                                        <span className="text-muted-foreground">{tipoCarroceriaLabels[carr.tipo] || carr.tipo}</span>
+                                      </div>
+                                      <span className="font-medium text-primary">{formatWeight(Math.max(0, cap - emUso))} livres</span>
+                                    </div>
+                                    <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${100 - pct}%` }} />
+                                    </div>
+                                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                                      <span>Usado: {formatWeight(emUso)}</span>
+                                      <span>Total: {formatWeight(cap)}</span>
+                                    </div>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+
+                          <p className="text-[10px] text-muted-foreground italic">
+                            Não é possível trocar o veículo durante uma viagem ativa.
+                          </p>
                         </div>
-
-                        {/* Carroceria */}
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Carroceria (Reboque)</Label>
-                          {/* Se veículo tem carroceria integrada, mostrar isso */}
-                          {(selectedVeiculoData as any)?.carroceria_integrada ? (
-                            <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
-                              <p className="text-xs text-primary font-medium">Carroceria integrada ao veículo</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Capacidade: {(selectedVeiculoData as any)?.capacidade_kg?.toLocaleString('pt-BR') || 0} kg
-                              </p>
-                            </div>
-                          ) : selectedMotoristaData.carrocerias?.length === 0 ? (
-                            <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
-                              <p className="text-xs text-destructive flex items-center gap-1">
-                                <AlertTriangle className="w-3.5 h-3.5" />
-                                Nenhuma carroceria vinculada
-                              </p>
-                            </div>
-                          ) : selectedMotoristaData.carrocerias?.length === 1 ? (
-                            // Single carroceria - just display it
-                            <div className="p-2 bg-background rounded-md border space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">Placa:</span>
-                                <span className="text-sm font-mono font-semibold">{selectedMotoristaData.carrocerias[0].placa}</span>
+                      ) : (
+                        /* === NO ACTIVE TRIP: free selection === */
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {/* Veículo */}
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">Veículo</Label>
+                            {veiculosEmpresa.length === 0 ? (
+                              <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
+                                <p className="text-xs text-destructive flex items-center gap-1">
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                  Nenhum veículo cadastrado
+                                </p>
                               </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">Tipo:</span>
-                                <span className="text-sm">{tipoCarroceriaLabels[selectedMotoristaData.carrocerias[0].tipo] || selectedMotoristaData.carrocerias[0].tipo}</span>
-                              </div>
-                              {selectedMotoristaData.carrocerias[0].capacidade_kg && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-muted-foreground">Capacidade:</span>
-                                  <span className="text-sm font-medium">{selectedMotoristaData.carrocerias[0].capacidade_kg.toLocaleString('pt-BR')} kg</span>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            // Multiple carrocerias - show Select (or Checkboxes if Bitrem/Rodotrem)
-                            <>
-                              {isMultiTrailer ? (
-                                <div className="space-y-3">
-                                  <div className="text-xs text-muted-foreground mb-1">
-                                    Selecione até 3 carrocerias vinculadas:
-                                  </div>
-                                  <div className="space-y-2 border rounded-md p-2 bg-background">
-                                    {selectedMotoristaData.carrocerias?.map((carroceria) => {
-                                      const isSelected = selectedCarroceriasMulti.includes(carroceria.id);
+                            ) : (
+                              <>
+                                <Select value={selectedVeiculo} onValueChange={setSelectedVeiculo}>
+                                  <SelectTrigger className="bg-background">
+                                    <SelectValue placeholder="Selecione o veículo" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {veiculosEmpresa.map((v: any) => {
+                                      const viagemVeiculo = viagemAtivaByVeiculo.get(v.id);
                                       return (
-                                        <div key={carroceria.id} className="flex flex-col gap-2 p-2 bg-muted/30 rounded-md border border-border">
-                                          <div className="flex items-center gap-3">
-                                            <input
-                                              type="checkbox"
-                                              className="w-4 h-4 rounded border-primary text-primary focus:ring-primary"
-                                              checked={isSelected}
-                                              onChange={(e) => {
-                                                if (e.target.checked) {
-                                                  if (selectedCarroceriasMulti.length >= 3) {
-                                                    toast.error('Máximo de 3 carrocerias permitidas');
-                                                    return;
-                                                  }
-                                                  setSelectedCarroceriasMulti([...selectedCarroceriasMulti, carroceria.id]);
-                                                  setPesoPorCarroceria(prev => ({ ...prev, [carroceria.id]: 0 }));
-                                                } else {
-                                                  setSelectedCarroceriasMulti(prev => prev.filter(id => id !== carroceria.id));
-                                                  setPesoPorCarroceria(prev => {
-                                                    const next = { ...prev };
-                                                    delete next[carroceria.id];
-                                                    return next;
-                                                  });
-                                                }
-                                              }}
-                                            />
-                                            <div className="flex flex-col">
-                                              <span className="font-mono text-sm font-semibold">{carroceria.placa}</span>
-                                              <span className="text-xs text-muted-foreground">
-                                                {tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}
-                                              </span>
-                                            </div>
-                                            <div className="ml-auto text-xs font-medium text-primary">
-                                              Cap: {carroceria.capacidade_kg?.toLocaleString('pt-BR')} kg
-                                            </div>
-                                          </div>
-                                          {isSelected && (
-                                            <div className="pl-7 pr-2">
-                                              <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium">Peso (kg):</span>
-                                                <Input
-                                                  type="number"
-                                                  className="h-7 text-xs bg-background"
-                                                  placeholder="Ex: 15000"
-                                                  value={pesoPorCarroceria[carroceria.id] || ''}
-                                                  onChange={(e) => {
-                                                    const val = Math.floor(Number(e.target.value));
-                                                    setPesoPorCarroceria(prev => ({ ...prev, [carroceria.id]: val }));
-                                                  }}
-                                                />
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <Select
-                                    value={selectedCarroceria || ''}
-                                    onValueChange={(value) => setSelectedCarroceria(value || null)}
-                                  >
-                                    <SelectTrigger className="bg-background">
-                                      <SelectValue placeholder="Selecione a carroceria" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {selectedMotoristaData.carrocerias?.map((carroceria) => (
-                                        <SelectItem key={carroceria.id} value={carroceria.id}>
+                                        <SelectItem key={v.id} value={v.id} disabled={!!viagemVeiculo}>
                                           <div className="flex items-center gap-2">
-                                            <span className="font-medium">{carroceria.placa}</span>
-                                            <span className="text-xs text-muted-foreground">
-                                              {tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}
-                                            </span>
-                                            {carroceria.capacidade_kg && (
-                                              <span className="text-xs text-primary">
-                                                {carroceria.capacidade_kg.toLocaleString('pt-BR')} kg
-                                              </span>
+                                            {v.foto_url ? (
+                                              <img src={v.foto_url} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
+                                            ) : (
+                                              <div className="w-6 h-6 rounded bg-muted flex items-center justify-center shrink-0">
+                                                <Truck className="w-3 h-3 text-muted-foreground" />
+                                              </div>
+                                            )}
+                                            <Badge variant="outline" className="font-mono text-xs px-1.5 py-0">{v.placa}</Badge>
+                                            <span className="text-xs text-muted-foreground">{tipoVeiculoLabels[v.tipo] || v.tipo}</span>
+                                            {v.capacidade_kg && (
+                                              <span className="text-xs text-primary">{formatWeight(v.capacidade_kg)}</span>
+                                            )}
+                                            {viagemVeiculo && (
+                                              <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 ml-auto">
+                                                <Route className="w-3 h-3 mr-0.5" />
+                                                {viagemVeiculo.codigo}
+                                              </Badge>
                                             )}
                                           </div>
                                         </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  {/* Show selected carroceria details */}
-                                  {selectedCarroceria && (() => {
-                                    const carroceria = selectedMotoristaData.carrocerias?.find(c => c.id === selectedCarroceria);
-                                    if (!carroceria) return null;
-                                    return (
-                                      <div className="p-2 bg-background rounded-md border space-y-1">
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-xs text-muted-foreground">Placa:</span>
-                                          <span className="text-sm font-mono font-semibold">{carroceria.placa}</span>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                                {selectedVeiculoData && (
+                                  <div className="p-2.5 bg-background rounded-md border space-y-2">
+                                    <div className="flex items-center gap-3">
+                                      {(selectedVeiculoData as any).foto_url ? (
+                                        <img src={(selectedVeiculoData as any).foto_url} alt="" className="w-14 h-14 rounded-md object-cover shrink-0 border" />
+                                      ) : (
+                                        <div className="w-14 h-14 rounded-md bg-muted flex items-center justify-center shrink-0 border">
+                                          <Truck className="w-6 h-6 text-muted-foreground" />
                                         </div>
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-xs text-muted-foreground">Tipo:</span>
-                                          <span className="text-sm">{tipoCarroceriaLabels[carroceria.tipo] || carroceria.tipo}</span>
-                                        </div>
-                                        {carroceria.capacidade_kg && (
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-xs text-muted-foreground">Capacidade:</span>
-                                            <span className="text-sm font-medium">{carroceria.capacidade_kg.toLocaleString('pt-BR')} kg</span>
-                                          </div>
+                                      )}
+                                      <div className="flex-1 space-y-1">
+                                        <Badge variant="secondary" className="font-mono text-sm">{selectedVeiculoData.placa}</Badge>
+                                        <p className="text-xs text-muted-foreground">{tipoVeiculoLabels[selectedVeiculoData.tipo] || selectedVeiculoData.tipo}</p>
+                                        {selectedVeiculoData.marca && selectedVeiculoData.modelo && (
+                                          <p className="text-xs text-muted-foreground">{selectedVeiculoData.marca} {selectedVeiculoData.modelo}</p>
+                                        )}
+                                        {selectedVeiculoData.capacidade_kg && (
+                                          <p className="text-xs font-medium text-primary">{formatWeight(selectedVeiculoData.capacidade_kg)}</p>
                                         )}
                                       </div>
-                                    );
-                                  })()}
-                                </>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                    </div>
-                  )}
-
-                  {/* Viagem Selection - After driver/vehicle selection */}
-                  {selectedMotorista && selectedVeiculo && (
-                    <div ref={viagemSectionRef}>
-                      <ViagemSelector
-                        motoristaId={selectedMotorista}
-                        onViagemSelect={setSelectedViagemId}
-                        selectedViagemId={selectedViagemId}
-                        onBlockedChange={setIsViagemBlocked}
-                      />
-                    </div>
-                  )}
-
-                  {/* Weight Allocation - User can now input the weight */}
-                  {selectedVeiculo && selectedMotoristaData && (
-                    <div className="space-y-4">
-                      {/* Input de Peso */}
-                      <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Weight className="w-5 h-5 text-primary" />
-                          <span className="font-semibold text-foreground">Peso a Carregar (kg)</span>
-                        </div>
-
-                        {/* Capacity Info */}
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          <div className="flex justify-between">
-                            <span>Capacidade total do equipamento:</span>
-                            <span className="font-medium">{capacidadeEquipamentoTotal.toLocaleString('pt-BR')} kg</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
                           </div>
-                          {capacidadeEquipamentoEmUso > 0 && (
-                            <div className="flex justify-between text-amber-600">
-                              <span>Em uso (outras entregas):</span>
-                              <span className="font-medium">-{capacidadeEquipamentoEmUso.toLocaleString('pt-BR')} kg</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between text-primary font-medium">
-                            <span>Capacidade disponível:</span>
-                            <span>{capacidadeEquipamentoDisponivel.toLocaleString('pt-BR')} kg</span>
-                          </div>
-                        </div>
 
-                        {isMultiTrailer && selectedCarroceriasMulti.length > 0 ? (
+                          {/* Carroceria */}
                           <div className="space-y-2">
-                            <p className="text-sm font-semibold">Resumo do Split (Total: {pesoTotalAlocado.toLocaleString('pt-BR')} kg)</p>
+                            <Label className="text-xs text-muted-foreground">
+                              Carroceria {maxCarrocerias >= 2 ? `(${maxCarrocerias} semirreboques)` : maxCarrocerias === 0 ? '' : '(Reboque)'}
+                            </Label>
+
+                            {maxCarrocerias === 0 ? (
+                              <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
+                                <p className="text-xs text-primary font-medium">Carroceria integrada ao veículo</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Capacidade: {formatWeight((selectedVeiculoData as any)?.capacidade_kg)}
+                                </p>
+                              </div>
+                            ) : carroceriasEmpresa.length === 0 ? (
+                              <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20">
+                                <p className="text-xs text-destructive flex items-center gap-1">
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                  Nenhuma carroceria cadastrada
+                                </p>
+                              </div>
+                            ) : maxCarrocerias >= 2 ? (
+                              <div className="space-y-3">
+                                {Array.from({ length: maxCarrocerias }, (_, idx) => {
+                                  const selectedId = selectedCarroceriasMulti[idx] || '';
+                                  const selectedCarr = carroceriasEmpresa.find((c: any) => c.id === selectedId);
+                                  const emUso = selectedId ? (pesoEmUsoPorCarroceria.get(selectedId) || 0) : 0;
+                                  const capDisp = selectedCarr ? (selectedCarr.capacidade_kg || 0) - emUso : 0;
+                                  const availableCarrocerias = carroceriasEmpresa.filter((c: any) =>
+                                    !selectedCarroceriasMulti.includes(c.id) || c.id === selectedId
+                                  );
+
+                                  return (
+                                    <div key={idx} className="p-3 bg-muted/30 rounded-md border border-border space-y-2">
+                                      <Label className="text-xs font-medium">Carroceria {idx + 1}</Label>
+                                      <Select
+                                        value={selectedId}
+                                        onValueChange={(value) => {
+                                          setSelectedCarroceriasMulti(prev => {
+                                            const next = [...prev];
+                                            while (next.length <= idx) next.push('');
+                                            next[idx] = value;
+                                            return next;
+                                          });
+                                          setPesoPorCarroceria(prev => {
+                                            const next = { ...prev };
+                                            if (selectedId && selectedId !== value) delete next[selectedId];
+                                            return { ...next, [value]: 0 };
+                                          });
+                                        }}
+                                      >
+                                        <SelectTrigger className="bg-background">
+                                          <SelectValue placeholder={`Selecione...`} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {availableCarrocerias.map((c: any) => {
+                                            const viagemCarr = viagemAtivaByCarroceria.get(c.id);
+                                            return (
+                                              <SelectItem key={c.id} value={c.id} disabled={!!viagemCarr}>
+                                                <div className="flex items-center gap-2">
+                                                  {c.foto_url ? (
+                                                    <img src={c.foto_url} alt="" className="w-5 h-5 rounded object-cover shrink-0" />
+                                                  ) : (
+                                                    <div className="w-5 h-5 rounded bg-muted flex items-center justify-center shrink-0">
+                                                      <Container className="w-3 h-3 text-muted-foreground" />
+                                                    </div>
+                                                  )}
+                                                  <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{c.placa}</Badge>
+                                                  <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[c.tipo] || c.tipo}</span>
+                                                  {c.capacidade_kg && <span className="text-xs text-primary">{formatWeight(c.capacidade_kg)}</span>}
+                                                  {viagemCarr && (
+                                                    <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 ml-auto">
+                                                      <Route className="w-3 h-3 mr-0.5" />
+                                                      {viagemCarr.codigo}
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                              </SelectItem>
+                                            );
+                                          })}
+                                        </SelectContent>
+                                      </Select>
+                                      {selectedId && selectedCarr && (
+                                        <div className="flex items-center gap-2">
+                                          {selectedCarr.foto_url && (
+                                            <img src={selectedCarr.foto_url} alt="" className="w-10 h-10 rounded object-cover shrink-0 border" />
+                                          )}
+                                          <div className="flex-1">
+                                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                              <div className="flex items-center gap-1.5">
+                                                <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{selectedCarr.placa}</Badge>
+                                                <span>{tipoCarroceriaLabels[selectedCarr.tipo] || selectedCarr.tipo}</span>
+                                              </div>
+                                              <span className="text-primary font-medium">Disp: {formatWeight(Math.max(0, capDisp))}</span>
+                                            </div>
+                                            {emUso > 0 && <span className="text-[10px] text-amber-600">Em uso: {formatWeight(emUso)}</span>}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <>
+                                <Select
+                                  value={selectedCarroceria || ''}
+                                  onValueChange={(value) => setSelectedCarroceria(value || null)}
+                                >
+                                  <SelectTrigger className="bg-background">
+                                    <SelectValue placeholder="Selecione a carroceria" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {carroceriasEmpresa.map((c: any) => {
+                                      const viagemCarr = viagemAtivaByCarroceria.get(c.id);
+                                      return (
+                                        <SelectItem key={c.id} value={c.id} disabled={!!viagemCarr}>
+                                          <div className="flex items-center gap-2">
+                                            {c.foto_url ? (
+                                              <img src={c.foto_url} alt="" className="w-5 h-5 rounded object-cover shrink-0" />
+                                            ) : (
+                                              <div className="w-5 h-5 rounded bg-muted flex items-center justify-center shrink-0">
+                                                <Container className="w-3 h-3 text-muted-foreground" />
+                                              </div>
+                                            )}
+                                            <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{c.placa}</Badge>
+                                            <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[c.tipo] || c.tipo}</span>
+                                            {c.capacidade_kg && <span className="text-xs text-primary ml-1">{formatWeight(c.capacidade_kg)}</span>}
+                                            {viagemCarr && (
+                                              <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 ml-auto">
+                                                <Route className="w-3 h-3 mr-0.5" />
+                                                {viagemCarr.codigo}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                                {selectedCarroceriaData && (
+                                  <div className="p-2.5 bg-background rounded-md border space-y-2">
+                                    <div className="flex items-center gap-3">
+                                      {(selectedCarroceriaData as any).foto_url ? (
+                                        <img src={(selectedCarroceriaData as any).foto_url} alt="" className="w-12 h-12 rounded-md object-cover shrink-0 border" />
+                                      ) : (
+                                        <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center shrink-0 border">
+                                          <Container className="w-5 h-5 text-muted-foreground" />
+                                        </div>
+                                      )}
+                                      <div className="flex-1 space-y-1">
+                                        <Badge variant="secondary" className="font-mono text-sm">{selectedCarroceriaData.placa}</Badge>
+                                        <p className="text-xs text-muted-foreground">{tipoCarroceriaLabels[selectedCarroceriaData.tipo] || selectedCarroceriaData.tipo}</p>
+                                        {selectedCarroceriaData.capacidade_kg && (
+                                          <p className="text-xs font-medium text-primary">{formatWeight(selectedCarroceriaData.capacidade_kg)}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Weight Allocation - moved into Step 2 */}
+                  {selectedVeiculo && (
+                    <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-4">
+                        {/* Visual Weight Gauge */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Scale className="w-5 h-5 text-primary" />
+                              <span className="font-semibold text-foreground">Peso a Carregar</span>
+                            </div>
+                            {pesoTotalAlocado > 0 && !pesoValidationError && (
+                              <Badge variant="outline" className="bg-chart-2/10 text-chart-2 border-chart-2/30 text-xs gap-1">
+                                <DollarSign className="w-3 h-3" />
+                                {formatCurrency(calculatedFrete)}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Two-sided gauge: Carga disponível vs Equipamento disponível */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 rounded-lg border bg-background space-y-1.5">
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Carga disponível</div>
+                              <div className="text-xl font-bold text-foreground">
+                                {formatWeight(selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0)}
+                              </div>
+                              {selectedCarga && selectedCarga.peso_disponivel_kg !== null && selectedCarga.peso_disponivel_kg < selectedCarga.peso_kg && (
+                                <div className="text-[10px] text-muted-foreground">
+                                  de {formatWeight(selectedCarga.peso_kg)} totais
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-3 rounded-lg border bg-background space-y-1.5">
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Equip. disponível</div>
+                              <div className={cn("text-xl font-bold", capacidadeEquipamentoDisponivel <= 0 ? 'text-destructive' : 'text-foreground')}>
+                                {formatWeight(capacidadeEquipamentoDisponivel)}
+                              </div>
+                              {capacidadeEquipamentoEmUso > 0 && (
+                                <div className="text-[10px] text-amber-600">
+                                  {formatWeight(capacidadeEquipamentoEmUso)} em uso
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Max available callout */}
+                          <div className="flex items-center justify-center gap-2 py-1">
+                            <ArrowRight className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-sm text-muted-foreground">
+                              Máximo alocável: <span className="font-semibold text-primary">{formatWeight(pesoMaximoAlocar)}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Input + visual bar */}
+                        {maxCarrocerias >= 2 && selectedCarroceriasMulti.filter(Boolean).length > 0 ? (
+                          <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                              Distribua o peso entre as carrocerias selecionadas.
+                            </p>
+
+                            {selectedCarroceriasMulti.filter(Boolean).map((carId) => {
+                              const carr = carroceriasEmpresa.find((c: any) => c.id === carId);
+                              if (!carr) return null;
+                              const emUso = pesoEmUsoPorCarroceria.get(carId) || 0;
+                              const capDisp = Math.max(0, (carr.capacidade_kg || 0) - emUso);
+                              const pesoCarr = pesoPorCarroceria[carId] || 0;
+                              const pesoDisp = selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0;
+                              const percentCarr = pesoDisp > 0 ? (pesoCarr / pesoDisp) * 100 : 0;
+
+                              return (
+                                <div key={carId} className="space-y-2 p-3 rounded-lg border bg-background">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="secondary" className="font-mono text-xs px-1.5 py-0.5">{carr.placa}</Badge>
+                                    <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[carr.tipo] || carr.tipo}</span>
+                                    <span className="text-xs text-primary font-medium ml-auto">Cap: {formatWeight(capDisp)}</span>
+                                  </div>
+                                  <Input
+                                    type="number"
+                                    step="0.0001"
+                                    className="h-10 text-base font-semibold"
+                                    placeholder=""
+                                    value={pesoCarr || ''}
+                                    onChange={(e) => {
+                                      const val = Number(e.target.value);
+                                      setPesoPorCarroceria(prev => ({ ...prev, [carId]: val < 0 ? 0 : val }));
+                                    }}
+                                    onBlur={() => {
+                                      let val = pesoPorCarroceria[carId] || 0;
+                                      if (val > capDisp) val = capDisp;
+                                      if (val < 0) val = 0;
+                                      const pesoDisponivel = selectedCarga?.peso_disponivel_kg ?? selectedCarga?.peso_kg ?? 0;
+                                      const outrosTotal = Object.entries(pesoPorCarroceria)
+                                        .filter(([k]) => k !== carId)
+                                        .reduce((sum, [, v]) => sum + (v || 0), 0);
+                                      if (val + outrosTotal > pesoDisponivel) {
+                                        val = Math.max(0, pesoDisponivel - outrosTotal);
+                                      }
+                                      val = parseFloat(val.toFixed(4));
+                                      setPesoPorCarroceria(prev => ({ ...prev, [carId]: val }));
+                                    }}
+                                    max={capDisp}
+                                  />
+                                  <div className="space-y-1">
+                                    <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full rounded-full transition-all duration-300 bg-primary"
+                                        style={{ width: `${Math.min(100, percentCarr)}%` }}
+                                      />
+                                    </div>
+                                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                                      <span>{formatWeight(pesoCarr)}</span>
+                                      <span className="font-medium">{Math.round(percentCarr)}% do máx. alocável</span>
+                                    </div>
+                                  </div>
+                                  {pesoCarr > capDisp && capDisp > 0 && (
+                                    <p className="text-xs text-destructive flex items-center gap-1">
+                                      <AlertTriangle className="w-3 h-3" />
+                                      Excede capacidade disponível
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                            {/* Total summary */}
+                            <div className="flex items-center justify-between p-2.5 rounded-md bg-muted/50 border">
+                              <span className="text-sm font-semibold">Total alocado</span>
+                              <span className={cn("text-sm font-bold", pesoValidationError ? 'text-destructive' : 'text-primary')}>
+                                {formatWeight(pesoTotalAlocado)}
+                              </span>
+                            </div>
+
                             {selectedCarga?.permite_fracionado === false && (
-                              <p className="text-xs text-amber-600">
-                                Esta carga não permite fracionamento - o somatório deve igualar o peso da carga.
+                              <p className="text-xs text-amber-600 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Esta carga não permite fracionamento — o somatório deve igualar o peso da carga.
                               </p>
                             )}
                             {pesoValidationError && (
@@ -2257,30 +2762,58 @@ export default function CargasDisponiveis() {
                             )}
                           </div>
                         ) : (
-                          <div className="space-y-2">
-                            <Input
-                              type="number"
-                              step="1"
+                          <div className="space-y-3">
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                step="0.0001"
                               value={pesoTotalAlocado || ''}
-                              onChange={(e) => setPesoAlocadoInput(Math.floor(Number(e.target.value)))}
-                              placeholder={`Máx: ${pesoMaximoAlocar.toLocaleString('pt-BR')} kg`}
-                              min={pesoMinimoRequirido}
-                              max={pesoMaximoAlocar}
-                              className="text-lg font-bold"
-                              disabled={isMultiTrailer}
-                            />
-                            {pesoMinimoRequirido > 0 ? (
-                              <p className="text-xs text-muted-foreground">
-                                Peso mínimo por entrega: {pesoMinimoRequirido.toLocaleString('pt-BR')} kg
-                              </p>
-                            ) : selectedCarga?.permite_fracionado ? (
-                              <p className="text-xs text-muted-foreground">
-                                Sem mínimo de carregamento exigido
-                              </p>
-                            ) : null}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setPesoAlocadoInput(val < 0 ? 0 : val);
+                                }}
+                                onBlur={() => {
+                                  // Clamp on blur: ajusta o valor para dentro dos limites
+                                  let val = pesoAlocadoInput;
+                                  if (val > pesoMaximoAlocar) val = pesoMaximoAlocar;
+                                  if (val < 0) val = 0;
+                                  val = parseFloat(val.toFixed(4));
+                                  setPesoAlocadoInput(val);
+                                  setPesoBarPercent(pesoMaximoAlocar > 0 ? Math.min(100, (val / pesoMaximoAlocar) * 100) : 0);
+                                }}
+                                placeholder={`Informe o peso (máx: ${formatWeight(pesoMaximoAlocar)})`}
+                                min={pesoMinimoRequirido}
+                                max={pesoMaximoAlocar}
+                                className="text-xl font-bold h-14 pr-12"
+                                disabled={maxCarrocerias >= 2}
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">kg</span>
+                            </div>
+
+                            {/* Visual fill bar */}
+                            {pesoMaximoAlocar > 0 && (
+                              <div className="space-y-1.5">
+                                <div className="h-3 bg-muted rounded-full overflow-hidden relative">
+                                  <div
+                                    className={cn(
+                                      "h-full rounded-full transition-all duration-300",
+                                      pesoValidationError ? 'bg-destructive' : 'bg-primary'
+                                    )}
+                                    style={{ width: `${pesoBarPercent}%` }}
+                                  />
+                                </div>
+                                <div className="flex justify-between text-[10px] text-muted-foreground">
+                                  <span>{pesoMinimoRequirido > 0 ? `Mín: ${formatWeight(pesoMinimoRequirido)}` : 'Sem mínimo'}</span>
+                                  <span className="font-medium">{Math.round(pesoBarPercent)}%</span>
+                                  <span>Máx: {formatWeight(pesoMaximoAlocar)}</span>
+                                </div>
+                              </div>
+                            )}
+
                             {!selectedCarga?.permite_fracionado && (
-                              <p className="text-xs text-amber-600">
-                                Esta carga não permite fracionamento - é necessário levar todo o peso disponível
+                              <p className="text-xs text-amber-600 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Carga não permite fracionamento — necessário levar todo o peso disponível
                               </p>
                             )}
                             {pesoValidationError && (
@@ -2293,7 +2826,7 @@ export default function CargasDisponiveis() {
                         )}
 
                         {/* Data Previsão Coleta */}
-                        <div className="space-y-2 pt-2 border-t">
+                        <div className="space-y-2 pt-3 border-t">
                           <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-primary" />
                             Previsão de Coleta
@@ -2302,7 +2835,7 @@ export default function CargasDisponiveis() {
                             type="datetime-local"
                             value={previsaoColeta}
                             onChange={(e) => setPrevisaoColeta(e.target.value)}
-                            className="w-full text-base font-medium"
+                            className="w-full text-base font-medium h-12"
                             min={new Date().toISOString().slice(0, 16)}
                           />
                           <p className="text-xs text-muted-foreground">
@@ -2311,117 +2844,283 @@ export default function CargasDisponiveis() {
                         </div>
 
                         {capacidadeEquipamentoDisponivel <= 0 && (
-                          <p className="text-xs text-destructive flex items-center gap-1">
+                          <p className="text-xs text-destructive flex items-center gap-1 p-2 bg-destructive/10 rounded-md">
                             <AlertTriangle className="w-3.5 h-3.5" />
-                            Motorista não possui capacidade disponível
+                            Equipamento selecionado não possui capacidade disponível
                           </p>
                         )}
+                    </div>
+                  )}
+
+                  </div>)}
+
+                  {/* === STEP 3: Revisão e Confirmação === */}
+                  {wizardStep === 3 && (<div className="space-y-4">
+                  {/* Resumo da Carga */}
+                  <div className="p-4 bg-muted/50 rounded-lg border space-y-2">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <Package className="w-4 h-4" />
+                      Carga
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Código:</span>
+                        <span className="ml-2 font-medium">{selectedCarga.codigo}</span>
                       </div>
+                      <div>
+                        <span className="text-muted-foreground">Peso disponível:</span>
+                        <span className="ml-2 font-medium">{formatWeight(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg)}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{selectedCarga.descricao}</p>
+                  </div>
 
-                      {/* Simulação Visual */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {/* Peso Restante */}
-                        <div className="p-4 bg-muted/50 rounded-lg border">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Weight className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm font-medium text-foreground">
-                              Após Aceite
-                            </span>
+                  {/* Motorista */}
+                  {selectedMotoristaData && (
+                    <div className="p-4 bg-muted/50 rounded-lg border space-y-2">
+                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Motorista
+                      </h4>
+                      <div className="flex items-center gap-3">
+                        {selectedMotoristaData.foto_url ? (
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={selectedMotoristaData.foto_url} />
+                            <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <User className="h-5 w-5 text-primary" />
                           </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Peso atual disponível:</span>
-                              <span>{(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg).toLocaleString('pt-BR')} kg</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Peso a alocar:</span>
-                              <span className="text-primary font-medium">- {pesoTotalAlocado.toLocaleString('pt-BR')} kg</span>
-                            </div>
-                            <Separator className="my-2" />
-                            <div className="flex justify-between text-sm font-semibold">
-                              <span>Restará na carga:</span>
-                              <span className={(() => {
-                                const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoTotalAlocado;
-                                return restante <= 0 ? 'text-chart-2' : 'text-foreground';
-                              })()}>
-                                {(() => {
-                                  const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoTotalAlocado;
-                                  return Math.max(0, restante).toLocaleString('pt-BR');
-                                })()} kg
-                              </span>
-                            </div>
-                            {(() => {
-                              const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoTotalAlocado;
-                              if (restante <= 0 && pesoTotalAlocado > 0) {
-                                return (
-                                  <Badge variant="secondary" className="w-full justify-center mt-2 bg-chart-2/20 text-chart-2">
-                                    <CheckCircle className="w-3.5 h-3.5 mr-1" />
-                                    Carga será totalmente alocada
-                                  </Badge>
-                                );
-                              }
-                              return null;
-                            })()}
-                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-sm">{selectedMotoristaData.nome_completo}</p>
+                          {selectedMotoristaData.telefone && (
+                            <p className="text-xs text-muted-foreground">{selectedMotoristaData.telefone}</p>
+                          )}
                         </div>
-
-                        {/* Valor do Frete */}
-                        <div className="p-4 bg-chart-2/10 rounded-lg border border-chart-2/30">
-                          <div className="flex items-center gap-2 mb-2">
-                            <DollarSign className="w-4 h-4 text-chart-2" />
-                            <span className="text-sm font-medium text-chart-2">
-                              Frete a Receber
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Preço/tonelada:</span>
-                              <span>{formatCurrency(selectedCarga.valor_frete_tonelada)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Peso alocado:</span>
-                              <span className="font-medium">{(pesoTotalAlocado / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
-                            </div>
-                            <Separator className="my-2" />
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-semibold">Valor total:</span>
-                              <span className="text-2xl font-bold text-chart-2">
-                                {formatCurrency(calculatedFrete)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                        {driverActiveTrip ? (
+                          <Badge variant="outline" className="ml-auto text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">
+                            <Route className="w-3 h-3 mr-1" />
+                            {driverActiveTrip.codigo}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="ml-auto text-[10px] bg-primary/10 text-primary border-primary/30">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Disponível
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   )}
+
+                  {/* Veículo + Carroceria */}
+                  {selectedVeiculoData && (
+                    <div className="p-4 bg-muted/50 rounded-lg border space-y-2">
+                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                        <Truck className="w-4 h-4" />
+                        Equipamento
+                      </h4>
+                      <div className="flex items-center gap-3">
+                        {(selectedVeiculoData as any).foto_url ? (
+                          <img src={(selectedVeiculoData as any).foto_url} alt="" className="w-12 h-12 rounded-md object-cover shrink-0 border" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center shrink-0 border">
+                            <Truck className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div>
+                          <Badge variant="secondary" className="font-mono text-sm">{selectedVeiculoData.placa}</Badge>
+                          <p className="text-xs text-muted-foreground mt-0.5">{tipoVeiculoLabels[selectedVeiculoData.tipo] || selectedVeiculoData.tipo}</p>
+                        </div>
+                      </div>
+
+                      {/* Carrocerias */}
+                      {maxCarrocerias >= 2 && selectedCarroceriasMulti.filter(Boolean).length > 0 && (
+                        <div className="space-y-1.5 pt-2 border-t">
+                          {selectedCarroceriasMulti.filter(Boolean).map((carId, i) => {
+                            const carr = carroceriasEmpresa.find((c: any) => c.id === carId);
+                            if (!carr) return null;
+                            return (
+                              <div key={carId} className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{carr.placa}</Badge>
+                                  <span className="text-xs text-muted-foreground">{tipoCarroceriaLabels[carr.tipo] || carr.tipo}</span>
+                                </div>
+                                <span className="font-medium">{formatWeight(pesoPorCarroceria[carId] || 0)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {maxCarrocerias === 1 && selectedCarroceriaData && (
+                        <div className="flex items-center gap-3 pt-2 border-t">
+                          {(selectedCarroceriaData as any).foto_url ? (
+                            <img src={(selectedCarroceriaData as any).foto_url} alt="" className="w-10 h-10 rounded object-cover shrink-0 border" />
+                          ) : (
+                            <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0 border">
+                              <Container className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div>
+                            <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">{selectedCarroceriaData.placa}</Badge>
+                            <p className="text-xs text-muted-foreground">{tipoCarroceriaLabels[selectedCarroceriaData.tipo] || selectedCarroceriaData.tipo}</p>
+                          </div>
+                        </div>
+                      )}
+                      {maxCarrocerias === 0 && (
+                        <p className="text-xs text-muted-foreground pt-2 border-t">Carroceria integrada</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Peso + Previsão */}
+                  <div className="p-4 bg-muted/50 rounded-lg border space-y-2">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <Weight className="w-4 h-4" />
+                      Peso e Coleta
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Peso a carregar:</span>
+                        <span className="ml-2 font-semibold text-primary">{formatWeight(pesoTotalAlocado)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Previsão de coleta:</span>
+                        <span className="ml-2 font-medium">
+                          {previsaoColeta ? format(new Date(previsaoColeta), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Viagem Selection - stays interactive */}
+                  {selectedMotorista && selectedVeiculo && (
+                    <div ref={viagemSectionRef}>
+                      <ViagemSelector
+                        motoristaId={selectedMotorista}
+                        onViagemSelect={setSelectedViagemId}
+                        selectedViagemId={selectedViagemId}
+                        onBlockedChange={setIsViagemBlocked}
+                      />
+                    </div>
+                  )}
+
+                  {/* Simulação Visual */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Peso Restante */}
+                    <div className="p-4 bg-muted/50 rounded-lg border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Weight className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">Após Aceite</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Peso atual disponível:</span>
+                          <span>{formatWeight(selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Peso a alocar:</span>
+                          <span className="text-primary font-medium">- {formatWeight(pesoTotalAlocado)}</span>
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="flex justify-between text-sm font-semibold">
+                          <span>Restará na carga:</span>
+                          <span className={(() => {
+                            const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoTotalAlocado;
+                            return restante <= 0 ? 'text-chart-2' : 'text-foreground';
+                          })()}>
+                            {(() => {
+                              const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoTotalAlocado;
+                              return formatWeight(Math.max(0, restante));
+                            })()}
+                          </span>
+                        </div>
+                        {(() => {
+                          const restante = (selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) - pesoTotalAlocado;
+                          if (restante <= 0 && pesoTotalAlocado > 0) {
+                            return (
+                              <Badge variant="secondary" className="w-full justify-center mt-2 bg-chart-2/20 text-chart-2">
+                                <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                Carga será totalmente alocada
+                              </Badge>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Valor do Frete */}
+                    <div className="p-4 bg-chart-2/10 rounded-lg border border-chart-2/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="w-4 h-4 text-chart-2" />
+                        <span className="text-sm font-medium text-chart-2">Frete a Receber</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Preço/tonelada:</span>
+                          <span>{formatCurrency(selectedCarga.valor_frete_tonelada)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Peso alocado:</span>
+                          <span className="font-medium">{(pesoTotalAlocado / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-semibold">Valor total:</span>
+                          <span className="text-2xl font-bold text-chart-2">
+                            {formatCurrency(calculatedFrete)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  </div>)}
                 </div>
               </ScrollArea>
             )}
 
-            <DialogFooter>
+            <DialogFooter className="px-6 py-4 border-t">
+              {wizardStep > 1 && (
+                <Button variant="outline" onClick={() => setWizardStep(s => s - 1)}>
+                  Voltar
+                </Button>
+              )}
               <Button
                 variant="outline"
-                onClick={() => setIsAcceptDialogOpen(false)}
+                onClick={() => { setIsAcceptDialogOpen(false); setWizardStep(1); }}
               >
                 Cancelar
               </Button>
-              <Button
-                onClick={handleConfirmAccept}
-                disabled={!selectedMotorista || !selectedVeiculo || pesoTotalAlocado <= 0 || !!pesoValidationError || isViagemBlocked || acceptCarga.isPending}
-                className="gap-2"
-              >
-                {acceptCarga.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processando...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4" />
-                    Confirmar Aceite
-                  </>
-                )}
-              </Button>
+              {wizardStep < 3 ? (
+                <Button
+                  onClick={() => setWizardStep(s => s + 1)}
+                  disabled={wizardStep === 2 && (!selectedMotorista || !selectedVeiculo || pesoTotalAlocado <= 0 || !!pesoValidationError || !previsaoColeta)}
+                  className="gap-2"
+                >
+                  Próximo
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleConfirmAccept}
+                  disabled={!selectedMotorista || !selectedVeiculo || pesoTotalAlocado <= 0 || !!pesoValidationError || isViagemBlocked || acceptCarga.isPending}
+                  className="gap-2"
+                >
+                  {acceptCarga.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Confirmar Aceite
+                    </>
+                  )}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

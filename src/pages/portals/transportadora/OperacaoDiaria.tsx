@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { formatWeight } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -74,6 +75,7 @@ import { AdvancedFiltersPopover, AdvancedFilters } from '@/components/historico/
 import { AnexarDocumentosDialog } from '@/components/entregas/AnexarDocumentosDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { EntregaDocumentosPanel } from '@/components/entregas/EntregaDocumentosPanel';
+import { CarregamentoCarroceriasSection } from '@/components/entregas/CarregamentoCarroceriasSection';
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
@@ -106,6 +108,7 @@ interface Entrega {
   veiculo_id: string | null;
   carroceria_id: string | null;
   peso_alocado_kg: number | null;
+  carrocerias_alocadas: Array<{ carroceria_id: string; peso_kg: number }> | null;
   valor_frete: number | null;
   coletado_em: string | null;
   entregue_em: string | null;
@@ -503,8 +506,8 @@ function DetailPanel({
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3" />
                 {entrega.peso_alocado_kg
-                  ? `${entrega.peso_alocado_kg.toLocaleString('pt-BR')} kg / ${entrega.carga?.peso_kg?.toLocaleString('pt-BR') ?? '-'} kg`
-                  : `${entrega.carga?.peso_kg?.toLocaleString('pt-BR') ?? '-'} kg`}
+                  ? `${formatWeight(entrega.peso_alocado_kg)} / ${formatWeight(entrega.carga?.peso_kg)}`
+                  : formatWeight(entrega.carga?.peso_kg)}
               </span>
               {entrega.carga?.quantidade && (
                 <span className="flex items-center gap-1">
@@ -520,6 +523,13 @@ function DetailPanel({
               )}
             </div>
           </div>
+
+          {/* Carregamento por Carroceria */}
+          <CarregamentoCarroceriasSection
+            carroceriasAlocadas={entrega.carrocerias_alocadas as any}
+            carroceriaId={entrega.carroceria_id}
+            pesoAlocadoKg={entrega.peso_alocado_kg}
+          />
 
           <Separator />
 
@@ -1398,8 +1408,8 @@ function GestaoEntregasDialogContent({
                                 {e.carga.peso_kg && (
                                   <span className="flex items-center gap-1">
                                     <Weight className="w-3 h-3" />
-                                    {e.peso_alocado_kg ? `${e.peso_alocado_kg.toLocaleString('pt-BR')} kg / ` : ''}
-                                    {e.carga.peso_kg.toLocaleString('pt-BR')} kg
+                                    {e.peso_alocado_kg ? `${formatWeight(e.peso_alocado_kg)} / ` : ''}
+                                    {formatWeight(e.carga.peso_kg)}
                                   </span>
                                 )}
                                 {e.valor_frete && (
@@ -1531,7 +1541,7 @@ export default function OperacaoDiaria() {
         .select(`
           id, codigo, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
-          peso_alocado_kg, valor_frete, coletado_em, entregue_em,
+          peso_alocado_kg, valor_frete, coletado_em, entregue_em, carrocerias_alocadas,
           previsao_coleta, canhoto_url,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
@@ -1973,9 +1983,11 @@ export default function OperacaoDiaria() {
   }, [entregas, filters]);
 
   // Get driver location for selected delivery (includes heading and online status)
+  // Use selectedEntregaInViagem when in viagem view, otherwise selectedEntrega
   const driverLocation = useMemo(() => {
-    if (!selectedEntrega?.motorista_id) return null;
-    const loc = localizacoes.find(l => l.motorista_id === selectedEntrega.motorista_id);
+    const activeEntrega = selectedEntregaInViagem || selectedEntrega;
+    if (!activeEntrega?.motorista_id) return null;
+    const loc = localizacoes.find(l => l.motorista_id === activeEntrega.motorista_id);
     if (loc?.latitude && loc?.longitude) {
       return {
         lat: loc.latitude,
@@ -1985,7 +1997,7 @@ export default function OperacaoDiaria() {
       };
     }
     return null;
-  }, [selectedEntrega, localizacoes]);
+  }, [selectedEntrega, selectedEntregaInViagem, localizacoes]);
 
   const handleStatusChange = (newStatus: string) => {
     // In viagem view, the active entrega is selectedEntregaInViagem
