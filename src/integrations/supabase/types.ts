@@ -2743,6 +2743,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_carga_tx: {
+        Args: {
+          p_carga_id: string
+          p_carroceria_id: string
+          p_carrocerias_alocadas?: Json
+          p_motorista_id: string
+          p_peso_kg: number
+          p_previsao_coleta?: string
+          p_user_name: string
+          p_valor_frete: number
+          p_veiculo_id: string
+          p_viagem_id: string
+        }
+        Returns: Json
+      }
       create_chat_for_entrega: {
         Args: { p_entrega_id: string }
         Returns: string
