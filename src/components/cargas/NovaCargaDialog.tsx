@@ -637,13 +637,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   {form.watch('permite_fracionado') && (
                     <div className="ml-6 p-3 bg-muted/50 rounded-md border">
                       <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
-                      <Input
-                        type="number"
-                        step="0.0001"
-                        placeholder="Ex: 15000 (15 toneladas)"
+                      <WeightInput
+                        placeholder="Ex: 15.000 (15 toneladas)"
                         className="mt-2"
-                        value={pesoMinimoFracionado || ''}
-                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Number(e.target.value) : null)}
+                        value={pesoMinimoFracionado || undefined}
+                        onValueChange={(v) => setPesoMinimoFracionado(v || null)}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Deixe vazio para não ter limite mínimo
