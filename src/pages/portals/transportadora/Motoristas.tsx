@@ -126,7 +126,15 @@ export default function Motoristas() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as MotoristaCompleto[];
+      // Flatten carrocerias from nested veiculos into top-level field
+      return (data || []).map((m: any) => ({
+        ...m,
+        carrocerias: (m.veiculos || []).flatMap((v: any) => v.carrocerias || []),
+        veiculos: (m.veiculos || []).map((v: any) => {
+          const { carrocerias, ...rest } = v;
+          return rest;
+        }),
+      })) as MotoristaCompleto[];
     },
     enabled: !!empresa?.id,
   });
