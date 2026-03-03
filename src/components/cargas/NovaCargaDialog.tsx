@@ -508,12 +508,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <FormItem>
                         <FormLabel>Peso (kg) *</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            step="0.0001"
+                          <WeightInput
                             placeholder="0"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                            onValueChange={field.onChange}
                           />
                         </FormControl>
                         <FormMessage />
