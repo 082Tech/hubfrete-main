@@ -1242,7 +1242,7 @@ export default function CargasDisponiveis() {
     }
     if (carga.valor_frete_tonelada) {
       const pesoDisponivel = carga.peso_disponivel_kg ?? carga.peso_kg;
-      return (pesoDisponivel / 1000) * carga.valor_frete_tonelada;
+      return Math.round((pesoDisponivel / 1000) * carga.valor_frete_tonelada * 100) / 100;
     }
     return carga.valor_frete_fixo || null;
   };
