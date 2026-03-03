@@ -112,7 +112,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('carga');
-  const { filialAtiva } = useUserContext();
+  const { filialAtiva, empresa, userType } = useUserContext();
 
   const initialLocationData: LocationData = {
     latitude: 0,
