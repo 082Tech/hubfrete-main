@@ -759,7 +759,7 @@ export default function CargasDisponiveis() {
     }) => {
       // Call the atomic RPC that handles weight deduction, merge detection,
       // delivery creation/update, timeline events, and viagem management
-      const { data: rpcResult, error: rpcError } = await supabase.rpc('accept_carga_tx', {
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('accept_carga_tx' as any, {
         p_carga_id: cargaId,
         p_motorista_id: motoristaId,
         p_veiculo_id: veiculoId,
