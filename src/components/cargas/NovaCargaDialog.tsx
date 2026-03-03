@@ -247,22 +247,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     pesoMinimoFracionadoCaptured: number | null,
     veiculosSelecionadosCaptured: string[],
     carroceriasSelecionadasCaptured: string[],
-    filialIdCaptured: number | null
+    filialIdCaptured: number | null,
+    empresaIdCaptured: number
   ) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Você precisa estar logado para criar uma carga', { id: 'creating-carga' });
-        return;
-      }
-
-      const { data: empresaId, error: empresaError } = await supabase
-        .rpc('get_user_empresa_id', { _user_id: user.id });
-
-      if (empresaError || !empresaId) {
-        toast.error('Você precisa estar vinculado a uma empresa para criar cargas', { id: 'creating-carga' });
-        return;
-      }
+      // Use the empresa_id from the UI context (not from RPC) to prevent
+      // publishing under the wrong company after a company switch
+      const empresaId = empresaIdCaptured;
 
       // Create the load with filial_id and destinatario fields
       const { data: carga, error: cargaError } = await supabase
