@@ -175,7 +175,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const valorFreteTonelada = form.watch('valor_frete_tonelada');
 
   // Preview do frete total (por tonelada)
-  const freteTotal = pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
+  const freteTotal = pesoKg && valorFreteTonelada ? Math.round((pesoKg / 1000) * valorFreteTonelada * 100) / 100 : 0;
 
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
