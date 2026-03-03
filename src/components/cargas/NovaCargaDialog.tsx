@@ -216,6 +216,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     const capturedVeiculos = [...veiculosSelecionados];
     const capturedCarrocerias = [...carroceriasSelecionadas];
     const capturedFilialId = filialAtiva?.id || null;
+    const capturedEmpresaId = empresa.id;
 
     // Fechar modal imediatamente e mostrar notificação
     resetDialogState();
@@ -232,7 +233,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       capturedPesoMinimo,
       capturedVeiculos,
       capturedCarrocerias,
-      capturedFilialId
+      capturedFilialId,
+      capturedEmpresaId
     );
   };
 
