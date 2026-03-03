@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
+import { WeightInput } from '@/components/ui/weight-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
@@ -506,12 +508,10 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       <FormItem>
                         <FormLabel>Peso (kg) *</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            step="0.0001"
+                          <WeightInput
                             placeholder="0"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                            onValueChange={field.onChange}
                           />
                         </FormControl>
                         <FormMessage />
@@ -559,9 +559,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     name="valor_mercadoria"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Valor Mercadoria (R$)</FormLabel>
+                        <FormLabel>Valor Mercadoria</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0,00" {...field} />
+                          <CurrencyInput
+                            placeholder="0,00"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -582,9 +586,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       name="valor_frete_tonelada"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Frete por Tonelada (R$)</FormLabel>
+                          <FormLabel>Frete por Tonelada</FormLabel>
                           <FormControl>
-                            <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} />
+                            <CurrencyInput
+                              placeholder="0,00"
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -629,13 +637,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   {form.watch('permite_fracionado') && (
                     <div className="ml-6 p-3 bg-muted/50 rounded-md border">
                       <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
-                      <Input
-                        type="number"
-                        step="0.0001"
-                        placeholder="Ex: 15000 (15 toneladas)"
+                      <WeightInput
+                        placeholder="Ex: 15.000 (15 toneladas)"
                         className="mt-2"
-                        value={pesoMinimoFracionado || ''}
-                        onChange={(e) => setPesoMinimoFracionado(e.target.value ? Number(e.target.value) : null)}
+                        value={pesoMinimoFracionado || undefined}
+                        onValueChange={(v) => setPesoMinimoFracionado(v || null)}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Deixe vazio para não ter limite mínimo
