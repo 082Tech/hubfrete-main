@@ -2995,10 +2995,10 @@ export type Database = {
           p_motorista_id: string
           p_peso_kg: number
           p_previsao_coleta?: string
-          p_user_name?: string
-          p_valor_frete?: number
+          p_user_name: string
+          p_valor_frete: number
           p_veiculo_id: string
-          p_viagem_id?: string
+          p_viagem_id: string
         }
         Returns: Json
       }

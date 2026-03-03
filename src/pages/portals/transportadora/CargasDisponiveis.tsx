@@ -819,9 +819,16 @@ export default function CargasDisponiveis() {
       setPesoPorCarroceria({});
       setSelectedViagemId(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Erro ao aceitar carga:', error);
-      toast.error('Erro ao aceitar carga');
+      const msg = error?.message || '';
+      if (msg.includes('VEICULO_EM_USO')) {
+        toast.error('Este veículo já está em viagem ativa com outro motorista. Selecione outro veículo.');
+      } else if (msg.includes('CARROCERIA_EM_USO')) {
+        toast.error('Uma das carrocerias selecionadas já está em viagem ativa com outro motorista.');
+      } else {
+        toast.error('Erro ao aceitar carga');
+      }
     },
   });
 
