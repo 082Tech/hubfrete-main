@@ -106,6 +106,7 @@ export interface VeiculoSimples {
   carroceria_integrada: boolean | null;
   capacidade_kg: number | null;
   capacidade_m3: number | null;
+  carrocerias?: CarroceriaSimples[];
 }
 
 // Tipos de veículo que tipicamente têm carroceria integrada
