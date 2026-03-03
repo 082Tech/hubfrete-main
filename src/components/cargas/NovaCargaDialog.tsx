@@ -269,7 +269,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
           tipo_precificacao: 'por_tonelada',
-          valor_frete_tonelada: values.valor_frete_tonelada || null,
+          valor_frete_tonelada: values.valor_frete_tonelada ? Math.round(values.valor_frete_tonelada * 100) / 100 : null,
           valor_frete_m3: null,
           valor_frete_fixo: null,
           valor_frete_km: null,
