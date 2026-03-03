@@ -85,9 +85,9 @@ export interface MotoristaCompleto {
   ativo: boolean;
   foto_url: string | null;
   veiculos: VeiculoSimples[];
-  carrocerias: CarroceriaSimples[];
+  carrocerias?: CarroceriaSimples[];
   ajudantes: AjudanteSimples[];
-  referencias: MotoristaReferencia[];
+  referencias?: MotoristaReferencia[];
 }
 
 export interface VeiculoSimples {
