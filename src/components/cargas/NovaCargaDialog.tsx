@@ -195,6 +195,17 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   };
 
   const onSubmit = async (values: FormValues) => {
+    // Validação crítica: somente embarcadores podem publicar cargas
+    if (userType !== 'embarcador') {
+      toast.error('Somente embarcadores podem publicar cargas. Verifique a empresa selecionada.');
+      return;
+    }
+
+    if (!empresa?.id) {
+      toast.error('Nenhuma empresa selecionada. Faça login novamente.');
+      return;
+    }
+
     if (!validateLocations()) return;
 
     // Capturar dados antes de fechar
