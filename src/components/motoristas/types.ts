@@ -85,9 +85,9 @@ export interface MotoristaCompleto {
   ativo: boolean;
   foto_url: string | null;
   veiculos: VeiculoSimples[];
-  carrocerias: CarroceriaSimples[];
+  carrocerias?: CarroceriaSimples[];
   ajudantes: AjudanteSimples[];
-  referencias: MotoristaReferencia[];
+  referencias?: MotoristaReferencia[];
 }
 
 export interface VeiculoSimples {
@@ -106,6 +106,7 @@ export interface VeiculoSimples {
   carroceria_integrada: boolean | null;
   capacidade_kg: number | null;
   capacidade_m3: number | null;
+  carrocerias?: CarroceriaSimples[];
 }
 
 // Tipos de veículo que tipicamente têm carroceria integrada
