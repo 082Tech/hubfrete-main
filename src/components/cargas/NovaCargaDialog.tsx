@@ -559,9 +559,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     name="valor_mercadoria"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Valor Mercadoria (R$)</FormLabel>
+                        <FormLabel>Valor Mercadoria</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0,00" {...field} />
+                          <CurrencyInput
+                            placeholder="0,00"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
