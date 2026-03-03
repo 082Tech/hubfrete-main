@@ -411,6 +411,7 @@ export type Database = {
           tipo: string
           updated_at: string | null
           updated_by: string | null
+          veiculo_id: string | null
         }
         Insert: {
           ano?: number | null
@@ -431,6 +432,7 @@ export type Database = {
           tipo: string
           updated_at?: string | null
           updated_by?: string | null
+          veiculo_id?: string | null
         }
         Update: {
           ano?: number | null
@@ -451,6 +453,7 @@ export type Database = {
           tipo?: string
           updated_at?: string | null
           updated_by?: string | null
+          veiculo_id?: string | null
         }
         Relationships: [
           {
@@ -465,6 +468,13 @@ export type Database = {
             columns: ["motorista_id"]
             isOneToOne: false
             referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carrocerias_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
             referencedColumns: ["id"]
           },
         ]
@@ -2515,6 +2525,7 @@ export type Database = {
           marca: string | null
           modelo: string | null
           motorista_id: string | null
+          motorista_padrao_id: string | null
           placa: string
           proprietario_cpf_cnpj: string | null
           proprietario_nome: string | null
@@ -2549,6 +2560,7 @@ export type Database = {
           marca?: string | null
           modelo?: string | null
           motorista_id?: string | null
+          motorista_padrao_id?: string | null
           placa: string
           proprietario_cpf_cnpj?: string | null
           proprietario_nome?: string | null
@@ -2583,6 +2595,7 @@ export type Database = {
           marca?: string | null
           modelo?: string | null
           motorista_id?: string | null
+          motorista_padrao_id?: string | null
           placa?: string
           proprietario_cpf_cnpj?: string | null
           proprietario_nome?: string | null
@@ -2615,6 +2628,13 @@ export type Database = {
           {
             foreignKeyName: "veiculos_motorista_id_fkey"
             columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_motorista_padrao_id_fkey"
+            columns: ["motorista_padrao_id"]
             isOneToOne: false
             referencedRelation: "motoristas"
             referencedColumns: ["id"]
