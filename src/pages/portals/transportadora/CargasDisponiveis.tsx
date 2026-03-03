@@ -1095,7 +1095,7 @@ export default function CargasDisponiveis() {
 
     // Senão, calcula baseado no peso alocado
     if (!selectedCarga.valor_frete_tonelada || !pesoAlocadoInput) return selectedCarga.valor_frete_fixo || 0;
-    return (pesoAlocadoInput / 1000) * selectedCarga.valor_frete_tonelada;
+    return Math.round((pesoAlocadoInput / 1000) * selectedCarga.valor_frete_tonelada * 100) / 100;
   }, [selectedCarga, pesoAlocadoInput]);
 
   const handleConfirmAccept = () => {
