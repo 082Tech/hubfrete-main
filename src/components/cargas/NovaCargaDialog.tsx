@@ -112,7 +112,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('carga');
-  const { filialAtiva } = useUserContext();
+  const { filialAtiva, empresa, userType } = useUserContext();
 
   const initialLocationData: LocationData = {
     latitude: 0,
@@ -175,7 +175,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const valorFreteTonelada = form.watch('valor_frete_tonelada');
 
   // Preview do frete total (por tonelada)
-  const freteTotal = pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
+  const freteTotal = pesoKg && valorFreteTonelada ? Math.round((pesoKg / 1000) * valorFreteTonelada * 100) / 100 : 0;
 
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
@@ -195,6 +195,17 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   };
 
   const onSubmit = async (values: FormValues) => {
+    // Validação crítica: somente embarcadores podem publicar cargas
+    if (userType !== 'embarcador') {
+      toast.error('Somente embarcadores podem publicar cargas. Verifique a empresa selecionada.');
+      return;
+    }
+
+    if (!empresa?.id) {
+      toast.error('Nenhuma empresa selecionada. Faça login novamente.');
+      return;
+    }
+
     if (!validateLocations()) return;
 
     // Capturar dados antes de fechar
@@ -205,6 +216,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     const capturedVeiculos = [...veiculosSelecionados];
     const capturedCarrocerias = [...carroceriasSelecionadas];
     const capturedFilialId = filialAtiva?.id || null;
+    const capturedEmpresaId = empresa.id;
 
     // Fechar modal imediatamente e mostrar notificação
     resetDialogState();
@@ -221,7 +233,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       capturedPesoMinimo,
       capturedVeiculos,
       capturedCarrocerias,
-      capturedFilialId
+      capturedFilialId,
+      capturedEmpresaId
     );
   };
 
@@ -234,22 +247,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     pesoMinimoFracionadoCaptured: number | null,
     veiculosSelecionadosCaptured: string[],
     carroceriasSelecionadasCaptured: string[],
-    filialIdCaptured: number | null
+    filialIdCaptured: number | null,
+    empresaIdCaptured: number
   ) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Você precisa estar logado para criar uma carga', { id: 'creating-carga' });
-        return;
-      }
-
-      const { data: empresaId, error: empresaError } = await supabase
-        .rpc('get_user_empresa_id', { _user_id: user.id });
-
-      if (empresaError || !empresaId) {
-        toast.error('Você precisa estar vinculado a uma empresa para criar cargas', { id: 'creating-carga' });
-        return;
-      }
+      // Use the empresa_id from the UI context (not from RPC) to prevent
+      // publishing under the wrong company after a company switch
+      const empresaId = empresaIdCaptured;
 
       // Create the load with filial_id and destinatario fields
       const { data: carga, error: cargaError } = await supabase
@@ -265,7 +269,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
           tipo_precificacao: 'por_tonelada',
-          valor_frete_tonelada: values.valor_frete_tonelada || null,
+          valor_frete_tonelada: values.valor_frete_tonelada ? Math.round(values.valor_frete_tonelada * 100) / 100 : null,
           valor_frete_m3: null,
           valor_frete_fixo: null,
           valor_frete_km: null,
