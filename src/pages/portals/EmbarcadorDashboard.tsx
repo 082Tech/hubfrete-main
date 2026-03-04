@@ -205,7 +205,7 @@ export default function EmbarcadorDashboard() {
                       <DollarSign className="w-6 h-6 text-chart-2 text-[#059467]" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Valor em Cargas Ativas</p>
+                      <p className="text-sm text-muted-foreground">Valor em Ofertas Ativas</p>
                       <p className="text-2xl font-bold text-primary">
                         {formatCurrency(stats.valorTotalMercadorias)}
                       </p>
