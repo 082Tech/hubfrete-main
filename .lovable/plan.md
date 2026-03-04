@@ -1,86 +1,72 @@
 
 
-# Plano: Completar Schema Fiscal para API Focus NFe
+## Plano: Toast de Atualização PWA + Modal com Slideshow de Patch Notes
 
-## Resumo
+### O que será feito
 
-Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
+1. **Toast de atualização disponível** — Quando o Service Worker detectar uma nova versão, aparece um toast no canto inferior direito com "Nova atualização disponível" e dois botões: "Atualizar agora" e "Dispensar". Se dispensar, reaparece no próximo carregamento de página.
 
-## Situacao Atual
+2. **Modal com slideshow + notas** — Ao clicar "Atualizar agora", a página recarrega. Após recarregar, abre um modal com um carrossel de slides (imagem + texto) mostrando as novidades da versão. Você edita um único arquivo (`src/config/changelog.ts`) com os dados de cada release.
 
-Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
+3. **Controle de versão vista** — Salva no `localStorage` a última versão vista pelo usuário, para não mostrar o modal de patch notes repetidamente.
 
-## Alteracoes Necessarias
+### Arquivos a criar/editar
 
-### Migracao Unica
+| Arquivo | Ação |
+|---|---|
+| `src/config/changelog.ts` | **Criar** — Array de releases com versão, data, e slides (título, descrição, imagem opcional) |
+| `src/hooks/useUpdatePrompt.ts` | **Criar** — Hook que escuta o evento `onNeedRefresh` do VitePWA e expõe estado `needRefresh` + função `updateApp` |
+| `src/components/UpdateToast.tsx` | **Criar** — Componente que renderiza o toast fixo no canto inferior direito quando há atualização |
+| `src/components/PatchNotesModal.tsx` | **Criar** — Modal com carrossel de slides das novidades da versão |
+| `src/App.tsx` | **Editar** — Adicionar `<UpdateToast />` e `<PatchNotesModal />` |
+| `vite.config.ts` | **Editar** — Mudar `registerType` de `"autoUpdate"` para `"prompt"` para permitir controle manual da atualização |
 
-Adicionar duas colunas a tabela `config_fiscal`:
+### Formato do changelog
 
-| Coluna | Tipo | Default | Finalidade |
-|--------|------|---------|------------|
-| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
-| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
-
-### Atualizacao do Frontend
-
-Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
-- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
-- Campo numerico para o percentual da base de calculo do ICMS
-
-### Atualizacao dos Tipos TypeScript
-
-Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
-
----
-
-## Secao Tecnica
-
-### SQL da Migracao
-
-```sql
-ALTER TABLE public.config_fiscal
-  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
-  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
-
-COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
-  IS '1 = Simples Nacional, 3 = Regime Normal';
-COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
-  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
+```ts
+// src/config/changelog.ts
+export const changelog = [
+  {
+    version: "1.2.0",
+    date: "2026-03-04",
+    slides: [
+      {
+        title: "Nova tela de operação diária",
+        description: "Agora você gerencia todas as entregas do dia em um só lugar.",
+        image: "/lovable-uploads/exemplo.png" // opcional
+      },
+      {
+        title: "Melhorias no rastreamento",
+        description: "Mapa atualizado com rotas em tempo real.",
+      }
+    ]
+  }
+];
 ```
 
-### Mapeamento Completo: Banco -> Payload API
+### Fluxo do usuário
 
-Com essas 2 colunas adicionadas, o mapeamento fica completo:
+```text
+[Deploy novo] 
+  → SW detecta nova versão
+  → Toast aparece: "Nova atualização disponível 🚀"
+     [Atualizar agora]  [Dispensar]
+  
+  → Clicou "Atualizar agora"
+     → Página recarrega com versão nova
+     → Modal de patch notes abre automaticamente
+        ← Slideshow com setas/dots →
+        [Entendi!] fecha o modal
 
-**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
-- CNPJ: `empresas.cnpj_matriz`
-- IE: `empresas.inscricao_estadual`
-- Razao Social: `empresas.razao_social`
-- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
-- Municipio IBGE: `filiais.codigo_municipio_ibge`
-- UF: `filiais.estado`
-- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
+  → Clicou "Dispensar"  
+     → Toast some
+     → Próximo carregamento: toast reaparece
+```
 
-**Fiscal**: `config_fiscal`
-- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
-- Natureza: `natureza_operacao`
-- Serie/Numero: `serie_cte` / `proximo_numero_cte`
-- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
-- Ambiente: `ambiente`
+### Detalhes técnicos
 
-**Remetente/Destinatario**: `cargas` + `enderecos_carga`
-**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
-**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
-
-### Campos Derivados por Logica (sem banco)
-- `data_emissao`: gerado no momento da emissao
-- `tipo_documento`: sempre `0` (Normal)
-- `modal`: sempre `01` (Rodoviario)
-- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
-
-### Sequencia de Implementacao
-
-1. Aplicar migracao SQL (1 migration)
-2. Atualizar types.ts
-3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
+- **VitePWA prompt mode**: Troca `registerType: "autoUpdate"` para `"prompt"`, que expõe callbacks `onNeedRefresh` e `onOfflineReady` via `virtual:pwa-register/react`.
+- **Toast**: Componente standalone com Framer Motion, não usa o sistema de toast do shadcn (para ter controle total do layout e persistência).
+- **Modal**: Usa o `Dialog` do shadcn + `embla-carousel-react` (já instalado) para o slideshow.
+- **localStorage keys**: `hubfrete-last-seen-version` para controlar exibição do modal.
 
