@@ -359,7 +359,7 @@ function DetailPanel({
   const getNextStatus = (): { status: string; label: string; icon: React.ElementType } | null => {
     switch (entrega.status) {
       case 'aguardando': return { status: 'saiu_para_coleta', label: 'Saiu para Coleta', icon: Truck };
-      case 'saiu_para_coleta': return { status: 'saiu_para_entrega', label: 'Saiu para Destino', icon: MapPin };
+      case 'saiu_para_coleta': return { status: 'saiu_para_entrega', label: 'Saiu para Entrega', icon: MapPin };
       case 'saiu_para_entrega': return { status: 'entregue', label: 'Marcar como Concluída', icon: CheckCircle };
       default: return null;
     }
