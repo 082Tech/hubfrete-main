@@ -399,7 +399,7 @@ function DetailPanel({
         const { hasNfeAttached } = await import('@/lib/documentHelpers');
         const hasNfe = await hasNfeAttached(entrega.id);
         if (!hasNfe) {
-          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para entrega.');
+          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para destino.');
           setCheckingNfe(false);
           return;
         }
