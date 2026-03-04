@@ -152,15 +152,20 @@ export function ViagemDetailPanel({
   });
 
   // Fetch CT-es and NF-es for document validation
+  const allEntregaIds = useMemo(() => {
+    if (!viagem) return [];
+    return viagem.entregas.map(e => e.id);
+  }, [viagem]);
+
   const entregaIds = useMemo(() => {
     if (!viagem) return [];
     return viagem.entregas.filter(e => e.status === 'entregue').map(e => e.id);
   }, [viagem]);
 
   const { data: ctesMap } = useQuery({
-    queryKey: ['viagem-ctes-validation', viagem?.id, entregaIds],
-    queryFn: () => fetchCtesForEntregas(entregaIds),
-    enabled: entregaIds.length > 0,
+    queryKey: ['viagem-ctes-validation', viagem?.id, allEntregaIds],
+    queryFn: () => fetchCtesForEntregas(allEntregaIds),
+    enabled: allEntregaIds.length > 0,
   });
 
   const { data: nfesCountMap } = useQuery({
