@@ -27,8 +27,8 @@ const embarcadorNavItems: NavItem[] = [
 
 const transportadoraNavItems: NavItem[] = [
   { icon: Home, label: 'Home', href: '/transportadora' },
+  { icon: Send, label: 'Ofertas', href: '/transportadora/ofertas' },
   { icon: Package, label: 'Cargas', href: '/transportadora/cargas' },
-  { icon: Route, label: 'Entregas', href: '/transportadora/entregas' },
   { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
 ];
 
