@@ -8,6 +8,8 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { UserContextProvider } from "@/hooks/useUserContext";
 import { SplashScreen } from "@/components/SplashScreen";
+import { UpdateToast } from "@/components/UpdateToast";
+import { PatchNotesModal } from "@/components/PatchNotesModal";
 import { PortalLayoutWrapper } from "@/components/portals/PortalLayoutWrapper";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -95,6 +97,8 @@ const App = () => {
             <UserContextProvider>
               <Toaster />
               <Sonner />
+              <UpdateToast />
+              <PatchNotesModal />
               {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
