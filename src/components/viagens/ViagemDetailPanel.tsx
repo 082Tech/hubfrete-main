@@ -169,20 +169,20 @@ export function ViagemDetailPanel({
   });
 
   const { data: nfesCountMap } = useQuery({
-    queryKey: ['viagem-nfes-validation', viagem?.id, entregaIds],
+    queryKey: ['viagem-nfes-validation', viagem?.id, allEntregaIds],
     queryFn: async () => {
-      if (entregaIds.length === 0) return {};
+      if (allEntregaIds.length === 0) return {};
       const { data } = await (supabase as any)
         .from('nfes')
         .select('entrega_id')
-        .in('entrega_id', entregaIds);
+        .in('entrega_id', allEntregaIds);
       const map: Record<string, number> = {};
       (data || []).forEach((n: any) => {
         map[n.entrega_id] = (map[n.entrega_id] || 0) + 1;
       });
       return map;
     },
-    enabled: entregaIds.length > 0,
+    enabled: allEntregaIds.length > 0,
   });
 
   const activeManifesto = useMemo(() => {
