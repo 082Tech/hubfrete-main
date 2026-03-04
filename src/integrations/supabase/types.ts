@@ -3120,7 +3120,7 @@ export type Database = {
         | "programada"
         | "concluida"
         | "aguardando"
-      tipo_cadastro_motorista: "autonomo" | "frota" | "terceirizado"
+      tipo_cadastro_motorista: "frota" | "autonomo"
       tipo_carga:
         | "granel_solido"
         | "granel_liquido"
@@ -3358,7 +3358,7 @@ export const Constants = {
         "concluida",
         "aguardando",
       ],
-      tipo_cadastro_motorista: ["autonomo", "frota", "terceirizado"],
+      tipo_cadastro_motorista: ["frota", "autonomo"],
       tipo_carga: [
         "granel_solido",
         "granel_liquido",
