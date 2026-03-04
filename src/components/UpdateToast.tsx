@@ -1,9 +1,19 @@
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, X } from "lucide-react";
 import { useUpdatePrompt } from "@/hooks/useUpdatePrompt";
+import { supabase } from "@/integrations/supabase/client";
 
 export function UpdateToast() {
   const { needRefresh, updateApp, dismissUpdate } = useUpdatePrompt();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <AnimatePresence>
