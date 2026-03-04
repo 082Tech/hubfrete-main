@@ -21,12 +21,21 @@ import type { CteDoc, NfeDoc } from '@/lib/documentHelpers';
 
 export type DocumentosPerfil = 'embarcador' | 'transportadora';
 
+export interface OutroDocumento {
+    url: string;
+    nome: string;
+    uploaded_by: string;
+    uploaded_at: string;
+    tipo_usuario: 'embarcador' | 'transportadora';
+}
+
 interface EntregaDocumentosPanelProps {
     perfil: DocumentosPerfil;
     entregaId: string;
     ctes: CteDoc[];
     nfesDiretas?: NfeDoc[];
     canhotoUrl?: string | null;
+    outrosDocumentos?: OutroDocumento[];
     onRefresh: () => void;
 }
 
