@@ -17,7 +17,7 @@ export function UpdateToast() {
 
   return (
     <AnimatePresence>
-      {needRefresh && (
+      {needRefresh && isAuthenticated && (
         <motion.div
           initial={{ opacity: 0, y: 80, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
