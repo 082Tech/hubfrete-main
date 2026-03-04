@@ -83,8 +83,7 @@ const cargasSubmenu: MenuGroup = {
   icon: Package,
   label: 'Cargas',
   subItems: [
-    { icon: Package, label: 'Publicadas', href: '/embarcador/cargas' },
-    { icon: Route, label: 'Em Rota', href: '/embarcador/cargas/em-rota' },
+    { icon: MapPin, label: 'Gestão Diária', href: '/embarcador/cargas' },
     { icon: History, label: 'Histórico', href: '/embarcador/cargas/historico' },
   ],
 };
