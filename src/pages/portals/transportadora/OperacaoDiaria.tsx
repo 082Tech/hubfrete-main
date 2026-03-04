@@ -2315,7 +2315,7 @@ export default function OperacaoDiaria() {
         )}
       </div>
 
-      {/* Gestão de Entregas Dialog com Mapa + Motoristas */}
+      {/* Gestão de Cargas Dialog com Mapa + Motoristas */}
       <GestaoEntregasDialog
         open={gestaoDialogOpen}
         onOpenChange={setGestaoDialogOpen}

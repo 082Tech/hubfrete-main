@@ -290,7 +290,7 @@ function DriverMarkerWithTooltip({
           )}
 
           {entregasCount === 0 && (
-            <p className="text-xs text-muted-foreground">Sem entregas ativas</p>
+            <p className="text-xs text-muted-foreground">Sem cargas ativas</p>
           )}
 
           <p className="text-[10px] text-primary mt-2 text-center">Clique para ver detalhes</p>

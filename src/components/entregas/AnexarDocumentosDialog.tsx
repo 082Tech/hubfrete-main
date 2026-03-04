@@ -231,7 +231,7 @@ export function AnexarDocumentosDialog({ entrega, open, onOpenChange, onSuccess 
             <CardContent className="pt-4 space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Stamp className="w-4 h-4 text-orange-600" />
-                Canhoto (Comprovante de Entrega)
+                Canhoto (Comprovante de Carga)
               </div>
 
               {canhotoUrl && !canhotoFile && (

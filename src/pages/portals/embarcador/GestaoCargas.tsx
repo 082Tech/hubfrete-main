@@ -1159,7 +1159,7 @@ export default function GestaoCargas() {
               </div>
             ) : finalizadas.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <EmptyColumnPlaceholder message="Entregas finalizadas do dia aparecerão aqui" />
+                <EmptyColumnPlaceholder message="Cargas finalizadas do dia aparecerão aqui" />
               </div>
             ) : (
               finalizadas.map(e => (
