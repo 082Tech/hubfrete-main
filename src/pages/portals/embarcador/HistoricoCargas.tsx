@@ -1124,6 +1124,7 @@ export default function HistoricoCargas() {
                                                       setDocsEntregaId(entrega.id);
                                                       setDocsEntregaCodigo(entrega.codigo);
                                                       setDocsEntregaCanhoto(entrega.canhoto_url);
+                                                      setDocsEntregaOutros(Array.isArray(entrega.outros_documentos) ? entrega.outros_documentos : []);
                                                       setDocsDialogOpen(true);
                                                     }}
                                                   >
