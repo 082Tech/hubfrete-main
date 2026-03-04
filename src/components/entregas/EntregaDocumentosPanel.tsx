@@ -252,7 +252,7 @@ function SectionTitle({ icon, label, count, badge }: {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function EntregaDocumentosPanel({
-    perfil, entregaId, ctes: ctesProp, nfesDiretas = [], canhotoUrl: canhotoUrlProp, onRefresh,
+    perfil, entregaId, ctes: ctesProp, nfesDiretas = [], canhotoUrl: canhotoUrlProp, outrosDocumentos: outrosDocsProp = [], onRefresh,
 }: EntregaDocumentosPanelProps) {
 
     // ── Estado LOCAL (atualiza imediatamente sem depender do ciclo do pai) ──────
