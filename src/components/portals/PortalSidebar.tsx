@@ -31,7 +31,7 @@ import {
   ArrowRightLeft,
   Link2,
   Container,
-  DollarSign,
+  Boxes,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -124,7 +124,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
   ],
   transportadora: [
     { icon: Home, label: 'Home', href: '/transportadora' },
-    { icon: DollarSign, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
+    { icon: Boxes, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
     // Cargas (Em andamento + Histórico) handled as submenu (transportadoraCargasSubmenu)
     // Minha Frota is handled as a submenu (frotaSubmenu)
     

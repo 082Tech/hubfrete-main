@@ -7,7 +7,7 @@ import {
   Menu,
   Route,
   Send,
-  DollarSign,
+  Boxes,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,7 +29,7 @@ const embarcadorNavItems: NavItem[] = [
 
 const transportadoraNavItems: NavItem[] = [
   { icon: Home, label: 'Home', href: '/transportadora' },
-  { icon: DollarSign, label: 'Ofertas', href: '/transportadora/ofertas' },
+  { icon: Boxes, label: 'Ofertas', href: '/transportadora/ofertas' },
   { icon: Package, label: 'Cargas', href: '/transportadora/cargas' },
   { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
 ];
