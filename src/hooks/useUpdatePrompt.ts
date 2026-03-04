@@ -1,44 +1,47 @@
 import { useCallback, useEffect, useState } from "react";
 
-// The virtual module is provided by vite-plugin-pwa in "prompt" mode
-// We use a dynamic import to avoid build errors if the module isn't available
-let registerSWModule: any = null;
-
-try {
-  // @ts-ignore – virtual module from vite-plugin-pwa
-  registerSWModule = await import("virtual:pwa-register");
-} catch {
-  // not available (e.g. dev without SW)
-}
-
 export function useUpdatePrompt() {
   const [needRefresh, setNeedRefresh] = useState(false);
-  const [updateSW, setUpdateSW] = useState<((reloadPage?: boolean) => Promise<void>) | null>(null);
+  const [updateFn, setUpdateFn] = useState<((reloadPage?: boolean) => Promise<void>) | null>(null);
 
   useEffect(() => {
-    if (!registerSWModule) return;
+    let cancelled = false;
 
-    const { registerSW } = registerSWModule;
+    async function register() {
+      try {
+        // @ts-ignore – virtual module provided by vite-plugin-pwa in "prompt" mode
+        const { registerSW } = await import("virtual:pwa-register");
 
-    const update = registerSW({
-      onNeedRefresh() {
-        setNeedRefresh(true);
-      },
-      onOfflineReady() {
-        // silently ready
-      },
-    });
+        if (cancelled) return;
 
-    setUpdateSW(() => update);
+        const update = registerSW({
+          onNeedRefresh() {
+            if (!cancelled) setNeedRefresh(true);
+          },
+          onOfflineReady() {
+            // silently ready
+          },
+        });
+
+        if (!cancelled) setUpdateFn(() => update);
+      } catch {
+        // SW not available (e.g. dev mode without SW)
+      }
+    }
+
+    register();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const updateApp = useCallback(() => {
-    if (updateSW) {
-      // Mark that we just updated so PatchNotesModal shows after reload
+    if (updateFn) {
       localStorage.setItem("hubfrete-just-updated", "true");
-      updateSW(true);
+      updateFn(true);
     }
-  }, [updateSW]);
+  }, [updateFn]);
 
   const dismissUpdate = useCallback(() => {
     setNeedRefresh(false);
