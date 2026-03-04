@@ -83,7 +83,7 @@ const cargasSubmenu: MenuGroup = {
   icon: Package,
   label: 'Cargas',
   subItems: [
-    { icon: MapPin, label: 'Gestão Diária', href: '/embarcador/cargas' },
+    { icon: MapPin, label: 'Em andamento', href: '/embarcador/cargas' },
     { icon: History, label: 'Histórico', href: '/embarcador/cargas/historico' },
   ],
 };
@@ -91,9 +91,9 @@ const cargasSubmenu: MenuGroup = {
 // Cargas submenu for transportadora (was entregas)
 const transportadoraCargasSubmenu: MenuGroup = {
   icon: Package,
-  label: 'Cargas',
+  label: 'Minhas Cargas',
   subItems: [
-    { icon: MapPin, label: 'Gestão Diária', href: '/transportadora/cargas' },
+    { icon: MapPin, label: 'Em andamento', href: '/transportadora/cargas' },
     { icon: History, label: 'Histórico', href: '/transportadora/cargas/historico' },
   ],
 };
