@@ -642,6 +642,7 @@ function DetailPanel({
               ctes={existingCtes}
               nfesDiretas={unlinkedNfes}
               canhotoUrl={entrega.canhoto_url || null}
+              outrosDocumentos={entrega.outros_documentos || []}
               onRefresh={refreshDocs}
             />
           </div>
