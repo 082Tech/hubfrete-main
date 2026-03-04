@@ -41,7 +41,7 @@ interface MotoristaAdminFormDialogProps {
     categoria_cnh: string;
     validade_cnh: string;
     ativo: boolean;
-    tipo_cadastro: 'autonomo' | 'frota' | 'terceirizado';
+    tipo_cadastro: 'autonomo' | 'frota';
     empresa_id: number | null;
   } | null;
   onSuccess: () => void;
