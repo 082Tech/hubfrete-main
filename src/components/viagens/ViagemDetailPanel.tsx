@@ -152,32 +152,37 @@ export function ViagemDetailPanel({
   });
 
   // Fetch CT-es and NF-es for document validation
+  const allEntregaIds = useMemo(() => {
+    if (!viagem) return [];
+    return viagem.entregas.map(e => e.id);
+  }, [viagem]);
+
   const entregaIds = useMemo(() => {
     if (!viagem) return [];
     return viagem.entregas.filter(e => e.status === 'entregue').map(e => e.id);
   }, [viagem]);
 
   const { data: ctesMap } = useQuery({
-    queryKey: ['viagem-ctes-validation', viagem?.id, entregaIds],
-    queryFn: () => fetchCtesForEntregas(entregaIds),
-    enabled: entregaIds.length > 0,
+    queryKey: ['viagem-ctes-validation', viagem?.id, allEntregaIds],
+    queryFn: () => fetchCtesForEntregas(allEntregaIds),
+    enabled: allEntregaIds.length > 0,
   });
 
   const { data: nfesCountMap } = useQuery({
-    queryKey: ['viagem-nfes-validation', viagem?.id, entregaIds],
+    queryKey: ['viagem-nfes-validation', viagem?.id, allEntregaIds],
     queryFn: async () => {
-      if (entregaIds.length === 0) return {};
+      if (allEntregaIds.length === 0) return {};
       const { data } = await (supabase as any)
         .from('nfes')
         .select('entrega_id')
-        .in('entrega_id', entregaIds);
+        .in('entrega_id', allEntregaIds);
       const map: Record<string, number> = {};
       (data || []).forEach((n: any) => {
         map[n.entrega_id] = (map[n.entrega_id] || 0) + 1;
       });
       return map;
     },
-    enabled: entregaIds.length > 0,
+    enabled: allEntregaIds.length > 0,
   });
 
   const activeManifesto = useMemo(() => {
@@ -288,7 +293,9 @@ export function ViagemDetailPanel({
   // Resumo de documentos das entregas
   const docsResumo = viagem.entregas.map(e => ({
     codigo: e.codigo,
-    pod: !!e.canhoto_url,
+    canhoto: !!e.canhoto_url,
+    nfes: nfesCountMap?.[e.id] || 0,
+    ctes: ctesMap?.[e.id]?.length || 0,
   }));
 
   // Preparar pontos para o mapa multi-ponto
@@ -462,11 +469,17 @@ export function ViagemDetailPanel({
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="font-medium text-xs">Documentos das Entregas</span>
             </div>
-            <div className="space-y-1 text-xs">
+            <div className="space-y-1.5 text-xs">
               {docsResumo.map(doc => (
-                <div key={doc.codigo} className="flex items-center gap-2 text-muted-foreground">
-                  <Badge variant="outline" className="text-[9px] px-1">{doc.codigo}</Badge>
-                  <span>POD {doc.pod ? '✓' : '✗'}</span>
+                <div key={doc.codigo} className="flex items-center gap-3 text-muted-foreground">
+                  <Badge variant="outline" className="text-[9px] px-1 font-mono">{doc.codigo}</Badge>
+                  <span className="flex items-center gap-1">
+                    Canhoto {doc.canhoto
+                      ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                      : <XCircle className="w-3 h-3 text-red-500 dark:text-red-400" />}
+                  </span>
+                  <span>NF-e: {doc.nfes}</span>
+                  <span>CT-e: {doc.ctes}</span>
                 </div>
               ))}
             </div>
