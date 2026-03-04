@@ -723,7 +723,7 @@ export function EntregaDocumentosPanel({
                                             title="Visualizar" onClick={() => openPreview(doc.url, doc.nome)}>
                                             <Eye className="w-3 h-3" />
                                         </Button>
-                                        {doc.uploaded_by === currentUserId && (
+                                        {doc.tipo_usuario === perfil && (
                                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
                                                 title="Remover" onClick={() => handleRemoveOutro(i)}>
                                                 <Trash2 className="w-3 h-3" />
