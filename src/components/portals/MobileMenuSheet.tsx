@@ -38,6 +38,7 @@ import {
   Loader2,
   Link2,
   Container,
+  Send,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
