@@ -763,7 +763,7 @@ function DetailPanel({
                           <p className="text-sm">
                             <span className="font-medium">{userName}</span>
                             <span className="text-muted-foreground">
-                              {isCreation ? ' criou esta entrega' : isDocument ? ' anexou ' : ' definiu o status como '}
+                              {isCreation ? ' criou esta carga' : isDocument ? ' anexou ' : ' definiu o status como '}
                             </span>
                             {!isCreation && <span className="font-medium">{config.label}</span>}
                           </p>
