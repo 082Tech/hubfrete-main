@@ -258,10 +258,16 @@ export function EntregaDocumentosPanel({
     // ── Estado LOCAL (atualiza imediatamente sem depender do ciclo do pai) ──────
     const [localCtes, setLocalCtes] = useState<CteDoc[]>(ctesProp);
     const [localCanhotoUrl, setLocalCanhotoUrl] = useState<string | null>(canhotoUrlProp ?? null);
+    const [localOutros, setLocalOutros] = useState<OutroDocumento[]>(outrosDocsProp);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     // Sincroniza quando o pai manda novos dados
     useEffect(() => { setLocalCtes(ctesProp); }, [ctesProp]);
     useEffect(() => { setLocalCanhotoUrl(canhotoUrlProp ?? null); }, [canhotoUrlProp]);
+    useEffect(() => { setLocalOutros(outrosDocsProp); }, [outrosDocsProp]);
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+    }, []);
 
     // ── Preview dialog ──────────────────────────────────────────────────────────
     const [previewOpen, setPreviewOpen] = useState(false);
