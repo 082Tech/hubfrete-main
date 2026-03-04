@@ -319,15 +319,11 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Docs: 3 obrigatórios (NF-e, CT-e, Canhoto)
-  const hasCanhoto = !!entrega.canhoto_url;
-  const hasNfe = nfes.length > 0;
-  const hasCte = ctes.length > 0;
-  const hasManifesto = manifestos.length > 0;
-  const docsCount = (hasNfe ? 1 : 0) + (hasCte ? 1 : 0) + (hasCanhoto ? 1 : 0) + (hasManifesto ? 1 : 0);
-  const docsComplete = hasNfe && hasCte && hasManifesto && hasCanhoto;
+  // Docs count
+  const allNfes = [...existingCtes.flatMap((c: any) => c.nfes || []), ...unlinkedNfes];
+  const docsCount = (entrega.canhoto_url ? 1 : 0) + existingCtes.length + allNfes.length;
 
-  const nfePending = !hasNfe && entrega.status !== 'entregue' && entrega.status !== 'cancelada';
+  const nfePending = allNfes.length === 0 && entrega.status !== 'entregue' && entrega.status !== 'cancelada';
 
   const handleDocClick = (url: string | null, title: string) => {
     if (url) {
