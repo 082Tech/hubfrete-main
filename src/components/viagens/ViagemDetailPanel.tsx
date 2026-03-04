@@ -549,8 +549,22 @@ export function ViagemDetailPanel({
           ) : isViagemEmAndamento ? (
             <Button
               className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
-              disabled={!entregasValidation.canFinalize || isProcessingViagem}
-              onClick={() => setFinalizarDialogOpen(true)}
+              disabled={isProcessingViagem}
+              onClick={() => {
+                if (!entregasValidation.canFinalize) {
+                  const issues: string[] = [];
+                  if (entregasValidation.pendingCount > 0) {
+                    issues.push(`${entregasValidation.pendingCount} entrega(s) pendente(s): ${entregasValidation.pendingEntregas.join(', ')}`);
+                  }
+                  issues.push(...entregasValidation.docIssues);
+                  toast.error('Não é possível finalizar a viagem', {
+                    description: issues.map(i => `• ${i}`).join('\n'),
+                    duration: 8000,
+                  });
+                  return;
+                }
+                setFinalizarDialogOpen(true);
+              }}
             >
               {isProcessingViagem ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
