@@ -539,235 +539,27 @@ function DetailPanel({
 
           <Separator />
 
-          {/* Documentos */}
+          {/* Documentos — mesmo padrão UI da transportadora */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
                 <span className="font-semibold text-sm">Documentos</span>
               </div>
-              <Badge variant={docsComplete ? 'default' : 'secondary'} className={`text-[11px] px-2 py-0.5 ${docsComplete ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}>
+              <Badge variant={docsCount > 0 ? 'default' : 'secondary'} className={`text-[11px] px-2 py-0.5 ${docsCount >= 3 ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}>
                 {docsCount} anexo{docsCount !== 1 ? 's' : ''}
               </Badge>
             </div>
 
-            <div className="space-y-2">
-              {/* Canhoto */}
-              <div className={`flex items-center justify-between p-3 rounded-xl border ${hasCanhoto ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-muted/30 border-dashed'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`p-1.5 rounded-full ${hasCanhoto ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted'}`}>
-                    {hasCanhoto ? (
-                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    ) : (
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <span className={`font-medium text-sm ${hasCanhoto ? 'text-emerald-900 dark:text-emerald-100' : 'text-muted-foreground'}`}>
-                    Canhoto
-                  </span>
-                </div>
-                {hasCanhoto ? (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')} title="Visualizar Canhoto">
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Aguardando Transportadora</span>
-                )}
-              </div>
-
-              {/* CT-es - expandido com NF-es aninhadas */}
-              <div className={`flex flex-col p-3 rounded-xl border ${hasCte ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-muted/30 border-dashed'}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-1.5 rounded-full ${hasCte ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted'}`}>
-                      {hasCte ? (
-                        <CheckCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      ) : (
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className={`font-medium text-sm ${hasCte ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'}`}>
-                        CT-e {hasCte ? `(${ctes.length})` : ''}
-                      </span>
-                      {!hasCte && <span className="text-[10px] text-muted-foreground">Gerado/Anexado pela Transportadora</span>}
-                    </div>
-                  </div>
-                  {!hasCte && <span className="text-xs text-muted-foreground">Pendente</span>}
-                </div>
-                {hasCte && (
-                  <div className="mt-2 pt-2 border-t border-amber-100 dark:border-amber-800/50 space-y-2">
-                    {ctes.map((cte: any, cIdx: number) => (
-                      <div key={cte.id} className="rounded-lg border border-amber-100 dark:border-amber-800/30 overflow-hidden">
-                        <div className="flex items-center justify-between px-2.5 py-1.5 bg-amber-50/80 dark:bg-amber-900/20">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-3.5 h-3.5 text-amber-600" />
-                            <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
-                              CT-e {cte.numero || `#${cIdx + 1}`}
-                            </span>
-                            {cte.nfes?.length > 0 && (
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-300 text-amber-600">
-                                {cte.nfes.length} NF-e{cte.nfes.length !== 1 ? 's' : ''}
-                              </Badge>
-                            )}
-                          </div>
-                          {cte.url && (
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-600"
-                              onClick={() => handleDocClick(cte.url, `CT-e ${cIdx + 1}`)}
-                              title="Visualizar CT-e"
-                            >
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                          )}
-                        </div>
-                        {cte.nfes?.length > 0 && (
-                          <div className="px-2 py-1.5 space-y-1">
-                            {cte.nfes.map((nf: any, ni: number) => (
-                              <div key={nf.id} className="flex items-center justify-between px-2 py-1 rounded-md bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
-                                <div className="flex items-center gap-1.5">
-                                  <FileCode className="w-3 h-3 text-indigo-400" />
-                                  <span className="text-indigo-800 dark:text-indigo-200">
-                                    NF-e {nf.numero || nf.chave_acesso?.slice(-6) || ni + 1}
-                                  </span>
-                                </div>
-                                {nf.url && (
-                                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-500"
-                                    onClick={() => handleDocClick(nf.url, `NF-e ${ni + 1}`)}
-                                    title="Visualizar NF-e"
-                                  >
-                                    <Eye className="w-3 h-3" />
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {/* Notas Fiscais */}
-              <div
-                className={`flex flex-col p-3 rounded-xl border transition-colors ${isDragging ? 'border-primary bg-primary/5' : hasNfe ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800' : 'bg-muted/30 border-dashed border-red-200'}`}
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
-                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsDragging(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    handleFilesSelection(e.dataTransfer.files);
-                  }
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-1.5 rounded-full ${hasNfe ? 'bg-indigo-100 dark:bg-indigo-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
-                      {hasNfe ? (
-                        <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className={`font-medium text-sm ${hasNfe ? 'text-indigo-900 dark:text-indigo-100' : 'text-red-700 dark:text-red-400'}`}>
-                        Notas Fiscais {hasNfe ? `(${nfes.length})` : ''}
-                      </span>
-                      {!hasNfe && <span className="text-[10px] text-red-600/80">Obrigatório para iniciar viagem</span>}
-                    </div>
-                  </div>
-                  <Button
-                    variant={hasNfe ? "outline" : "default"}
-                    size="sm"
-                    className={`h-8 text-xs ${hasNfe ? 'border-indigo-200 text-indigo-700 hover:bg-indigo-100' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-                    onClick={() => nfeInputRef.current?.click()}
-                    disabled={isUploadingNfe}
-                  >
-                    {isUploadingNfe ? (
-                      <Loader2 className="w-3 h-3 animate-spin mr-1.5" />
-                    ) : (
-                      <Upload className="w-3 h-3 mr-1.5" />
-                    )}
-                    {hasNfe ? 'Adicionar mais' : 'Anexar NF-e'}
-                  </Button>
-                  <input
-                    ref={nfeInputRef}
-                    type="file"
-                    multiple
-                    accept=".xml,.pdf"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files) handleFilesSelection(e.target.files);
-                      e.target.value = '';
-                    }}
-                  />
-                </div>
-
-                {/* Drop zone hint */}
-                <div
-                  className={`flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed transition-colors cursor-pointer ${isDragging ? 'border-primary bg-primary/10 text-primary' : 'border-muted-foreground/30 text-muted-foreground/60 hover:border-muted-foreground/50 hover:text-muted-foreground'}`}
-                  onClick={() => nfeInputRef.current?.click()}
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span className="text-[11px]">
-                    {isDragging ? 'Solte os arquivos aqui' : 'Arraste PDF ou XML aqui, ou clique para selecionar'}
-                  </span>
-                </div>
-
-                {hasNfe && (
-                  <div className="grid gap-2 mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-800/50">
-                    {nfes.map((nfe: any, idx: number) => {
-                      const isPdf = nfe.url?.toLowerCase().endsWith('.pdf') || (!nfe.xml_content && !nfe.xml_path);
-                      return (
-                        <div key={nfe.id} className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-indigo-100/50 dark:border-indigo-800/30">
-                          <div className="flex items-center gap-2">
-                            <FileCode className="w-3.5 h-3.5 text-indigo-400" />
-                            <span className="text-xs font-medium text-indigo-900 dark:text-indigo-200">
-                              NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || `#${idx + 1}`}
-                            </span>
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 border-indigo-200 text-indigo-500">
-                              {isPdf ? 'PDF' : 'XML'}
-                            </Badge>
-                            {nfe.valor && (
-                              <span className="text-[10px] text-muted-foreground ml-1">
-                                R$ {Number(nfe.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {nfe.url && (
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || idx + 1}`)} title="Visualizar NF-e">
-                                <Eye className="w-3 h-3" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={async () => {
-                                try {
-                                  const { error } = await (supabase as any).from('nfes').delete().eq('id', nfe.id);
-                                  if (error) throw error;
-                                  toast.success('NF-e removida com sucesso!');
-                                  refetchNfes();
-                                  onRefresh();
-                                } catch (err: any) {
-                                  toast.error('Erro ao remover NF-e');
-                                  console.error(err);
-                                }
-                              }}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
+            <EntregaDocumentosPanel
+              perfil="embarcador"
+              entregaId={entrega.id}
+              ctes={existingCtes}
+              nfesDiretas={unlinkedNfes}
+              canhotoUrl={entrega.canhoto_url || null}
+              outrosDocumentos={entrega.outros_documentos || []}
+              onRefresh={refreshDocs}
+            />
           </div>
 
           <Separator />
