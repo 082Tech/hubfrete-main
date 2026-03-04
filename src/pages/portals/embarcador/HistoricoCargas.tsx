@@ -98,6 +98,7 @@ interface EntregaData {
   entregue_em: string | null;
   motorista_id: string | null;
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
   motoristas: {
     nome_completo: string;
     telefone: string | null;

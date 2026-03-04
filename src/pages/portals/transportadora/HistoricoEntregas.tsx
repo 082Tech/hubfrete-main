@@ -67,6 +67,7 @@ interface EntregaInViagem {
   numero_cte: string | null;
   nfes: { id: string }[];
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
   entregue_em: string | null;
   updated_at: string | null;
   motorista: {
