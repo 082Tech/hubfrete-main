@@ -58,7 +58,7 @@ export function OperationalReport({ data, isLoading = false }: OperationalReport
       rows,
       summary: [
         { label: 'Total de Cargas', value: data.totalCargas },
-        { label: 'Total de Entregas', value: data.totalEntregas },
+        { label: 'Total de Cargas', value: data.totalEntregas },
         { label: 'Tempo Médio de Entrega (horas)', value: data.tempoMedioEntrega },
       ],
     });

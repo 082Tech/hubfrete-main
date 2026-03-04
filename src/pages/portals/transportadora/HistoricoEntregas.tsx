@@ -646,7 +646,7 @@ export default function HistoricoEntregas() {
                           </th>
                           <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px] cursor-pointer" onClick={() => handleSort('entregas')}>
                             <div className="flex items-center justify-center">
-                              Entregas
+                              Cargas
                               <SortIcon field="entregas" />
                             </div>
                           </th>

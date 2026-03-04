@@ -105,7 +105,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
   // Update open submenus when location changes
   useEffect(() => {
     if (location.pathname.startsWith('/admin/cargas')) {
-      setOpenSubmenus(prev => new Set(prev).add('Cargas'));
+      setOpenSubmenus(prev => new Set(prev).add('Ofertas'));
     }
   }, [location.pathname]);
 

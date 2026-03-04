@@ -303,7 +303,7 @@ export default function EntregasAdmin() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.entregue}</p>
-                <p className="text-xs text-muted-foreground">Entregues</p>
+                <p className="text-xs text-muted-foreground">Concluídas</p>
               </div>
             </div>
           </CardContent>

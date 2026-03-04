@@ -457,7 +457,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openPreview(entrega.canhoto_url!, 'Canhoto de Entrega')}
+                      onClick={() => openPreview(entrega.canhoto_url!, 'Comprovante de Entrega')}
                     >
                       <ExternalLink className="w-3 h-3 mr-1" />
                       Visualizar
