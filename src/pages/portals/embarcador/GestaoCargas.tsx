@@ -1086,8 +1086,8 @@ export default function GestaoCargas() {
                 <TooltipContent side="bottom" className="max-w-xs text-sm p-3">
                   <p className="font-medium mb-1">Acompanhamento de Entregas</p>
                   <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed">
-                    <li>Acompanhe em tempo real as entregas das suas cargas.</li>
-                    <li>Entregas finalizadas permanecem visíveis até o fim do dia.</li>
+                     <li>Acompanhe em tempo real as cargas em operação.</li>
+                     <li>Cargas finalizadas permanecem visíveis até o fim do dia.</li>
                   </ul>
                 </TooltipContent>
               </Tooltip>
