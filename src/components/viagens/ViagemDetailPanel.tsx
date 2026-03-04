@@ -469,11 +469,17 @@ export function ViagemDetailPanel({
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="font-medium text-xs">Documentos das Entregas</span>
             </div>
-            <div className="space-y-1 text-xs">
+            <div className="space-y-1.5 text-xs">
               {docsResumo.map(doc => (
-                <div key={doc.codigo} className="flex items-center gap-2 text-muted-foreground">
-                  <Badge variant="outline" className="text-[9px] px-1">{doc.codigo}</Badge>
-                  <span>POD {doc.pod ? '✓' : '✗'}</span>
+                <div key={doc.codigo} className="flex items-center gap-3 text-muted-foreground">
+                  <Badge variant="outline" className="text-[9px] px-1 font-mono">{doc.codigo}</Badge>
+                  <span className="flex items-center gap-1">
+                    Canhoto {doc.canhoto
+                      ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                      : <XCircle className="w-3 h-3 text-red-500 dark:text-red-400" />}
+                  </span>
+                  <span>NF-e: {doc.nfes}</span>
+                  <span>CT-e: {doc.ctes}</span>
                 </div>
               ))}
             </div>
