@@ -201,11 +201,11 @@ export default function TransportadoraDashboard() {
                   onClick={() => navigate('/transportadora/motoristas')}
                 />
                 <StatsCard
-                  title="Entregas Ativas"
+                  title="Cargas Ativas"
                   value={stats.entregasEmAndamento}
                   icon={<Route className="w-5 h-5" />}
                   color="chart2"
-                  onClick={() => navigate('/transportadora/entregas')}
+                  onClick={() => navigate('/transportadora/cargas')}
                 />
                 <StatsCard
                   title="Aguardando Coleta"
