@@ -639,7 +639,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                         </button>
                       </DropdownMenuTrigger>
                     </TooltipTrigger>
-                    <TooltipContent side="right" sideOffset={10}>Cargas</TooltipContent>
+                    <TooltipContent side="right" sideOffset={10}>Minhas Cargas</TooltipContent>
                   </Tooltip>
                   <DropdownMenuContent side="right" align="start" className="w-48">
                     {transportadoraCargasSubmenu.subItems.map((sub) => (
