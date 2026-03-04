@@ -459,6 +459,37 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
             })()
           )}
 
+          {/* Ofertas de Carga - only for embarcador */}
+          {userType === 'embarcador' && (
+            (() => {
+              const ofertasItem = menuItems.find(item => item.href === '/embarcador/ofertas');
+              if (!ofertasItem) return null;
+              const isActive = location.pathname === ofertasItem.href;
+              const linkContent = (
+                <Link
+                  to={ofertasItem.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                    } ${isActive
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                    }`}
+                >
+                  <ofertasItem.icon className="w-5 h-5 shrink-0" />
+                  {!collapsed && <span className="font-medium">{ofertasItem.label}</span>}
+                </Link>
+              );
+              if (collapsed) {
+                return (
+                  <Tooltip key={ofertasItem.href}>
+                    <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={10}>{ofertasItem.label}</TooltipContent>
+                  </Tooltip>
+                );
+              }
+              return linkContent;
+            })()
+          )}
+
           {/* Cargas Submenu - only for embarcador */}
           {userType === 'embarcador' && (
             collapsed ? (
