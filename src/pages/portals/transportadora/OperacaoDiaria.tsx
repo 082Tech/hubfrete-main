@@ -2124,7 +2124,7 @@ export default function OperacaoDiaria() {
                   </div>
                 ) : aguardandoEntregas.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <EmptyColumnPlaceholder message="Entregas ativas aparecerão aqui" />
+                    <EmptyColumnPlaceholder message="Cargas ativas aparecerão aqui" />
                   </div>
                 ) : (
                   aguardandoEntregas.map((entrega) => (
