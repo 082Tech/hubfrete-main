@@ -178,7 +178,7 @@ export default function EmbarcadorDashboard() {
             {/* Stats Cards */}
             {isLoading ? <DashboardSkeleton /> : <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatsCard title="Cargas Ativas" value={stats.activeCargas} change={stats.changePercent} changeLabel="vs. mês anterior" icon={<Package className="w-5 h-5" />} color="primary" />
+                <StatsCard title="Ofertas Ativas" value={stats.activeCargas} change={stats.changePercent} changeLabel="vs. mês anterior" icon={<Package className="w-5 h-5" />} color="primary" />
                 <StatsCard title="Em Trânsito" value={stats.emTransito} icon={<Truck className="w-5 h-5" />} color="chart1" />
                 <StatsCard title="Aguardando Coleta" value={stats.aguardandoColeta} icon={<Clock className="w-5 h-5" />} color="chart4" />
                 <StatsCard title="Entregues (mês)" value={stats.entreguesMes} icon={<CheckCircle className="w-5 h-5" />} color="chart2" />
