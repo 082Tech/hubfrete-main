@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,21 +17,26 @@ export function PatchNotesModal() {
 
   const release = changelog[0]; // latest release
 
-  // Show modal after update or if user hasn't seen this version
+  // Only show for authenticated users, after update
   useEffect(() => {
     if (!release) return;
 
-    const justUpdated = localStorage.getItem(JUST_UPDATED_KEY);
-    const lastSeen = localStorage.getItem(LS_KEY);
+    const checkAndShow = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    if (justUpdated === "true") {
-      localStorage.removeItem(JUST_UPDATED_KEY);
-      setOpen(true);
-    } else if (lastSeen && lastSeen !== CURRENT_VERSION) {
-      // Version changed without going through our update flow
-      setOpen(true);
-    }
-    // Don't show on first visit (no lastSeen at all) — only after updates
+      const justUpdated = localStorage.getItem(JUST_UPDATED_KEY);
+      const lastSeen = localStorage.getItem(LS_KEY);
+
+      if (justUpdated === "true") {
+        localStorage.removeItem(JUST_UPDATED_KEY);
+        setOpen(true);
+      } else if (lastSeen && lastSeen !== CURRENT_VERSION) {
+        setOpen(true);
+      }
+    };
+
+    checkAndShow();
   }, [release]);
 
   useEffect(() => {
