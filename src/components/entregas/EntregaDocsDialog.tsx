@@ -24,7 +24,11 @@ import {
     AlertCircle,
     CheckCircle,
     Package,
+    Paperclip,
+    Info,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import type { OutroDocumento } from './EntregaDocumentosPanel';
 
 interface EntregaDocsDialogProps {
     open: boolean;
@@ -32,6 +36,7 @@ interface EntregaDocsDialogProps {
     entregaId: string;
     entregaCodigo?: string | null;
     canhotoUrl?: string | null;
+    outrosDocumentos?: OutroDocumento[];
 }
 
 interface CteRow {
