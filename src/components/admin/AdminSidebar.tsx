@@ -149,7 +149,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       ],
     },
     {
-      title: 'Entregas',
+      title: 'Cargas',
       icon: Truck,
       href: '/admin/entregas',
       roles: ['super_admin', 'admin', 'suporte'],
