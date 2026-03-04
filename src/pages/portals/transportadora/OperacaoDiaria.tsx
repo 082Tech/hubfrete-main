@@ -900,7 +900,7 @@ function DetailPanel({
               <div className="space-y-3">
                 {docsCheck.complete ? (
                   <p>
-                    Todos os documentos obrigatórios estão anexados. Deseja confirmar a entrega <span className="font-semibold">{entrega.codigo}</span>?
+                    Todos os documentos obrigatórios estão anexados. Deseja confirmar a conclusão da carga <span className="font-semibold">{entrega.codigo}</span>?
                   </p>
                 ) : (
                   <>
