@@ -7,7 +7,7 @@ import {
   Menu,
   Route,
   Send,
-  DollarSign,
+  Boxes,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
