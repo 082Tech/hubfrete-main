@@ -92,7 +92,6 @@ export function MotoristaFormDialog({
       }
     }
 
-    const isTerceirizado = formData.tipo_cadastro === 'terceirizado';
     const currentIndex = STEPS.findIndex(s => s.id === currentStep);
     const nextStep = STEPS[currentIndex + 1];
     if (nextStep) {
