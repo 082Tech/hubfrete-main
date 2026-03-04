@@ -562,64 +562,100 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                 return linkContent;
               })()}
 
-              {/* Cargas Disponíveis */}
+              {/* Ofertas de Carga */}
               {(() => {
-                const cargasItem = menuItems.find(item => item.href === '/transportadora/cargas');
-                if (!cargasItem) return null;
-                const isActive = location.pathname === cargasItem.href;
+                const ofertasItem = menuItems.find(item => item.href === '/transportadora/ofertas');
+                if (!ofertasItem) return null;
+                const isActive = location.pathname === ofertasItem.href;
                 const linkContent = (
                   <Link
-                    to={cargasItem.href}
+                    to={ofertasItem.href}
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
                       } ${isActive
                         ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                         : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
                       }`}
                   >
-                    <cargasItem.icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span className="font-medium">{cargasItem.label}</span>}
+                    <ofertasItem.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{ofertasItem.label}</span>}
                   </Link>
                 );
                 if (collapsed) {
                   return (
-                    <Tooltip key={cargasItem.href}>
+                    <Tooltip key={ofertasItem.href}>
                       <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={10}>{cargasItem.label}</TooltipContent>
+                      <TooltipContent side="right" sideOffset={10}>{ofertasItem.label}</TooltipContent>
                     </Tooltip>
                   );
                 }
                 return linkContent;
               })()}
 
-              {/* Entregas - Direct menu items (Gestão + Histórico) */}
-              {entregasItems.map((item) => {
-                const isActive = location.pathname === item.href;
-                const linkContent = (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
-                      } ${isActive
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+              {/* Cargas Submenu (Gestão Diária + Histórico) */}
+              {collapsed ? (
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${isTranspCargasSubmenuActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                            }`}
+                        >
+                          <Package className="w-5 h-5 shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={10}>Cargas</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent side="right" align="start" className="w-48">
+                    {transportadoraCargasSubmenu.subItems.map((sub) => (
+                      <DropdownMenuItem
+                        key={sub.href}
+                        onClick={() => navigate(sub.href)}
+                        className={location.pathname === sub.href ? 'bg-accent' : ''}
+                      >
+                        <sub.icon className="w-4 h-4 mr-2" />
+                        {sub.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Collapsible open={transpCargasOpen} onOpenChange={setTranspCargasOpen}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${isTranspCargasSubmenuActive
+                        ? 'bg-sidebar-primary/10 text-sidebar-primary'
                         : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
-                      }`}
-                  >
-                    <item.icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span className="font-medium">{item.label}</span>}
-                  </Link>
-                );
-
-                if (collapsed) {
-                  return (
-                    <Tooltip key={item.href}>
-                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={10}>{item.label}</TooltipContent>
-                    </Tooltip>
-                  );
-                }
-
-                return linkContent;
-              })}
+                        }`}
+                    >
+                      <Package className="w-5 h-5 shrink-0" />
+                      <span className="font-medium flex-1 text-left">Cargas</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${transpCargasOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                    {transportadoraCargasSubmenu.subItems.map((sub) => {
+                      const isSubActive = location.pathname === sub.href;
+                      return (
+                        <Link
+                          key={sub.href}
+                          to={sub.href}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isSubActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                            }`}
+                        >
+                          <sub.icon className="w-4 h-4 shrink-0" />
+                          <span className="text-sm">{sub.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
 
               {/* Frota Submenu */}
               {collapsed ? (
@@ -691,7 +727,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               {menuItems
                 .filter(item =>
                   item.href !== '/transportadora' &&
-                  item.href !== '/transportadora/cargas'
+                  item.href !== '/transportadora/ofertas'
                 )
                 .map((item) => {
                   const isActive = location.pathname === item.href;
