@@ -795,7 +795,7 @@ function DetailPanel({
                 Viagem não iniciada
               </p>
               <p className="text-blue-700 dark:text-blue-400">
-                Inicie a viagem primeiro para liberar as ações de entrega.
+                Inicie a viagem primeiro para liberar as ações da carga.
               </p>
             </div>
           </div>
