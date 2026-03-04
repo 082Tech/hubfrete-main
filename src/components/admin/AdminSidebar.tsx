@@ -140,7 +140,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       roles: ['super_admin', 'admin'],
     },
     {
-      title: 'Cargas',
+      title: 'Ofertas',
       icon: Package,
       roles: ['super_admin', 'admin', 'suporte'],
       subItems: [
