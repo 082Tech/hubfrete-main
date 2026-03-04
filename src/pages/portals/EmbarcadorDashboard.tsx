@@ -178,7 +178,7 @@ export default function EmbarcadorDashboard() {
             {/* Stats Cards */}
             {isLoading ? <DashboardSkeleton /> : <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatsCard title="Cargas Ativas" value={stats.activeCargas} change={stats.changePercent} changeLabel="vs. mês anterior" icon={<Package className="w-5 h-5" />} color="primary" />
+                <StatsCard title="Ofertas Ativas" value={stats.activeCargas} change={stats.changePercent} changeLabel="vs. mês anterior" icon={<Package className="w-5 h-5" />} color="primary" />
                 <StatsCard title="Em Trânsito" value={stats.emTransito} icon={<Truck className="w-5 h-5" />} color="chart1" />
                 <StatsCard title="Aguardando Coleta" value={stats.aguardandoColeta} icon={<Clock className="w-5 h-5" />} color="chart4" />
                 <StatsCard title="Entregues (mês)" value={stats.entreguesMes} icon={<CheckCircle className="w-5 h-5" />} color="chart2" />
@@ -186,13 +186,13 @@ export default function EmbarcadorDashboard() {
 
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/embarcador/cargas')}>
+                <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/embarcador/ofertas')}>
                   <CardContent className="p-5 flex items-center gap-4">
                     <div className="p-3 bg-primary/10 rounded-xl">
                       <MapPin className="w-6 h-6 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Total de Cargas</p>
+                      <p className="text-sm text-muted-foreground">Total de Ofertas</p>
                       <p className="text-3xl font-bold text-foreground">{stats.totalCargas}</p>
                     </div>
                     <ArrowUpRight className="w-5 h-5 text-muted-foreground" />
@@ -205,7 +205,7 @@ export default function EmbarcadorDashboard() {
                       <DollarSign className="w-6 h-6 text-chart-2 text-[#059467]" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Valor em Cargas Ativas</p>
+                      <p className="text-sm text-muted-foreground">Valor em Ofertas Ativas</p>
                       <p className="text-2xl font-bold text-primary">
                         {formatCurrency(stats.valorTotalMercadorias)}
                       </p>
@@ -225,9 +225,9 @@ export default function EmbarcadorDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20" onClick={() => navigate('/embarcador/cargas')}>
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20" onClick={() => navigate('/embarcador/ofertas')}>
                     <Package className="w-5 h-5 text-primary" />
-                    <span className="text-xs">Ver Cargas</span>
+                    <span className="text-xs">Ver Ofertas</span>
                   </Button>
                   <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-chart-1/5 hover:border-chart-1/20" onClick={() => navigate('/embarcador/relatorios')}>
                     <BarChart3 className="w-5 h-5 text-chart-1" />
@@ -273,7 +273,7 @@ export default function EmbarcadorDashboard() {
                       Olá! Sou o Hubinho 👋
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Posso te ajudar com cargas, entregas, relatórios e muito mais!
+                     Posso te ajudar com ofertas, cargas, relatórios e muito mais!
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       <span className="px-3 py-1.5 backdrop-blur-sm bg-background/40 rounded-full text-xs text-foreground/80 border border-primary/30">

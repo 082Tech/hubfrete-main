@@ -83,8 +83,7 @@ const cargasSubmenu: MenuGroup = {
   icon: Package,
   label: 'Cargas',
   subItems: [
-    { icon: Package, label: 'Publicadas', href: '/embarcador/cargas' },
-    { icon: Route, label: 'Em Rota', href: '/embarcador/cargas/em-rota' },
+    { icon: MapPin, label: 'Gestão Diária', href: '/embarcador/cargas' },
     { icon: History, label: 'Histórico', href: '/embarcador/cargas/historico' },
   ],
 };
@@ -113,6 +112,7 @@ const frotaSubmenu: MenuGroup = {
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: Home, label: 'Home', href: '/embarcador' },
+    { icon: Send, label: 'Ofertas de Carga', href: '/embarcador/ofertas' },
     // Cargas is now a submenu - handled separately
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
@@ -459,6 +459,37 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
             })()
           )}
 
+          {/* Ofertas de Carga - only for embarcador */}
+          {userType === 'embarcador' && (
+            (() => {
+              const ofertasItem = menuItems.find(item => item.href === '/embarcador/ofertas');
+              if (!ofertasItem) return null;
+              const isActive = location.pathname === ofertasItem.href;
+              const linkContent = (
+                <Link
+                  to={ofertasItem.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                    } ${isActive
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                    }`}
+                >
+                  <ofertasItem.icon className="w-5 h-5 shrink-0" />
+                  {!collapsed && <span className="font-medium">{ofertasItem.label}</span>}
+                </Link>
+              );
+              if (collapsed) {
+                return (
+                  <Tooltip key={ofertasItem.href}>
+                    <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={10}>{ofertasItem.label}</TooltipContent>
+                  </Tooltip>
+                );
+              }
+              return linkContent;
+            })()
+          )}
+
           {/* Cargas Submenu - only for embarcador */}
           {userType === 'embarcador' && (
             collapsed ? (
@@ -765,7 +796,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
           ) : (
             // Other user types: original logic
             menuItems
-              .filter(item => (userType !== 'embarcador' || item.href !== '/embarcador'))
+              .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')))
               .map((item) => {
                 const isActive = location.pathname === item.href;
                 const linkContent = (

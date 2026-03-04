@@ -54,8 +54,8 @@ interface MenuItem {
 
 const embarcadorMenuItems: MenuItem[] = [
   { icon: Home, label: 'Home', href: '/embarcador' },
-  { icon: Package, label: 'Cargas Publicadas', href: '/embarcador/cargas' },
-  { icon: Route, label: 'Cargas Em Rota', href: '/embarcador/cargas/em-rota' },
+  { icon: Send, label: 'Ofertas de Carga', href: '/embarcador/ofertas' },
+  { icon: Package, label: 'Gestão Diária', href: '/embarcador/cargas' },
   { icon: History, label: 'Histórico de Cargas', href: '/embarcador/cargas/historico' },
   { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
   { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
