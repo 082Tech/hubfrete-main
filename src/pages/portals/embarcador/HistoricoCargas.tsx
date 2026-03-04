@@ -1276,6 +1276,7 @@ export default function HistoricoCargas() {
           entregaId={docsEntregaId || ''}
           entregaCodigo={docsEntregaCodigo}
           canhotoUrl={docsEntregaCanhoto}
+          outrosDocumentos={docsEntregaOutros}
         />
       </TooltipProvider>
     </div>

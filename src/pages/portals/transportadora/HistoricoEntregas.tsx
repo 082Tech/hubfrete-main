@@ -1046,6 +1046,7 @@ export default function HistoricoEntregas() {
           entregaId={docsEntregaId || ''}
           entregaCodigo={docsEntregaCodigo}
           canhotoUrl={docsEntregaCanhoto}
+          outrosDocumentos={docsEntregaOutros}
         />
 
         <ViagemTrackingMapDialog
