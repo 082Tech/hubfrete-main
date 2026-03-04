@@ -838,7 +838,7 @@ function DetailPanel({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-destructive focus:text-destructive">
                   <Ban className="w-4 h-4 mr-2" />
-                  Cancelar entrega
+                   Cancelar carga
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
