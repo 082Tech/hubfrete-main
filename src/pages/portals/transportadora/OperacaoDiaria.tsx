@@ -838,7 +838,7 @@ function DetailPanel({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-destructive focus:text-destructive">
                   <Ban className="w-4 h-4 mr-2" />
-                  Cancelar entrega
+                   Cancelar carga
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -868,11 +868,11 @@ function DetailPanel({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-destructive" />
-              Cancelar entrega?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação irá cancelar a entrega <span className="font-semibold">{entrega.codigo}</span>.
-              O peso será devolvido para a carga original. Esta ação não pode ser desfeita.
+               Cancelar carga?
+             </AlertDialogTitle>
+             <AlertDialogDescription>
+               Esta ação irá cancelar a carga <span className="font-semibold">{entrega.codigo}</span>.
+               O peso será devolvido para a oferta original. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1256,7 +1256,7 @@ function GestaoEntregasDialogContent({
     <>
       <DialogHeader className="px-4 py-3 border-b">
         <div className="flex items-center justify-between">
-          <DialogTitle className="text-lg font-bold">Gestão de Entregas</DialogTitle>
+          <DialogTitle className="text-lg font-bold">Gestão de Cargas</DialogTitle>
         </div>
       </DialogHeader>
 
@@ -2027,7 +2027,7 @@ export default function OperacaoDiaria() {
       <div className="flex items-center justify-between p-4 !pb-0 md:p-8 ">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-foreground">Gestão de Entregas</h1>
+            <h1 className="text-3xl font-bold text-foreground">Gestão de Cargas</h1>
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -2036,16 +2036,16 @@ export default function OperacaoDiaria() {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs text-sm p-3">
-                  <p className="font-medium mb-1">Central de Operações Diárias</p>
-                  <ul className='list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed'>
-                    <li>
-                      Acompanhe em tempo real todas as entregas do dia.
-                    </li>
-                    <li>
-                      As entregas finalizadas (entregues ou canceladas) permanecem visíveis até o fim do dia, quando são
-                      automaticamente movidas para o Histórico de Entregas.
-                    </li>
-                  </ul>
+                   <p className="font-medium mb-1">Central de Operações Diárias</p>
+                   <ul className='list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed'>
+                     <li>
+                       Acompanhe em tempo real todas as cargas do dia.
+                     </li>
+                     <li>
+                       As cargas finalizadas (entregues ou canceladas) permanecem visíveis até o fim do dia, quando são
+                       automaticamente movidas para o Histórico de Cargas.
+                     </li>
+                   </ul>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -2056,7 +2056,7 @@ export default function OperacaoDiaria() {
           {/* Switch de Visualização */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
             <Label htmlFor="view-mode-switch" className={`text-sm font-medium transition-colors ${viewMode === 'entregas' ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Entregas
+               Cargas
             </Label>
             <Switch
               id="view-mode-switch"
@@ -2112,7 +2112,7 @@ export default function OperacaoDiaria() {
       <div className="flex-1 grid overflow-hidden p-4 !pt-4 md:p-8" style={{ gridTemplateColumns: '30% 30% 40%' }}>
         {viewMode === 'entregas' ? (
           <>
-            {/* Column 1: Entregas Ativas (30%) */}
+            {/* Column 1: Cargas Ativas (30%) */}
             <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
                 <span className="text-sm font-medium text-muted-foreground">Ativas ({aguardandoEntregas.length})</span>
@@ -2124,7 +2124,7 @@ export default function OperacaoDiaria() {
                   </div>
                 ) : aguardandoEntregas.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <EmptyColumnPlaceholder message="Entregas ativas aparecerão aqui" />
+                    <EmptyColumnPlaceholder message="Cargas ativas aparecerão aqui" />
                   </div>
                 ) : (
                   aguardandoEntregas.map((entrega) => (
@@ -2139,7 +2139,7 @@ export default function OperacaoDiaria() {
               </div>
             </div>
 
-            {/* Column 2: Entregas Finalizadas (30%) */}
+            {/* Column 2: Cargas Finalizadas (30%) */}
             <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
                 <span className="text-sm font-medium text-muted-foreground">Finalizadas ({emRotaEntregas.length})</span>
@@ -2151,7 +2151,7 @@ export default function OperacaoDiaria() {
                   </div>
                 ) : emRotaEntregas.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <EmptyColumnPlaceholder message="Entregas finalizadas aparecerão aqui" />
+                    <EmptyColumnPlaceholder message="Cargas finalizadas aparecerão aqui" />
                   </div>
                 ) : (
                   emRotaEntregas.map((entrega) => (
@@ -2315,7 +2315,7 @@ export default function OperacaoDiaria() {
         )}
       </div>
 
-      {/* Gestão de Entregas Dialog com Mapa + Motoristas */}
+      {/* Gestão de Cargas Dialog com Mapa + Motoristas */}
       <GestaoEntregasDialog
         open={gestaoDialogOpen}
         onOpenChange={setGestaoDialogOpen}

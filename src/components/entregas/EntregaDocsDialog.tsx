@@ -199,7 +199,7 @@ export function EntregaDocsDialog({
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-base">
                             <Package className="w-4 h-4 text-primary" />
-                            Documentos da Entrega
+                            Documentos da Carga
                             {entregaCodigo && (
                                 <span className="font-mono text-sm text-muted-foreground font-normal">
                                     – {entregaCodigo}

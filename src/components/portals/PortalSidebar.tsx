@@ -31,6 +31,7 @@ import {
   ArrowRightLeft,
   Link2,
   Container,
+  DollarSign,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -83,7 +84,7 @@ const cargasSubmenu: MenuGroup = {
   icon: Package,
   label: 'Cargas',
   subItems: [
-    { icon: MapPin, label: 'Gestão Diária', href: '/embarcador/cargas' },
+    { icon: MapPin, label: 'Em andamento', href: '/embarcador/cargas' },
     { icon: History, label: 'Histórico', href: '/embarcador/cargas/historico' },
   ],
 };
@@ -91,9 +92,9 @@ const cargasSubmenu: MenuGroup = {
 // Cargas submenu for transportadora (was entregas)
 const transportadoraCargasSubmenu: MenuGroup = {
   icon: Package,
-  label: 'Cargas',
+  label: 'Minhas Cargas',
   subItems: [
-    { icon: MapPin, label: 'Gestão Diária', href: '/transportadora/cargas' },
+    { icon: MapPin, label: 'Em andamento', href: '/transportadora/cargas' },
     { icon: History, label: 'Histórico', href: '/transportadora/cargas/historico' },
   ],
 };
@@ -112,7 +113,7 @@ const frotaSubmenu: MenuGroup = {
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: Home, label: 'Home', href: '/embarcador' },
-    { icon: Send, label: 'Ofertas de Carga', href: '/embarcador/ofertas' },
+    { icon: Send, label: 'Minhas Ofertas', href: '/embarcador/ofertas' },
     // Cargas is now a submenu - handled separately
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
@@ -123,8 +124,8 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
   ],
   transportadora: [
     { icon: Home, label: 'Home', href: '/transportadora' },
-    { icon: Send, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
-    // Cargas (Gestão Diária + Histórico) handled as submenu (transportadoraCargasSubmenu)
+    { icon: DollarSign, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
+    // Cargas (Em andamento + Histórico) handled as submenu (transportadoraCargasSubmenu)
     // Minha Frota is handled as a submenu (frotaSubmenu)
     
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
@@ -508,7 +509,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                       </button>
                     </DropdownMenuTrigger>
                   </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={10}>Cargas</TooltipContent>
+                  <TooltipContent side="right" sideOffset={10}>Minhas Cargas</TooltipContent>
                 </Tooltip>
                 <DropdownMenuContent side="right" align="start" className="w-48">
                   {cargasSubmenu.subItems.map((sub) => (
@@ -638,7 +639,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                         </button>
                       </DropdownMenuTrigger>
                     </TooltipTrigger>
-                    <TooltipContent side="right" sideOffset={10}>Cargas</TooltipContent>
+                    <TooltipContent side="right" sideOffset={10}>Minhas Cargas</TooltipContent>
                   </Tooltip>
                   <DropdownMenuContent side="right" align="start" className="w-48">
                     {transportadoraCargasSubmenu.subItems.map((sub) => (
@@ -663,7 +664,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                         }`}
                     >
                       <Package className="w-5 h-5 shrink-0" />
-                      <span className="font-medium flex-1 text-left">Cargas</span>
+                      <span className="font-medium flex-1 text-left">Minhas Cargas</span>
                       <ChevronDown className={`w-4 h-4 transition-transform ${transpCargasOpen ? 'rotate-180' : ''}`} />
                     </button>
                   </CollapsibleTrigger>

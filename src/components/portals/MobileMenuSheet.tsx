@@ -39,6 +39,7 @@ import {
   Link2,
   Container,
   Send,
+  DollarSign,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
@@ -54,8 +55,8 @@ interface MenuItem {
 
 const embarcadorMenuItems: MenuItem[] = [
   { icon: Home, label: 'Home', href: '/embarcador' },
-  { icon: Send, label: 'Ofertas de Carga', href: '/embarcador/ofertas' },
-  { icon: Package, label: 'Gestão Diária', href: '/embarcador/cargas' },
+  { icon: Send, label: 'Minhas Ofertas', href: '/embarcador/ofertas' },
+  { icon: Package, label: 'Em andamento', href: '/embarcador/cargas' },
   { icon: History, label: 'Histórico de Cargas', href: '/embarcador/cargas/historico' },
   { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
   { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
@@ -68,8 +69,8 @@ const embarcadorMenuItems: MenuItem[] = [
 
 const transportadoraMenuItems: MenuItem[] = [
   { icon: Home, label: 'Home', href: '/transportadora' },
-  { icon: Send, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
-  { icon: Package, label: 'Gestão Diária', href: '/transportadora/cargas' },
+  { icon: DollarSign, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
+  { icon: Package, label: 'Em andamento', href: '/transportadora/cargas' },
   { icon: History, label: 'Histórico de Cargas', href: '/transportadora/cargas/historico' },
   { icon: Truck, label: 'Veículos', href: '/transportadora/frota' },
   { icon: Container, label: 'Carrocerias', href: '/transportadora/frota/carrocerias' },

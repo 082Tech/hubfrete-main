@@ -43,12 +43,12 @@ import { cn } from '@/lib/utils';
 const ITEMS_PER_PAGE = 15;
 
 const tipoConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-  status_entrega_alterado: { icon: Truck, color: 'text-blue-500', label: 'Status de Entrega' },
+  status_entrega_alterado: { icon: Truck, color: 'text-blue-500', label: 'Status de Carga' },
   nova_mensagem: { icon: MessageSquare, color: 'text-green-500', label: 'Mensagem' },
   motorista_adicionado: { icon: User, color: 'text-purple-500', label: 'Motorista' },
   carga_publicada: { icon: Package, color: 'text-orange-500', label: 'Carga' },
-  entrega_aceita: { icon: Check, color: 'text-emerald-500', label: 'Entrega Aceita' },
-  entrega_concluida: { icon: CheckCheck, color: 'text-emerald-600', label: 'Entrega Concluída' },
+  entrega_aceita: { icon: Check, color: 'text-emerald-500', label: 'Carga Aceita' },
+  entrega_concluida: { icon: CheckCheck, color: 'text-emerald-600', label: 'Carga Concluída' },
   cte_anexado: { icon: FileText, color: 'text-amber-500', label: 'CT-e' },
 };
 

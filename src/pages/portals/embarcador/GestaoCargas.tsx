@@ -1086,8 +1086,8 @@ export default function GestaoCargas() {
                 <TooltipContent side="bottom" className="max-w-xs text-sm p-3">
                   <p className="font-medium mb-1">Acompanhamento de Entregas</p>
                   <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed">
-                    <li>Acompanhe em tempo real as entregas das suas cargas.</li>
-                    <li>Entregas finalizadas permanecem visíveis até o fim do dia.</li>
+                     <li>Acompanhe em tempo real as cargas em operação.</li>
+                     <li>Cargas finalizadas permanecem visíveis até o fim do dia.</li>
                   </ul>
                 </TooltipContent>
               </Tooltip>
@@ -1132,7 +1132,7 @@ export default function GestaoCargas() {
               </div>
             ) : ativas.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <EmptyColumnPlaceholder message="Entregas ativas aparecerão aqui" />
+                <EmptyColumnPlaceholder message="Cargas ativas aparecerão aqui" />
               </div>
             ) : (
               ativas.map(e => (
@@ -1159,7 +1159,7 @@ export default function GestaoCargas() {
               </div>
             ) : finalizadas.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <EmptyColumnPlaceholder message="Entregas finalizadas do dia aparecerão aqui" />
+                <EmptyColumnPlaceholder message="Cargas finalizadas do dia aparecerão aqui" />
               </div>
             ) : (
               finalizadas.map(e => (
