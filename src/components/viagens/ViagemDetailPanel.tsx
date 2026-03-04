@@ -549,8 +549,22 @@ export function ViagemDetailPanel({
           ) : isViagemEmAndamento ? (
             <Button
               className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
-              disabled={!entregasValidation.canFinalize || isProcessingViagem}
-              onClick={() => setFinalizarDialogOpen(true)}
+              disabled={isProcessingViagem}
+              onClick={() => {
+                if (!entregasValidation.canFinalize) {
+                  const issues: string[] = [];
+                  if (entregasValidation.pendingCount > 0) {
+                    issues.push(`${entregasValidation.pendingCount} entrega(s) pendente(s): ${entregasValidation.pendingEntregas.join(', ')}`);
+                  }
+                  issues.push(...entregasValidation.docIssues);
+                  toast.error('Não é possível finalizar a viagem', {
+                    description: issues.map(i => `• ${i}`).join('\n'),
+                    duration: 8000,
+                  });
+                  return;
+                }
+                setFinalizarDialogOpen(true);
+              }}
             >
               {isProcessingViagem ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -563,88 +577,30 @@ export function ViagemDetailPanel({
         </div>
       )}
 
-      {/* Aviso de entregas pendentes ou documentos faltantes (apenas em andamento) */}
-      {isViagemEmAndamento && !entregasValidation.canFinalize && (
-        <div className="px-3 pb-3 mt-1 space-y-2">
-          {entregasValidation.pendingCount > 0 && (
-            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-800 dark:text-amber-300">
-                  {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}
-                </p>
-                <p className="text-amber-700 dark:text-amber-400">
-                  Finalize ou cancele as entregas antes de finalizar a viagem.
-                </p>
-              </div>
-            </div>
-          )}
-          {entregasValidation.docIssues.length > 0 && entregasValidation.pendingCount === 0 && (
-            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
-              <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-800 dark:text-amber-300">
-                  Documentos pendentes
-                </p>
-                <ul className="text-amber-700 dark:text-amber-400 mt-1 space-y-0.5">
-                  {entregasValidation.docIssues.map((issue, i) => (
-                    <li key={i}>• {issue}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+
+
 
       {/* Dialog de confirmação para finalizar viagem */}
       <AlertDialog open={finalizarDialogOpen} onOpenChange={setFinalizarDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Finalizar Viagem</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div>
-                {entregasValidation.canFinalize ? (
-                  <p>
-                    Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
-                    <br /><br />
-                    Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas e com documentos completos.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    <p>Não é possível finalizar a viagem.</p>
-                    {entregasValidation.pendingCount > 0 && (
-                      <p>
-                        Existem {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}: {entregasValidation.pendingEntregas.join(', ')}
-                      </p>
-                    )}
-                    {entregasValidation.docIssues.length > 0 && (
-                      <div>
-                        <p className="font-medium">Documentos pendentes:</p>
-                        <ul className="mt-1 space-y-0.5 text-sm">
-                          {entregasValidation.docIssues.map((issue, i) => (
-                            <li key={i}>• {issue}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+            <AlertDialogDescription>
+              Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
+              <br /><br />
+              Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas e com documentos completos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isProcessingViagem}>Cancelar</AlertDialogCancel>
-            {entregasValidation.canFinalize && (
-              <AlertDialogAction
-                onClick={handleFinalizarViagem}
-                disabled={isProcessingViagem}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {isProcessingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Confirmar Finalização
-              </AlertDialogAction>
-            )}
+            <AlertDialogAction
+              onClick={handleFinalizarViagem}
+              disabled={isProcessingViagem}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isProcessingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Confirmar Finalização
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
