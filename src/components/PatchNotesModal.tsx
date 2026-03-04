@@ -78,7 +78,7 @@ export function PatchNotesModal() {
                   key={i}
                   className="flex-[0_0_100%] min-w-0"
                 >
-                  <div className="flex flex-col items-center text-center py-4 px-2">
+                  <div className="flex flex-col items-start text-left py-4 px-2">
                     {slide.image && (
                       <img
                         src={slide.image}
