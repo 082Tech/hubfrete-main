@@ -97,6 +97,8 @@ const App = () => {
             <UserContextProvider>
               <Toaster />
               <Sonner />
+              <UpdateToast />
+              <PatchNotesModal />
               {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
