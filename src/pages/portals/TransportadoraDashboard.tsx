@@ -157,21 +157,21 @@ export default function TransportadoraDashboard() {
               {greeting}, {firstName}! 👋
             </h1>
             <p className="text-muted-foreground">
-              {filialAtiva ? `Filial: ${filialAtiva.nome}` : 'Gerencie sua frota e entregas'}
+              {filialAtiva ? `Filial: ${filialAtiva.nome}` : 'Gerencie sua frota e cargas'}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <Button 
               variant="outline" 
-              onClick={() => navigate('/transportadora/entregas')}
+              onClick={() => navigate('/transportadora/cargas')}
               className="gap-2"
             >
               <MapPin className="w-4 h-4" />
               Rastreamento
             </Button>
-            <Button className="gap-2" onClick={() => navigate('/transportadora/cargas')}>
+            <Button className="gap-2" onClick={() => navigate('/transportadora/ofertas')}>
               <Package className="w-4 h-4" />
-              Ver Cargas
+              Ver Ofertas
             </Button>
           </div>
         </div>
