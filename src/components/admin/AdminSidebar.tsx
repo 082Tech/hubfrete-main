@@ -93,7 +93,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     // Auto-expand submenu if current path matches
     const initial = new Set<string>();
     if (location.pathname.startsWith('/admin/cargas')) {
-      initial.add('Cargas');
+      initial.add('Ofertas');
     }
     return initial;
   });
@@ -105,7 +105,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
   // Update open submenus when location changes
   useEffect(() => {
     if (location.pathname.startsWith('/admin/cargas')) {
-      setOpenSubmenus(prev => new Set(prev).add('Cargas'));
+      setOpenSubmenus(prev => new Set(prev).add('Ofertas'));
     }
   }, [location.pathname]);
 
@@ -140,7 +140,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       roles: ['super_admin', 'admin'],
     },
     {
-      title: 'Cargas',
+      title: 'Ofertas',
       icon: Package,
       roles: ['super_admin', 'admin', 'suporte'],
       subItems: [
@@ -149,7 +149,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       ],
     },
     {
-      title: 'Entregas',
+      title: 'Cargas',
       icon: Truck,
       href: '/admin/entregas',
       roles: ['super_admin', 'admin', 'suporte'],
@@ -177,7 +177,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       icon: Camera,
       roles: ['super_admin', 'admin', 'suporte'],
       subItems: [
-        { title: 'Provas de Entrega', href: '/admin/provas-entrega', icon: Camera },
+        { title: 'Comprovantes', href: '/admin/provas-entrega', icon: Camera },
         { title: 'Storage Explorer', href: '/admin/storage', icon: HardDrive },
       ],
     },

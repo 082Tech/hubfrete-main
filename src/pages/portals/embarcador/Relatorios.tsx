@@ -61,7 +61,7 @@ const statusLabels: Record<string, string> = {
   'aceita': 'Aceita',
   'em_coleta': 'Em Coleta',
   'em_transito': 'Em Trânsito',
-  'entregue': 'Entregue',
+  'entregue': 'Concluída',
   'cancelada': 'Cancelada',
 };
 

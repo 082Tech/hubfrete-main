@@ -115,7 +115,7 @@ export function AnexarCteDialog({ entrega, open, onOpenChange, onSuccess }: Anex
         <div className="space-y-4">
           {entrega.carga?.codigo && (
             <p className="text-sm text-muted-foreground">
-              Entrega da carga <span className="font-medium text-foreground">{entrega.carga.codigo}</span>
+              Carga da oferta <span className="font-medium text-foreground">{entrega.carga.codigo}</span>
             </p>
           )}
 

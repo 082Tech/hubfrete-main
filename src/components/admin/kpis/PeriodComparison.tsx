@@ -30,7 +30,7 @@ export function PeriodComparison({
 
   const metrics = [
     {
-      label: 'Entregas',
+      label: 'Cargas',
       current: current.entregas,
       previous: previous.entregas,
       format: (v: number) => v.toString(),

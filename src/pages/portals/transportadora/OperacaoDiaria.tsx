@@ -91,8 +91,8 @@ type ViewMode = 'entregas' | 'viagens';
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
   aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800', icon: Clock, column: 'pending' },
   saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800', icon: Truck, column: 'inRoute' },
-  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin, column: 'inRoute' },
-  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', icon: CheckCircle, column: 'done' },
+  saiu_para_entrega: { label: 'Saiu p/ Destino', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin, column: 'inRoute' },
+  entregue: { label: 'Concluída', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', icon: CheckCircle, column: 'done' },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle, column: 'done' },
 };
 
@@ -339,7 +339,7 @@ function DetailPanel({
     return (
       <div className="flex items-center justify-center h-full">
         <EmptyColumnPlaceholder
-          message="Selecione uma entrega para ver os detalhes"
+          message="Selecione uma carga para ver os detalhes"
         />
       </div>
     );
@@ -359,8 +359,8 @@ function DetailPanel({
   const getNextStatus = (): { status: string; label: string; icon: React.ElementType } | null => {
     switch (entrega.status) {
       case 'aguardando': return { status: 'saiu_para_coleta', label: 'Saiu para Coleta', icon: Truck };
-      case 'saiu_para_coleta': return { status: 'saiu_para_entrega', label: 'Saiu para Entrega', icon: MapPin };
-      case 'saiu_para_entrega': return { status: 'entregue', label: 'Marcar como Entregue', icon: CheckCircle };
+      case 'saiu_para_coleta': return { status: 'saiu_para_entrega', label: 'Saiu para Destino', icon: MapPin };
+      case 'saiu_para_entrega': return { status: 'entregue', label: 'Marcar como Concluída', icon: CheckCircle };
       default: return null;
     }
   };
@@ -399,7 +399,7 @@ function DetailPanel({
         const { hasNfeAttached } = await import('@/lib/documentHelpers');
         const hasNfe = await hasNfeAttached(entrega.id);
         if (!hasNfe) {
-          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para entrega.');
+          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para destino.');
           setCheckingNfe(false);
           return;
         }
@@ -722,8 +722,8 @@ function DetailPanel({
                       criado: { label: 'Entrega criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
                       aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
                       inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
-                      inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-                      finalizado: { label: 'Entregue', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+                      inicio_rota: { label: 'Saiu para Destino', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+                      finalizado: { label: 'Concluída', bgColor: 'bg-green-100 dark:bg-green-900/30' },
                       cancelado: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
                       problema: { label: 'Problema', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
                       documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
@@ -763,7 +763,7 @@ function DetailPanel({
                           <p className="text-sm">
                             <span className="font-medium">{userName}</span>
                             <span className="text-muted-foreground">
-                              {isCreation ? ' criou esta entrega' : isDocument ? ' anexou ' : ' definiu o status como '}
+                              {isCreation ? ' criou esta carga' : isDocument ? ' anexou ' : ' definiu o status como '}
                             </span>
                             {!isCreation && <span className="font-medium">{config.label}</span>}
                           </p>
@@ -795,7 +795,7 @@ function DetailPanel({
                 Viagem não iniciada
               </p>
               <p className="text-blue-700 dark:text-blue-400">
-                Inicie a viagem primeiro para liberar as ações de entrega.
+                Inicie a viagem primeiro para liberar as ações da carga.
               </p>
             </div>
           </div>
@@ -900,12 +900,12 @@ function DetailPanel({
               <div className="space-y-3">
                 {docsCheck.complete ? (
                   <p>
-                    Todos os documentos obrigatórios estão anexados. Deseja confirmar a entrega <span className="font-semibold">{entrega.codigo}</span>?
+                    Todos os documentos obrigatórios estão anexados. Deseja confirmar a conclusão da carga <span className="font-semibold">{entrega.codigo}</span>?
                   </p>
                 ) : (
                   <>
                     <p className="text-destructive font-medium">
-                      Não é possível confirmar a entrega. Os seguintes documentos são obrigatórios:
+                      Não é possível concluir a carga. Os seguintes documentos são obrigatórios:
                     </p>
                     <ul className="list-disc list-inside text-sm space-y-1">
                       {docsCheck.missing.map((doc) => (
@@ -913,7 +913,7 @@ function DetailPanel({
                       ))}
                     </ul>
                     <p className="text-sm text-muted-foreground">
-                      Anexe todos os documentos obrigatórios para poder finalizar a entrega.
+                      Anexe todos os documentos obrigatórios para poder concluir a carga.
                     </p>
                   </>
                 )}
@@ -951,7 +951,7 @@ function DetailPanel({
               Confirmar ação?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a alterar o status da entrega <span className="font-semibold">{entrega.codigo}</span> para <span className="font-semibold">{nextStatus?.label}</span>.
+              Você está prestes a alterar o status da carga <span className="font-semibold">{entrega.codigo}</span> para <span className="font-semibold">{nextStatus?.label}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
