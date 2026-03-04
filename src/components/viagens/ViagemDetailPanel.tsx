@@ -593,16 +593,14 @@ export function ViagemDetailPanel({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isProcessingViagem}>Cancelar</AlertDialogCancel>
-            {entregasValidation.canFinalize && (
-              <AlertDialogAction
-                onClick={handleFinalizarViagem}
-                disabled={isProcessingViagem}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {isProcessingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Confirmar Finalização
-              </AlertDialogAction>
-            )}
+            <AlertDialogAction
+              onClick={handleFinalizarViagem}
+              disabled={isProcessingViagem}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isProcessingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Confirmar Finalização
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
