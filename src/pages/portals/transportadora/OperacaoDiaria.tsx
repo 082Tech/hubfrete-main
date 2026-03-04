@@ -2139,7 +2139,7 @@ export default function OperacaoDiaria() {
               </div>
             </div>
 
-            {/* Column 2: Entregas Finalizadas (30%) */}
+            {/* Column 2: Cargas Finalizadas (30%) */}
             <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
                 <span className="text-sm font-medium text-muted-foreground">Finalizadas ({emRotaEntregas.length})</span>
