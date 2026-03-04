@@ -39,6 +39,7 @@ import {
   Link2,
   Container,
   Send,
+  DollarSign,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';

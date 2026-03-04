@@ -354,11 +354,11 @@ export function ViagemDetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Entregas desta Viagem (above map for context) */}
+          {/* Cargas desta Viagem (above map for context) */}
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Package className="w-4 h-4 text-muted-foreground" />
-              <span className="font-semibold text-sm">Entregas desta Viagem ({viagem.entregas.length})</span>
+              <span className="font-semibold text-sm">Cargas desta Viagem ({viagem.entregas.length})</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {viagem.entregas.map(entrega => {

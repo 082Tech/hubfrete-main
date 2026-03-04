@@ -89,7 +89,7 @@ export function ViagemListItem({ viagem, isSelected, onClick }: ViagemListItemPr
             {viagem.codigo}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            {viagem.entregas.length} entrega{viagem.entregas.length !== 1 ? 's' : ''}
+            {viagem.entregas.length} carga{viagem.entregas.length !== 1 ? 's' : ''}
           </span>
         </div>
 
