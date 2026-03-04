@@ -227,9 +227,7 @@ function DetailPanel({
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
-  const [isUploadingNfe, setIsUploadingNfe] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const nfeInputRef = useRef<HTMLInputElement>(null);
 
   const handleShareTracking = async () => {
     const trackCode = entrega?.tracking_code || entrega?.codigo;
