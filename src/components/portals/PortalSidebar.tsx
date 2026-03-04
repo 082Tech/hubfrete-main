@@ -796,7 +796,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
           ) : (
             // Other user types: original logic
             menuItems
-              .filter(item => (userType !== 'embarcador' || item.href !== '/embarcador'))
+              .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')))
               .map((item) => {
                 const isActive = location.pathname === item.href;
                 const linkContent = (
