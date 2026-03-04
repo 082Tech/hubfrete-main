@@ -6,6 +6,7 @@ import {
   MessageSquare,
   Menu,
   Route,
+  Send,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

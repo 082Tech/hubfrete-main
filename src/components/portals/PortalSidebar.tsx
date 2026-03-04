@@ -175,6 +175,11 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   );
   const [cargasOpen, setCargasOpen] = useState(isCargasSubmenuActive);
 
+  const isTranspCargasSubmenuActive = transportadoraCargasSubmenu.subItems.some(
+    (sub) => location.pathname === sub.href
+  );
+  const [transpCargasOpen, setTranspCargasOpen] = useState(isTranspCargasSubmenuActive);
+
   const isFrotaSubmenuActive = frotaSubmenu.subItems.some(
     (sub) => location.pathname === sub.href
   );
