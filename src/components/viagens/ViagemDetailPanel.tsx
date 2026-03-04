@@ -577,39 +577,8 @@ export function ViagemDetailPanel({
         </div>
       )}
 
-      {/* Aviso de entregas pendentes ou documentos faltantes (apenas em andamento) */}
-      {isViagemEmAndamento && !entregasValidation.canFinalize && (
-        <div className="px-3 pb-3 mt-1 space-y-2">
-          {entregasValidation.pendingCount > 0 && (
-            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-800 dark:text-amber-300">
-                  {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}
-                </p>
-                <p className="text-amber-700 dark:text-amber-400">
-                  Finalize ou cancele as entregas antes de finalizar a viagem.
-                </p>
-              </div>
-            </div>
-          )}
-          {entregasValidation.docIssues.length > 0 && entregasValidation.pendingCount === 0 && (
-            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
-              <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-800 dark:text-amber-300">
-                  Documentos pendentes
-                </p>
-                <ul className="text-amber-700 dark:text-amber-400 mt-1 space-y-0.5">
-                  {entregasValidation.docIssues.map((issue, i) => (
-                    <li key={i}>• {issue}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+
+
 
       {/* Dialog de confirmação para finalizar viagem */}
       <AlertDialog open={finalizarDialogOpen} onOpenChange={setFinalizarDialogOpen}>
