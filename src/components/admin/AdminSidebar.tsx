@@ -177,7 +177,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       icon: Camera,
       roles: ['super_admin', 'admin', 'suporte'],
       subItems: [
-        { title: 'Provas de Entrega', href: '/admin/provas-entrega', icon: Camera },
+        { title: 'Comprovantes', href: '/admin/provas-entrega', icon: Camera },
         { title: 'Storage Explorer', href: '/admin/storage', icon: HardDrive },
       ],
     },
