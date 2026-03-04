@@ -913,7 +913,7 @@ function DetailPanel({
                       ))}
                     </ul>
                     <p className="text-sm text-muted-foreground">
-                      Anexe todos os documentos obrigatórios para poder finalizar a entrega.
+                      Anexe todos os documentos obrigatórios para poder concluir a carga.
                     </p>
                   </>
                 )}
