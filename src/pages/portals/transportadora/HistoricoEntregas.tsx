@@ -190,6 +190,7 @@ export default function HistoricoEntregas() {
   const [docsEntregaId, setDocsEntregaId] = useState<string | null>(null);
   const [docsEntregaCodigo, setDocsEntregaCodigo] = useState<string | null>(null);
   const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
+  const [docsEntregaOutros, setDocsEntregaOutros] = useState<any[]>([]);
 
   const { data: viagens = [], isLoading } = useQuery({
     queryKey: ['historico_viagens_expandable', empresa?.id],
