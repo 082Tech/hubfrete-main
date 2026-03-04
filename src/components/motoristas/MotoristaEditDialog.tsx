@@ -53,7 +53,7 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
     email: '',
     telefone: '',
     uf: '',
-    tipo_cadastro: 'frota' as 'autonomo' | 'frota' | 'terceirizado',
+    tipo_cadastro: 'frota' as 'autonomo' | 'frota',
     foto_url: '',
     cnh: '',
     categoria_cnh: '',
