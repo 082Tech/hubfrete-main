@@ -427,6 +427,72 @@ export function EntregaDocumentosPanel({
         }
     };
 
+    // ── Outros Documentos staging ───────────────────────────────────────────────
+    const [stagingOutros, setStagingOutros] = useState<StagingFile[]>([]);
+    const [uploadingOutro, setUploadingOutro] = useState(false);
+    const outroRef = useRef<HTMLInputElement>(null);
+
+    const handleOutroFiles = (files: File[]) => {
+        const remaining = 10 - localOutros.length;
+        if (remaining <= 0) { toast.error('Limite de 10 documentos atingido'); return; }
+        const { valid, errors } = validateFiles(files);
+        errors.forEach((e) => toast.error(e));
+        const capped = valid.slice(0, remaining - stagingOutros.length);
+        if (capped.length < valid.length) toast.warning(`Apenas ${capped.length} arquivo(s) adicionado(s) (limite de 10)`);
+        if (capped.length) setStagingOutros((prev) => [...prev, ...toStaging(capped)]);
+    };
+
+    const removeOutroStaging = (id: string) => {
+        setStagingOutros((prev) => {
+            const s = prev.find((x) => x.id === id);
+            if (s?.preview) URL.revokeObjectURL(s.preview);
+            return prev.filter((x) => x.id !== id);
+        });
+    };
+
+    const confirmOutroUpload = async () => {
+        if (!currentUserId) return;
+        setUploadingOutro(true);
+        try {
+            const newDocs: OutroDocumento[] = [];
+            for (const s of stagingOutros) {
+                const ext = s.file.name.split('.').pop();
+                const path = `outros/${entregaId}/${Date.now()}_${Math.random().toString(36).slice(7)}.${ext}`;
+                const url = await uploadFile(s.file, path);
+                newDocs.push({
+                    url, nome: s.file.name,
+                    uploaded_by: currentUserId,
+                    uploaded_at: new Date().toISOString(),
+                    tipo_usuario: perfil,
+                });
+            }
+            const updated = [...localOutros, ...newDocs];
+            const { error } = await supabase.from('entregas').update({ outros_documentos: updated as any }).eq('id', entregaId);
+            if (error) throw error;
+            setLocalOutros(updated);
+            setStagingOutros([]);
+            toast.success(newDocs.length > 1 ? `${newDocs.length} documentos adicionados!` : 'Documento adicionado!');
+            onRefresh();
+        } catch (err: any) {
+            toast.error(`Erro ao salvar: ${err?.message || 'Erro'}`);
+        } finally {
+            setUploadingOutro(false);
+        }
+    };
+
+    const handleRemoveOutro = async (index: number) => {
+        const updated = localOutros.filter((_, i) => i !== index);
+        try {
+            const { error } = await supabase.from('entregas').update({ outros_documentos: updated as any }).eq('id', entregaId);
+            if (error) throw error;
+            setLocalOutros(updated);
+            toast.success('Documento removido!');
+            onRefresh();
+        } catch (err: any) {
+            toast.error(`Erro ao remover: ${err?.message || 'Erro'}`);
+        }
+    };
+
     // ─────────────────────────────────────────────────────────────────────────────
     return (
         <div className="space-y-4">
