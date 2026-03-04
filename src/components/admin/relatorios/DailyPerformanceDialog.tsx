@@ -311,7 +311,7 @@ export function DailyPerformanceDialog({
                           borderRadius: '8px',
                         }}
                         formatter={(value: number, name: string) => {
-                          if (name === 'entregas') return [value, 'Entregas'];
+                          if (name === 'entregas') return [value, 'Cargas'];
                           return [value, name];
                         }}
                       />

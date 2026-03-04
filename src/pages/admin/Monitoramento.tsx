@@ -33,7 +33,7 @@ const statusLabels: Record<string, string> = {
   aguardando: 'Aguardando',
   saiu_para_coleta: 'Em Coleta',
   saiu_para_entrega: 'Em Rota',
-  entregue: 'Entregue',
+  entregue: 'Concluída',
   cancelada: 'Cancelada',
 };
 
