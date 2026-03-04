@@ -2036,16 +2036,16 @@ export default function OperacaoDiaria() {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs text-sm p-3">
-                  <p className="font-medium mb-1">Central de Operações Diárias</p>
-                  <ul className='list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed'>
-                    <li>
-                      Acompanhe em tempo real todas as entregas do dia.
-                    </li>
-                    <li>
-                      As entregas finalizadas (entregues ou canceladas) permanecem visíveis até o fim do dia, quando são
-                      automaticamente movidas para o Histórico de Entregas.
-                    </li>
-                  </ul>
+                   <p className="font-medium mb-1">Central de Operações Diárias</p>
+                   <ul className='list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed'>
+                     <li>
+                       Acompanhe em tempo real todas as cargas do dia.
+                     </li>
+                     <li>
+                       As cargas finalizadas (entregues ou canceladas) permanecem visíveis até o fim do dia, quando são
+                       automaticamente movidas para o Histórico de Cargas.
+                     </li>
+                   </ul>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
