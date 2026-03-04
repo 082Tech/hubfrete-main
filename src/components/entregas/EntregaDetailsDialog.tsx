@@ -31,8 +31,13 @@ import {
   ExternalLink,
   AlertTriangle,
   XCircle,
-  Receipt
+  Receipt,
+  Paperclip,
+  Info,
+  Eye,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import type { OutroDocumento } from './EntregaDocumentosPanel';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { CarregamentoCarroceriasSection } from './CarregamentoCarroceriasSection';
 import type { Database } from '@/integrations/supabase/types';
