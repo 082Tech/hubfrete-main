@@ -93,7 +93,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     // Auto-expand submenu if current path matches
     const initial = new Set<string>();
     if (location.pathname.startsWith('/admin/cargas')) {
-      initial.add('Cargas');
+      initial.add('Ofertas');
     }
     return initial;
   });
