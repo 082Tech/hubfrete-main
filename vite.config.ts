@@ -20,9 +20,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "HubFrete - Gestão de Fretes",
+        name: "HubFrete – Marketplace Logístico com Gestão Integrada",
         short_name: "HubFrete",
-        description: "Plataforma completa de gestão de fretes e logística",
+        description: "O marketplace logístico do Brasil. Conecte cargas a transportadoras com gestão integrada de fretes, rastreamento e documentação fiscal.",
         theme_color: "#1a1a2e",
         background_color: "#1a1a2e",
         display: "standalone",
