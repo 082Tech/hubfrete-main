@@ -71,7 +71,7 @@ export interface MotoristaCompleto {
   email: string | null;
   telefone: string | null;
   uf: string | null;
-  tipo_cadastro: 'autonomo' | 'frota' | 'terceirizado' | null;
+  tipo_cadastro: 'autonomo' | 'frota' | null;
   cnh: string;
   categoria_cnh: string;
   validade_cnh: string;

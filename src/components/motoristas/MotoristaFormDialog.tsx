@@ -110,64 +110,7 @@ export function MotoristaFormDialog({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const isTerceirizadoSubmit = formData.tipo_cadastro === 'terceirizado';
-
-      if (isTerceirizadoSubmit) {
-        // Terceirizado: create motorista directly without auth
-        // Generate a placeholder user_id (no auth account)
-        const placeholderUserId = crypto.randomUUID();
-
-        const { data: motoristaData, error: motoristaError } = await supabase
-          .from('motoristas')
-          .insert({
-            user_id: placeholderUserId,
-            nome_completo: formData.nome_completo,
-            cpf: formData.cpf.replace(/\D/g, ''),
-            telefone: formData.telefone || null,
-            email: formData.email || null,
-            uf: formData.uf,
-            tipo_cadastro: 'terceirizado',
-            foto_url: formData.foto_url,
-            cnh: formData.cnh,
-            categoria_cnh: formData.categoria_cnh,
-            validade_cnh: formData.validade_cnh,
-            cnh_tem_qrcode: formData.cnh_tem_qrcode,
-            cnh_digital_url: formData.cnh_digital_url,
-            comprovante_endereco_url: formData.comprovante_endereco_url,
-            comprovante_endereco_titular_nome: formData.comprovante_endereco_titular_nome || null,
-            comprovante_endereco_titular_doc_url: formData.comprovante_endereco_titular_doc_url,
-            comprovante_vinculo_url: formData.comprovante_vinculo_url,
-            possui_ajudante: formData.possui_ajudante,
-            empresa_id: empresaId,
-          })
-          .select('id')
-          .single();
-
-        if (motoristaError) throw motoristaError;
-
-        // Create ajudante if needed
-        if (formData.possui_ajudante && formData.ajudante_nome && formData.ajudante_cpf) {
-          await supabase.from('ajudantes').insert({
-            motorista_id: motoristaData.id,
-            nome: formData.ajudante_nome,
-            cpf: formData.ajudante_cpf.replace(/\D/g, ''),
-            telefone: formData.ajudante_telefone || null,
-            tipo_cadastro: formData.ajudante_tipo_cadastro,
-            comprovante_vinculo_url: formData.ajudante_comprovante_vinculo_url,
-          });
-        }
-
-        // Create referencias
-        const refs = formData.referencias.filter(r => r.nome && r.telefone);
-        if (refs.length > 0) {
-          await supabase.from('motorista_referencias').insert(
-            refs.map(r => ({ ...r, motorista_id: motoristaData.id }))
-          );
-        }
-
-        toast.success('Motorista terceirizado cadastrado com sucesso!');
-      } else {
-        // Non-terceirizado: use Edge Function for auth creation
+      // Use Edge Function for auth creation
         const response = await supabase.functions.invoke('create-driver-auth', {
           body: {
             email: formData.auth_email,
