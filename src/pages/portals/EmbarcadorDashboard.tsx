@@ -225,9 +225,9 @@ export default function EmbarcadorDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20" onClick={() => navigate('/embarcador/cargas')}>
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20" onClick={() => navigate('/embarcador/ofertas')}>
                     <Package className="w-5 h-5 text-primary" />
-                    <span className="text-xs">Ver Cargas</span>
+                    <span className="text-xs">Ver Ofertas</span>
                   </Button>
                   <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-chart-1/5 hover:border-chart-1/20" onClick={() => navigate('/embarcador/relatorios')}>
                     <BarChart3 className="w-5 h-5 text-chart-1" />
