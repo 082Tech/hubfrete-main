@@ -91,7 +91,7 @@ type ViewMode = 'entregas' | 'viagens';
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
   aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800', icon: Clock, column: 'pending' },
   saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800', icon: Truck, column: 'inRoute' },
-  saiu_para_entrega: { label: 'Saiu p/ Destino', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin, column: 'inRoute' },
+  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin, column: 'inRoute' },
   entregue: { label: 'Concluída', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', icon: CheckCircle, column: 'done' },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle, column: 'done' },
 };
@@ -359,7 +359,7 @@ function DetailPanel({
   const getNextStatus = (): { status: string; label: string; icon: React.ElementType } | null => {
     switch (entrega.status) {
       case 'aguardando': return { status: 'saiu_para_coleta', label: 'Saiu para Coleta', icon: Truck };
-      case 'saiu_para_coleta': return { status: 'saiu_para_entrega', label: 'Saiu para Destino', icon: MapPin };
+      case 'saiu_para_coleta': return { status: 'saiu_para_entrega', label: 'Saiu para Entrega', icon: MapPin };
       case 'saiu_para_entrega': return { status: 'entregue', label: 'Marcar como Concluída', icon: CheckCircle };
       default: return null;
     }
@@ -722,7 +722,7 @@ function DetailPanel({
                       criado: { label: 'Entrega criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
                       aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
                       inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
-                      inicio_rota: { label: 'Saiu para Destino', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+                      inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
                       finalizado: { label: 'Concluída', bgColor: 'bg-green-100 dark:bg-green-900/30' },
                       cancelado: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
                       problema: { label: 'Problema', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
