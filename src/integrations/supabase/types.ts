@@ -1288,6 +1288,7 @@ export type Database = {
           notas_fiscais_urls: string[] | null
           numero_cte: string | null
           observacoes: string | null
+          outros_documentos: Json | null
           peso_alocado_kg: number | null
           previsao_coleta: string | null
           status: Database["public"]["Enums"]["status_entrega"] | null
@@ -1320,6 +1321,7 @@ export type Database = {
           notas_fiscais_urls?: string[] | null
           numero_cte?: string | null
           observacoes?: string | null
+          outros_documentos?: Json | null
           peso_alocado_kg?: number | null
           previsao_coleta?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
@@ -1352,6 +1354,7 @@ export type Database = {
           notas_fiscais_urls?: string[] | null
           numero_cte?: string | null
           observacoes?: string | null
+          outros_documentos?: Json | null
           peso_alocado_kg?: number | null
           previsao_coleta?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
