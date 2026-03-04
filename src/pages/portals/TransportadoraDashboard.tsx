@@ -327,7 +327,7 @@ export default function TransportadoraDashboard() {
                         "Status da frota"
                       </span>
                       <span className="px-3 py-1.5 backdrop-blur-sm bg-background/40 rounded-full text-xs text-foreground/80 border border-primary/30">
-                        "Entregas em andamento"
+                        "Cargas em andamento"
                       </span>
                     </div>
                   </div>
