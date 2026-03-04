@@ -112,7 +112,7 @@ const frotaSubmenu: MenuGroup = {
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: Home, label: 'Home', href: '/embarcador' },
-    { icon: Send, label: 'Ofertas de Carga', href: '/embarcador/ofertas' },
+    { icon: Send, label: 'Minhas Ofertas', href: '/embarcador/ofertas' },
     // Cargas is now a submenu - handled separately
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
@@ -123,8 +123,8 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
   ],
   transportadora: [
     { icon: Home, label: 'Home', href: '/transportadora' },
-    { icon: Send, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
-    // Cargas (Gestão Diária + Histórico) handled as submenu (transportadoraCargasSubmenu)
+    { icon: DollarSign, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
+    // Cargas (Em andamento + Histórico) handled as submenu (transportadoraCargasSubmenu)
     // Minha Frota is handled as a submenu (frotaSubmenu)
     
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
