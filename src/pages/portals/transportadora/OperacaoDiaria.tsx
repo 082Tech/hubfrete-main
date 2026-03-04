@@ -2056,7 +2056,7 @@ export default function OperacaoDiaria() {
           {/* Switch de Visualização */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
             <Label htmlFor="view-mode-switch" className={`text-sm font-medium transition-colors ${viewMode === 'entregas' ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Entregas
+               Cargas
             </Label>
             <Switch
               id="view-mode-switch"
