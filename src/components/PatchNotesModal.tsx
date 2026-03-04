@@ -60,8 +60,8 @@ export function PatchNotesModal() {
   const isLast = selectedIndex === slides.length - 1;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} hideCloseButton>
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="text-lg">
             Novidades — v{release.version}
