@@ -21,12 +21,16 @@ export function PatchNotesModal() {
     if (!release) return;
 
     const justUpdated = localStorage.getItem(JUST_UPDATED_KEY);
+    const lastSeen = localStorage.getItem(LS_KEY);
 
     if (justUpdated === "true") {
       localStorage.removeItem(JUST_UPDATED_KEY);
       setOpen(true);
+    } else if (lastSeen && lastSeen !== CURRENT_VERSION) {
+      // Version changed without going through our update flow
+      setOpen(true);
     }
-    // Modal only opens after user clicks "Atualizar agora" in the toast
+    // Don't show on first visit (no lastSeen at all) — only after updates
   }, [release]);
 
   useEffect(() => {
