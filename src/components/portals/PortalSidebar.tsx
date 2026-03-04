@@ -89,11 +89,15 @@ const cargasSubmenu: MenuGroup = {
   ],
 };
 
-// Entregas items for transportadora (no longer a submenu)
-const entregasItems = [
-  { icon: MapPin, label: 'Gestão de Entregas', href: '/transportadora/entregas' },
-  { icon: History, label: 'Histórico de Entregas', href: '/transportadora/entregas/historico' },
-];
+// Cargas submenu for transportadora (was entregas)
+const transportadoraCargasSubmenu: MenuGroup = {
+  icon: Package,
+  label: 'Cargas',
+  subItems: [
+    { icon: MapPin, label: 'Gestão Diária', href: '/transportadora/cargas' },
+    { icon: History, label: 'Histórico', href: '/transportadora/cargas/historico' },
+  ],
+};
 
 // Frota submenu for transportadora
 const frotaSubmenu: MenuGroup = {
