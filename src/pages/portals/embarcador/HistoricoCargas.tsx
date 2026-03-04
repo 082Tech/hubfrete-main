@@ -98,6 +98,7 @@ interface EntregaData {
   entregue_em: string | null;
   motorista_id: string | null;
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
   motoristas: {
     nome_completo: string;
     telefone: string | null;
@@ -200,6 +201,7 @@ export default function HistoricoCargas() {
   const [docsEntregaId, setDocsEntregaId] = useState<string | null>(null);
   const [docsEntregaCodigo, setDocsEntregaCodigo] = useState<string | null>(null);
   const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
+  const [docsEntregaOutros, setDocsEntregaOutros] = useState<any[]>([]);
 
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
@@ -301,7 +303,7 @@ export default function HistoricoCargas() {
             entregue_em,
             motorista_id,
             canhoto_url,
-            canhoto_url,
+            outros_documentos,
             motoristas (
               nome_completo,
               telefone
@@ -1123,6 +1125,7 @@ export default function HistoricoCargas() {
                                                       setDocsEntregaId(entrega.id);
                                                       setDocsEntregaCodigo(entrega.codigo);
                                                       setDocsEntregaCanhoto(entrega.canhoto_url);
+                                                      setDocsEntregaOutros(Array.isArray(entrega.outros_documentos) ? entrega.outros_documentos : []);
                                                       setDocsDialogOpen(true);
                                                     }}
                                                   >
@@ -1274,6 +1277,7 @@ export default function HistoricoCargas() {
           entregaId={docsEntregaId || ''}
           entregaCodigo={docsEntregaCodigo}
           canhotoUrl={docsEntregaCanhoto}
+          outrosDocumentos={docsEntregaOutros}
         />
       </TooltipProvider>
     </div>

@@ -31,8 +31,13 @@ import {
   ExternalLink,
   AlertTriangle,
   XCircle,
-  Receipt
+  Receipt,
+  Paperclip,
+  Info,
+  Eye,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import type { OutroDocumento } from './EntregaDocumentosPanel';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { CarregamentoCarroceriasSection } from './CarregamentoCarroceriasSection';
 import type { Database } from '@/integrations/supabase/types';
@@ -463,6 +468,52 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                     </Badge>
                   )}
                 </div>
+
+                {/* Outros Documentos */}
+                {(() => {
+                  const outros: any[] = Array.isArray((entrega as any).outros_documentos) ? (entrega as any).outros_documentos : [];
+                  if (outros.length === 0) return null;
+                  return (
+                    <div className="flex flex-col gap-2 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="w-4 h-4 text-violet-500" />
+                        <span className="text-sm font-medium">Outros Documentos</span>
+                        <Badge variant="secondary" className="text-[10px]">{outros.length}</Badge>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[220px] text-xs">
+                              Documentos complementares como GNRE, comprovantes, autorizações, etc.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      {outros.map((doc: any, i: number) => (
+                        <div key={`${doc.url}-${i}`} className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-violet-500/10">
+                              <Paperclip className="w-4 h-4 text-violet-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{doc.nome}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {doc.tipo_usuario === 'embarcador' ? 'Embarcador' : 'Transportadora'}
+                              </p>
+                            </div>
+                          </div>
+                          {doc.url && (
+                            <Button variant="outline" size="sm" onClick={() => openPreview(doc.url, doc.nome)}>
+                              <Eye className="w-3 h-3 mr-1" />
+                              Ver
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 

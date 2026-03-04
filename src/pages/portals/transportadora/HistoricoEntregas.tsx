@@ -67,6 +67,7 @@ interface EntregaInViagem {
   numero_cte: string | null;
   nfes: { id: string }[];
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
   entregue_em: string | null;
   updated_at: string | null;
   motorista: {
@@ -190,6 +191,7 @@ export default function HistoricoEntregas() {
   const [docsEntregaId, setDocsEntregaId] = useState<string | null>(null);
   const [docsEntregaCodigo, setDocsEntregaCodigo] = useState<string | null>(null);
   const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
+  const [docsEntregaOutros, setDocsEntregaOutros] = useState<any[]>([]);
 
   const { data: viagens = [], isLoading } = useQuery({
     queryKey: ['historico_viagens_expandable', empresa?.id],
@@ -236,7 +238,7 @@ export default function HistoricoEntregas() {
           .from('entregas')
           .select(`
             id, codigo, status, peso_alocado_kg, valor_frete,
-            numero_cte, canhoto_url, previsao_coleta,
+            numero_cte, canhoto_url, outros_documentos, previsao_coleta,
             entregue_em, updated_at,
             ctes(id),
             nfes(id),
@@ -916,6 +918,7 @@ export default function HistoricoEntregas() {
                                                         setDocsEntregaId(entrega.id);
                                                         setDocsEntregaCodigo(entrega.codigo || entrega.carga.codigo);
                                                         setDocsEntregaCanhoto(entrega.canhoto_url);
+                                                        setDocsEntregaOutros(Array.isArray(entrega.outros_documentos) ? entrega.outros_documentos : []);
                                                         setDocsDialogOpen(true);
                                                       }}
                                                     >
@@ -1044,6 +1047,7 @@ export default function HistoricoEntregas() {
           entregaId={docsEntregaId || ''}
           entregaCodigo={docsEntregaCodigo}
           canhotoUrl={docsEntregaCanhoto}
+          outrosDocumentos={docsEntregaOutros}
         />
 
         <ViagemTrackingMapDialog
