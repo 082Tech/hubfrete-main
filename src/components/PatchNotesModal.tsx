@@ -86,12 +86,13 @@ export function PatchNotesModal() {
                         className="w-full max-h-48 object-contain rounded-lg mb-4"
                       />
                     )}
-                    <h3 className="text-base font-semibold text-foreground mb-2">
+                    <h3 className="text-base font-semibold text-foreground mb-2 w-full text-left">
                       {slide.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-                      {slide.description}
-                    </p>
+                    <div
+                      className="text-sm text-muted-foreground leading-relaxed max-w-sm w-full text-left"
+                      dangerouslySetInnerHTML={{ __html: slide.description }}
+                    />
                   </div>
                 </div>
               ))}
