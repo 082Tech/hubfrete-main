@@ -585,35 +585,10 @@ export function ViagemDetailPanel({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Finalizar Viagem</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div>
-                {entregasValidation.canFinalize ? (
-                  <p>
-                    Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
-                    <br /><br />
-                    Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas e com documentos completos.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    <p>Não é possível finalizar a viagem.</p>
-                    {entregasValidation.pendingCount > 0 && (
-                      <p>
-                        Existem {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}: {entregasValidation.pendingEntregas.join(', ')}
-                      </p>
-                    )}
-                    {entregasValidation.docIssues.length > 0 && (
-                      <div>
-                        <p className="font-medium">Documentos pendentes:</p>
-                        <ul className="mt-1 space-y-0.5 text-sm">
-                          {entregasValidation.docIssues.map((issue, i) => (
-                            <li key={i}>• {issue}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+            <AlertDialogDescription>
+              Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
+              <br /><br />
+              Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas e com documentos completos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
