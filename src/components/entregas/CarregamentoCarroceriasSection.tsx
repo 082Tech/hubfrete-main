@@ -22,6 +22,8 @@ interface CarregamentoSectionProps {
   /** Fallback for legacy data: single carroceria_id + peso_alocado_kg */
   carroceriaId?: string | null;
   pesoAlocadoKg?: number | null;
+  /** Hide individual capacity progress bars (used in carrier portal) */
+  hideCapacityBar?: boolean;
 }
 
 const tipoCarroceriaLabels: Record<string, string> = {
