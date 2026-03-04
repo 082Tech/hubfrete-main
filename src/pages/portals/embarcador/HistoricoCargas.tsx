@@ -303,7 +303,7 @@ export default function HistoricoCargas() {
             entregue_em,
             motorista_id,
             canhoto_url,
-            canhoto_url,
+            outros_documentos,
             motoristas (
               nome_completo,
               telefone
