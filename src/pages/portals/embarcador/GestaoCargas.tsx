@@ -87,6 +87,7 @@ interface Entrega {
   coletado_em: string | null;
   entregue_em: string | null;
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
   eventos?: EntregaEvento[];
