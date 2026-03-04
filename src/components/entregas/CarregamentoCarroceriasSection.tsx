@@ -40,7 +40,7 @@ const tipoCarroceriaLabels: Record<string, string> = {
   gaiola: 'Gaiola',
 };
 
-export function CarregamentoCarroceriasSection({ carroceriasAlocadas, carroceriaId, pesoAlocadoKg }: CarregamentoSectionProps) {
+export function CarregamentoCarroceriasSection({ carroceriasAlocadas, carroceriaId, pesoAlocadoKg, hideCapacityBar }: CarregamentoSectionProps) {
   const [carroceriasInfo, setCarroceriasInfo] = useState<Record<string, CarroceriaInfo>>({});
 
   const alocacoes = useMemo(() => {
