@@ -1256,7 +1256,7 @@ function GestaoEntregasDialogContent({
     <>
       <DialogHeader className="px-4 py-3 border-b">
         <div className="flex items-center justify-between">
-          <DialogTitle className="text-lg font-bold">Gestão de Entregas</DialogTitle>
+          <DialogTitle className="text-lg font-bold">Gestão de Cargas</DialogTitle>
         </div>
       </DialogHeader>
 
