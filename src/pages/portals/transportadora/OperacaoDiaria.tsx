@@ -1543,7 +1543,7 @@ export default function OperacaoDiaria() {
           id, codigo, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em, carrocerias_alocadas,
-          previsao_coleta, canhoto_url,
+          previsao_coleta, canhoto_url, outros_documentos,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!entregas_carga_id_fkey(
