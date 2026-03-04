@@ -53,7 +53,7 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
     email: '',
     telefone: '',
     uf: '',
-    tipo_cadastro: 'frota' as 'autonomo' | 'frota' | 'terceirizado',
+    tipo_cadastro: 'frota' as 'autonomo' | 'frota',
     foto_url: '',
     cnh: '',
     categoria_cnh: '',
@@ -415,15 +415,13 @@ export function MotoristaEditDialog({ open, onOpenChange, motorista }: Motorista
                 <Label>Tipo de Cadastro</Label>
                 <Select
                   value={formData.tipo_cadastro}
-                  onValueChange={(v) => setFormData({ ...formData, tipo_cadastro: v as 'autonomo' | 'frota' | 'terceirizado' })}
+                  onValueChange={(v) => setFormData({ ...formData, tipo_cadastro: v as 'autonomo' | 'frota' })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* Transportadora só pode alternar entre frota e terceirizado */}
                     <SelectItem value="frota">Frota</SelectItem>
-                    <SelectItem value="terceirizado">Terceirizado</SelectItem>
                     {/* Mostrar autônomo apenas se já for o valor atual (read-only display) */}
                     {formData.tipo_cadastro === 'autonomo' && (
                       <SelectItem value="autonomo" disabled>Autônomo</SelectItem>

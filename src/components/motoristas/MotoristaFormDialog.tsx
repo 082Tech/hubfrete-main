@@ -63,8 +63,7 @@ export function MotoristaFormDialog({
       // References and comprovante_vinculo are optional in web registration
     }
 
-    if (currentStep === 2 && formData.tipo_cadastro !== 'terceirizado') {
-      // Validate credentials (only for non-terceirizado)
+    if (currentStep === 2) {
       if (!formData.auth_email || !formData.auth_password) {
         toast.error('E-mail e senha são obrigatórios para acesso ao app');
         return;
@@ -93,7 +92,6 @@ export function MotoristaFormDialog({
       }
     }
 
-    const isTerceirizado = formData.tipo_cadastro === 'terceirizado';
     const currentIndex = STEPS.findIndex(s => s.id === currentStep);
     const nextStep = STEPS[currentIndex + 1];
     if (nextStep) {
@@ -112,64 +110,7 @@ export function MotoristaFormDialog({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const isTerceirizadoSubmit = formData.tipo_cadastro === 'terceirizado';
-
-      if (isTerceirizadoSubmit) {
-        // Terceirizado: create motorista directly without auth
-        // Generate a placeholder user_id (no auth account)
-        const placeholderUserId = crypto.randomUUID();
-
-        const { data: motoristaData, error: motoristaError } = await supabase
-          .from('motoristas')
-          .insert({
-            user_id: placeholderUserId,
-            nome_completo: formData.nome_completo,
-            cpf: formData.cpf.replace(/\D/g, ''),
-            telefone: formData.telefone || null,
-            email: formData.email || null,
-            uf: formData.uf,
-            tipo_cadastro: 'terceirizado',
-            foto_url: formData.foto_url,
-            cnh: formData.cnh,
-            categoria_cnh: formData.categoria_cnh,
-            validade_cnh: formData.validade_cnh,
-            cnh_tem_qrcode: formData.cnh_tem_qrcode,
-            cnh_digital_url: formData.cnh_digital_url,
-            comprovante_endereco_url: formData.comprovante_endereco_url,
-            comprovante_endereco_titular_nome: formData.comprovante_endereco_titular_nome || null,
-            comprovante_endereco_titular_doc_url: formData.comprovante_endereco_titular_doc_url,
-            comprovante_vinculo_url: formData.comprovante_vinculo_url,
-            possui_ajudante: formData.possui_ajudante,
-            empresa_id: empresaId,
-          })
-          .select('id')
-          .single();
-
-        if (motoristaError) throw motoristaError;
-
-        // Create ajudante if needed
-        if (formData.possui_ajudante && formData.ajudante_nome && formData.ajudante_cpf) {
-          await supabase.from('ajudantes').insert({
-            motorista_id: motoristaData.id,
-            nome: formData.ajudante_nome,
-            cpf: formData.ajudante_cpf.replace(/\D/g, ''),
-            telefone: formData.ajudante_telefone || null,
-            tipo_cadastro: formData.ajudante_tipo_cadastro,
-            comprovante_vinculo_url: formData.ajudante_comprovante_vinculo_url,
-          });
-        }
-
-        // Create referencias
-        const refs = formData.referencias.filter(r => r.nome && r.telefone);
-        if (refs.length > 0) {
-          await supabase.from('motorista_referencias').insert(
-            refs.map(r => ({ ...r, motorista_id: motoristaData.id }))
-          );
-        }
-
-        toast.success('Motorista terceirizado cadastrado com sucesso!');
-      } else {
-        // Non-terceirizado: use Edge Function for auth creation
+      // Use Edge Function for auth creation
         const response = await supabase.functions.invoke('create-driver-auth', {
           body: {
             email: formData.auth_email,
@@ -226,8 +167,7 @@ export function MotoristaFormDialog({
           }
         }
 
-        toast.success('Motorista cadastrado com sucesso! Credenciais: ' + formData.auth_email);
-      }
+      toast.success('Motorista cadastrado com sucesso! Credenciais: ' + formData.auth_email);
 
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
       setFormData(getInitialFormData());
@@ -248,7 +188,6 @@ export function MotoristaFormDialog({
     onOpenChange(false);
   };
 
-  const isTerceirizado = formData.tipo_cadastro === 'terceirizado';
   const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
   const currentStepData = STEPS.find(s => s.id === currentStep);
   const isLastStep = currentStepIndex === STEPS.length - 1;

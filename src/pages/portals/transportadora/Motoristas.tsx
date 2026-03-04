@@ -364,12 +364,11 @@ export default function Motoristas() {
           </td>
         );
       case 'tipo': {
-        const tipoLabels: Record<string, string> = { frota: 'Frota', autonomo: 'Autônomo', terceirizado: 'Terceirizado' };
+        const tipoLabels: Record<string, string> = { frota: 'Frota', autonomo: 'Autônomo' };
         const tipo = motorista.tipo_cadastro || 'frota';
         return (
           <td className="p-4 align-middle">
             <Badge variant="outline" className={
-              tipo === 'terceirizado' ? 'bg-chart-4/10 text-chart-4 border-chart-4/20' :
               tipo === 'autonomo' ? 'bg-chart-5/10 text-chart-5 border-chart-5/20' :
               'bg-primary/10 text-primary border-primary/20'
             }>
