@@ -2151,7 +2151,7 @@ export default function OperacaoDiaria() {
                   </div>
                 ) : emRotaEntregas.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <EmptyColumnPlaceholder message="Entregas finalizadas aparecerão aqui" />
+                    <EmptyColumnPlaceholder message="Cargas finalizadas aparecerão aqui" />
                   </div>
                 ) : (
                   emRotaEntregas.map((entrega) => (
