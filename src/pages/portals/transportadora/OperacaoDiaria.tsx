@@ -868,11 +868,11 @@ function DetailPanel({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-destructive" />
-              Cancelar entrega?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação irá cancelar a entrega <span className="font-semibold">{entrega.codigo}</span>.
-              O peso será devolvido para a carga original. Esta ação não pode ser desfeita.
+               Cancelar carga?
+             </AlertDialogTitle>
+             <AlertDialogDescription>
+               Esta ação irá cancelar a carga <span className="font-semibold">{entrega.codigo}</span>.
+               O peso será devolvido para a oferta original. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
