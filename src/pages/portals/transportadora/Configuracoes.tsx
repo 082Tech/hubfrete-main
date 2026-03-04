@@ -555,8 +555,8 @@ export default function Configuracoes() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-foreground">Status de Entrega</p>
-                      <p className="text-sm text-muted-foreground">Atualizações sobre suas entregas em andamento</p>
+                      <p className="font-medium text-foreground">Status de Carga</p>
+                      <p className="text-sm text-muted-foreground">Atualizações sobre suas cargas em andamento</p>
                     </div>
                     <Switch
                       checked={notificacoes.statusEntrega}

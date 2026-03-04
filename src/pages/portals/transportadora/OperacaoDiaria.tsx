@@ -951,7 +951,7 @@ function DetailPanel({
               Confirmar ação?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a alterar o status da entrega <span className="font-semibold">{entrega.codigo}</span> para <span className="font-semibold">{nextStatus?.label}</span>.
+              Você está prestes a alterar o status da carga <span className="font-semibold">{entrega.codigo}</span> para <span className="font-semibold">{nextStatus?.label}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
