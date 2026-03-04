@@ -293,7 +293,9 @@ export function ViagemDetailPanel({
   // Resumo de documentos das entregas
   const docsResumo = viagem.entregas.map(e => ({
     codigo: e.codigo,
-    pod: !!e.canhoto_url,
+    canhoto: !!e.canhoto_url,
+    nfes: nfesCountMap?.[e.id] || 0,
+    ctes: ctesMap?.[e.id]?.length || 0,
   }));
 
   // Preparar pontos para o mapa multi-ponto
