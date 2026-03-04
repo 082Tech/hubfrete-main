@@ -273,7 +273,7 @@ export default function EmbarcadorDashboard() {
                       Olá! Sou o Hubinho 👋
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Posso te ajudar com cargas, entregas, relatórios e muito mais!
+                     Posso te ajudar com ofertas, cargas, relatórios e muito mais!
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       <span className="px-3 py-1.5 backdrop-blur-sm bg-background/40 rounded-full text-xs text-foreground/80 border border-primary/30">
