@@ -68,8 +68,8 @@ const embarcadorMenuItems: MenuItem[] = [
 
 const transportadoraMenuItems: MenuItem[] = [
   { icon: Home, label: 'Home', href: '/transportadora' },
-  { icon: Send, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
-  { icon: Package, label: 'Gestão Diária', href: '/transportadora/cargas' },
+  { icon: DollarSign, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
+  { icon: Package, label: 'Em andamento', href: '/transportadora/cargas' },
   { icon: History, label: 'Histórico de Cargas', href: '/transportadora/cargas/historico' },
   { icon: Truck, label: 'Veículos', href: '/transportadora/frota' },
   { icon: Container, label: 'Carrocerias', href: '/transportadora/frota/carrocerias' },
