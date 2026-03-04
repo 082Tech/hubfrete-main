@@ -447,7 +447,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                       <Receipt className={`w-4 h-4 ${hasCanhoto ? 'text-green-600' : 'text-muted-foreground'}`} />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Canhoto de Entrega</p>
+                      <p className="font-medium text-sm">Comprovante de Entrega</p>
                       <p className="text-xs text-muted-foreground">
                         {hasCanhoto ? 'Comprovante anexado' : 'Aguardando comprovação'}
                       </p>
