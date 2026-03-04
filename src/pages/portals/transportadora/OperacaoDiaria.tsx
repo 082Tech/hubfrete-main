@@ -115,6 +115,7 @@ interface Entrega {
   previsao_coleta: string | null;
   // Documentos
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
   carga: {
@@ -641,6 +642,7 @@ function DetailPanel({
               ctes={existingCtes}
               nfesDiretas={unlinkedNfes}
               canhotoUrl={entrega.canhoto_url || null}
+              outrosDocumentos={entrega.outros_documentos || []}
               onRefresh={refreshDocs}
             />
           </div>
@@ -1542,7 +1544,7 @@ export default function OperacaoDiaria() {
           id, codigo, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em, carrocerias_alocadas,
-          previsao_coleta, canhoto_url,
+          previsao_coleta, canhoto_url, outros_documentos,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!entregas_carga_id_fkey(
@@ -1633,7 +1635,7 @@ export default function OperacaoDiaria() {
             .select(`
               entrega:entregas(
                 id, codigo, status, peso_alocado_kg, valor_frete, created_at, updated_at,
-                canhoto_url,
+                canhoto_url, outros_documentos,
                 carga:cargas(
                   descricao,
                   endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),

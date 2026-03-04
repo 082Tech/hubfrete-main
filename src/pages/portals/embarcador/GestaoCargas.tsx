@@ -87,6 +87,7 @@ interface Entrega {
   coletado_em: string | null;
   entregue_em: string | null;
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
   eventos?: EntregaEvento[];
@@ -1341,7 +1342,7 @@ export default function GestaoCargas() {
         .select(`
           id, codigo, status, created_at, updated_at,
           motorista_id, peso_alocado_kg, valor_frete, coletado_em, entregue_em,
-          canhoto_url,
+          canhoto_url, outros_documentos,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!inner(
