@@ -272,206 +272,31 @@ function DetailPanel({
     }
   };
 
-  // Fetch NF-es for this entrega from the nfes table
-  const [isDragging, setIsDragging] = useState(false);
+  // ── Documentos (via documentHelpers — mesmo padrão da transportadora) ────────
+  const [existingCtes, setExistingCtes] = useState<any[]>([]);
+  const [unlinkedNfes, setUnlinkedNfes] = useState<any[]>([]);
+  const [docsRefreshKey, setDocsRefreshKey] = useState(0);
 
-  const { data: nfes = [], refetch: refetchNfes } = useQuery({
-    queryKey: ['entrega-nfes', entrega?.id],
-    queryFn: async () => {
-      if (!entrega?.id) return [];
-      const { data, error } = await (supabase as any)
-        .from('nfes')
-        .select('*')
-        .eq('entrega_id', entrega.id)
-        .order('created_at', { ascending: true });
-      if (error) return [];
-      return data || [];
-    },
-    enabled: !!entrega?.id,
-  });
+  const refreshDocs = useCallback(() => {
+    setDocsRefreshKey(k => k + 1);
+    onRefresh();
+  }, [onRefresh]);
 
-  const handleFilesSelection = (files: FileList | File[]) => {
-    Array.from(files).forEach(file => {
-      handleNfeFileUpload(file);
-    });
-  };
-
-  // Fetch CT-es for this entrega
-  const { data: ctes = [] } = useQuery({
-    queryKey: ['entrega-ctes', entrega?.id],
-    queryFn: async () => {
-      if (!entrega?.id) return [];
-      const { data, error } = await (supabase as any)
-        .from('ctes')
-        .select('id, numero, chave_acesso, url, focus_status, valor')
-        .eq('entrega_id', entrega.id)
-        .order('created_at', { ascending: true });
-      if (error) return [];
-      return data || [];
-    },
-    enabled: !!entrega?.id,
-  });
-
-  // Fetch Manifestos for this entrega (via viagem_entregas)
-  const { data: manifestos = [] } = useQuery({
-    queryKey: ['entrega-manifestos', entrega?.id],
-    queryFn: async () => {
-      if (!entrega?.id) return [];
-
-      const { data: veData } = await (supabase as any)
-        .from('viagem_entregas')
-        .select('viagem_id')
-        .eq('entrega_id', entrega.id)
-        .limit(1)
-        .maybeSingle();
-
-      if (!veData?.viagem_id) return [];
-
-      const { data: mData } = await (supabase as any)
-        .from('mdfes')
-        .select('id, numero, chave_acesso, pdf_path, status, created_at')
-        .eq('viagem_id', veData.viagem_id)
-        .order('created_at', { ascending: false });
-
-      if (!mData) return [];
-
-      return mData.map((m: any) => {
-        let url = null;
-        if (m.pdf_path) {
-          const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(m.pdf_path);
-          url = urlData?.publicUrl || null;
-        }
-        return {
-          id: m.id,
-          numero: m.numero || '',
-          url,
-          status: m.status
-        };
+  useEffect(() => {
+    if (entrega?.id) {
+      import('@/lib/documentHelpers').then(({ fetchCtesForEntregas, fetchNfesForEntrega }) => {
+        fetchCtesForEntregas([entrega.id]).then((map) => {
+          setExistingCtes(map[entrega.id] || []);
+        });
+        fetchNfesForEntrega(entrega.id).then((nfes) => {
+          setUnlinkedNfes(nfes.filter(nf => !(nf as any).cte_id));
+        });
       });
-    },
-    enabled: !!entrega?.id,
-  });
-
-  const handleNfeFileUpload = async (file: File) => {
-    if (!entrega) return;
-    setIsUploadingNfe(true);
-    try {
-      const isXml = file.name.toLowerCase().endsWith('.xml') || file.type === 'application/xml' || file.type === 'text/xml';
-      const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
-
-      if (!isXml && !isPdf) {
-        toast.error('Tipo de arquivo não permitido. Use PDF ou XML.');
-        setIsUploadingNfe(false);
-        return;
-      }
-
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error('Arquivo muito grande. Máximo 10MB.');
-        setIsUploadingNfe(false);
-        return;
-      }
-
-      let parsed: any = {};
-      let xmlContent: string | null = null;
-      let focusData: any = null;
-      let nfeJson: any = null;
-      let statusValidacao = 'pendente';
-
-      // Se for XML, tenta parsear e validar
-      if (isXml) {
-        xmlContent = await file.text();
-        parsed = parseNfeXml(xmlContent);
-
-        if (parsed.chaveAcesso) {
-          try {
-            toast.info('Validando NF-e na SEFAZ (Focus NFe)...');
-            const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-nfe', {
-              body: { referencia: parsed.chaveAcesso, xml_content: xmlContent }
-            });
-
-            if (!validationError && validationData?.success) {
-              nfeJson = validationData.data;
-              focusData = nfeJson?.requisicao_nota_fiscal || nfeJson?.nfe_completa?.infNFe || nfeJson;
-              statusValidacao = 'autorizada';
-              toast.success('NF-e validada com sucesso!');
-            } else {
-              console.warn('Validação Focus NFe não concluída, salvando sem validação.');
-              statusValidacao = 'nao_validada';
-            }
-          } catch (valErr) {
-            console.warn('Erro na validação Focus, prosseguindo sem validar:', valErr);
-            statusValidacao = 'nao_validada';
-          }
-        }
-      }
-
-      // Upload do arquivo ao storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `nfe_${entrega.id}_${Date.now()}.${fileExt}`;
-      const storagePath = `nfes/${fileName}`;
-      const contentType = isXml ? 'text/xml' : 'application/pdf';
-
-      const { error: uploadError } = await supabase.storage
-        .from('documentos')
-        .upload(storagePath, file, { contentType });
-
-      if (uploadError) throw new Error('Erro ao fazer upload do arquivo');
-
-      let fileUrl: string | null = null;
-      const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(storagePath);
-      fileUrl = urlData?.publicUrl || null;
-
-      // Inserir na tabela nfes
-      const insertData: any = {
-        entrega_id: entrega.id,
-        url: fileUrl,
-        status_validacao: statusValidacao,
-      };
-
-      if (isXml) {
-        insertData.xml_path = storagePath;
-        insertData.xml_content = xmlContent;
-        insertData.numero = focusData?.numero || nfeJson?.numero || parsed.numero || null;
-        insertData.chave_acesso = focusData?.chave_nfe || nfeJson?.chave_nfe || parsed.chaveAcesso || null;
-        insertData.valor = focusData?.valor_total || parsed.valor || null;
-        insertData.data_emissao = focusData?.data_emissao || parsed.dataEmissao || null;
-        insertData.peso_bruto = focusData?.peso_bruto || parsed.pesoBruto || null;
-        insertData.remetente_cnpj = focusData?.cnpj_emitente || parsed.remetenteCnpj || null;
-        insertData.remetente_razao_social = focusData?.nome_emitente || parsed.remetenteRazaoSocial || null;
-        insertData.destinatario_cnpj = focusData?.cnpj_destinatario || parsed.destinatarioCnpj || null;
-        insertData.destinatario_razao_social = focusData?.nome_destinatario || parsed.destinatarioRazaoSocial || null;
-        if (statusValidacao === 'autorizada') {
-          insertData.validado_em = new Date().toISOString();
-        }
-      }
-
-      const { error: dbError } = await (supabase as any)
-        .from('nfes')
-        .insert(insertData);
-
-      if (dbError) {
-        console.error('Erro ao salvar NF-e:', dbError);
-        throw dbError;
-      }
-
-      const label = parsed.numero || parsed.chaveAcesso?.slice(-6) || file.name;
-      toast.success(`NF-e ${label} anexada com sucesso!`);
-      refetchNfes();
-      onRefresh();
-    } catch (error: any) {
-      console.error('Erro no upload da NF-e:', error);
-      if (error.message?.includes('schema "net" does not exist')) {
-        toast.error('Erro de configuração no servidor (Extensão net faltando). Contate o suporte.');
-      } else if (error.code === '23505') {
-        toast.error('Esta Nota Fiscal já foi importada anteriormente.');
-      } else {
-        toast.error(`Erro ao enviar NF-e: ${error.message || 'Erro desconhecido'}`);
-      }
-    } finally {
-      setIsUploadingNfe(false);
-      if (nfeInputRef.current) nfeInputRef.current.value = '';
+    } else {
+      setExistingCtes([]);
+      setUnlinkedNfes([]);
     }
-  };
+  }, [entrega?.id, docsRefreshKey]);
 
   if (!entrega) {
     return (
