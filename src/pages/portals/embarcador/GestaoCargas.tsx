@@ -257,8 +257,8 @@ function DetailPanel({
       const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
       if (navigator.share) {
         await navigator.share({
-          title: `Rastreio de Entrega ${entrega.codigo || ''}`,
-          text: `Acompanhe em tempo real a entrega ${entrega.codigo || ''}`,
+          title: `Rastreio da Carga ${entrega.codigo || ''}`,
+          text: `Acompanhe em tempo real a carga ${entrega.codigo || ''}`,
           url: url,
         });
       } else {
