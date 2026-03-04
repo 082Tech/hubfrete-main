@@ -905,7 +905,7 @@ function DetailPanel({
                 ) : (
                   <>
                     <p className="text-destructive font-medium">
-                      Não é possível confirmar a entrega. Os seguintes documentos são obrigatórios:
+                      Não é possível concluir a carga. Os seguintes documentos são obrigatórios:
                     </p>
                     <ul className="list-disc list-inside text-sm space-y-1">
                       {docsCheck.missing.map((doc) => (
