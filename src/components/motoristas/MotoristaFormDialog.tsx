@@ -63,8 +63,7 @@ export function MotoristaFormDialog({
       // References and comprovante_vinculo are optional in web registration
     }
 
-    if (currentStep === 2 && formData.tipo_cadastro !== 'terceirizado') {
-      // Validate credentials (only for non-terceirizado)
+    if (currentStep === 2) {
       if (!formData.auth_email || !formData.auth_password) {
         toast.error('E-mail e senha são obrigatórios para acesso ao app');
         return;
