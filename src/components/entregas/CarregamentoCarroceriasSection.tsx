@@ -22,8 +22,6 @@ interface CarregamentoSectionProps {
   /** Fallback for legacy data: single carroceria_id + peso_alocado_kg */
   carroceriaId?: string | null;
   pesoAlocadoKg?: number | null;
-  /** Hide individual capacity progress bars (used in carrier portal) */
-  hideCapacityBar?: boolean;
 }
 
 const tipoCarroceriaLabels: Record<string, string> = {
@@ -40,7 +38,7 @@ const tipoCarroceriaLabels: Record<string, string> = {
   gaiola: 'Gaiola',
 };
 
-export function CarregamentoCarroceriasSection({ carroceriasAlocadas, carroceriaId, pesoAlocadoKg, hideCapacityBar }: CarregamentoSectionProps) {
+export function CarregamentoCarroceriasSection({ carroceriasAlocadas, carroceriaId, pesoAlocadoKg }: CarregamentoSectionProps) {
   const [carroceriasInfo, setCarroceriasInfo] = useState<Record<string, CarroceriaInfo>>({});
 
   const alocacoes = useMemo(() => {
@@ -114,7 +112,7 @@ export function CarregamentoCarroceriasSection({ carroceriasAlocadas, carroceria
                     <Weight className="w-3 h-3" />
                     {formatWeight(alocacao.peso_kg)}
                   </p>
-                  {!hideCapacityBar && capacidade && (
+                  {capacidade && (
                     <p className="text-[10px] text-muted-foreground">
                       de {formatWeight(capacidade)}
                     </p>
@@ -122,7 +120,7 @@ export function CarregamentoCarroceriasSection({ carroceriasAlocadas, carroceria
                 </div>
               </div>
 
-              {!hideCapacityBar && percentual !== null && (
+              {percentual !== null && (
                 <div className="space-y-1">
                   <Progress
                     value={percentual}

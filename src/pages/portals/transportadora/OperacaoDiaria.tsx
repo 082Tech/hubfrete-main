@@ -530,7 +530,6 @@ function DetailPanel({
             carroceriasAlocadas={entrega.carrocerias_alocadas as any}
             carroceriaId={entrega.carroceria_id}
             pesoAlocadoKg={entrega.peso_alocado_kg}
-            hideCapacityBar
           />
 
           <Separator />
