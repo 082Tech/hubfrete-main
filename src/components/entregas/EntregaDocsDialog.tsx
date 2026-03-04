@@ -142,6 +142,7 @@ export function EntregaDocsDialog({
     entregaId,
     entregaCodigo,
     canhotoUrl,
+    outrosDocumentos = [],
 }: EntregaDocsDialogProps) {
     const [loading, setLoading] = useState(false);
     const [ctes, setCtes] = useState<CteRow[]>([]);
