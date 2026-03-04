@@ -22,7 +22,7 @@ interface NavItem {
 
 const embarcadorNavItems: NavItem[] = [
   { icon: Home, label: 'Home', href: '/embarcador' },
-  { icon: Send, label: 'Ofertas', href: '/embarcador/ofertas' },
+  { icon: Boxes, label: 'Ofertas', href: '/embarcador/ofertas' },
   { icon: Package, label: 'Cargas', href: '/embarcador/cargas' },
   { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
 ];
