@@ -38,6 +38,7 @@ import {
   Loader2,
   Link2,
   Container,
+  Send,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
@@ -67,13 +68,13 @@ const embarcadorMenuItems: MenuItem[] = [
 
 const transportadoraMenuItems: MenuItem[] = [
   { icon: Home, label: 'Home', href: '/transportadora' },
-  { icon: Package, label: 'Cargas Disponíveis', href: '/transportadora/cargas' },
+  { icon: Send, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
+  { icon: Package, label: 'Gestão Diária', href: '/transportadora/cargas' },
+  { icon: History, label: 'Histórico de Cargas', href: '/transportadora/cargas/historico' },
   { icon: Truck, label: 'Veículos', href: '/transportadora/frota' },
   { icon: Container, label: 'Carrocerias', href: '/transportadora/frota/carrocerias' },
   { icon: Link2, label: 'Vínculos', href: '/transportadora/frota/vinculos' },
   { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
-  { icon: Route, label: 'Gestão de Entregas', href: '/transportadora/entregas' },
-  { icon: History, label: 'Histórico de Entregas', href: '/transportadora/entregas/historico' },
   { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
   { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
   { icon: Bell, label: 'Notificações', href: '/transportadora/notificacoes' },
