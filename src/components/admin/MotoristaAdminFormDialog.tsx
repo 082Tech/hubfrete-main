@@ -67,7 +67,7 @@ export function MotoristaAdminFormDialog({
     cnh: '',
     categoria_cnh: 'B',
     validade_cnh: '',
-    tipo_cadastro: 'autonomo' as 'autonomo' | 'frota' | 'terceirizado',
+    tipo_cadastro: 'autonomo' as 'autonomo' | 'frota',
     empresa_id: '',
     ativo: true,
   });

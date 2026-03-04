@@ -167,8 +167,7 @@ export function MotoristaFormDialog({
           }
         }
 
-        toast.success('Motorista cadastrado com sucesso! Credenciais: ' + formData.auth_email);
-      }
+      toast.success('Motorista cadastrado com sucesso! Credenciais: ' + formData.auth_email);
 
       queryClient.invalidateQueries({ queryKey: ['motoristas_transportadora'] });
       setFormData(getInitialFormData());

@@ -64,8 +64,8 @@ export function EtapaResumo({ formData }: EtapaResumoProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Tipo:</span>
-              <Badge variant={formData.tipo_cadastro === 'frota' ? 'default' : formData.tipo_cadastro === 'terceirizado' ? 'outline' : 'secondary'}>
-                {formData.tipo_cadastro === 'frota' ? 'Frota' : formData.tipo_cadastro === 'terceirizado' ? 'Terceirizado' : 'Autônomo'}
+              <Badge variant={formData.tipo_cadastro === 'frota' ? 'default' : 'secondary'}>
+                {formData.tipo_cadastro === 'frota' ? 'Frota' : 'Autônomo'}
               </Badge>
             </div>
             {formData.email && (
