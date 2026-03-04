@@ -231,7 +231,7 @@ function DetailPanel({
   const handleShareTracking = async () => {
     const trackCode = entrega?.tracking_code || entrega?.codigo;
     if (!trackCode) {
-      toast.error('Código de rastreio não disponível para esta entrega.');
+      toast.error('Código de rastreio não disponível para esta carga.');
       return;
     }
     try {
