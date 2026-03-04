@@ -506,9 +506,11 @@ function DetailPanel({
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3" />
-                {entrega.peso_alocado_kg
-                  ? `${formatWeight(entrega.peso_alocado_kg)} / ${formatWeight(entrega.carga?.peso_kg)}`
-                  : formatWeight(entrega.carga?.peso_kg)}
+                {formatWeight(
+                  Array.isArray(entrega.carrocerias_alocadas) && (entrega.carrocerias_alocadas as any[]).length > 0
+                    ? (entrega.carrocerias_alocadas as any[]).reduce((sum: number, a: any) => sum + (a.peso_kg || 0), 0)
+                    : entrega.peso_alocado_kg || entrega.carga?.peso_kg
+                )}
               </span>
               {entrega.carga?.quantidade && (
                 <span className="flex items-center gap-1">
