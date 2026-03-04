@@ -200,6 +200,7 @@ export default function HistoricoCargas() {
   const [docsEntregaId, setDocsEntregaId] = useState<string | null>(null);
   const [docsEntregaCodigo, setDocsEntregaCodigo] = useState<string | null>(null);
   const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
+  const [docsEntregaOutros, setDocsEntregaOutros] = useState<any[]>([]);
 
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
