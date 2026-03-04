@@ -207,7 +207,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <Truck className="w-5 h-5" />
-              <span>Entrega - {entrega.codigo || entrega.carga.codigo}</span>
+              <span>Carga - {entrega.codigo || entrega.carga.codigo}</span>
               <Badge variant="outline" className={config?.color}>
                 <StatusIcon className="w-3 h-3 mr-1" />
                 {config?.label}
