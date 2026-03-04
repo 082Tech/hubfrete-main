@@ -339,7 +339,7 @@ function DetailPanel({
     return (
       <div className="flex items-center justify-center h-full">
         <EmptyColumnPlaceholder
-          message="Selecione uma entrega para ver os detalhes"
+          message="Selecione uma carga para ver os detalhes"
         />
       </div>
     );
