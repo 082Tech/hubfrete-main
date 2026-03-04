@@ -224,7 +224,7 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Package className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold">Entregas ({viagem.entregas.length})</span>
+                  <span className="text-sm font-semibold">Cargas ({viagem.entregas.length})</span>
                 </div>
                 <div className="space-y-2">
                   {viagem.entregas.map(entrega => {
