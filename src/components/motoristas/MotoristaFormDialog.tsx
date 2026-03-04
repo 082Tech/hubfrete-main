@@ -188,7 +188,6 @@ export function MotoristaFormDialog({
     onOpenChange(false);
   };
 
-  const isTerceirizado = formData.tipo_cadastro === 'terceirizado';
   const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
   const currentStepData = STEPS.find(s => s.id === currentStep);
   const isLastStep = currentStepIndex === STEPS.length - 1;
