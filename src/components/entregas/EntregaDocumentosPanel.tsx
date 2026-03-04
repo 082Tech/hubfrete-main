@@ -9,8 +9,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
     FileText, Plus, Upload, Eye, Trash2,
-    FileCode, Stamp, Loader2, X, CheckCircle, AlertCircle, File,
+    FileCode, Stamp, Loader2, X, CheckCircle, AlertCircle, File, Paperclip, Info,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
