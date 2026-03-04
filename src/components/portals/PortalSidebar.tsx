@@ -112,6 +112,7 @@ const frotaSubmenu: MenuGroup = {
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: Home, label: 'Home', href: '/embarcador' },
+    { icon: Send, label: 'Ofertas de Carga', href: '/embarcador/ofertas' },
     // Cargas is now a submenu - handled separately
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
