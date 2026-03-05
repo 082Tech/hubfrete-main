@@ -41,7 +41,7 @@ export function EntregasStatusChart({ data }: EntregasStatusChartProps) {
   return (
     <Card className="border-border">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Status das Entregas</CardTitle>
+        <CardTitle className="text-lg">Status das Cargas</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[250px]">
