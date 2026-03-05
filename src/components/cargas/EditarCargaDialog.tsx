@@ -274,6 +274,15 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
   const quantidadePrec = form.watch('quantidade_precificacao');
   const valorUnitarioPrec = form.watch('valor_unitario_precificacao');
 
+  const isWeightUnit = unidadePrec === 'KG' || unidadePrec === 'TON';
+
+  useEffect(() => {
+    if (isWeightUnit && pesoKg > 0) {
+      const val = unidadePrec === 'TON' ? Math.round((pesoKg / 1000) * 10000) / 10000 : pesoKg;
+      form.setValue('quantidade_precificacao', val);
+    }
+  }, [pesoKg, unidadePrec, isWeightUnit, form]);
+
   const freteTotal = (quantidadePrec ?? 0) > 0 && (valorUnitarioPrec ?? 0) > 0
     ? Math.round((quantidadePrec ?? 0) * (valorUnitarioPrec ?? 0) * 100) / 100
     : 0;
@@ -591,8 +600,9 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                       <FormItem>
                         <FormLabel>Quantidade ({unidadePrec})</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                          <Input type="number" step="0.0001" placeholder="0" readOnly={isWeightUnit} className={isWeightUnit ? 'bg-muted' : ''} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
                         </FormControl>
+                        {isWeightUnit && <p className="text-xs text-muted-foreground">Preenchido automaticamente pelo peso da carga</p>}
                         <FormMessage />
                       </FormItem>
                     )} />
