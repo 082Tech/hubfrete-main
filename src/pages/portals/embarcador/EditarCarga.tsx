@@ -13,6 +13,7 @@ import { WeightInput } from '@/components/ui/weight-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -20,8 +21,7 @@ import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Package, MapPin, Truck, Loader2, ClipboardList, Eye, DollarSign, Pencil, Weight as WeightIcon, Info } from 'lucide-react';
+import { ArrowLeft, Package, MapPin, Truck, Loader2, ClipboardList, DollarSign, Pencil, Weight as WeightIcon, Info } from 'lucide-react';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
 import { RemetenteSection } from '@/components/cargas/RemetenteSection';
@@ -82,12 +82,20 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+  return (
+    <div className="flex items-center gap-2 pb-2">
+      <Icon className="w-4 h-4 text-primary" />
+      <h3 className="font-semibold text-sm">{title}</h3>
+    </div>
+  );
+}
+
 export default function EditarCarga() {
   const navigate = useNavigate();
   const { id: cargaId } = useParams<{ id: string }>();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [activeTab, setActiveTab] = useState('carga');
   const [cargaCodigo, setCargaCodigo] = useState('');
   const [originalPesoKg, setOriginalPesoKg] = useState(0);
   const [originalPesoDisponivel, setOriginalPesoDisponivel] = useState<number | null>(null);
@@ -115,21 +123,14 @@ export default function EditarCarga() {
     },
   });
 
-  // Load cargo data
   useEffect(() => {
     if (!cargaId) return;
-    
     const loadCarga = async () => {
       setIsLoadingData(true);
       const { data: carga, error } = await supabase
         .from('cargas')
-        .select(`
-          *,
-          endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(*),
-          endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(*)
-        `)
-        .eq('id', cargaId)
-        .single();
+        .select(`*, endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(*), endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(*)`)
+        .eq('id', cargaId).single();
 
       if (error || !carga) {
         toast.error('Carga não encontrada');
@@ -142,24 +143,17 @@ export default function EditarCarga() {
       setOriginalPesoDisponivel(carga.peso_disponivel_kg);
 
       form.reset({
-        descricao: carga.descricao || '',
-        tipo: (carga.tipo as TipoCarga) || 'carga_seca',
-        peso_kg: carga.peso_kg || 0,
-        volume_m3: carga.volume_m3 || undefined,
-        quantidade_paletes: carga.quantidade_paletes || undefined,
-        valor_mercadoria: carga.valor_mercadoria || undefined,
-        numero_pedido: carga.numero_pedido || '',
-        unidade_precificacao: carga.unidade_precificacao || 'TON',
+        descricao: carga.descricao || '', tipo: (carga.tipo as TipoCarga) || 'carga_seca',
+        peso_kg: carga.peso_kg || 0, volume_m3: carga.volume_m3 || undefined,
+        quantidade_paletes: carga.quantidade_paletes || undefined, valor_mercadoria: carga.valor_mercadoria || undefined,
+        numero_pedido: carga.numero_pedido || '', unidade_precificacao: carga.unidade_precificacao || 'TON',
         quantidade_precificacao: carga.quantidade_precificacao || undefined,
         valor_unitario_precificacao: carga.valor_unitario_precificacao || undefined,
         permite_fracionado: carga.permite_fracionado ?? true,
-        carga_fragil: carga.carga_fragil ?? false,
-        carga_perigosa: carga.carga_perigosa ?? false,
-        carga_viva: carga.carga_viva ?? false,
-        empilhavel: carga.empilhavel ?? true,
+        carga_fragil: carga.carga_fragil ?? false, carga_perigosa: carga.carga_perigosa ?? false,
+        carga_viva: carga.carga_viva ?? false, empilhavel: carga.empilhavel ?? true,
         requer_refrigeracao: carga.requer_refrigeracao ?? false,
-        temperatura_min: carga.temperatura_min || undefined,
-        temperatura_max: carga.temperatura_max || undefined,
+        temperatura_min: carga.temperatura_min || undefined, temperatura_max: carga.temperatura_max || undefined,
         numero_onu: carga.numero_onu || '',
         data_coleta_de: carga.data_coleta_de ? carga.data_coleta_de.split('T')[0] : todayStr(),
         data_coleta_ate: carga.data_coleta_ate ? carga.data_coleta_ate.split('T')[0] : undefined,
@@ -179,11 +173,10 @@ export default function EditarCarga() {
         setEnderecoOrigemId(origem.id);
         setOrigemData({
           latitude: origem.latitude || 0, longitude: origem.longitude || 0,
-          cep: origem.cep || '', logradouro: origem.logradouro || '',
-          numero: origem.numero || '', complemento: origem.complemento || '',
-          bairro: origem.bairro || '', cidade: origem.cidade || '',
-          estado: origem.estado || '', contato_nome: origem.contato_nome || '',
-          contato_telefone: origem.contato_telefone || '',
+          cep: origem.cep || '', logradouro: origem.logradouro || '', numero: origem.numero || '',
+          complemento: origem.complemento || '', bairro: origem.bairro || '',
+          cidade: origem.cidade || '', estado: origem.estado || '',
+          contato_nome: origem.contato_nome || '', contato_telefone: origem.contato_telefone || '',
         });
       }
 
@@ -192,20 +185,17 @@ export default function EditarCarga() {
         setEnderecoDestinoId(destino.id);
         setDestinoData({
           latitude: destino.latitude || 0, longitude: destino.longitude || 0,
-          cep: destino.cep || '', logradouro: destino.logradouro || '',
-          numero: destino.numero || '', complemento: destino.complemento || '',
-          bairro: destino.bairro || '', cidade: destino.cidade || '',
-          estado: destino.estado || '',
+          cep: destino.cep || '', logradouro: destino.logradouro || '', numero: destino.numero || '',
+          complemento: destino.complemento || '', bairro: destino.bairro || '',
+          cidade: destino.cidade || '', estado: destino.estado || '',
           contato_nome: carga.destinatario_contato_nome || destino.contato_nome || '',
           contato_telefone: carga.destinatario_contato_telefone || destino.contato_telefone || '',
-          razao_social: carga.destinatario_razao_social || '',
-          cnpj: carga.destinatario_cnpj || '',
+          razao_social: carga.destinatario_razao_social || '', cnpj: carga.destinatario_cnpj || '',
         });
       }
 
       setIsLoadingData(false);
     };
-
     loadCarga();
   }, [cargaId, form, navigate]);
 
@@ -213,25 +203,16 @@ export default function EditarCarga() {
   const unidadePrec = form.watch('unidade_precificacao');
   const quantidadePrec = form.watch('quantidade_precificacao');
   const valorUnitarioPrec = form.watch('valor_unitario_precificacao');
+  const requerRefrigeracao = form.watch('requer_refrigeracao');
+  const cargaPerigosa = form.watch('carga_perigosa');
 
   const freteTotal = (quantidadePrec ?? 0) > 0 && (valorUnitarioPrec ?? 0) > 0
     ? Math.round((quantidadePrec ?? 0) * (valorUnitarioPrec ?? 0) * 100) / 100
     : 0;
 
-  const requerRefrigeracao = form.watch('requer_refrigeracao');
-  const cargaPerigosa = form.watch('carga_perigosa');
-
   const validateLocations = (): boolean => {
-    if (!origemData.cidade || !origemData.logradouro) {
-      toast.error('Verifique os dados do remetente');
-      setActiveTab('origem');
-      return false;
-    }
-    if (!destinoData.cidade || !destinoData.logradouro) {
-      toast.error('Verifique os dados do destinatário');
-      setActiveTab('destino');
-      return false;
-    }
+    if (!origemData.cidade || !origemData.logradouro) { toast.error('Verifique os dados do remetente'); return false; }
+    if (!destinoData.cidade || !destinoData.logradouro) { toast.error('Verifique os dados do destinatário'); return false; }
     return true;
   };
 
@@ -249,13 +230,11 @@ export default function EditarCarga() {
           descricao: values.descricao, tipo: values.tipo,
           peso_kg: values.peso_kg, peso_disponivel_kg: newPesoDisponivel,
           volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
-          valor_mercadoria: values.valor_mercadoria || null,
-          numero_pedido: values.numero_pedido || null,
+          valor_mercadoria: values.valor_mercadoria || null, numero_pedido: values.numero_pedido || null,
           unidade_precificacao: values.unidade_precificacao || 'TON',
           quantidade_precificacao: values.quantidade_precificacao || null,
           valor_unitario_precificacao: values.valor_unitario_precificacao || null,
-          tipo_precificacao: 'por_tonelada',
-          valor_frete_tonelada: freteTotal > 0 ? freteTotal : null,
+          tipo_precificacao: 'por_tonelada', valor_frete_tonelada: freteTotal > 0 ? freteTotal : null,
           valor_frete_m3: null, valor_frete_fixo: null, valor_frete_km: null,
           permite_fracionado: values.permite_fracionado,
           carga_fragil: values.carga_fragil, carga_perigosa: values.carga_perigosa,
@@ -268,8 +247,7 @@ export default function EditarCarga() {
           data_entrega_limite: values.data_entrega_limite ? `${values.data_entrega_limite}T12:00:00` : null,
           expira_em: `${values.expira_em}T23:59:59`,
           necessidades_especiais: necessidadesEspeciais,
-          regras_carregamento: values.regras_carregamento || null,
-          nota_fiscal_url: notaFiscalUrl,
+          regras_carregamento: values.regras_carregamento || null, nota_fiscal_url: notaFiscalUrl,
           veiculo_requisitos: { tipos_veiculo: veiculosSelecionados, tipos_carroceria: carroceriasSelecionadas },
           destinatario_razao_social: destinoData.razao_social || null,
           destinatario_nome_fantasia: destinoData.razao_social || null,
@@ -277,14 +255,9 @@ export default function EditarCarga() {
           destinatario_contato_nome: destinoData.contato_nome || null,
           destinatario_contato_telefone: destinoData.contato_telefone || null,
           updated_at: new Date().toISOString(),
-        })
-        .eq('id', cargaId);
+        }).eq('id', cargaId);
 
-      if (cargaError) {
-        toast.error('Erro ao atualizar carga: ' + cargaError.message);
-        setIsLoading(false);
-        return;
-      }
+      if (cargaError) { toast.error('Erro ao atualizar carga: ' + cargaError.message); setIsLoading(false); return; }
 
       if (enderecoOrigemId) {
         await supabase.from('enderecos_carga').update({
@@ -329,58 +302,38 @@ export default function EditarCarga() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-card shrink-0">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/embarcador/ofertas')}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="text-lg font-semibold flex items-center gap-2">
-            <Pencil className="w-5 h-5 text-primary" />
-            Editar Carga - {cargaCodigo}
-          </h1>
-          <p className="text-sm text-muted-foreground">Atualize os dados da carga</p>
+      <div className="flex items-center justify-between gap-3 p-4 border-b bg-card shrink-0">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/embarcador/ofertas')}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-lg font-semibold flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-primary" />
+              Editar Carga - {cargaCodigo}
+            </h1>
+            <p className="text-sm text-muted-foreground">Atualize os dados e visualize o resumo ao lado</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => navigate('/embarcador/ofertas')} disabled={isLoading}>Cancelar</Button>
+          <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
+            {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Pencil className="w-4 h-4 mr-2" />Salvar Alterações</>)}
+          </Button>
         </div>
       </div>
 
-      {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="max-w-3xl mx-auto p-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-7">
-                  <TabsTrigger value="carga" className="gap-1 text-xs sm:text-sm">
-                    <Package className="w-4 h-4" />
-                    <span className="hidden sm:inline">Carga</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="peso" className="gap-1 text-xs sm:text-sm">
-                    <WeightIcon className="w-4 h-4" />
-                    <span className="hidden sm:inline">Peso</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="precificacao" className="gap-1 text-xs sm:text-sm">
-                    <DollarSign className="w-4 h-4" />
-                    <span className="hidden sm:inline">Preço</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="requisitos" className="gap-1 text-xs sm:text-sm">
-                    <ClipboardList className="w-4 h-4" />
-                    <span className="hidden sm:inline">Requisitos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="origem" className="gap-1 text-xs sm:text-sm">
-                    <MapPin className="w-4 h-4" />
-                    <span className="hidden sm:inline">Remetente</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="destino" className="gap-1 text-xs sm:text-sm">
-                    <Truck className="w-4 h-4" />
-                    <span className="hidden sm:inline">Destinatário</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="resumo" className="gap-1 text-xs sm:text-sm">
-                    <Eye className="w-4 h-4" />
-                    <span className="hidden sm:inline">Resumo</span>
-                  </TabsTrigger>
-                </TabsList>
+      {/* 2-column layout */}
+      <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,400px]">
+        {/* Left: Form */}
+        <ScrollArea className="h-full">
+          <div className="max-w-3xl p-6 space-y-8">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
 
-                {/* ===== CARGA ===== */}
-                <TabsContent value="carga" className="space-y-4 mt-4">
+                {/* ───── Section: Dados da Carga ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={Package} title="Dados da Carga" />
                   <FormField control={form.control} name="descricao" render={({ field }) => (
                     <FormItem><FormLabel>Descrição da Carga *</FormLabel><FormControl><Textarea placeholder="Descreva a carga" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
@@ -425,41 +378,38 @@ export default function EditarCarga() {
                   <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
                     <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
-                      As Notas Fiscais (NF-e) serão solicitadas quando as entregas forem geradas para esta carga.
+                      As Notas Fiscais (NF-e) serão solicitadas quando as entregas forem geradas.
                     </AlertDescription>
                   </Alert>
-                </TabsContent>
+                </section>
 
-                {/* ===== PESO ===== */}
-                <TabsContent value="peso" className="space-y-4 mt-4">
+                <Separator />
+
+                {/* ───── Section: Peso ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={WeightIcon} title="Peso e Dimensões" />
                   <div className="p-3 rounded-lg border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700/30">
                     <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                      <strong>Por que o peso é obrigatório?</strong> O sistema utiliza o peso da carga para verificar a compatibilidade com a capacidade das carrocerias dos motoristas. Sem essa informação, não é possível validar se o veículo suporta a carga.
+                      <strong>Por que o peso é obrigatório?</strong> O sistema utiliza o peso da carga para verificar a compatibilidade com a capacidade das carrocerias dos motoristas.
                     </p>
                   </div>
-                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                    <h4 className="font-medium text-sm flex items-center gap-2">
-                      <WeightIcon className="w-4 h-4 text-primary" />
-                      Peso e Dimensões
-                    </h4>
-                    <FormField control={form.control} name="peso_kg" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Peso Total (kg) *</FormLabel>
-                        <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
-                        <p className="text-xs text-muted-foreground">
-                          {pesoKg > 0 && pesoKg >= 1000 ? `≈ ${(pesoKg / 1000).toFixed(2)} toneladas` : 'Peso obrigatório — principal critério do sistema'}
-                        </p>
-                        <FormMessage />
-                      </FormItem>
+                  <FormField control={form.control} name="peso_kg" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Peso Total (kg) *</FormLabel>
+                      <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        {pesoKg > 0 && pesoKg >= 1000 ? `≈ ${(pesoKg / 1000).toFixed(2)} toneladas` : 'Peso obrigatório — principal critério do sistema'}
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="volume_m3" render={({ field }) => (
+                      <FormItem><FormLabel>Volume (m³)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField control={form.control} name="volume_m3" render={({ field }) => (
-                        <FormItem><FormLabel>Volume (m³)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
-                        <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                    </div>
+                    <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
+                      <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                    )} />
                   </div>
                   <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
                     <FormItem className="flex items-center space-x-2 space-y-0">
@@ -467,61 +417,61 @@ export default function EditarCarga() {
                       <FormLabel className="font-normal text-sm">Permitir transporte fracionado (múltiplos motoristas)</FormLabel>
                     </FormItem>
                   )} />
-                </TabsContent>
+                </section>
 
-                {/* ===== PRECIFICAÇÃO ===== */}
-                <TabsContent value="precificacao" className="space-y-4 mt-4">
-                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                    <h4 className="font-medium text-sm flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-primary" />
-                      Precificação do Frete
-                    </h4>
-                    <FormField control={form.control} name="unidade_precificacao" render={({ field }) => (
+                <Separator />
+
+                {/* ───── Section: Precificação ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={DollarSign} title="Precificação do Frete" />
+                  <FormField control={form.control} name="unidade_precificacao" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unidade de Precificação *</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent className="bg-popover border-border">
+                          {UNIDADES_PRECIFICACAO.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="quantidade_precificacao" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Unidade de Precificação *</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                          <SelectContent className="bg-popover border-border">
-                            {UNIDADES_PRECIFICACAO.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>Quantidade ({unidadePrec})</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="0" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField control={form.control} name="quantidade_precificacao" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quantidade ({unidadePrec})</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" placeholder="0" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name="valor_unitario_precificacao" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Valor Unitário (R$/{unidadePrec})</FormLabel>
-                          <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                    </div>
-                    <div className="p-4 rounded-lg border bg-muted/30 space-y-2">
+                    <FormField control={form.control} name="valor_unitario_precificacao" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valor Unitário (R$/{unidadePrec})</FormLabel>
+                        <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                  {freteTotal > 0 && (
+                    <div className="p-4 rounded-lg border bg-muted/30 space-y-1">
                       <Label className="text-sm text-muted-foreground">Frete Total Estimado</Label>
                       <p className="text-2xl font-bold text-primary">
-                        {freteTotal > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal) : 'R$ 0,00'}
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)}
                       </p>
-                      {(quantidadePrec ?? 0) > 0 && (valorUnitarioPrec ?? 0) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {quantidadePrec} {unidadePrec} × R$ {(valorUnitarioPrec ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidadePrec}
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {quantidadePrec} {unidadePrec} × R$ {(valorUnitarioPrec ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidadePrec}
+                      </p>
                     </div>
-                  </div>
-                </TabsContent>
+                  )}
+                </section>
 
-                {/* ===== REQUISITOS ===== */}
-                <TabsContent value="requisitos" className="space-y-6 mt-4">
+                <Separator />
+
+                {/* ───── Section: Requisitos ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={ClipboardList} title="Requisitos e Características" />
                   <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Qtd. Paletes</FormLabel>
@@ -531,7 +481,6 @@ export default function EditarCarga() {
                       <FormMessage />
                     </FormItem>
                   )} />
-
                   <div className="space-y-3">
                     <Label>Características Especiais</Label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -551,86 +500,91 @@ export default function EditarCarga() {
                       })}
                     </div>
                   </div>
-
                   {requerRefrigeracao && (
                     <div className="grid grid-cols-2 gap-4">
                       <FormField control={form.control} name="temperatura_min" render={({ field }) => (
-                        <FormItem><FormLabel>Temperatura Mínima (°C)</FormLabel><FormControl><Input type="number" placeholder="-18" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Temp. Mínima (°C)</FormLabel><FormControl><Input type="number" placeholder="-18" {...field} /></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name="temperatura_max" render={({ field }) => (
-                        <FormItem><FormLabel>Temperatura Máxima (°C)</FormLabel><FormControl><Input type="number" placeholder="4" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Temp. Máxima (°C)</FormLabel><FormControl><Input type="number" placeholder="4" {...field} /></FormControl><FormMessage /></FormItem>
                       )} />
                     </div>
                   )}
-
                   {cargaPerigosa && (
                     <FormField control={form.control} name="numero_onu" render={({ field }) => (
                       <FormItem><FormLabel>Número ONU</FormLabel><FormControl><Input placeholder="Ex: UN1203" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                   )}
-
-                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                    <VeiculoCarroceriaSelect
-                      veiculosSelecionados={veiculosSelecionados} carroceriasSelecionadas={carroceriasSelecionadas}
-                      onVeiculosChange={setVeiculosSelecionados} onCarroceriasChange={setCarroceriasSelecionadas}
-                    />
-                  </div>
-
+                  <VeiculoCarroceriaSelect
+                    veiculosSelecionados={veiculosSelecionados} carroceriasSelecionadas={carroceriasSelecionadas}
+                    onVeiculosChange={setVeiculosSelecionados} onCarroceriasChange={setCarroceriasSelecionadas}
+                  />
                   <NecessidadesEspeciais value={necessidadesEspeciais} onChange={setNecessidadesEspeciais} />
-
                   <FormField control={form.control} name="regras_carregamento" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Regras de Carregamento</FormLabel>
-                      <FormControl><Textarea placeholder="Instruções especiais para carregamento..." className="min-h-[100px]" {...field} /></FormControl>
+                      <FormControl><Textarea placeholder="Instruções especiais para carregamento..." className="min-h-[80px]" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
-                </TabsContent>
+                </section>
 
-                <TabsContent value="origem" className="mt-4">
+                <Separator />
+
+                {/* ───── Section: Remetente ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={MapPin} title="Remetente (Origem)" />
                   <RemetenteSection initialData={origemData} onLocationChange={setOrigemData} />
-                </TabsContent>
+                </section>
 
-                <TabsContent value="destino" className="mt-4">
+                <Separator />
+
+                {/* ───── Section: Destinatário ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={Truck} title="Destinatário (Destino)" />
                   <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
-                </TabsContent>
+                </section>
 
-                <TabsContent value="resumo" className="mt-4">
-                  <ResumoSection
-                    origemData={origemData} destinoData={destinoData}
-                    cargaData={{
-                      descricao: form.getValues('descricao'), tipo: form.getValues('tipo'),
-                      peso_kg: form.getValues('peso_kg'), volume_m3: form.getValues('volume_m3'),
-                      valor_mercadoria: form.getValues('valor_mercadoria'),
-                      unidade_precificacao: form.getValues('unidade_precificacao'),
-                      quantidade_precificacao: form.getValues('quantidade_precificacao'),
-                      valor_unitario_precificacao: form.getValues('valor_unitario_precificacao'),
-                      data_coleta_de: form.getValues('data_coleta_de'), data_coleta_ate: form.getValues('data_coleta_ate'),
-                      data_entrega_limite: form.getValues('data_entrega_limite'),
-                      carga_fragil: form.getValues('carga_fragil'), carga_perigosa: form.getValues('carga_perigosa'),
-                      carga_viva: form.getValues('carga_viva'), empilhavel: form.getValues('empilhavel'),
-                      requer_refrigeracao: form.getValues('requer_refrigeracao'),
-                      temperatura_min: form.getValues('temperatura_min'), temperatura_max: form.getValues('temperatura_max'),
-                      numero_onu: form.getValues('numero_onu'), regras_carregamento: form.getValues('regras_carregamento'),
-                    }}
-                    necessidadesEspeciais={necessidadesEspeciais}
-                    notaFiscalUrl={notaFiscalUrl}
-                    veiculosSelecionados={veiculosSelecionados}
-                    carroceriasSelecionadas={carroceriasSelecionadas}
-                  />
-                </TabsContent>
-              </Tabs>
+                <div className="h-4" />
+              </form>
+            </Form>
+          </div>
+        </ScrollArea>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => navigate('/embarcador/ofertas')} disabled={isLoading}>Cancelar</Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Pencil className="w-4 h-4 mr-2" />Salvar Alterações</>)}
-                </Button>
-              </div>
-            </form>
-          </Form>
+        {/* Right: Live Summary */}
+        <div className="hidden lg:flex flex-col border-l bg-muted/20 overflow-hidden">
+          <div className="px-4 py-3 border-b bg-card">
+            <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Resumo</h2>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-4">
+              <ResumoSection
+                origemData={origemData}
+                destinoData={destinoData}
+                cargaData={{
+                  descricao: form.watch('descricao'), tipo: form.watch('tipo'),
+                  peso_kg: form.watch('peso_kg'), volume_m3: form.watch('volume_m3'),
+                  valor_mercadoria: form.watch('valor_mercadoria'),
+                  unidade_precificacao: form.watch('unidade_precificacao'),
+                  quantidade_precificacao: form.watch('quantidade_precificacao'),
+                  valor_unitario_precificacao: form.watch('valor_unitario_precificacao'),
+                  data_coleta_de: form.watch('data_coleta_de'), data_coleta_ate: form.watch('data_coleta_ate'),
+                  data_entrega_limite: form.watch('data_entrega_limite'),
+                  carga_fragil: form.watch('carga_fragil'), carga_perigosa: form.watch('carga_perigosa'),
+                  carga_viva: form.watch('carga_viva'), empilhavel: form.watch('empilhavel'),
+                  requer_refrigeracao: form.watch('requer_refrigeracao'),
+                  temperatura_min: form.watch('temperatura_min'), temperatura_max: form.watch('temperatura_max'),
+                  numero_onu: form.watch('numero_onu'), regras_carregamento: form.watch('regras_carregamento'),
+                }}
+                necessidadesEspeciais={necessidadesEspeciais}
+                notaFiscalUrl={notaFiscalUrl}
+                veiculosSelecionados={veiculosSelecionados}
+                carroceriasSelecionadas={carroceriasSelecionadas}
+              />
+            </div>
+          </ScrollArea>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
