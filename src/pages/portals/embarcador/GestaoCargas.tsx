@@ -393,7 +393,7 @@ function DetailPanel({
         {/* Carga description + entrega ref */}
         <p className="text-sm font-medium mb-1">{entrega.carga.descricao}</p>
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 flex-wrap">
-          <span>Entrega #{entrega.codigo || entrega.id.slice(0, 6)}</span>
+          <span>Carga #{entrega.codigo || entrega.id.slice(0, 6)}</span>
           <span>•</span>
           <span>{format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
         </div>
