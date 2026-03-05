@@ -131,8 +131,8 @@ export default function Dashboard() {
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="cargas" fill="hsl(var(--chart-1))" name="Cargas" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="entregas" fill="hsl(var(--chart-2))" name="Entregas" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="cargas" fill="hsl(var(--chart-1))" name="Ofertas" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="entregas" fill="hsl(var(--chart-2))" name="Cargas" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

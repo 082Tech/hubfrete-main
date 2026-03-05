@@ -47,7 +47,7 @@ export function EntregasStatusChart({ data }: EntregasStatusChartProps) {
         <div className="h-[250px]">
           {total === 0 ? (
             <div className="flex items-center justify-center h-full text-muted-foreground">
-              Nenhuma entrega registrada
+              Nenhuma carga registrada
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
