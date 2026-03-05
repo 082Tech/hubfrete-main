@@ -131,7 +131,7 @@ const statusCargaConfig: Record<string, { color: string; label: string; icon: Re
   'aceita': { color: 'bg-purple-500/10 text-purple-600', label: 'Aceita', icon: Package },
   'em_coleta': { color: 'bg-cyan-500/10 text-cyan-600', label: 'Em Coleta', icon: Truck },
   'em_transito': { color: 'bg-orange-500/10 text-orange-600', label: 'Em Trânsito', icon: Navigation },
-  'entregue': { color: 'bg-green-500/10 text-green-600', label: 'Entregue', icon: CheckCircle },
+  'entregue': { color: 'bg-green-500/10 text-green-600', label: 'Concluída', icon: CheckCircle },
   'cancelada': { color: 'bg-red-500/10 text-red-600', label: 'Cancelada', icon: AlertTriangle },
 };
 
