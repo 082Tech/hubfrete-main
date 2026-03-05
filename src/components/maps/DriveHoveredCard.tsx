@@ -117,7 +117,7 @@ export function DriverHoverCard({
           ))}
           {entregas.length > 3 && (
             <div className="text-[10px] text-muted-foreground text-center">
-              +{entregas.length - 3} mais entregas
+              +{entregas.length - 3} mais cargas
             </div>
           )}
         </div>

@@ -321,7 +321,7 @@ function StatusIndicators({ statusCounts }: { statusCounts: GestaoLeafletMapProp
         <span className="text-xs font-medium">{statusCounts.entrega}</span>
       </div>
       <div className="w-px h-4 bg-border" />
-      <div className="flex items-center gap-1.5" title="Entregue">
+      <div className="flex items-center gap-1.5" title="Concluída">
         <span className="w-3 h-3 rounded-full bg-green-500 dark:bg-green-400" />
         <span className="text-xs font-medium">{statusCounts.entregue}</span>
       </div>

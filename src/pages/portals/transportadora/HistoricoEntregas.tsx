@@ -996,7 +996,7 @@ export default function HistoricoEntregas() {
                           {viagem.motorista?.nome_completo || 'Sem motorista'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {viagem.entregas.length} {viagem.entregas.length === 1 ? 'entrega' : 'entregas'}
+                          {viagem.entregas.length} {viagem.entregas.length === 1 ? 'carga' : 'cargas'}
                           {viagem.km_total ? ` • ${viagem.km_total} km` : ''}
                         </p>
                       </div>

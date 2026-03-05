@@ -526,7 +526,7 @@ export default function CargasAdmin() {
                     <TableHead>Peso</TableHead>
                     <TableHead>Alocação</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Entregas</TableHead>
+                    <TableHead>Cargas</TableHead>
                     <TableHead>Publicado</TableHead>
                   </TableRow>
                 </TableHeader>

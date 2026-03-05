@@ -504,7 +504,7 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <PackageOpen className="w-4 h-4" />
-                    Entregas ({Array.isArray(carga.entregas) ? (carga.entregas as any[]).length : 1})
+                    Cargas ({Array.isArray(carga.entregas) ? (carga.entregas as any[]).length : 1})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">

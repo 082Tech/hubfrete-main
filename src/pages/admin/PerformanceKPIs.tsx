@@ -295,7 +295,7 @@ export default function PerformanceKPIs() {
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="entregas">Mais Entregas</SelectItem>
+              <SelectItem value="entregas">Mais Cargas</SelectItem>
               <SelectItem value="taxa_atraso">Menor Atraso</SelectItem>
               <SelectItem value="km_rodado">Mais Km Rodado</SelectItem>
             </SelectContent>

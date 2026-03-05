@@ -57,7 +57,7 @@ const CHART_COLORS = [
 const statusLabels: Record<string, string> = {
   'aguardando': 'Aguardando',
   'saiu_para_coleta': 'Saiu para Coleta',
-  'saiu_para_entrega': 'Saiu para Entrega',
+  'saiu_para_entrega': 'Em Rota',
   'entregue': 'Concluída',
   'problema': 'Problema',
   'cancelada': 'Cancelada',

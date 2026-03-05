@@ -227,7 +227,7 @@ export function OperationalTab({
                 <Area
                   type="monotone"
                   dataKey="entregas"
-                  name="Entregas"
+                  name="Cargas"
                   stroke="hsl(var(--chart-2))"
                   fillOpacity={1}
                   fill="url(#colorEntregasOp)"

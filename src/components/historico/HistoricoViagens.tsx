@@ -437,7 +437,7 @@ export default function HistoricoViagens({ advancedFilters }: HistoricoViagensPr
                 )}
                 <DropdownMenuItem onClick={() => {/* TODO: expandir entregas */}}>
                   <Eye className="w-4 h-4 mr-2" />
-                  Ver entregas ({v.entregas.length})
+                  Ver cargas ({v.entregas.length})
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
