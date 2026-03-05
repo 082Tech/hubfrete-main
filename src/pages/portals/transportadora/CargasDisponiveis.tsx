@@ -94,6 +94,7 @@ interface Carga {
   valor_frete_m3: number | null;
   valor_frete_fixo: number | null;
   valor_frete_km: number | null;
+  numero_pedido: string | null;
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
   data_entrega_limite: string | null;
