@@ -146,8 +146,8 @@ export function ResumoSection({
     <div className="space-y-4">
       {/* Map */}
       <div className="relative">
-        <div className="w-full h-[280px] rounded-lg overflow-hidden border border-border">
-          <MapContainer center={defaultCenter} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
+        <div className="w-full h-[280px] rounded-lg overflow-hidden border border-border relative z-0">
+          <MapContainer center={defaultCenter} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
             <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <FitBounds origemLat={origemLat} origemLng={origemLng} destinoLat={destinoLat} destinoLng={destinoLng} />
             {routeCoords.length > 0 && <Polyline positions={routeCoords} pathOptions={{ color: '#3b82f6', weight: 4, opacity: 0.8, dashArray: '10, 6' }} />}
