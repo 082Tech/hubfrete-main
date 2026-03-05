@@ -113,7 +113,7 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                Cargas x Entregas por Mês
+                Ofertas x Cargas por Mês
               </CardTitle>
             </CardHeader>
             <CardContent>
