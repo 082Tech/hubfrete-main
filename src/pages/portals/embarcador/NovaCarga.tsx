@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +28,10 @@ import { RemetenteSection } from '@/components/cargas/RemetenteSection';
 import { DestinoSection } from '@/components/cargas/DestinoSection';
 import { NecessidadesEspeciais } from '@/components/cargas/NecessidadesEspeciais';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ResumoSection } from '@/components/cargas/ResumoSection';
 import { VeiculoCarroceriaSelect } from '@/components/cargas/VeiculoCarroceriaSelect';
 import { UNIDADES_PRECIFICACAO } from '@/components/cargas/NovaCargaDialog';
@@ -100,6 +104,7 @@ export default function NovaCarga() {
     latitude: 0, longitude: 0, cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', contato_nome: '', contato_telefone: '',
   };
 
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [pesoMinimoFracionado, setPesoMinimoFracionado] = useState<number | null>(null);
   const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([]);
@@ -253,22 +258,40 @@ export default function NovaCarga() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      {/* Exit confirmation dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deseja sair?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os dados preenchidos serão perdidos. Deseja voltar ou continuar criando a oferta de carga?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar criando</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => navigate('/embarcador/ofertas')}>
+              Sair sem salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <div className="flex items-center justify-between gap-3 p-4 border-b bg-card shrink-0">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/embarcador/ofertas')}>
+          <Button variant="ghost" size="icon" onClick={() => setShowExitDialog(true)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
             <h1 className="text-lg font-semibold flex items-center gap-2">
               <Package className="w-5 h-5 text-primary" />
-              Nova Carga
+              Nova Oferta de Carga
             </h1>
             <p className="text-sm text-muted-foreground">Preencha os dados e visualize o resumo ao lado</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate('/embarcador/ofertas')} disabled={isLoading}>
+          <Button type="button" variant="outline" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
             Cancelar
           </Button>
           <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
