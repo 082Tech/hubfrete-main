@@ -1390,15 +1390,6 @@ export default function CargasPublicadas() {
           />
         )}
 
-        {/* Edit Carga Dialog */}
-        {editCarga && (
-          <EditarCargaDialog
-            carga={editCarga}
-            open={!!editCarga}
-            onOpenChange={(open) => !open && setEditCarga(null)}
-            onSuccess={refetch}
-          />
-        )}
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
