@@ -116,8 +116,8 @@ export function DailyPerformanceDialog({
     const data = [
       { name: 'Aguardando', value: metrics.aguardando, color: STATUS_COLORS.aguardando },
       { name: 'Saiu p/ Coleta', value: metrics.coleta, color: STATUS_COLORS.saiu_para_coleta },
-      { name: 'Saiu p/ Entrega', value: metrics.emRota, color: STATUS_COLORS.saiu_para_entrega },
-      { name: 'Entregue', value: metrics.entregues, color: STATUS_COLORS.entregue },
+      { name: 'Em Rota', value: metrics.emRota, color: STATUS_COLORS.saiu_para_entrega },
+      { name: 'Concluída', value: metrics.entregues, color: STATUS_COLORS.entregue },
       { name: 'Cancelada', value: metrics.canceladas, color: STATUS_COLORS.cancelada },
     ].filter(d => d.value > 0);
     return data;
