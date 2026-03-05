@@ -607,7 +607,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
           {/* Fixed footer */}
           <div className="border-t bg-card px-6 py-3 flex items-center justify-end gap-2 shrink-0">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+            <Button type="button" variant="outline" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
               Cancelar
             </Button>
             <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
