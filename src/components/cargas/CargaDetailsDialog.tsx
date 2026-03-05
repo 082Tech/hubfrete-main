@@ -219,9 +219,15 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
           {/* Descrição */}
           <div>
             <p className="text-lg font-medium">{carga.descricao}</p>
-            <p className="text-sm text-muted-foreground">
-              Criado em {formatDate(carga.created_at)}
-            </p>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span>Criado em {formatDate(carga.created_at)}</span>
+              {carga.numero_pedido && (
+                <Badge variant="outline" className="text-xs">
+                  <FileText className="w-3 h-3 mr-1" />
+                  Pedido: {carga.numero_pedido}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <Separator />

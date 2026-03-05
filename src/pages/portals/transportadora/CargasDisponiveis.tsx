@@ -290,6 +290,7 @@ export default function CargasDisponiveis() {
           empilhavel,
           necessidades_especiais,
           veiculo_requisitos,
+          numero_pedido,
           empresa_id,
           destinatario_razao_social,
           destinatario_nome_fantasia,
