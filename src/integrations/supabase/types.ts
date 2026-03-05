@@ -200,6 +200,7 @@ export type Database = {
           publicada_em: string | null
           quantidade: number | null
           quantidade_paletes: number | null
+          quantidade_precificacao: number | null
           regras_carregamento: string | null
           remetente_cnpj: string | null
           remetente_contato_nome: string | null
@@ -213,12 +214,14 @@ export type Database = {
           temperatura_min: number | null
           tipo: Database["public"]["Enums"]["tipo_carga"]
           tipo_precificacao: Database["public"]["Enums"]["tipo_precificacao"]
+          unidade_precificacao: string | null
           updated_at: string | null
           valor_frete_fixo: number | null
           valor_frete_km: number | null
           valor_frete_m3: number | null
           valor_frete_tonelada: number | null
           valor_mercadoria: number | null
+          valor_unitario_precificacao: number | null
           veiculo_requisitos: Json | null
           volume_m3: number | null
         }
@@ -260,6 +263,7 @@ export type Database = {
           publicada_em?: string | null
           quantidade?: number | null
           quantidade_paletes?: number | null
+          quantidade_precificacao?: number | null
           regras_carregamento?: string | null
           remetente_cnpj?: string | null
           remetente_contato_nome?: string | null
@@ -273,12 +277,14 @@ export type Database = {
           temperatura_min?: number | null
           tipo: Database["public"]["Enums"]["tipo_carga"]
           tipo_precificacao?: Database["public"]["Enums"]["tipo_precificacao"]
+          unidade_precificacao?: string | null
           updated_at?: string | null
           valor_frete_fixo?: number | null
           valor_frete_km?: number | null
           valor_frete_m3?: number | null
           valor_frete_tonelada?: number | null
           valor_mercadoria?: number | null
+          valor_unitario_precificacao?: number | null
           veiculo_requisitos?: Json | null
           volume_m3?: number | null
         }
@@ -320,6 +326,7 @@ export type Database = {
           publicada_em?: string | null
           quantidade?: number | null
           quantidade_paletes?: number | null
+          quantidade_precificacao?: number | null
           regras_carregamento?: string | null
           remetente_cnpj?: string | null
           remetente_contato_nome?: string | null
@@ -333,12 +340,14 @@ export type Database = {
           temperatura_min?: number | null
           tipo?: Database["public"]["Enums"]["tipo_carga"]
           tipo_precificacao?: Database["public"]["Enums"]["tipo_precificacao"]
+          unidade_precificacao?: string | null
           updated_at?: string | null
           valor_frete_fixo?: number | null
           valor_frete_km?: number | null
           valor_frete_m3?: number | null
           valor_frete_tonelada?: number | null
           valor_mercadoria?: number | null
+          valor_unitario_precificacao?: number | null
           veiculo_requisitos?: Json | null
           volume_m3?: number | null
         }
