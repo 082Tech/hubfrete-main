@@ -105,7 +105,7 @@ export function DriverHoverCard({
       {entregas.length > 0 && (
         <div className="mt-3 pt-3 border-t space-y-2">
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-            Entregas em andamento
+            Cargas em andamento
           </span>
           {entregas.slice(0, 3).map((e, i) => (
             <div key={i} className="flex items-center gap-2 text-xs bg-muted/40 rounded-md px-2 py-1.5">
