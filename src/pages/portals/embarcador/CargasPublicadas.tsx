@@ -1073,7 +1073,7 @@ export default function CargasPublicadas() {
                                 </td>
                                 <td className="p-4 align-middle text-center">
                                   <Badge variant="outline" className="text-xs">
-                                    {carga.entregas.length} {carga.entregas.length === 1 ? 'entrega' : 'entregas'}
+                                    {carga.entregas.length} {carga.entregas.length === 1 ? 'carga' : 'cargas'}
                                   </Badge>
                                 </td>
                                 <td className="p-4 align-middle">
