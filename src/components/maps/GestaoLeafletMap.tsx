@@ -270,7 +270,7 @@ function DriverMarkerWithTooltip({
           {entregasCount > 0 && (
             <div className="space-y-1.5">
               <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                {entregasCount} entrega{entregasCount !== 1 ? 's' : ''} em andamento
+                {entregasCount} carga{entregasCount !== 1 ? 's' : ''} em andamento
               </span>
               {entregas.slice(0, 3).map((e, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded-md px-2 py-1.5">
