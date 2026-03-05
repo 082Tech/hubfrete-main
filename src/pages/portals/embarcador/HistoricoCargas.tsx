@@ -827,7 +827,7 @@ export default function HistoricoCargas() {
 
             {filterStatus !== 'all' && (
               <Badge variant="outline">
-                Filtro: {filterStatus === 'entregue' ? 'Entregues' : filterStatus === 'cancelada' ? 'Canceladas' : 'Com Problemas'}
+                Filtro: {filterStatus === 'entregue' ? 'Concluídas' : filterStatus === 'cancelada' ? 'Canceladas' : 'Com Problemas'}
                 <Button
                   variant="ghost"
                   size="icon"
