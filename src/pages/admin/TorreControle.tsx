@@ -404,7 +404,7 @@ export default function TorreControle() {
                 iconClassName="bg-chart-1/10 text-chart-1"
               />
               <StatCard
-                title="Entregas Hoje"
+                title="Cargas Hoje"
                 value={stats?.entregasHoje || 0}
                 icon={Calendar}
                 iconClassName="bg-chart-3/10 text-chart-3"
