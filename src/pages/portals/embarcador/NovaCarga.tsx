@@ -104,6 +104,7 @@ export default function NovaCarga() {
     latitude: 0, longitude: 0, cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', contato_nome: '', contato_telefone: '',
   };
 
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [pesoMinimoFracionado, setPesoMinimoFracionado] = useState<number | null>(null);
   const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([]);
