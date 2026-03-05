@@ -905,10 +905,12 @@ export default function CargasPublicadas() {
                   <p className="text-sm text-muted-foreground mb-4">
                     {filterStatus !== 'all' ? 'Tente ajustar os filtros' : 'Crie sua primeira carga'}
                   </p>
-                  <Button className="gap-2" onClick={() => navigate('/embarcador/ofertas/nova')}>
-                    <Plus className="w-4 h-4" />
-                    Nova Carga
-                  </Button>
+                  <NovaCargaDialog onSuccess={() => refetch()}>
+                    <Button className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Nova Carga
+                    </Button>
+                  </NovaCargaDialog>
                 </div>
               ) : (
                 <>
