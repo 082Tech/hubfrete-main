@@ -54,6 +54,8 @@ interface CargaDetailsProps {
     valor_frete_m3?: number | null;
     valor_frete_fixo?: number | null;
     valor_frete_km?: number | null;
+    numero_pedido?: string | null;
+    quantidade_paletes?: number | null;
     status: StatusCarga | null;
     data_coleta_de: string | null;
     data_coleta_ate: string | null;
