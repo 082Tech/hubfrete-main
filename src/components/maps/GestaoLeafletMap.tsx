@@ -283,7 +283,7 @@ function DriverMarkerWithTooltip({
               ))}
               {entregasCount > 3 && (
                 <p className="text-[10px] text-muted-foreground text-center pt-1">
-                  +{entregasCount - 3} mais entregas
+                  +{entregasCount - 3} mais cargas
                 </p>
               )}
             </div>
