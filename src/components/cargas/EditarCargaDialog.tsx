@@ -190,6 +190,7 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
 
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
+  const [pesoMinimoFracionado, setPesoMinimoFracionado] = useState<number | null>(null);
   const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([]);
   const [carroceriasSelecionadas, setCarroceriasSelecionadas] = useState<string[]>([]);
   const [origemData, setOrigemData] = useState<LocationData>(initialLocationData);
