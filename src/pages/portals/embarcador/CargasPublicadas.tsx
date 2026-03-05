@@ -948,7 +948,7 @@ export default function CargasPublicadas() {
                               Frete
                             </div>
                           </th>
-                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px]">Entregas</th>
+                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px]">Cargas</th>
                           <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[110px]">Status</th>
                           <th className="h-12 px-4 text-left align-middle font-semibold text-foreground w-10"></th>
                         </tr>
