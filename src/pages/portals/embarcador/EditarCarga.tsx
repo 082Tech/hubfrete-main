@@ -206,6 +206,15 @@ export default function EditarCarga() {
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
 
+  const isWeightUnit = unidadePrec === 'KG' || unidadePrec === 'TON';
+
+  useEffect(() => {
+    if (isWeightUnit && pesoKg > 0) {
+      const val = unidadePrec === 'TON' ? Math.round((pesoKg / 1000) * 10000) / 10000 : pesoKg;
+      form.setValue('quantidade_precificacao', val);
+    }
+  }, [pesoKg, unidadePrec, isWeightUnit, form]);
+
   const freteTotal = (quantidadePrec ?? 0) > 0 && (valorUnitarioPrec ?? 0) > 0
     ? Math.round((quantidadePrec ?? 0) * (valorUnitarioPrec ?? 0) * 100) / 100
     : 0;
