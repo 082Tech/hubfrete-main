@@ -618,7 +618,12 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               </TabsContent>
 
               {/* ===== ABA PESO ===== */}
-              <TabsContent value="peso" className="space-y-4 mt-4">
+               <TabsContent value="peso" className="space-y-4 mt-4">
+                <div className="p-3 rounded-lg border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700/30">
+                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                    <strong>Por que o peso é obrigatório?</strong> O sistema utiliza o peso da carga para verificar a compatibilidade com a capacidade das carrocerias dos motoristas. Sem essa informação, não é possível validar se o veículo suporta a carga.
+                  </p>
+                </div>
                 <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
                   <h4 className="font-medium text-sm flex items-center gap-2">
                     <Weight className="w-4 h-4 text-primary" />
