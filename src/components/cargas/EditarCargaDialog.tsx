@@ -236,6 +236,7 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
 
       setNecessidadesEspeciais(carga.necessidades_especiais || []);
       setNotaFiscalUrl(carga.nota_fiscal_url || null);
+      setPesoMinimoFracionado(carga.peso_minimo_fracionado_kg || null);
       setVeiculosSelecionados(carga.veiculo_requisitos?.tipos_veiculo || []);
       setCarroceriasSelecionadas(carga.veiculo_requisitos?.tipos_carroceria || []);
 
