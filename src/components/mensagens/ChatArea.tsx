@@ -343,8 +343,8 @@ export function ChatArea({
       case 'cancelada':
         return { 
           icon: Ban, 
-          title: 'Entrega cancelada', 
-          subtitle: 'Esta entrega foi cancelada.',
+          title: 'Carga cancelada', 
+          subtitle: 'Esta carga foi cancelada.',
           color: 'text-muted-foreground',
           bgColor: 'bg-muted',
         };
