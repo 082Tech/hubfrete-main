@@ -37,6 +37,10 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, DollarSign, Weight, Info } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
 import { RemetenteSection } from './RemetenteSection';
@@ -129,6 +133,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { filialAtiva, empresa, userType } = useUserContext();
+
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   const initialLocationData: LocationData = {
     latitude: 0, longitude: 0, cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', contato_nome: '', contato_telefone: '',
@@ -300,11 +306,38 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) resetDialogState();
+    if (!nextOpen) {
+      // Show confirmation instead of closing directly
+      setShowExitDialog(true);
+      return;
+    }
     setOpen(nextOpen);
   };
 
+  const confirmClose = () => {
+    setShowExitDialog(false);
+    resetDialogState();
+    setOpen(false);
+  };
+
   return (
+    <>
+    <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Deseja sair?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Os dados preenchidos serão perdidos. Deseja voltar ou continuar criando a oferta de carga?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Continuar criando</AlertDialogCancel>
+          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={confirmClose}>
+            Sair sem salvar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children || (
@@ -574,7 +607,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
           {/* Fixed footer */}
           <div className="border-t bg-card px-6 py-3 flex items-center justify-end gap-2 shrink-0">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+            <Button type="button" variant="outline" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
               Cancelar
             </Button>
             <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
@@ -626,5 +659,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
