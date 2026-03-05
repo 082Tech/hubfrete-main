@@ -168,7 +168,10 @@ export default function EmbarcadorDashboard() {
               <BarChart3 className="w-4 h-4" />
               Relatórios
             </Button>
-            <NovaCargaDialog />
+            <Button className="gap-2" onClick={() => navigate('/embarcador/ofertas/nova')}>
+              <Plus className="w-4 h-4" />
+              Nova Carga
+            </Button>
           </div>
         </div>
 
