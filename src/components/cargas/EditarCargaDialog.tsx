@@ -600,8 +600,9 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                       <FormItem>
                         <FormLabel>Quantidade ({unidadePrec})</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                          <Input type="number" step="0.0001" placeholder="0" readOnly={isWeightUnit} className={isWeightUnit ? 'bg-muted' : ''} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
                         </FormControl>
+                        {isWeightUnit && <p className="text-xs text-muted-foreground">Preenchido automaticamente pelo peso da carga</p>}
                         <FormMessage />
                       </FormItem>
                     )} />
