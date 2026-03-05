@@ -149,7 +149,7 @@ const App = () => {
                   <Route path="/embarcador" element={<PortalLayoutWrapper expectedUserType="embarcador" />}>
                     <Route index element={<EmbarcadorDashboard />} />
                     <Route path="ofertas" element={<CargasPublicadas />} />
-                    <Route path="ofertas/nova" element={<NovaCarga />} />
+                    {/* NovaCarga is now a modal dialog, no separate route needed */}
                     <Route path="ofertas/editar/:id" element={<EditarCarga />} />
                     <Route path="cargas" element={<CargasEmRota />} />
                     <Route path="cargas/historico" element={<HistoricoCargas />} />

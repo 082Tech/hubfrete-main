@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
+import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import {
   DropdownMenu,
@@ -741,10 +742,12 @@ export default function CargasPublicadas() {
                   className="pl-10"
                 />
               </div>
-              <Button className="gap-2" onClick={() => navigate('/embarcador/ofertas/nova')}>
-                <Plus className="w-4 h-4" />
-                Nova Carga
-              </Button>
+              <NovaCargaDialog onSuccess={() => refetch()}>
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Nova Carga
+                </Button>
+              </NovaCargaDialog>
             </div>
           </div>
 
@@ -903,10 +906,12 @@ export default function CargasPublicadas() {
                   <p className="text-sm text-muted-foreground mb-4">
                     {filterStatus !== 'all' ? 'Tente ajustar os filtros' : 'Crie sua primeira carga'}
                   </p>
-                  <Button className="gap-2" onClick={() => navigate('/embarcador/ofertas/nova')}>
-                    <Plus className="w-4 h-4" />
-                    Nova Carga
-                  </Button>
+                  <NovaCargaDialog onSuccess={() => refetch()}>
+                    <Button className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Nova Carga
+                    </Button>
+                  </NovaCargaDialog>
                 </div>
               ) : (
                 <>
