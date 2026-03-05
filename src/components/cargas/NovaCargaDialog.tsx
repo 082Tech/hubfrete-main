@@ -135,6 +135,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const { filialAtiva, empresa, userType } = useUserContext();
 
   const [showExitDialog, setShowExitDialog] = useState(false);
+
+  const initialLocationData: LocationData = {
     latitude: 0, longitude: 0, cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', contato_nome: '', contato_telefone: '',
   };
 
