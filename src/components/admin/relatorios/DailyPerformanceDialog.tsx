@@ -289,7 +289,7 @@ export function DailyPerformanceDialog({
             {/* Bar Chart - Entregas por Motorista */}
             <Card className="border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Top 5 Motoristas (Entregas)</CardTitle>
+                <CardTitle className="text-sm font-medium">Top 5 Motoristas (Cargas)</CardTitle>
               </CardHeader>
               <CardContent>
                 {motoristaData.length > 0 ? (
