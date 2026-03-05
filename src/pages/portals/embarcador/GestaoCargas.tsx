@@ -1110,6 +1110,15 @@ export default function GestaoCargas() {
             showDestinatario
           />
           <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setPerformanceDialogOpen(true)}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Desempenho Diário
+          </Button>
+          <Button
             variant="default"
             size="sm"
             className="gap-2"
