@@ -806,38 +806,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   </div>
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="permite_fracionado"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormLabel className="font-normal text-sm">
-                        Permitir transporte fracionado (múltiplos motoristas)
-                      </FormLabel>
-                    </FormItem>
-                  )}
-                />
-
-                {form.watch('permite_fracionado') && (
-                  <div className="ml-6 p-3 bg-muted/50 rounded-md border">
-                    <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
-                    <WeightInput
-                      placeholder="Ex: 15.000 (15 toneladas)"
-                      className="mt-2"
-                      value={pesoMinimoFracionado || undefined}
-                      onValueChange={(v) => setPesoMinimoFracionado(v || null)}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Deixe vazio para não ter limite mínimo
-                    </p>
-                  </div>
-                )}
               </TabsContent>
 
               {/* ===== ABA REQUISITOS ===== */}

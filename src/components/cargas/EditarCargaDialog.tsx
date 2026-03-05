@@ -598,12 +598,6 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                   </div>
                 </div>
 
-                <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
-                  <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                    <FormLabel className="font-normal text-sm">Permitir transporte fracionado (múltiplos motoristas)</FormLabel>
-                  </FormItem>
-                )} />
               </TabsContent>
 
               {/* ===== REQUISITOS ===== */}
