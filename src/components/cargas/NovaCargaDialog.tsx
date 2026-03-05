@@ -168,6 +168,9 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       peso_kg: 0,
       tipo_precificacao: 'por_tonelada',
       valor_frete_tonelada: 0,
+      valor_frete_m3: 0,
+      valor_frete_fixo: 0,
+      valor_frete_km: 0,
       permite_fracionado: true,
       carga_fragil: false,
       carga_perigosa: false,
@@ -176,14 +179,33 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       requer_refrigeracao: false,
       regras_carregamento: '',
       expira_em: addDays(30),
+      numero_pedido: '',
     },
   });
 
   const pesoKg = form.watch('peso_kg');
+  const volumeM3 = form.watch('volume_m3');
+  const tipoPrecificacao = form.watch('tipo_precificacao');
   const valorFreteTonelada = form.watch('valor_frete_tonelada');
+  const valorFreteM3 = form.watch('valor_frete_m3');
+  const valorFreteFixo = form.watch('valor_frete_fixo');
+  const valorFreteKm = form.watch('valor_frete_km');
 
-  // Preview do frete total (por tonelada)
-  const freteTotal = pesoKg && valorFreteTonelada ? Math.round((pesoKg / 1000) * valorFreteTonelada * 100) / 100 : 0;
+  // Calcular frete total baseado no tipo de precificação
+  const freteTotal = (() => {
+    switch (tipoPrecificacao) {
+      case 'por_tonelada':
+        return pesoKg && valorFreteTonelada ? Math.round((pesoKg / 1000) * valorFreteTonelada * 100) / 100 : 0;
+      case 'por_m3':
+        return (volumeM3 ?? 0) > 0 && valorFreteM3 ? Math.round((volumeM3 ?? 0) * valorFreteM3 * 100) / 100 : 0;
+      case 'fixo':
+        return valorFreteFixo ?? 0;
+      case 'por_km':
+        return valorFreteKm ?? 0; // total depends on distance, show unit value
+      default:
+        return 0;
+    }
+  })();
 
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
