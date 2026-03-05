@@ -290,14 +290,6 @@ export default function NovaCarga() {
             <p className="text-sm text-muted-foreground">Preencha os dados e visualize o resumo ao lado</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
-            Cancelar
-          </Button>
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
-            {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-2" />Criar Carga</>)}
-          </Button>
-        </div>
       </div>
 
       {/* 2-column layout */}
