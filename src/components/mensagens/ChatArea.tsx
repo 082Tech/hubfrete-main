@@ -327,32 +327,32 @@ export function ChatArea({
       case 'entregue':
         return { 
           icon: CheckCircle2, 
-          title: 'Entrega concluída!', 
-          subtitle: 'Esta entrega foi finalizada com sucesso.',
+          title: 'Carga concluída!', 
+          subtitle: 'Esta carga foi finalizada com sucesso.',
           color: 'text-green-600',
           bgColor: 'bg-green-500/10',
         };
       case 'devolvida':
         return { 
           icon: RotateCcw, 
-          title: 'Entrega devolvida', 
-          subtitle: 'Esta entrega foi devolvida.',
+          title: 'Carga devolvida', 
+          subtitle: 'Esta carga foi devolvida.',
           color: 'text-amber-600',
           bgColor: 'bg-amber-500/10',
         };
       case 'cancelada':
         return { 
           icon: Ban, 
-          title: 'Entrega cancelada', 
-          subtitle: 'Esta entrega foi cancelada.',
+          title: 'Carga cancelada', 
+          subtitle: 'Esta carga foi cancelada.',
           color: 'text-muted-foreground',
           bgColor: 'bg-muted',
         };
       case 'problema':
         return { 
           icon: AlertTriangle, 
-          title: 'Entrega com problema', 
-          subtitle: 'Esta entrega foi finalizada com problema.',
+          title: 'Carga com problema', 
+          subtitle: 'Esta carga foi finalizada com problema.',
           color: 'text-destructive',
           bgColor: 'bg-destructive/10',
         };

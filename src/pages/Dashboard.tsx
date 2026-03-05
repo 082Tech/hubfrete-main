@@ -113,7 +113,7 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                Cargas x Entregas por Mês
+                Ofertas x Cargas por Mês
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -131,8 +131,8 @@ export default function Dashboard() {
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="cargas" fill="hsl(var(--chart-1))" name="Cargas" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="entregas" fill="hsl(var(--chart-2))" name="Entregas" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="cargas" fill="hsl(var(--chart-1))" name="Ofertas" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="entregas" fill="hsl(var(--chart-2))" name="Cargas" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -144,7 +144,7 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-primary" />
-                Status das Entregas
+                Status das Cargas
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -182,7 +182,7 @@ export default function Dashboard() {
         {/* Recent Deliveries */}
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Últimas Entregas</CardTitle>
+            <CardTitle>Últimas Cargas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">

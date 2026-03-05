@@ -404,7 +404,7 @@ export default function TorreControle() {
                 iconClassName="bg-chart-1/10 text-chart-1"
               />
               <StatCard
-                title="Entregas Hoje"
+                title="Cargas Hoje"
                 value={stats?.entregasHoje || 0}
                 icon={Calendar}
                 iconClassName="bg-chart-3/10 text-chart-3"
@@ -425,7 +425,7 @@ export default function TorreControle() {
                         <CheckCircle className="w-4 h-4 text-chart-1" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">Entrega concluída</p>
+                        <p className="text-sm font-medium">Carga concluída</p>
                         <p className="text-xs text-muted-foreground">há 5 minutos</p>
                       </div>
                     </div>

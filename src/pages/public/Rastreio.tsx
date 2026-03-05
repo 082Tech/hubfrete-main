@@ -173,7 +173,7 @@ export default function Rastreio() {
             <main className="flex-1 container mx-auto px-4 py-8 md:py-16 max-w-4xl">
                 <div className="text-center mb-10">
                     <h1 className="text-3xl font-bold text-gray-900 mb-4">Rastreie sua encomenda</h1>
-                    <p className="text-gray-600">Digite o código de rastreio recebido para acompanhar o status da entrega.</p>
+                    <p className="text-gray-600">Digite o código de rastreio recebido para acompanhar o status da carga.</p>
                 </div>
 
                 {/* Search Box */}
@@ -206,9 +206,9 @@ export default function Rastreio() {
                             <CardHeader className="border-b border-gray-100 bg-gray-50/50">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div>
-                                        <CardTitle className="text-xl mb-1">Status da Entrega</CardTitle>
+                                        <CardTitle className="text-xl mb-1">Status da Carga</CardTitle>
                                         <CardDescription>
-                                            {data.nfe ? `NF-e: ${data.nfe.numero} - Série ${data.nfe.serie}` : 'Detalhes da entrega'}
+                                            {data.nfe ? `NF-e: ${data.nfe.numero} - Série ${data.nfe.serie}` : 'Detalhes da carga'}
                                         </CardDescription>
                                     </div>
                                     <span className={`px-4 py-2 rounded-full font-bold text-sm uppercase tracking-wide ${getStatusColor(data.entrega.status)}`}>

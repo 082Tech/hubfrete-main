@@ -611,7 +611,7 @@ export default function TransportadoraRelatorios() {
                       <CardContent className="p-5">
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-sm text-muted-foreground">Total de Entregas</p>
+                            <p className="text-sm text-muted-foreground">Total de Cargas</p>
                             <p className="text-3xl font-bold text-foreground mt-1">{kpis.totalEntregas}</p>
                             <p className="text-xs text-muted-foreground mt-1">
                               ~{kpis.mediaEntregasDia.toFixed(1)}/dia
