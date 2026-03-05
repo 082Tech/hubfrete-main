@@ -306,11 +306,38 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) resetDialogState();
+    if (!nextOpen) {
+      // Show confirmation instead of closing directly
+      setShowExitDialog(true);
+      return;
+    }
     setOpen(nextOpen);
   };
 
+  const confirmClose = () => {
+    setShowExitDialog(false);
+    resetDialogState();
+    setOpen(false);
+  };
+
   return (
+    <>
+    <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Deseja sair?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Os dados preenchidos serão perdidos. Deseja voltar ou continuar criando a oferta de carga?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Continuar criando</AlertDialogCancel>
+          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={confirmClose}>
+            Sair sem salvar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children || (
