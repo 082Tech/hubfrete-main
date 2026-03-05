@@ -13,6 +13,7 @@ import { WeightInput } from '@/components/ui/weight-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -20,15 +21,13 @@ import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Package, MapPin, Truck, Loader2, ClipboardList, Eye, DollarSign, Weight } from 'lucide-react';
+import { ArrowLeft, Package, MapPin, Truck, Loader2, ClipboardList, DollarSign, Weight, Info } from 'lucide-react';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
 import { RemetenteSection } from '@/components/cargas/RemetenteSection';
 import { DestinoSection } from '@/components/cargas/DestinoSection';
 import { NecessidadesEspeciais } from '@/components/cargas/NecessidadesEspeciais';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
 import { ResumoSection } from '@/components/cargas/ResumoSection';
 import { VeiculoCarroceriaSelect } from '@/components/cargas/VeiculoCarroceriaSelect';
 import { UNIDADES_PRECIFICACAO } from '@/components/cargas/NovaCargaDialog';
@@ -83,10 +82,18 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+  return (
+    <div className="flex items-center gap-2 pb-2">
+      <Icon className="w-4 h-4 text-primary" />
+      <h3 className="font-semibold text-sm">{title}</h3>
+    </div>
+  );
+}
+
 export default function NovaCarga() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('carga');
   const { filialAtiva, empresa, userType } = useUserContext();
 
   const initialLocationData: LocationData = {
@@ -114,23 +121,20 @@ export default function NovaCarga() {
   const quantidadePrec = form.watch('quantidade_precificacao');
   const valorUnitarioPrec = form.watch('valor_unitario_precificacao');
   const unidadePrec = form.watch('unidade_precificacao');
+  const requerRefrigeracao = form.watch('requer_refrigeracao');
+  const cargaPerigosa = form.watch('carga_perigosa');
 
   const freteTotal = (quantidadePrec ?? 0) > 0 && (valorUnitarioPrec ?? 0) > 0
     ? Math.round((quantidadePrec ?? 0) * (valorUnitarioPrec ?? 0) * 100) / 100
     : 0;
 
-  const requerRefrigeracao = form.watch('requer_refrigeracao');
-  const cargaPerigosa = form.watch('carga_perigosa');
-
   const validateLocations = (): boolean => {
     if (!origemData.cidade || !origemData.logradouro) {
       toast.error('Verifique os dados do remetente');
-      setActiveTab('origem');
       return false;
     }
     if (!destinoData.cidade || !destinoData.logradouro) {
       toast.error('Verifique os dados do destinatário');
-      setActiveTab('destino');
       return false;
     }
     return true;
@@ -151,13 +155,10 @@ export default function NovaCarga() {
     toast.loading('Carga sendo criada, aguarde...', { id: 'creating-carga' });
 
     try {
-      const empresaId = empresa.id;
-      const filialId = filialAtiva?.id || null;
-
       const { data: carga, error: cargaError } = await supabase
         .from('cargas')
         .insert({
-          empresa_id: empresaId, filial_id: filialId,
+          empresa_id: empresa.id, filial_id: filialAtiva?.id || null,
           descricao: values.descricao, tipo: values.tipo,
           peso_kg: values.peso_kg, peso_disponivel_kg: values.peso_kg,
           volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
@@ -195,8 +196,7 @@ export default function NovaCarga() {
           destinatario_contato_nome: destinoData.contato_nome || null,
           destinatario_contato_telefone: destinoData.contato_telefone || null,
         })
-        .select()
-        .single();
+        .select().single();
 
       if (cargaError) {
         toast.error('Erro ao criar carga: ' + cargaError.message, { id: 'creating-carga' });
@@ -212,8 +212,7 @@ export default function NovaCarga() {
           bairro: origemData.bairro || null, cidade: origemData.cidade, estado: origemData.estado,
           contato_nome: origemData.contato_nome || null, contato_telefone: origemData.contato_telefone || null,
           latitude: origemData.latitude || null, longitude: origemData.longitude || null,
-        })
-        .select('id').single();
+        }).select('id').single();
 
       if (origemError || !origemEndereco) {
         toast.error('Erro ao criar endereço de origem', { id: 'creating-carga' });
@@ -229,8 +228,7 @@ export default function NovaCarga() {
           bairro: destinoData.bairro || null, cidade: destinoData.cidade, estado: destinoData.estado,
           contato_nome: destinoData.contato_nome || null, contato_telefone: destinoData.contato_telefone || null,
           latitude: destinoData.latitude || null, longitude: destinoData.longitude || null,
-        })
-        .select('id').single();
+        }).select('id').single();
 
       if (destinoError || !destinoEndereco) {
         toast.error('Erro ao criar endereço de destino', { id: 'creating-carga' });
@@ -243,9 +241,7 @@ export default function NovaCarga() {
       }).eq('id', carga.id);
 
       const { data: cargaFinal } = await supabase.from('cargas').select('codigo').eq('id', carga.id).single();
-      const codigoCarga = cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase();
-
-      toast.success(`Carga criada com sucesso! Código: ${codigoCarga}`, { id: 'creating-carga' });
+      toast.success(`Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
       navigate('/embarcador/ofertas');
     } catch (error) {
       console.error('Erro inesperado:', error);
@@ -258,58 +254,40 @@ export default function NovaCarga() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-card shrink-0">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/embarcador/ofertas')}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="text-lg font-semibold flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary" />
-            Nova Carga
-          </h1>
-          <p className="text-sm text-muted-foreground">Preencha os dados da carga e verifique os locais de origem e destino</p>
+      <div className="flex items-center justify-between gap-3 p-4 border-b bg-card shrink-0">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/embarcador/ofertas')}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-lg font-semibold flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary" />
+              Nova Carga
+            </h1>
+            <p className="text-sm text-muted-foreground">Preencha os dados e visualize o resumo ao lado</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => navigate('/embarcador/ofertas')} disabled={isLoading}>
+            Cancelar
+          </Button>
+          <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
+            {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-2" />Criar Carga</>)}
+          </Button>
         </div>
       </div>
 
-      {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="max-w-3xl mx-auto p-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-7">
-                  <TabsTrigger value="carga" className="gap-1 text-xs sm:text-sm">
-                    <Package className="w-4 h-4" />
-                    <span className="hidden sm:inline">Carga</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="peso" className="gap-1 text-xs sm:text-sm">
-                    <Weight className="w-4 h-4" />
-                    <span className="hidden sm:inline">Peso</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="precificacao" className="gap-1 text-xs sm:text-sm">
-                    <DollarSign className="w-4 h-4" />
-                    <span className="hidden sm:inline">Preço</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="requisitos" className="gap-1 text-xs sm:text-sm">
-                    <ClipboardList className="w-4 h-4" />
-                    <span className="hidden sm:inline">Requisitos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="origem" className="gap-1 text-xs sm:text-sm">
-                    <MapPin className="w-4 h-4" />
-                    <span className="hidden sm:inline">Remetente</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="destino" className="gap-1 text-xs sm:text-sm">
-                    <Truck className="w-4 h-4" />
-                    <span className="hidden sm:inline">Destinatário</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="resumo" className="gap-1 text-xs sm:text-sm">
-                    <Eye className="w-4 h-4" />
-                    <span className="hidden sm:inline">Resumo</span>
-                  </TabsTrigger>
-                </TabsList>
+      {/* 2-column layout */}
+      <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,400px]">
+        {/* Left: Form */}
+        <ScrollArea className="h-full">
+          <div className="max-w-3xl p-6 space-y-8">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
 
-                {/* ===== ABA CARGA ===== */}
-                <TabsContent value="carga" className="space-y-4 mt-4">
+                {/* ───── Section: Dados da Carga ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={Package} title="Dados da Carga" />
                   <FormField control={form.control} name="descricao" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Descrição da Carga *</FormLabel>
@@ -317,7 +295,6 @@ export default function NovaCarga() {
                       <FormMessage />
                     </FormItem>
                   )} />
-
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="tipo" render={({ field }) => (
                       <FormItem>
@@ -341,7 +318,6 @@ export default function NovaCarga() {
                       </FormItem>
                     )} />
                   </div>
-
                   <div className="grid grid-cols-3 gap-4">
                     <FormField control={form.control} name="data_coleta_de" render={({ field }) => (
                       <FormItem><FormLabel>Data de Coleta *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
@@ -353,134 +329,120 @@ export default function NovaCarga() {
                       <FormItem><FormLabel>Entrega Limite</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                   </div>
-
                   <div className="p-4 rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/10">
                     <FormField control={form.control} name="expira_em" render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-amber-800 dark:text-amber-300 font-medium">Expiração da Publicação</FormLabel>
                         <FormControl><Input type="date" min={todayStr()} max={addDays(365)} {...field} /></FormControl>
-                        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">A carga será removida automaticamente nesta data se não for totalmente carregada. Máximo: 1 ano.</p>
+                        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">A carga será removida automaticamente nesta data. Máximo: 1 ano.</p>
                         <FormMessage />
                       </FormItem>
                     )} />
                   </div>
-
                   <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
                     <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
                       As Notas Fiscais (NF-e) serão solicitadas quando as entregas forem geradas para esta carga.
                     </AlertDescription>
                   </Alert>
-                </TabsContent>
+                </section>
 
-                {/* ===== ABA PESO ===== */}
-                <TabsContent value="peso" className="space-y-4 mt-4">
+                <Separator />
+
+                {/* ───── Section: Peso e Dimensões ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={Weight} title="Peso e Dimensões" />
                   <div className="p-3 rounded-lg border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700/30">
                     <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                      <strong>Por que o peso é obrigatório?</strong> O sistema utiliza o peso da carga para verificar a compatibilidade com a capacidade das carrocerias dos motoristas. Sem essa informação, não é possível validar se o veículo suporta a carga.
+                      <strong>Por que o peso é obrigatório?</strong> O sistema utiliza o peso da carga para verificar a compatibilidade com a capacidade das carrocerias dos motoristas.
                     </p>
                   </div>
-                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                    <h4 className="font-medium text-sm flex items-center gap-2">
-                      <Weight className="w-4 h-4 text-primary" />
-                      Peso e Dimensões
-                    </h4>
-                    <FormField control={form.control} name="peso_kg" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Peso Total (kg) *</FormLabel>
-                        <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
-                        <p className="text-xs text-muted-foreground">
-                          {pesoKg > 0 && pesoKg >= 1000 ? `≈ ${(pesoKg / 1000).toFixed(2)} toneladas` : 'Peso obrigatório — principal critério do sistema'}
-                        </p>
-                        <FormMessage />
-                      </FormItem>
+                  <FormField control={form.control} name="peso_kg" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Peso Total (kg) *</FormLabel>
+                      <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        {pesoKg > 0 && pesoKg >= 1000 ? `≈ ${(pesoKg / 1000).toFixed(2)} toneladas` : 'Peso obrigatório — principal critério do sistema'}
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="volume_m3" render={({ field }) => (
+                      <FormItem><FormLabel>Volume (m³)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField control={form.control} name="volume_m3" render={({ field }) => (
-                        <FormItem><FormLabel>Volume (m³)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
-                        <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                    </div>
+                    <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
+                      <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                    )} />
                   </div>
-
                   <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
                     <FormItem className="flex items-center space-x-2 space-y-0">
                       <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                       <FormLabel className="font-normal text-sm">Permitir transporte fracionado (múltiplos motoristas)</FormLabel>
                     </FormItem>
                   )} />
-
                   {form.watch('permite_fracionado') && (
                     <div className="ml-6 p-3 bg-muted/50 rounded-md border">
                       <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
-                      <WeightInput
-                        placeholder="Ex: 15.000 (15 toneladas)"
-                        className="mt-2"
-                        value={pesoMinimoFracionado || undefined}
-                        onValueChange={(v) => setPesoMinimoFracionado(v || null)}
-                      />
+                      <WeightInput placeholder="Ex: 15.000 (15 toneladas)" className="mt-2" value={pesoMinimoFracionado || undefined} onValueChange={(v) => setPesoMinimoFracionado(v || null)} />
                       <p className="text-xs text-muted-foreground mt-1">Deixe vazio para não ter limite mínimo</p>
                     </div>
                   )}
-                </TabsContent>
+                </section>
 
-                {/* ===== ABA PRECIFICAÇÃO ===== */}
-                <TabsContent value="precificacao" className="space-y-4 mt-4">
-                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                    <h4 className="font-medium text-sm flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-primary" />
-                      Precificação do Frete
-                    </h4>
-                    <FormField control={form.control} name="unidade_precificacao" render={({ field }) => (
+                <Separator />
+
+                {/* ───── Section: Precificação ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={DollarSign} title="Precificação do Frete" />
+                  <FormField control={form.control} name="unidade_precificacao" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unidade de Precificação *</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent className="bg-popover border-border">
+                          {UNIDADES_PRECIFICACAO.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="quantidade_precificacao" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Unidade de Precificação *</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                          <SelectContent className="bg-popover border-border">
-                            {UNIDADES_PRECIFICACAO.map((u) => (
-                              <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>Quantidade ({unidadePrec})</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="0" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField control={form.control} name="quantidade_precificacao" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quantidade ({unidadePrec})</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" placeholder="0" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name="valor_unitario_precificacao" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Valor Unitário (R$/{unidadePrec})</FormLabel>
-                          <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                    </div>
-                    <div className="p-4 rounded-lg border bg-muted/30 space-y-2">
+                    <FormField control={form.control} name="valor_unitario_precificacao" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valor Unitário (R$/{unidadePrec})</FormLabel>
+                        <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                  {freteTotal > 0 && (
+                    <div className="p-4 rounded-lg border bg-muted/30 space-y-1">
                       <Label className="text-sm text-muted-foreground">Frete Total Estimado</Label>
                       <p className="text-2xl font-bold text-primary">
-                        {freteTotal > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal) : 'R$ 0,00'}
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)}
                       </p>
-                      {(quantidadePrec ?? 0) > 0 && (valorUnitarioPrec ?? 0) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {quantidadePrec} {unidadePrec} × R$ {(valorUnitarioPrec ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidadePrec}
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {quantidadePrec} {unidadePrec} × R$ {(valorUnitarioPrec ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidadePrec}
+                      </p>
                     </div>
-                  </div>
-                </TabsContent>
+                  )}
+                </section>
 
-                {/* ===== ABA REQUISITOS ===== */}
-                <TabsContent value="requisitos" className="space-y-6 mt-4">
+                <Separator />
+
+                {/* ───── Section: Requisitos ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={ClipboardList} title="Requisitos e Características" />
                   <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Qtd. Paletes</FormLabel>
@@ -490,7 +452,6 @@ export default function NovaCarga() {
                       <FormMessage />
                     </FormItem>
                   )} />
-
                   <div className="space-y-3">
                     <Label>Características Especiais</Label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -510,7 +471,6 @@ export default function NovaCarga() {
                       })}
                     </div>
                   </div>
-
                   {requerRefrigeracao && (
                     <div className="grid grid-cols-2 gap-4">
                       <FormField control={form.control} name="temperatura_min" render={({ field }) => (
@@ -521,77 +481,89 @@ export default function NovaCarga() {
                       )} />
                     </div>
                   )}
-
                   {cargaPerigosa && (
                     <FormField control={form.control} name="numero_onu" render={({ field }) => (
                       <FormItem><FormLabel>Número ONU</FormLabel><FormControl><Input placeholder="Ex: UN1203" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                   )}
-
-                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                    <VeiculoCarroceriaSelect
-                      veiculosSelecionados={veiculosSelecionados} carroceriasSelecionadas={carroceriasSelecionadas}
-                      onVeiculosChange={setVeiculosSelecionados} onCarroceriasChange={setCarroceriasSelecionadas}
-                    />
-                  </div>
-
+                  <VeiculoCarroceriaSelect
+                    veiculosSelecionados={veiculosSelecionados} carroceriasSelecionadas={carroceriasSelecionadas}
+                    onVeiculosChange={setVeiculosSelecionados} onCarroceriasChange={setCarroceriasSelecionadas}
+                  />
                   <NecessidadesEspeciais value={necessidadesEspeciais} onChange={setNecessidadesEspeciais} />
-
                   <FormField control={form.control} name="regras_carregamento" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Regras de Carregamento</FormLabel>
-                      <FormControl><Textarea placeholder="Instruções especiais para carregamento..." className="min-h-[100px]" {...field} /></FormControl>
+                      <FormControl><Textarea placeholder="Instruções especiais para carregamento..." className="min-h-[80px]" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
-                </TabsContent>
+                </section>
 
-                <TabsContent value="origem" className="mt-4">
+                <Separator />
+
+                {/* ───── Section: Remetente ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={MapPin} title="Remetente (Origem)" />
                   <RemetenteSection initialData={origemData} onLocationChange={setOrigemData} />
-                </TabsContent>
+                </section>
 
-                <TabsContent value="destino" className="mt-4">
+                <Separator />
+
+                {/* ───── Section: Destinatário ───── */}
+                <section className="space-y-4">
+                  <SectionHeader icon={Truck} title="Destinatário (Destino)" />
                   <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
-                </TabsContent>
+                </section>
 
-                <TabsContent value="resumo" className="mt-4">
-                  <ResumoSection
-                    origemData={origemData} destinoData={destinoData}
-                    cargaData={{
-                      descricao: form.getValues('descricao'), tipo: form.getValues('tipo'),
-                      peso_kg: form.getValues('peso_kg'), volume_m3: form.getValues('volume_m3'),
-                      valor_mercadoria: form.getValues('valor_mercadoria'),
-                      unidade_precificacao: form.getValues('unidade_precificacao'),
-                      quantidade_precificacao: form.getValues('quantidade_precificacao'),
-                      valor_unitario_precificacao: form.getValues('valor_unitario_precificacao'),
-                      data_coleta_de: form.getValues('data_coleta_de'), data_coleta_ate: form.getValues('data_coleta_ate'),
-                      data_entrega_limite: form.getValues('data_entrega_limite'),
-                      carga_fragil: form.getValues('carga_fragil'), carga_perigosa: form.getValues('carga_perigosa'),
-                      carga_viva: form.getValues('carga_viva'), empilhavel: form.getValues('empilhavel'),
-                      requer_refrigeracao: form.getValues('requer_refrigeracao'),
-                      temperatura_min: form.getValues('temperatura_min'), temperatura_max: form.getValues('temperatura_max'),
-                      numero_onu: form.getValues('numero_onu'), regras_carregamento: form.getValues('regras_carregamento'),
-                    }}
-                    necessidadesEspeciais={necessidadesEspeciais}
-                    notaFiscalUrl={null}
-                    veiculosSelecionados={veiculosSelecionados}
-                    carroceriasSelecionadas={carroceriasSelecionadas}
-                  />
-                </TabsContent>
-              </Tabs>
+                {/* Bottom spacer for mobile */}
+                <div className="h-4" />
+              </form>
+            </Form>
+          </div>
+        </ScrollArea>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => navigate('/embarcador/ofertas')} disabled={isLoading}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-2" />Criar Carga</>)}
-                </Button>
-              </div>
-            </form>
-          </Form>
+        {/* Right: Live Summary (hidden on mobile) */}
+        <div className="hidden lg:flex flex-col border-l bg-muted/20 overflow-hidden">
+          <div className="px-4 py-3 border-b bg-card">
+            <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Resumo</h2>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-4">
+              <ResumoSection
+                origemData={origemData}
+                destinoData={destinoData}
+                cargaData={{
+                  descricao: form.watch('descricao'),
+                  tipo: form.watch('tipo'),
+                  peso_kg: form.watch('peso_kg'),
+                  volume_m3: form.watch('volume_m3'),
+                  valor_mercadoria: form.watch('valor_mercadoria'),
+                  unidade_precificacao: form.watch('unidade_precificacao'),
+                  quantidade_precificacao: form.watch('quantidade_precificacao'),
+                  valor_unitario_precificacao: form.watch('valor_unitario_precificacao'),
+                  data_coleta_de: form.watch('data_coleta_de'),
+                  data_coleta_ate: form.watch('data_coleta_ate'),
+                  data_entrega_limite: form.watch('data_entrega_limite'),
+                  carga_fragil: form.watch('carga_fragil'),
+                  carga_perigosa: form.watch('carga_perigosa'),
+                  carga_viva: form.watch('carga_viva'),
+                  empilhavel: form.watch('empilhavel'),
+                  requer_refrigeracao: form.watch('requer_refrigeracao'),
+                  temperatura_min: form.watch('temperatura_min'),
+                  temperatura_max: form.watch('temperatura_max'),
+                  numero_onu: form.watch('numero_onu'),
+                  regras_carregamento: form.watch('regras_carregamento'),
+                }}
+                necessidadesEspeciais={necessidadesEspeciais}
+                notaFiscalUrl={null}
+                veiculosSelecionados={veiculosSelecionados}
+                carroceriasSelecionadas={carroceriasSelecionadas}
+              />
+            </div>
+          </ScrollArea>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
