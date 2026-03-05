@@ -149,6 +149,8 @@ const App = () => {
                   <Route path="/embarcador" element={<PortalLayoutWrapper expectedUserType="embarcador" />}>
                     <Route index element={<EmbarcadorDashboard />} />
                     <Route path="ofertas" element={<CargasPublicadas />} />
+                    <Route path="ofertas/nova" element={<NovaCarga />} />
+                    <Route path="ofertas/editar/:id" element={<EditarCarga />} />
                     <Route path="cargas" element={<CargasEmRota />} />
                     <Route path="cargas/historico" element={<HistoricoCargas />} />
                     <Route path="relatorios" element={<Relatorios />} />
