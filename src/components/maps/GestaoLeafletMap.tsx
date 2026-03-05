@@ -208,8 +208,8 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   aguardando: 'Aguardando',
   saiu_para_coleta: 'Em Coleta',
-  saiu_para_entrega: 'Em Entrega',
-  entregue: 'Entregue',
+  saiu_para_entrega: 'Em Rota',
+  entregue: 'Concluída',
   cancelada: 'Cancelada',
 };
 
