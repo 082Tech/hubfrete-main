@@ -125,6 +125,7 @@ interface CargaData {
   valor_frete_m3: number | null;
   valor_frete_fixo: number | null;
   valor_frete_km: number | null;
+  numero_pedido: string | null;
   status: StatusCarga;
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
@@ -241,6 +242,7 @@ export default function HistoricoCargas() {
           valor_frete_m3,
           valor_frete_fixo,
           valor_frete_km,
+          numero_pedido,
           status,
           data_coleta_de,
           data_coleta_ate,

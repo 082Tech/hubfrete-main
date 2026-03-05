@@ -54,6 +54,8 @@ interface CargaDetailsProps {
     valor_frete_m3?: number | null;
     valor_frete_fixo?: number | null;
     valor_frete_km?: number | null;
+    numero_pedido?: string | null;
+    quantidade_paletes?: number | null;
     status: StatusCarga | null;
     data_coleta_de: string | null;
     data_coleta_ate: string | null;
@@ -217,9 +219,15 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
           {/* Descrição */}
           <div>
             <p className="text-lg font-medium">{carga.descricao}</p>
-            <p className="text-sm text-muted-foreground">
-              Criado em {formatDate(carga.created_at)}
-            </p>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span>Criado em {formatDate(carga.created_at)}</span>
+              {carga.numero_pedido && (
+                <Badge variant="outline" className="text-xs">
+                  <FileText className="w-3 h-3 mr-1" />
+                  Pedido: {carga.numero_pedido}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <Separator />

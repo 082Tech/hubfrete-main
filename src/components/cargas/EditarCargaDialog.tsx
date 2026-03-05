@@ -111,6 +111,7 @@ interface CargaToEdit {
   valor_frete_m3?: number | null;
   valor_frete_fixo?: number | null;
   valor_frete_km?: number | null;
+  numero_pedido?: string | null;
   volume_m3: number | null;
   carga_fragil: boolean | null;
   carga_perigosa: boolean | null;
@@ -227,8 +228,12 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
         peso_kg: carga.peso_kg || 0,
         volume_m3: carga.volume_m3 || undefined,
         valor_mercadoria: carga.valor_mercadoria || undefined,
+        numero_pedido: carga.numero_pedido || '',
+        tipo_precificacao: (carga.tipo_precificacao as TipoPrecificacao) || 'por_tonelada',
         valor_frete_tonelada: carga.valor_frete_tonelada || 0,
-        tipo_precificacao: 'por_tonelada',
+        valor_frete_m3: carga.valor_frete_m3 || 0,
+        valor_frete_fixo: carga.valor_frete_fixo || 0,
+        valor_frete_km: carga.valor_frete_km || 0,
         permite_fracionado: carga.permite_fracionado ?? true,
         carga_fragil: carga.carga_fragil ?? false,
         carga_perigosa: carga.carga_perigosa ?? false,
@@ -291,8 +296,22 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
   }, [carga, open, form]);
 
   const pesoKg = form.watch('peso_kg');
+  const tipoPrecificacao = form.watch('tipo_precificacao');
   const valorFreteTonelada = form.watch('valor_frete_tonelada');
-  const freteTotal = pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
+  const valorFreteM3 = form.watch('valor_frete_m3');
+  const valorFreteFixo = form.watch('valor_frete_fixo');
+  const valorFreteKm = form.watch('valor_frete_km');
+  const volumeM3 = form.watch('volume_m3');
+
+  const freteTotal = (() => {
+    switch (tipoPrecificacao) {
+      case 'por_tonelada': return pesoKg && valorFreteTonelada ? (pesoKg / 1000) * valorFreteTonelada : 0;
+      case 'por_m3': return volumeM3 && valorFreteM3 ? volumeM3 * valorFreteM3 : 0;
+      case 'fixo': return valorFreteFixo || 0;
+      case 'por_km': return valorFreteKm || 0;
+      default: return 0;
+    }
+  })();
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
 
@@ -330,11 +349,12 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
           peso_disponivel_kg: newPesoDisponivel,
           volume_m3: values.volume_m3 || null,
           valor_mercadoria: values.valor_mercadoria || null,
-          tipo_precificacao: 'por_tonelada',
-          valor_frete_tonelada: values.valor_frete_tonelada || null,
-          valor_frete_m3: null,
-          valor_frete_fixo: null,
-          valor_frete_km: null,
+          tipo_precificacao: values.tipo_precificacao,
+          valor_frete_tonelada: values.tipo_precificacao === 'por_tonelada' ? (values.valor_frete_tonelada || null) : null,
+          valor_frete_m3: values.tipo_precificacao === 'por_m3' ? (values.valor_frete_m3 || null) : null,
+          valor_frete_fixo: values.tipo_precificacao === 'fixo' ? (values.valor_frete_fixo || null) : null,
+          valor_frete_km: values.tipo_precificacao === 'por_km' ? (values.valor_frete_km || null) : null,
+          numero_pedido: values.numero_pedido || null,
           permite_fracionado: values.permite_fracionado,
           carga_fragil: values.carga_fragil,
           carga_perigosa: values.carga_perigosa,
@@ -449,10 +469,14 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="carga" className="gap-2">
                   <Package className="w-4 h-4" />
                   <span className="hidden sm:inline">Carga</span>
+                </TabsTrigger>
+                <TabsTrigger value="precificacao" className="gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  <span className="hidden sm:inline">Precificação</span>
                 </TabsTrigger>
                 <TabsTrigger value="requisitos" className="gap-2">
                   <ClipboardList className="w-4 h-4" />
@@ -567,63 +591,20 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                   />
                 </div>
 
-                {/* Seção de Frete */}
-                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                  <h4 className="font-medium text-sm flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    Valor do Frete
-                  </h4>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="valor_frete_tonelada"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Frete por Tonelada (R$)</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Frete Total Estimado</Label>
-                      <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center">
-                        <span className="font-bold text-primary">
-                          {freteTotal > 0
-                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
-                            : 'R$ 0,00'}
-                        </span>
-                      </div>
-                      {pesoKg > 0 && (valorFreteTonelada ?? 0) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {(pesoKg / 1000).toFixed(2)}t × R$ {(valorFreteTonelada ?? 0).toFixed(2)}/ton
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="permite_fracionado"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormLabel className="font-normal text-sm">
-                          Permitir transporte fracionado (múltiplos motoristas)
-                        </FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                {/* Nº do Pedido */}
+                <FormField
+                  control={form.control}
+                  name="numero_pedido"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nº do Pedido (opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: PED-2026-001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="grid grid-cols-3 gap-4">
                   <FormField
@@ -703,6 +684,88 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                     As Notas Fiscais (NF-e) serão solicitadas quando as entregas forem geradas para esta carga.
                   </AlertDescription>
                 </Alert>
+              </TabsContent>
+
+              {/* Precificação Tab */}
+              <TabsContent value="precificacao" className="space-y-4 mt-4">
+                <div className="space-y-3">
+                  <Label className="font-medium">Unidade de Precificação</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {([
+                      { value: 'por_tonelada', label: 'Por Tonelada' },
+                      { value: 'por_m3', label: 'Por m³' },
+                      { value: 'fixo', label: 'Fixo' },
+                      { value: 'por_km', label: 'Por KM' },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                          tipoPrecificacao === opt.value
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-card hover:bg-muted'
+                        }`}
+                        onClick={() => form.setValue('tipo_precificacao', opt.value)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {tipoPrecificacao === 'por_tonelada' && (
+                  <FormField control={form.control} name="valor_frete_tonelada" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor por Tonelada (R$)</FormLabel>
+                      <FormControl><Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} /></FormControl>
+                    </FormItem>
+                  )} />
+                )}
+                {tipoPrecificacao === 'por_m3' && (
+                  <FormField control={form.control} name="valor_frete_m3" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor por m³ (R$)</FormLabel>
+                      <FormControl><Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} /></FormControl>
+                    </FormItem>
+                  )} />
+                )}
+                {tipoPrecificacao === 'fixo' && (
+                  <FormField control={form.control} name="valor_frete_fixo" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor Fixo do Frete (R$)</FormLabel>
+                      <FormControl><Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} /></FormControl>
+                    </FormItem>
+                  )} />
+                )}
+                {tipoPrecificacao === 'por_km' && (
+                  <FormField control={form.control} name="valor_frete_km" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor por KM (R$)</FormLabel>
+                      <FormControl><Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} /></FormControl>
+                    </FormItem>
+                  )} />
+                )}
+
+                {/* Frete Total Estimado */}
+                <div className="p-4 rounded-lg border bg-muted/30 space-y-2">
+                  <Label className="text-sm text-muted-foreground">Frete Total Estimado</Label>
+                  <p className="text-2xl font-bold text-primary">
+                    {freteTotal > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal) : 'R$ 0,00'}
+                  </p>
+                  {tipoPrecificacao === 'por_tonelada' && pesoKg > 0 && (valorFreteTonelada ?? 0) > 0 && (
+                    <p className="text-xs text-muted-foreground">{(pesoKg / 1000).toFixed(2)}t × R$ {(valorFreteTonelada ?? 0).toFixed(2)}/ton</p>
+                  )}
+                  {tipoPrecificacao === 'por_m3' && (volumeM3 ?? 0) > 0 && (valorFreteM3 ?? 0) > 0 && (
+                    <p className="text-xs text-muted-foreground">{volumeM3} m³ × R$ {(valorFreteM3 ?? 0).toFixed(2)}/m³</p>
+                  )}
+                </div>
+
+                <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2 space-y-0">
+                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                    <FormLabel className="font-normal text-sm">Permitir transporte fracionado (múltiplos motoristas)</FormLabel>
+                  </FormItem>
+                )} />
               </TabsContent>
 
               <TabsContent value="requisitos" className="space-y-6 mt-4">
