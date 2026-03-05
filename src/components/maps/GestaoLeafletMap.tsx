@@ -502,7 +502,7 @@ export function GestaoLeafletMap({
         })}
       </MapContainer>
 
-      {/* Painel de detalhes da entrega selecionada - canto inferior esquerdo */}
+      {/* Painel de detalhes da carga selecionada - canto inferior esquerdo */}
       {selectedEntregaData && (
         <div className="absolute bottom-4 left-4 z-[1000] bg-popover border rounded-xl shadow-xl p-4 min-w-[320px] max-w-[380px] animate-in slide-in-from-left-4 duration-200">
           {/* Header com botão de fechar */}

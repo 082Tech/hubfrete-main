@@ -393,7 +393,7 @@ function DetailPanel({
         {/* Carga description + entrega ref */}
         <p className="text-sm font-medium mb-1">{entrega.carga.descricao}</p>
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 flex-wrap">
-          <span>Entrega #{entrega.codigo || entrega.id.slice(0, 6)}</span>
+          <span>Carga #{entrega.codigo || entrega.id.slice(0, 6)}</span>
           <span>•</span>
           <span>{format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
         </div>
@@ -616,11 +616,11 @@ function DetailPanel({
                 <div className="space-y-4">
                   {entrega.eventos.slice(0, 5).map((evento) => {
                     const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean; isCreation?: boolean }> = {
-                      criado: { label: 'Entrega criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
+                      criado: { label: 'Carga criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
                       aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
                       inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
                       inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-                      finalizado: { label: 'Entregue', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+                      finalizado: { label: 'Concluída', bgColor: 'bg-green-100 dark:bg-green-900/30' },
                       cancelado: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
                       problema: { label: 'Problema', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
                       documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
