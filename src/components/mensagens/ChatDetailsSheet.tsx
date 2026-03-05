@@ -42,8 +42,8 @@ const statusConfig: Record<string, { color: string; label: string; icon: React.E
   'em_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Em Coleta', icon: Package },
   'coletado': { color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20', label: 'Coletado', icon: CheckCircle },
   'em_transito': { color: 'bg-orange-500/10 text-orange-600 border-orange-500/20', label: 'Em Trânsito', icon: Route },
-  'em_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Em Entrega', icon: Truck },
-  'entregue': { color: 'bg-green-500/10 text-green-600 border-green-500/20', label: 'Entregue', icon: CheckCircle },
+  'em_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Em Rota', icon: Truck },
+  'entregue': { color: 'bg-green-500/10 text-green-600 border-green-500/20', label: 'Concluída', icon: CheckCircle },
   'problema': { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Problema', icon: AlertCircle },
   'devolvida': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Devolvida', icon: AlertCircle },
 };
