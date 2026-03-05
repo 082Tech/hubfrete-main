@@ -320,6 +320,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           expira_em: `${values.expira_em}T23:59:59`,
           status: 'publicada',
           codigo: null as unknown as string,
+          numero_pedido: values.numero_pedido || null,
           necessidades_especiais: necessidadesEspeciaisCaptured,
           regras_carregamento: values.regras_carregamento || null,
           nota_fiscal_url: notaFiscalUrlCaptured,
