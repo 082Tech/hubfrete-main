@@ -469,10 +469,14 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="carga" className="gap-2">
                   <Package className="w-4 h-4" />
                   <span className="hidden sm:inline">Carga</span>
+                </TabsTrigger>
+                <TabsTrigger value="precificacao" className="gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  <span className="hidden sm:inline">Precificação</span>
                 </TabsTrigger>
                 <TabsTrigger value="requisitos" className="gap-2">
                   <ClipboardList className="w-4 h-4" />
