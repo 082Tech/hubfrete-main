@@ -55,6 +55,8 @@ import { EntregaDocumentosPanel } from '@/components/entregas/EntregaDocumentosP
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
+import { EmbarcadorDailyPerformanceDialog } from '@/components/admin/relatorios/EmbarcadorDailyPerformanceDialog';
+import { BarChart3 } from 'lucide-react';
 
 // Status config - matching transportadora portal
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -937,6 +939,7 @@ export default function GestaoCargas() {
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [filters, setFilters] = useState<AdvancedFilters>({});
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
+  const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
 
   // Fetch entregas directly (not via cargas) filtered by embarcador's filial
   const { data: entregas = [], isLoading, refetch } = useQuery({
@@ -1107,6 +1110,15 @@ export default function GestaoCargas() {
             showDestinatario
           />
           <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setPerformanceDialogOpen(true)}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Desempenho Diário
+          </Button>
+          <Button
             variant="default"
             size="sm"
             className="gap-2"
@@ -1191,6 +1203,13 @@ export default function GestaoCargas() {
         onOpenChange={setGestaoDialogOpen}
         entregas={entregas}
         localizacoes={localizacoes}
+      />
+
+      {/* Daily Performance Dialog */}
+      <EmbarcadorDailyPerformanceDialog
+        open={performanceDialogOpen}
+        onOpenChange={setPerformanceDialogOpen}
+        entregas={entregas}
       />
     </div>
   );
