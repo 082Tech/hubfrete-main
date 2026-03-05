@@ -95,7 +95,7 @@ export function OperationalReport({ data, isLoading = false }: OperationalReport
             </div>
             <div>
               <p className="text-2xl font-bold">{formatNumber(data.totalEntregas)}</p>
-              <p className="text-xs text-muted-foreground">Total de Entregas</p>
+              <p className="text-xs text-muted-foreground">Total de Cargas</p>
             </div>
           </CardContent>
         </Card>
