@@ -826,7 +826,7 @@ export default function TransportadoraRelatorios() {
                             />
                             <Legend />
                             <Area type="monotone" dataKey="coletas" name="Coletas" stroke="hsl(var(--chart-1))" fillOpacity={1} fill="url(#colorColetasT)" />
-                            <Area type="monotone" dataKey="entregas" name="Entregas" stroke="hsl(var(--chart-2))" fillOpacity={1} fill="url(#colorEntregasT)" />
+                            <Area type="monotone" dataKey="entregas" name="Cargas" stroke="hsl(var(--chart-2))" fillOpacity={1} fill="url(#colorEntregasT)" />
                           </AreaChart>
                         </ResponsiveContainer>
                       </CardContent>
