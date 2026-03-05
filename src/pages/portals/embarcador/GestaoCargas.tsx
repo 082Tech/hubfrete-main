@@ -939,6 +939,7 @@ export default function GestaoCargas() {
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [filters, setFilters] = useState<AdvancedFilters>({});
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
+  const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
 
   // Fetch entregas directly (not via cargas) filtered by embarcador's filial
   const { data: entregas = [], isLoading, refetch } = useQuery({
