@@ -104,6 +104,7 @@ interface CargaToEdit {
   peso_kg: number;
   peso_disponivel_kg: number | null;
   permite_fracionado: boolean | null;
+  peso_minimo_fracionado_kg: number | null;
   valor_mercadoria: number | null;
   numero_pedido?: string | null;
   volume_m3: number | null;
