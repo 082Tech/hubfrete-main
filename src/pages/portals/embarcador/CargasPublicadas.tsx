@@ -206,7 +206,7 @@ export default function CargasPublicadas() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cargaToDelete, setCargaToDelete] = useState<CargaData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [editCarga, setEditCarga] = useState<CargaData | null>(null);
+  const navigate = useNavigate();
 
   const { ref: tableContainerRef, height: tableHeight } = useRemainingViewportHeight<HTMLDivElement>({
     bottomOffset: 32,
