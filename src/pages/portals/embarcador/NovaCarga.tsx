@@ -258,22 +258,40 @@ export default function NovaCarga() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      {/* Exit confirmation dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deseja sair?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os dados preenchidos serão perdidos. Deseja voltar ou continuar criando a oferta de carga?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar criando</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => navigate('/embarcador/ofertas')}>
+              Sair sem salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <div className="flex items-center justify-between gap-3 p-4 border-b bg-card shrink-0">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/embarcador/ofertas')}>
+          <Button variant="ghost" size="icon" onClick={() => setShowExitDialog(true)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
             <h1 className="text-lg font-semibold flex items-center gap-2">
               <Package className="w-5 h-5 text-primary" />
-              Nova Carga
+              Nova Oferta de Carga
             </h1>
             <p className="text-sm text-muted-foreground">Preencha os dados e visualize o resumo ao lado</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate('/embarcador/ofertas')} disabled={isLoading}>
+          <Button type="button" variant="outline" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
             Cancelar
           </Button>
           <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
