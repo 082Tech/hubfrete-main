@@ -294,11 +294,12 @@ export default function NovaCarga() {
 
       {/* 2-column layout */}
       <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,400px]">
-        {/* Left: Form */}
-        <ScrollArea className="h-full">
-          <div className="max-w-3xl p-6 space-y-8">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {/* Left: Form + Footer */}
+        <div className="flex flex-col overflow-hidden">
+          <ScrollArea className="flex-1">
+            <div className="max-w-3xl p-6 space-y-8">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 [&_input]:bg-background [&_textarea]:bg-background [&_select]:bg-background [&_[role=combobox]]:bg-background">
 
                 {/* ───── Section: Dados da Carga ───── */}
                 <section className="space-y-4">
