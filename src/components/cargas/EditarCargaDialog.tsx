@@ -591,63 +591,20 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                   />
                 </div>
 
-                {/* Seção de Frete */}
-                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                  <h4 className="font-medium text-sm flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    Valor do Frete
-                  </h4>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="valor_frete_tonelada"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Frete por Tonelada (R$)</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" placeholder="0.00" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Frete Total Estimado</Label>
-                      <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center">
-                        <span className="font-bold text-primary">
-                          {freteTotal > 0
-                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
-                            : 'R$ 0,00'}
-                        </span>
-                      </div>
-                      {pesoKg > 0 && (valorFreteTonelada ?? 0) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {(pesoKg / 1000).toFixed(2)}t × R$ {(valorFreteTonelada ?? 0).toFixed(2)}/ton
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="permite_fracionado"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormLabel className="font-normal text-sm">
-                          Permitir transporte fracionado (múltiplos motoristas)
-                        </FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                {/* Nº do Pedido */}
+                <FormField
+                  control={form.control}
+                  name="numero_pedido"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nº do Pedido (opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: PED-2026-001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="grid grid-cols-3 gap-4">
                   <FormField
