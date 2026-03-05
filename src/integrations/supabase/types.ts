@@ -192,6 +192,7 @@ export type Database = {
           necessidades_especiais: string[] | null
           nota_fiscal_url: string | null
           numero_onu: string | null
+          numero_pedido: string | null
           permite_fracionado: boolean | null
           peso_disponivel_kg: number | null
           peso_kg: number
@@ -251,6 +252,7 @@ export type Database = {
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
+          numero_pedido?: string | null
           permite_fracionado?: boolean | null
           peso_disponivel_kg?: number | null
           peso_kg: number
@@ -310,6 +312,7 @@ export type Database = {
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
+          numero_pedido?: string | null
           permite_fracionado?: boolean | null
           peso_disponivel_kg?: number | null
           peso_kg?: number
