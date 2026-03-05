@@ -659,5 +659,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
