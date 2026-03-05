@@ -828,7 +828,7 @@ export default function HistoricoEntregas() {
                                     <div className="px-8 py-4">
                                       <div className="flex items-center gap-2 mb-3">
                                         <Package className="w-4 h-4 text-primary" />
-                                        <span className="text-sm font-medium">Entregas ({viagem.entregas.length})</span>
+                                        <span className="text-sm font-medium">Cargas ({viagem.entregas.length})</span>
                                       </div>
                                       <div className="bg-background rounded-lg border overflow-hidden">
                                         <table className="w-full text-sm">
