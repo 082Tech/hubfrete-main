@@ -74,7 +74,7 @@ export function ChatDetailsSheet({ chat, open, onOpenChange, userType }: ChatDet
             <SheetHeader className="text-left mb-6">
               <SheetTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
-                Detalhes da Entrega
+                Detalhes da Carga
               </SheetTitle>
             </SheetHeader>
 

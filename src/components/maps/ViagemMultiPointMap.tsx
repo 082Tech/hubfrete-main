@@ -111,7 +111,7 @@ const statusLabels: Record<string, string> = {
   'aguardando': 'Aguardando',
   'saiu_para_coleta': 'Saiu para Coleta',
   'saiu_para_entrega': 'Saiu para Entrega',
-  'entregue': 'Entregue',
+  'entregue': 'Concluída',
   'problema': 'Problema',
   'cancelada': 'Cancelada',
 };

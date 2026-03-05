@@ -2242,8 +2242,8 @@ export default function CargasDisponiveis() {
                             isMergeable ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"
                           )}>
                             {isMergeable
-                              ? `O peso adicional será somado à entrega existente (${(e.peso_alocado_kg / 1000).toFixed(1)}t alocado).`
-                              : 'Como a entrega já saiu para entrega, uma nova entrega separada será criada.'}
+                              ? `O peso adicional será somado à carga existente (${(e.peso_alocado_kg / 1000).toFixed(1)}t alocado).`
+                              : 'Como a carga já saiu para entrega, uma nova carga separada será criada.'}
                           </p>
                         </div>
                       );
