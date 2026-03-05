@@ -726,7 +726,7 @@ export default function CargasPublicadas() {
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Package className="w-6 h-6 text-primary" />
-                Minhas Ofertas de Carga
+                Ofertas de Cargas Publicadas
               </h1>
               <p className="text-sm text-muted-foreground">
                 Ofertas ativas aguardando ou em processo de alocação
