@@ -193,7 +193,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                   <TrendingUp className="w-3.5 h-3.5" />
-                  Taxa de Entrega
+                  Taxa de Conclusão
                 </div>
                 <p className="text-2xl font-bold">{metrics.taxaEntrega}%</p>
               </CardContent>
