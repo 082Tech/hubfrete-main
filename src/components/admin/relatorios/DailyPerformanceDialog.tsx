@@ -181,7 +181,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                   <CheckCircle className="w-3.5 h-3.5" />
-                  Valor Entregue
+                  Valor Concluído
                 </div>
                 <p className="text-2xl font-bold text-green-600">
                   R$ {metrics.valorEntregue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
