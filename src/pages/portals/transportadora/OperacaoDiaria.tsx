@@ -42,7 +42,7 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  ArrowLeftRight,
+  ArrowRightLeft,
   ArrowLeft,
   MessageCircle,
   RefreshCw,
@@ -91,6 +91,7 @@ type ViewMode = 'entregas' | 'viagens';
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
   aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800', icon: Clock, column: 'pending' },
   saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800', icon: Truck, column: 'inRoute' },
+  em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800', icon: ArrowRightLeft, column: 'inRoute' },
   saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin, column: 'inRoute' },
   entregue: { label: 'Concluída', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', icon: CheckCircle, column: 'done' },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle, column: 'done' },
@@ -359,7 +360,8 @@ function DetailPanel({
   const getNextStatus = (): { status: string; label: string; icon: React.ElementType } | null => {
     switch (entrega.status) {
       case 'aguardando': return { status: 'saiu_para_coleta', label: 'Saiu para Coleta', icon: Truck };
-      case 'saiu_para_coleta': return { status: 'saiu_para_entrega', label: 'Em Rota', icon: MapPin };
+      case 'saiu_para_coleta': return { status: 'em_transito', label: 'Em Trânsito', icon: ArrowRightLeft };
+      case 'em_transito': return { status: 'saiu_para_entrega', label: 'Saiu p/ Entrega', icon: MapPin };
       case 'saiu_para_entrega': return { status: 'entregue', label: 'Marcar como Concluída', icon: CheckCircle };
       default: return null;
     }
@@ -748,7 +750,7 @@ function DetailPanel({
                           ) : isCreation ? (
                             <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                           ) : (
-                            <ArrowLeftRight className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
+                            <ArrowRightLeft className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
                               evento.tipo === 'inicio_coleta' ? 'text-cyan-600 dark:text-cyan-400' :
                                 evento.tipo === 'inicio_rota' ? 'text-purple-600 dark:text-purple-400' :
                                   evento.tipo === 'finalizado' ? 'text-green-600 dark:text-green-400' :
@@ -1538,7 +1540,7 @@ export default function OperacaoDiaria() {
       const motoristaIdsList = motoristas.map(m => m.id);
 
       // Fetch deliveries - usando apenas os status válidos
-      const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'];
+      const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'];
 
       const { data, error } = await (supabase as any)
         .from('entregas')
@@ -1981,7 +1983,7 @@ export default function OperacaoDiaria() {
       );
     }
 
-    const ativas = filtered.filter(e => ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'].includes(e.status));
+    const ativas = filtered.filter(e => ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'].includes(e.status));
     const finalizadas = filtered.filter(e => ['entregue', 'cancelada'].includes(e.status));
     return { aguardandoEntregas: ativas, emRotaEntregas: finalizadas, filteredEntregas: filtered };
   }, [entregas, filters]);

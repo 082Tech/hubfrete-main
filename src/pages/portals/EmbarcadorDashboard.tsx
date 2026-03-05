@@ -98,7 +98,7 @@ export default function EmbarcadorDashboard() {
   // Calculate stats
   const stats = useMemo(() => {
     const activeCargas = cargas.filter(c => c.status && !['entregue', 'cancelada'].includes(c.status)).length;
-    const emTransito = entregas.filter(e => e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega').length;
+    const emTransito = entregas.filter(e => e.status === 'saiu_para_coleta' || e.status === 'em_transito' || e.status === 'saiu_para_entrega').length;
     const aguardandoColeta = entregas.filter(e => e.status === 'aguardando').length;
 
     // Entregas do mês atual

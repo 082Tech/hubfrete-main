@@ -56,6 +56,7 @@ import {
   Map,
   RefreshCw,
   Filter,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 
@@ -110,6 +111,7 @@ interface EntregaCompleta {
 const statusEntregaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
   'aguardando': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando', icon: Clock },
   'saiu_para_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Saiu para Coleta', icon: Package },
+  'em_transito': { color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20', label: 'Em Trânsito', icon: ArrowRightLeft },
   'saiu_para_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Em Rota', icon: Truck },
   'entregue': { color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', label: 'Concluída', icon: CheckCircle },
   'problema': { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Problema', icon: AlertCircle },
@@ -179,7 +181,7 @@ export default function EntregasAdmin() {
     // Apply status filter
     switch (filterStatus) {
       case 'ativas':
-        result = result.filter(e => ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega', 'problema'].includes(e.status || ''));
+        result = result.filter(e => ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega', 'problema'].includes(e.status || ''));
         break;
       case 'finalizadas':
         result = result.filter(e => ['entregue', 'cancelada'].includes(e.status || ''));
@@ -224,7 +226,7 @@ export default function EntregasAdmin() {
     return {
       total: entregas.length,
       aguardando: byStatus['aguardando'] || 0,
-      emRota: (byStatus['saiu_para_coleta'] || 0) + (byStatus['saiu_para_entrega'] || 0),
+      emRota: (byStatus['saiu_para_coleta'] || 0) + (byStatus['em_transito'] || 0) + (byStatus['saiu_para_entrega'] || 0),
       entregue: byStatus['entregue'] || 0,
       problema: byStatus['problema'] || 0,
       totalFrete,

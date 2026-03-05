@@ -124,7 +124,7 @@ export default function TorreControle() {
         empresasTransportadora: empresas.filter(e => e.tipo === 'TRANSPORTADORA').length,
         motoristas: motoristasRes.count || 0,
         cargasPublicadas: cargasRes.count || 0,
-        entregasEmAndamento: entregas.filter(e => ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'].includes(e.status || '')).length,
+        entregasEmAndamento: entregas.filter(e => ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'].includes(e.status || '')).length,
         entregasConcluidas: entregas.filter(e => e.status === 'entregue').length,
         preCadastrosPendentes: preCadastrosRes.count || 0,
         totalUsuarios: usuariosRes.count || 0,
@@ -150,7 +150,7 @@ export default function TorreControle() {
 
       (data || []).forEach(e => {
         if (e.status === 'aguardando') statusCount.aguardando++;
-        else if (e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega') statusCount.emRota++;
+        else if (e.status === 'saiu_para_coleta' || e.status === 'em_transito' || e.status === 'saiu_para_entrega') statusCount.emRota++;
         else if (e.status === 'entregue') statusCount.entregue++;
         else if (e.status === 'problema') statusCount.problema++;
         else if (e.status === 'cancelada') statusCount.cancelada++;

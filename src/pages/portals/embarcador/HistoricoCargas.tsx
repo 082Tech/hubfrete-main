@@ -162,6 +162,7 @@ interface CargaData {
 const statusEntregaConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
   saiu_para_coleta: { label: 'Saiu para Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
+  em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: ArrowRightLeft },
   saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Truck },
   entregue: { label: 'Concluída', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
   cancelada: { label: 'Cancelada', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: RotateCcw },

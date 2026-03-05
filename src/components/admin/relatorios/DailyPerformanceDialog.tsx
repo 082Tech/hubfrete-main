@@ -54,6 +54,7 @@ interface DailyPerformanceDialogProps {
 const STATUS_COLORS: Record<string, string> = {
   aguardando: '#f59e0b',
   saiu_para_coleta: '#06b6d4',
+  em_transito: '#6366f1',
   saiu_para_entrega: '#a855f7',
   entregue: '#22c55e',
   cancelada: '#ef4444',
@@ -62,6 +63,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   aguardando: 'Aguardando',
   saiu_para_coleta: 'Saiu p/ Coleta',
+  em_transito: 'Em Trânsito',
   saiu_para_entrega: 'Em Rota',
   entregue: 'Concluída',
   cancelada: 'Cancelada',

@@ -56,6 +56,7 @@ interface EmbarcadorDailyPerformanceDialogProps {
 const STATUS_COLORS: Record<string, string> = {
   aguardando: '#f59e0b',
   saiu_para_coleta: '#06b6d4',
+  em_transito: '#6366f1',
   saiu_para_entrega: '#a855f7',
   entregue: '#22c55e',
   cancelada: '#ef4444',

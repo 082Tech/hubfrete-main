@@ -163,7 +163,7 @@ export function DetailPanelLeafletMap({
   // Determinar quais rotas mostrar baseado no status
   const showRouteToOrigin = status === 'aguardando' || status === 'saiu_para_coleta';
   const showRouteOriginToDestino = status === 'aguardando' || status === 'saiu_para_coleta';
-  const showRouteToDestino = status === 'saiu_para_entrega';
+  const showRouteToDestino = status === 'em_transito' || status === 'saiu_para_entrega';
 
   const isDriverOnline = driverLocation?.isOnline ?? false;
 

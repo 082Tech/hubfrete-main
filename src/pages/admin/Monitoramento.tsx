@@ -98,7 +98,7 @@ export default function Monitoramento() {
         const { data: entregas } = await (supabase as any)
           .from('entregas')
           .select('id, codigo, status, motorista_id, tracking_code')
-          .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
+          .in('status', ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'])
           .not('motorista_id', 'is', null);
 
         const entregaByMotorista = new Map((entregas || []).map((e: any) => [e.motorista_id, e]));
@@ -149,7 +149,7 @@ export default function Monitoramento() {
         .from('entregas')
         .select('id')
         .eq('motorista_id', selectedDriverId)
-        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'] as any)
+        .in('status', ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'] as any)
         .limit(1);
 
       if (!entregas?.[0]?.id) { setTrackingHistory([]); return; }
