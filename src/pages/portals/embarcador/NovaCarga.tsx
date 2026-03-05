@@ -290,23 +290,16 @@ export default function NovaCarga() {
             <p className="text-sm text-muted-foreground">Preencha os dados e visualize o resumo ao lado</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
-            Cancelar
-          </Button>
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
-            {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-2" />Criar Carga</>)}
-          </Button>
-        </div>
       </div>
 
       {/* 2-column layout */}
       <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,400px]">
-        {/* Left: Form */}
-        <ScrollArea className="h-full">
-          <div className="max-w-3xl p-6 space-y-8">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {/* Left: Form + Footer */}
+        <div className="flex flex-col overflow-hidden bg-muted/30">
+          <ScrollArea className="flex-1">
+            <div className="max-w-3xl p-6 space-y-8">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 [&_input]:bg-background [&_textarea]:bg-background [&_select]:bg-background [&_[role=combobox]]:bg-background">
 
                 {/* ───── Section: Dados da Carga ───── */}
                 <section className="space-y-4">
@@ -545,6 +538,17 @@ export default function NovaCarga() {
             </Form>
           </div>
         </ScrollArea>
+
+        {/* Fixed footer with action buttons */}
+        <div className="border-t bg-card px-6 py-3 flex items-center justify-end gap-2 shrink-0">
+          <Button type="button" variant="outline" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
+            Cancelar
+          </Button>
+          <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
+            {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-2" />Criar Carga</>)}
+          </Button>
+        </div>
+      </div>
 
         {/* Right: Live Summary (hidden on mobile) */}
         <div className="hidden lg:flex flex-col border-l bg-muted/20 overflow-hidden">
