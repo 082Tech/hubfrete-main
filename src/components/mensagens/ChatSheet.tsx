@@ -60,7 +60,7 @@ export function ChatSheet({
         className="w-full sm:max-w-lg md:max-w-xl p-0 flex flex-col"
       >
         <SheetHeader className="sr-only">
-          <SheetTitle>Chat da Entrega</SheetTitle>
+          <SheetTitle>Chat da Carga</SheetTitle>
         </SheetHeader>
         
         {isLoadingChat ? (

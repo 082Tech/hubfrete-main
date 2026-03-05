@@ -182,7 +182,7 @@ export default function Dashboard() {
         {/* Recent Deliveries */}
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Últimas Entregas</CardTitle>
+            <CardTitle>Últimas Cargas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">

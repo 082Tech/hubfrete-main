@@ -351,8 +351,8 @@ export function ChatArea({
       case 'problema':
         return { 
           icon: AlertTriangle, 
-          title: 'Entrega com problema', 
-          subtitle: 'Esta entrega foi finalizada com problema.',
+          title: 'Carga com problema', 
+          subtitle: 'Esta carga foi finalizada com problema.',
           color: 'text-destructive',
           bgColor: 'bg-destructive/10',
         };

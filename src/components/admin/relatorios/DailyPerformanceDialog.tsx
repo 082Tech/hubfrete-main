@@ -159,7 +159,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                   <Package className="w-3.5 h-3.5" />
-                  Total de Entregas
+                  Total de Cargas
                 </div>
                 <p className="text-2xl font-bold">{metrics.total}</p>
               </CardContent>

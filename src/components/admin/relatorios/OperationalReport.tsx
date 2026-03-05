@@ -154,7 +154,7 @@ export function OperationalReport({ data, isLoading = false }: OperationalReport
 
         <Card className="border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Entregas por Status</CardTitle>
+            <CardTitle className="text-sm font-medium">Cargas por Status</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>

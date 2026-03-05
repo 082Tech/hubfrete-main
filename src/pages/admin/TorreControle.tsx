@@ -425,7 +425,7 @@ export default function TorreControle() {
                         <CheckCircle className="w-4 h-4 text-chart-1" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">Entrega concluída</p>
+                        <p className="text-sm font-medium">Carga concluída</p>
                         <p className="text-xs text-muted-foreground">há 5 minutos</p>
                       </div>
                     </div>
