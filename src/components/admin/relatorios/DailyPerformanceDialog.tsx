@@ -230,7 +230,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-3 text-center">
                 <CheckCircle className="w-4 h-4 text-green-600 mx-auto mb-1" />
                 <p className="text-lg font-bold text-green-800">{metrics.entregues}</p>
-                <p className="text-[10px] text-green-700">Entregue</p>
+                <p className="text-[10px] text-green-700">Concluída</p>
               </CardContent>
             </Card>
 
