@@ -295,8 +295,8 @@ export function ResumoSection({
                   <p className="text-xs text-muted-foreground mb-1">Carrocerias aceitas:</p>
                   <div className="flex flex-wrap gap-1">
                     {carroceriasSelecionadas.map(c => {
-                      const cfg = CARROCERIAS_CONFIG.find(x => x.value === c);
-                      return <Badge key={c} variant="secondary" className="text-xs">{cfg?.label || c}</Badge>;
+                      const item = Object.values(CARROCERIAS_CONFIG).flatMap(cat => cat.items).find(i => i.value === c);
+                      return <Badge key={c} variant="secondary" className="text-xs">{item?.label || c}</Badge>;
                     })}
                   </div>
                 </div>
