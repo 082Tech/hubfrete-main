@@ -462,24 +462,28 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="carga" className="gap-2">
+              <TabsList className="grid w-full grid-cols-6">
+                <TabsTrigger value="carga" className="gap-1 text-xs sm:text-sm">
                   <Package className="w-4 h-4" />
                   <span className="hidden sm:inline">Carga</span>
                 </TabsTrigger>
-                <TabsTrigger value="requisitos" className="gap-2">
+                <TabsTrigger value="precificacao" className="gap-1 text-xs sm:text-sm">
+                  <DollarSign className="w-4 h-4" />
+                  <span className="hidden sm:inline">Precificação</span>
+                </TabsTrigger>
+                <TabsTrigger value="requisitos" className="gap-1 text-xs sm:text-sm">
                   <ClipboardList className="w-4 h-4" />
                   <span className="hidden sm:inline">Requisitos</span>
                 </TabsTrigger>
-                <TabsTrigger value="origem" className="gap-2">
+                <TabsTrigger value="origem" className="gap-1 text-xs sm:text-sm">
                   <MapPin className="w-4 h-4" />
                   <span className="hidden sm:inline">Remetente</span>
                 </TabsTrigger>
-                <TabsTrigger value="destino" className="gap-2">
+                <TabsTrigger value="destino" className="gap-1 text-xs sm:text-sm">
                   <Truck className="w-4 h-4" />
                   <span className="hidden sm:inline">Destinatário</span>
                 </TabsTrigger>
-                <TabsTrigger value="resumo" className="gap-2">
+                <TabsTrigger value="resumo" className="gap-1 text-xs sm:text-sm">
                   <Eye className="w-4 h-4" />
                   <span className="hidden sm:inline">Resumo</span>
                 </TabsTrigger>
@@ -565,25 +569,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
                   <FormField
                     control={form.control}
-                    name="quantidade_paletes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Qtd. Paletes</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
                     name="valor_mercadoria"
                     render={({ field }) => (
                       <FormItem>
@@ -599,83 +584,20 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       </FormItem>
                     )}
                   />
-                </div>
-
-                {/* Seção de Frete */}
-                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                  <h4 className="font-medium text-sm flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    Valor do Frete
-                  </h4>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="valor_frete_tonelada"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Frete por Tonelada</FormLabel>
-                          <FormControl>
-                            <CurrencyInput
-                              placeholder="0,00"
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Frete Total Estimado</Label>
-                      <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center">
-                        <span className="font-bold text-primary">
-                          {freteTotal > 0
-                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
-                            : 'R$ 0,00'}
-                        </span>
-                      </div>
-                      {pesoKg > 0 && (valorFreteTonelada ?? 0) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {(pesoKg / 1000).toFixed(2)}t × R$ {(valorFreteTonelada ?? 0).toFixed(2)}/ton
-                        </p>
-                      )}
-                    </div>
-                  </div>
 
                   <FormField
                     control={form.control}
-                    name="permite_fracionado"
+                    name="numero_pedido"
                     render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormItem>
+                        <FormLabel>Nº do Pedido</FormLabel>
                         <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Input placeholder="Opcional" {...field} />
                         </FormControl>
-                        <FormLabel className="font-normal text-sm">
-                          Permitir transporte fracionado (múltiplos motoristas)
-                        </FormLabel>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-
-                  {form.watch('permite_fracionado') && (
-                    <div className="ml-6 p-3 bg-muted/50 rounded-md border">
-                      <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
-                      <WeightInput
-                        placeholder="Ex: 15.000 (15 toneladas)"
-                        className="mt-2"
-                        value={pesoMinimoFracionado || undefined}
-                        onValueChange={(v) => setPesoMinimoFracionado(v || null)}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Deixe vazio para não ter limite mínimo
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
@@ -758,7 +680,203 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 </Alert>
               </TabsContent>
 
+              {/* Aba de Precificação */}
+              <TabsContent value="precificacao" className="space-y-4 mt-4">
+                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
+                  <h4 className="font-medium text-sm flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-primary" />
+                    Unidade de Precificação
+                  </h4>
+
+                  <FormField
+                    control={form.control}
+                    name="tipo_precificacao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tipo de Precificação *</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-popover border-border z-[10000]">
+                            <SelectItem value="por_tonelada">Por Tonelada (R$/ton)</SelectItem>
+                            <SelectItem value="por_m3">Por m³ (R$/m³)</SelectItem>
+                            <SelectItem value="fixo">Valor Fixo (R$)</SelectItem>
+                            <SelectItem value="por_km">Por KM (R$/km)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {tipoPrecificacao === 'por_tonelada' && (
+                      <FormField
+                        control={form.control}
+                        name="valor_frete_tonelada"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Valor por Tonelada (R$)</FormLabel>
+                            <FormControl>
+                              <CurrencyInput
+                                placeholder="0,00"
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {tipoPrecificacao === 'por_m3' && (
+                      <FormField
+                        control={form.control}
+                        name="valor_frete_m3"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Valor por m³ (R$)</FormLabel>
+                            <FormControl>
+                              <CurrencyInput
+                                placeholder="0,00"
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {tipoPrecificacao === 'fixo' && (
+                      <FormField
+                        control={form.control}
+                        name="valor_frete_fixo"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Valor Fixo do Frete (R$)</FormLabel>
+                            <FormControl>
+                              <CurrencyInput
+                                placeholder="0,00"
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {tipoPrecificacao === 'por_km' && (
+                      <FormField
+                        control={form.control}
+                        name="valor_frete_km"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Valor por KM (R$)</FormLabel>
+                            <FormControl>
+                              <CurrencyInput
+                                placeholder="0,00"
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    <div className="space-y-2">
+                      <Label className="text-sm">Frete Total Estimado</Label>
+                      <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center">
+                        <span className="font-bold text-primary">
+                          {freteTotal > 0
+                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
+                            : 'R$ 0,00'}
+                        </span>
+                      </div>
+                      {tipoPrecificacao === 'por_tonelada' && pesoKg > 0 && (valorFreteTonelada ?? 0) > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {(pesoKg / 1000).toFixed(2)}t × R$ {(valorFreteTonelada ?? 0).toFixed(2)}/ton
+                        </p>
+                      )}
+                      {tipoPrecificacao === 'por_m3' && (volumeM3 ?? 0) > 0 && (valorFreteM3 ?? 0) > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {volumeM3}m³ × R$ {(valorFreteM3 ?? 0).toFixed(2)}/m³
+                        </p>
+                      )}
+                      {tipoPrecificacao === 'por_km' && (
+                        <p className="text-xs text-muted-foreground">
+                          Total depende da distância da rota
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="permite_fracionado"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal text-sm">
+                        Permitir transporte fracionado (múltiplos motoristas)
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch('permite_fracionado') && (
+                  <div className="ml-6 p-3 bg-muted/50 rounded-md border">
+                    <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
+                    <WeightInput
+                      placeholder="Ex: 15.000 (15 toneladas)"
+                      className="mt-2"
+                      value={pesoMinimoFracionado || undefined}
+                      onValueChange={(v) => setPesoMinimoFracionado(v || null)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Deixe vazio para não ter limite mínimo
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+
               <TabsContent value="requisitos" className="space-y-6 mt-4">
+                {/* Qtd. Paletes moved here */}
+                <FormField
+                  control={form.control}
+                  name="quantidade_paletes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Qtd. Paletes</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          className="max-w-[200px]"
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="space-y-3">
                   <Label>Características Especiais</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
