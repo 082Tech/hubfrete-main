@@ -539,6 +539,17 @@ export default function NovaCarga() {
           </div>
         </ScrollArea>
 
+        {/* Fixed footer with action buttons */}
+        <div className="border-t bg-card px-6 py-3 flex items-center justify-end gap-2 shrink-0">
+          <Button type="button" variant="outline" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
+            Cancelar
+          </Button>
+          <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
+            {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-2" />Criar Carga</>)}
+          </Button>
+        </div>
+      </div>
+
         {/* Right: Live Summary (hidden on mobile) */}
         <div className="hidden lg:flex flex-col border-l bg-muted/20 overflow-hidden">
           <div className="px-4 py-3 border-b bg-card">
