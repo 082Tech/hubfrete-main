@@ -79,8 +79,14 @@ const formSchema = z.object({
   volume_m3: z.coerce.number().optional(),
   quantidade_paletes: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
-  tipo_precificacao: z.literal('por_tonelada').default('por_tonelada'),
+  numero_pedido: z.string().optional(),
+
+  // Precificação
+  tipo_precificacao: z.enum(['por_tonelada', 'por_m3', 'fixo', 'por_km'] as const).default('por_tonelada'),
   valor_frete_tonelada: z.coerce.number().optional(),
+  valor_frete_m3: z.coerce.number().optional(),
+  valor_frete_fixo: z.coerce.number().optional(),
+  valor_frete_km: z.coerce.number().optional(),
   permite_fracionado: z.boolean().default(true),
 
   // Características especiais
