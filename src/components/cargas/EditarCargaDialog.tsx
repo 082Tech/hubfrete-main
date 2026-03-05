@@ -104,6 +104,7 @@ interface CargaToEdit {
   peso_kg: number;
   peso_disponivel_kg: number | null;
   permite_fracionado: boolean | null;
+  peso_minimo_fracionado_kg: number | null;
   valor_mercadoria: number | null;
   numero_pedido?: string | null;
   volume_m3: number | null;
@@ -189,6 +190,7 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
 
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
+  const [pesoMinimoFracionado, setPesoMinimoFracionado] = useState<number | null>(null);
   const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([]);
   const [carroceriasSelecionadas, setCarroceriasSelecionadas] = useState<string[]>([]);
   const [origemData, setOrigemData] = useState<LocationData>(initialLocationData);
@@ -234,6 +236,7 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
 
       setNecessidadesEspeciais(carga.necessidades_especiais || []);
       setNotaFiscalUrl(carga.nota_fiscal_url || null);
+      setPesoMinimoFracionado(carga.peso_minimo_fracionado_kg || null);
       setVeiculosSelecionados(carga.veiculo_requisitos?.tipos_veiculo || []);
       setCarroceriasSelecionadas(carga.veiculo_requisitos?.tipos_carroceria || []);
 
@@ -321,6 +324,7 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
           valor_frete_fixo: null,
           valor_frete_km: null,
           permite_fracionado: values.permite_fracionado,
+          peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionado : null,
           carga_fragil: values.carga_fragil,
           carga_perigosa: values.carga_perigosa,
           carga_viva: values.carga_viva,
@@ -546,6 +550,19 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
                     <FormLabel className="font-normal text-sm">Permitir transporte fracionado (múltiplos motoristas)</FormLabel>
                   </FormItem>
                 )} />
+
+                {form.watch('permite_fracionado') && (
+                  <div className="ml-6 p-3 bg-muted/50 rounded-md border">
+                    <Label className="text-sm">Peso Mínimo por Carga (kg)</Label>
+                    <WeightInput
+                      placeholder="Ex: 15.000 (15 toneladas)"
+                      className="mt-2"
+                      value={pesoMinimoFracionado || undefined}
+                      onValueChange={(v) => setPesoMinimoFracionado(v || null)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Deixe vazio para não ter limite mínimo</p>
+                  </div>
+                )}
               </TabsContent>
 
               {/* ===== PRECIFICAÇÃO ===== */}
