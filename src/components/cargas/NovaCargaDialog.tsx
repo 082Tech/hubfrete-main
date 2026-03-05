@@ -37,6 +37,10 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, DollarSign, Weight, Info } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
 import { RemetenteSection } from './RemetenteSection';
