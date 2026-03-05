@@ -1819,6 +1819,9 @@ export default function CargasDisponiveis() {
                         <div>
                           <p className="font-semibold text-lg">{selectedCarga.codigo}</p>
                           <p className="text-sm text-muted-foreground">{selectedCarga.descricao}</p>
+                          {selectedCarga.numero_pedido && (
+                            <p className="text-xs text-muted-foreground mt-0.5">Pedido: <span className="font-medium">{selectedCarga.numero_pedido}</span></p>
+                          )}
                           {selectedCarga.empresa?.nome && (
                             <p className="text-xs text-muted-foreground mt-1">
                               Embarcador: {selectedCarga.empresa.nome}
