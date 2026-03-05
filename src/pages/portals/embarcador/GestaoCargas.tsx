@@ -1204,6 +1204,13 @@ export default function GestaoCargas() {
         entregas={entregas}
         localizacoes={localizacoes}
       />
+
+      {/* Daily Performance Dialog */}
+      <EmbarcadorDailyPerformanceDialog
+        open={performanceDialogOpen}
+        onOpenChange={setPerformanceDialogOpen}
+        entregas={entregas}
+      />
     </div>
   );
 }
