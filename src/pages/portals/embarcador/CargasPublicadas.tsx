@@ -61,6 +61,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Trash2,
+  Plus,
   FileText,
   Pencil,
 } from 'lucide-react';
