@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Package, Truck, Clock, CheckCircle, ArrowUpRight, DollarSign, MapPin, MessageCircle, BarChart3, Sparkles, Send, ExternalLink, Shield, Settings } from 'lucide-react';
 import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
 import { CardImmersiveBackground } from '@/components/ai-assistant/CardImmersiveBackground';
-import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
+import { Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -167,7 +167,10 @@ export default function EmbarcadorDashboard() {
               <BarChart3 className="w-4 h-4" />
               Relatórios
             </Button>
-            <NovaCargaDialog />
+            <Button className="gap-2" onClick={() => navigate('/embarcador/ofertas/nova')}>
+              <Plus className="w-4 h-4" />
+              Nova Carga
+            </Button>
           </div>
         </div>
 

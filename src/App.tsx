@@ -47,6 +47,8 @@ import PreCadastroMotorista from "./pages/PreCadastroMotorista";
 import Rastreio from "./pages/public/Rastreio";
 import EmbarcadorDashboard from "./pages/portals/EmbarcadorDashboard";
 import CargasPublicadas from "./pages/portals/embarcador/CargasPublicadas";
+import NovaCarga from "./pages/portals/embarcador/NovaCarga";
+import EditarCarga from "./pages/portals/embarcador/EditarCarga";
 import CargasEmRota from "./pages/portals/embarcador/GestaoCargas";
 import HistoricoCargas from "./pages/portals/embarcador/HistoricoCargas";
 import Relatorios from "./pages/portals/embarcador/Relatorios";
@@ -147,6 +149,8 @@ const App = () => {
                   <Route path="/embarcador" element={<PortalLayoutWrapper expectedUserType="embarcador" />}>
                     <Route index element={<EmbarcadorDashboard />} />
                     <Route path="ofertas" element={<CargasPublicadas />} />
+                    <Route path="ofertas/nova" element={<NovaCarga />} />
+                    <Route path="ofertas/editar/:id" element={<EditarCarga />} />
                     <Route path="cargas" element={<CargasEmRota />} />
                     <Route path="cargas/historico" element={<HistoricoCargas />} />
                     <Route path="relatorios" element={<Relatorios />} />

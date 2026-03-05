@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,9 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
-import { EditarCargaDialog } from '@/components/cargas/EditarCargaDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import {
   DropdownMenu,
@@ -63,6 +61,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Trash2,
+  Plus,
   FileText,
   Pencil,
 } from 'lucide-react';
@@ -207,7 +206,7 @@ export default function CargasPublicadas() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cargaToDelete, setCargaToDelete] = useState<CargaData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [editCarga, setEditCarga] = useState<CargaData | null>(null);
+  const navigate = useNavigate();
 
   const { ref: tableContainerRef, height: tableHeight } = useRemainingViewportHeight<HTMLDivElement>({
     bottomOffset: 32,
@@ -742,7 +741,10 @@ export default function CargasPublicadas() {
                   className="pl-10"
                 />
               </div>
-              <NovaCargaDialog onSuccess={refetch} />
+              <Button className="gap-2" onClick={() => navigate('/embarcador/ofertas/nova')}>
+                <Plus className="w-4 h-4" />
+                Nova Carga
+              </Button>
             </div>
           </div>
 
@@ -901,7 +903,10 @@ export default function CargasPublicadas() {
                   <p className="text-sm text-muted-foreground mb-4">
                     {filterStatus !== 'all' ? 'Tente ajustar os filtros' : 'Crie sua primeira carga'}
                   </p>
-                  <NovaCargaDialog onSuccess={refetch} />
+                  <Button className="gap-2" onClick={() => navigate('/embarcador/ofertas/nova')}>
+                    <Plus className="w-4 h-4" />
+                    Nova Carga
+                  </Button>
                 </div>
               ) : (
                 <>
@@ -1097,7 +1102,7 @@ export default function CargasPublicadas() {
                                       {carga.entregas.length === 0 && (
                                         <DropdownMenuItem onClick={(e) => {
                                           e.stopPropagation();
-                                          setEditCarga(carga);
+                                          navigate(`/embarcador/ofertas/editar/${carga.id}`);
                                         }}>
                                           <Pencil className="w-4 h-4 mr-2" />
                                           Editar
@@ -1385,15 +1390,6 @@ export default function CargasPublicadas() {
           />
         )}
 
-        {/* Edit Carga Dialog */}
-        {editCarga && (
-          <EditarCargaDialog
-            carga={editCarga}
-            open={!!editCarga}
-            onOpenChange={(open) => !open && setEditCarga(null)}
-            onSuccess={refetch}
-          />
-        )}
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
