@@ -28,6 +28,10 @@ import { RemetenteSection } from '@/components/cargas/RemetenteSection';
 import { DestinoSection } from '@/components/cargas/DestinoSection';
 import { NecessidadesEspeciais } from '@/components/cargas/NecessidadesEspeciais';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ResumoSection } from '@/components/cargas/ResumoSection';
 import { VeiculoCarroceriaSelect } from '@/components/cargas/VeiculoCarroceriaSelect';
 import { UNIDADES_PRECIFICACAO } from '@/components/cargas/NovaCargaDialog';
