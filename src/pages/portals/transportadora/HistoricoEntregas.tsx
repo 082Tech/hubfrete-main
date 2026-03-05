@@ -145,7 +145,7 @@ const viagemStatusConfig: Record<string, { color: string; label: string; icon: R
 const entregaStatusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
   saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
-  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
+  saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
   entregue: { label: 'Concluída', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle },
   cancelada: { label: 'Cancelada', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: Ban },
@@ -828,7 +828,7 @@ export default function HistoricoEntregas() {
                                     <div className="px-8 py-4">
                                       <div className="flex items-center gap-2 mb-3">
                                         <Package className="w-4 h-4 text-primary" />
-                                        <span className="text-sm font-medium">Entregas ({viagem.entregas.length})</span>
+                                        <span className="text-sm font-medium">Cargas ({viagem.entregas.length})</span>
                                       </div>
                                       <div className="bg-background rounded-lg border overflow-hidden">
                                         <table className="w-full text-sm">
@@ -996,7 +996,7 @@ export default function HistoricoEntregas() {
                           {viagem.motorista?.nome_completo || 'Sem motorista'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {viagem.entregas.length} {viagem.entregas.length === 1 ? 'entrega' : 'entregas'}
+                          {viagem.entregas.length} {viagem.entregas.length === 1 ? 'carga' : 'cargas'}
                           {viagem.km_total ? ` • ${viagem.km_total} km` : ''}
                         </p>
                       </div>

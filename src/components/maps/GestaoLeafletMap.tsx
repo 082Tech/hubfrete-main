@@ -208,8 +208,8 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   aguardando: 'Aguardando',
   saiu_para_coleta: 'Em Coleta',
-  saiu_para_entrega: 'Em Entrega',
-  entregue: 'Entregue',
+  saiu_para_entrega: 'Em Rota',
+  entregue: 'Concluída',
   cancelada: 'Cancelada',
 };
 
@@ -270,7 +270,7 @@ function DriverMarkerWithTooltip({
           {entregasCount > 0 && (
             <div className="space-y-1.5">
               <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                {entregasCount} entrega{entregasCount !== 1 ? 's' : ''} em andamento
+                {entregasCount} carga{entregasCount !== 1 ? 's' : ''} em andamento
               </span>
               {entregas.slice(0, 3).map((e, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded-md px-2 py-1.5">
@@ -283,7 +283,7 @@ function DriverMarkerWithTooltip({
               ))}
               {entregasCount > 3 && (
                 <p className="text-[10px] text-muted-foreground text-center pt-1">
-                  +{entregasCount - 3} mais entregas
+                  +{entregasCount - 3} mais cargas
                 </p>
               )}
             </div>
@@ -316,12 +316,12 @@ function StatusIndicators({ statusCounts }: { statusCounts: GestaoLeafletMapProp
         <span className="text-xs font-medium">{statusCounts.coleta}</span>
       </div>
       <div className="w-px h-4 bg-border" />
-      <div className="flex items-center gap-1.5" title="Saiu p/ Entrega">
+      <div className="flex items-center gap-1.5" title="Em Rota">
         <span className="w-3 h-3 rounded-full bg-purple-500 dark:bg-purple-400" />
         <span className="text-xs font-medium">{statusCounts.entrega}</span>
       </div>
       <div className="w-px h-4 bg-border" />
-      <div className="flex items-center gap-1.5" title="Entregue">
+      <div className="flex items-center gap-1.5" title="Concluída">
         <span className="w-3 h-3 rounded-full bg-green-500 dark:bg-green-400" />
         <span className="text-xs font-medium">{statusCounts.entregue}</span>
       </div>

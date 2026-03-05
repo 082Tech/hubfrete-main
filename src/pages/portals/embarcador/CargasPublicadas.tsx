@@ -179,8 +179,8 @@ interface CargaData {
 const statusEntregaConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
   saiu_para_coleta: { label: 'Saiu para Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
-  saiu_para_entrega: { label: 'Saiu para Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
-  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 },
+  saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
+  entregue: { label: 'Concluída', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
   cancelada: { label: 'Cancelada', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: RotateCcw },
 };
@@ -948,7 +948,7 @@ export default function CargasPublicadas() {
                               Frete
                             </div>
                           </th>
-                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px]">Entregas</th>
+                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px]">Cargas</th>
                           <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[110px]">Status</th>
                           <th className="h-12 px-4 text-left align-middle font-semibold text-foreground w-10"></th>
                         </tr>
@@ -1073,7 +1073,7 @@ export default function CargasPublicadas() {
                                 </td>
                                 <td className="p-4 align-middle text-center">
                                   <Badge variant="outline" className="text-xs">
-                                    {carga.entregas.length} {carga.entregas.length === 1 ? 'entrega' : 'entregas'}
+                                    {carga.entregas.length} {carga.entregas.length === 1 ? 'carga' : 'cargas'}
                                   </Badge>
                                 </td>
                                 <td className="p-4 align-middle">
@@ -1128,7 +1128,7 @@ export default function CargasPublicadas() {
                                     <div className="px-8 py-4">
                                       <div className="flex items-center gap-2 mb-3">
                                         <Truck className="w-4 h-4 text-primary" />
-                                        <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
+                                        <span className="text-sm font-medium">Cargas ({carga.entregas.length})</span>
                                       </div>
                                       <div className="bg-background rounded-lg border overflow-hidden">
                                         <table className="w-full text-sm">

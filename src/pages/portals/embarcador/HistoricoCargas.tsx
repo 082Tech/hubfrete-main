@@ -161,7 +161,7 @@ interface CargaData {
 const statusEntregaConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
   saiu_para_coleta: { label: 'Saiu para Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
-  saiu_para_entrega: { label: 'Saiu para Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Truck },
+  saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Truck },
   entregue: { label: 'Concluída', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
   cancelada: { label: 'Cancelada', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: RotateCcw },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
@@ -827,7 +827,7 @@ export default function HistoricoCargas() {
 
             {filterStatus !== 'all' && (
               <Badge variant="outline">
-                Filtro: {filterStatus === 'entregue' ? 'Entregues' : filterStatus === 'cancelada' ? 'Canceladas' : 'Com Problemas'}
+                Filtro: {filterStatus === 'entregue' ? 'Concluídas' : filterStatus === 'cancelada' ? 'Canceladas' : 'Com Problemas'}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1034,7 +1034,7 @@ export default function HistoricoCargas() {
                                   <div className="px-8 py-4">
                                     <div className="flex items-center gap-2 mb-3">
                                       <Truck className="w-4 h-4 text-primary" />
-                                      <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
+                                      <span className="text-sm font-medium">Cargas ({carga.entregas.length})</span>
                                     </div>
                                     <div className="bg-background rounded-lg border overflow-hidden">
                                       <Table>

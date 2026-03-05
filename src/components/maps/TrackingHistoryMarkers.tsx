@@ -27,8 +27,8 @@ interface TrackingHistoryMarkersProps {
 const statusLabels: Record<string, string> = {
   'aguardando': 'Aguardando',
   'saiu_para_coleta': 'Saiu para Coleta',
-  'saiu_para_entrega': 'Saiu para Entrega',
-  'entregue': 'Entregue',
+  'saiu_para_entrega': 'Em Rota',
+  'entregue': 'Concluída',
   'problema': 'Problema',
   'cancelada': 'Cancelada',
 };
