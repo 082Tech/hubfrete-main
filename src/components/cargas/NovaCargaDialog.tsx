@@ -61,7 +61,7 @@ const tipoCargaOptions: { value: TipoCarga; label: string }[] = [
   { value: 'container', label: 'Container' },
 ];
 
-type TipoPrecificacao = 'por_tonelada';
+type TipoPrecificacao = 'por_tonelada' | 'por_m3' | 'fixo' | 'por_km';
 
 // Helpers para calcular datas
 const todayStr = () => new Date().toISOString().split('T')[0];
