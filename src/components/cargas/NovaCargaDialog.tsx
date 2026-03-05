@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, Eye, DollarSign } from 'lucide-react';
+import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, Eye, DollarSign, Weight } from 'lucide-react';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
 import { RemetenteSection } from './RemetenteSection';
@@ -61,7 +61,20 @@ const tipoCargaOptions: { value: TipoCarga; label: string }[] = [
   { value: 'container', label: 'Container' },
 ];
 
-type TipoPrecificacao = 'por_tonelada' | 'por_m3' | 'fixo' | 'por_km';
+export const UNIDADES_PRECIFICACAO = [
+  { value: 'UN', label: 'UN – Unidade' },
+  { value: 'KG', label: 'KG – Quilograma' },
+  { value: 'TON', label: 'TON – Tonelada' },
+  { value: 'CX', label: 'CX – Caixa' },
+  { value: 'PC', label: 'PC – Peça' },
+  { value: 'PCT', label: 'PCT – Pacote' },
+  { value: 'PAL', label: 'PAL – Pallet' },
+  { value: 'SC', label: 'SC – Saco' },
+  { value: 'LT', label: 'LT – Litro' },
+  { value: 'M', label: 'M – Metro' },
+  { value: 'M2', label: 'M² – Metro quadrado' },
+  { value: 'M3', label: 'M³ – Metro cúbico' },
+] as const;
 
 // Helpers para calcular datas
 const todayStr = () => new Date().toISOString().split('T')[0];
@@ -75,18 +88,18 @@ const formSchema = z.object({
   // Dados da carga
   descricao: z.string().min(5, 'Descrição deve ter no mínimo 5 caracteres'),
   tipo: z.enum(['granel_solido', 'granel_liquido', 'carga_seca', 'refrigerada', 'congelada', 'perigosa', 'viva', 'indivisivel', 'container'] as const),
+  numero_pedido: z.string().optional(),
+
+  // Peso (aba separada)
   peso_kg: z.coerce.number().min(0.0001, 'Peso deve ser maior que 0'),
   volume_m3: z.coerce.number().optional(),
   quantidade_paletes: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
-  numero_pedido: z.string().optional(),
 
-  // Precificação
-  tipo_precificacao: z.enum(['por_tonelada', 'por_m3', 'fixo', 'por_km'] as const).default('por_tonelada'),
-  valor_frete_tonelada: z.coerce.number().optional(),
-  valor_frete_m3: z.coerce.number().optional(),
-  valor_frete_fixo: z.coerce.number().optional(),
-  valor_frete_km: z.coerce.number().optional(),
+  // Precificação NF-e style
+  unidade_precificacao: z.string().default('TON'),
+  quantidade_precificacao: z.coerce.number().optional(),
+  valor_unitario_precificacao: z.coerce.number().optional(),
   permite_fracionado: z.boolean().default(true),
 
   // Características especiais
@@ -136,17 +149,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     contato_telefone: '',
   };
 
-  // Additional state for new fields
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [pesoMinimoFracionado, setPesoMinimoFracionado] = useState<number | null>(null);
-
-  // Vehicle and body type requirements - start empty (deselected)
   const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([]);
   const [carroceriasSelecionadas, setCarroceriasSelecionadas] = useState<string[]>([]);
-
-  // Location data for origin and destination
   const [origemData, setOrigemData] = useState<LocationData>(initialLocationData);
-
   const [destinoData, setDestinoData] = useState<LocationData>(initialLocationData);
 
   const resetDialogState = () => {
@@ -166,11 +173,9 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       descricao: '',
       tipo: 'carga_seca',
       peso_kg: 0,
-      tipo_precificacao: 'por_tonelada',
-      valor_frete_tonelada: 0,
-      valor_frete_m3: 0,
-      valor_frete_fixo: 0,
-      valor_frete_km: 0,
+      unidade_precificacao: 'TON',
+      quantidade_precificacao: undefined,
+      valor_unitario_precificacao: undefined,
       permite_fracionado: true,
       carga_fragil: false,
       carga_perigosa: false,
@@ -184,28 +189,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   });
 
   const pesoKg = form.watch('peso_kg');
-  const volumeM3 = form.watch('volume_m3');
-  const tipoPrecificacao = form.watch('tipo_precificacao');
-  const valorFreteTonelada = form.watch('valor_frete_tonelada');
-  const valorFreteM3 = form.watch('valor_frete_m3');
-  const valorFreteFixo = form.watch('valor_frete_fixo');
-  const valorFreteKm = form.watch('valor_frete_km');
+  const quantidadePrec = form.watch('quantidade_precificacao');
+  const valorUnitarioPrec = form.watch('valor_unitario_precificacao');
+  const unidadePrec = form.watch('unidade_precificacao');
 
-  // Calcular frete total baseado no tipo de precificação
-  const freteTotal = (() => {
-    switch (tipoPrecificacao) {
-      case 'por_tonelada':
-        return pesoKg && valorFreteTonelada ? Math.round((pesoKg / 1000) * valorFreteTonelada * 100) / 100 : 0;
-      case 'por_m3':
-        return (volumeM3 ?? 0) > 0 && valorFreteM3 ? Math.round((volumeM3 ?? 0) * valorFreteM3 * 100) / 100 : 0;
-      case 'fixo':
-        return valorFreteFixo ?? 0;
-      case 'por_km':
-        return valorFreteKm ?? 0; // total depends on distance, show unit value
-      default:
-        return 0;
-    }
-  })();
+  const freteTotal = (quantidadePrec ?? 0) > 0 && (valorUnitarioPrec ?? 0) > 0
+    ? Math.round((quantidadePrec ?? 0) * (valorUnitarioPrec ?? 0) * 100) / 100
+    : 0;
 
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
@@ -225,7 +215,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   };
 
   const onSubmit = async (values: FormValues) => {
-    // Validação crítica: somente embarcadores podem publicar cargas
     if (userType !== 'embarcador') {
       toast.error('Somente embarcadores podem publicar cargas. Verifique a empresa selecionada.');
       return;
@@ -238,7 +227,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
     if (!validateLocations()) return;
 
-    // Capturar dados antes de fechar
     const capturedOrigemData = { ...origemData };
     const capturedDestinoData = { ...destinoData };
     const capturedNecessidades = [...necessidadesEspeciais];
@@ -248,18 +236,16 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     const capturedFilialId = filialAtiva?.id || null;
     const capturedEmpresaId = empresa.id;
 
-    // Fechar modal imediatamente e mostrar notificação
     resetDialogState();
     setOpen(false);
     toast.loading('Carga sendo criada, aguarde...', { id: 'creating-carga' });
 
-    // Executar criação em background
     createCargaInBackground(
       values,
       capturedOrigemData,
       capturedDestinoData,
       capturedNecessidades,
-      null, // nota fiscal not collected at creation
+      null,
       capturedPesoMinimo,
       capturedVeiculos,
       capturedCarrocerias,
@@ -281,11 +267,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     empresaIdCaptured: number
   ) => {
     try {
-      // Use the empresa_id from the UI context (not from RPC) to prevent
-      // publishing under the wrong company after a company switch
       const empresaId = empresaIdCaptured;
 
-      // Create the load with filial_id and destinatario fields
       const { data: carga, error: cargaError } = await supabase
         .from('cargas')
         .insert({
@@ -298,11 +281,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           volume_m3: values.volume_m3 || null,
           quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
-          tipo_precificacao: values.tipo_precificacao,
-          valor_frete_tonelada: values.tipo_precificacao === 'por_tonelada' && values.valor_frete_tonelada ? Math.round(values.valor_frete_tonelada * 100) / 100 : null,
-          valor_frete_m3: values.tipo_precificacao === 'por_m3' && values.valor_frete_m3 ? Math.round(values.valor_frete_m3 * 100) / 100 : null,
-          valor_frete_fixo: values.tipo_precificacao === 'fixo' && values.valor_frete_fixo ? Math.round(values.valor_frete_fixo * 100) / 100 : null,
-          valor_frete_km: values.tipo_precificacao === 'por_km' && values.valor_frete_km ? Math.round(values.valor_frete_km * 100) / 100 : null,
+          // New NF-e style pricing
+          unidade_precificacao: values.unidade_precificacao || 'TON',
+          quantidade_precificacao: values.quantidade_precificacao || null,
+          valor_unitario_precificacao: values.valor_unitario_precificacao || null,
+          // Legacy compatibility - map to closest old field
+          tipo_precificacao: 'por_tonelada',
+          valor_frete_tonelada: freteTotal > 0 ? freteTotal : null,
           permite_fracionado: values.permite_fracionado,
           peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionadoCaptured : null,
           carga_fragil: values.carga_fragil,
@@ -313,7 +298,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           temperatura_min: values.temperatura_min || null,
           temperatura_max: values.temperatura_max || null,
           numero_onu: values.numero_onu || null,
-          // Anexar T12:00:00 para evitar shift de timezone ao salvar em colunas do tipo date
           data_coleta_de: values.data_coleta_de ? `${values.data_coleta_de}T12:00:00` : values.data_coleta_de,
           data_coleta_ate: values.data_coleta_ate ? `${values.data_coleta_ate}T12:00:00` : null,
           data_entrega_limite: values.data_entrega_limite ? `${values.data_entrega_limite}T12:00:00` : null,
@@ -417,7 +401,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         return;
       }
 
-      // Buscar o código gerado pelo trigger
       const { data: cargaFinal } = await supabase
         .from('cargas')
         .select('codigo')
@@ -463,14 +446,18 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="carga" className="gap-1 text-xs sm:text-sm">
                   <Package className="w-4 h-4" />
                   <span className="hidden sm:inline">Carga</span>
                 </TabsTrigger>
+                <TabsTrigger value="peso" className="gap-1 text-xs sm:text-sm">
+                  <Weight className="w-4 h-4" />
+                  <span className="hidden sm:inline">Peso</span>
+                </TabsTrigger>
                 <TabsTrigger value="precificacao" className="gap-1 text-xs sm:text-sm">
                   <DollarSign className="w-4 h-4" />
-                  <span className="hidden sm:inline">Precificação</span>
+                  <span className="hidden sm:inline">Preço</span>
                 </TabsTrigger>
                 <TabsTrigger value="requisitos" className="gap-1 text-xs sm:text-sm">
                   <ClipboardList className="w-4 h-4" />
@@ -490,6 +477,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 </TabsTrigger>
               </TabsList>
 
+              {/* ===== ABA CARGA ===== */}
               <TabsContent value="carga" className="space-y-4 mt-4">
                 <FormField
                   control={form.control}
@@ -529,58 +517,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="peso_kg"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Peso (kg) *</FormLabel>
-                        <FormControl>
-                          <WeightInput
-                            placeholder="0"
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="volume_m3"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Volume (m³)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="valor_mercadoria"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Valor Mercadoria</FormLabel>
-                        <FormControl>
-                          <CurrencyInput
-                            placeholder="0,00"
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          />
-                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -681,20 +617,87 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 </Alert>
               </TabsContent>
 
-              {/* Aba de Precificação */}
-              <TabsContent value="precificacao" className="space-y-4 mt-4">
+              {/* ===== ABA PESO ===== */}
+              <TabsContent value="peso" className="space-y-4 mt-4">
                 <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
                   <h4 className="font-medium text-sm flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    Unidade de Precificação
+                    <Weight className="w-4 h-4 text-primary" />
+                    Peso e Dimensões
                   </h4>
 
                   <FormField
                     control={form.control}
-                    name="tipo_precificacao"
+                    name="peso_kg"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tipo de Precificação *</FormLabel>
+                        <FormLabel>Peso Total (kg) *</FormLabel>
+                        <FormControl>
+                          <WeightInput
+                            placeholder="0"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          {pesoKg > 0 && pesoKg >= 1000
+                            ? `≈ ${(pesoKg / 1000).toFixed(2)} toneladas`
+                            : 'Peso obrigatório — principal critério do sistema'}
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="volume_m3"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Volume (m³)</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="valor_mercadoria"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Valor Mercadoria</FormLabel>
+                          <FormControl>
+                            <CurrencyInput
+                              placeholder="0,00"
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* ===== ABA PRECIFICAÇÃO ===== */}
+              <TabsContent value="precificacao" className="space-y-4 mt-4">
+                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
+                  <h4 className="font-medium text-sm flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-primary" />
+                    Precificação do Frete
+                  </h4>
+
+                  <FormField
+                    control={form.control}
+                    name="unidade_precificacao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unidade de Precificação *</FormLabel>
                         <Select value={field.value} onValueChange={field.onChange}>
                           <FormControl>
                             <SelectTrigger>
@@ -702,10 +705,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="bg-popover border-border z-[10000]">
-                            <SelectItem value="por_tonelada">Por Tonelada (R$/ton)</SelectItem>
-                            <SelectItem value="por_m3">Por m³ (R$/m³)</SelectItem>
-                            <SelectItem value="fixo">Valor Fixo (R$)</SelectItem>
-                            <SelectItem value="por_km">Por KM (R$/km)</SelectItem>
+                            {UNIDADES_PRECIFICACAO.map((u) => (
+                              <SelectItem key={u.value} value={u.value}>
+                                {u.label}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -714,111 +718,58 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   />
 
                   <div className="grid grid-cols-2 gap-4">
-                    {tipoPrecificacao === 'por_tonelada' && (
-                      <FormField
-                        control={form.control}
-                        name="valor_frete_tonelada"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Valor por Tonelada (R$)</FormLabel>
-                            <FormControl>
-                              <CurrencyInput
-                                placeholder="0,00"
-                                value={field.value}
-                                onValueChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {tipoPrecificacao === 'por_m3' && (
-                      <FormField
-                        control={form.control}
-                        name="valor_frete_m3"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Valor por m³ (R$)</FormLabel>
-                            <FormControl>
-                              <CurrencyInput
-                                placeholder="0,00"
-                                value={field.value}
-                                onValueChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {tipoPrecificacao === 'fixo' && (
-                      <FormField
-                        control={form.control}
-                        name="valor_frete_fixo"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Valor Fixo do Frete (R$)</FormLabel>
-                            <FormControl>
-                              <CurrencyInput
-                                placeholder="0,00"
-                                value={field.value}
-                                onValueChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {tipoPrecificacao === 'por_km' && (
-                      <FormField
-                        control={form.control}
-                        name="valor_frete_km"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Valor por KM (R$)</FormLabel>
-                            <FormControl>
-                              <CurrencyInput
-                                placeholder="0,00"
-                                value={field.value}
-                                onValueChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Frete Total Estimado</Label>
-                      <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center">
-                        <span className="font-bold text-primary">
-                          {freteTotal > 0
-                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
-                            : 'R$ 0,00'}
-                        </span>
-                      </div>
-                      {tipoPrecificacao === 'por_tonelada' && pesoKg > 0 && (valorFreteTonelada ?? 0) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {(pesoKg / 1000).toFixed(2)}t × R$ {(valorFreteTonelada ?? 0).toFixed(2)}/ton
-                        </p>
+                    <FormField
+                      control={form.control}
+                      name="quantidade_precificacao"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quantidade ({unidadePrec})</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0"
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                      {tipoPrecificacao === 'por_m3' && (volumeM3 ?? 0) > 0 && (valorFreteM3 ?? 0) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {volumeM3}m³ × R$ {(valorFreteM3 ?? 0).toFixed(2)}/m³
-                        </p>
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="valor_unitario_precificacao"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Valor Unitário (R$/{unidadePrec})</FormLabel>
+                          <FormControl>
+                            <CurrencyInput
+                              placeholder="0,00"
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                      {tipoPrecificacao === 'por_km' && (
-                        <p className="text-xs text-muted-foreground">
-                          Total depende da distância da rota
-                        </p>
-                      )}
-                    </div>
+                    />
+                  </div>
+
+                  {/* Total calculado */}
+                  <div className="p-4 rounded-lg border bg-muted/30 space-y-2">
+                    <Label className="text-sm text-muted-foreground">Frete Total Estimado</Label>
+                    <p className="text-2xl font-bold text-primary">
+                      {freteTotal > 0
+                        ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
+                        : 'R$ 0,00'}
+                    </p>
+                    {(quantidadePrec ?? 0) > 0 && (valorUnitarioPrec ?? 0) > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {quantidadePrec} {unidadePrec} × R$ {(valorUnitarioPrec ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidadePrec}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -856,8 +807,8 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 )}
               </TabsContent>
 
+              {/* ===== ABA REQUISITOS ===== */}
               <TabsContent value="requisitos" className="space-y-6 mt-4">
-                {/* Qtd. Paletes moved here */}
                 <FormField
                   control={form.control}
                   name="quantidade_paletes"
@@ -887,74 +838,55 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       render={({ field }) => (
                         <FormItem className="flex items-center space-x-2 space-y-0">
                           <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                           <FormLabel className="font-normal">Carga Frágil</FormLabel>
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="carga_perigosa"
                       render={({ field }) => (
                         <FormItem className="flex items-center space-x-2 space-y-0">
                           <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                           <FormLabel className="font-normal">Carga Perigosa</FormLabel>
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="carga_viva"
                       render={({ field }) => (
                         <FormItem className="flex items-center space-x-2 space-y-0">
                           <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                           <FormLabel className="font-normal">Carga Viva</FormLabel>
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="empilhavel"
                       render={({ field }) => (
                         <FormItem className="flex items-center space-x-2 space-y-0">
                           <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                           <FormLabel className="font-normal">Empilhável</FormLabel>
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="requer_refrigeracao"
                       render={({ field }) => (
                         <FormItem className="flex items-center space-x-2 space-y-0">
                           <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                           <FormLabel className="font-normal">Requer Refrigeração</FormLabel>
                         </FormItem>
@@ -978,7 +910,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="temperatura_max"
@@ -1011,7 +942,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   />
                 )}
 
-                {/* Veículos e Carrocerias Aceitos */}
                 <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
                   <VeiculoCarroceriaSelect
                     veiculosSelecionados={veiculosSelecionados}
@@ -1021,13 +951,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   />
                 </div>
 
-                {/* Necessidades Especiais */}
                 <NecessidadesEspeciais
                   value={necessidadesEspeciais}
                   onChange={setNecessidadesEspeciais}
                 />
 
-                {/* Regras de Carregamento */}
                 <FormField
                   control={form.control}
                   name="regras_carregamento"
@@ -1071,11 +999,9 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                     peso_kg: form.getValues('peso_kg'),
                     volume_m3: form.getValues('volume_m3'),
                     valor_mercadoria: form.getValues('valor_mercadoria'),
-                    tipo_precificacao: form.getValues('tipo_precificacao'),
-                    valor_frete_tonelada: form.getValues('valor_frete_tonelada'),
-                    valor_frete_m3: form.getValues('valor_frete_m3'),
-                    valor_frete_fixo: form.getValues('valor_frete_fixo'),
-                    valor_frete_km: form.getValues('valor_frete_km'),
+                    unidade_precificacao: form.getValues('unidade_precificacao'),
+                    quantidade_precificacao: form.getValues('quantidade_precificacao'),
+                    valor_unitario_precificacao: form.getValues('valor_unitario_precificacao'),
                     data_coleta_de: form.getValues('data_coleta_de'),
                     data_coleta_ate: form.getValues('data_coleta_ate'),
                     data_entrega_limite: form.getValues('data_entrega_limite'),
