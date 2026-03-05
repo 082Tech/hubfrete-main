@@ -173,7 +173,7 @@ export default function Rastreio() {
             <main className="flex-1 container mx-auto px-4 py-8 md:py-16 max-w-4xl">
                 <div className="text-center mb-10">
                     <h1 className="text-3xl font-bold text-gray-900 mb-4">Rastreie sua encomenda</h1>
-                    <p className="text-gray-600">Digite o código de rastreio recebido para acompanhar o status da entrega.</p>
+                    <p className="text-gray-600">Digite o código de rastreio recebido para acompanhar o status da carga.</p>
                 </div>
 
                 {/* Search Box */}
