@@ -324,6 +324,7 @@ export function EditarCargaDialog({ carga, open, onOpenChange, onSuccess }: Edit
           valor_frete_fixo: null,
           valor_frete_km: null,
           permite_fracionado: values.permite_fracionado,
+          peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionado : null,
           carga_fragil: values.carga_fragil,
           carga_perigosa: values.carga_perigosa,
           carga_viva: values.carga_viva,
