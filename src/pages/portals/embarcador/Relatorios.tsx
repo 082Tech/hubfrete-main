@@ -205,7 +205,7 @@ export default function Relatorios() {
       : 0;
 
     const entregues = filteredEntregas.filter(e => e.status === 'entregue').length;
-    const emTransito = filteredEntregas.filter(e => e.status === 'saiu_para_coleta' || e.status === 'saiu_para_entrega').length;
+    const emTransito = filteredEntregas.filter(e => e.status === 'saiu_para_coleta' || e.status === 'em_transito' || e.status === 'saiu_para_entrega').length;
     const aguardandoColeta = filteredEntregas.filter(e =>
       e.status === 'aguardando'
     ).length;

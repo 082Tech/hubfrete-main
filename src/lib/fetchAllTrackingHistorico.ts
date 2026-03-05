@@ -28,6 +28,7 @@ const eventToStatus: Record<string, string> = {
   'criado': 'aguardando',
   'aceite': 'aguardando',
   'inicio_coleta': 'saiu_para_coleta',
+  'em_transito': 'em_transito',
   'inicio_rota': 'saiu_para_entrega',
   'finalizado': 'entregue',
   'cancelado': 'cancelada',
