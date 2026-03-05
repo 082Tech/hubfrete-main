@@ -62,8 +62,8 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   aguardando: 'Aguardando',
   saiu_para_coleta: 'Saiu p/ Coleta',
-  saiu_para_entrega: 'Saiu p/ Entrega',
-  entregue: 'Entregue',
+  saiu_para_entrega: 'Em Rota',
+  entregue: 'Concluída',
   cancelada: 'Cancelada',
 };
 
