@@ -335,8 +335,8 @@ export function ChatArea({
       case 'devolvida':
         return { 
           icon: RotateCcw, 
-          title: 'Entrega devolvida', 
-          subtitle: 'Esta entrega foi devolvida.',
+          title: 'Carga devolvida', 
+          subtitle: 'Esta carga foi devolvida.',
           color: 'text-amber-600',
           bgColor: 'bg-amber-500/10',
         };
