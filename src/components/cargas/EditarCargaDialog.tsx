@@ -111,6 +111,7 @@ interface CargaToEdit {
   valor_frete_m3?: number | null;
   valor_frete_fixo?: number | null;
   valor_frete_km?: number | null;
+  numero_pedido?: string | null;
   volume_m3: number | null;
   carga_fragil: boolean | null;
   carga_perigosa: boolean | null;
