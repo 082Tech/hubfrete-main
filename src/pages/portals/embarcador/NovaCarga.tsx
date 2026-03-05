@@ -295,7 +295,7 @@ export default function NovaCarga() {
       {/* 2-column layout */}
       <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,400px]">
         {/* Left: Form + Footer */}
-        <div className="flex flex-col overflow-hidden">
+        <div className="flex flex-col overflow-hidden bg-muted/30">
           <ScrollArea className="flex-1">
             <div className="max-w-3xl p-6 space-y-8">
               <Form {...form}>
