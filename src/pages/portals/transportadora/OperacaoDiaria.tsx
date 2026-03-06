@@ -272,6 +272,7 @@ function DetailPanel({
   showBackButton = false,
   onBack,
   viagemStatus,
+  onExpandMap,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
@@ -282,6 +283,7 @@ function DetailPanel({
   showBackButton?: boolean;
   onBack?: () => void;
   viagemStatus?: string | null;
+  onExpandMap?: () => void;
 }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
