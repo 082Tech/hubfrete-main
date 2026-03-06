@@ -38,7 +38,7 @@ interface Carga {
   } | null;
 }
 
-interface CargasGoogleMapProps {
+interface OfertasGoogleMapProps {
   cargas: Carga[];
   onCargaClick: (carga: Carga) => void;
   hoveredCargaId: string | null;
