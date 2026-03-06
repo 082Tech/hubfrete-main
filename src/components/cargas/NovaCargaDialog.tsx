@@ -640,7 +640,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         {children || (
           <Button className="gap-2">
             <Plus className="w-4 h-4" />
-            Nova Carga
+            Nova Oferta
           </Button>
         )}
       </DialogTrigger>
