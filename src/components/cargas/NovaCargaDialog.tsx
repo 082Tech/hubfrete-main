@@ -846,15 +846,17 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Deseja sair?</AlertDialogTitle>
+          <AlertDialogTitle>{isEditMode ? 'Cancelar edição?' : 'Deseja sair?'}</AlertDialogTitle>
           <AlertDialogDescription>
-            Os dados preenchidos serão perdidos. Deseja voltar ou continuar criando a oferta de carga?
+            {isEditMode
+              ? 'As alterações não salvas serão perdidas. Deseja continuar editando ou cancelar?'
+              : 'Os dados preenchidos serão perdidos. Deseja voltar ou continuar criando a oferta de carga?'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Continuar criando</AlertDialogCancel>
+          <AlertDialogCancel>{isEditMode ? 'Continuar editando' : 'Continuar criando'}</AlertDialogCancel>
           <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={confirmClose}>
-            Sair sem salvar
+            {isEditMode ? 'Cancelar edição' : 'Sair sem salvar'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
