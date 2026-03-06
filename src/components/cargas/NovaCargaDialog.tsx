@@ -476,7 +476,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
             <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
               <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
                 <FormItem className="flex items-start space-x-3 space-y-0">
-                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} className="mt-0.5" /></FormControl>
+                  <FormControl><Checkbox checked={field.value ?? true} onCheckedChange={field.onChange} className="mt-0.5" /></FormControl>
                   <div className="space-y-1">
                     <FormLabel className="font-medium text-sm">Permitir transporte fracionado (LTL)</FormLabel>
                     <p className="text-xs text-muted-foreground leading-relaxed">

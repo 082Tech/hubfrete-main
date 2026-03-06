@@ -451,9 +451,12 @@ export default function CargasGoogleMap({
             </div>
             <div className="text-right">
               <span className="text-lg font-bold text-primary">
-                {formatCurrency(selectedCarga.valor_frete_tonelada)}
+                {formatCurrency(
+                  selectedCarga.valor_frete_tonelada
+                    ? Math.round(((selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) / 1000) * selectedCarga.valor_frete_tonelada * 100) / 100
+                    : null
+                )}
               </span>
-              <span className="text-sm text-muted-foreground">/ton</span>
             </div>
           </div>
 
