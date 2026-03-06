@@ -127,6 +127,7 @@ function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: 
 // ─── Tab definitions ─────────────────────────────────────────────────────────
 const TABS = [
   { id: 'dados', label: 'Dados', icon: Package },
+  { id: 'peso', label: 'Peso', icon: Weight },
   { id: 'preco', label: 'Preço', icon: DollarSign },
   { id: 'requisitos', label: 'Requisitos', icon: ClipboardList },
   { id: 'origem', label: 'Origem', icon: MapPin },
