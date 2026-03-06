@@ -3066,8 +3066,8 @@ export default function CargasDisponiveis() {
                       </div>
                       <div className="space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Preço/tonelada:</span>
-                          <span>{formatCurrency(selectedCarga.valor_frete_tonelada)}</span>
+                          <span className="text-muted-foreground">Valor unitário:</span>
+                          <span>{formatCurrency(selectedCarga.valor_frete_tonelada)}/ton</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Peso alocado:</span>
