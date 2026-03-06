@@ -207,7 +207,7 @@ function getMaxCarrocerias(tipoVeiculo: string | undefined | null, carroceriaInt
 
 // Leaflet icons and functions removed - now using Google Maps components
 
-export default function CargasDisponiveis() {
+export default function OfertasDisponiveis() {
   const { empresa } = useUserContext();
   const { user } = useAuth();
   const queryClient = useQueryClient();
