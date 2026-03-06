@@ -25,6 +25,7 @@ import {
 const statusColors: Record<string, string> = {
   aguardando: 'bg-amber-500',
   saiu_para_coleta: 'bg-cyan-500',
+  em_transito: 'bg-indigo-500',
   saiu_para_entrega: 'bg-purple-500',
   entregue: 'bg-green-500',
   cancelada: 'bg-red-500',
@@ -32,6 +33,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   aguardando: 'Aguardando',
   saiu_para_coleta: 'Em Coleta',
+  em_transito: 'Em Trânsito',
   saiu_para_entrega: 'Em Rota',
   entregue: 'Concluída',
   cancelada: 'Cancelada',
@@ -239,7 +241,7 @@ export default function Monitoramento() {
           </Select>
 
           <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={refetchLocations}>
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
