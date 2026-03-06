@@ -1470,11 +1470,7 @@ export default function CargasDisponiveis() {
                   <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
                     {formatCurrency(totalFrete)}
                   </div>
-                  {carga.valor_frete_tonelada ? (
-                    <span className="text-xs text-muted-foreground">
-                      ({formatCurrency(carga.valor_frete_tonelada)}/ton)
-                    </span>
-                  ) : carga.tipo_precificacao === 'fixo' ? (
+                  {carga.tipo_precificacao === 'fixo' ? (
                     <span className="text-xs text-muted-foreground">
                       (Valor Fixo)
                     </span>
