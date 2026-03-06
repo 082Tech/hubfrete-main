@@ -1719,7 +1719,7 @@ export default function OfertasDisponiveis() {
 
             {/* Right - Map (all markers always visible) */}
             <div className="flex-1 rounded-xl overflow-hidden border border-border">
-              <CargasGoogleMap
+              <OfertasGoogleMap
                 cargas={filteredCargas}
                 onCargaClick={handleAcceptClick}
                 hoveredCargaId={hoveredCargaId}
