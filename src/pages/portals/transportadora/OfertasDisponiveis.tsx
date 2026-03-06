@@ -1689,7 +1689,7 @@ export default function OfertasDisponiveis() {
         ) : isMobile ? (
           /* Mobile Map View - Full screen Airbnb style */
           <div className="relative h-[calc(100vh-220px)] -mx-4 -mb-4">
-            <CargasGoogleMap
+            <OfertasGoogleMap
               cargas={filteredCargas}
               onCargaClick={handleAcceptClick}
               hoveredCargaId={hoveredCargaId}
