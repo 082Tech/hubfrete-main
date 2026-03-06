@@ -1220,6 +1220,7 @@ export default function GestaoCargas() {
             onClose={() => setSelectedEntrega(null)}
             driverLocation={driverLocation}
             onRefresh={() => refetch()}
+            onExpandMap={() => setGestaoDialogOpen(true)}
           />
         </div>
       </div>

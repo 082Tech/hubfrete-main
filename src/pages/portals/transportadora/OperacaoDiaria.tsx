@@ -2287,6 +2287,7 @@ export default function OperacaoDiaria() {
                   showBackButton
                   onBack={() => setSelectedEntregaInViagem(null)}
                   viagemStatus={selectedViagemLive?.status}
+                  onExpandMap={() => setGestaoDialogOpen(true)}
                 />
               ) : (
                 /* Mostrar ViagemDetailPanel */
