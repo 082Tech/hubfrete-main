@@ -1123,7 +1123,7 @@ export default function CargasPublicadas() {
                                       {carga.entregas.length === 0 && (
                                         <DropdownMenuItem onClick={(e) => {
                                           e.stopPropagation();
-                                          navigate(`/embarcador/ofertas/editar/${carga.id}`);
+                                          setEditCarga(carga);
                                         }}>
                                           <Pencil className="w-4 h-4 mr-2" />
                                           Editar
