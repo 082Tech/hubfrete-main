@@ -1438,11 +1438,11 @@ export default function CargasPublicadas() {
 
         {/* Edit Dialog */}
         {editCarga && (
-          <EditarCargaDialog
-            carga={editCarga}
-            open={!!editCarga}
-            onOpenChange={(open) => !open && setEditCarga(null)}
-            onSuccess={() => refetch()}
+          <NovaCargaDialog
+            editCarga={editCarga}
+            editOpen={!!editCarga}
+            onEditOpenChange={(open) => !open && setEditCarga(null)}
+            onSuccess={() => { setEditCarga(null); refetch(); }}
           />
         )}
       </TooltipProvider>
