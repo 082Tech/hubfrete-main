@@ -248,17 +248,17 @@ export function ResumoSection({
           </div>
 
           {/* Dates */}
-          <div className="flex flex-wrap gap-3 text-muted-foreground">
-            {cargaData.data_coleta_de && (
-              <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Coleta: {new Date(cargaData.data_coleta_de + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-            )}
-            {cargaData.data_coleta_ate && (
-              <span className="flex items-center gap-1">até {new Date(cargaData.data_coleta_ate + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-            )}
-            {cargaData.data_entrega_limite && (
-              <span className="flex items-center gap-1"><Truck className="w-3 h-3" />Entrega limite: {new Date(cargaData.data_entrega_limite + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-            )}
-          </div>
+        <div className="flex flex-wrap gap-2 text-muted-foreground">
+          {cargaData.data_coleta_de && (
+            <span className="flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />Coleta: {new Date(cargaData.data_coleta_de + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+          )}
+          {cargaData.data_coleta_ate && (
+            <span>até {new Date(cargaData.data_coleta_ate + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+          )}
+          {cargaData.data_entrega_limite && (
+            <span className="flex items-center gap-1"><Truck className="w-2.5 h-2.5" />Limite: {new Date(cargaData.data_entrega_limite + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+          )}
+        </div>
 
           {/* Veículos e Carrocerias */}
           {(veiculosSelecionados.length > 0 || carroceriasSelecionadas.length > 0) && (
