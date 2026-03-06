@@ -937,6 +937,7 @@ function GestaoMapDialog({
 // ==================== Main Component ====================
 export default function GestaoCargas() {
   const { filialAtiva, switchingFilial } = useUserContext();
+  const queryClient = useQueryClient();
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [filters, setFilters] = useState<AdvancedFilters>({});
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
