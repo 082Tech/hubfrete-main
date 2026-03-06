@@ -61,7 +61,7 @@ import EmbarcadorMensagens from "./pages/portals/embarcador/Mensagens";
 import EmbarcadorNotificacoes from "./pages/portals/embarcador/Notificacoes";
 
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
-import TransportadoraCargas from "./pages/portals/transportadora/CargasDisponiveis";
+import TransportadoraOfertas from "./pages/portals/transportadora/OfertasDisponiveis";
 import TransportadoraFrota from "./pages/portals/transportadora/MinhaFrota";
 import TransportadoraFrotaVinculos from "./pages/portals/transportadora/FrotaVinculos";
 import TransportadoraFrotaCarrocerias from "./pages/portals/transportadora/FrotaCarrocerias";
