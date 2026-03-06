@@ -133,12 +133,17 @@ interface CargaData {
   peso_kg: number;
   peso_disponivel_kg: number | null;
   permite_fracionado: boolean | null;
+  peso_minimo_fracionado_kg: number | null;
   valor_mercadoria: number | null;
   valor_frete_tonelada: number | null;
   tipo_precificacao: string | null;
   valor_frete_m3: number | null;
   valor_frete_fixo: number | null;
   valor_frete_km: number | null;
+  unidade_precificacao: string | null;
+  quantidade_precificacao: number | null;
+  valor_unitario_precificacao: number | null;
+  numero_pedido: string | null;
   status: string;
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
@@ -153,6 +158,8 @@ interface CargaData {
   destinatario_razao_social: string | null;
   destinatario_nome_fantasia: string | null;
   destinatario_cnpj: string | null;
+  destinatario_contato_nome: string | null;
+  destinatario_contato_telefone: string | null;
   endereco_origem: EnderecoData | null;
   endereco_destino: EnderecoData | null;
   entregas: EntregaData[];
