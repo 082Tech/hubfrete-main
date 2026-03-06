@@ -126,10 +126,11 @@ function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: 
 
 // ─── Tab definitions ─────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'dados', label: 'Dados da Carga', icon: Package },
-  { id: 'preco', label: 'Precificação', icon: DollarSign },
+  { id: 'dados', label: 'Dados', icon: Package },
+  { id: 'preco', label: 'Preço', icon: DollarSign },
   { id: 'requisitos', label: 'Requisitos', icon: ClipboardList },
-  { id: 'rota', label: 'Origem e Destino', icon: MapPin },
+  { id: 'origem', label: 'Origem', icon: MapPin },
+  { id: 'destino', label: 'Destino', icon: Truck },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -224,10 +225,17 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         return result;
       }
       case 'preco':
-        return true; // pricing is optional
+        return true;
       case 'requisitos':
-        return true; // all optional
-      case 'rota':
+        return true;
+      case 'origem': {
+        if (!origemData.cidade || !origemData.logradouro) {
+          toast.error('Verifique os dados do remetente');
+          return false;
+        }
+        return true;
+      }
+      case 'destino':
         return validateLocations();
       default:
         return true;
@@ -382,21 +390,20 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     switch (activeTab) {
       case 'dados':
         return (
-          <div className="space-y-6">
-            <SectionHeader icon={Package} title="Dados da Carga" />
+          <div className="space-y-4">
             <FormField control={form.control} name="descricao" render={({ field }) => (
               <FormItem>
                 <FormLabel>Descrição da Carga *</FormLabel>
-                <FormControl><Textarea placeholder="Descreva a carga (ex: Minério de ferro - Lote A)" {...field} /></FormControl>
+                <FormControl><Textarea placeholder="Descreva a carga (ex: Minério de ferro - Lote A)" className="min-h-[60px]" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <FormField control={form.control} name="tipo" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipo de Carga *</FormLabel>
+                  <FormLabel>Tipo *</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger></FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
                     <SelectContent className="bg-popover border-border">
                       {tipoCargaOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
@@ -408,15 +415,23 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               )} />
               <FormField control={form.control} name="numero_pedido" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nº do Pedido</FormLabel>
+                  <FormLabel>Nº Pedido</FormLabel>
                   <FormControl><Input placeholder="Opcional" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
+              <FormField control={form.control} name="peso_kg" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Peso (kg) *</FormLabel>
+                  <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
+                  {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {(pesoKg / 1000).toFixed(2)} ton</p>}
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <FormField control={form.control} name="data_coleta_de" render={({ field }) => (
-                <FormItem><FormLabel>Data de Coleta *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Coleta De *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="data_coleta_ate" render={({ field }) => (
                 <FormItem><FormLabel>Coleta Até</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
@@ -425,70 +440,39 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 <FormItem><FormLabel>Entrega Limite</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
-            <div className="p-4 rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/10">
+            <div className="grid grid-cols-3 gap-3">
+              <FormField control={form.control} name="volume_m3" render={({ field }) => (
+                <FormItem><FormLabel>Volume (m³)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
+                <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+              )} />
               <FormField control={form.control} name="expira_em" render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-amber-800 dark:text-amber-300 font-medium">Expiração da Publicação</FormLabel>
+                  <FormLabel>Expiração *</FormLabel>
                   <FormControl><Input type="date" min={todayStr()} max={addDays(365)} {...field} /></FormControl>
-                  <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">A carga será removida automaticamente nesta data. Máximo: 1 ano.</p>
                   <FormMessage />
                 </FormItem>
               )} />
             </div>
-            <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
-              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
-                As Notas Fiscais (NF-e) serão solicitadas quando as entregas forem geradas para esta carga.
-              </AlertDescription>
-            </Alert>
-
-            {/* Peso e Dimensões inline */}
-            <div className="pt-2 space-y-4">
-              <SectionHeader icon={Weight} title="Peso e Dimensões" />
-              <div className="p-3 rounded-lg border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700/30">
-                <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                  <strong>Por que o peso é obrigatório?</strong> O sistema utiliza o peso da carga para verificar a compatibilidade com a capacidade das carrocerias dos motoristas.
-                </p>
+            <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
+              <FormItem className="flex items-center space-x-2 space-y-0">
+                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                <FormLabel className="font-normal text-sm">Permitir transporte fracionado</FormLabel>
+              </FormItem>
+            )} />
+            {form.watch('permite_fracionado') && (
+              <div className="ml-6">
+                <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
+                <WeightInput placeholder="Ex: 15.000" className="mt-1" value={pesoMinimoFracionado || undefined} onValueChange={(v) => setPesoMinimoFracionado(v || null)} />
               </div>
-              <FormField control={form.control} name="peso_kg" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Peso Total (kg) *</FormLabel>
-                  <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    {pesoKg > 0 && pesoKg >= 1000 ? `≈ ${(pesoKg / 1000).toFixed(2)} toneladas` : 'Peso obrigatório — principal critério do sistema'}
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="volume_m3" render={({ field }) => (
-                  <FormItem><FormLabel>Volume (m³)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
-                  <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
-                )} />
-              </div>
-              <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                  <FormLabel className="font-normal text-sm">Permitir transporte fracionado (múltiplos motoristas)</FormLabel>
-                </FormItem>
-              )} />
-              {form.watch('permite_fracionado') && (
-                <div className="ml-6 p-3 bg-muted/50 rounded-md border">
-                  <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
-                  <WeightInput placeholder="Ex: 15.000 (15 toneladas)" className="mt-2" value={pesoMinimoFracionado || undefined} onValueChange={(v) => setPesoMinimoFracionado(v || null)} />
-                  <p className="text-xs text-muted-foreground mt-1">Deixe vazio para não ter limite mínimo</p>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         );
 
       case 'preco':
         return (
-          <div className="space-y-6">
-            <SectionHeader icon={DollarSign} title="Precificação do Frete" />
+          <div className="space-y-4">
             <FormField control={form.control} name="unidade_precificacao" render={({ field }) => (
               <FormItem>
                 <FormLabel>Unidade de Precificação *</FormLabel>
@@ -501,29 +485,29 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 <FormMessage />
               </FormItem>
             )} />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField control={form.control} name="quantidade_precificacao" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Quantidade ({unidadePrec})</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.0001" placeholder="0" readOnly={isWeightUnit} className={isWeightUnit ? 'bg-muted' : ''} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
                   </FormControl>
-                  {isWeightUnit && <p className="text-xs text-muted-foreground">Preenchido automaticamente pelo peso da carga</p>}
+                  {isWeightUnit && <p className="text-xs text-muted-foreground">Preenchido pelo peso</p>}
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="valor_unitario_precificacao" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valor Unitário (R$/{unidadePrec})</FormLabel>
+                  <FormLabel>Valor (R$/{unidadePrec})</FormLabel>
                   <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
             </div>
             {freteTotal > 0 && (
-              <div className="p-4 rounded-lg border bg-muted/30 space-y-1">
-                <Label className="text-sm text-muted-foreground">Frete Total Estimado</Label>
-                <p className="text-2xl font-bold text-primary">
+              <div className="p-3 rounded-lg border bg-muted/30 space-y-0.5">
+                <Label className="text-xs text-muted-foreground">Frete Total Estimado</Label>
+                <p className="text-xl font-bold text-primary">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -536,8 +520,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
       case 'requisitos':
         return (
-          <div className="space-y-6">
-            <SectionHeader icon={ClipboardList} title="Requisitos e Características" />
+          <div className="space-y-4">
             <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
               <FormItem>
                 <FormLabel>Qtd. Paletes</FormLabel>
@@ -547,19 +530,19 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 <FormMessage />
               </FormItem>
             )} />
-            <div className="space-y-3">
-              <Label>Características Especiais</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm">Características Especiais</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {(['carga_fragil', 'carga_perigosa', 'carga_viva', 'empilhavel', 'requer_refrigeracao'] as const).map((name) => {
                   const labels: Record<string, string> = {
-                    carga_fragil: 'Carga Frágil', carga_perigosa: 'Carga Perigosa', carga_viva: 'Carga Viva',
-                    empilhavel: 'Empilhável', requer_refrigeracao: 'Requer Refrigeração',
+                    carga_fragil: 'Frágil', carga_perigosa: 'Perigosa', carga_viva: 'Carga Viva',
+                    empilhavel: 'Empilhável', requer_refrigeracao: 'Refrigeração',
                   };
                   return (
                     <FormField key={name} control={form.control} name={name} render={({ field }) => (
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        <FormLabel className="font-normal">{labels[name]}</FormLabel>
+                        <FormLabel className="font-normal text-sm">{labels[name]}</FormLabel>
                       </FormItem>
                     )} />
                   );
@@ -567,12 +550,12 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               </div>
             </div>
             {requerRefrigeracao && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <FormField control={form.control} name="temperatura_min" render={({ field }) => (
-                  <FormItem><FormLabel>Temperatura Mínima (°C)</FormLabel><FormControl><Input type="number" placeholder="-18" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Temp. Mín (°C)</FormLabel><FormControl><Input type="number" placeholder="-18" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="temperatura_max" render={({ field }) => (
-                  <FormItem><FormLabel>Temperatura Máxima (°C)</FormLabel><FormControl><Input type="number" placeholder="4" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Temp. Máx (°C)</FormLabel><FormControl><Input type="number" placeholder="4" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
             )}
@@ -589,25 +572,21 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
             <FormField control={form.control} name="regras_carregamento" render={({ field }) => (
               <FormItem>
                 <FormLabel>Regras de Carregamento</FormLabel>
-                <FormControl><Textarea placeholder="Instruções especiais para carregamento..." className="min-h-[80px]" {...field} /></FormControl>
+                <FormControl><Textarea placeholder="Instruções especiais..." className="min-h-[60px]" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
           </div>
         );
 
-      case 'rota':
+      case 'origem':
         return (
-          <div className="space-y-8">
-            <section className="space-y-4">
-              <SectionHeader icon={MapPin} title="Remetente (Origem)" />
-              <RemetenteSection initialData={origemData} onLocationChange={setOrigemData} />
-            </section>
-            <section className="space-y-4">
-              <SectionHeader icon={Truck} title="Destinatário (Destino)" />
-              <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
-            </section>
-          </div>
+          <RemetenteSection initialData={origemData} onLocationChange={setOrigemData} />
+        );
+
+      case 'destino':
+        return (
+          <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
         );
     }
   };
@@ -640,54 +619,51 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         )}
       </DialogTrigger>
       <DialogContent className="max-w-[95vw] w-[1400px] h-[90vh] max-h-[90vh] p-0 flex flex-col overflow-hidden" hideCloseButton>
-        {/* Header */}
-        <div className="flex items-center justify-between gap-3 px-6 py-4 border-b bg-card shrink-0">
-          <DialogHeader className="space-y-0">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Package className="w-5 h-5 text-primary" />
-              Nova Oferta de Carga
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">Etapa {currentTabIndex + 1} de {TABS.length}</p>
-          </DialogHeader>
-        </div>
-
-        {/* 2-column layout */}
-        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,380px]">
+        {/* 2-column layout — no separate header */}
+        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,360px]">
           {/* Left: Form */}
-          <div className="flex flex-col overflow-hidden bg-muted/30">
-            {/* Step indicators inside left column */}
-            <div className="flex items-center gap-1 px-6 py-3 border-b bg-card shrink-0 overflow-x-auto">
-              {TABS.map((tab, i) => {
-                const Icon = tab.icon;
-                const isActive = tab.id === activeTab;
-                const isPast = i < currentTabIndex;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => {
-                      if (i <= currentTabIndex) setActiveTab(tab.id);
-                    }}
-                    className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap',
-                      isActive && 'bg-primary text-primary-foreground shadow-sm',
-                      isPast && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
-                      !isActive && !isPast && 'text-muted-foreground cursor-default',
-                    )}
-                  >
-                    {isPast && !isActive ? (
-                      <Check className="w-4 h-4" />
-                    ) : (
-                      <Icon className="w-4 h-4" />
-                    )}
-                    <span className="hidden sm:inline">{tab.label}</span>
-                    <span className="sm:hidden">{i + 1}</span>
-                  </button>
-                );
-              })}
+          <div className="flex flex-col overflow-hidden">
+            {/* Title + Step indicators merged */}
+            <div className="flex items-center gap-3 px-5 py-3 bg-card shrink-0 overflow-x-auto border-b">
+              <DialogHeader className="space-y-0 shrink-0">
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <Package className="w-4 h-4 text-primary" />
+                  Nova Carga
+                </DialogTitle>
+              </DialogHeader>
+              <div className="h-5 w-px bg-border shrink-0" />
+              <div className="flex items-center gap-1">
+                {TABS.map((tab, i) => {
+                  const Icon = tab.icon;
+                  const isActive = tab.id === activeTab;
+                  const isPast = i < currentTabIndex;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        if (i <= currentTabIndex) setActiveTab(tab.id);
+                      }}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap',
+                        isActive && 'bg-primary text-primary-foreground shadow-sm',
+                        isPast && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
+                        !isActive && !isPast && 'text-muted-foreground cursor-default',
+                      )}
+                    >
+                      {isPast && !isActive ? (
+                        <Check className="w-3.5 h-3.5" />
+                      ) : (
+                        <Icon className="w-3.5 h-3.5" />
+                      )}
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <ScrollArea className="flex-1">
-              <div className="max-w-3xl p-6">
+              <div className="max-w-3xl p-5">
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="[&_input]:bg-background [&_textarea]:bg-background [&_select]:bg-background [&_[role=combobox]]:bg-background">
                     {renderTabContent()}
@@ -697,27 +673,27 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
             </ScrollArea>
 
             {/* Fixed footer */}
-            <div className="border-t bg-card px-6 py-3 flex items-center justify-between gap-2 shrink-0">
+            <div className="border-t bg-card px-5 py-2.5 flex items-center justify-between gap-2 shrink-0">
               <div>
                 {!isFirstTab && (
-                  <Button type="button" variant="outline" onClick={goPrev} disabled={isLoading}>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
+                  <Button type="button" variant="outline" size="sm" onClick={goPrev} disabled={isLoading}>
+                    <ArrowLeft className="w-4 h-4 mr-1" />
                     Voltar
                   </Button>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Button type="button" variant="ghost" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
                   Cancelar
                 </Button>
                 {isLastTab ? (
-                  <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
-                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-2" />Criar Carga</>)}
+                  <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
+                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />Criar Carga</>)}
                   </Button>
                 ) : (
-                  <Button type="button" onClick={goNext}>
+                  <Button type="button" size="sm" onClick={goNext}>
                     Próximo
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
                 )}
               </div>
@@ -726,11 +702,11 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
           {/* Right: Live Summary (hidden on mobile) */}
           <div className="hidden lg:flex flex-col border-l bg-muted/20 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-card">
-              <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Resumo</h2>
+            <div className="px-4 py-2.5 border-b bg-card">
+              <h2 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Resumo</h2>
             </div>
             <ScrollArea className="flex-1">
-              <div className="p-4">
+              <div className="p-3">
                 <ResumoSection
                   origemData={origemData}
                   destinoData={destinoData}
