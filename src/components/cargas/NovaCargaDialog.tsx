@@ -225,10 +225,17 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         return result;
       }
       case 'preco':
-        return true; // pricing is optional
+        return true;
       case 'requisitos':
-        return true; // all optional
-      case 'rota':
+        return true;
+      case 'origem': {
+        if (!origemData.cidade || !origemData.logradouro) {
+          toast.error('Verifique os dados do remetente');
+          return false;
+        }
+        return true;
+      }
+      case 'destino':
         return validateLocations();
       default:
         return true;
