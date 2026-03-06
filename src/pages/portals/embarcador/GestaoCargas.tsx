@@ -90,6 +90,7 @@ interface Entrega {
   entregue_em: string | null;
   canhoto_url: string | null;
   outros_documentos: any[] | null;
+  nfe_count?: number; // populated after batch fetch
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
   eventos?: EntregaEvento[];
@@ -129,8 +130,8 @@ function EntregaListItem({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social || 'Remetente';
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário';
 
-  // NF-e now in separate tables - pending check removed
-  const nfePending = false;
+  // NF-e pending: check from batch-fetched count
+  const nfePending = (entrega.nfe_count ?? -1) === 0 && entrega.status !== 'entregue' && entrega.status !== 'cancelada';
 
   return (
     <div
@@ -1000,6 +1001,25 @@ export default function GestaoCargas() {
           return { ...entrega, eventos: eventos || [] };
         })
       );
+
+      // Batch-fetch NF-e counts per entrega
+      const entregaIds = entregasWithEvents.map(e => e.id);
+      if (entregaIds.length > 0) {
+        const { data: nfeCounts } = await (supabase as any)
+          .from('nfes')
+          .select('entrega_id')
+          .in('entrega_id', entregaIds);
+
+        const countMap: Record<string, number> = {};
+        entregaIds.forEach(id => { countMap[id] = 0; });
+        (nfeCounts || []).forEach((n: any) => {
+          if (n.entrega_id) countMap[n.entrega_id] = (countMap[n.entrega_id] || 0) + 1;
+        });
+
+        entregasWithEvents.forEach((e: any) => {
+          e.nfe_count = countMap[e.id] ?? 0;
+        });
+      }
 
       return entregasWithEvents as Entrega[];
     },
