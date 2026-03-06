@@ -126,10 +126,11 @@ function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: 
 
 // ─── Tab definitions ─────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'dados', label: 'Dados da Carga', icon: Package },
-  { id: 'preco', label: 'Precificação', icon: DollarSign },
+  { id: 'dados', label: 'Dados', icon: Package },
+  { id: 'preco', label: 'Preço', icon: DollarSign },
   { id: 'requisitos', label: 'Requisitos', icon: ClipboardList },
-  { id: 'rota', label: 'Origem e Destino', icon: MapPin },
+  { id: 'origem', label: 'Origem', icon: MapPin },
+  { id: 'destino', label: 'Destino', icon: Truck },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
