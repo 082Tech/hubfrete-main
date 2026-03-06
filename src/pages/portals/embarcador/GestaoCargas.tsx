@@ -1002,6 +1002,25 @@ export default function GestaoCargas() {
         })
       );
 
+      // Batch-fetch NF-e counts per entrega
+      const entregaIds = entregasWithEvents.map(e => e.id);
+      if (entregaIds.length > 0) {
+        const { data: nfeCounts } = await (supabase as any)
+          .from('nfes')
+          .select('entrega_id')
+          .in('entrega_id', entregaIds);
+
+        const countMap: Record<string, number> = {};
+        entregaIds.forEach(id => { countMap[id] = 0; });
+        (nfeCounts || []).forEach((n: any) => {
+          if (n.entrega_id) countMap[n.entrega_id] = (countMap[n.entrega_id] || 0) + 1;
+        });
+
+        entregasWithEvents.forEach((e: any) => {
+          e.nfe_count = countMap[e.id] ?? 0;
+        });
+      }
+
       return entregasWithEvents as Entrega[];
     },
     enabled: !!filialAtiva?.id,

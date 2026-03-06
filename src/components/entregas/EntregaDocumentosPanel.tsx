@@ -550,8 +550,39 @@ export function EntregaDocumentosPanel({
             {/* ═══ NF-e do Embarcador ═══ */}
             {perfil === 'embarcador' && (
                 <section className="space-y-2">
-                    <SectionTitle icon={<FileCode className="w-3.5 h-3.5 text-indigo-500" />} label="Notas Fiscais" count={nfesDiretas.length} />
+                    {/* Prominent header like the reference */}
+                    <div className={`rounded-xl border-2 p-3 flex items-center justify-between ${
+                        nfesDiretas.length === 0
+                            ? 'border-red-200 dark:border-red-800/40 bg-red-50/50 dark:bg-red-900/10'
+                            : 'border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/50 dark:bg-emerald-900/10'
+                    }`}>
+                        <div className="flex items-center gap-2.5">
+                            {nfesDiretas.length === 0 ? (
+                                <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                            ) : (
+                                <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+                            )}
+                            <div>
+                                <p className="text-sm font-semibold">Notas Fiscais</p>
+                                <p className={`text-[11px] ${nfesDiretas.length === 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                    {nfesDiretas.length === 0
+                                        ? 'Obrigatório para iniciar viagem'
+                                        : `${nfesDiretas.length} NF-e${nfesDiretas.length !== 1 ? 's' : ''} anexada${nfesDiretas.length !== 1 ? 's' : ''}`}
+                                </p>
+                            </div>
+                        </div>
+                        <Button
+                            size="sm"
+                            className={`gap-1.5 shrink-0 ${nfesDiretas.length === 0 ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
+                            variant={nfesDiretas.length === 0 ? 'default' : 'outline'}
+                            onClick={() => nfeRef.current?.click()}
+                        >
+                            <Upload className="w-3.5 h-3.5" />
+                            Anexar NF-e
+                        </Button>
+                    </div>
 
+                    {/* Existing NF-e list */}
                     {nfesDiretas.length > 0 && (
                         <div className="space-y-1">
                             {nfesDiretas.map((nfe, i) => (
@@ -560,13 +591,14 @@ export function EntregaDocumentosPanel({
                         </div>
                     )}
 
+                    {/* Staging or dropzone */}
                     {stagingNfes.length > 0 ? (
                         <StagingList items={stagingNfes} onRemove={removeNfeStaging} onConfirm={confirmNfeUpload} uploading={uploadingNfe} label="NF-es" />
                     ) : (
                         <DropZone
-                            label="Arrastar NF-es aqui"
-                            hint="PDF ou XML • até 10 MB • múltiplos permitidos"
-                            accentColor="border-indigo-200 dark:border-indigo-800/40 hover:border-indigo-400"
+                            label="Arraste PDF ou XML aqui, ou clique para selecionar"
+                            hint="PDF, XML ou imagem • até 10 MB • múltiplos permitidos"
+                            accentColor="border-muted-foreground/20 hover:border-primary/40"
                             inputRef={nfeRef} multiple onFiles={handleNfeFiles}
                         />
                     )}
