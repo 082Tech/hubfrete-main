@@ -1101,7 +1101,7 @@ export default function GestaoCargas() {
         </div>
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
           <AdvancedFiltersPopover
             filters={filters}
