@@ -248,7 +248,7 @@ export default function StorageExplorer() {
             fetchFilesInPath(selectedBucket, currentPath);
           }
         }}>
-          <RefreshCw className="w-4 h-4 mr-2" />
+          <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
           Atualizar
         </Button>
       </div>
