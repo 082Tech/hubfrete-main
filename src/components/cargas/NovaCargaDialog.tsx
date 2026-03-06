@@ -493,15 +493,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 </div>
               )}
             </div>
-            <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Qtd. Paletes</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="0" className="max-w-[200px]" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
           </div>
         );
 
