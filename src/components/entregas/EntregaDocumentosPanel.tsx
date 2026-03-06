@@ -374,8 +374,12 @@ export function EntregaDocumentosPanel({
     };
 
     const handleDeleteCte = (id: string) => {
-        // Atualiza local imediatamente (o toast já foi mostrado pelo CteCard)
         setLocalCtes((prev) => prev.filter((c) => c.id !== id));
+        onRefresh();
+    };
+
+    const handleDeleteNfe = (id: string) => {
+        // NF-e removida pelo NfeRow, apenas refresh
         onRefresh();
     };
 
