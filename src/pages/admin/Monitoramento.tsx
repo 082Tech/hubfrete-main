@@ -241,7 +241,7 @@ export default function Monitoramento() {
           </Select>
 
           <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={refetchLocations}>
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
