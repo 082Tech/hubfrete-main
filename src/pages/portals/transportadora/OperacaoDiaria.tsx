@@ -500,6 +500,7 @@ function DetailPanel({
             status={entrega.status}
             height={300}
             entregaId={entrega.id}
+            onExpandClick={onExpandMap}
           />
 
           {/* Cargo description */}
