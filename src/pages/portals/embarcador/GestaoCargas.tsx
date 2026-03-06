@@ -221,11 +221,13 @@ function DetailPanel({
   onClose,
   driverLocation,
   onRefresh,
+  onExpandMap,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
   driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
   onRefresh: () => void;
+  onExpandMap?: () => void;
 }) {
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState('');
