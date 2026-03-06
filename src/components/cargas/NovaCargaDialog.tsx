@@ -469,7 +469,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               <FormItem>
                 <FormLabel>Peso Total da Carga (kg) *</FormLabel>
                 <FormControl><WeightInput placeholder="Ex: 25.000" value={field.value} onValueChange={field.onChange} /></FormControl>
-                {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {(pesoKg / 1000).toFixed(4)} toneladas</p>}
+                {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {parseFloat((pesoKg / 1000).toFixed(4))} toneladas</p>}
                 <FormMessage />
               </FormItem>
             )} />
@@ -493,15 +493,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 </div>
               )}
             </div>
-            <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Qtd. Paletes</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="0" className="max-w-[200px]" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
           </div>
         );
 
@@ -556,6 +547,15 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       case 'requisitos':
         return (
           <div className="space-y-4">
+            <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Qtd. Paletes</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="0" className="max-w-[200px]" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
             <div className="space-y-2">
               <Label className="text-sm">Características Especiais</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -728,7 +728,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
           {/* Right: Live Summary (hidden on mobile) */}
           <div className="hidden lg:flex flex-col border-l bg-muted/20 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-card flex items-center min-h-[49px]">
+            <div className="px-4 py-4 border-b bg-card flex items-center min-h-[53px]">
               <h2 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Resumo</h2>
             </div>
             <ScrollArea className="flex-1">
