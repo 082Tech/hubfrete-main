@@ -136,13 +136,97 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
+export interface CargaToEdit {
+  id: string;
+  codigo: string;
+  descricao: string;
+  tipo: string;
+  peso_kg: number;
+  peso_disponivel_kg: number | null;
+  permite_fracionado: boolean | null;
+  peso_minimo_fracionado_kg: number | null;
+  valor_mercadoria: number | null;
+  numero_pedido?: string | null;
+  volume_m3: number | null;
+  quantidade_paletes?: number | null;
+  unidade_precificacao?: string | null;
+  quantidade_precificacao?: number | null;
+  valor_unitario_precificacao?: number | null;
+  tipo_precificacao?: string | null;
+  valor_frete_tonelada: number | null;
+  valor_frete_m3?: number | null;
+  valor_frete_fixo?: number | null;
+  valor_frete_km?: number | null;
+  carga_fragil: boolean | null;
+  carga_perigosa: boolean | null;
+  carga_viva: boolean | null;
+  empilhavel: boolean | null;
+  requer_refrigeracao: boolean | null;
+  temperatura_min: number | null;
+  temperatura_max: number | null;
+  numero_onu: string | null;
+  necessidades_especiais: string[] | null;
+  regras_carregamento: string | null;
+  nota_fiscal_url: string | null;
+  data_coleta_de: string | null;
+  data_coleta_ate: string | null;
+  data_entrega_limite: string | null;
+  expira_em: string;
+  veiculo_requisitos: {
+    tipos_veiculo?: string[];
+    tipos_carroceria?: string[];
+  } | null;
+  endereco_origem: {
+    id: string;
+    logradouro: string;
+    numero: string | null;
+    complemento?: string | null;
+    bairro: string | null;
+    cidade: string;
+    estado: string;
+    cep: string;
+    contato_nome: string | null;
+    contato_telefone: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
+  endereco_destino: {
+    id: string;
+    logradouro: string;
+    numero: string | null;
+    complemento?: string | null;
+    bairro: string | null;
+    cidade: string;
+    estado: string;
+    cep: string;
+    contato_nome: string | null;
+    contato_telefone: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
+  destinatario_razao_social: string | null;
+  destinatario_nome_fantasia: string | null;
+  destinatario_cnpj: string | null;
+  destinatario_contato_nome?: string | null;
+  destinatario_contato_telefone?: string | null;
+}
+
 interface NovaCargaDialogProps {
   onSuccess?: () => void;
   children?: React.ReactNode;
+  /** When provided, the dialog opens in edit mode */
+  editCarga?: CargaToEdit | null;
+  /** Controlled open state for edit mode */
+  editOpen?: boolean;
+  /** Controlled onOpenChange for edit mode */
+  onEditOpenChange?: (open: boolean) => void;
 }
 
-export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
-  const [open, setOpen] = useState(false);
+export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEditOpenChange }: NovaCargaDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isEditMode = !!editCarga;
+  const open = isEditMode ? (editOpen ?? false) : internalOpen;
+  const setOpen = isEditMode ? (onEditOpenChange ?? setInternalOpen) : setInternalOpen;
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('dados');
   const { filialAtiva, empresa, userType } = useUserContext();
@@ -180,6 +264,66 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       empilhavel: true, requer_refrigeracao: false, regras_carregamento: '', expira_em: addDays(30), numero_pedido: '',
     },
   });
+
+  // Pre-fill form in edit mode
+  useEffect(() => {
+    if (editCarga && open) {
+      form.reset({
+        descricao: editCarga.descricao || '',
+        tipo: editCarga.tipo as TipoCarga || 'carga_seca',
+        peso_kg: editCarga.peso_kg || 0,
+        volume_m3: editCarga.volume_m3 || undefined,
+        quantidade_paletes: editCarga.quantidade_paletes || undefined,
+        valor_mercadoria: editCarga.valor_mercadoria || undefined,
+        numero_pedido: editCarga.numero_pedido || '',
+        unidade_precificacao: editCarga.unidade_precificacao || 'TON',
+        quantidade_precificacao: editCarga.quantidade_precificacao || undefined,
+        valor_unitario_precificacao: editCarga.valor_unitario_precificacao || undefined,
+        permite_fracionado: editCarga.permite_fracionado ?? true,
+        carga_fragil: editCarga.carga_fragil ?? false,
+        carga_perigosa: editCarga.carga_perigosa ?? false,
+        carga_viva: editCarga.carga_viva ?? false,
+        empilhavel: editCarga.empilhavel ?? true,
+        requer_refrigeracao: editCarga.requer_refrigeracao ?? false,
+        temperatura_min: editCarga.temperatura_min || undefined,
+        temperatura_max: editCarga.temperatura_max || undefined,
+        numero_onu: editCarga.numero_onu || '',
+        data_coleta_de: editCarga.data_coleta_de ? editCarga.data_coleta_de.split('T')[0] : todayStr(),
+        data_coleta_ate: editCarga.data_coleta_ate ? editCarga.data_coleta_ate.split('T')[0] : undefined,
+        data_entrega_limite: editCarga.data_entrega_limite ? editCarga.data_entrega_limite.split('T')[0] : undefined,
+        expira_em: editCarga.expira_em ? editCarga.expira_em.split('T')[0] : addDays(30),
+        regras_carregamento: editCarga.regras_carregamento || '',
+      });
+      setNecessidadesEspeciais(editCarga.necessidades_especiais || []);
+      setPesoMinimoFracionado(editCarga.peso_minimo_fracionado_kg || null);
+      setVeiculosSelecionados(editCarga.veiculo_requisitos?.tipos_veiculo || []);
+      setCarroceriasSelecionadas(editCarga.veiculo_requisitos?.tipos_carroceria || []);
+      if (editCarga.endereco_origem) {
+        setOrigemData({
+          latitude: editCarga.endereco_origem.latitude || 0, longitude: editCarga.endereco_origem.longitude || 0,
+          cep: editCarga.endereco_origem.cep || '', logradouro: editCarga.endereco_origem.logradouro || '',
+          numero: editCarga.endereco_origem.numero || '', complemento: editCarga.endereco_origem.complemento || '',
+          bairro: editCarga.endereco_origem.bairro || '', cidade: editCarga.endereco_origem.cidade || '',
+          estado: editCarga.endereco_origem.estado || '', contato_nome: editCarga.endereco_origem.contato_nome || '',
+          contato_telefone: editCarga.endereco_origem.contato_telefone || '',
+        });
+      }
+      if (editCarga.endereco_destino) {
+        setDestinoData({
+          latitude: editCarga.endereco_destino.latitude || 0, longitude: editCarga.endereco_destino.longitude || 0,
+          cep: editCarga.endereco_destino.cep || '', logradouro: editCarga.endereco_destino.logradouro || '',
+          numero: editCarga.endereco_destino.numero || '', complemento: editCarga.endereco_destino.complemento || '',
+          bairro: editCarga.endereco_destino.bairro || '', cidade: editCarga.endereco_destino.cidade || '',
+          estado: editCarga.endereco_destino.estado || '',
+          contato_nome: editCarga.destinatario_contato_nome || editCarga.endereco_destino.contato_nome || '',
+          contato_telefone: editCarga.destinatario_contato_telefone || editCarga.endereco_destino.contato_telefone || '',
+          razao_social: editCarga.destinatario_razao_social || '',
+          cnpj: editCarga.destinatario_cnpj || '',
+        });
+      }
+      setActiveTab('dados');
+    }
+  }, [editCarga, open, form]);
 
   const pesoKg = form.watch('peso_kg');
   const quantidadePrec = form.watch('quantidade_precificacao');
@@ -263,16 +407,96 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   };
 
   const onSubmit = async (values: FormValues) => {
-    if (userType !== 'embarcador') {
+    if (!isEditMode && userType !== 'embarcador') {
       toast.error('Somente embarcadores podem publicar cargas.');
       return;
     }
-    if (!empresa?.id) {
+    if (!isEditMode && !empresa?.id) {
       toast.error('Nenhuma empresa selecionada. Faça login novamente.');
       return;
     }
     if (!validateLocations()) return;
 
+    if (isEditMode && editCarga) {
+      setIsLoading(true);
+      try {
+        const weightDiff = values.peso_kg - editCarga.peso_kg;
+        const newPesoDisponivel = Math.max(0, (editCarga.peso_disponivel_kg ?? editCarga.peso_kg) + weightDiff);
+
+        const { error: cargaError } = await supabase
+          .from('cargas')
+          .update({
+            descricao: values.descricao, tipo: values.tipo,
+            peso_kg: values.peso_kg, peso_disponivel_kg: newPesoDisponivel,
+            volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
+            valor_mercadoria: values.valor_mercadoria || null,
+            numero_pedido: values.numero_pedido || null,
+            unidade_precificacao: values.unidade_precificacao || 'TON',
+            quantidade_precificacao: values.quantidade_precificacao || null,
+            valor_unitario_precificacao: values.valor_unitario_precificacao || null,
+            tipo_precificacao: 'por_tonelada',
+            valor_frete_tonelada: freteTotal > 0 ? freteTotal : null,
+            valor_frete_m3: null, valor_frete_fixo: null, valor_frete_km: null,
+            permite_fracionado: values.permite_fracionado,
+            peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionado : null,
+            carga_fragil: values.carga_fragil, carga_perigosa: values.carga_perigosa,
+            carga_viva: values.carga_viva, empilhavel: values.empilhavel,
+            requer_refrigeracao: values.requer_refrigeracao,
+            temperatura_min: values.temperatura_min || null, temperatura_max: values.temperatura_max || null,
+            numero_onu: values.numero_onu || null,
+            data_coleta_de: values.data_coleta_de ? `${values.data_coleta_de}T12:00:00` : values.data_coleta_de,
+            data_coleta_ate: values.data_coleta_ate ? `${values.data_coleta_ate}T12:00:00` : null,
+            data_entrega_limite: values.data_entrega_limite ? `${values.data_entrega_limite}T12:00:00` : null,
+            expira_em: `${values.expira_em}T23:59:59`,
+            necessidades_especiais: necessidadesEspeciais,
+            regras_carregamento: values.regras_carregamento || null,
+            veiculo_requisitos: { tipos_veiculo: veiculosSelecionados, tipos_carroceria: carroceriasSelecionadas },
+            destinatario_razao_social: destinoData.razao_social || null,
+            destinatario_nome_fantasia: destinoData.razao_social || null,
+            destinatario_cnpj: destinoData.cnpj || null,
+            destinatario_contato_nome: destinoData.contato_nome || null,
+            destinatario_contato_telefone: destinoData.contato_telefone || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editCarga.id);
+
+        if (cargaError) { toast.error('Erro ao atualizar carga: ' + cargaError.message); setIsLoading(false); return; }
+
+        if (editCarga.endereco_origem?.id) {
+          await supabase.from('enderecos_carga').update({
+            cep: origemData.cep, logradouro: origemData.logradouro, numero: origemData.numero || null,
+            complemento: origemData.complemento || null, bairro: origemData.bairro || null,
+            cidade: origemData.cidade, estado: origemData.estado,
+            contato_nome: origemData.contato_nome || null, contato_telefone: origemData.contato_telefone || null,
+            latitude: origemData.latitude || null, longitude: origemData.longitude || null,
+            updated_at: new Date().toISOString(),
+          }).eq('id', editCarga.endereco_origem.id);
+        }
+
+        if (editCarga.endereco_destino?.id) {
+          await supabase.from('enderecos_carga').update({
+            cep: destinoData.cep, logradouro: destinoData.logradouro, numero: destinoData.numero || null,
+            complemento: destinoData.complemento || null, bairro: destinoData.bairro || null,
+            cidade: destinoData.cidade, estado: destinoData.estado,
+            contato_nome: destinoData.contato_nome || null, contato_telefone: destinoData.contato_telefone || null,
+            latitude: destinoData.latitude || null, longitude: destinoData.longitude || null,
+            updated_at: new Date().toISOString(),
+          }).eq('id', editCarga.endereco_destino.id);
+        }
+
+        toast.success('Carga atualizada com sucesso!');
+        setOpen(false);
+        onSuccess?.();
+      } catch (error) {
+        console.error('Erro inesperado:', error);
+        toast.error('Erro inesperado ao atualizar carga');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Create mode
     const capturedOrigemData = { ...origemData };
     const capturedDestinoData = { ...destinoData };
     const capturedNecessidades = [...necessidadesEspeciais];
@@ -280,7 +504,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     const capturedVeiculos = [...veiculosSelecionados];
     const capturedCarrocerias = [...carroceriasSelecionadas];
     const capturedFilialId = filialAtiva?.id || null;
-    const capturedEmpresaId = empresa.id;
+    const capturedEmpresaId = empresa!.id;
 
     resetDialogState();
     setOpen(false);
@@ -636,14 +860,16 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       </AlertDialogContent>
     </AlertDialog>
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nova Oferta
-          </Button>
-        )}
-      </DialogTrigger>
+      {!isEditMode && (
+        <DialogTrigger asChild>
+          {children || (
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" />
+              Nova Oferta
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-[95vw] w-[1400px] h-[90vh] max-h-[90vh] p-0 flex flex-col overflow-hidden" hideCloseButton>
         {/* 2-column layout — no separate header */}
         <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,360px]">
@@ -654,7 +880,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               <DialogHeader className="space-y-0 shrink-0">
                 <DialogTitle className="flex items-center gap-2 text-base">
                   <Package className="w-4 h-4 text-primary" />
-                  Nova Oferta
+                  {isEditMode ? `Editar Oferta — ${editCarga?.codigo}` : 'Nova Oferta'}
                 </DialogTitle>
               </DialogHeader>
               <div className="h-5 w-px bg-border shrink-0" />
@@ -668,13 +894,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                       key={tab.id}
                       type="button"
                       onClick={() => {
-                        if (i <= currentTabIndex) setActiveTab(tab.id);
+                        if (isEditMode || i <= currentTabIndex) setActiveTab(tab.id);
                       }}
                       className={cn(
                         'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap',
                         isActive && 'bg-primary text-primary-foreground shadow-sm',
-                        isPast && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
-                        !isActive && !isPast && 'text-muted-foreground cursor-default',
+                        (isPast || isEditMode) && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
+                        !isActive && !isPast && !isEditMode && 'text-muted-foreground cursor-default',
                       )}
                     >
                       {isPast && !isActive ? (
@@ -714,7 +940,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 </Button>
                 {isLastTab ? (
                   <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
-                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />Criar Oferta</>)}
+                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />{isEditMode ? 'Salvar Alterações' : 'Criar Oferta'}</>)}
                   </Button>
                 ) : (
                   <Button type="button" size="sm" onClick={goNext}>
