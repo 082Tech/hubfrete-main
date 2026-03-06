@@ -177,44 +177,26 @@ export function ResumoSection({
         </div>
       )}
 
-      {/* Origin / Destination cards */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <Card className={`${hasValidOrigin ? 'border-green-500/30 bg-green-500/5' : 'border-destructive/30 bg-destructive/5'}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">O</div>
-              Origem
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {hasValidOrigin ? (
-              <>
-                <p className="text-muted-foreground">{formatAddress(origemData)}</p>
-                {origemData.contato_nome && <p className="flex items-center gap-2"><User className="w-3 h-3" />{origemData.contato_nome}</p>}
-                {origemData.contato_telefone && <p className="flex items-center gap-2"><Phone className="w-3 h-3" />{origemData.contato_telefone}</p>}
-              </>
-            ) : <p className="text-destructive">⚠️ Origem não configurada</p>}
-          </CardContent>
-        </Card>
-
-        <Card className={`${hasValidDestino ? 'border-red-500/30 bg-red-500/5' : 'border-destructive/30 bg-destructive/5'}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold">D</div>
-              Destino
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {hasValidDestino ? (
-              <>
-                {destinoData.razao_social && <p className="font-medium flex items-center gap-2"><Building2 className="w-3 h-3" />{destinoData.razao_social}</p>}
-                <p className="text-muted-foreground">{formatAddress(destinoData)}</p>
-                {destinoData.contato_nome && <p className="flex items-center gap-2"><User className="w-3 h-3" />{destinoData.contato_nome}</p>}
-                {destinoData.contato_telefone && <p className="flex items-center gap-2"><Phone className="w-3 h-3" />{destinoData.contato_telefone}</p>}
-              </>
-            ) : <p className="text-destructive">⚠️ Destino não configurada</p>}
-          </CardContent>
-        </Card>
+      {/* Origin / Destination — compact inline */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className={`rounded-md p-2.5 border text-xs ${hasValidOrigin ? 'border-green-500/30 bg-green-500/5' : 'border-destructive/30 bg-destructive/5'}`}>
+          <div className="flex items-center gap-1.5 mb-1 font-medium">
+            <div className="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center text-[9px] font-bold shrink-0">O</div>
+            Origem
+          </div>
+          {hasValidOrigin ? (
+            <p className="text-muted-foreground leading-tight line-clamp-2">{origemData.cidade}/{origemData.estado}</p>
+          ) : <p className="text-destructive">Não configurada</p>}
+        </div>
+        <div className={`rounded-md p-2.5 border text-xs ${hasValidDestino ? 'border-red-500/30 bg-red-500/5' : 'border-destructive/30 bg-destructive/5'}`}>
+          <div className="flex items-center gap-1.5 mb-1 font-medium">
+            <div className="w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[9px] font-bold shrink-0">D</div>
+            Destino
+          </div>
+          {hasValidDestino ? (
+            <p className="text-muted-foreground leading-tight line-clamp-2">{destinoData.cidade}/{destinoData.estado}</p>
+          ) : <p className="text-destructive">Não configurado</p>}
+        </div>
       </div>
 
       <Separator />
