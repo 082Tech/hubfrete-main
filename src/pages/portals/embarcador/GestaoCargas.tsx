@@ -943,7 +943,7 @@ export default function GestaoCargas() {
   const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
 
   // Fetch entregas directly (not via cargas) filtered by embarcador's filial
-  const { data: entregas = [], isLoading, refetch } = useQuery({
+  const { data: entregas = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['gestao_entregas_embarcador', filialAtiva?.id],
     queryFn: async () => {
       if (!filialAtiva?.id) return [];
