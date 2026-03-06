@@ -860,14 +860,16 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
       </AlertDialogContent>
     </AlertDialog>
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nova Oferta
-          </Button>
-        )}
-      </DialogTrigger>
+      {!isEditMode && (
+        <DialogTrigger asChild>
+          {children || (
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" />
+              Nova Oferta
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-[95vw] w-[1400px] h-[90vh] max-h-[90vh] p-0 flex flex-col overflow-hidden" hideCloseButton>
         {/* 2-column layout — no separate header */}
         <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,360px]">
