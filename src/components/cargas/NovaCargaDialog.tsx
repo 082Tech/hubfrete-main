@@ -407,16 +407,96 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
   };
 
   const onSubmit = async (values: FormValues) => {
-    if (userType !== 'embarcador') {
+    if (!isEditMode && userType !== 'embarcador') {
       toast.error('Somente embarcadores podem publicar cargas.');
       return;
     }
-    if (!empresa?.id) {
+    if (!isEditMode && !empresa?.id) {
       toast.error('Nenhuma empresa selecionada. Faça login novamente.');
       return;
     }
     if (!validateLocations()) return;
 
+    if (isEditMode && editCarga) {
+      setIsLoading(true);
+      try {
+        const weightDiff = values.peso_kg - editCarga.peso_kg;
+        const newPesoDisponivel = Math.max(0, (editCarga.peso_disponivel_kg ?? editCarga.peso_kg) + weightDiff);
+
+        const { error: cargaError } = await supabase
+          .from('cargas')
+          .update({
+            descricao: values.descricao, tipo: values.tipo,
+            peso_kg: values.peso_kg, peso_disponivel_kg: newPesoDisponivel,
+            volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
+            valor_mercadoria: values.valor_mercadoria || null,
+            numero_pedido: values.numero_pedido || null,
+            unidade_precificacao: values.unidade_precificacao || 'TON',
+            quantidade_precificacao: values.quantidade_precificacao || null,
+            valor_unitario_precificacao: values.valor_unitario_precificacao || null,
+            tipo_precificacao: 'por_tonelada',
+            valor_frete_tonelada: freteTotal > 0 ? freteTotal : null,
+            valor_frete_m3: null, valor_frete_fixo: null, valor_frete_km: null,
+            permite_fracionado: values.permite_fracionado,
+            peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionado : null,
+            carga_fragil: values.carga_fragil, carga_perigosa: values.carga_perigosa,
+            carga_viva: values.carga_viva, empilhavel: values.empilhavel,
+            requer_refrigeracao: values.requer_refrigeracao,
+            temperatura_min: values.temperatura_min || null, temperatura_max: values.temperatura_max || null,
+            numero_onu: values.numero_onu || null,
+            data_coleta_de: values.data_coleta_de ? `${values.data_coleta_de}T12:00:00` : values.data_coleta_de,
+            data_coleta_ate: values.data_coleta_ate ? `${values.data_coleta_ate}T12:00:00` : null,
+            data_entrega_limite: values.data_entrega_limite ? `${values.data_entrega_limite}T12:00:00` : null,
+            expira_em: `${values.expira_em}T23:59:59`,
+            necessidades_especiais: necessidadesEspeciais,
+            regras_carregamento: values.regras_carregamento || null,
+            veiculo_requisitos: { tipos_veiculo: veiculosSelecionados, tipos_carroceria: carroceriasSelecionadas },
+            destinatario_razao_social: destinoData.razao_social || null,
+            destinatario_nome_fantasia: destinoData.razao_social || null,
+            destinatario_cnpj: destinoData.cnpj || null,
+            destinatario_contato_nome: destinoData.contato_nome || null,
+            destinatario_contato_telefone: destinoData.contato_telefone || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editCarga.id);
+
+        if (cargaError) { toast.error('Erro ao atualizar carga: ' + cargaError.message); setIsLoading(false); return; }
+
+        if (editCarga.endereco_origem?.id) {
+          await supabase.from('enderecos_carga').update({
+            cep: origemData.cep, logradouro: origemData.logradouro, numero: origemData.numero || null,
+            complemento: origemData.complemento || null, bairro: origemData.bairro || null,
+            cidade: origemData.cidade, estado: origemData.estado,
+            contato_nome: origemData.contato_nome || null, contato_telefone: origemData.contato_telefone || null,
+            latitude: origemData.latitude || null, longitude: origemData.longitude || null,
+            updated_at: new Date().toISOString(),
+          }).eq('id', editCarga.endereco_origem.id);
+        }
+
+        if (editCarga.endereco_destino?.id) {
+          await supabase.from('enderecos_carga').update({
+            cep: destinoData.cep, logradouro: destinoData.logradouro, numero: destinoData.numero || null,
+            complemento: destinoData.complemento || null, bairro: destinoData.bairro || null,
+            cidade: destinoData.cidade, estado: destinoData.estado,
+            contato_nome: destinoData.contato_nome || null, contato_telefone: destinoData.contato_telefone || null,
+            latitude: destinoData.latitude || null, longitude: destinoData.longitude || null,
+            updated_at: new Date().toISOString(),
+          }).eq('id', editCarga.endereco_destino.id);
+        }
+
+        toast.success('Carga atualizada com sucesso!');
+        setOpen(false);
+        onSuccess?.();
+      } catch (error) {
+        console.error('Erro inesperado:', error);
+        toast.error('Erro inesperado ao atualizar carga');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Create mode
     const capturedOrigemData = { ...origemData };
     const capturedDestinoData = { ...destinoData };
     const capturedNecessidades = [...necessidadesEspeciais];
@@ -424,7 +504,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     const capturedVeiculos = [...veiculosSelecionados];
     const capturedCarrocerias = [...carroceriasSelecionadas];
     const capturedFilialId = filialAtiva?.id || null;
-    const capturedEmpresaId = empresa.id;
+    const capturedEmpresaId = empresa!.id;
 
     resetDialogState();
     setOpen(false);
