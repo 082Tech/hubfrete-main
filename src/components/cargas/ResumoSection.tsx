@@ -260,59 +260,58 @@ export function ResumoSection({
           )}
         </div>
 
-          {/* Veículos e Carrocerias */}
-          {(veiculosSelecionados.length > 0 || carroceriasSelecionadas.length > 0) && (
-            <div className="space-y-2 pt-2">
-              {veiculosSelecionados.length > 0 && veiculosSelecionados.length < ALL_VEICULOS.length && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Veículos aceitos:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {veiculosSelecionados.map(v => {
-                      const item = Object.values(VEICULOS_CONFIG).flatMap(c => c.items).find(i => i.value === v);
-                      return <Badge key={v} variant="secondary" className="text-xs">{item?.label || v}</Badge>;
-                    })}
-                  </div>
+        {/* Veículos e Carrocerias */}
+        {(veiculosSelecionados.length > 0 || carroceriasSelecionadas.length > 0) && (
+          <div className="space-y-1.5 pt-1">
+            {veiculosSelecionados.length > 0 && veiculosSelecionados.length < ALL_VEICULOS.length && (
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Veículos:</p>
+                <div className="flex flex-wrap gap-1">
+                  {veiculosSelecionados.map(v => {
+                    const item = Object.values(VEICULOS_CONFIG).flatMap(c => c.items).find(i => i.value === v);
+                    return <Badge key={v} variant="secondary" className="text-[10px] px-1 py-0">{item?.label || v}</Badge>;
+                  })}
                 </div>
-              )}
-              {carroceriasSelecionadas.length > 0 && carroceriasSelecionadas.length < ALL_CARROCERIAS.length && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Carrocerias aceitas:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {carroceriasSelecionadas.map(c => {
-                      const item = Object.values(CARROCERIAS_CONFIG).flatMap(cat => cat.items).find(i => i.value === c);
-                      return <Badge key={c} variant="secondary" className="text-xs">{item?.label || c}</Badge>;
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {necessidadesEspeciais.length > 0 && (
-            <div className="pt-2">
-              <p className="text-xs text-muted-foreground mb-1">Necessidades especiais:</p>
-              <div className="flex flex-wrap gap-1">
-                {necessidadesEspeciais.map(n => <Badge key={n} variant="outline" className="text-xs">{n}</Badge>)}
               </div>
-            </div>
-          )}
+            )}
+            {carroceriasSelecionadas.length > 0 && carroceriasSelecionadas.length < ALL_CARROCERIAS.length && (
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Carrocerias:</p>
+                <div className="flex flex-wrap gap-1">
+                  {carroceriasSelecionadas.map(c => {
+                    const item = Object.values(CARROCERIAS_CONFIG).flatMap(cat => cat.items).find(i => i.value === c);
+                    return <Badge key={c} variant="secondary" className="text-[10px] px-1 py-0">{item?.label || c}</Badge>;
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
-          {cargaData.regras_carregamento && (
-            <div className="pt-2 p-3 bg-muted/50 rounded-md">
-              <p className="text-xs text-muted-foreground mb-1">Regras de carregamento:</p>
-              <p className="text-sm">{cargaData.regras_carregamento}</p>
+        {necessidadesEspeciais.length > 0 && (
+          <div className="pt-1">
+            <p className="text-[11px] text-muted-foreground mb-0.5">Necessidades especiais:</p>
+            <div className="flex flex-wrap gap-1">
+              {necessidadesEspeciais.map(n => <Badge key={n} variant="outline" className="text-[10px] px-1 py-0">{n}</Badge>)}
             </div>
-          )}
+          </div>
+        )}
 
-          {notaFiscalUrl && (
-            <div className="flex items-center gap-2 pt-2">
-              <FileText className="w-4 h-4 text-green-600" />
-              <span className="text-green-600">Nota fiscal anexada</span>
-              <CheckCircle2 className="w-4 h-4 text-green-600" />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {cargaData.regras_carregamento && (
+          <div className="pt-1 p-2 bg-muted/50 rounded">
+            <p className="text-[11px] text-muted-foreground mb-0.5">Regras:</p>
+            <p className="text-xs">{cargaData.regras_carregamento}</p>
+          </div>
+        )}
+
+        {notaFiscalUrl && (
+          <div className="flex items-center gap-1.5 pt-1">
+            <FileText className="w-3 h-3 text-green-600" />
+            <span className="text-green-600 text-[11px]">NF anexada</span>
+            <CheckCircle2 className="w-3 h-3 text-green-600" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
