@@ -48,7 +48,7 @@ import Rastreio from "./pages/public/Rastreio";
 import EmbarcadorDashboard from "./pages/portals/EmbarcadorDashboard";
 import CargasPublicadas from "./pages/portals/embarcador/CargasPublicadas";
 import NovaCarga from "./pages/portals/embarcador/NovaCarga";
-import EditarCarga from "./pages/portals/embarcador/EditarCarga";
+
 import CargasEmRota from "./pages/portals/embarcador/GestaoCargas";
 import HistoricoCargas from "./pages/portals/embarcador/HistoricoCargas";
 import Relatorios from "./pages/portals/embarcador/Relatorios";
@@ -149,8 +149,7 @@ const App = () => {
                   <Route path="/embarcador" element={<PortalLayoutWrapper expectedUserType="embarcador" />}>
                     <Route index element={<EmbarcadorDashboard />} />
                     <Route path="ofertas" element={<CargasPublicadas />} />
-                    {/* NovaCarga is now a modal dialog, no separate route needed */}
-                    <Route path="ofertas/editar/:id" element={<EditarCarga />} />
+                    {/* EditarCarga is now a modal dialog inside CargasPublicadas */}
                     <Route path="cargas" element={<CargasEmRota />} />
                     <Route path="cargas/historico" element={<HistoricoCargas />} />
                     <Route path="relatorios" element={<Relatorios />} />

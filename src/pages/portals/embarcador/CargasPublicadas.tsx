@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
+import { EditarCargaDialog } from '@/components/cargas/EditarCargaDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import {
   DropdownMenu,
@@ -133,12 +134,17 @@ interface CargaData {
   peso_kg: number;
   peso_disponivel_kg: number | null;
   permite_fracionado: boolean | null;
+  peso_minimo_fracionado_kg: number | null;
   valor_mercadoria: number | null;
   valor_frete_tonelada: number | null;
   tipo_precificacao: string | null;
   valor_frete_m3: number | null;
   valor_frete_fixo: number | null;
   valor_frete_km: number | null;
+  unidade_precificacao: string | null;
+  quantidade_precificacao: number | null;
+  valor_unitario_precificacao: number | null;
+  numero_pedido: string | null;
   status: string;
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
@@ -153,6 +159,8 @@ interface CargaData {
   destinatario_razao_social: string | null;
   destinatario_nome_fantasia: string | null;
   destinatario_cnpj: string | null;
+  destinatario_contato_nome: string | null;
+  destinatario_contato_telefone: string | null;
   endereco_origem: EnderecoData | null;
   endereco_destino: EnderecoData | null;
   entregas: EntregaData[];
@@ -207,6 +215,7 @@ export default function CargasPublicadas() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cargaToDelete, setCargaToDelete] = useState<CargaData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editCarga, setEditCarga] = useState<CargaData | null>(null);
   const navigate = useNavigate();
 
   const { ref: tableContainerRef, height: tableHeight } = useRemainingViewportHeight<HTMLDivElement>({
@@ -265,6 +274,13 @@ export default function CargasPublicadas() {
           destinatario_razao_social,
           destinatario_nome_fantasia,
           destinatario_cnpj,
+          destinatario_contato_nome,
+          destinatario_contato_telefone,
+          peso_minimo_fracionado_kg,
+          unidade_precificacao,
+          quantidade_precificacao,
+          valor_unitario_precificacao,
+          numero_pedido,
           volume_m3,
           carga_fragil,
           carga_perigosa,
@@ -1107,7 +1123,7 @@ export default function CargasPublicadas() {
                                       {carga.entregas.length === 0 && (
                                         <DropdownMenuItem onClick={(e) => {
                                           e.stopPropagation();
-                                          navigate(`/embarcador/ofertas/editar/${carga.id}`);
+                                          setEditCarga(carga);
                                         }}>
                                           <Pencil className="w-4 h-4 mr-2" />
                                           Editar
@@ -1419,6 +1435,16 @@ export default function CargasPublicadas() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Edit Dialog */}
+        {editCarga && (
+          <EditarCargaDialog
+            carga={editCarga}
+            open={!!editCarga}
+            onOpenChange={(open) => !open && setEditCarga(null)}
+            onSuccess={() => refetch()}
+          />
+        )}
       </TooltipProvider>
     </div>
   );
