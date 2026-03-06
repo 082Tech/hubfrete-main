@@ -199,36 +199,31 @@ export function ResumoSection({
         </div>
       </div>
 
-      <Separator />
-
-      {/* Cargo details */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2"><Package className="w-4 h-4" />Dados da Carga</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p className="font-medium">{cargaData.descricao || 'Sem descrição'}</p>
-          
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">{tipoCargaLabels[cargaData.tipo] || cargaData.tipo}</Badge>
-            <Badge variant="secondary"><Weight className="w-3 h-3 mr-1" />{cargaData.peso_kg} kg</Badge>
-            {cargaData.volume_m3 && <Badge variant="secondary"><Box className="w-3 h-3 mr-1" />{cargaData.volume_m3} m³</Badge>}
-            {cargaData.valor_mercadoria && <Badge variant="secondary">R$ {cargaData.valor_mercadoria.toLocaleString('pt-BR')}</Badge>}
-
-            {/* New NF-e pricing display */}
-            {unidade && (vlrUnit ?? 0) > 0 && (
-              <>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                  Frete: R$ {(vlrUnit ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidade}
+      {/* Cargo details — compact */}
+      <div className="rounded-md border p-3 space-y-2 text-xs">
+        <div className="flex items-center gap-1.5 font-medium text-sm">
+          <Package className="w-3.5 h-3.5" />Dados da Carga
+        </div>
+        <p className="font-medium text-sm">{cargaData.descricao || 'Sem descrição'}</p>
+        
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant="outline" className="text-[11px] px-1.5 py-0">{tipoCargaLabels[cargaData.tipo] || cargaData.tipo}</Badge>
+          <Badge variant="secondary" className="text-[11px] px-1.5 py-0"><Weight className="w-2.5 h-2.5 mr-0.5" />{cargaData.peso_kg} kg</Badge>
+          {cargaData.volume_m3 && <Badge variant="secondary" className="text-[11px] px-1.5 py-0"><Box className="w-2.5 h-2.5 mr-0.5" />{cargaData.volume_m3} m³</Badge>}
+          {cargaData.valor_mercadoria && <Badge variant="secondary" className="text-[11px] px-1.5 py-0">R$ {cargaData.valor_mercadoria.toLocaleString('pt-BR')}</Badge>}
+          {unidade && (vlrUnit ?? 0) > 0 && (
+            <>
+              <Badge variant="outline" className="text-[11px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
+                R$ {(vlrUnit ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidade}
+              </Badge>
+              {freteTotal > 0 && (
+                <Badge variant="default" className="text-[11px] px-1.5 py-0 bg-green-500/10 text-green-600 border-green-500/20">
+                  Total: R$ {freteTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </Badge>
-                {freteTotal > 0 && (
-                  <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20">
-                    Total: R$ {freteTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </Badge>
-                )}
-              </>
-            )}
-          </div>
+              )}
+            </>
+          )}
+        </div>
 
           {/* Special characteristics */}
           <div className="flex flex-wrap gap-2">
