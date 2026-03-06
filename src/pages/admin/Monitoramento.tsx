@@ -176,7 +176,6 @@ export default function Monitoramento() {
         latitude: h.latitude || 0,
         longitude: h.longitude || 0,
         timestamp: h.tracked_at || h.created_at || '',
-        status: h.status,
         velocidade: h.speed,
       })));
     }
