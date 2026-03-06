@@ -265,6 +265,66 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     },
   });
 
+  // Pre-fill form in edit mode
+  useEffect(() => {
+    if (editCarga && open) {
+      form.reset({
+        descricao: editCarga.descricao || '',
+        tipo: editCarga.tipo as TipoCarga || 'carga_seca',
+        peso_kg: editCarga.peso_kg || 0,
+        volume_m3: editCarga.volume_m3 || undefined,
+        quantidade_paletes: editCarga.quantidade_paletes || undefined,
+        valor_mercadoria: editCarga.valor_mercadoria || undefined,
+        numero_pedido: editCarga.numero_pedido || '',
+        unidade_precificacao: editCarga.unidade_precificacao || 'TON',
+        quantidade_precificacao: editCarga.quantidade_precificacao || undefined,
+        valor_unitario_precificacao: editCarga.valor_unitario_precificacao || undefined,
+        permite_fracionado: editCarga.permite_fracionado ?? true,
+        carga_fragil: editCarga.carga_fragil ?? false,
+        carga_perigosa: editCarga.carga_perigosa ?? false,
+        carga_viva: editCarga.carga_viva ?? false,
+        empilhavel: editCarga.empilhavel ?? true,
+        requer_refrigeracao: editCarga.requer_refrigeracao ?? false,
+        temperatura_min: editCarga.temperatura_min || undefined,
+        temperatura_max: editCarga.temperatura_max || undefined,
+        numero_onu: editCarga.numero_onu || '',
+        data_coleta_de: editCarga.data_coleta_de ? editCarga.data_coleta_de.split('T')[0] : todayStr(),
+        data_coleta_ate: editCarga.data_coleta_ate ? editCarga.data_coleta_ate.split('T')[0] : undefined,
+        data_entrega_limite: editCarga.data_entrega_limite ? editCarga.data_entrega_limite.split('T')[0] : undefined,
+        expira_em: editCarga.expira_em ? editCarga.expira_em.split('T')[0] : addDays(30),
+        regras_carregamento: editCarga.regras_carregamento || '',
+      });
+      setNecessidadesEspeciais(editCarga.necessidades_especiais || []);
+      setPesoMinimoFracionado(editCarga.peso_minimo_fracionado_kg || null);
+      setVeiculosSelecionados(editCarga.veiculo_requisitos?.tipos_veiculo || []);
+      setCarroceriasSelecionadas(editCarga.veiculo_requisitos?.tipos_carroceria || []);
+      if (editCarga.endereco_origem) {
+        setOrigemData({
+          latitude: editCarga.endereco_origem.latitude || 0, longitude: editCarga.endereco_origem.longitude || 0,
+          cep: editCarga.endereco_origem.cep || '', logradouro: editCarga.endereco_origem.logradouro || '',
+          numero: editCarga.endereco_origem.numero || '', complemento: editCarga.endereco_origem.complemento || '',
+          bairro: editCarga.endereco_origem.bairro || '', cidade: editCarga.endereco_origem.cidade || '',
+          estado: editCarga.endereco_origem.estado || '', contato_nome: editCarga.endereco_origem.contato_nome || '',
+          contato_telefone: editCarga.endereco_origem.contato_telefone || '',
+        });
+      }
+      if (editCarga.endereco_destino) {
+        setDestinoData({
+          latitude: editCarga.endereco_destino.latitude || 0, longitude: editCarga.endereco_destino.longitude || 0,
+          cep: editCarga.endereco_destino.cep || '', logradouro: editCarga.endereco_destino.logradouro || '',
+          numero: editCarga.endereco_destino.numero || '', complemento: editCarga.endereco_destino.complemento || '',
+          bairro: editCarga.endereco_destino.bairro || '', cidade: editCarga.endereco_destino.cidade || '',
+          estado: editCarga.endereco_destino.estado || '',
+          contato_nome: editCarga.destinatario_contato_nome || editCarga.endereco_destino.contato_nome || '',
+          contato_telefone: editCarga.destinatario_contato_telefone || editCarga.endereco_destino.contato_telefone || '',
+          razao_social: editCarga.destinatario_razao_social || '',
+          cnpj: editCarga.destinatario_cnpj || '',
+        });
+      }
+      setActiveTab('dados');
+    }
+  }, [editCarga, open, form]);
+
   const pesoKg = form.watch('peso_kg');
   const quantidadePrec = form.watch('quantidade_precificacao');
   const valorUnitarioPrec = form.watch('valor_unitario_precificacao');
