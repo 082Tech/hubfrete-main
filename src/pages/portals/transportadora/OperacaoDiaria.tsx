@@ -1602,7 +1602,7 @@ export default function OperacaoDiaria() {
   });
 
   // Fetch viagens when in viagens view mode
-  const { data: viagens = [], isLoading: isLoadingViagens, refetch: refetchViagens } = useQuery({
+  const { data: viagens = [], isLoading: isLoadingViagens, isFetching: isFetchingViagens, refetch: refetchViagens } = useQuery({
     queryKey: ['gestao-viagens', empresa?.id],
     queryFn: async (): Promise<ViagemWithEntregas[]> => {
       if (!empresa?.id) return [];
