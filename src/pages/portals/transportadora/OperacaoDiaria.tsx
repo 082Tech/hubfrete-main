@@ -1518,7 +1518,7 @@ export default function OperacaoDiaria() {
   const [filters, setFilters] = useState<AdvancedFilters>({});
 
   // Fetch today's deliveries (by created_at) OR pending from previous days
-  const { data: entregas = [], isLoading, refetch } = useQuery({
+  const { data: entregas = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['operacao-diaria', empresa?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
