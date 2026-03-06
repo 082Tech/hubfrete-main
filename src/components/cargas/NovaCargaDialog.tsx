@@ -520,8 +520,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
       case 'requisitos':
         return (
-          <div className="space-y-6">
-            <SectionHeader icon={ClipboardList} title="Requisitos e Características" />
+          <div className="space-y-4">
             <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
               <FormItem>
                 <FormLabel>Qtd. Paletes</FormLabel>
@@ -531,19 +530,19 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 <FormMessage />
               </FormItem>
             )} />
-            <div className="space-y-3">
-              <Label>Características Especiais</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm">Características Especiais</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {(['carga_fragil', 'carga_perigosa', 'carga_viva', 'empilhavel', 'requer_refrigeracao'] as const).map((name) => {
                   const labels: Record<string, string> = {
-                    carga_fragil: 'Carga Frágil', carga_perigosa: 'Carga Perigosa', carga_viva: 'Carga Viva',
-                    empilhavel: 'Empilhável', requer_refrigeracao: 'Requer Refrigeração',
+                    carga_fragil: 'Frágil', carga_perigosa: 'Perigosa', carga_viva: 'Carga Viva',
+                    empilhavel: 'Empilhável', requer_refrigeracao: 'Refrigeração',
                   };
                   return (
                     <FormField key={name} control={form.control} name={name} render={({ field }) => (
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        <FormLabel className="font-normal">{labels[name]}</FormLabel>
+                        <FormLabel className="font-normal text-sm">{labels[name]}</FormLabel>
                       </FormItem>
                     )} />
                   );
@@ -551,12 +550,12 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               </div>
             </div>
             {requerRefrigeracao && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <FormField control={form.control} name="temperatura_min" render={({ field }) => (
-                  <FormItem><FormLabel>Temperatura Mínima (°C)</FormLabel><FormControl><Input type="number" placeholder="-18" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Temp. Mín (°C)</FormLabel><FormControl><Input type="number" placeholder="-18" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="temperatura_max" render={({ field }) => (
-                  <FormItem><FormLabel>Temperatura Máxima (°C)</FormLabel><FormControl><Input type="number" placeholder="4" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Temp. Máx (°C)</FormLabel><FormControl><Input type="number" placeholder="4" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
             )}
@@ -573,25 +572,21 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
             <FormField control={form.control} name="regras_carregamento" render={({ field }) => (
               <FormItem>
                 <FormLabel>Regras de Carregamento</FormLabel>
-                <FormControl><Textarea placeholder="Instruções especiais para carregamento..." className="min-h-[80px]" {...field} /></FormControl>
+                <FormControl><Textarea placeholder="Instruções especiais..." className="min-h-[60px]" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
           </div>
         );
 
-      case 'rota':
+      case 'origem':
         return (
-          <div className="space-y-8">
-            <section className="space-y-4">
-              <SectionHeader icon={MapPin} title="Remetente (Origem)" />
-              <RemetenteSection initialData={origemData} onLocationChange={setOrigemData} />
-            </section>
-            <section className="space-y-4">
-              <SectionHeader icon={Truck} title="Destinatário (Destino)" />
-              <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
-            </section>
-          </div>
+          <RemetenteSection initialData={origemData} onLocationChange={setOrigemData} />
+        );
+
+      case 'destino':
+        return (
+          <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
         );
     }
   };
