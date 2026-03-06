@@ -136,13 +136,97 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
+export interface CargaToEdit {
+  id: string;
+  codigo: string;
+  descricao: string;
+  tipo: string;
+  peso_kg: number;
+  peso_disponivel_kg: number | null;
+  permite_fracionado: boolean | null;
+  peso_minimo_fracionado_kg: number | null;
+  valor_mercadoria: number | null;
+  numero_pedido?: string | null;
+  volume_m3: number | null;
+  quantidade_paletes?: number | null;
+  unidade_precificacao?: string | null;
+  quantidade_precificacao?: number | null;
+  valor_unitario_precificacao?: number | null;
+  tipo_precificacao?: string | null;
+  valor_frete_tonelada: number | null;
+  valor_frete_m3?: number | null;
+  valor_frete_fixo?: number | null;
+  valor_frete_km?: number | null;
+  carga_fragil: boolean | null;
+  carga_perigosa: boolean | null;
+  carga_viva: boolean | null;
+  empilhavel: boolean | null;
+  requer_refrigeracao: boolean | null;
+  temperatura_min: number | null;
+  temperatura_max: number | null;
+  numero_onu: string | null;
+  necessidades_especiais: string[] | null;
+  regras_carregamento: string | null;
+  nota_fiscal_url: string | null;
+  data_coleta_de: string | null;
+  data_coleta_ate: string | null;
+  data_entrega_limite: string | null;
+  expira_em: string;
+  veiculo_requisitos: {
+    tipos_veiculo?: string[];
+    tipos_carroceria?: string[];
+  } | null;
+  endereco_origem: {
+    id: string;
+    logradouro: string;
+    numero: string | null;
+    complemento?: string | null;
+    bairro: string | null;
+    cidade: string;
+    estado: string;
+    cep: string;
+    contato_nome: string | null;
+    contato_telefone: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
+  endereco_destino: {
+    id: string;
+    logradouro: string;
+    numero: string | null;
+    complemento?: string | null;
+    bairro: string | null;
+    cidade: string;
+    estado: string;
+    cep: string;
+    contato_nome: string | null;
+    contato_telefone: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
+  destinatario_razao_social: string | null;
+  destinatario_nome_fantasia: string | null;
+  destinatario_cnpj: string | null;
+  destinatario_contato_nome?: string | null;
+  destinatario_contato_telefone?: string | null;
+}
+
 interface NovaCargaDialogProps {
   onSuccess?: () => void;
   children?: React.ReactNode;
+  /** When provided, the dialog opens in edit mode */
+  editCarga?: CargaToEdit | null;
+  /** Controlled open state for edit mode */
+  editOpen?: boolean;
+  /** Controlled onOpenChange for edit mode */
+  onEditOpenChange?: (open: boolean) => void;
 }
 
-export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
-  const [open, setOpen] = useState(false);
+export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEditOpenChange }: NovaCargaDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isEditMode = !!editCarga;
+  const open = isEditMode ? (editOpen ?? false) : internalOpen;
+  const setOpen = isEditMode ? (onEditOpenChange ?? setInternalOpen) : setInternalOpen;
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('dados');
   const { filialAtiva, empresa, userType } = useUserContext();
