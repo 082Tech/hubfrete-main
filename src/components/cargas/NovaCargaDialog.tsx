@@ -390,21 +390,20 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     switch (activeTab) {
       case 'dados':
         return (
-          <div className="space-y-6">
-            <SectionHeader icon={Package} title="Dados da Carga" />
+          <div className="space-y-4">
             <FormField control={form.control} name="descricao" render={({ field }) => (
               <FormItem>
                 <FormLabel>Descrição da Carga *</FormLabel>
-                <FormControl><Textarea placeholder="Descreva a carga (ex: Minério de ferro - Lote A)" {...field} /></FormControl>
+                <FormControl><Textarea placeholder="Descreva a carga (ex: Minério de ferro - Lote A)" className="min-h-[60px]" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <FormField control={form.control} name="tipo" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipo de Carga *</FormLabel>
+                  <FormLabel>Tipo *</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger></FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
                     <SelectContent className="bg-popover border-border">
                       {tipoCargaOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
@@ -416,15 +415,23 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               )} />
               <FormField control={form.control} name="numero_pedido" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nº do Pedido</FormLabel>
+                  <FormLabel>Nº Pedido</FormLabel>
                   <FormControl><Input placeholder="Opcional" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
+              <FormField control={form.control} name="peso_kg" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Peso (kg) *</FormLabel>
+                  <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
+                  {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {(pesoKg / 1000).toFixed(2)} ton</p>}
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <FormField control={form.control} name="data_coleta_de" render={({ field }) => (
-                <FormItem><FormLabel>Data de Coleta *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Coleta De *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="data_coleta_ate" render={({ field }) => (
                 <FormItem><FormLabel>Coleta Até</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
@@ -433,63 +440,33 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 <FormItem><FormLabel>Entrega Limite</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
-            <div className="p-4 rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/10">
+            <div className="grid grid-cols-3 gap-3">
+              <FormField control={form.control} name="volume_m3" render={({ field }) => (
+                <FormItem><FormLabel>Volume (m³)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
+                <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+              )} />
               <FormField control={form.control} name="expira_em" render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-amber-800 dark:text-amber-300 font-medium">Expiração da Publicação</FormLabel>
+                  <FormLabel>Expiração *</FormLabel>
                   <FormControl><Input type="date" min={todayStr()} max={addDays(365)} {...field} /></FormControl>
-                  <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">A carga será removida automaticamente nesta data. Máximo: 1 ano.</p>
                   <FormMessage />
                 </FormItem>
               )} />
             </div>
-            <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
-              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
-                As Notas Fiscais (NF-e) serão solicitadas quando as entregas forem geradas para esta carga.
-              </AlertDescription>
-            </Alert>
-
-            {/* Peso e Dimensões inline */}
-            <div className="pt-2 space-y-4">
-              <SectionHeader icon={Weight} title="Peso e Dimensões" />
-              <div className="p-3 rounded-lg border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700/30">
-                <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                  <strong>Por que o peso é obrigatório?</strong> O sistema utiliza o peso da carga para verificar a compatibilidade com a capacidade das carrocerias dos motoristas.
-                </p>
+            <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
+              <FormItem className="flex items-center space-x-2 space-y-0">
+                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                <FormLabel className="font-normal text-sm">Permitir transporte fracionado</FormLabel>
+              </FormItem>
+            )} />
+            {form.watch('permite_fracionado') && (
+              <div className="ml-6">
+                <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
+                <WeightInput placeholder="Ex: 15.000" className="mt-1" value={pesoMinimoFracionado || undefined} onValueChange={(v) => setPesoMinimoFracionado(v || null)} />
               </div>
-              <FormField control={form.control} name="peso_kg" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Peso Total (kg) *</FormLabel>
-                  <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    {pesoKg > 0 && pesoKg >= 1000 ? `≈ ${(pesoKg / 1000).toFixed(2)} toneladas` : 'Peso obrigatório — principal critério do sistema'}
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="volume_m3" render={({ field }) => (
-                  <FormItem><FormLabel>Volume (m³)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
-                  <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
-                )} />
-              </div>
-              <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                  <FormLabel className="font-normal text-sm">Permitir transporte fracionado (múltiplos motoristas)</FormLabel>
-                </FormItem>
-              )} />
-              {form.watch('permite_fracionado') && (
-                <div className="ml-6 p-3 bg-muted/50 rounded-md border">
-                  <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
-                  <WeightInput placeholder="Ex: 15.000 (15 toneladas)" className="mt-2" value={pesoMinimoFracionado || undefined} onValueChange={(v) => setPesoMinimoFracionado(v || null)} />
-                  <p className="text-xs text-muted-foreground mt-1">Deixe vazio para não ter limite mínimo</p>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         );
 
