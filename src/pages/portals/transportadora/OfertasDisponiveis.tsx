@@ -68,7 +68,7 @@ import { AdvancedSearchPopover, AdvancedSearchFilters, emptyFilters } from '@/co
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import CargasGoogleMap from '@/components/maps/CargasGoogleMap';
+import OfertasGoogleMap from '@/components/maps/OfertasGoogleMap';
 import RouteGoogleMap from '@/components/maps/RouteGoogleMap';
 import { createChatForEntrega } from '@/lib/chatService';
 import { ViagemSelector } from '@/components/viagens';
