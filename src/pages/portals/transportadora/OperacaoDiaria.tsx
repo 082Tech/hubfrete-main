@@ -2079,7 +2079,7 @@ export default function OperacaoDiaria() {
           <Separator orientation="vertical" className="h-8" />
 
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => viewMode === 'viagens' ? refetchViagens() : refetch()}>
-            <RefreshCw className={`w-4 h-4 ${(isLoading || isLoadingViagens) ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${(isFetching || isFetchingViagens) ? 'animate-spin' : ''}`} />
           </Button>
           <AdvancedFiltersPopover
             filters={filters}
