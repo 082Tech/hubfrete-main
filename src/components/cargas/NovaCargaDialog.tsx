@@ -899,8 +899,8 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
                       className={cn(
                         'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap',
                         isActive && 'bg-primary text-primary-foreground shadow-sm',
-                        isPast && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
-                        !isActive && !isPast && 'text-muted-foreground cursor-default',
+                        (isPast || isEditMode) && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
+                        !isActive && !isPast && !isEditMode && 'text-muted-foreground cursor-default',
                       )}
                     >
                       {isPast && !isActive ? (
