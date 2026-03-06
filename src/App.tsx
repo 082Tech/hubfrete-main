@@ -48,7 +48,7 @@ import Rastreio from "./pages/public/Rastreio";
 import EmbarcadorDashboard from "./pages/portals/EmbarcadorDashboard";
 import CargasPublicadas from "./pages/portals/embarcador/CargasPublicadas";
 import NovaCarga from "./pages/portals/embarcador/NovaCarga";
-import EditarCarga from "./pages/portals/embarcador/EditarCarga";
+
 import CargasEmRota from "./pages/portals/embarcador/GestaoCargas";
 import HistoricoCargas from "./pages/portals/embarcador/HistoricoCargas";
 import Relatorios from "./pages/portals/embarcador/Relatorios";
