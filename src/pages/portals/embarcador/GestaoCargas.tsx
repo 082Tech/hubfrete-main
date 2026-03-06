@@ -943,7 +943,7 @@ export default function GestaoCargas() {
   const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
 
   // Fetch entregas directly (not via cargas) filtered by embarcador's filial
-  const { data: entregas = [], isLoading, refetch } = useQuery({
+  const { data: entregas = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['gestao_entregas_embarcador', filialAtiva?.id],
     queryFn: async () => {
       if (!filialAtiva?.id) return [];
@@ -1101,7 +1101,7 @@ export default function GestaoCargas() {
         </div>
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
           <AdvancedFiltersPopover
             filters={filters}

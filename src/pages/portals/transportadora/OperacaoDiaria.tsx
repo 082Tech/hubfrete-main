@@ -1518,7 +1518,7 @@ export default function OperacaoDiaria() {
   const [filters, setFilters] = useState<AdvancedFilters>({});
 
   // Fetch today's deliveries (by created_at) OR pending from previous days
-  const { data: entregas = [], isLoading, refetch } = useQuery({
+  const { data: entregas = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['operacao-diaria', empresa?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
@@ -1602,7 +1602,7 @@ export default function OperacaoDiaria() {
   });
 
   // Fetch viagens when in viagens view mode
-  const { data: viagens = [], isLoading: isLoadingViagens, refetch: refetchViagens } = useQuery({
+  const { data: viagens = [], isLoading: isLoadingViagens, isFetching: isFetchingViagens, refetch: refetchViagens } = useQuery({
     queryKey: ['gestao-viagens', empresa?.id],
     queryFn: async (): Promise<ViagemWithEntregas[]> => {
       if (!empresa?.id) return [];
@@ -2079,7 +2079,7 @@ export default function OperacaoDiaria() {
           <Separator orientation="vertical" className="h-8" />
 
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => viewMode === 'viagens' ? refetchViagens() : refetch()}>
-            <RefreshCw className={`w-4 h-4 ${(isLoading || isLoadingViagens) ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${(isFetching || isFetchingViagens) ? 'animate-spin' : ''}`} />
           </Button>
           <AdvancedFiltersPopover
             filters={filters}
