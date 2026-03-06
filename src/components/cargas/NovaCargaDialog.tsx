@@ -221,8 +221,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const validateCurrentTab = async (): Promise<boolean> => {
     switch (activeTab) {
       case 'dados': {
-        const result = await form.trigger(['descricao', 'tipo', 'peso_kg', 'data_coleta_de', 'expira_em']);
+        const result = await form.trigger(['descricao', 'tipo', 'data_coleta_de', 'expira_em']);
         if (!result) toast.error('Preencha os campos obrigatórios desta etapa');
+        return result;
+      }
+      case 'peso': {
+        const result = await form.trigger(['peso_kg']);
+        if (!result) toast.error('Peso é obrigatório');
         return result;
       }
       case 'preco':
