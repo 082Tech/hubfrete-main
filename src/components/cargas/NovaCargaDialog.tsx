@@ -940,7 +940,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
                 </Button>
                 {isLastTab ? (
                   <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
-                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />Criar Oferta</>)}
+                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />{isEditMode ? 'Salvar Alterações' : 'Criar Oferta'}</>)}
                   </Button>
                 ) : (
                   <Button type="button" size="sm" onClick={goNext}>
