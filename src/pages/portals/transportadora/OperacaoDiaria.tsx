@@ -272,6 +272,7 @@ function DetailPanel({
   showBackButton = false,
   onBack,
   viagemStatus,
+  onExpandMap,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
@@ -282,6 +283,7 @@ function DetailPanel({
   showBackButton?: boolean;
   onBack?: () => void;
   viagemStatus?: string | null;
+  onExpandMap?: () => void;
 }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
@@ -500,7 +502,7 @@ function DetailPanel({
             status={entrega.status}
             height={300}
             entregaId={entrega.id}
-            onExpandClick={onExpandMap}
+            onExpandClick={onExpandMap || undefined}
           />
 
           {/* Cargo description */}
@@ -2184,6 +2186,7 @@ export default function OperacaoDiaria() {
                 isChangingStatus={statusMutation.isPending}
                 driverLocation={driverLocation}
                 onRefresh={handleRefresh}
+                onExpandMap={() => setGestaoDialogOpen(true)}
               />
             </div>
           </>
@@ -2284,6 +2287,7 @@ export default function OperacaoDiaria() {
                   showBackButton
                   onBack={() => setSelectedEntregaInViagem(null)}
                   viagemStatus={selectedViagemLive?.status}
+                  onExpandMap={() => setGestaoDialogOpen(true)}
                 />
               ) : (
                 /* Mostrar ViagemDetailPanel */

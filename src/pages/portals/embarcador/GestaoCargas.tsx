@@ -221,11 +221,13 @@ function DetailPanel({
   onClose,
   driverLocation,
   onRefresh,
+  onExpandMap,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
   driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
   onRefresh: () => void;
+  onExpandMap?: () => void;
 }) {
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState('');
@@ -456,7 +458,7 @@ function DetailPanel({
             status={entrega.status}
             height={300}
             entregaId={entrega.id}
-            onExpandClick={onExpandMap}
+            onExpandClick={onExpandMap || undefined}
           />
 
           <Separator />
@@ -1218,6 +1220,7 @@ export default function GestaoCargas() {
             onClose={() => setSelectedEntrega(null)}
             driverLocation={driverLocation}
             onRefresh={() => refetch()}
+            onExpandMap={() => setGestaoDialogOpen(true)}
           />
         </div>
       </div>
