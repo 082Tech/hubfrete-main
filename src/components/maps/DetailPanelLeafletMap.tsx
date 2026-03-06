@@ -5,6 +5,9 @@ import 'leaflet/dist/leaflet.css';
 import { getTruckIconHtml } from './TruckIcon';
 import { useOSRMRoute } from '@/hooks/useOSRMRoute';
 import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
+import { Maximize2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -27,6 +30,7 @@ interface DetailPanelLeafletMapProps {
   status: string;
   height?: number;
   entregaId?: string | null;
+  onExpandClick?: () => void;
 }
 
 // Create location marker icon (origin/destination)
@@ -81,7 +85,6 @@ function FitBoundsOnce({
   const hasFitted = useRef(false);
 
   useEffect(() => {
-    // Só faz o fit uma vez, no primeiro render quando temos pontos
     if (points.length === 0 || hasFitted.current) return;
 
     if (points.length === 1) {
@@ -91,7 +94,7 @@ function FitBoundsOnce({
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     }
     hasFitted.current = true;
-  }, [map]); // Apenas map como dependência - não reagir a mudanças de points
+  }, [map]); // Only map as dependency — don't react to point changes
 
   return null;
 }
@@ -130,10 +133,9 @@ function OSRMRoutePolyline({
 /**
  * Mapa Leaflet do painel de detalhes da Operação Diária
  * - Mostra origem (verde), destino (vermelho) e motorista (TruckIcon)
- * - Rotas OSRM reais baseadas no status:
- *   - aguardando/saiu_para_coleta: caminhão → origem (tracejado cyan) + origem → destino (sólido purple)
- *   - saiu_para_entrega: caminhão → destino (tracejado green)
+ * - Rotas OSRM reais baseadas no status
  * - O zoom automático só acontece UMA VEZ ao abrir o mapa
+ * - scrollWheelZoom habilitado para interação livre
  */
 export function DetailPanelLeafletMap({
   origemCoords,
@@ -142,6 +144,7 @@ export function DetailPanelLeafletMap({
   status,
   height = 300,
   entregaId,
+  onExpandClick,
 }: DetailPanelLeafletMapProps) {
   // Collect all points for bounds calculation
   const allPoints = useMemo(() => {
@@ -173,7 +176,7 @@ export function DetailPanelLeafletMap({
         center={mapCenter}
         zoom={10}
         style={{ width: '100%', height: '100%' }}
-        scrollWheelZoom={false}
+        scrollWheelZoom={true}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -238,6 +241,19 @@ export function DetailPanelLeafletMap({
           />
         )}
       </MapContainer>
+
+      {/* Fullscreen / expand button */}
+      {onExpandClick && (
+        <Button
+          variant="secondary"
+          size="icon"
+          className="absolute top-2 right-2 z-[500] h-8 w-8 shadow-md bg-background/90 hover:bg-background border"
+          onClick={onExpandClick}
+          title="Abrir visualização geral em mapa"
+        >
+          <Maximize2 className="w-4 h-4" />
+        </Button>
+      )}
     </div>
   );
 }
