@@ -68,7 +68,7 @@ import { AdvancedSearchPopover, AdvancedSearchFilters, emptyFilters } from '@/co
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import CargasGoogleMap from '@/components/maps/CargasGoogleMap';
+import OfertasGoogleMap from '@/components/maps/OfertasGoogleMap';
 import RouteGoogleMap from '@/components/maps/RouteGoogleMap';
 import { createChatForEntrega } from '@/lib/chatService';
 import { ViagemSelector } from '@/components/viagens';
@@ -207,7 +207,7 @@ function getMaxCarrocerias(tipoVeiculo: string | undefined | null, carroceriaInt
 
 // Leaflet icons and functions removed - now using Google Maps components
 
-export default function CargasDisponiveis() {
+export default function OfertasDisponiveis() {
   const { empresa } = useUserContext();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -1689,7 +1689,7 @@ export default function CargasDisponiveis() {
         ) : isMobile ? (
           /* Mobile Map View - Full screen Airbnb style */
           <div className="relative h-[calc(100vh-220px)] -mx-4 -mb-4">
-            <CargasGoogleMap
+            <OfertasGoogleMap
               cargas={filteredCargas}
               onCargaClick={handleAcceptClick}
               hoveredCargaId={hoveredCargaId}
@@ -1719,7 +1719,7 @@ export default function CargasDisponiveis() {
 
             {/* Right - Map (all markers always visible) */}
             <div className="flex-1 rounded-xl overflow-hidden border border-border">
-              <CargasGoogleMap
+              <OfertasGoogleMap
                 cargas={filteredCargas}
                 onCargaClick={handleAcceptClick}
                 hoveredCargaId={hoveredCargaId}
