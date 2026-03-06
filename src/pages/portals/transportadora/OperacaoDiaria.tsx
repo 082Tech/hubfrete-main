@@ -2186,6 +2186,7 @@ export default function OperacaoDiaria() {
                 isChangingStatus={statusMutation.isPending}
                 driverLocation={driverLocation}
                 onRefresh={handleRefresh}
+                onExpandMap={() => setGestaoDialogOpen(true)}
               />
             </div>
           </>
