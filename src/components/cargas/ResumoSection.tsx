@@ -143,10 +143,10 @@ export function ResumoSection({
     : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Map */}
       <div className="relative">
-        <div className="w-full h-[280px] rounded-lg overflow-hidden border border-border relative z-0">
+        <div className="w-full h-[200px] rounded-lg overflow-hidden border border-border relative z-0">
           <MapContainer center={defaultCenter} zoom={4} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
             <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <FitBounds origemLat={origemLat} origemLng={origemLng} destinoLat={destinoLat} destinoLng={destinoLng} />
@@ -157,23 +157,23 @@ export function ResumoSection({
           </MapContainer>
         </div>
         {isLoadingRoute && (
-          <div className="absolute top-2 right-2 bg-background/90 px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" /><span className="text-xs">Calculando rota...</span>
+          <div className="absolute top-2 right-2 bg-background/90 px-2 py-1 rounded-md shadow-lg flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" /><span className="text-[11px]">Calculando rota...</span>
           </div>
         )}
         {!hasValidRoute && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-background/90 px-4 py-2 rounded-lg shadow-lg">
-              <p className="text-sm text-muted-foreground flex items-center gap-2"><MapPin className="w-4 h-4" />Configure origem e destino para visualizar a rota</p>
+            <div className="bg-background/90 px-3 py-1.5 rounded-lg shadow-lg">
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5"><MapPin className="w-3 h-3" />Configure origem e destino</p>
             </div>
           </div>
         )}
       </div>
 
       {distance && duration && (
-        <div className="flex gap-4 justify-center">
-          <Badge variant="secondary" className="px-4 py-2"><Route className="w-4 h-4 mr-2" />{distance.toFixed(0)} km</Badge>
-          <Badge variant="secondary" className="px-4 py-2"><Truck className="w-4 h-4 mr-2" />~{duration.toFixed(1)} horas</Badge>
+        <div className="flex gap-2 justify-center">
+          <Badge variant="secondary" className="px-2.5 py-1 text-xs"><Route className="w-3 h-3 mr-1" />{distance.toFixed(0)} km</Badge>
+          <Badge variant="secondary" className="px-2.5 py-1 text-xs"><Truck className="w-3 h-3 mr-1" />~{duration.toFixed(1)}h</Badge>
         </div>
       )}
 
