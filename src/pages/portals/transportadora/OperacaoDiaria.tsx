@@ -2029,7 +2029,7 @@ export default function OperacaoDiaria() {
       <div className="flex items-center justify-between p-4 !pb-0 md:p-8 ">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-foreground">Gestão de Cargas</h1>
+            <h1 className="text-3xl font-bold text-foreground">Cargas em Andamento</h1>
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
