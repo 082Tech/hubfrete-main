@@ -714,7 +714,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 </Button>
                 {isLastTab ? (
                   <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
-                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />Criar Carga</>)}
+                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />Criar Oferta</>)}
                   </Button>
                 ) : (
                   <Button type="button" size="sm" onClick={goNext}>
