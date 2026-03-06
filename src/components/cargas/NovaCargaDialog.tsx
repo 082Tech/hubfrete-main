@@ -894,7 +894,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
                       key={tab.id}
                       type="button"
                       onClick={() => {
-                        if (i <= currentTabIndex) setActiveTab(tab.id);
+                        if (isEditMode || i <= currentTabIndex) setActiveTab(tab.id);
                       }}
                       className={cn(
                         'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap',
