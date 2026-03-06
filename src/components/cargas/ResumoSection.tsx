@@ -226,12 +226,19 @@ export function ResumoSection({
         </div>
 
           {/* Special characteristics */}
-          <div className="flex flex-wrap gap-2">
-            {cargaData.carga_fragil && <Badge variant="outline" className="border-amber-500 text-amber-600"><AlertTriangle className="w-3 h-3 mr-1" />Frágil</Badge>}
-            {cargaData.carga_perigosa && <Badge variant="outline" className="border-red-500 text-red-600"><AlertTriangle className="w-3 h-3 mr-1" />Perigosa</Badge>}
-            {cargaData.carga_viva && <Badge variant="outline" className="border-green-500 text-green-600">Carga Viva</Badge>}
-            {cargaData.empilhavel && <Badge variant="outline" className="border-blue-500 text-blue-600"><Container className="w-3 h-3 mr-1" />Empilhável</Badge>}
-            {cargaData.requer_refrigeracao && (
+        <div className="flex flex-wrap gap-1.5">
+          {cargaData.carga_fragil && <Badge variant="outline" className="text-[11px] px-1.5 py-0 border-amber-500 text-amber-600"><AlertTriangle className="w-2.5 h-2.5 mr-0.5" />Frágil</Badge>}
+          {cargaData.carga_perigosa && <Badge variant="outline" className="text-[11px] px-1.5 py-0 border-red-500 text-red-600"><AlertTriangle className="w-2.5 h-2.5 mr-0.5" />Perigosa</Badge>}
+          {cargaData.carga_viva && <Badge variant="outline" className="text-[11px] px-1.5 py-0 border-green-500 text-green-600">Viva</Badge>}
+          {cargaData.empilhavel && <Badge variant="outline" className="text-[11px] px-1.5 py-0 border-blue-500 text-blue-600"><Container className="w-2.5 h-2.5 mr-0.5" />Empilhável</Badge>}
+          {cargaData.requer_refrigeracao && (
+            <Badge variant="outline" className="text-[11px] px-1.5 py-0 border-cyan-500 text-cyan-600">
+              <Snowflake className="w-2.5 h-2.5 mr-0.5" />
+              Refrig. {cargaData.temperatura_min !== undefined && cargaData.temperatura_max !== undefined && `(${cargaData.temperatura_min}° a ${cargaData.temperatura_max}°)`}
+            </Badge>
+          )}
+          {cargaData.numero_onu && <Badge variant="outline" className="text-[11px] px-1.5 py-0 border-orange-500 text-orange-600">ONU: {cargaData.numero_onu}</Badge>}
+        </div>
               <Badge variant="outline" className="border-cyan-500 text-cyan-600">
                 <Snowflake className="w-3 h-3 mr-1" />
                 Refrigerada {cargaData.temperatura_min !== undefined && cargaData.temperatura_max !== undefined && `(${cargaData.temperatura_min}°C a ${cargaData.temperatura_max}°C)`}
