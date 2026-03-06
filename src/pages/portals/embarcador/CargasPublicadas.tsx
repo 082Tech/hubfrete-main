@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
+import { EditarCargaDialog } from '@/components/cargas/EditarCargaDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import {
   DropdownMenu,
