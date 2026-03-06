@@ -1100,7 +1100,9 @@ export default function GestaoCargas() {
           <p className="text-muted-foreground">Visualize sua operação diária</p>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => {
+            queryClient.resetQueries({ queryKey: ['gestao_entregas_embarcador', filialAtiva?.id] });
+          }}>
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
           <AdvancedFiltersPopover
