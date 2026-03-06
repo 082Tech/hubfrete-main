@@ -469,7 +469,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               <FormItem>
                 <FormLabel>Peso Total da Carga (kg) *</FormLabel>
                 <FormControl><WeightInput placeholder="Ex: 25.000" value={field.value} onValueChange={field.onChange} /></FormControl>
-                {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {(pesoKg / 1000).toFixed(4)} toneladas</p>}
+                {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {parseFloat((pesoKg / 1000).toFixed(4))} toneladas</p>}
                 <FormMessage />
               </FormItem>
             )} />
