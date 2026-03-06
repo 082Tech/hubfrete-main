@@ -880,7 +880,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
               <DialogHeader className="space-y-0 shrink-0">
                 <DialogTitle className="flex items-center gap-2 text-base">
                   <Package className="w-4 h-4 text-primary" />
-                  Nova Oferta
+                  {isEditMode ? `Editar Oferta — ${editCarga?.codigo}` : 'Nova Oferta'}
                 </DialogTitle>
               </DialogHeader>
               <div className="h-5 w-px bg-border shrink-0" />
