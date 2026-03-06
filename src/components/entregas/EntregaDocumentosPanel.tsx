@@ -505,18 +505,7 @@ export function EntregaDocumentosPanel({
                     {nfesDiretas.length > 0 && (
                         <div className="space-y-1">
                             {nfesDiretas.map((nfe, i) => (
-                                <div key={nfe.id} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/40 bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
-                                    <div className="flex items-center gap-2">
-                                        <FileCode className="w-3 h-3 text-indigo-400" />
-                                        <span className="text-indigo-800 dark:text-indigo-200">NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || i + 1}</span>
-                                    </div>
-                                    {nfe.url && (
-                                        <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-500"
-                                            onClick={() => openPreview(nfe.url!, `NF-e ${i + 1}`)}>
-                                            <Eye className="w-3 h-3" />
-                                        </Button>
-                                    )}
-                                </div>
+                                <NfeRow key={nfe.id} nfe={nfe} index={i} onPreview={openPreview} onDelete={handleDeleteNfe} />
                             ))}
                         </div>
                     )}
