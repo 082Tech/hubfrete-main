@@ -1435,6 +1435,16 @@ export default function CargasPublicadas() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Edit Dialog */}
+        {editCarga && (
+          <EditarCargaDialog
+            carga={editCarga}
+            open={!!editCarga}
+            onOpenChange={(open) => !open && setEditCarga(null)}
+            onSuccess={() => refetch()}
+          />
+        )}
       </TooltipProvider>
     </div>
   );
