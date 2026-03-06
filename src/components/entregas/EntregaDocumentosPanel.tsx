@@ -232,6 +232,52 @@ function CteCard({
     );
 }
 
+// ─── NfeRow ──────────────────────────────────────────────────────────────────
+function NfeRow({
+    nfe, index, onPreview, onDelete,
+}: {
+    nfe: NfeDoc; index: number;
+    onPreview: (url: string, title: string) => void;
+    onDelete: (id: string) => void;
+}) {
+    const [deleting, setDeleting] = useState(false);
+
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDeleting(true);
+        try {
+            const { error } = await (supabase as any).from('nfes').delete().eq('id', nfe.id);
+            if (error) throw error;
+            toast.success('NF-e removida!');
+            onDelete(nfe.id);
+        } catch (err: any) {
+            toast.error(`Erro ao remover NF-e: ${err?.message || 'Erro'}`);
+            setDeleting(false);
+        }
+    };
+
+    return (
+        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/40 bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
+            <div className="flex items-center gap-2">
+                <FileCode className="w-3 h-3 text-indigo-400" />
+                <span className="text-indigo-800 dark:text-indigo-200">NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || index + 1}</span>
+            </div>
+            <div className="flex items-center gap-0.5">
+                {nfe.url && (
+                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-500"
+                        onClick={() => onPreview(nfe.url!, `NF-e ${index + 1}`)}>
+                        <Eye className="w-3 h-3" />
+                    </Button>
+                )}
+                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-destructive hover:bg-destructive/10"
+                    title="Excluir NF-e" onClick={handleDelete} disabled={deleting}>
+                    {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                </Button>
+            </div>
+        </div>
+    );
+}
+
 // ─── SectionTitle ─────────────────────────────────────────────────────────────
 function SectionTitle({ icon, label, count, badge }: {
     icon: React.ReactNode; label: string; count?: number; badge?: string;
