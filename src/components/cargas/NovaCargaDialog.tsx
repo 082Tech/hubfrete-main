@@ -654,7 +654,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               <DialogHeader className="space-y-0 shrink-0">
                 <DialogTitle className="flex items-center gap-2 text-base">
                   <Package className="w-4 h-4 text-primary" />
-                  Nova Carga
+                  Nova Oferta
                 </DialogTitle>
               </DialogHeader>
               <div className="h-5 w-px bg-border shrink-0" />
