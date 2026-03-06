@@ -150,18 +150,16 @@ export function MonitoramentoLeafletMap({
                 {trackingHistory.map((point, idx) => {
                     const isFirst = idx === 0;
                     const isLast = idx === trackingHistory.length - 1;
-                    const color = statusColors[point.status || 'aguardando'] || '#6b7280';
                     return (
                         <CircleMarker
                             key={`th-${idx}`}
                             center={[point.latitude, point.longitude]}
                             radius={isFirst || isLast ? 8 : 4}
-                            pathOptions={{ color: 'white', weight: 2, fillColor: color, fillOpacity: 1 }}
+                            pathOptions={{ color: 'white', weight: 2, fillColor: '#05924d', fillOpacity: 1 }}
                         >
                             <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
                                 <div className="text-xs min-w-[120px]">
-                                    <p className="font-medium">{statusLabels[point.status || ''] || 'Em trânsito'}</p>
-                                    <p className="text-gray-500 mt-0.5">
+                                    <p className="text-gray-500">
                                         {new Date(point.timestamp).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                     {point.velocidade && <p className="text-gray-500">{Math.round(point.velocidade)} km/h</p>}
