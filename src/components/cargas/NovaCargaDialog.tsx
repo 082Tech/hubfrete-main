@@ -619,54 +619,51 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         )}
       </DialogTrigger>
       <DialogContent className="max-w-[95vw] w-[1400px] h-[90vh] max-h-[90vh] p-0 flex flex-col overflow-hidden" hideCloseButton>
-        {/* Header */}
-        <div className="flex items-center justify-between gap-3 px-6 py-4 border-b bg-card shrink-0">
-          <DialogHeader className="space-y-0">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Package className="w-5 h-5 text-primary" />
-              Nova Oferta de Carga
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">Etapa {currentTabIndex + 1} de {TABS.length}</p>
-          </DialogHeader>
-        </div>
-
-        {/* 2-column layout */}
-        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,380px]">
+        {/* 2-column layout — no separate header */}
+        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,360px]">
           {/* Left: Form */}
-          <div className="flex flex-col overflow-hidden bg-muted/30">
-            {/* Step indicators inside left column */}
-            <div className="flex items-center gap-1 px-6 py-3 border-b bg-card shrink-0 overflow-x-auto">
-              {TABS.map((tab, i) => {
-                const Icon = tab.icon;
-                const isActive = tab.id === activeTab;
-                const isPast = i < currentTabIndex;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => {
-                      if (i <= currentTabIndex) setActiveTab(tab.id);
-                    }}
-                    className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap',
-                      isActive && 'bg-primary text-primary-foreground shadow-sm',
-                      isPast && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
-                      !isActive && !isPast && 'text-muted-foreground cursor-default',
-                    )}
-                  >
-                    {isPast && !isActive ? (
-                      <Check className="w-4 h-4" />
-                    ) : (
-                      <Icon className="w-4 h-4" />
-                    )}
-                    <span className="hidden sm:inline">{tab.label}</span>
-                    <span className="sm:hidden">{i + 1}</span>
-                  </button>
-                );
-              })}
+          <div className="flex flex-col overflow-hidden">
+            {/* Title + Step indicators merged */}
+            <div className="flex items-center gap-3 px-5 py-3 bg-card shrink-0 overflow-x-auto border-b">
+              <DialogHeader className="space-y-0 shrink-0">
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <Package className="w-4 h-4 text-primary" />
+                  Nova Carga
+                </DialogTitle>
+              </DialogHeader>
+              <div className="h-5 w-px bg-border shrink-0" />
+              <div className="flex items-center gap-1">
+                {TABS.map((tab, i) => {
+                  const Icon = tab.icon;
+                  const isActive = tab.id === activeTab;
+                  const isPast = i < currentTabIndex;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        if (i <= currentTabIndex) setActiveTab(tab.id);
+                      }}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap',
+                        isActive && 'bg-primary text-primary-foreground shadow-sm',
+                        isPast && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
+                        !isActive && !isPast && 'text-muted-foreground cursor-default',
+                      )}
+                    >
+                      {isPast && !isActive ? (
+                        <Check className="w-3.5 h-3.5" />
+                      ) : (
+                        <Icon className="w-3.5 h-3.5" />
+                      )}
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <ScrollArea className="flex-1">
-              <div className="max-w-3xl p-6">
+              <div className="max-w-3xl p-5">
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="[&_input]:bg-background [&_textarea]:bg-background [&_select]:bg-background [&_[role=combobox]]:bg-background">
                     {renderTabContent()}
