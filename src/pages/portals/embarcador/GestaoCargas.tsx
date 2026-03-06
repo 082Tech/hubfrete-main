@@ -130,8 +130,8 @@ function EntregaListItem({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social || 'Remetente';
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário';
 
-  // NF-e now in separate tables - pending check removed
-  const nfePending = false;
+  // NF-e pending: check from batch-fetched count
+  const nfePending = (entrega.nfe_count ?? -1) === 0 && entrega.status !== 'entregue' && entrega.status !== 'cancelada';
 
   return (
     <div
