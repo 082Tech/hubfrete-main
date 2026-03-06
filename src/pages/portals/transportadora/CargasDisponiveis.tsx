@@ -1780,12 +1780,15 @@ export default function CargasDisponiveis() {
                   </span>
                   <span className="text-muted-foreground">disponíveis</span>
                 </div>
-                {selectedCarga.valor_frete_tonelada && (
-                  <>
-                    <Separator orientation="vertical" className="h-4" />
-                    <span className="text-chart-2 font-semibold">{formatCurrency(selectedCarga.valor_frete_tonelada)}/ton</span>
-                  </>
-                )}
+                {(() => {
+                  const total = calcularFreteTotal(selectedCarga);
+                  return total ? (
+                    <>
+                      <Separator orientation="vertical" className="h-4" />
+                      <span className="text-chart-2 font-semibold">{formatCurrency(total)}</span>
+                    </>
+                  ) : null;
+                })()}
               </div>
             )}
 
