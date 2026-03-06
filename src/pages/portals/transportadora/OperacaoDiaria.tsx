@@ -2078,7 +2078,13 @@ export default function OperacaoDiaria() {
 
           <Separator orientation="vertical" className="h-8" />
 
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => viewMode === 'viagens' ? refetchViagens() : refetch()}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => {
+            if (viewMode === 'viagens') {
+              queryClient.resetQueries({ queryKey: ['gestao-viagens', empresa?.id] });
+            } else {
+              queryClient.resetQueries({ queryKey: ['operacao-diaria', empresa?.id] });
+            }
+          }}>
             <RefreshCw className={`w-4 h-4 ${(isFetching || isFetchingViagens) ? 'animate-spin' : ''}`} />
           </Button>
           <AdvancedFiltersPopover
