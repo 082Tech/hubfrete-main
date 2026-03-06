@@ -239,15 +239,6 @@ export function ResumoSection({
           )}
           {cargaData.numero_onu && <Badge variant="outline" className="text-[11px] px-1.5 py-0 border-orange-500 text-orange-600">ONU: {cargaData.numero_onu}</Badge>}
         </div>
-              <Badge variant="outline" className="border-cyan-500 text-cyan-600">
-                <Snowflake className="w-3 h-3 mr-1" />
-                Refrigerada {cargaData.temperatura_min !== undefined && cargaData.temperatura_max !== undefined && `(${cargaData.temperatura_min}°C a ${cargaData.temperatura_max}°C)`}
-              </Badge>
-            )}
-            {cargaData.numero_onu && <Badge variant="outline" className="border-orange-500 text-orange-600">ONU: {cargaData.numero_onu}</Badge>}
-          </div>
-
-          {/* Dates */}
         <div className="flex flex-wrap gap-2 text-muted-foreground">
           {cargaData.data_coleta_de && (
             <span className="flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />Coleta: {new Date(cargaData.data_coleta_de + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
