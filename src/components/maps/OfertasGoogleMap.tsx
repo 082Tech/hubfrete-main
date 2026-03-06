@@ -63,13 +63,13 @@ const mapOptions: google.maps.MapOptions = {
   styles: airbnbMapStyles,
 };
 
-export default function CargasGoogleMap({
+export default function OfertasGoogleMap({
   cargas,
   onCargaClick,
   hoveredCargaId,
   setHoveredCargaId,
   onBoundsChanged,
-}: CargasGoogleMapProps) {
+}: OfertasGoogleMapProps) {
   const { isLoaded, loadError } = useGoogleMaps();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
