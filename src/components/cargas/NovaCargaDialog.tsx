@@ -127,6 +127,7 @@ function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: 
 // ─── Tab definitions ─────────────────────────────────────────────────────────
 const TABS = [
   { id: 'dados', label: 'Dados', icon: Package },
+  { id: 'peso', label: 'Peso', icon: Weight },
   { id: 'preco', label: 'Preço', icon: DollarSign },
   { id: 'requisitos', label: 'Requisitos', icon: ClipboardList },
   { id: 'origem', label: 'Origem', icon: MapPin },
@@ -220,8 +221,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   const validateCurrentTab = async (): Promise<boolean> => {
     switch (activeTab) {
       case 'dados': {
-        const result = await form.trigger(['descricao', 'tipo', 'peso_kg', 'data_coleta_de', 'expira_em']);
+        const result = await form.trigger(['descricao', 'tipo', 'data_coleta_de', 'expira_em']);
         if (!result) toast.error('Preencha os campos obrigatórios desta etapa');
+        return result;
+      }
+      case 'peso': {
+        const result = await form.trigger(['peso_kg']);
+        if (!result) toast.error('Peso é obrigatório');
         return result;
       }
       case 'preco':
@@ -420,18 +426,13 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="peso_kg" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Peso (kg) *</FormLabel>
-                  <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
-                  {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {(pesoKg / 1000).toFixed(2)} ton</p>}
-                  <FormMessage />
-                </FormItem>
+              <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
+                <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <FormField control={form.control} name="data_coleta_de" render={({ field }) => (
-                <FormItem><FormLabel>Coleta De *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Coleta Em *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="data_coleta_ate" render={({ field }) => (
                 <FormItem><FormLabel>Coleta Até</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
@@ -440,12 +441,9 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 <FormItem><FormLabel>Entrega Limite</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <FormField control={form.control} name="volume_m3" render={({ field }) => (
                 <FormItem><FormLabel>Volume (m³)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
-              )} />
-              <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
-                <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="expira_em" render={({ field }) => (
                 <FormItem>
@@ -455,18 +453,55 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 </FormItem>
               )} />
             </div>
-            <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
-              <FormItem className="flex items-center space-x-2 space-y-0">
-                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                <FormLabel className="font-normal text-sm">Permitir transporte fracionado</FormLabel>
+          </div>
+        );
+
+      case 'peso':
+        return (
+          <div className="space-y-5">
+            <Alert className="border-primary/20 bg-primary/5">
+              <Weight className="w-4 h-4 text-primary" />
+              <AlertDescription className="text-xs leading-relaxed">
+                <strong>Por que o peso é essencial?</strong> Nosso sistema utiliza o peso para validar automaticamente a compatibilidade com a capacidade física das carrocerias dos motoristas no momento do aceite. Sem peso, não é possível garantir que o veículo suporta a carga — é a base de toda a operação logística.
+              </AlertDescription>
+            </Alert>
+            <FormField control={form.control} name="peso_kg" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Peso Total da Carga (kg) *</FormLabel>
+                <FormControl><WeightInput placeholder="Ex: 25.000" value={field.value} onValueChange={field.onChange} /></FormControl>
+                {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {(pesoKg / 1000).toFixed(4)} toneladas</p>}
+                <FormMessage />
               </FormItem>
             )} />
-            {form.watch('permite_fracionado') && (
-              <div className="ml-6">
-                <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
-                <WeightInput placeholder="Ex: 15.000" className="mt-1" value={pesoMinimoFracionado || undefined} onValueChange={(v) => setPesoMinimoFracionado(v || null)} />
-              </div>
-            )}
+            <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+              <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
+                <FormItem className="flex items-start space-x-3 space-y-0">
+                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} className="mt-0.5" /></FormControl>
+                  <div className="space-y-1">
+                    <FormLabel className="font-medium text-sm">Permitir transporte fracionado (LTL)</FormLabel>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Ao ativar, múltiplos motoristas podem aceitar frações do peso total, respeitando o limite mínimo definido abaixo e a capacidade do veículo.
+                    </p>
+                  </div>
+                </FormItem>
+              )} />
+              {form.watch('permite_fracionado') && (
+                <div className="ml-7 pt-1">
+                  <Label className="text-sm">Peso Mínimo por Fração (kg)</Label>
+                  <WeightInput placeholder="Ex: 5.000" className="mt-1.5 max-w-[260px]" value={pesoMinimoFracionado || undefined} onValueChange={(v) => setPesoMinimoFracionado(v || null)} />
+                  <p className="text-[11px] text-muted-foreground mt-1">Cada motorista deve aceitar pelo menos este peso.</p>
+                </div>
+              )}
+            </div>
+            <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Qtd. Paletes</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="0" className="max-w-[200px]" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
           </div>
         );
 
@@ -521,15 +556,6 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
       case 'requisitos':
         return (
           <div className="space-y-4">
-            <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Qtd. Paletes</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="0" className="max-w-[200px]" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
             <div className="space-y-2">
               <Label className="text-sm">Características Especiais</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -614,7 +640,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
         {children || (
           <Button className="gap-2">
             <Plus className="w-4 h-4" />
-            Nova Carga
+            Nova Oferta
           </Button>
         )}
       </DialogTrigger>
@@ -628,7 +654,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
               <DialogHeader className="space-y-0 shrink-0">
                 <DialogTitle className="flex items-center gap-2 text-base">
                   <Package className="w-4 h-4 text-primary" />
-                  Nova Carga
+                  Nova Oferta
                 </DialogTitle>
               </DialogHeader>
               <div className="h-5 w-px bg-border shrink-0" />
@@ -688,7 +714,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 </Button>
                 {isLastTab ? (
                   <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
-                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />Criar Carga</>)}
+                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />Criar Oferta</>)}
                   </Button>
                 ) : (
                   <Button type="button" size="sm" onClick={goNext}>
@@ -702,7 +728,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
           {/* Right: Live Summary (hidden on mobile) */}
           <div className="hidden lg:flex flex-col border-l bg-muted/20 overflow-hidden">
-            <div className="px-4 py-2.5 border-b bg-card">
+            <div className="px-4 py-3 border-b bg-card flex items-center min-h-[49px]">
               <h2 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Resumo</h2>
             </div>
             <ScrollArea className="flex-1">
