@@ -673,27 +673,27 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
             </ScrollArea>
 
             {/* Fixed footer */}
-            <div className="border-t bg-card px-6 py-3 flex items-center justify-between gap-2 shrink-0">
+            <div className="border-t bg-card px-5 py-2.5 flex items-center justify-between gap-2 shrink-0">
               <div>
                 {!isFirstTab && (
-                  <Button type="button" variant="outline" onClick={goPrev} disabled={isLoading}>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
+                  <Button type="button" variant="outline" size="sm" onClick={goPrev} disabled={isLoading}>
+                    <ArrowLeft className="w-4 h-4 mr-1" />
                     Voltar
                   </Button>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Button type="button" variant="ghost" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
                   Cancelar
                 </Button>
                 {isLastTab ? (
-                  <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
-                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-2" />Criar Carga</>)}
+                  <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
+                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />Criar Carga</>)}
                   </Button>
                 ) : (
-                  <Button type="button" onClick={goNext}>
+                  <Button type="button" size="sm" onClick={goNext}>
                     Próximo
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
                 )}
               </div>
