@@ -472,8 +472,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
       case 'preco':
         return (
-          <div className="space-y-6">
-            <SectionHeader icon={DollarSign} title="Precificação do Frete" />
+          <div className="space-y-4">
             <FormField control={form.control} name="unidade_precificacao" render={({ field }) => (
               <FormItem>
                 <FormLabel>Unidade de Precificação *</FormLabel>
@@ -486,29 +485,29 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
                 <FormMessage />
               </FormItem>
             )} />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField control={form.control} name="quantidade_precificacao" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Quantidade ({unidadePrec})</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.0001" placeholder="0" readOnly={isWeightUnit} className={isWeightUnit ? 'bg-muted' : ''} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
                   </FormControl>
-                  {isWeightUnit && <p className="text-xs text-muted-foreground">Preenchido automaticamente pelo peso da carga</p>}
+                  {isWeightUnit && <p className="text-xs text-muted-foreground">Preenchido pelo peso</p>}
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="valor_unitario_precificacao" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valor Unitário (R$/{unidadePrec})</FormLabel>
+                  <FormLabel>Valor (R$/{unidadePrec})</FormLabel>
                   <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
             </div>
             {freteTotal > 0 && (
-              <div className="p-4 rounded-lg border bg-muted/30 space-y-1">
-                <Label className="text-sm text-muted-foreground">Frete Total Estimado</Label>
-                <p className="text-2xl font-bold text-primary">
+              <div className="p-3 rounded-lg border bg-muted/30 space-y-0.5">
+                <Label className="text-xs text-muted-foreground">Frete Total Estimado</Label>
+                <p className="text-xl font-bold text-primary">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)}
                 </p>
                 <p className="text-xs text-muted-foreground">
