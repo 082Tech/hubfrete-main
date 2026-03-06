@@ -728,7 +728,7 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
 
           {/* Right: Live Summary (hidden on mobile) */}
           <div className="hidden lg:flex flex-col border-l bg-muted/20 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-card flex items-center min-h-[49px]">
+            <div className="px-4 py-4 border-b bg-card flex items-center min-h-[53px]">
               <h2 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Resumo</h2>
             </div>
             <ScrollArea className="flex-1">
