@@ -651,43 +651,41 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
           </DialogHeader>
         </div>
 
-        {/* Step indicators */}
-        <div className="flex items-center gap-1 px-6 py-3 border-b bg-card shrink-0 overflow-x-auto">
-          {TABS.map((tab, i) => {
-            const Icon = tab.icon;
-            const isActive = tab.id === activeTab;
-            const isPast = i < currentTabIndex;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  // Allow clicking on past/current tabs
-                  if (i <= currentTabIndex) setActiveTab(tab.id);
-                }}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap',
-                  isActive && 'bg-primary text-primary-foreground shadow-sm',
-                  isPast && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
-                  !isActive && !isPast && 'text-muted-foreground cursor-default',
-                )}
-              >
-                {isPast && !isActive ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Icon className="w-4 h-4" />
-                )}
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden">{i + 1}</span>
-              </button>
-            );
-          })}
-        </div>
-
         {/* 2-column layout */}
         <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,380px]">
           {/* Left: Form */}
           <div className="flex flex-col overflow-hidden bg-muted/30">
+            {/* Step indicators inside left column */}
+            <div className="flex items-center gap-1 px-6 py-3 border-b bg-card shrink-0 overflow-x-auto">
+              {TABS.map((tab, i) => {
+                const Icon = tab.icon;
+                const isActive = tab.id === activeTab;
+                const isPast = i < currentTabIndex;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      if (i <= currentTabIndex) setActiveTab(tab.id);
+                    }}
+                    className={cn(
+                      'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap',
+                      isActive && 'bg-primary text-primary-foreground shadow-sm',
+                      isPast && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
+                      !isActive && !isPast && 'text-muted-foreground cursor-default',
+                    )}
+                  >
+                    {isPast && !isActive ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Icon className="w-4 h-4" />
+                    )}
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">{i + 1}</span>
+                  </button>
+                );
+              })}
+            </div>
             <ScrollArea className="flex-1">
               <div className="max-w-3xl p-6">
                 <Form {...form}>
