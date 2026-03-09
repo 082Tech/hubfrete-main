@@ -1,22 +1,30 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { GoogleMap } from '@react-google-maps/api';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { MapContainer, TileLayer } from 'react-leaflet';
+import L from 'leaflet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Route, MapPin, Clock, Gauge, Activity } from 'lucide-react';
-import { GoogleMapsLoader } from './GoogleMapsLoader';
+import { Route, MapPin, Clock, Gauge, Activity, Loader2, MapPinOff } from 'lucide-react';
+import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
 import {
-  ViagemTrackingMarkers,
-  TrackingHistoryLoadingOverlay,
-  TrackingHistoryEmptyOverlay,
-  formatDuration,
-  type TrackingStats,
-} from './ViagemTrackingMarkers';
-import type { ViagemStatus } from '@/lib/fetchAllTrackingHistorico';
+  fetchAllTrackingHistoricoByViagemId,
+  fetchViagemStatus,
+  type ViagemStatus,
+} from '@/lib/fetchAllTrackingHistorico';
+import 'leaflet/dist/leaflet.css';
 
 interface ViagemTrackingMapDialogProps {
   viagemId: string | null;
   info: { motorista: string; placa: string; codigo: string } | null;
   onClose: () => void;
+}
+
+interface TrackingStats {
+  totalPoints: number;
+  firstTimestamp: string;
+  lastTimestamp: string;
+  durationMinutes: number;
+  avgSpeed: number | null;
+  maxSpeed: number | null;
 }
 
 const statusBadgeStyles: Record<string, { bg: string; text: string; label: string }> = {
@@ -30,57 +38,97 @@ const statusBadgeStyles: Record<string, { bg: string; text: string; label: strin
 
 function formatDateTime(dateString: string): string {
   return new Date(dateString).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
   });
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${Math.round(minutes)}min`;
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return m > 0 ? `${h}h ${m}min` : `${h}h`;
 }
 
 export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrackingMapDialogProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
   const [stats, setStats] = useState<TrackingStats | null>(null);
   const [viagemStatus, setViagemStatus] = useState<ViagemStatus | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const pendingBoundsRef = useRef<google.maps.LatLngBounds | null>(null);
-
+  // Fetch tracking data, compute stats, and fit bounds
   useEffect(() => {
-    if (viagemId) {
-      setMapReady(false);
-      pendingBoundsRef.current = null;
+    if (!viagemId) {
       setStats(null);
       setViagemStatus(null);
+      setIsEmpty(false);
+      return;
     }
+
+    let isMounted = true;
+    setIsLoading(true);
+
+    const fetchData = async () => {
+      try {
+        const [rawPoints, vStatus] = await Promise.all([
+          fetchAllTrackingHistoricoByViagemId(viagemId, { pageSize: 1000, maxRows: 50000 }),
+          fetchViagemStatus(viagemId),
+        ]);
+
+        if (!isMounted) return;
+
+        setViagemStatus(vStatus);
+
+        const validPoints = (rawPoints || []).filter(
+          (p) => p.latitude != null && p.longitude != null
+        );
+
+        setIsEmpty(validPoints.length === 0);
+
+        if (validPoints.length > 0) {
+          const speeds = validPoints
+            .map((p) => p.speed)
+            .filter((s): s is number => s != null && s > 0);
+          const firstTs = validPoints[0].tracked_at;
+          const lastTs = validPoints[validPoints.length - 1].tracked_at;
+          const durationMs = new Date(lastTs).getTime() - new Date(firstTs).getTime();
+
+          setStats({
+            totalPoints: validPoints.length,
+            firstTimestamp: firstTs,
+            lastTimestamp: lastTs,
+            durationMinutes: durationMs / 60000,
+            avgSpeed: speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : null,
+            maxSpeed: speeds.length > 0 ? Math.max(...speeds) : null,
+          });
+
+          // Fit map bounds
+          setTimeout(() => {
+            const map = mapRef.current;
+            if (!map) return;
+            const bounds = L.latLngBounds(
+              validPoints.map((p) => [Number(p.latitude), Number(p.longitude)] as L.LatLngTuple)
+            );
+            if (bounds.isValid()) {
+              map.fitBounds(bounds, { padding: [50, 50] });
+            }
+          }, 300);
+        } else {
+          setStats(null);
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        console.error('Error fetching tracking history:', error);
+        setIsEmpty(true);
+        setStats(null);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => { isMounted = false; };
   }, [viagemId]);
-
-  useEffect(() => {
-    if (mapReady && mapRef.current && pendingBoundsRef.current) {
-      mapRef.current.fitBounds(pendingBoundsRef.current, { top: 50, bottom: 50, left: 50, right: 50 });
-      pendingBoundsRef.current = null;
-    }
-  }, [mapReady]);
-
-  const handleMapLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
-    setTimeout(() => setMapReady(true), 100);
-  }, []);
-
-  const handleBoundsReady = useCallback((bounds: google.maps.LatLngBounds | null) => {
-    if (!bounds) return;
-    pendingBoundsRef.current = bounds;
-    if (mapRef.current && mapReady) {
-      mapRef.current.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
-      pendingBoundsRef.current = null;
-    }
-  }, [mapReady]);
-
-  const handleLoadingChange = useCallback((loading: boolean) => setIsLoading(loading), []);
-  const handleEmptyChange = useCallback((empty: boolean) => setIsEmpty(empty), []);
-  const handleStatsReady = useCallback((s: TrackingStats | null) => setStats(s), []);
-  const handleViagemStatusReady = useCallback((s: ViagemStatus | null) => setViagemStatus(s), []);
 
   const badge = statusBadgeStyles[viagemStatus?.status || ''] || statusBadgeStyles.em_andamento;
 
@@ -141,33 +189,39 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
         )}
 
         {/* Map */}
-        <div className="flex-1 relative">
-          {isLoading && <TrackingHistoryLoadingOverlay />}
-          {!isLoading && isEmpty && <TrackingHistoryEmptyOverlay />}
-          <GoogleMapsLoader>
-            <GoogleMap
-              mapContainerStyle={{ width: '100%', height: '100%' }}
-              center={{ lat: -23.55, lng: -46.63 }}
-              zoom={10}
-              options={{
-                disableDefaultUI: false,
-                zoomControl: true,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true,
-              }}
-              onLoad={handleMapLoad}
-            >
-              <ViagemTrackingMarkers
-                viagemId={viagemId}
-                onBoundsReady={handleBoundsReady}
-                onLoadingChange={handleLoadingChange}
-                onEmptyChange={handleEmptyChange}
-                onStatsReady={handleStatsReady}
-                onViagemStatusReady={handleViagemStatusReady}
-              />
-            </GoogleMap>
-          </GoogleMapsLoader>
+        <div className="flex-1 relative z-0">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+              <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Carregando histórico de rastreamento...</p>
+              </div>
+            </div>
+          )}
+          {!isLoading && isEmpty && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+              <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
+                <MapPinOff className="w-10 h-10 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="font-medium text-foreground">Nenhum histórico encontrado</p>
+                  <p className="text-sm text-muted-foreground">Ainda não há registros de rastreamento para esta viagem</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <MapContainer
+            center={[-15.78, -47.93]}
+            zoom={4}
+            style={{ width: '100%', height: '100%' }}
+            scrollWheelZoom={true}
+            ref={mapRef}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {viagemId && <TrackingHistoryMarkers viagemId={viagemId} />}
+          </MapContainer>
         </div>
       </DialogContent>
     </Dialog>
