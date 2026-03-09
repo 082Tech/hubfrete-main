@@ -243,6 +243,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
                   tipo: emp.tipo,
                   classe: emp.classe,
                   logo_url: emp.logo_url,
+                  comissao_hubfrete_percent: emp.comissao_hubfrete_percent ?? null,
                 });
               }
             }
