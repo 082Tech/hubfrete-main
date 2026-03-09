@@ -859,13 +859,18 @@ function GestaoMapDialogContent({
                   <div
                     key={group.carga.id}
                     className={`px-3 py-2.5 border-b cursor-pointer transition-all hover:bg-muted/50 ${isExpanded ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
+                    onClick={() => {
+                      if (!isExpanded && group.entregas.length > 0) {
+                        handleEntregaClick(group.entregas[0]);
+                      }
+                    }}
                   >
                     {/* Carga header */}
                     <div className="flex items-center gap-2 mb-1">
                       <Package className="w-4 h-4 text-primary shrink-0" />
                       <span className="font-bold text-sm font-mono">{group.carga.codigo}</span>
                       <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
-                        {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
+                        {group.entregas.length} carga{group.entregas.length !== 1 ? 's' : ''}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs mb-1 pl-6">
