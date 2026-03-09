@@ -440,6 +440,16 @@ function DetailPanel({
                 <span className="flex items-center gap-1 text-primary font-semibold">
                   <DollarSign className="w-3 h-3" />
                   R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Inclui comissão HubFrete</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </span>
               )}
             </div>
