@@ -2339,6 +2339,7 @@ export default function OperacaoDiaria() {
         onOpenChange={setGestaoDialogOpen}
         entregas={entregas}
         localizacoes={localizacoes}
+        initialSelectedEntregaId={selectedEntregaInViagem?.id || selectedEntrega?.id}
       />
 
       {/* Daily Performance Dialog */}
