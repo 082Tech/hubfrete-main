@@ -707,12 +707,15 @@ function DetailPanel({
 function GestaoMapDialogContent({
   entregas,
   localizacoes,
+  initialSelectedEntregaId,
 }: {
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+  initialSelectedEntregaId?: string | null;
 }) {
-  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
-  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
+  const initialEntrega = initialSelectedEntregaId ? entregas.find(e => e.id === initialSelectedEntregaId) : null;
+  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(initialEntrega?.motorista_id ?? null);
+  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(initialSelectedEntregaId ?? null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Group entregas by CARGA (not motorista)
