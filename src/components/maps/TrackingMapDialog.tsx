@@ -46,6 +46,7 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
     if (entregaId) {
       setIsLoading(true);
       setIsEmpty(false);
+      setNoTrackingPoints(false);
       setDataReady(false);
     }
   }, [entregaId]);
