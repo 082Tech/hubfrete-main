@@ -24,6 +24,7 @@ interface OriginDestination {
 interface TrackingHistoryMarkersProps {
   entregaId?: string | null;
   viagemId?: string | null;
+  hideOriginDestination?: boolean;
   onLoadingChange?: (isLoading: boolean) => void;
   onPointsLoaded?: (points: TrackingPoint[], origin: OriginDestination | null, destination: OriginDestination | null) => void;
 }
@@ -70,7 +71,7 @@ function createODIcon(letter: string, color: string): L.DivIcon {
 const originIcon = createODIcon('O', '#16a34a');
 const destinationIcon = createODIcon('D', '#dc2626');
 
-export function TrackingHistoryMarkers({ entregaId, viagemId, onLoadingChange, onPointsLoaded }: TrackingHistoryMarkersProps) {
+export function TrackingHistoryMarkers({ entregaId, viagemId, hideOriginDestination, onLoadingChange, onPointsLoaded }: TrackingHistoryMarkersProps) {
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
   const [origin, setOrigin] = useState<OriginDestination | null>(null);
   const [destination, setDestination] = useState<OriginDestination | null>(null);
@@ -252,7 +253,7 @@ export function TrackingHistoryMarkers({ entregaId, viagemId, onLoadingChange, o
   return (
     <>
       {/* Origin marker */}
-      {origin && (
+      {!hideOriginDestination && origin && (
         <Marker position={[origin.latitude, origin.longitude]} icon={originIcon}>
           <Tooltip direction="top" offset={[0, -36]} opacity={0.95} permanent={false}>
             <div className="text-xs font-medium">
@@ -264,7 +265,7 @@ export function TrackingHistoryMarkers({ entregaId, viagemId, onLoadingChange, o
       )}
 
       {/* Destination marker */}
-      {destination && (
+      {!hideOriginDestination && destination && (
         <Marker position={[destination.latitude, destination.longitude]} icon={destinationIcon}>
           <Tooltip direction="top" offset={[0, -36]} opacity={0.95} permanent={false}>
             <div className="text-xs font-medium">

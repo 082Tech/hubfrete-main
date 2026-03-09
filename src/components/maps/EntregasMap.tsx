@@ -506,7 +506,7 @@ export function EntregasMap({
 
         {/* Tracking history points when entrega is selected */}
         {selectedEntrega && (
-          <TrackingHistoryMarkers entregaId={selectedEntrega.entregaId || selectedEntrega.id} />
+          <TrackingHistoryMarkers entregaId={selectedEntrega.entregaId || selectedEntrega.id} hideOriginDestination />
         )}
 
         {/* Suggested route: only shows remaining route when already collected */}
