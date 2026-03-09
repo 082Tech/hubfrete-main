@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { toast } from 'sonner';
 import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
+import { Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -439,6 +440,16 @@ function DetailPanel({
                 <span className="flex items-center gap-1 text-primary font-semibold">
                   <DollarSign className="w-3 h-3" />
                   R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Inclui comissão HubFrete</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </span>
               )}
             </div>
