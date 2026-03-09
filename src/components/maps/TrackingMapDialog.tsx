@@ -57,35 +57,36 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
   const handlePointsLoaded = useCallback((points: any[], origin: any, destination: any) => {
     const hasData = points.length > 0 || origin || destination;
     setIsEmpty(!hasData);
-    // Delay slightly to let markers render before fitting bounds
     setTimeout(() => setDataReady(true), 200);
   }, []);
 
   return (
     <Dialog open={!!entregaId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
-        <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-5 py-3 border-b bg-card shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-base">
             <Route className="w-5 h-5 text-primary" />
             Histórico de Rastreamento
-            {info && (
-              <span className="text-muted-foreground font-normal text-sm ml-2">
-                {info.motorista} • {info.placa}
-              </span>
-            )}
           </DialogTitle>
+          {info && (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+              <span>{info.motorista}</span>
+              <span>•</span>
+              <span>{info.placa}</span>
+            </div>
+          )}
         </DialogHeader>
-        <div className="flex-1 relative z-0">
+        <div className="flex-1 relative min-h-0">
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80" style={{ zIndex: 1000 }}>
               <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Carregando histórico...</p>
+                <p className="text-sm text-muted-foreground">Carregando histórico de rastreamento...</p>
               </div>
             </div>
           )}
           {!isLoading && isEmpty && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80" style={{ zIndex: 1000 }}>
               <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
                 <MapPinOff className="w-10 h-10 text-muted-foreground" />
                 <div className="text-center">

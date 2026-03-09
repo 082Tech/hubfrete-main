@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -6,12 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Route, MapPin, Clock, Gauge, Activity, Loader2, MapPinOff } from 'lucide-react';
 import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
 import {
-  fetchAllTrackingHistoricoByViagemId,
   fetchViagemStatus,
   type ViagemStatus,
 } from '@/lib/fetchAllTrackingHistorico';
 import 'leaflet/dist/leaflet.css';
-import { useRef } from 'react';
 
 interface ViagemTrackingMapDialogProps {
   viagemId: string | null;
@@ -106,7 +104,6 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
     const hasData = points.length > 0 || origin || destination;
     setIsEmpty(!hasData);
 
-    // Compute stats
     if (points.length > 0) {
       const speeds = points
         .map((p: any) => p.speed)
@@ -136,7 +133,7 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
     <Dialog open={!!viagemId} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 gap-0">
         {/* Header */}
-        <DialogHeader className="px-5 py-3 border-b bg-card">
+        <DialogHeader className="px-5 py-3 border-b bg-card shrink-0">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Route className="w-5 h-5 text-primary" />
@@ -161,7 +158,7 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
 
         {/* Stats Bar */}
         {!isLoading && stats && (
-          <div className="px-5 py-2.5 border-b bg-muted/30 flex items-center gap-4 flex-wrap text-xs">
+          <div className="px-5 py-2.5 border-b bg-muted/30 flex items-center gap-4 flex-wrap text-xs shrink-0">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <MapPin className="w-3.5 h-3.5" />
               <span className="font-medium text-foreground">{stats.totalPoints.toLocaleString('pt-BR')}</span> pontos
@@ -189,9 +186,9 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
         )}
 
         {/* Map */}
-        <div className="flex-1 relative z-0">
+        <div className="flex-1 relative min-h-0">
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80" style={{ zIndex: 1000 }}>
               <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">Carregando histórico de rastreamento...</p>
@@ -199,7 +196,7 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
             </div>
           )}
           {!isLoading && isEmpty && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80" style={{ zIndex: 1000 }}>
               <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
                 <MapPinOff className="w-10 h-10 text-muted-foreground" />
                 <div className="text-center">

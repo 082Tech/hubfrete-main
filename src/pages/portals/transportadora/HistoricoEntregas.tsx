@@ -54,6 +54,7 @@ import { EntregaDocsDialog } from '@/components/entregas/EntregaDocsDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
+import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 import { ViagemDetailsHistoricoDialog } from '@/components/viagens/ViagemDetailsHistoricoDialog';
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
@@ -183,6 +184,10 @@ export default function HistoricoEntregas() {
   // Tracking map (viagem-level)
   const [trackingViagemId, setTrackingViagemId] = useState<string | null>(null);
   const [trackingViagemInfo, setTrackingViagemInfo] = useState<{ motorista: string; placa: string; codigo: string } | null>(null);
+
+  // Tracking map (entrega-level)
+  const [trackingEntregaId, setTrackingEntregaId] = useState<string | null>(null);
+  const [trackingEntregaInfo, setTrackingEntregaInfo] = useState<{ motorista: string; placa: string } | null>(null);
 
   // Viagem detail dialog
   const [detailViagemOpen, setDetailViagemOpen] = useState(false);
@@ -954,6 +959,16 @@ export default function HistoricoEntregas() {
                                                           <MessageCircle className="w-4 h-4 mr-2" />
                                                           Ver conversa
                                                         </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => {
+                                                          setTrackingEntregaId(entrega.id);
+                                                          setTrackingEntregaInfo({
+                                                            motorista: viagem.motorista?.nome_completo || 'Motorista',
+                                                            placa: viagem.veiculo?.placa || '-',
+                                                          });
+                                                        }}>
+                                                          <Route className="w-4 h-4 mr-2" />
+                                                          Ver rastreamento
+                                                        </DropdownMenuItem>
                                                       </DropdownMenuContent>
                                                     </DropdownMenu>
                                                   </td>
@@ -1056,6 +1071,12 @@ export default function HistoricoEntregas() {
           viagemId={trackingViagemId}
           info={trackingViagemInfo}
           onClose={() => { setTrackingViagemId(null); setTrackingViagemInfo(null); }}
+        />
+
+        <TrackingMapDialog
+          entregaId={trackingEntregaId}
+          info={trackingEntregaInfo}
+          onClose={() => { setTrackingEntregaId(null); setTrackingEntregaInfo(null); }}
         />
 
         <ViagemDetailsHistoricoDialog
