@@ -1005,13 +1005,16 @@ function DetailPanel({
 function GestaoEntregasDialogContent({
   entregas,
   localizacoes,
+  initialSelectedEntregaId,
 }: {
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+  initialSelectedEntregaId?: string | null;
 }) {
   const { empresa } = useUserContext();
-  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
-  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
+  const initialEntrega = initialSelectedEntregaId ? entregas.find(e => e.id === initialSelectedEntregaId) : null;
+  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(initialEntrega?.motorista_id ?? null);
+  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(initialSelectedEntregaId ?? null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch viagens ativas para agrupar entregas por viagem
