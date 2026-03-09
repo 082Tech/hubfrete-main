@@ -361,13 +361,11 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
         if (!result) toast.error('Preencha os campos obrigatórios desta etapa');
         return result;
       }
-      case 'peso': {
+      case 'peso_frete': {
         const result = await form.trigger(['peso_kg']);
         if (!result) toast.error('Peso é obrigatório');
         return result;
       }
-      case 'preco':
-        return true;
       case 'requisitos':
         return true;
       case 'origem': {
