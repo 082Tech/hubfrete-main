@@ -1235,6 +1235,7 @@ export default function GestaoCargas() {
         onOpenChange={setGestaoDialogOpen}
         entregas={entregas}
         localizacoes={localizacoes}
+        initialSelectedEntregaId={selectedEntrega?.id}
       />
 
       {/* Daily Performance Dialog */}
