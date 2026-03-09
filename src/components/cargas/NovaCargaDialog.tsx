@@ -64,19 +64,10 @@ const tipoCargaOptions: { value: TipoCarga; label: string }[] = [
   { value: 'container', label: 'Container' },
 ];
 
-export const UNIDADES_PRECIFICACAO = [
-  { value: 'UN', label: 'UN – Unidade' },
-  { value: 'KG', label: 'KG – Quilograma' },
-  { value: 'TON', label: 'TON – Tonelada' },
-  { value: 'CX', label: 'CX – Caixa' },
-  { value: 'PC', label: 'PC – Peça' },
-  { value: 'PCT', label: 'PCT – Pacote' },
-  { value: 'PAL', label: 'PAL – Pallet' },
-  { value: 'SC', label: 'SC – Saco' },
-  { value: 'LT', label: 'LT – Litro' },
-  { value: 'M', label: 'M – Metro' },
-  { value: 'M2', label: 'M² – Metro quadrado' },
-  { value: 'M3', label: 'M³ – Metro cúbico' },
+// Pricing types: por_tonelada (always) and valor_fixo (only for carga fechada)
+const TIPOS_FRETE = [
+  { value: 'por_tonelada', label: 'Por Tonelada (R$/ton)' },
+  { value: 'valor_fixo', label: 'Valor Fixo (Frete Fechado)' },
 ] as const;
 
 const todayStr = () => new Date().toISOString().split('T')[0];
