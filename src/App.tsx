@@ -185,6 +185,7 @@ const App = () => {
                     <Route path="notificacoes" element={<TransportadoraNotificacoes />} />
                     <Route path="filiais" element={<TransportadoraFiliais />} />
                     <Route path="usuarios" element={<TransportadoraUsuarios />} />
+                    <Route path="financeiro" element={<TransportadoraFinanceiro />} />
                     <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />
                   </Route>
 
