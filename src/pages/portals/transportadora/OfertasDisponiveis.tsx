@@ -1245,7 +1245,7 @@ export default function OfertasDisponiveis() {
     return 'bg-primary';
   };
 
-  // Calculate total freight for a cargo
+  // Calculate total freight for a cargo (gross)
   const calcularFreteTotal = (carga: Carga) => {
     if (carga.tipo_precificacao === 'fixo' && carga.valor_frete_fixo) {
       return carga.valor_frete_fixo;
@@ -1255,6 +1255,13 @@ export default function OfertasDisponiveis() {
       return Math.round((pesoDisponivel / 1000) * carga.valor_frete_tonelada * 100) / 100;
     }
     return carga.valor_frete_fixo || null;
+  };
+
+  // Calculate net freight after HubFrete commission
+  const calcularFreteLiquido = (freteTotal: number | null, comissaoPercent: number | null | undefined) => {
+    if (freteTotal === null || freteTotal === undefined) return null;
+    const comissao = comissaoPercent || 0;
+    return Math.round(freteTotal * (1 - comissao / 100) * 100) / 100;
   };
 
   // Helper to format company + filial name
