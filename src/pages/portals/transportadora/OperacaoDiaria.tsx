@@ -1005,13 +1005,16 @@ function DetailPanel({
 function GestaoEntregasDialogContent({
   entregas,
   localizacoes,
+  initialSelectedEntregaId,
 }: {
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+  initialSelectedEntregaId?: string | null;
 }) {
   const { empresa } = useUserContext();
-  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
-  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
+  const initialEntrega = initialSelectedEntregaId ? entregas.find(e => e.id === initialSelectedEntregaId) : null;
+  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(initialEntrega?.motorista_id ?? null);
+  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(initialSelectedEntregaId ?? null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch viagens ativas para agrupar entregas por viagem
@@ -1456,16 +1459,18 @@ function GestaoEntregasDialog({
   onOpenChange,
   entregas,
   localizacoes,
+  initialSelectedEntregaId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+  initialSelectedEntregaId?: string | null;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
-        <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} />
+        <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} initialSelectedEntregaId={open ? initialSelectedEntregaId : null} />
       </DialogContent>
     </Dialog>
   );
@@ -2334,6 +2339,7 @@ export default function OperacaoDiaria() {
         onOpenChange={setGestaoDialogOpen}
         entregas={entregas}
         localizacoes={localizacoes}
+        initialSelectedEntregaId={selectedEntregaInViagem?.id || selectedEntrega?.id}
       />
 
       {/* Daily Performance Dialog */}
