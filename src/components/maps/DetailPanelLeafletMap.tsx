@@ -176,7 +176,7 @@ export function DetailPanelLeafletMap({
         center={mapCenter}
         zoom={10}
         style={{ width: '100%', height: '100%' }}
-        scrollWheelZoom={true}
+        scrollWheelZoom={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -247,11 +247,11 @@ export function DetailPanelLeafletMap({
         <Button
           variant="secondary"
           size="icon"
-          className="absolute top-2 right-2 z-[500] h-8 w-8 shadow-md bg-background/90 hover:bg-background border"
+          className="absolute top-2 right-2 z-[500] h-8 w-8 shadow-md bg-background/90 hover:bg-background border text-foreground"
           onClick={onExpandClick}
           title="Abrir visualização geral em mapa"
         >
-          <Maximize2 className="w-4 h-4" />
+          <Maximize2 className="w-4 h-4 text-foreground" />
         </Button>
       )}
     </div>
