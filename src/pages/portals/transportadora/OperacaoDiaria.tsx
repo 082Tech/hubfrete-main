@@ -1018,7 +1018,6 @@ function GestaoEntregasDialogContent({
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(initialSelectedEntregaId ?? null);
   const [searchTerm, setSearchTerm] = useState('');
   const hasInitializedRef = useRef(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch viagens ativas para agrupar entregas por viagem
   type ViagemMapEntry = { viagem_id: string; codigo: string; status: string; motorista_id: string };
