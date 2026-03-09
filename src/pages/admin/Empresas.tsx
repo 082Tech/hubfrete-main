@@ -143,6 +143,7 @@ export default function Empresas() {
     cnpj_matriz: '',
     tipo: 'EMBARCADOR' as TipoEmpresa,
     classe: 'COMÉRCIO' as ClasseEmpresa,
+    comissao_hubfrete_percent: 0,
   });
 
   useEffect(() => {
