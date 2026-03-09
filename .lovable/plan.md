@@ -1,86 +1,27 @@
 
 
-# Plano: Completar Schema Fiscal para API Focus NFe
+## Plan: Fix Map Behavior on Both Portals
 
-## Resumo
+### Problems
+1. **Embarcador**: When switching cargo, the map stays at the old location instead of re-fitting to the new cargo's markers
+2. **Transportador**: When the user zooms in to inspect, the map keeps resetting the zoom (likely from realtime data updates causing re-renders/remounts)
 
-Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
+### Root Cause
+The `DetailPanelLeafletMap` uses `FitBoundsOnce` with a `hasFitted` ref — it only fits bounds once per mount. The issue is that when the selected cargo changes, the Leaflet `MapContainer` doesn't update its center/zoom (known Leaflet-React limitation). Both portals need the map to **remount** when the cargo changes, but **not** when realtime location data updates.
 
-## Situacao Atual
+### Solution
 
-Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
+**File: `src/pages/portals/embarcador/GestaoCargas.tsx`**
+- Add `key={entrega.id}` to the `<DetailPanelLeafletMap>` usage inside `DetailPanel`, so the map fully remounts when a different cargo is selected
 
-## Alteracoes Necessarias
+**File: `src/pages/portals/transportadora/OperacaoDiaria.tsx`**
+- Same fix: add `key={entrega.id}` to the `<DetailPanelLeafletMap>` usage inside the transportador's `DetailPanel`
+- Since `selectedEntregaLive` updates the entrega object reference on realtime refreshes but keeps the same `id`, the key won't change and the map won't remount — preserving the user's zoom level
 
-### Migracao Unica
+This is the simplest and most reliable fix: the `key` prop forces React to destroy and recreate the component only when the cargo ID changes, which is exactly the desired behavior for both issues.
 
-Adicionar duas colunas a tabela `config_fiscal`:
-
-| Coluna | Tipo | Default | Finalidade |
-|--------|------|---------|------------|
-| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
-| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
-
-### Atualizacao do Frontend
-
-Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
-- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
-- Campo numerico para o percentual da base de calculo do ICMS
-
-### Atualizacao dos Tipos TypeScript
-
-Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
-
----
-
-## Secao Tecnica
-
-### SQL da Migracao
-
-```sql
-ALTER TABLE public.config_fiscal
-  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
-  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
-
-COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
-  IS '1 = Simples Nacional, 3 = Regime Normal';
-COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
-  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
-```
-
-### Mapeamento Completo: Banco -> Payload API
-
-Com essas 2 colunas adicionadas, o mapeamento fica completo:
-
-**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
-- CNPJ: `empresas.cnpj_matriz`
-- IE: `empresas.inscricao_estadual`
-- Razao Social: `empresas.razao_social`
-- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
-- Municipio IBGE: `filiais.codigo_municipio_ibge`
-- UF: `filiais.estado`
-- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
-
-**Fiscal**: `config_fiscal`
-- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
-- Natureza: `natureza_operacao`
-- Serie/Numero: `serie_cte` / `proximo_numero_cte`
-- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
-- Ambiente: `ambiente`
-
-**Remetente/Destinatario**: `cargas` + `enderecos_carga`
-**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
-**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
-
-### Campos Derivados por Logica (sem banco)
-- `data_emissao`: gerado no momento da emissao
-- `tipo_documento`: sempre `0` (Normal)
-- `modal`: sempre `01` (Rodoviario)
-- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
-
-### Sequencia de Implementacao
-
-1. Aplicar migracao SQL (1 migration)
-2. Atualizar types.ts
-3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
+### Technical Details
+- `key={entrega.id}` on `DetailPanelLeafletMap` in both `GestaoCargas.tsx` (~line 454) and `OperacaoDiaria.tsx` (~line 498)
+- No changes needed to `DetailPanelLeafletMap.tsx` itself
+- The `FitBoundsOnce` pattern continues to work correctly — it fires once per mount, and the mount only happens when the entrega ID changes
 
