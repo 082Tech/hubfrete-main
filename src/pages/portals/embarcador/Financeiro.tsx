@@ -26,12 +26,15 @@ const ITEMS_PER_PAGE = 15;
 
 export default function EmbarcadorFinanceiro() {
   const { empresa } = useUserContext();
-  const now = new Date();
-  const firstDayOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const [statusFilter, setStatusFilter] = useState<string>('todos');
-  const [dateFrom, setDateFrom] = useState(firstDayOfMonth);
-  const [dateTo, setDateTo] = useState(today);
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [dateTo, setDateTo] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [currentPage, setCurrentPage] = useState(1);
 
   const { ref: tableRef, height: tableHeight } = useRemainingViewportHeight({ bottomOffset: 56 });
