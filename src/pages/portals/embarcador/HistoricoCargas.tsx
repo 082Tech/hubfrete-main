@@ -1101,9 +1101,7 @@ export default function HistoricoCargas() {
                                                 <TableCell className="text-right text-sm font-medium">
                                                   {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
                                                 </TableCell>
-                                                <TableCell className="text
-
--    right text-sm font-medium text-emerald-600">
+                                                <TableCell className="text-right text-sm font-medium text-emerald-600">
                                                   <Tooltip>
                                                     <TooltipTrigger asChild>
                                                       <span className="cursor-help inline-flex items-center gap-1">
