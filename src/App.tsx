@@ -76,6 +76,10 @@ import TransportadoraMensagens from "./pages/portals/transportadora/Mensagens";
 import TransportadoraRelatorios from "./pages/portals/transportadora/Relatorios";
 import TransportadoraNotificacoes from "./pages/portals/transportadora/Notificacoes";
 import TransportadoraOperacaoDiaria from "./pages/portals/transportadora/OperacaoDiaria";
+import TransportadoraFinanceiro from "./pages/portals/transportadora/Financeiro";
+
+import EmbarcadorFinanceiro from "./pages/portals/embarcador/Financeiro";
+import AdminFinanceiro from "./pages/admin/Financeiro";
 
 import NotFound from "./pages/NotFound";
 
