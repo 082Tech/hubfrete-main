@@ -211,7 +211,8 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
                 cnpj_matriz,
                 tipo,
                 classe,
-                logo_url
+                logo_url,
+                comissao_hubfrete_percent
               )
             )
           )
