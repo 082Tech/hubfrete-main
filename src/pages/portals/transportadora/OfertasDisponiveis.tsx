@@ -300,7 +300,7 @@ export default function OfertasDisponiveis() {
           destinatario_contato_telefone,
           endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude, logradouro, numero, bairro, cep),
           endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude, logradouro, numero, bairro, cep),
-          empresa:empresas!cargas_empresa_id_fkey(nome, logo_url),
+          empresa:empresas!cargas_empresa_id_fkey(nome, logo_url, comissao_hubfrete_percent),
           filial:filiais!cargas_filial_id_fkey(nome)
         `)
         .in('status', ['publicada', 'parcialmente_alocada'] as any)
