@@ -508,7 +508,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     filialId: number | null, empresaId: number,
   ) => {
     try {
-      const { data: carga, error: cargaError } = await supabase
+        const { data: carga, error: cargaError } = await supabase
         .from('cargas')
         .insert({
           empresa_id: empresaId, filial_id: filialId,
@@ -516,7 +516,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
           peso_kg: values.peso_kg, peso_disponivel_kg: values.peso_kg,
           volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
-          tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'valor_fixo' : 'por_tonelada',
+          tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'fixo' : 'por_tonelada',
           valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (freteTotal > 0 ? freteTotal : null) : null,
           valor_frete_fixo: values.tipo_frete === 'valor_fixo' ? (values.valor_frete_fixo || null) : null,
           permite_fracionado: values.permite_fracionado,
