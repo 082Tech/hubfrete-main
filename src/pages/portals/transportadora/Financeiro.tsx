@@ -248,7 +248,7 @@ export default function TransportadoraFinanceiro() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="conta" className="space-y-6">
+        <TabsContent value="conta" className="space-y-6 mt-0">
           <Card className="border-border max-w-xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
