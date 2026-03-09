@@ -493,6 +493,30 @@ export default function Empresas() {
           </Select>
         </div>
       </div>
+
+      {/* Comissão HubFrete - only for Embarcadores */}
+      {formData.tipo === 'EMBARCADOR' && (
+        <div className="space-y-2">
+          <Label htmlFor="comissao">Comissão HubFrete (%)</Label>
+          <div className="relative">
+            <Input
+              id="comissao"
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
+              value={formData.comissao_hubfrete_percent}
+              onChange={(e) => setFormData({ ...formData, comissao_hubfrete_percent: parseFloat(e.target.value) || 0 })}
+              placeholder="0.00"
+              className="pr-8"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">%</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Percentual que a HubFrete retém sobre o frete das cargas deste embarcador.
+          </p>
+        </div>
+      )}
     </div>
   );
 
