@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Route, Loader2, MapPinOff } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Route, Loader2, MapPinOff, X } from 'lucide-react';
 import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
 import 'leaflet/dist/leaflet.css';
 
@@ -41,7 +41,6 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
   const [isEmpty, setIsEmpty] = useState(false);
   const [dataReady, setDataReady] = useState(false);
 
-  // Reset state when entregaId changes
   useEffect(() => {
     if (entregaId) {
       setIsLoading(true);
@@ -62,12 +61,22 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
 
   return (
     <Dialog open={!!entregaId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0">
+      <DialogContent
+        hideCloseButton
+        className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 overflow-hidden"
+      >
+        {/* Header */}
         <DialogHeader className="px-5 py-3 border-b bg-card shrink-0">
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <Route className="w-5 h-5 text-primary" />
-            Histórico de Rastreamento
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Route className="w-5 h-5 text-primary" />
+              Histórico de Rastreamento
+            </DialogTitle>
+            <DialogClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
+          </div>
           {info && (
             <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
               <span>{info.motorista}</span>
@@ -76,7 +85,10 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
             </div>
           )}
         </DialogHeader>
-        <div className="flex-1 relative min-h-0">
+
+        {/* Map */}
+        <div className="flex-1 relative min-h-0 rounded-b-lg overflow-hidden">
+          {/* Loading overlay */}
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/80" style={{ zIndex: 1000 }}>
               <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
@@ -85,17 +97,20 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
               </div>
             </div>
           )}
+
+          {/* Empty state overlay */}
           {!isLoading && isEmpty && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80" style={{ zIndex: 1000 }}>
-              <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
+            <div className="absolute inset-0 flex items-center justify-center bg-background" style={{ zIndex: 1000 }}>
+              <div className="flex flex-col items-center gap-3 p-6">
                 <MapPinOff className="w-10 h-10 text-muted-foreground" />
                 <div className="text-center">
                   <p className="font-medium text-foreground">Nenhum histórico encontrado</p>
-                  <p className="text-sm text-muted-foreground">Ainda não há registros de rastreamento para esta entrega</p>
+                  <p className="text-sm text-muted-foreground mt-1">Ainda não há registros de rastreamento para esta carga</p>
                 </div>
               </div>
             </div>
           )}
+
           {entregaId && (
             <MapContainer
               key={entregaId}
