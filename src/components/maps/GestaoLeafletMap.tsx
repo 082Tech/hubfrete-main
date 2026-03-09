@@ -473,6 +473,7 @@ export function GestaoLeafletMap({
           <TrackingHistoryMarkers
             entregaId={selectedEntregaId}
             viagemId={selectedViagemId}
+            hideOriginDestination
           />
         )}
 

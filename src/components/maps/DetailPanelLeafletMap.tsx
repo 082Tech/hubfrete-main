@@ -229,7 +229,7 @@ export function DetailPanelLeafletMap({
         )}
 
         {/* Histórico de rastreamento */}
-        {entregaId && <TrackingHistoryMarkers entregaId={entregaId} />}
+        {entregaId && <TrackingHistoryMarkers entregaId={entregaId} hideOriginDestination />}
 
         {/* Rota OSRM tracejada: Caminhão → Destino (quando saiu_para_entrega) */}
         {showRouteToDestino && (
