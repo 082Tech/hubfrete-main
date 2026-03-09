@@ -870,7 +870,7 @@ function GestaoMapDialogContent({
                       <Package className="w-4 h-4 text-primary shrink-0" />
                       <span className="font-bold text-sm font-mono">{group.carga.codigo}</span>
                       <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
-                        {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
+                        {group.entregas.length} carga{group.entregas.length !== 1 ? 's' : ''}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs mb-1 pl-6">
