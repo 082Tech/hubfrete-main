@@ -24,6 +24,7 @@ interface OriginDestination {
 interface TrackingHistoryMarkersProps {
   entregaId?: string | null;
   viagemId?: string | null;
+  hideOriginDestination?: boolean;
   onLoadingChange?: (isLoading: boolean) => void;
   onPointsLoaded?: (points: TrackingPoint[], origin: OriginDestination | null, destination: OriginDestination | null) => void;
 }
