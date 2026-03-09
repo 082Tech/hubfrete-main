@@ -204,17 +204,11 @@ export function ResumoSection({
           <Badge variant="secondary" className="text-[11px] px-1.5 py-0"><Weight className="w-2.5 h-2.5 mr-0.5" />{cargaData.peso_kg} kg</Badge>
           {cargaData.volume_m3 && <Badge variant="secondary" className="text-[11px] px-1.5 py-0"><Box className="w-2.5 h-2.5 mr-0.5" />{cargaData.volume_m3} m³</Badge>}
           {cargaData.valor_mercadoria && <Badge variant="secondary" className="text-[11px] px-1.5 py-0">R$ {cargaData.valor_mercadoria.toLocaleString('pt-BR')}</Badge>}
-          {unidade && (vlrUnit ?? 0) > 0 && (
-            <>
-              <Badge variant="outline" className="text-[11px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
-                R$ {(vlrUnit ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidade}
-              </Badge>
-              {freteTotal > 0 && (
-                <Badge variant="default" className="text-[11px] px-1.5 py-0 bg-green-500/10 text-green-600 border-green-500/20">
-                  Total: R$ {freteTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </Badge>
-              )}
-            </>
+          {freteTotal > 0 && (
+            <Badge variant="default" className="text-[11px] px-1.5 py-0 bg-green-500/10 text-green-600 border-green-500/20">
+              Frete: R$ {freteTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              {cargaData.tipo_frete === 'valor_fixo' ? ' (fixo)' : '/ton'}
+            </Badge>
           )}
         </div>
 
