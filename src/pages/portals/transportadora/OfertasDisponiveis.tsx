@@ -135,6 +135,7 @@ interface Carga {
   empresa: {
     nome: string;
     logo_url: string | null;
+    comissao_hubfrete_percent?: number | null;
   } | null;
   filial: {
     nome: string | null;
