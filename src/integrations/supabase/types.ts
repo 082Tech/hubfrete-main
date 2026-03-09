@@ -1093,6 +1093,7 @@ export type Database = {
         Row: {
           classe: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz: string | null
+          comissao_hubfrete_percent: number | null
           created_at: string
           email: string | null
           id: number
@@ -1108,6 +1109,7 @@ export type Database = {
         Insert: {
           classe: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz?: string | null
+          comissao_hubfrete_percent?: number | null
           created_at?: string
           email?: string | null
           id?: number
@@ -1123,6 +1125,7 @@ export type Database = {
         Update: {
           classe?: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz?: string | null
+          comissao_hubfrete_percent?: number | null
           created_at?: string
           email?: string | null
           id?: number
