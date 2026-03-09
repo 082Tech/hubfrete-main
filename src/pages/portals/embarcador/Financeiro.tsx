@@ -21,9 +21,12 @@ import { formatCurrency } from '@/lib/reportExport';
 
 export default function EmbarcadorFinanceiro() {
   const { empresa } = useUserContext();
+  const now = new Date();
+  const firstDayOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const [statusFilter, setStatusFilter] = useState<string>('todos');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(firstDayOfMonth);
+  const [dateTo, setDateTo] = useState(today);
 
   const { data: registros, isLoading } = useQuery({
     queryKey: ['embarcador-financeiro', empresa?.id, statusFilter, dateFrom, dateTo],
@@ -59,7 +62,7 @@ export default function EmbarcadorFinanceiro() {
   const qtdPendente = registros?.filter(r => r.status === 'pendente').length || 0;
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
         <p className="text-sm text-muted-foreground">Contas a pagar e histórico de pagamentos</p>
