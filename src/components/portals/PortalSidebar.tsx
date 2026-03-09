@@ -105,6 +105,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
     { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
+    { icon: DollarSign, label: 'Financeiro', href: '/transportadora/financeiro' },
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true },

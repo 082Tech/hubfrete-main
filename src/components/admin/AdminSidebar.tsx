@@ -193,6 +193,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       roles: ['super_admin', 'admin', 'suporte'],
     },
     {
+      title: 'Financeiro',
+      icon: DollarSign,
+      href: '/admin/financeiro',
+      roles: ['super_admin', 'admin'],
+    },
+    {
       title: 'Relatórios',
       icon: TrendingUp,
       href: '/admin/relatorios',
