@@ -452,6 +452,7 @@ function DetailPanel({
 
           {/* Map */}
           <DetailPanelLeafletMap
+            key={entrega.id}
             origemCoords={origemCoords}
             destinoCoords={destinoCoords}
             driverLocation={driverLocation}

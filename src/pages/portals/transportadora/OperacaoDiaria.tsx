@@ -496,6 +496,7 @@ function DetailPanel({
 
           {/* Mapa com rotas condicionais e histórico de rastreamento */}
           <DetailPanelLeafletMap
+            key={entrega.id}
             origemCoords={origemCoords}
             destinoCoords={destinoCoords}
             driverLocation={driverLocation}
