@@ -770,15 +770,6 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
       case 'requisitos':
         return (
           <div className="space-y-4">
-            <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Qtd. Paletes</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="0" className="max-w-[200px]" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
             <div className="space-y-2">
               <Label className="text-sm">Características Especiais</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -818,6 +809,17 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
               onVeiculosChange={setVeiculosSelecionados} onCarroceriasChange={setCarroceriasSelecionadas}
             />
             <NecessidadesEspeciais value={necessidadesEspeciais} onChange={setNecessidadesEspeciais} />
+            {necessidadesEspeciais.includes('palete') && (
+              <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantidade de Paletes</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="Ex: 20" className="max-w-[200px]" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            )}
             <FormField control={form.control} name="regras_carregamento" render={({ field }) => (
               <FormItem>
                 <FormLabel>Regras de Carregamento</FormLabel>
