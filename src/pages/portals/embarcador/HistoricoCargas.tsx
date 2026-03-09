@@ -1101,8 +1101,20 @@ export default function HistoricoCargas() {
                                                 <TableCell className="text-right text-sm font-medium">
                                                   {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
                                                 </TableCell>
-                                                <TableCell className="text-right text-sm font-medium text-emerald-600">
-                                                  {formatCurrency(entrega.valor_frete)}
+                                                <TableCell className="text
+
+-    right text-sm font-medium text-emerald-600">
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <span className="cursor-help inline-flex items-center gap-1">
+                                                        {formatCurrency(entrega.valor_frete)}
+                                                        <Info className="w-3 h-3 text-muted-foreground" />
+                                                      </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                      <p className="text-xs">Inclui comissão HubFrete</p>
+                                                    </TooltipContent>
+                                                  </Tooltip>
                                                 </TableCell>
                                                 <TableCell>
                                                   <div className="flex items-center gap-1 text-sm">
