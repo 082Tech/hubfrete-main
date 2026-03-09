@@ -237,7 +237,8 @@ export default function Empresas() {
           cnpj_matriz: formData.cnpj_matriz.replace(/\D/g, ''),
           tipo: formData.tipo,
           classe: formData.classe,
-        })
+          comissao_hubfrete_percent: formData.tipo === 'EMBARCADOR' ? formData.comissao_hubfrete_percent : 0,
+        } as any)
         .select()
         .single();
 
