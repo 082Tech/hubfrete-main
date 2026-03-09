@@ -185,6 +185,10 @@ export default function HistoricoEntregas() {
   const [trackingViagemId, setTrackingViagemId] = useState<string | null>(null);
   const [trackingViagemInfo, setTrackingViagemInfo] = useState<{ motorista: string; placa: string; codigo: string } | null>(null);
 
+  // Tracking map (entrega-level)
+  const [trackingEntregaId, setTrackingEntregaId] = useState<string | null>(null);
+  const [trackingEntregaInfo, setTrackingEntregaInfo] = useState<{ motorista: string; placa: string } | null>(null);
+
   // Viagem detail dialog
   const [detailViagemOpen, setDetailViagemOpen] = useState(false);
   const [selectedViagem, setSelectedViagem] = useState<ViagemHistorico | null>(null);
