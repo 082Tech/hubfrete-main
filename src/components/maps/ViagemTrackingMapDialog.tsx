@@ -85,6 +85,7 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
       setIsLoading(true);
       setIsEmpty(false);
       setNoTrackingPoints(false);
+      setDataReady(false);
       setStats(null);
       setViagemStatus(null);
     }
