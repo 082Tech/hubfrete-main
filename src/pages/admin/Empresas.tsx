@@ -92,6 +92,7 @@ type Empresa = {
   classe: string;
   created_at: string;
   logo_url: string | null;
+  comissao_hubfrete_percent: number | null;
   filiais: Filial[];
   _count: {
     filiais: number;
