@@ -135,6 +135,7 @@ interface Carga {
   empresa: {
     nome: string;
     logo_url: string | null;
+    comissao_hubfrete_percent?: number | null;
   } | null;
   filial: {
     nome: string | null;
@@ -299,7 +300,7 @@ export default function OfertasDisponiveis() {
           destinatario_contato_telefone,
           endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude, logradouro, numero, bairro, cep),
           endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude, logradouro, numero, bairro, cep),
-          empresa:empresas!cargas_empresa_id_fkey(nome, logo_url),
+          empresa:empresas!cargas_empresa_id_fkey(nome, logo_url, comissao_hubfrete_percent),
           filial:filiais!cargas_filial_id_fkey(nome)
         `)
         .in('status', ['publicada', 'parcialmente_alocada'] as any)
@@ -1244,7 +1245,7 @@ export default function OfertasDisponiveis() {
     return 'bg-primary';
   };
 
-  // Calculate total freight for a cargo
+  // Calculate total freight for a cargo (gross)
   const calcularFreteTotal = (carga: Carga) => {
     if (carga.tipo_precificacao === 'fixo' && carga.valor_frete_fixo) {
       return carga.valor_frete_fixo;
@@ -1254,6 +1255,13 @@ export default function OfertasDisponiveis() {
       return Math.round((pesoDisponivel / 1000) * carga.valor_frete_tonelada * 100) / 100;
     }
     return carga.valor_frete_fixo || null;
+  };
+
+  // Calculate net freight after HubFrete commission
+  const calcularFreteLiquido = (freteTotal: number | null, comissaoPercent: number | null | undefined) => {
+    if (freteTotal === null || freteTotal === undefined) return null;
+    const comissao = comissaoPercent || 0;
+    return Math.round(freteTotal * (1 - comissao / 100) * 100) / 100;
   };
 
   // Helper to format company + filial name
@@ -1464,13 +1472,28 @@ export default function OfertasDisponiveis() {
             {(() => {
               const totalFrete = calcularFreteTotal(carga);
               if (totalFrete === null) return null;
+              const comissao = (carga.empresa as any)?.comissao_hubfrete_percent || 0;
+              const freteLiquido = calcularFreteLiquido(totalFrete, comissao);
 
               return (
                 <div className="flex flex-col items-end gap-0.5">
                   <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
-                    {formatCurrency(totalFrete)}
+                    {formatCurrency(freteLiquido)}
                   </div>
-                  {carga.tipo_precificacao === 'fixo' ? (
+                  {comissao > 0 ? (
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help">
+                        <span className="text-[10px] text-muted-foreground line-through">
+                          {formatCurrency(totalFrete)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Valor bruto: {formatCurrency(totalFrete)}</p>
+                        <p>Comissão HubFrete ({comissao}%): -{formatCurrency(totalFrete - (freteLiquido || 0))}</p>
+                        <p className="font-semibold">Valor líquido: {formatCurrency(freteLiquido)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : carga.tipo_precificacao === 'fixo' ? (
                     <span className="text-xs text-muted-foreground">
                       (Valor Fixo)
                     </span>
@@ -3059,29 +3082,49 @@ export default function OfertasDisponiveis() {
                     </div>
 
                     {/* Valor do Frete */}
-                    <div className="p-4 bg-chart-2/10 rounded-lg border border-chart-2/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <DollarSign className="w-4 h-4 text-chart-2" />
-                        <span className="text-sm font-medium text-chart-2">Frete a Receber</span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Valor unitário:</span>
-                          <span>{formatCurrency(selectedCarga.valor_frete_tonelada)}/ton</span>
+                    {(() => {
+                      const comissaoPercent = (selectedCarga.empresa as any)?.comissao_hubfrete_percent || 0;
+                      const valorComissao = comissaoPercent > 0 ? Math.round(calculatedFrete * comissaoPercent / 100 * 100) / 100 : 0;
+                      const freteLiquido = calculatedFrete - valorComissao;
+
+                      return (
+                        <div className="p-4 bg-chart-2/10 rounded-lg border border-chart-2/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <DollarSign className="w-4 h-4 text-chart-2" />
+                            <span className="text-sm font-medium text-chart-2">Frete a Receber</span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Valor unitário:</span>
+                              <span>{formatCurrency(selectedCarga.valor_frete_tonelada)}/ton</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Peso alocado:</span>
+                              <span className="font-medium">{(pesoTotalAlocado / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Valor do frete:</span>
+                              <span className="font-medium">{formatCurrency(calculatedFrete)}</span>
+                            </div>
+                            {comissaoPercent > 0 && (
+                              <>
+                                <div className="flex justify-between text-sm text-destructive">
+                                  <span>Comissão HubFrete ({comissaoPercent}%):</span>
+                                  <span>- {formatCurrency(valorComissao)}</span>
+                                </div>
+                              </>
+                            )}
+                            <Separator className="my-2" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-semibold">{comissaoPercent > 0 ? 'Valor líquido:' : 'Valor total:'}</span>
+                              <span className="text-2xl font-bold text-chart-2">
+                                {formatCurrency(freteLiquido)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Peso alocado:</span>
-                          <span className="font-medium">{(pesoTotalAlocado / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
-                        </div>
-                        <Separator className="my-2" />
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-semibold">Valor total:</span>
-                          <span className="text-2xl font-bold text-chart-2">
-                            {formatCurrency(calculatedFrete)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
                   </div>
                   </div>)}
                 </div>
