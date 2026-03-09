@@ -102,6 +102,7 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
   const handlePointsLoaded = useCallback((points: any[], origin: any, destination: any) => {
     const hasData = points.length > 0 || origin || destination;
     setIsEmpty(!hasData);
+    setNoTrackingPoints(points.length === 0);
 
     if (points.length > 0) {
       const speeds = points
