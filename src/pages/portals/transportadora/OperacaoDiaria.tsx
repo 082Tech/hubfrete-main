@@ -1018,7 +1018,6 @@ function GestaoEntregasDialogContent({
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(initialSelectedEntregaId ?? null);
   const [searchTerm, setSearchTerm] = useState('');
   const hasInitializedRef = useRef(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch viagens ativas para agrupar entregas por viagem
   type ViagemMapEntry = { viagem_id: string; codigo: string; status: string; motorista_id: string };
@@ -1123,6 +1122,16 @@ function GestaoEntregasDialogContent({
 
     return Object.values(groups);
   }, [entregas, entregaViagemMap]);
+
+  // Sync initial selection once viagemGroups are available
+  useEffect(() => {
+    if (hasInitializedRef.current || !initialEntrega?.motorista_id || viagemGroups.length === 0) return;
+    const group = viagemGroups.find(g => g.motorista_id === initialEntrega.motorista_id);
+    if (group) {
+      setSelectedMotoristaId(group.id);
+      hasInitializedRef.current = true;
+    }
+  }, [viagemGroups, initialEntrega]);
 
   // Filtrar grupos pelo termo de busca
   const filteredGroups = useMemo(() => {
