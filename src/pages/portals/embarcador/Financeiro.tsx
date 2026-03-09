@@ -62,7 +62,7 @@ export default function EmbarcadorFinanceiro() {
   const qtdPendente = registros?.filter(r => r.status === 'pendente').length || 0;
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
         <p className="text-sm text-muted-foreground">Contas a pagar e histórico de pagamentos</p>
