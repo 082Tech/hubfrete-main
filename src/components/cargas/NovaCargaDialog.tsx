@@ -421,7 +421,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
             volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
             valor_mercadoria: values.valor_mercadoria || null,
             numero_pedido: values.numero_pedido || null,
-            tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'valor_fixo' : 'por_tonelada',
+            tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'fixo' : 'por_tonelada',
             valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (freteTotal > 0 ? freteTotal : null) : null,
             valor_frete_fixo: values.tipo_frete === 'valor_fixo' ? (values.valor_frete_fixo || null) : null,
             valor_frete_m3: null, valor_frete_km: null,
