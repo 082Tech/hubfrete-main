@@ -1014,8 +1014,10 @@ function GestaoEntregasDialogContent({
 }) {
   const { empresa } = useUserContext();
   const initialEntrega = initialSelectedEntregaId ? entregas.find(e => e.id === initialSelectedEntregaId) : null;
-  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(initialEntrega?.motorista_id ?? null);
+  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
   const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(initialSelectedEntregaId ?? null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const hasInitializedRef = useRef(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch viagens ativas para agrupar entregas por viagem
