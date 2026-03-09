@@ -859,6 +859,11 @@ function GestaoMapDialogContent({
                   <div
                     key={group.carga.id}
                     className={`px-3 py-2.5 border-b cursor-pointer transition-all hover:bg-muted/50 ${isExpanded ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
+                    onClick={() => {
+                      if (!isExpanded && group.entregas.length > 0) {
+                        handleEntregaClick(group.entregas[0]);
+                      }
+                    }}
                   >
                     {/* Carga header */}
                     <div className="flex items-center gap-2 mb-1">
