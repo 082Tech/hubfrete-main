@@ -75,6 +75,7 @@ function FitBoundsOnData({ shouldFit }: { shouldFit: boolean }) {
 export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrackingMapDialogProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
+  const [noTrackingPoints, setNoTrackingPoints] = useState(false);
   const [dataReady, setDataReady] = useState(false);
   const [stats, setStats] = useState<TrackingStats | null>(null);
   const [viagemStatus, setViagemStatus] = useState<ViagemStatus | null>(null);
