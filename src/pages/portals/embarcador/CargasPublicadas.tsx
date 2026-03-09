@@ -761,7 +761,7 @@ export default function CargasPublicadas() {
               <NovaCargaDialog onSuccess={() => refetch()}>
                 <Button className="gap-2">
                   <Plus className="w-4 h-4" />
-                  Nova Carga
+                  Nova Oferta
                 </Button>
               </NovaCargaDialog>
             </div>
@@ -925,7 +925,7 @@ export default function CargasPublicadas() {
                   <NovaCargaDialog onSuccess={() => refetch()}>
                     <Button className="gap-2">
                       <Plus className="w-4 h-4" />
-                      Nova Carga
+                      Nova Oferta
                     </Button>
                   </NovaCargaDialog>
                 </div>
