@@ -865,52 +865,38 @@ function UserFooter({ collapsed, profile, cargo, userType, onLogout }: UserFoote
   if (collapsed) {
     return (
       <div className="p-2 border-t border-sidebar-border flex flex-col items-center gap-2">
-        {/* Avatar */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={profile.nome_completo || 'Logo'}
-                className="w-8 h-8 rounded-full object-contain bg-white border border-sidebar-border shrink-0"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0">
-                <span className="text-sidebar-primary font-semibold text-sm">
-                  {(profile?.nome_completo || profile?.email || 'U').charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-          </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={10}>
-            {profile?.nome_completo || 'Usuário'}
-          </TooltipContent>
-        </Tooltip>
-
-        {/* 3 dots menu */}
+        {/* Avatar as dropdown trigger with notification badge */}
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent relative"
-                >
-                  <MoreVertical className="w-4 h-4" />
+                <button className="relative cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.nome_completo || 'Logo'}
+                      className="w-8 h-8 rounded-full object-contain bg-white border border-sidebar-border shrink-0 hover:ring-2 hover:ring-sidebar-primary/40 transition-all"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0 hover:ring-2 hover:ring-sidebar-primary/40 transition-all">
+                      <span className="text-sidebar-primary font-semibold text-sm">
+                        {(profile?.nome_completo || profile?.email || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                   {unreadCount > 0 && (
                     <Badge
                       variant="destructive"
-                      className="absolute -top-1 -right-1 px-1 py-0 text-[10px] min-w-[16px] h-4"
+                      className="absolute -top-1 -right-1 px-1 py-0 text-[10px] min-w-[16px] h-4 pointer-events-none"
                     >
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </Badge>
                   )}
-                </Button>
+                </button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={10}>
-              Mais opções
+              {profile?.nome_completo || 'Usuário'}
             </TooltipContent>
           </Tooltip>
           <DropdownMenuContent side="right" align="end" className="w-48">
