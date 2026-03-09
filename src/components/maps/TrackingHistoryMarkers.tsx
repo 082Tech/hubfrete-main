@@ -253,7 +253,7 @@ export function TrackingHistoryMarkers({ entregaId, viagemId, hideOriginDestinat
   return (
     <>
       {/* Origin marker */}
-      {origin && (
+      {!hideOriginDestination && origin && (
         <Marker position={[origin.latitude, origin.longitude]} icon={originIcon}>
           <Tooltip direction="top" offset={[0, -36]} opacity={0.95} permanent={false}>
             <div className="text-xs font-medium">
@@ -265,7 +265,7 @@ export function TrackingHistoryMarkers({ entregaId, viagemId, hideOriginDestinat
       )}
 
       {/* Destination marker */}
-      {destination && (
+      {!hideOriginDestination && destination && (
         <Marker position={[destination.latitude, destination.longitude]} icon={destinationIcon}>
           <Tooltip direction="top" offset={[0, -36]} opacity={0.95} permanent={false}>
             <div className="text-xs font-medium">
