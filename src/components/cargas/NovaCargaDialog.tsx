@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, DollarSign, Weight, Info, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -64,19 +65,10 @@ const tipoCargaOptions: { value: TipoCarga; label: string }[] = [
   { value: 'container', label: 'Container' },
 ];
 
-export const UNIDADES_PRECIFICACAO = [
-  { value: 'UN', label: 'UN – Unidade' },
-  { value: 'KG', label: 'KG – Quilograma' },
-  { value: 'TON', label: 'TON – Tonelada' },
-  { value: 'CX', label: 'CX – Caixa' },
-  { value: 'PC', label: 'PC – Peça' },
-  { value: 'PCT', label: 'PCT – Pacote' },
-  { value: 'PAL', label: 'PAL – Pallet' },
-  { value: 'SC', label: 'SC – Saco' },
-  { value: 'LT', label: 'LT – Litro' },
-  { value: 'M', label: 'M – Metro' },
-  { value: 'M2', label: 'M² – Metro quadrado' },
-  { value: 'M3', label: 'M³ – Metro cúbico' },
+// Pricing types: por_tonelada (always) and valor_fixo (only for carga fechada)
+const TIPOS_FRETE = [
+  { value: 'por_tonelada', label: 'Por Tonelada (R$/ton)' },
+  { value: 'valor_fixo', label: 'Valor Fixo (Frete Fechado)' },
 ] as const;
 
 const todayStr = () => new Date().toISOString().split('T')[0];
@@ -94,9 +86,9 @@ const formSchema = z.object({
   volume_m3: z.coerce.number().optional(),
   quantidade_paletes: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
-  unidade_precificacao: z.string().default('TON'),
-  quantidade_precificacao: z.coerce.number().optional(),
-  valor_unitario_precificacao: z.coerce.number().optional(),
+  tipo_frete: z.enum(['por_tonelada', 'valor_fixo']).default('por_tonelada'),
+  valor_frete_tonelada: z.coerce.number().optional(),
+  valor_frete_fixo: z.coerce.number().optional(),
   permite_fracionado: z.boolean().default(true),
   carga_fragil: z.boolean().default(false),
   carga_perigosa: z.boolean().default(false),
@@ -127,8 +119,7 @@ function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: 
 // ─── Tab definitions ─────────────────────────────────────────────────────────
 const TABS = [
   { id: 'dados', label: 'Dados', icon: Package },
-  { id: 'peso', label: 'Peso', icon: Weight },
-  { id: 'preco', label: 'Preço', icon: DollarSign },
+  { id: 'peso_frete', label: 'Peso & Frete', icon: Weight },
   { id: 'requisitos', label: 'Requisitos', icon: ClipboardList },
   { id: 'origem', label: 'Origem', icon: MapPin },
   { id: 'destino', label: 'Destino', icon: Truck },
@@ -258,8 +249,8 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      descricao: '', tipo: 'carga_seca', peso_kg: 0, unidade_precificacao: 'TON',
-      quantidade_precificacao: undefined, valor_unitario_precificacao: undefined,
+      descricao: '', tipo: 'carga_seca', peso_kg: 0, tipo_frete: 'por_tonelada',
+      valor_frete_tonelada: undefined, valor_frete_fixo: undefined,
       permite_fracionado: true, carga_fragil: false, carga_perigosa: false, carga_viva: false,
       empilhavel: true, requer_refrigeracao: false, regras_carregamento: '', expira_em: addDays(30), numero_pedido: '',
     },
@@ -276,9 +267,9 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
         quantidade_paletes: editCarga.quantidade_paletes || undefined,
         valor_mercadoria: editCarga.valor_mercadoria || undefined,
         numero_pedido: editCarga.numero_pedido || '',
-        unidade_precificacao: editCarga.unidade_precificacao || 'TON',
-        quantidade_precificacao: editCarga.quantidade_precificacao || undefined,
-        valor_unitario_precificacao: editCarga.valor_unitario_precificacao || undefined,
+        tipo_frete: editCarga.valor_frete_fixo ? 'valor_fixo' : 'por_tonelada',
+        valor_frete_tonelada: editCarga.valor_frete_tonelada || undefined,
+        valor_frete_fixo: editCarga.valor_frete_fixo || undefined,
         permite_fracionado: editCarga.permite_fracionado ?? true,
         carga_fragil: editCarga.carga_fragil ?? false,
         carga_perigosa: editCarga.carga_perigosa ?? false,
@@ -326,24 +317,26 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
   }, [editCarga, open, form]);
 
   const pesoKg = form.watch('peso_kg');
-  const quantidadePrec = form.watch('quantidade_precificacao');
-  const valorUnitarioPrec = form.watch('valor_unitario_precificacao');
-  const unidadePrec = form.watch('unidade_precificacao');
+  const tipoFrete = form.watch('tipo_frete');
+  const valorFreteTonelada = form.watch('valor_frete_tonelada');
+  const valorFreteFixo = form.watch('valor_frete_fixo');
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
+  const permitefracionado = form.watch('permite_fracionado');
 
-  const isWeightUnit = unidadePrec === 'KG' || unidadePrec === 'TON';
-
+  // When fracionado is enabled, force tipo_frete to por_tonelada
   useEffect(() => {
-    if (isWeightUnit && pesoKg > 0) {
-      const val = unidadePrec === 'TON' ? Math.round((pesoKg / 1000) * 10000) / 10000 : pesoKg;
-      form.setValue('quantidade_precificacao', val);
+    if (permitefracionado && tipoFrete === 'valor_fixo') {
+      form.setValue('tipo_frete', 'por_tonelada');
     }
-  }, [pesoKg, unidadePrec, isWeightUnit, form]);
+  }, [permitefracionado, tipoFrete, form]);
 
-  const freteTotal = (quantidadePrec ?? 0) > 0 && (valorUnitarioPrec ?? 0) > 0
-    ? Math.round((quantidadePrec ?? 0) * (valorUnitarioPrec ?? 0) * 100) / 100
+  // Calculate total freight for por_tonelada
+  const pesoTon = pesoKg > 0 ? Math.round((pesoKg / 1000) * 10000) / 10000 : 0;
+  const freteTotalTon = tipoFrete === 'por_tonelada' && pesoTon > 0 && (valorFreteTonelada ?? 0) > 0
+    ? Math.round(pesoTon * (valorFreteTonelada ?? 0) * 100) / 100
     : 0;
+  const freteTotal = tipoFrete === 'valor_fixo' ? (valorFreteFixo ?? 0) : freteTotalTon;
 
   const validateLocations = (): boolean => {
     if (!origemData.cidade || !origemData.logradouro) {
@@ -369,13 +362,11 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
         if (!result) toast.error('Preencha os campos obrigatórios desta etapa');
         return result;
       }
-      case 'peso': {
+      case 'peso_frete': {
         const result = await form.trigger(['peso_kg']);
         if (!result) toast.error('Peso é obrigatório');
         return result;
       }
-      case 'preco':
-        return true;
       case 'requisitos':
         return true;
       case 'origem': {
@@ -431,12 +422,10 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
             volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
             valor_mercadoria: values.valor_mercadoria || null,
             numero_pedido: values.numero_pedido || null,
-            unidade_precificacao: values.unidade_precificacao || 'TON',
-            quantidade_precificacao: values.quantidade_precificacao || null,
-            valor_unitario_precificacao: values.valor_unitario_precificacao || null,
-            tipo_precificacao: 'por_tonelada',
-            valor_frete_tonelada: freteTotal > 0 ? freteTotal : null,
-            valor_frete_m3: null, valor_frete_fixo: null, valor_frete_km: null,
+            tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'fixo' : 'por_tonelada',
+            valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (freteTotal > 0 ? freteTotal : null) : null,
+            valor_frete_fixo: values.tipo_frete === 'valor_fixo' ? (values.valor_frete_fixo || null) : null,
+            valor_frete_m3: null, valor_frete_km: null,
             permite_fracionado: values.permite_fracionado,
             peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionado : null,
             carga_fragil: values.carga_fragil, carga_perigosa: values.carga_perigosa,
@@ -520,7 +509,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     filialId: number | null, empresaId: number,
   ) => {
     try {
-      const { data: carga, error: cargaError } = await supabase
+        const { data: carga, error: cargaError } = await supabase
         .from('cargas')
         .insert({
           empresa_id: empresaId, filial_id: filialId,
@@ -528,11 +517,9 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
           peso_kg: values.peso_kg, peso_disponivel_kg: values.peso_kg,
           volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
-          unidade_precificacao: values.unidade_precificacao || 'TON',
-          quantidade_precificacao: values.quantidade_precificacao || null,
-          valor_unitario_precificacao: values.valor_unitario_precificacao || null,
-          tipo_precificacao: 'por_tonelada',
-          valor_frete_tonelada: freteTotal > 0 ? freteTotal : null,
+          tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'fixo' : 'por_tonelada',
+          valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (freteTotal > 0 ? freteTotal : null) : null,
+          valor_frete_fixo: values.tipo_frete === 'valor_fixo' ? (values.valor_frete_fixo || null) : null,
           permite_fracionado: values.permite_fracionado,
           peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimo : null,
           carga_fragil: values.carga_fragil, carga_perigosa: values.carga_perigosa,
@@ -680,7 +667,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
           </div>
         );
 
-      case 'peso':
+      case 'peso_frete':
         return (
           <div className="space-y-5">
             <Alert className="border-primary/20 bg-primary/5">
@@ -717,52 +704,64 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
                 </div>
               )}
             </div>
-          </div>
-        );
 
-      case 'preco':
-        return (
-          <div className="space-y-4">
-            <FormField control={form.control} name="unidade_precificacao" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Unidade de Precificação *</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                  <SelectContent className="bg-popover border-border">
-                    {UNIDADES_PRECIFICACAO.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
-            <div className="grid grid-cols-2 gap-3">
-              <FormField control={form.control} name="quantidade_precificacao" render={({ field }) => (
+            {/* Frete Section */}
+            <Separator className="my-2" />
+            <SectionHeader icon={DollarSign} title="Precificação do Frete" />
+
+            {!permitefracionado && (
+              <FormField control={form.control} name="tipo_frete" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Quantidade ({unidadePrec})</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.0001" placeholder="0" readOnly={isWeightUnit} className={isWeightUnit ? 'bg-muted' : ''} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                  </FormControl>
-                  {isWeightUnit && <p className="text-xs text-muted-foreground">Preenchido pelo peso</p>}
+                  <FormLabel>Tipo de Frete</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent className="bg-popover border-border">
+                      {TIPOS_FRETE.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="valor_unitario_precificacao" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor (R$/{unidadePrec})</FormLabel>
-                  <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-            {freteTotal > 0 && (
-              <div className="p-3 rounded-lg border bg-muted/30 space-y-0.5">
-                <Label className="text-xs text-muted-foreground">Frete Total Estimado</Label>
-                <p className="text-xl font-bold text-primary">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {quantidadePrec} {unidadePrec} × R$ {(valorUnitarioPrec ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidadePrec}
-                </p>
+            )}
+
+            {tipoFrete === 'por_tonelada' && (
+              <div className="space-y-3">
+                <FormField control={form.control} name="valor_frete_tonelada" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor por Tonelada (R$/ton)</FormLabel>
+                    <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                {freteTotalTon > 0 && (
+                  <div className="p-3 rounded-lg border bg-muted/30 space-y-0.5">
+                    <Label className="text-xs text-muted-foreground">Frete Total Estimado</Label>
+                    <p className="text-xl font-bold text-primary">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotalTon)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {pesoTon} TON × R$ {(valorFreteTonelada ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/TON
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tipoFrete === 'valor_fixo' && (
+              <div className="space-y-3">
+                <FormField control={form.control} name="valor_frete_fixo" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor do Frete (R$)</FormLabel>
+                    <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <Alert className="border-muted">
+                  <Info className="w-4 h-4" />
+                  <AlertDescription className="text-xs">
+                    Valor fixo independente do peso carregado. Disponível apenas para carga fechada (sem fracionamento).
+                  </AlertDescription>
+                </Alert>
               </div>
             )}
           </div>
@@ -970,9 +969,9 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
                     peso_kg: form.watch('peso_kg'),
                     volume_m3: form.watch('volume_m3'),
                     valor_mercadoria: form.watch('valor_mercadoria'),
-                    unidade_precificacao: form.watch('unidade_precificacao'),
-                    quantidade_precificacao: form.watch('quantidade_precificacao'),
-                    valor_unitario_precificacao: form.watch('valor_unitario_precificacao'),
+                    tipo_frete: form.watch('tipo_frete'),
+                    valor_frete_tonelada: form.watch('valor_frete_tonelada'),
+                    valor_frete_fixo: form.watch('valor_frete_fixo'),
                     data_coleta_de: form.watch('data_coleta_de'),
                     data_coleta_ate: form.watch('data_coleta_ate'),
                     data_entrega_limite: form.watch('data_entrega_limite'),

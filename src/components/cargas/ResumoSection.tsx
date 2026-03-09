@@ -56,16 +56,9 @@ interface ResumoSectionProps {
     peso_kg: number;
     volume_m3?: number;
     valor_mercadoria?: number;
-    // New NF-e pricing
-    unidade_precificacao?: string;
-    quantidade_precificacao?: number;
-    valor_unitario_precificacao?: number;
-    // Legacy
-    tipo_precificacao?: string;
+    tipo_frete?: string;
     valor_frete_tonelada?: number;
-    valor_frete_m3?: number;
     valor_frete_fixo?: number;
-    valor_frete_km?: number;
     data_coleta_de: string;
     data_coleta_ate?: string;
     data_entrega_limite?: string;
@@ -134,13 +127,13 @@ export function ResumoSection({
   const hasValidDestino = destinoData.cidade && destinoData.logradouro;
   const hasValidRoute = origemLat !== 0 && origemLng !== 0 && destinoLat !== 0 && destinoLng !== 0;
 
-  // NF-e pricing
-  const unidade = cargaData.unidade_precificacao;
-  const qtdPrec = cargaData.quantidade_precificacao;
-  const vlrUnit = cargaData.valor_unitario_precificacao;
-  const freteTotal = (qtdPrec ?? 0) > 0 && (vlrUnit ?? 0) > 0
-    ? Math.round((qtdPrec ?? 0) * (vlrUnit ?? 0) * 100) / 100
-    : 0;
+  // Freight calculation
+  const pesoTon = cargaData.peso_kg > 0 ? Math.round((cargaData.peso_kg / 1000) * 10000) / 10000 : 0;
+  const freteTotal = cargaData.tipo_frete === 'valor_fixo'
+    ? (cargaData.valor_frete_fixo ?? 0)
+    : (pesoTon > 0 && (cargaData.valor_frete_tonelada ?? 0) > 0
+      ? Math.round(pesoTon * (cargaData.valor_frete_tonelada ?? 0) * 100) / 100
+      : 0);
 
   return (
     <div className="space-y-3">
@@ -211,17 +204,11 @@ export function ResumoSection({
           <Badge variant="secondary" className="text-[11px] px-1.5 py-0"><Weight className="w-2.5 h-2.5 mr-0.5" />{cargaData.peso_kg} kg</Badge>
           {cargaData.volume_m3 && <Badge variant="secondary" className="text-[11px] px-1.5 py-0"><Box className="w-2.5 h-2.5 mr-0.5" />{cargaData.volume_m3} m³</Badge>}
           {cargaData.valor_mercadoria && <Badge variant="secondary" className="text-[11px] px-1.5 py-0">R$ {cargaData.valor_mercadoria.toLocaleString('pt-BR')}</Badge>}
-          {unidade && (vlrUnit ?? 0) > 0 && (
-            <>
-              <Badge variant="outline" className="text-[11px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
-                R$ {(vlrUnit ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidade}
-              </Badge>
-              {freteTotal > 0 && (
-                <Badge variant="default" className="text-[11px] px-1.5 py-0 bg-green-500/10 text-green-600 border-green-500/20">
-                  Total: R$ {freteTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </Badge>
-              )}
-            </>
+          {freteTotal > 0 && (
+            <Badge variant="default" className="text-[11px] px-1.5 py-0 bg-green-500/10 text-green-600 border-green-500/20">
+              Frete: R$ {freteTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              {cargaData.tipo_frete === 'valor_fixo' ? ' (fixo)' : '/ton'}
+            </Badge>
           )}
         </div>
 
