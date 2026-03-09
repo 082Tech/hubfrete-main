@@ -959,6 +959,16 @@ export default function HistoricoEntregas() {
                                                           <MessageCircle className="w-4 h-4 mr-2" />
                                                           Ver conversa
                                                         </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => {
+                                                          setTrackingEntregaId(entrega.id);
+                                                          setTrackingEntregaInfo({
+                                                            motorista: viagem.motorista?.nome_completo || 'Motorista',
+                                                            placa: viagem.veiculo?.placa || '-',
+                                                          });
+                                                        }}>
+                                                          <Route className="w-4 h-4 mr-2" />
+                                                          Ver rastreamento
+                                                        </DropdownMenuItem>
                                                       </DropdownMenuContent>
                                                     </DropdownMenu>
                                                   </td>
