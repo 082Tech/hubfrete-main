@@ -333,6 +333,7 @@ export default function Empresas() {
       cnpj_matriz: empresa.cnpj_matriz || '',
       tipo: empresa.tipo,
       classe: empresa.classe as ClasseEmpresa,
+      comissao_hubfrete_percent: empresa.comissao_hubfrete_percent || 0,
     });
     setEditDialogOpen(true);
   };
