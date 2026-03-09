@@ -349,6 +349,7 @@ export default function Empresas() {
       cnpj_matriz: '',
       tipo: 'EMBARCADOR',
       classe: 'COMÉRCIO',
+      comissao_hubfrete_percent: 0,
     });
     setSelectedEmpresa(null);
   };
