@@ -248,8 +248,8 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      descricao: '', tipo: 'carga_seca', peso_kg: 0, unidade_precificacao: 'TON',
-      quantidade_precificacao: undefined, valor_unitario_precificacao: undefined,
+      descricao: '', tipo: 'carga_seca', peso_kg: 0, tipo_frete: 'por_tonelada',
+      valor_frete_tonelada: undefined, valor_frete_fixo: undefined,
       permite_fracionado: true, carga_fragil: false, carga_perigosa: false, carga_viva: false,
       empilhavel: true, requer_refrigeracao: false, regras_carregamento: '', expira_em: addDays(30), numero_pedido: '',
     },
