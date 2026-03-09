@@ -925,17 +925,18 @@ function GestaoMapDialogContent({
 }
 
 function GestaoMapDialog({
-  open, onOpenChange, entregas, localizacoes,
+  open, onOpenChange, entregas, localizacoes, initialSelectedEntregaId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+  initialSelectedEntregaId?: string | null;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
-        <GestaoMapDialogContent entregas={entregas} localizacoes={localizacoes} />
+        <GestaoMapDialogContent entregas={entregas} localizacoes={localizacoes} initialSelectedEntregaId={open ? initialSelectedEntregaId : null} />
       </DialogContent>
     </Dialog>
   );
