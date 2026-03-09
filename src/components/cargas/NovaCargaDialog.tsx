@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, DollarSign, Weight, Info, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
