@@ -1073,6 +1073,12 @@ export default function HistoricoEntregas() {
           onClose={() => { setTrackingViagemId(null); setTrackingViagemInfo(null); }}
         />
 
+        <TrackingMapDialog
+          entregaId={trackingEntregaId}
+          info={trackingEntregaInfo}
+          onClose={() => { setTrackingEntregaId(null); setTrackingEntregaInfo(null); }}
+        />
+
         <ViagemDetailsHistoricoDialog
           viagem={selectedViagem}
           open={detailViagemOpen}
