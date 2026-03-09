@@ -90,6 +90,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: Boxes, label: 'Minhas Ofertas', href: '/embarcador/ofertas' },
     // Cargas is now a submenu - handled separately
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
+    { icon: DollarSign, label: 'Financeiro', href: '/embarcador/financeiro' },
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
