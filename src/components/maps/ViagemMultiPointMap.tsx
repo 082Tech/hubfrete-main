@@ -186,7 +186,7 @@ export function ViagemMultiPointMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <FitBoundsToPoints points={allPoints} />
+        <FitBoundsOnce points={allPoints} />
 
         {/* Origens - Marcadores verdes com "O" */}
         {entregas.map((entrega) => (
