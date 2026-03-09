@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Route, Loader2, MapPinOff } from 'lucide-react';
@@ -12,51 +12,54 @@ interface TrackingMapDialogProps {
   onClose: () => void;
 }
 
-/** Fits the map once to include all CircleMarkers after they render */
-function useFitToMarkers(mapRef: React.RefObject<L.Map | null>, entregaId: string | null) {
-  const fittedRef = useRef<string | null>(null);
+/** Fits map bounds to all markers once data is loaded */
+function FitBoundsOnData({ shouldFit }: { shouldFit: boolean }) {
+  const map = useMap();
+  const hasFitted = useRef(false);
 
   useEffect(() => {
-    if (!entregaId) {
-      fittedRef.current = null;
-      return;
-    }
+    if (!shouldFit || hasFitted.current) return;
 
-    // Wait for markers to render
-    const timer = setTimeout(() => {
-      const map = mapRef.current;
-      if (!map || fittedRef.current === entregaId) return;
-
-      const bounds = L.latLngBounds([]);
-      map.eachLayer((layer) => {
-        if (layer instanceof L.CircleMarker) {
-          bounds.extend(layer.getLatLng());
-        }
-      });
-
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [50, 50] });
-        fittedRef.current = entregaId;
+    const bounds = L.latLngBounds([]);
+    map.eachLayer((layer) => {
+      if (layer instanceof L.CircleMarker || layer instanceof L.Marker) {
+        bounds.extend(layer.getLatLng());
       }
-    }, 800);
+    });
 
-    return () => clearTimeout(timer);
-  }, [mapRef, entregaId]);
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+      hasFitted.current = true;
+    }
+  }, [map, shouldFit]);
+
+  return null;
 }
 
 export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialogProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const mapRef = useRef<L.Map | null>(null);
+  const [isEmpty, setIsEmpty] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
 
-  useFitToMarkers(mapRef, entregaId);
-
-  // Track loading via a simple timer (markers load async inside TrackingHistoryMarkers)
+  // Reset state when entregaId changes
   useEffect(() => {
-    if (!entregaId) return;
-    setIsLoading(true);
-    const timer = setTimeout(() => setIsLoading(false), 1200);
-    return () => clearTimeout(timer);
+    if (entregaId) {
+      setIsLoading(true);
+      setIsEmpty(false);
+      setDataReady(false);
+    }
   }, [entregaId]);
+
+  const handleLoadingChange = useCallback((loading: boolean) => {
+    setIsLoading(loading);
+  }, []);
+
+  const handlePointsLoaded = useCallback((points: any[], origin: any, destination: any) => {
+    const hasData = points.length > 0 || origin || destination;
+    setIsEmpty(!hasData);
+    // Delay slightly to let markers render before fitting bounds
+    setTimeout(() => setDataReady(true), 200);
+  }, []);
 
   return (
     <Dialog open={!!entregaId} onOpenChange={(open) => !open && onClose()}>
@@ -81,19 +84,37 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
               </div>
             </div>
           )}
-          <MapContainer
-            center={[-15.78, -47.93]}
-            zoom={4}
-            style={{ width: '100%', height: '100%' }}
-            scrollWheelZoom={true}
-            ref={mapRef}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {entregaId && <TrackingHistoryMarkers entregaId={entregaId} />}
-          </MapContainer>
+          {!isLoading && isEmpty && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+              <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
+                <MapPinOff className="w-10 h-10 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="font-medium text-foreground">Nenhum histórico encontrado</p>
+                  <p className="text-sm text-muted-foreground">Ainda não há registros de rastreamento para esta entrega</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {entregaId && (
+            <MapContainer
+              key={entregaId}
+              center={[-15.78, -47.93]}
+              zoom={4}
+              style={{ width: '100%', height: '100%' }}
+              scrollWheelZoom={true}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <TrackingHistoryMarkers
+                entregaId={entregaId}
+                onLoadingChange={handleLoadingChange}
+                onPointsLoaded={handlePointsLoaded}
+              />
+              <FitBoundsOnData shouldFit={dataReady} />
+            </MapContainer>
+          )}
         </div>
       </DialogContent>
     </Dialog>
