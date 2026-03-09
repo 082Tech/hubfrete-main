@@ -1472,13 +1472,28 @@ export default function OfertasDisponiveis() {
             {(() => {
               const totalFrete = calcularFreteTotal(carga);
               if (totalFrete === null) return null;
+              const comissao = (carga.empresa as any)?.comissao_hubfrete_percent || 0;
+              const freteLiquido = calcularFreteLiquido(totalFrete, comissao);
 
               return (
                 <div className="flex flex-col items-end gap-0.5">
                   <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
-                    {formatCurrency(totalFrete)}
+                    {formatCurrency(freteLiquido)}
                   </div>
-                  {carga.tipo_precificacao === 'fixo' ? (
+                  {comissao > 0 ? (
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help">
+                        <span className="text-[10px] text-muted-foreground line-through">
+                          {formatCurrency(totalFrete)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Valor bruto: {formatCurrency(totalFrete)}</p>
+                        <p>Comissão HubFrete ({comissao}%): -{formatCurrency(totalFrete - (freteLiquido || 0))}</p>
+                        <p className="font-semibold">Valor líquido: {formatCurrency(freteLiquido)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : carga.tipo_precificacao === 'fixo' ? (
                     <span className="text-xs text-muted-foreground">
                       (Valor Fixo)
                     </span>
