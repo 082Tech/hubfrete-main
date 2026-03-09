@@ -18,6 +18,11 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/reportExport';
+import { Pagination } from '@/components/admin/Pagination';
+import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+const ITEMS_PER_PAGE = 15;
 
 export default function EmbarcadorFinanceiro() {
   const { empresa } = useUserContext();
@@ -27,6 +32,9 @@ export default function EmbarcadorFinanceiro() {
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [dateFrom, setDateFrom] = useState(firstDayOfMonth);
   const [dateTo, setDateTo] = useState(today);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const { ref: tableRef, height: tableHeight } = useRemainingViewportHeight({ bottomOffset: 56 });
 
   const { data: registros, isLoading } = useQuery({
     queryKey: ['embarcador-financeiro', empresa?.id, statusFilter, dateFrom, dateTo],
@@ -60,6 +68,10 @@ export default function EmbarcadorFinanceiro() {
   const totalPago = registros?.filter(r => r.status === 'pago').reduce((s: number, r: any) => s + Number(r.valor_frete), 0) || 0;
   const totalComissao = registros?.reduce((s: number, r: any) => s + Number(r.valor_comissao), 0) || 0;
   const qtdPendente = registros?.filter(r => r.status === 'pendente').length || 0;
+
+  const totalItems = registros?.length || 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  const paginatedRegistros = registros?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE) || [];
 
   return (
     <div className="p-6 space-y-6">
@@ -120,7 +132,7 @@ export default function EmbarcadorFinanceiro() {
       <div className="flex flex-wrap gap-3 items-end">
         <div className="w-36">
           <Label className="text-xs text-muted-foreground">Status</Label>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
@@ -131,70 +143,83 @@ export default function EmbarcadorFinanceiro() {
         </div>
         <div className="w-40">
           <Label className="text-xs text-muted-foreground">De</Label>
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }} />
         </div>
         <div className="w-40">
           <Label className="text-xs text-muted-foreground">Até</Label>
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }} />
         </div>
       </div>
 
       {/* Table */}
-      <Card className="border-border">
-        <CardContent className="p-0">
+      <Card className="border-border flex flex-col" ref={tableRef} style={{ height: tableHeight }}>
+        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
           {isLoading ? (
             <div className="p-6 space-y-3">
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Entrega</TableHead>
-                  <TableHead>Transportadora</TableHead>
-                  <TableHead>Motorista</TableHead>
-                  <TableHead className="text-right">Valor do Frete</TableHead>
-                  <TableHead className="text-right">Comissão</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Data</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {registros?.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
-                      Nenhum registro financeiro encontrado
-                    </TableCell>
-                  </TableRow>
-                )}
-                {registros?.map((r: any) => (
-                  <TableRow key={r.id}>
-                    <TableCell>
-                      <p className="font-medium text-sm">{r.entregas?.codigo || '—'}</p>
-                      <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {r.empresa_transportadora?.nome_fantasia || r.empresa_transportadora?.nome || '—'}
-                    </TableCell>
-                    <TableCell className="text-sm">{r.entregas?.motoristas?.nome_completo || '—'}</TableCell>
-                    <TableCell className="text-right font-semibold">{formatCurrency(r.valor_frete)}</TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground">
-                      {r.valor_comissao > 0 ? formatCurrency(r.valor_comissao) : '—'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
-                        {r.status === 'pago' ? 'Pago' : 'A Pagar'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {r.data_pagamento
-                        ? format(new Date(r.data_pagamento), 'dd/MM/yyyy')
-                        : format(new Date(r.created_at), 'dd/MM/yyyy')}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <>
+              <ScrollArea className="flex-1">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Entrega</TableHead>
+                      <TableHead>Transportadora</TableHead>
+                      <TableHead>Motorista</TableHead>
+                      <TableHead className="text-right">Valor do Frete</TableHead>
+                      <TableHead className="text-right">Comissão</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Data</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedRegistros.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
+                          Nenhum registro financeiro encontrado
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {paginatedRegistros.map((r: any) => (
+                      <TableRow key={r.id}>
+                        <TableCell>
+                          <p className="font-medium text-sm">{r.entregas?.codigo || '—'}</p>
+                          <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {r.empresa_transportadora?.nome_fantasia || r.empresa_transportadora?.nome || '—'}
+                        </TableCell>
+                        <TableCell className="text-sm">{r.entregas?.motoristas?.nome_completo || '—'}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(r.valor_frete)}</TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground">
+                          {r.valor_comissao > 0 ? formatCurrency(r.valor_comissao) : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
+                            {r.status === 'pago' ? 'Pago' : 'A Pagar'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {r.data_pagamento
+                            ? format(new Date(r.data_pagamento), 'dd/MM/yyyy')
+                            : format(new Date(r.created_at), 'dd/MM/yyyy')}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+              {totalItems > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setCurrentPage}
+                />
+              )}
+            </>
           )}
         </CardContent>
       </Card>
