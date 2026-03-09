@@ -1,30 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Shield,
-  Users,
-  UserPlus,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  LayoutDashboard,
-  TrendingUp,
-  Activity,
-  Truck,
-  AlertTriangle,
-  Building,
-  User,
-  FileText,
-  Package,
-  History,
-  Clock,
-  Award,
-  Container,
-  UserPlus as UserPlusIcon,
-  Camera,
-  FileCheck,
-  HardDrive,
+  Shield, Users, UserPlus, LogOut, ChevronLeft, ChevronRight, ChevronDown,
+  LayoutDashboard, TrendingUp, Activity, Truck, AlertTriangle, Building,
+  User, FileText, Package, History, Clock, Award, Container,
+  UserPlus as UserPlusIcon, Camera, FileCheck, HardDrive, DollarSign,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -211,6 +191,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       icon: FileCheck,
       href: '/admin/documentos',
       roles: ['super_admin', 'admin', 'suporte'],
+    },
+    {
+      title: 'Financeiro',
+      icon: DollarSign,
+      href: '/admin/financeiro',
+      roles: ['super_admin', 'admin'],
     },
     {
       title: 'Relatórios',

@@ -1,37 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Package,
-  FileText,
-  Settings,
-  LogOut,
-  Truck,
-  Building2,
-  User,
-  Users,
-  MapPin,
-  Calendar,
-  BarChart3,
-  Bell,
-  ChevronDown,
-  Check,
-  Sparkles,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Home,
-  History,
-  Send,
-  Route,
-  Pin,
-  Building,
-  MessageSquare,
-  MoreVertical,
-  ArrowRightLeft,
-  Link2,
-  Container,
-  Boxes,
+  LayoutDashboard, Package, FileText, Settings, LogOut, Truck, Building2,
+  User, Users, MapPin, Calendar, BarChart3, Bell, ChevronDown, Check,
+  Sparkles, Loader2, ChevronLeft, ChevronRight, Home, History, Send,
+  Route, Pin, Building, MessageSquare, MoreVertical, ArrowRightLeft,
+  Link2, Container, Boxes, DollarSign,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -116,6 +90,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: Boxes, label: 'Minhas Ofertas', href: '/embarcador/ofertas' },
     // Cargas is now a submenu - handled separately
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
+    { icon: DollarSign, label: 'Financeiro', href: '/embarcador/financeiro' },
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
@@ -130,6 +105,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
     { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
+    { icon: DollarSign, label: 'Financeiro', href: '/transportadora/financeiro' },
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true },
