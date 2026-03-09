@@ -71,7 +71,7 @@ function createODIcon(letter: string, color: string): L.DivIcon {
 const originIcon = createODIcon('O', '#16a34a');
 const destinationIcon = createODIcon('D', '#dc2626');
 
-export function TrackingHistoryMarkers({ entregaId, viagemId, onLoadingChange, onPointsLoaded }: TrackingHistoryMarkersProps) {
+export function TrackingHistoryMarkers({ entregaId, viagemId, hideOriginDestination, onLoadingChange, onPointsLoaded }: TrackingHistoryMarkersProps) {
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
   const [origin, setOrigin] = useState<OriginDestination | null>(null);
   const [destination, setDestination] = useState<OriginDestination | null>(null);
