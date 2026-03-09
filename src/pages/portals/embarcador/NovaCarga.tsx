@@ -115,32 +115,32 @@ export default function NovaCarga() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      descricao: '', tipo: 'carga_seca', peso_kg: 0, unidade_precificacao: 'TON',
-      quantidade_precificacao: undefined, valor_unitario_precificacao: undefined,
+      descricao: '', tipo: 'carga_seca', peso_kg: 0, tipo_frete: 'por_tonelada',
+      valor_frete_tonelada: undefined, valor_frete_fixo: undefined,
       permite_fracionado: true, carga_fragil: false, carga_perigosa: false, carga_viva: false,
       empilhavel: true, requer_refrigeracao: false, regras_carregamento: '', expira_em: addDays(30), numero_pedido: '',
     },
   });
 
   const pesoKg = form.watch('peso_kg');
-  const quantidadePrec = form.watch('quantidade_precificacao');
-  const valorUnitarioPrec = form.watch('valor_unitario_precificacao');
-  const unidadePrec = form.watch('unidade_precificacao');
+  const tipoFrete = form.watch('tipo_frete');
+  const valorFreteTonelada = form.watch('valor_frete_tonelada');
+  const valorFreteFixo = form.watch('valor_frete_fixo');
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
-
-  const isWeightUnit = unidadePrec === 'KG' || unidadePrec === 'TON';
+  const permitefracionado = form.watch('permite_fracionado');
 
   useEffect(() => {
-    if (isWeightUnit && pesoKg > 0) {
-      const val = unidadePrec === 'TON' ? Math.round((pesoKg / 1000) * 10000) / 10000 : pesoKg;
-      form.setValue('quantidade_precificacao', val);
+    if (permitefracionado && tipoFrete === 'valor_fixo') {
+      form.setValue('tipo_frete', 'por_tonelada');
     }
-  }, [pesoKg, unidadePrec, isWeightUnit, form]);
+  }, [permitefracionado, tipoFrete, form]);
 
-  const freteTotal = (quantidadePrec ?? 0) > 0 && (valorUnitarioPrec ?? 0) > 0
-    ? Math.round((quantidadePrec ?? 0) * (valorUnitarioPrec ?? 0) * 100) / 100
+  const pesoTon = pesoKg > 0 ? Math.round((pesoKg / 1000) * 10000) / 10000 : 0;
+  const freteTotalTon = tipoFrete === 'por_tonelada' && pesoTon > 0 && (valorFreteTonelada ?? 0) > 0
+    ? Math.round(pesoTon * (valorFreteTonelada ?? 0) * 100) / 100
     : 0;
+  const freteTotal = tipoFrete === 'valor_fixo' ? (valorFreteFixo ?? 0) : freteTotalTon;
 
   const validateLocations = (): boolean => {
     if (!origemData.cidade || !origemData.logradouro) {
