@@ -127,13 +127,13 @@ export function ResumoSection({
   const hasValidDestino = destinoData.cidade && destinoData.logradouro;
   const hasValidRoute = origemLat !== 0 && origemLng !== 0 && destinoLat !== 0 && destinoLng !== 0;
 
-  // NF-e pricing
-  const unidade = cargaData.unidade_precificacao;
-  const qtdPrec = cargaData.quantidade_precificacao;
-  const vlrUnit = cargaData.valor_unitario_precificacao;
-  const freteTotal = (qtdPrec ?? 0) > 0 && (vlrUnit ?? 0) > 0
-    ? Math.round((qtdPrec ?? 0) * (vlrUnit ?? 0) * 100) / 100
-    : 0;
+  // Freight calculation
+  const pesoTon = cargaData.peso_kg > 0 ? Math.round((cargaData.peso_kg / 1000) * 10000) / 10000 : 0;
+  const freteTotal = cargaData.tipo_frete === 'valor_fixo'
+    ? (cargaData.valor_frete_fixo ?? 0)
+    : (pesoTon > 0 && (cargaData.valor_frete_tonelada ?? 0) > 0
+      ? Math.round(pesoTon * (cargaData.valor_frete_tonelada ?? 0) * 100) / 100
+      : 0);
 
   return (
     <div className="space-y-3">
