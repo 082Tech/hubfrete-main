@@ -3082,29 +3082,49 @@ export default function OfertasDisponiveis() {
                     </div>
 
                     {/* Valor do Frete */}
-                    <div className="p-4 bg-chart-2/10 rounded-lg border border-chart-2/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <DollarSign className="w-4 h-4 text-chart-2" />
-                        <span className="text-sm font-medium text-chart-2">Frete a Receber</span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Valor unitário:</span>
-                          <span>{formatCurrency(selectedCarga.valor_frete_tonelada)}/ton</span>
+                    {(() => {
+                      const comissaoPercent = (selectedCarga.empresa as any)?.comissao_hubfrete_percent || 0;
+                      const valorComissao = comissaoPercent > 0 ? Math.round(calculatedFrete * comissaoPercent / 100 * 100) / 100 : 0;
+                      const freteLiquido = calculatedFrete - valorComissao;
+
+                      return (
+                        <div className="p-4 bg-chart-2/10 rounded-lg border border-chart-2/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <DollarSign className="w-4 h-4 text-chart-2" />
+                            <span className="text-sm font-medium text-chart-2">Frete a Receber</span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Valor unitário:</span>
+                              <span>{formatCurrency(selectedCarga.valor_frete_tonelada)}/ton</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Peso alocado:</span>
+                              <span className="font-medium">{(pesoTotalAlocado / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Valor do frete:</span>
+                              <span className="font-medium">{formatCurrency(calculatedFrete)}</span>
+                            </div>
+                            {comissaoPercent > 0 && (
+                              <>
+                                <div className="flex justify-between text-sm text-destructive">
+                                  <span>Comissão HubFrete ({comissaoPercent}%):</span>
+                                  <span>- {formatCurrency(valorComissao)}</span>
+                                </div>
+                              </>
+                            )}
+                            <Separator className="my-2" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-semibold">{comissaoPercent > 0 ? 'Valor líquido:' : 'Valor total:'}</span>
+                              <span className="text-2xl font-bold text-chart-2">
+                                {formatCurrency(freteLiquido)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Peso alocado:</span>
-                          <span className="font-medium">{(pesoTotalAlocado / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton</span>
-                        </div>
-                        <Separator className="my-2" />
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-semibold">Valor total:</span>
-                          <span className="text-2xl font-bold text-chart-2">
-                            {formatCurrency(calculatedFrete)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
                   </div>
                   </div>)}
                 </div>
