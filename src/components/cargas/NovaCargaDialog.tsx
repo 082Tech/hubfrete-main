@@ -666,7 +666,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
           </div>
         );
 
-      case 'peso':
+      case 'peso_frete':
         return (
           <div className="space-y-5">
             <Alert className="border-primary/20 bg-primary/5">
@@ -703,52 +703,64 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
                 </div>
               )}
             </div>
-          </div>
-        );
 
-      case 'preco':
-        return (
-          <div className="space-y-4">
-            <FormField control={form.control} name="unidade_precificacao" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Unidade de Precificação *</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                  <SelectContent className="bg-popover border-border">
-                    {UNIDADES_PRECIFICACAO.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
-            <div className="grid grid-cols-2 gap-3">
-              <FormField control={form.control} name="quantidade_precificacao" render={({ field }) => (
+            {/* Frete Section */}
+            <Separator className="my-2" />
+            <SectionHeader icon={DollarSign} title="Precificação do Frete" />
+
+            {!permitefracionado && (
+              <FormField control={form.control} name="tipo_frete" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Quantidade ({unidadePrec})</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.0001" placeholder="0" readOnly={isWeightUnit} className={isWeightUnit ? 'bg-muted' : ''} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                  </FormControl>
-                  {isWeightUnit && <p className="text-xs text-muted-foreground">Preenchido pelo peso</p>}
+                  <FormLabel>Tipo de Frete</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent className="bg-popover border-border">
+                      {TIPOS_FRETE.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="valor_unitario_precificacao" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor (R$/{unidadePrec})</FormLabel>
-                  <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-            {freteTotal > 0 && (
-              <div className="p-3 rounded-lg border bg-muted/30 space-y-0.5">
-                <Label className="text-xs text-muted-foreground">Frete Total Estimado</Label>
-                <p className="text-xl font-bold text-primary">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {quantidadePrec} {unidadePrec} × R$ {(valorUnitarioPrec ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/{unidadePrec}
-                </p>
+            )}
+
+            {tipoFrete === 'por_tonelada' && (
+              <div className="space-y-3">
+                <FormField control={form.control} name="valor_frete_tonelada" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor por Tonelada (R$/ton)</FormLabel>
+                    <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                {freteTotalTon > 0 && (
+                  <div className="p-3 rounded-lg border bg-muted/30 space-y-0.5">
+                    <Label className="text-xs text-muted-foreground">Frete Total Estimado</Label>
+                    <p className="text-xl font-bold text-primary">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotalTon)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {pesoTon} TON × R$ {(valorFreteTonelada ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/TON
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tipoFrete === 'valor_fixo' && (
+              <div className="space-y-3">
+                <FormField control={form.control} name="valor_frete_fixo" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor do Frete (R$)</FormLabel>
+                    <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <Alert className="border-muted">
+                  <Info className="w-4 h-4" />
+                  <AlertDescription className="text-xs">
+                    Valor fixo independente do peso carregado. Disponível apenas para carga fechada (sem fracionamento).
+                  </AlertDescription>
+                </Alert>
               </div>
             )}
           </div>
