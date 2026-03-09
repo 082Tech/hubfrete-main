@@ -1000,9 +1000,17 @@ export default function HistoricoCargas() {
                                 <span className="font-medium">{formatWeight(carga.peso_kg)}</span>
                               </td>
                               <td className="p-4 align-middle">
-                                <span className="font-medium text-sm text-green-600">
-                                  {formatCurrency(getTotalFrete(carga))}
-                                </span>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="font-medium text-sm text-green-600 cursor-help inline-flex items-center gap-1">
+                                      {formatCurrency(getTotalFrete(carga))}
+                                      <Info className="w-3 h-3 text-muted-foreground" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs">Inclui comissão HubFrete</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </td>
                               <td className="p-4 align-middle text-center">
                                 <Badge variant="outline" className="text-xs">
