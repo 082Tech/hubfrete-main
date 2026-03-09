@@ -122,13 +122,13 @@ export default function TransportadoraFinanceiro() {
         <p className="text-sm text-muted-foreground">Valores a receber e configuração bancária</p>
       </div>
 
-      <Tabs defaultValue="receber">
+      <Tabs defaultValue="receber" className="space-y-6">
         <TabsList>
           <TabsTrigger value="receber">A Receber</TabsTrigger>
           <TabsTrigger value="conta">Conta de Recebimento</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="receber" className="space-y-6">
+        <TabsContent value="receber" className="space-y-6 mt-0">
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="border-border">
