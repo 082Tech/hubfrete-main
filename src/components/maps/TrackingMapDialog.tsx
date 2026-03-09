@@ -39,6 +39,7 @@ function FitBoundsOnData({ shouldFit }: { shouldFit: boolean }) {
 export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialogProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
+  const [noTrackingPoints, setNoTrackingPoints] = useState(false);
   const [dataReady, setDataReady] = useState(false);
 
   useEffect(() => {
