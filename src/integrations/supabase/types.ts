@@ -1095,6 +1095,7 @@ export type Database = {
           cnpj_matriz: string | null
           comissao_hubfrete_percent: number | null
           created_at: string
+          dados_bancarios: Json | null
           email: string | null
           id: number
           inscricao_estadual: string | null
@@ -1111,6 +1112,7 @@ export type Database = {
           cnpj_matriz?: string | null
           comissao_hubfrete_percent?: number | null
           created_at?: string
+          dados_bancarios?: Json | null
           email?: string | null
           id?: number
           inscricao_estadual?: string | null
@@ -1127,6 +1129,7 @@ export type Database = {
           cnpj_matriz?: string | null
           comissao_hubfrete_percent?: number | null
           created_at?: string
+          dados_bancarios?: Json | null
           email?: string | null
           id?: number
           inscricao_estadual?: string | null
@@ -1486,6 +1489,85 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financeiro_entregas: {
+        Row: {
+          baixa_por: string | null
+          comprovante_url: string | null
+          created_at: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          empresa_embarcadora_id: number | null
+          empresa_transportadora_id: number | null
+          entrega_id: string
+          id: string
+          metodo_pagamento: string | null
+          observacoes: string | null
+          status: string
+          updated_at: string | null
+          valor_comissao: number
+          valor_frete: number
+          valor_liquido: number
+        }
+        Insert: {
+          baixa_por?: string | null
+          comprovante_url?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          empresa_embarcadora_id?: number | null
+          empresa_transportadora_id?: number | null
+          entrega_id: string
+          id?: string
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string | null
+          valor_comissao?: number
+          valor_frete?: number
+          valor_liquido?: number
+        }
+        Update: {
+          baixa_por?: string | null
+          comprovante_url?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          empresa_embarcadora_id?: number | null
+          empresa_transportadora_id?: number | null
+          entrega_id?: string
+          id?: string
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string | null
+          valor_comissao?: number
+          valor_frete?: number
+          valor_liquido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_entregas_empresa_embarcadora_id_fkey"
+            columns: ["empresa_embarcadora_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_empresa_transportadora_id_fkey"
+            columns: ["empresa_transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: true
+            referencedRelation: "entregas"
             referencedColumns: ["id"]
           },
         ]
