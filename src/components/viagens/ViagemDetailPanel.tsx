@@ -405,6 +405,7 @@ export function ViagemDetailPanel({
           {/* Mapa Multi-Ponto with tracking dots */}
           <div className="relative z-0">
             <ViagemMultiPointMap
+              key={viagem.id}
               entregas={mapEntregas}
               driverLocation={driverLocation}
               trackingPoints={trackingPoints}

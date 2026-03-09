@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, CircleMarker, Tooltip, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -124,13 +124,15 @@ function formatDateTime(dateString: string): string {
 }
 
 // Componente para ajustar bounds automaticamente
-function FitBoundsToPoints({ points }: { points: Coordinate[] }) {
+function FitBoundsOnce({ points }: { points: Coordinate[] }) {
   const map = useMap();
+  const hasFitted = useRef(false);
 
   useEffect(() => {
-    if (points.length === 0) return;
+    if (points.length === 0 || hasFitted.current) return;
     const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
     map.fitBounds(bounds, { padding: [50, 50] });
+    hasFitted.current = true;
   }, [map, points]);
 
   return null;
@@ -184,7 +186,7 @@ export function ViagemMultiPointMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <FitBoundsToPoints points={allPoints} />
+        <FitBoundsOnce points={allPoints} />
 
         {/* Origens - Marcadores verdes com "O" */}
         {entregas.map((entrega) => (
