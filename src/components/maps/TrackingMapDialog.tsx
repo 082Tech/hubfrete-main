@@ -54,8 +54,9 @@ export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialo
   }, []);
 
   const handlePointsLoaded = useCallback((points: any[], origin: any, destination: any) => {
-    const hasData = points.length > 0 || origin || destination;
-    setIsEmpty(!hasData);
+    const hasAnyData = points.length > 0 || origin || destination;
+    setIsEmpty(!hasAnyData);
+    setNoTrackingPoints(points.length === 0);
     setTimeout(() => setDataReady(true), 200);
   }, []);
 
