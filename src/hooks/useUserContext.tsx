@@ -19,6 +19,7 @@ export interface Empresa {
   tipo: 'EMBARCADOR' | 'TRANSPORTADORA';
   classe: string;
   logo_url: string | null;
+  comissao_hubfrete_percent: number | null;
 }
 
 export interface CompanyInfo {
