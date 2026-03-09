@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ResumoSection } from '@/components/cargas/ResumoSection';
 import { VeiculoCarroceriaSelect } from '@/components/cargas/VeiculoCarroceriaSelect';
-import { UNIDADES_PRECIFICACAO } from '@/components/cargas/NovaCargaDialog';
+// TIPOS_FRETE imported inline
 
 type TipoCarga = Database['public']['Enums']['tipo_carga'];
 
