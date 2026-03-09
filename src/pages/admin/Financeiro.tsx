@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { AdminLayoutWrapper } from '@/components/admin/AdminLayoutWrapper';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,13 +18,17 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
-  DollarSign, CheckCircle, Clock, TrendingUp, Search, Download,
+  DollarSign, CheckCircle, Clock, TrendingUp, Search,
   Eye, Receipt, Upload,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
+import { Pagination } from '@/components/admin/Pagination';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+
+const ITEMS_PER_PAGE = 15;
 
 interface FinanceiroEntrega {
   id: string;
@@ -58,8 +61,15 @@ export default function Financeiro() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [dateTo, setDateTo] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [currentPage, setCurrentPage] = useState(1);
   const [baixaDialog, setBaixaDialog] = useState<FinanceiroEntrega | null>(null);
   const [baixaForm, setBaixaForm] = useState({
     data_pagamento: format(new Date(), 'yyyy-MM-dd'),
@@ -68,6 +78,8 @@ export default function Financeiro() {
   });
   const [uploading, setUploading] = useState(false);
   const [comprovante, setComprovante] = useState<File | null>(null);
+
+  const { ref: tableRef, height: tableHeight } = useRemainingViewportHeight({ bottomOffset: 16 });
 
   const { data: registros, isLoading } = useQuery({
     queryKey: ['admin-financeiro', statusFilter, dateFrom, dateTo],
@@ -128,25 +140,29 @@ export default function Financeiro() {
 
   const handleBaixa = async () => {
     if (!baixaDialog) return;
+
+    if (!comprovante) {
+      toast.error('O comprovante de pagamento é obrigatório.');
+      return;
+    }
+
     let comprovante_url: string | undefined;
 
-    if (comprovante) {
-      setUploading(true);
-      const ext = comprovante.name.split('.').pop();
-      const path = `${baixaDialog.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from('comprovantes-financeiro')
-        .upload(path, comprovante);
-      setUploading(false);
-      if (error) {
-        toast.error('Erro ao enviar comprovante');
-        return;
-      }
-      const { data: urlData } = supabase.storage
-        .from('comprovantes-financeiro')
-        .getPublicUrl(path);
-      comprovante_url = urlData.publicUrl;
+    setUploading(true);
+    const ext = comprovante.name.split('.').pop();
+    const path = `${baixaDialog.id}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from('comprovantes-financeiro')
+      .upload(path, comprovante);
+    setUploading(false);
+    if (error) {
+      toast.error('Erro ao enviar comprovante');
+      return;
     }
+    const { data: urlData } = supabase.storage
+      .from('comprovantes-financeiro')
+      .getPublicUrl(path);
+    comprovante_url = urlData.publicUrl;
 
     baixaMutation.mutate({
       id: baixaDialog.id,
@@ -168,6 +184,9 @@ export default function Financeiro() {
     );
   });
 
+  const totalPages = Math.max(1, Math.ceil((filtered?.length || 0) / ITEMS_PER_PAGE));
+  const paginated = filtered?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   const totalPendente = filtered?.filter(r => r.status === 'pendente').reduce((s, r) => s + Number(r.valor_frete), 0) || 0;
   const totalPago = filtered?.filter(r => r.status === 'pago').reduce((s, r) => s + Number(r.valor_frete), 0) || 0;
   const totalComissao = filtered?.reduce((s, r) => s + Number(r.valor_comissao), 0) || 0;
@@ -175,6 +194,21 @@ export default function Financeiro() {
 
   const nomeEmpresa = (emp: { nome: string | null; nome_fantasia: string | null } | null) =>
     emp?.nome_fantasia || emp?.nome || '—';
+
+  const handleStatusFilterChange = (v: string) => {
+    setStatusFilter(v);
+    setCurrentPage(1);
+  };
+
+  const handleDateFromChange = (v: string) => {
+    setDateFrom(v);
+    setCurrentPage(1);
+  };
+
+  const handleDateToChange = (v: string) => {
+    setDateTo(v);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -242,14 +276,14 @@ export default function Financeiro() {
                 <Input
                   placeholder="Código, empresa..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   className="pl-9"
                 />
               </div>
             </div>
             <div className="w-40">
               <Label className="text-xs text-muted-foreground">Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
@@ -260,101 +294,113 @@ export default function Financeiro() {
             </div>
             <div className="w-40">
               <Label className="text-xs text-muted-foreground">De</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              <Input type="date" value={dateFrom} onChange={(e) => handleDateFromChange(e.target.value)} />
             </div>
             <div className="w-40">
               <Label className="text-xs text-muted-foreground">Até</Label>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              <Input type="date" value={dateTo} onChange={(e) => handleDateToChange(e.target.value)} />
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Table */}
-      <Card className="border-border">
-        <CardContent className="p-0">
+      <Card className="border-border flex flex-col" ref={tableRef} style={{ height: tableHeight ? `${tableHeight}px` : undefined }}>
+        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
           {isLoading ? (
             <div className="p-6 space-y-3">
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Entrega</TableHead>
-                  <TableHead>Embarcador</TableHead>
-                  <TableHead>Transportadora</TableHead>
-                  <TableHead className="text-right">Frete Bruto</TableHead>
-                  <TableHead className="text-right">Comissão</TableHead>
-                  <TableHead className="text-right">Líquido</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered?.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
-                      Nenhum registro financeiro encontrado
-                    </TableCell>
-                  </TableRow>
-                )}
-                {filtered?.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-sm">{r.entregas?.codigo || '—'}</p>
-                        <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">{nomeEmpresa(r.empresa_embarcadora)}</TableCell>
-                    <TableCell className="text-sm">{nomeEmpresa(r.empresa_transportadora)}</TableCell>
-                    <TableCell className="text-right font-medium">{formatCurrency(r.valor_frete)}</TableCell>
-                    <TableCell className="text-right text-destructive text-sm">
-                      {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-chart-2">{formatCurrency(r.valor_liquido)}</TableCell>
-                    <TableCell>
-                      <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
-                        {r.status === 'pago' ? 'Pago' : 'Pendente'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {r.data_pagamento
-                        ? format(new Date(r.data_pagamento), 'dd/MM/yyyy')
-                        : format(new Date(r.created_at), 'dd/MM/yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      {r.status === 'pendente' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setBaixaDialog(r);
-                            setBaixaForm({
-                              data_pagamento: format(new Date(), 'yyyy-MM-dd'),
-                              metodo_pagamento: '',
-                              observacoes: '',
-                            });
-                          }}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Dar Baixa
-                        </Button>
-                      )}
-                      {r.status === 'pago' && r.comprovante_url && (
-                        <Button size="sm" variant="ghost" asChild>
-                          <a href={r.comprovante_url} target="_blank" rel="noreferrer">
-                            <Eye className="w-4 h-4" />
-                          </a>
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <>
+              <ScrollArea className="flex-1">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Entrega</TableHead>
+                      <TableHead>Embarcador</TableHead>
+                      <TableHead>Transportadora</TableHead>
+                      <TableHead className="text-right">Frete Bruto</TableHead>
+                      <TableHead className="text-right">Comissão</TableHead>
+                      <TableHead className="text-right">Líquido</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginated?.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
+                          Nenhum registro financeiro encontrado
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {paginated?.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-sm">{r.entregas?.codigo || '—'}</p>
+                            <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">{nomeEmpresa(r.empresa_embarcadora)}</TableCell>
+                        <TableCell className="text-sm">{nomeEmpresa(r.empresa_transportadora)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(r.valor_frete)}</TableCell>
+                        <TableCell className="text-right text-destructive text-sm">
+                          {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-chart-2">{formatCurrency(r.valor_liquido)}</TableCell>
+                        <TableCell>
+                          <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
+                            {r.status === 'pago' ? 'Pago' : 'Pendente'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {r.data_pagamento
+                            ? format(new Date(r.data_pagamento + 'T12:00:00'), 'dd/MM/yyyy')
+                            : format(new Date(r.created_at), 'dd/MM/yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          {r.status === 'pendente' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setBaixaDialog(r);
+                                setBaixaForm({
+                                  data_pagamento: format(new Date(), 'yyyy-MM-dd'),
+                                  metodo_pagamento: '',
+                                  observacoes: '',
+                                });
+                                setComprovante(null);
+                              }}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Dar Baixa
+                            </Button>
+                          )}
+                          {r.status === 'pago' && r.comprovante_url && (
+                            <Button size="sm" variant="ghost" asChild>
+                              <a href={r.comprovante_url} target="_blank" rel="noreferrer">
+                                <Eye className="w-4 h-4" />
+                              </a>
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filtered?.length || 0}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+              />
+            </>
           )}
         </CardContent>
       </Card>
@@ -397,12 +443,12 @@ export default function Financeiro() {
               </div>
 
               <div>
-                <Label>Comprovante (opcional)</Label>
+                <Label>Comprovante <span className="text-destructive">*</span></Label>
                 <div className="mt-1">
-                  <label className="flex items-center gap-2 cursor-pointer border border-dashed border-border rounded-lg p-3 hover:bg-muted transition-colors">
+                  <label className={`flex items-center gap-2 cursor-pointer border border-dashed rounded-lg p-3 hover:bg-muted transition-colors ${!comprovante ? 'border-destructive/50' : 'border-border'}`}>
                     <Upload className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      {comprovante ? comprovante.name : 'Clique para anexar'}
+                      {comprovante ? comprovante.name : 'Clique para anexar (obrigatório)'}
                     </span>
                     <input
                       type="file"
@@ -429,7 +475,7 @@ export default function Financeiro() {
             <Button variant="outline" onClick={() => setBaixaDialog(null)}>Cancelar</Button>
             <Button
               onClick={handleBaixa}
-              disabled={!baixaForm.data_pagamento || !baixaForm.metodo_pagamento || baixaMutation.isPending || uploading}
+              disabled={!baixaForm.data_pagamento || !baixaForm.metodo_pagamento || !comprovante || baixaMutation.isPending || uploading}
             >
               {baixaMutation.isPending || uploading ? 'Processando...' : 'Confirmar Baixa'}
             </Button>
