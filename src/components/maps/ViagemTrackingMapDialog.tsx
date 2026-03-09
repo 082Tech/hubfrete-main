@@ -207,7 +207,7 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
             </div>
           )}
 
-          {/* Empty state overlay — blocks map interaction */}
+          {/* Empty state — fully blocks */}
           {!isLoading && isEmpty && (
             <div className="absolute inset-0 flex items-center justify-center bg-background" style={{ zIndex: 1000 }}>
               <div className="flex flex-col items-center gap-3 p-6">
@@ -215,6 +215,19 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
                 <div className="text-center">
                   <p className="font-medium text-foreground">Nenhum histórico encontrado</p>
                   <p className="text-sm text-muted-foreground mt-1">Ainda não há registros de rastreamento para esta viagem</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* No tracking points but has O/D — show alert over the map */}
+          {!isLoading && !isEmpty && noTrackingPoints && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[2px]" style={{ zIndex: 1000 }}>
+              <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-xl border shadow-lg max-w-sm mx-4">
+                <MapPinOff className="w-9 h-9 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="font-medium text-foreground">Histórico de localização não encontrado</p>
+                  <p className="text-sm text-muted-foreground mt-1">Não foram encontrados pontos de rastreamento para esta viagem. Os marcadores de origem e destino estão exibidos no mapa.</p>
                 </div>
               </div>
             </div>
