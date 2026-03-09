@@ -71,6 +71,7 @@ import {
   FileText,
   AlertTriangle,
   ArrowRightLeft,
+  Info,
 } from 'lucide-react';
 
 // Types
