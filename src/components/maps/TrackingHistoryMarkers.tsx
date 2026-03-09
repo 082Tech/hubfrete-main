@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { CircleMarker, Tooltip, Popup } from 'react-leaflet';
+import { CircleMarker, Tooltip, Popup, Marker } from 'react-leaflet';
+import L from 'leaflet';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
 import { Clock, MapPin, Gauge, Navigation } from 'lucide-react';
@@ -14,9 +15,17 @@ interface TrackingPoint {
   heading: number | null;
 }
 
+interface OriginDestination {
+  latitude: number;
+  longitude: number;
+  label: string;
+}
+
 interface TrackingHistoryMarkersProps {
   entregaId?: string | null;
   viagemId?: string | null;
+  onLoadingChange?: (isLoading: boolean) => void;
+  onPointsLoaded?: (points: TrackingPoint[], origin: OriginDestination | null, destination: OriginDestination | null) => void;
 }
 
 /** HubFrete primary green (HSL 161 93% 30%) ≈ #05924d */
@@ -29,18 +38,59 @@ function formatDateTime(dateString: string): string {
   });
 }
 
-export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryMarkersProps) {
+/** Create a custom icon for O/D markers */
+function createODIcon(letter: string, color: string): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    popupAnchor: [0, -36],
+    html: `
+      <div style="
+        width: 28px; height: 28px;
+        background: ${color};
+        border: 2px solid white;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        font-weight: 700; font-size: 13px; color: white;
+        font-family: system-ui, sans-serif;
+      ">${letter}</div>
+      <div style="
+        width: 0; height: 0;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-top: 8px solid ${color};
+        margin: -2px auto 0;
+      "></div>
+    `,
+  });
+}
+
+const originIcon = createODIcon('O', '#16a34a');
+const destinationIcon = createODIcon('D', '#dc2626');
+
+export function TrackingHistoryMarkers({ entregaId, viagemId, onLoadingChange, onPointsLoaded }: TrackingHistoryMarkersProps) {
   const [trackingPoints, setTrackingPoints] = useState<TrackingPoint[]>([]);
+  const [origin, setOrigin] = useState<OriginDestination | null>(null);
+  const [destination, setDestination] = useState<OriginDestination | null>(null);
 
   useEffect(() => {
     if (!entregaId && !viagemId) {
       setTrackingPoints([]);
+      setOrigin(null);
+      setDestination(null);
+      onLoadingChange?.(false);
       return;
     }
+
+    let isMounted = true;
+    onLoadingChange?.(true);
 
     const fetchTrackingHistory = async () => {
       try {
         let finalViagemId = viagemId;
+        let resolvedEntregaId = entregaId;
 
         if (!finalViagemId && entregaId) {
           const { data: viagemEntrega, error: veError } = await supabase
@@ -53,8 +103,84 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
           finalViagemId = viagemEntrega?.viagem_id;
         }
 
+        // Fetch origin/destination from the entrega's carga
+        let fetchedOrigin: OriginDestination | null = null;
+        let fetchedDestination: OriginDestination | null = null;
+
+        // If we have entregaId, fetch O/D from its carga
+        if (resolvedEntregaId) {
+          const { data: entregaData } = await supabase
+            .from('entregas')
+            .select(`
+              carga:cargas(
+                endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(latitude, longitude, cidade, estado),
+                endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(latitude, longitude, cidade, estado)
+              )
+            `)
+            .eq('id', resolvedEntregaId)
+            .maybeSingle();
+
+          const carga = (entregaData as any)?.carga;
+          if (carga?.endereco_origem?.latitude && carga?.endereco_origem?.longitude) {
+            fetchedOrigin = {
+              latitude: Number(carga.endereco_origem.latitude),
+              longitude: Number(carga.endereco_origem.longitude),
+              label: `${carga.endereco_origem.cidade || ''}/${carga.endereco_origem.estado || ''}`,
+            };
+          }
+          if (carga?.endereco_destino?.latitude && carga?.endereco_destino?.longitude) {
+            fetchedDestination = {
+              latitude: Number(carga.endereco_destino.latitude),
+              longitude: Number(carga.endereco_destino.longitude),
+              label: `${carga.endereco_destino.cidade || ''}/${carga.endereco_destino.estado || ''}`,
+            };
+          }
+        }
+        // If only viagemId, try to get O/D from the first entrega of the viagem
+        else if (finalViagemId) {
+          const { data: veLinks } = await supabase
+            .from('viagem_entregas')
+            .select('entrega_id')
+            .eq('viagem_id', finalViagemId)
+            .limit(1);
+
+          if (veLinks && veLinks.length > 0) {
+            const { data: entregaData } = await supabase
+              .from('entregas')
+              .select(`
+                carga:cargas(
+                  endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(latitude, longitude, cidade, estado),
+                  endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(latitude, longitude, cidade, estado)
+                )
+              `)
+              .eq('id', veLinks[0].entrega_id)
+              .maybeSingle();
+
+            const carga = (entregaData as any)?.carga;
+            if (carga?.endereco_origem?.latitude && carga?.endereco_origem?.longitude) {
+              fetchedOrigin = {
+                latitude: Number(carga.endereco_origem.latitude),
+                longitude: Number(carga.endereco_origem.longitude),
+                label: `${carga.endereco_origem.cidade || ''}/${carga.endereco_origem.estado || ''}`,
+              };
+            }
+            if (carga?.endereco_destino?.latitude && carga?.endereco_destino?.longitude) {
+              fetchedDestination = {
+                latitude: Number(carga.endereco_destino.latitude),
+                longitude: Number(carga.endereco_destino.longitude),
+                label: `${carga.endereco_destino.cidade || ''}/${carga.endereco_destino.estado || ''}`,
+              };
+            }
+          }
+        }
+
         if (!finalViagemId) {
+          if (!isMounted) return;
           setTrackingPoints([]);
+          setOrigin(fetchedOrigin);
+          setDestination(fetchedDestination);
+          onLoadingChange?.(false);
+          onPointsLoaded?.([], fetchedOrigin, fetchedDestination);
           return;
         }
 
@@ -62,6 +188,8 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
           pageSize: 1000,
           maxRows: 50000,
         });
+
+        if (!isMounted) return;
 
         let validPoints: TrackingPoint[] = (data || [])
           .filter((p) => p.latitude != null && p.longitude != null)
@@ -100,19 +228,54 @@ export function TrackingHistoryMarkers({ entregaId, viagemId }: TrackingHistoryM
         }
 
         setTrackingPoints(validPoints);
+        setOrigin(fetchedOrigin);
+        setDestination(fetchedDestination);
+        onLoadingChange?.(false);
+        onPointsLoaded?.(validPoints, fetchedOrigin, fetchedDestination);
       } catch (error) {
+        if (!isMounted) return;
         console.error(error);
         setTrackingPoints([]);
+        setOrigin(null);
+        setDestination(null);
+        onLoadingChange?.(false);
+        onPointsLoaded?.([], null, null);
       }
     };
 
     fetchTrackingHistory();
-  }, [entregaId, viagemId]);
 
-  if ((!entregaId && !viagemId) || trackingPoints.length === 0) return null;
+    return () => { isMounted = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entregaId, viagemId]);
 
   return (
     <>
+      {/* Origin marker */}
+      {origin && (
+        <Marker position={[origin.latitude, origin.longitude]} icon={originIcon}>
+          <Tooltip direction="top" offset={[0, -36]} opacity={0.95} permanent={false}>
+            <div className="text-xs font-medium">
+              <span className="text-green-600">Origem</span>
+              {origin.label && <span className="text-muted-foreground ml-1">• {origin.label}</span>}
+            </div>
+          </Tooltip>
+        </Marker>
+      )}
+
+      {/* Destination marker */}
+      {destination && (
+        <Marker position={[destination.latitude, destination.longitude]} icon={destinationIcon}>
+          <Tooltip direction="top" offset={[0, -36]} opacity={0.95} permanent={false}>
+            <div className="text-xs font-medium">
+              <span className="text-red-600">Destino</span>
+              {destination.label && <span className="text-muted-foreground ml-1">• {destination.label}</span>}
+            </div>
+          </Tooltip>
+        </Marker>
+      )}
+
+      {/* Tracking points */}
       {trackingPoints.map((point, index) => {
         const isFirst = index === 0;
         const isLast = index === trackingPoints.length - 1;

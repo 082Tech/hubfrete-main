@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { useState, useEffect, useCallback } from 'react';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import {
   type ViagemStatus,
 } from '@/lib/fetchAllTrackingHistorico';
 import 'leaflet/dist/leaflet.css';
+import { useRef } from 'react';
 
 interface ViagemTrackingMapDialogProps {
   viagemId: string | null;
@@ -49,86 +50,85 @@ function formatDuration(minutes: number): string {
   return m > 0 ? `${h}h ${m}min` : `${h}h`;
 }
 
+/** Fits map bounds to all markers once data is loaded */
+function FitBoundsOnData({ shouldFit }: { shouldFit: boolean }) {
+  const map = useMap();
+  const hasFitted = useRef(false);
+
+  useEffect(() => {
+    if (!shouldFit || hasFitted.current) return;
+
+    const bounds = L.latLngBounds([]);
+    map.eachLayer((layer) => {
+      if (layer instanceof L.CircleMarker || layer instanceof L.Marker) {
+        bounds.extend(layer.getLatLng());
+      }
+    });
+
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+      hasFitted.current = true;
+    }
+  }, [map, shouldFit]);
+
+  return null;
+}
+
 export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrackingMapDialogProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
   const [stats, setStats] = useState<TrackingStats | null>(null);
   const [viagemStatus, setViagemStatus] = useState<ViagemStatus | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
 
-  // Fetch tracking data, compute stats, and fit bounds
+  // Reset on new viagemId
   useEffect(() => {
-    if (!viagemId) {
+    if (viagemId) {
+      setIsLoading(true);
+      setIsEmpty(false);
+      setDataReady(false);
       setStats(null);
       setViagemStatus(null);
-      setIsEmpty(false);
-      return;
+    }
+  }, [viagemId]);
+
+  // Fetch viagem status separately
+  useEffect(() => {
+    if (!viagemId) return;
+    fetchViagemStatus(viagemId).then(setViagemStatus);
+  }, [viagemId]);
+
+  const handleLoadingChange = useCallback((loading: boolean) => {
+    setIsLoading(loading);
+  }, []);
+
+  const handlePointsLoaded = useCallback((points: any[], origin: any, destination: any) => {
+    const hasData = points.length > 0 || origin || destination;
+    setIsEmpty(!hasData);
+
+    // Compute stats
+    if (points.length > 0) {
+      const speeds = points
+        .map((p: any) => p.speed)
+        .filter((s: number | null): s is number => s != null && s > 0);
+      const firstTs = points[0].tracked_at;
+      const lastTs = points[points.length - 1].tracked_at;
+      const durationMs = new Date(lastTs).getTime() - new Date(firstTs).getTime();
+
+      setStats({
+        totalPoints: points.length,
+        firstTimestamp: firstTs,
+        lastTimestamp: lastTs,
+        durationMinutes: durationMs / 60000,
+        avgSpeed: speeds.length > 0 ? speeds.reduce((a: number, b: number) => a + b, 0) / speeds.length : null,
+        maxSpeed: speeds.length > 0 ? Math.max(...speeds) : null,
+      });
+    } else {
+      setStats(null);
     }
 
-    let isMounted = true;
-    setIsLoading(true);
-
-    const fetchData = async () => {
-      try {
-        const [rawPoints, vStatus] = await Promise.all([
-          fetchAllTrackingHistoricoByViagemId(viagemId, { pageSize: 1000, maxRows: 50000 }),
-          fetchViagemStatus(viagemId),
-        ]);
-
-        if (!isMounted) return;
-
-        setViagemStatus(vStatus);
-
-        const validPoints = (rawPoints || []).filter(
-          (p) => p.latitude != null && p.longitude != null
-        );
-
-        setIsEmpty(validPoints.length === 0);
-
-        if (validPoints.length > 0) {
-          const speeds = validPoints
-            .map((p) => p.speed)
-            .filter((s): s is number => s != null && s > 0);
-          const firstTs = validPoints[0].tracked_at;
-          const lastTs = validPoints[validPoints.length - 1].tracked_at;
-          const durationMs = new Date(lastTs).getTime() - new Date(firstTs).getTime();
-
-          setStats({
-            totalPoints: validPoints.length,
-            firstTimestamp: firstTs,
-            lastTimestamp: lastTs,
-            durationMinutes: durationMs / 60000,
-            avgSpeed: speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : null,
-            maxSpeed: speeds.length > 0 ? Math.max(...speeds) : null,
-          });
-
-          // Fit map bounds
-          setTimeout(() => {
-            const map = mapRef.current;
-            if (!map) return;
-            const bounds = L.latLngBounds(
-              validPoints.map((p) => [Number(p.latitude), Number(p.longitude)] as L.LatLngTuple)
-            );
-            if (bounds.isValid()) {
-              map.fitBounds(bounds, { padding: [50, 50] });
-            }
-          }, 300);
-        } else {
-          setStats(null);
-        }
-      } catch (error) {
-        if (!isMounted) return;
-        console.error('Error fetching tracking history:', error);
-        setIsEmpty(true);
-        setStats(null);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    fetchData();
-    return () => { isMounted = false; };
-  }, [viagemId]);
+    setTimeout(() => setDataReady(true), 200);
+  }, []);
 
   const badge = statusBadgeStyles[viagemStatus?.status || ''] || statusBadgeStyles.em_andamento;
 
@@ -209,19 +209,26 @@ export function ViagemTrackingMapDialog({ viagemId, info, onClose }: ViagemTrack
               </div>
             </div>
           )}
-          <MapContainer
-            center={[-15.78, -47.93]}
-            zoom={4}
-            style={{ width: '100%', height: '100%' }}
-            scrollWheelZoom={true}
-            ref={mapRef}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {viagemId && <TrackingHistoryMarkers viagemId={viagemId} />}
-          </MapContainer>
+          {viagemId && (
+            <MapContainer
+              key={viagemId}
+              center={[-15.78, -47.93]}
+              zoom={4}
+              style={{ width: '100%', height: '100%' }}
+              scrollWheelZoom={true}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <TrackingHistoryMarkers
+                viagemId={viagemId}
+                onLoadingChange={handleLoadingChange}
+                onPointsLoaded={handlePointsLoaded}
+              />
+              <FitBoundsOnData shouldFit={dataReady} />
+            </MapContainer>
+          )}
         </div>
       </DialogContent>
     </Dialog>
