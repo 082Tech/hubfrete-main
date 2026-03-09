@@ -164,6 +164,7 @@ const App = () => {
                     <Route path="notificacoes" element={<EmbarcadorNotificacoes />} />
                     <Route path="filiais" element={<GerenciarFiliais />} />
                     <Route path="usuarios" element={<UsuariosEmpresa />} />
+                    <Route path="financeiro" element={<EmbarcadorFinanceiro />} />
                     <Route path="configuracoes" element={<Configuracoes />} />
                   </Route>
 
