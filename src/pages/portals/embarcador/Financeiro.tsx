@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -14,15 +15,84 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
-  DollarSign, CheckCircle, Clock, CreditCard,
+  DollarSign, CheckCircle, Clock, CreditCard, ChevronDown, ChevronRight, Calendar,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, endOfMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/reportExport';
 import { Pagination } from '@/components/admin/Pagination';
 import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 const ITEMS_PER_PAGE = 15;
+
+interface QuinzenaGroup {
+  key: string;
+  label: string;
+  period: string;
+  registros: any[];
+  totalFrete: number;
+  totalComissao: number;
+  totalGeral: number;
+  qtdPendente: number;
+  qtdPago: number;
+  status: 'pendente' | 'parcial' | 'pago';
+}
+
+function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
+  const groups: Record<string, any[]> = {};
+
+  for (const r of registros) {
+    const date = new Date(r.created_at);
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    const quinzena = day <= 15 ? 1 : 2;
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-Q${quinzena}`;
+
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  }
+
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  return Object.entries(groups)
+    .map(([key, items]) => {
+      const [yearStr, monthStr, q] = key.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr) - 1;
+      const quinzena = q === 'Q1' ? 1 : 2;
+      const lastDay = quinzena === 1 ? 15 : endOfMonth(new Date(year, month)).getDate();
+      const firstDay = quinzena === 1 ? 1 : 16;
+
+      const totalFrete = items.reduce((s, r) => s + Number(r.valor_frete), 0);
+      const totalComissao = items.reduce((s, r) => s + Number(r.valor_comissao), 0);
+      const qtdPendente = items.filter(r => r.status === 'pendente').length;
+      const qtdPago = items.filter(r => r.status === 'pago').length;
+
+      return {
+        key,
+        label: `${quinzena === 1 ? '1ª' : '2ª'} Quinzena — ${monthNames[month]} ${year}`,
+        period: `${String(firstDay).padStart(2, '0')}/${String(month + 1).padStart(2, '0')} a ${String(lastDay).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${year}`,
+        registros: items,
+        totalFrete,
+        totalComissao,
+        totalGeral: totalFrete,
+        qtdPendente,
+        qtdPago,
+        status: qtdPendente === 0 ? 'pago' : qtdPago === 0 ? 'pendente' : 'parcial',
+      };
+    })
+    .sort((a, b) => b.key.localeCompare(a.key));
+}
 
 export default function EmbarcadorFinanceiro() {
   const { empresa } = useUserContext();
@@ -35,9 +105,9 @@ export default function EmbarcadorFinanceiro() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
-  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  const { ref: tableRef, height: tableHeight } = useRemainingViewportHeight({ bottomOffset: 56 });
+  const { ref: tableRef, height: tableHeight } = useRemainingViewportHeight({ bottomOffset: 16 });
 
   const { data: registros, isLoading } = useQuery({
     queryKey: ['embarcador-financeiro', empresa?.id, statusFilter, dateFrom, dateTo],
@@ -67,20 +137,33 @@ export default function EmbarcadorFinanceiro() {
     enabled: !!empresa?.id,
   });
 
+  const quinzenas = useMemo(() => getQuinzenaGroups(registros || []), [registros]);
+
   const totalAPagar = registros?.filter(r => r.status === 'pendente').reduce((s: number, r: any) => s + Number(r.valor_frete), 0) || 0;
   const totalPago = registros?.filter(r => r.status === 'pago').reduce((s: number, r: any) => s + Number(r.valor_frete), 0) || 0;
   const totalComissao = registros?.reduce((s: number, r: any) => s + Number(r.valor_comissao), 0) || 0;
   const qtdPendente = registros?.filter(r => r.status === 'pendente').length || 0;
 
-  const totalItems = registros?.length || 0;
-  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
-  const paginatedRegistros = registros?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE) || [];
+  const toggleGroup = (key: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const statusBadge = (status: string) => {
+    if (status === 'pago') return <Badge className="bg-chart-2 text-white">Pago</Badge>;
+    if (status === 'parcial') return <Badge variant="outline" className="border-chart-4 text-chart-4">Parcial</Badge>;
+    return <Badge variant="secondary">A Pagar</Badge>;
+  };
 
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
-        <p className="text-sm text-muted-foreground">Contas a pagar e histórico de pagamentos</p>
+        <p className="text-sm text-muted-foreground">Contas a pagar agrupadas por quinzena (15 em 15 dias)</p>
       </div>
 
       {/* Stats */}
@@ -135,7 +218,7 @@ export default function EmbarcadorFinanceiro() {
       <div className="flex flex-wrap gap-3 items-end">
         <div className="w-36">
           <Label className="text-xs text-muted-foreground">Status</Label>
-          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
@@ -146,86 +229,107 @@ export default function EmbarcadorFinanceiro() {
         </div>
         <div className="w-40">
           <Label className="text-xs text-muted-foreground">De</Label>
-          <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }} />
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
         </div>
         <div className="w-40">
           <Label className="text-xs text-muted-foreground">Até</Label>
-          <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }} />
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
         </div>
       </div>
 
-      {/* Table */}
-      <Card className="border-border flex flex-col" ref={tableRef} style={{ height: tableHeight }}>
-        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-          {isLoading ? (
-            <div className="p-6 space-y-3">
-              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
-          ) : (
-            <>
-              <ScrollArea className="flex-1">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Entrega</TableHead>
-                      <TableHead>Transportadora</TableHead>
-                      <TableHead>Motorista</TableHead>
-                      <TableHead className="text-right">Valor do Frete</TableHead>
-                      <TableHead className="text-right">Comissão</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedRegistros.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
-                          Nenhum registro financeiro encontrado
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {paginatedRegistros.map((r: any) => (
-                      <TableRow key={r.id}>
-                        <TableCell>
-                          <p className="font-medium text-sm">{r.entregas?.codigo || '—'}</p>
-                          <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {r.empresa_transportadora?.nome_fantasia || r.empresa_transportadora?.nome || '—'}
-                        </TableCell>
-                        <TableCell className="text-sm">{r.entregas?.motoristas?.nome_completo || '—'}</TableCell>
-                        <TableCell className="text-right font-semibold">{formatCurrency(r.valor_frete)}</TableCell>
-                        <TableCell className="text-right text-xs text-muted-foreground">
-                          {r.valor_comissao > 0 ? formatCurrency(r.valor_comissao) : '—'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
-                            {r.status === 'pago' ? 'Pago' : 'A Pagar'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {r.data_pagamento
-                            ? format(new Date(r.data_pagamento), 'dd/MM/yyyy')
-                            : format(new Date(r.created_at), 'dd/MM/yyyy')}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-              {totalItems > 0 && (
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalItems={totalItems}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                  onPageChange={setCurrentPage}
-                />
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+      {/* Quinzena Groups */}
+      <div ref={tableRef} style={{ height: tableHeight }} className="overflow-auto space-y-3">
+        {isLoading ? (
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+          </div>
+        ) : quinzenas.length === 0 ? (
+          <Card className="border-border">
+            <CardContent className="py-12 text-center text-muted-foreground">
+              Nenhum registro financeiro encontrado no período
+            </CardContent>
+          </Card>
+        ) : (
+          quinzenas.map((group) => (
+            <Collapsible key={group.key} open={expandedGroups.has(group.key)} onOpenChange={() => toggleGroup(group.key)}>
+              <Card className="border-border">
+                <CollapsibleTrigger asChild>
+                  <button className="w-full text-left">
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Calendar className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-foreground">{group.label}</p>
+                          {statusBadge(group.status)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{group.period} — {group.registros.length} entrega(s)</p>
+                      </div>
+                      <div className="text-right mr-4 hidden sm:block">
+                        <p className="text-lg font-bold text-foreground">{formatCurrency(group.totalFrete)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Comissão: {formatCurrency(group.totalComissao)}
+                        </p>
+                      </div>
+                      {expandedGroups.has(group.key) ? (
+                        <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+                      )}
+                    </CardContent>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="border-t border-border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Entrega</TableHead>
+                          <TableHead>Transportadora</TableHead>
+                          <TableHead>Motorista</TableHead>
+                          <TableHead className="text-right">Valor do Frete</TableHead>
+                          <TableHead className="text-right">Comissão</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Data</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {group.registros.map((r: any) => (
+                          <TableRow key={r.id}>
+                            <TableCell>
+                              <p className="font-medium text-sm">{r.entregas?.codigo || '—'}</p>
+                              <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {r.empresa_transportadora?.nome_fantasia || r.empresa_transportadora?.nome || '—'}
+                            </TableCell>
+                            <TableCell className="text-sm">{r.entregas?.motoristas?.nome_completo || '—'}</TableCell>
+                            <TableCell className="text-right font-semibold">{formatCurrency(r.valor_frete)}</TableCell>
+                            <TableCell className="text-right text-xs text-muted-foreground">
+                              {r.valor_comissao > 0 ? formatCurrency(r.valor_comissao) : '—'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
+                                {r.status === 'pago' ? 'Pago' : 'A Pagar'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {r.data_pagamento
+                                ? format(new Date(r.data_pagamento), 'dd/MM/yyyy')
+                                : format(new Date(r.created_at), 'dd/MM/yyyy')}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          ))
+        )}
+      </div>
     </div>
   );
 }
