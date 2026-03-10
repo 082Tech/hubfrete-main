@@ -59,6 +59,7 @@ import Assistente from "./pages/portals/embarcador/Assistente";
 import ContatosSalvos from "./pages/portals/embarcador/ContatosSalvos";
 import EmbarcadorMensagens from "./pages/portals/embarcador/Mensagens";
 import EmbarcadorNotificacoes from "./pages/portals/embarcador/Notificacoes";
+import EmbarcadorDadosEmpresa from "./pages/portals/embarcador/DadosEmpresa";
 
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraOfertas from "./pages/portals/transportadora/OfertasDisponiveis";
