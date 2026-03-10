@@ -1379,6 +1379,80 @@ export type Database = {
           },
         ]
       }
+      faturas: {
+        Row: {
+          ano: number
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string | null
+          empresa_id: number
+          id: string
+          mes: number
+          metodo_pagamento: string | null
+          observacoes: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          qtd_entregas: number | null
+          quinzena: number
+          status: string
+          tipo: string
+          updated_at: string
+          valor_bruto: number | null
+          valor_comissao: number | null
+          valor_liquido: number | null
+        }
+        Insert: {
+          ano: number
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          empresa_id: number
+          id?: string
+          mes: number
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          qtd_entregas?: number | null
+          quinzena: number
+          status?: string
+          tipo: string
+          updated_at?: string
+          valor_bruto?: number | null
+          valor_comissao?: number | null
+          valor_liquido?: number | null
+        }
+        Update: {
+          ano?: number
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          empresa_id?: number
+          id?: string
+          mes?: number
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          periodo_fim?: string
+          periodo_inicio?: string
+          qtd_entregas?: number | null
+          quinzena?: number
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor_bruto?: number | null
+          valor_comissao?: number | null
+          valor_liquido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       filiais: {
         Row: {
           ativa: boolean | null
@@ -1455,6 +1529,99 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financeiro_entregas: {
+        Row: {
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string | null
+          empresa_embarcadora_id: number | null
+          empresa_transportadora_id: number | null
+          entrega_id: string
+          fatura_embarcador_id: string | null
+          fatura_transportadora_id: string | null
+          id: string
+          metodo_pagamento: string | null
+          observacoes: string | null
+          status: string
+          updated_at: string
+          valor_comissao: number
+          valor_frete: number
+          valor_liquido: number
+        }
+        Insert: {
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          empresa_embarcadora_id?: number | null
+          empresa_transportadora_id?: number | null
+          entrega_id: string
+          fatura_embarcador_id?: string | null
+          fatura_transportadora_id?: string | null
+          id?: string
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_comissao?: number
+          valor_frete?: number
+          valor_liquido?: number
+        }
+        Update: {
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          empresa_embarcadora_id?: number | null
+          empresa_transportadora_id?: number | null
+          entrega_id?: string
+          fatura_embarcador_id?: string | null
+          fatura_transportadora_id?: string | null
+          id?: string
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_comissao?: number
+          valor_frete?: number
+          valor_liquido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_entregas_empresa_embarcadora_id_fkey"
+            columns: ["empresa_embarcadora_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_empresa_transportadora_id_fkey"
+            columns: ["empresa_transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_fatura_embarcador_id_fkey"
+            columns: ["fatura_embarcador_id"]
+            isOneToOne: false
+            referencedRelation: "faturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_fatura_transportadora_id_fkey"
+            columns: ["fatura_transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "faturas"
             referencedColumns: ["id"]
           },
         ]
