@@ -5,7 +5,7 @@ import {
   User, Users, MapPin, Calendar, BarChart3, Bell, ChevronDown, Check,
   Sparkles, Loader2, ChevronLeft, ChevronRight, Home, History, Send,
   Route, Pin, Building, MessageSquare, MoreVertical, ArrowRightLeft,
-  Link2, Container, Boxes, DollarSign,
+  Link2, Container, Boxes, DollarSign, Plug,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -91,6 +91,7 @@ const embarcadorEmpresaSubmenu: MenuGroup = {
   subItems: [
     { icon: Building2, label: 'Dados da Empresa', href: '/embarcador/dados-empresa' },
     { icon: Users, label: 'Contatos', href: '/embarcador/contatos' },
+    { icon: Plug, label: 'Integrações', href: '/embarcador/integracoes' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
     { icon: Users, label: 'Usuários', href: '/embarcador/usuarios', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
   ],
@@ -102,6 +103,7 @@ const transportadoraEmpresaSubmenu: MenuGroup = {
   label: 'Minha Empresa',
   subItems: [
     { icon: Building2, label: 'Dados da Empresa', href: '/transportadora/dados-empresa' },
+    { icon: Plug, label: 'Integrações', href: '/transportadora/integracoes' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
     { icon: Users, label: 'Usuários', href: '/transportadora/usuarios', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
   ],
