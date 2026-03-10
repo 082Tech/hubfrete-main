@@ -113,8 +113,8 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: Boxes, label: 'Minhas Ofertas', href: '/embarcador/ofertas' },
     // Cargas is a submenu
     { icon: DollarSign, label: 'Financeiro', href: '/embarcador/financeiro' },
-    { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
+    { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
     // Minha Empresa is a submenu
     { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
