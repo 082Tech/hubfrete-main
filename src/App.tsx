@@ -31,6 +31,7 @@ import VeiculosAdmin from "./pages/admin/VeiculosAdmin";
 import CargasAdmin from "./pages/admin/CargasAdmin";
 import CargasHistoricoAdmin from "./pages/admin/CargasHistoricoAdmin";
 import EntregasAdmin from "./pages/admin/EntregasAdmin";
+import EntregasHistoricoAdmin from "./pages/admin/EntregasHistoricoAdmin";
 import CarroceriasAdmin from "./pages/admin/CarroceriasAdmin";
 import AjudantesAdmin from "./pages/admin/AjudantesAdmin";
 import ProvasEntregaAdmin from "./pages/admin/ProvasEntregaAdmin";
