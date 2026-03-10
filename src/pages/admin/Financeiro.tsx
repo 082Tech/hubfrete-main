@@ -214,7 +214,7 @@ export default function Financeiro() {
       case 'paga': return <Badge className="bg-chart-2 text-white">Paga</Badge>;
       case 'fechada': return <Badge variant="outline" className="border-chart-4 text-chart-4">Fechada</Badge>;
       case 'cancelada': return <Badge variant="destructive">Cancelada</Badge>;
-      default: return <Badge variant="secondary">Aberta</Badge>;
+      default: return <Badge variant="secondary">Pendente</Badge>;
     }
   };
 
