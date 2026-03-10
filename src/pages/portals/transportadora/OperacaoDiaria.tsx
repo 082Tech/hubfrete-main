@@ -1708,9 +1708,10 @@ export default function OperacaoDiaria() {
             .map(e => ({
               ...e,
               carga: {
-                ...e.carga,
-                endereco_origem: e.carga.endereco_origem,
-                endereco_destino: e.carga.endereco_destino,
+                      ...e.carga,
+                      endereco_origem: e.carga.endereco_origem,
+                      endereco_destino: e.carga.endereco_destino,
+                      empresa: (e.carga as any).empresa || null,
               },
               eventos: e.eventos || [],
             }));
