@@ -944,7 +944,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                           }`}
                       >
                         <Building2 className="w-5 h-5 shrink-0" />
-                        <span className="font-medium flex-1 text-left">Sua Empresa</span>
+                        <span className="font-medium flex-1 text-left">Minha Empresa</span>
                         <ChevronDown className={`w-4 h-4 transition-transform ${empresaOpen ? 'rotate-180' : ''}`} />
                       </button>
                     </CollapsibleTrigger>
