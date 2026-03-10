@@ -390,6 +390,18 @@ export function ViagemDetailPanel({
                           {entrega.carga.endereco_origem?.cidade || '—'} → {entrega.carga.endereco_destino?.cidade || '—'}
                         </span>
                       </div>
+                      {entrega.valor_frete != null && (() => {
+                        const comP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
+                        const valorComissao = Math.round(entrega.valor_frete! * comP / 100 * 100) / 100;
+                        const liquido = entrega.valor_frete! - valorComissao;
+                        return (
+                          <div className="text-[10px] space-y-0.5 mt-1 p-1.5 bg-chart-2/10 rounded border border-chart-2/20">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Bruto:</span><span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                            <div className="flex justify-between text-destructive"><span>Comissão ({comP}%):</span><span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                            <div className="flex justify-between font-bold text-chart-2"><span>Líquido:</span><span>R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                          </div>
+                        );
+                      })()}
                       {missingDocs.length > 0 && entrega.status !== 'cancelada' && (
                         <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
                           <AlertCircle className="w-3 h-3 shrink-0" />
