@@ -158,7 +158,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   const { empresa, companyInfo, filiais, filialAtiva, setFilialAtiva, cargo, switchingFilial, availableEmpresas, switchEmpresa } = useUserContext();
   const darkMode = useTheme().theme === 'dark';
   const allMenuItems = menusByType[userType];
-  const menuItems = allMenuItems.filter(item => !item.adminOnly || cargo === 'ADMIN');
+  const menuItems = allMenuItems;
   const config = portalConfig[userType];
   const PortalIcon = config.icon;
 
