@@ -322,11 +322,20 @@ export default function TransportadoraFinanceiro() {
                             <Calendar className="w-5 h-5 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-semibold text-foreground">{group.label}</p>
                               {statusBadge(group.status)}
+                              {group.closed ? (
+                                <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground gap-1">
+                                  <Lock className="w-3 h-3" /> Fechada
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-chart-1 text-chart-1 gap-1">
+                                  <LockOpen className="w-3 h-3" /> Aberta
+                                </Badge>
+                              )}
                             </div>
-                            <p className="text-xs text-muted-foreground">{group.period} — {group.registros.length} entrega(s)</p>
+                            <p className="text-xs text-muted-foreground">{group.period} — {group.registros.length} carga(s)</p>
                           </div>
                           <div className="text-right mr-4 hidden sm:block">
                             <p className="text-lg font-bold text-chart-2">{formatCurrency(group.totalLiquido)}</p>
