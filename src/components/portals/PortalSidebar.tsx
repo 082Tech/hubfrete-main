@@ -180,7 +180,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   const [frotaOpen, setFrotaOpen] = useState(isFrotaSubmenuActive);
 
   const empresaSubmenu = userType === 'embarcador' ? embarcadorEmpresaSubmenu : transportadoraEmpresaSubmenu;
-  const empresaSubItems = cargo === 'ADMIN' ? empresaSubmenu.subItems : empresaSubmenu.subItems.filter(s => s.href.includes('configuracoes'));
+  const empresaSubItems = cargo === 'ADMIN' ? empresaSubmenu.subItems : empresaSubmenu.subItems.filter(s => !(s as any).adminOnly);
   const isEmpresaSubmenuActive = empresaSubItems.some(
     (sub) => location.pathname === sub.href
   );
