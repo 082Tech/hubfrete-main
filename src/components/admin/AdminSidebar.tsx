@@ -439,7 +439,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
+                  className="text-sidebar-foreground hover:bg-admin-accent/10 hover:text-admin-accent"
                   onClick={handleLogout}
                 >
                   <LogOut className="w-5 h-5" />
