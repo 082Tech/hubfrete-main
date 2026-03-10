@@ -22,12 +22,17 @@ import {
 import { format, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
+import { Pagination } from '@/components/admin/Pagination';
 import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { MonthYearPicker } from '@/components/ui/month-year-picker';
+
+const ITEMS_PER_PAGE = 10;
 
 interface QuinzenaGroup {
   key: string;
@@ -53,7 +58,6 @@ function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
     const day = date.getDate();
     const quinzena = day <= 15 ? 1 : 2;
     const key = `${year}-${String(month + 1).padStart(2, '0')}-Q${quinzena}`;
-
     if (!groups[key]) groups[key] = [];
     groups[key].push(r);
   }
@@ -71,8 +75,6 @@ function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
       const quinzena = q === 'Q1' ? 1 : 2;
       const lastDay = quinzena === 1 ? 15 : endOfMonth(new Date(year, month)).getDate();
       const firstDay = quinzena === 1 ? 1 : 16;
-
-      // Quinzena is closed if the end date has already passed
       const endDate = new Date(year, month, lastDay, 23, 59, 59);
       const closed = new Date() > endDate;
 
@@ -104,8 +106,9 @@ export default function TransportadoraFinanceiro() {
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [groupPages, setGroupPages] = useState<Record<string, number>>({});
 
   const dateFrom = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
   const dateTo = (() => {
@@ -201,18 +204,19 @@ export default function TransportadoraFinanceiro() {
   const qtdPendente = registros?.filter(r => r.status === 'pendente').length || 0;
 
   const toggleGroup = (key: string) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+    setOpenGroup(prev => prev === key ? null : key);
+    if (!groupPages[key]) setGroupPages(p => ({ ...p, [key]: 1 }));
   };
 
   const statusBadge = (status: string) => {
     if (status === 'pago') return <Badge className="bg-chart-2 text-white">Recebido</Badge>;
     if (status === 'parcial') return <Badge variant="outline" className="border-chart-4 text-chart-4">Parcial</Badge>;
     return <Badge variant="secondary">Pendente</Badge>;
+  };
+
+  const getPagedRegistros = (group: QuinzenaGroup) => {
+    const page = groupPages[group.key] || 1;
+    return group.registros.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
   };
 
   return (
@@ -290,35 +294,19 @@ export default function TransportadoraFinanceiro() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-36">
-              <Label className="text-xs text-muted-foreground">Mês</Label>
-              <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m, i) => (
-                    <SelectItem key={i} value={String(i)}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-28">
-              <Label className="text-xs text-muted-foreground">Ano</Label>
-              <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map((y) => (
-                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <MonthYearPicker
+              month={selectedMonth}
+              year={selectedYear}
+              onChangeMonth={setSelectedMonth}
+              onChangeYear={setSelectedYear}
+            />
           </div>
 
           {/* Quinzena Groups */}
           <div ref={tableRef} style={{ height: tableHeight }} className="overflow-auto space-y-3">
             {isLoading ? (
               <div className="space-y-3">
-                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+                {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
               </div>
             ) : quinzenas.length === 0 ? (
               <Card className="border-border">
@@ -327,91 +315,109 @@ export default function TransportadoraFinanceiro() {
                 </CardContent>
               </Card>
             ) : (
-              quinzenas.map((group) => (
-                <Collapsible key={group.key} open={expandedGroups.has(group.key)} onOpenChange={() => toggleGroup(group.key)}>
-                  <Card className="border-border">
-                    <CollapsibleTrigger asChild>
-                      <button className="w-full text-left">
-                        <CardContent className="p-4 flex items-center gap-4">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <Calendar className="w-5 h-5 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-semibold text-foreground">{group.label}</p>
-                              {statusBadge(group.status)}
-                              {group.closed ? (
-                                <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground gap-1">
-                                  <Lock className="w-3 h-3" /> Fechada
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="border-chart-1 text-chart-1 gap-1">
-                                  <LockOpen className="w-3 h-3" /> Aberta
-                                </Badge>
-                              )}
+              quinzenas.map((group) => {
+                const isOpen = openGroup === group.key;
+                const page = groupPages[group.key] || 1;
+                const totalPages = Math.max(1, Math.ceil(group.registros.length / ITEMS_PER_PAGE));
+                const pagedItems = getPagedRegistros(group);
+
+                return (
+                  <Collapsible key={group.key} open={isOpen} onOpenChange={() => toggleGroup(group.key)}>
+                    <Card className="border-border">
+                      <CollapsibleTrigger asChild>
+                        <button className="w-full text-left">
+                          <CardContent className="p-4 flex items-center gap-4">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                              <Calendar className="w-5 h-5 text-primary" />
                             </div>
-                            <p className="text-xs text-muted-foreground">{group.period} — {group.registros.length} carga(s)</p>
-                          </div>
-                          <div className="text-right mr-4 hidden sm:block">
-                            <p className="text-lg font-bold text-chart-2">{formatCurrency(group.totalLiquido)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Bruto: {formatCurrency(group.totalBruto)} | Comissão: {formatCurrency(group.totalComissao)}
-                            </p>
-                          </div>
-                          {expandedGroups.has(group.key) ? (
-                            <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
-                          ) : (
-                            <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-                          )}
-                        </CardContent>
-                      </button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="border-t border-border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Entrega</TableHead>
-                              <TableHead>Embarcador</TableHead>
-                              <TableHead className="text-right">Frete Bruto</TableHead>
-                              <TableHead className="text-right">Comissão</TableHead>
-                              <TableHead className="text-right">Valor Líquido</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Data</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {group.registros.map((r: any) => (
-                              <TableRow key={r.id}>
-                                <TableCell>
-                                  <p className="font-medium text-sm">{r.entregas?.codigo || '—'}</p>
-                                  <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                                </TableCell>
-                                <TableCell className="text-sm">{r.empresa_embarcadora?.nome_fantasia || r.empresa_embarcadora?.nome || '—'}</TableCell>
-                                <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(r.valor_frete)}</TableCell>
-                                <TableCell className="text-right text-sm text-destructive">
-                                  {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
-                                </TableCell>
-                                <TableCell className="text-right font-semibold text-chart-2">{formatCurrency(r.valor_liquido)}</TableCell>
-                                <TableCell>
-                                  <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
-                                    {r.status === 'pago' ? 'Recebido' : 'Pendente'}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-semibold text-foreground">{group.label}</p>
+                                {statusBadge(group.status)}
+                                {group.closed ? (
+                                  <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground gap-1">
+                                    <Lock className="w-3 h-3" /> Fechada
                                   </Badge>
-                                </TableCell>
-                                <TableCell className="text-xs text-muted-foreground">
-                                  {r.data_pagamento
-                                    ? format(new Date(r.data_pagamento), 'dd/MM/yyyy')
-                                    : format(new Date(r.created_at), 'dd/MM/yyyy')}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              ))
+                                ) : (
+                                  <Badge variant="outline" className="border-chart-1 text-chart-1 gap-1">
+                                    <LockOpen className="w-3 h-3" /> Aberta
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">{group.period} — {group.registros.length} carga(s)</p>
+                            </div>
+                            <div className="text-right mr-4 hidden sm:block">
+                              <p className="text-lg font-bold text-chart-2">{formatCurrency(group.totalLiquido)}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Bruto: {formatCurrency(group.totalBruto)} | Comissão: {formatCurrency(group.totalComissao)}
+                              </p>
+                            </div>
+                            {isOpen ? (
+                              <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
+                            ) : (
+                              <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+                            )}
+                          </CardContent>
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="border-t border-border flex flex-col">
+                          <ScrollArea className="max-h-[400px]">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Carga</TableHead>
+                                  <TableHead>Embarcador</TableHead>
+                                  <TableHead className="text-right">Frete Bruto</TableHead>
+                                  <TableHead className="text-right">Comissão</TableHead>
+                                  <TableHead className="text-right">Valor Líquido</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Data</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {pagedItems.map((r: any) => (
+                                  <TableRow key={r.id}>
+                                    <TableCell>
+                                      <p className="font-medium text-sm">{r.entregas?.codigo || '—'}</p>
+                                      <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                                    </TableCell>
+                                    <TableCell className="text-sm">{r.empresa_embarcadora?.nome_fantasia || r.empresa_embarcadora?.nome || '—'}</TableCell>
+                                    <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(r.valor_frete)}</TableCell>
+                                    <TableCell className="text-right text-sm text-destructive">
+                                      {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
+                                    </TableCell>
+                                    <TableCell className="text-right font-semibold text-chart-2">{formatCurrency(r.valor_liquido)}</TableCell>
+                                    <TableCell>
+                                      <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
+                                        {r.status === 'pago' ? 'Recebido' : 'Pendente'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">
+                                      {r.data_pagamento
+                                        ? format(new Date(r.data_pagamento), 'dd/MM/yyyy')
+                                        : format(new Date(r.created_at), 'dd/MM/yyyy')}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </ScrollArea>
+                          {group.registros.length > ITEMS_PER_PAGE && (
+                            <Pagination
+                              currentPage={page}
+                              totalPages={totalPages}
+                              totalItems={group.registros.length}
+                              itemsPerPage={ITEMS_PER_PAGE}
+                              onPageChange={(p) => setGroupPages(prev => ({ ...prev, [group.key]: p }))}
+                            />
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                );
+              })
             )}
           </div>
         </TabsContent>
