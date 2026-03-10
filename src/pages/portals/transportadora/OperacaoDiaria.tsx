@@ -236,7 +236,7 @@ function EntregaListItem({
             const comissaoP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
             const liquido = Math.round(entrega.valor_frete! * (1 - comissaoP / 100) * 100) / 100;
             return (
-              <span className="text-chart-2 font-semibold">
+              <span className="text-primary font-semibold">
                 R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </span>
             );
@@ -546,7 +546,7 @@ function DetailPanel({
                       <Separator className="my-1" />
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-semibold">Valor do frete:</span>
-                        <span className="text-sm font-bold text-chart-2">
+                        <span className="text-sm font-bold text-primary">
                           R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -1464,7 +1464,7 @@ function GestaoEntregasDialogContent({
                                   const comP = (e as any).carga?.empresa?.comissao_hubfrete_percent || 0;
                                   const liq = Math.round(e.valor_frete! * (1 - comP / 100) * 100) / 100;
                                   return (
-                                    <span className="flex items-center gap-1">
+                                    <span className="flex items-center gap-1 text-primary font-semibold">
                                       <DollarSign className="w-3 h-3" />
                                       R$ {liq.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </span>
