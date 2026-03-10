@@ -796,7 +796,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                   return linkContent;
                 })}
 
-              {/* Sua Empresa Submenu */}
+              {/* Minha Empresa Submenu */}
               {empresaSubItems.length > 0 && (
                 collapsed ? (
                   <DropdownMenu>
