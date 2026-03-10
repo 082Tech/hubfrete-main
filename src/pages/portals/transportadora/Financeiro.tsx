@@ -313,7 +313,7 @@ export default function TransportadoraFinanceiro() {
           </div>
 
           {/* Quinzena Groups */}
-          <div ref={tableRef} style={{ height: tableHeight }} className="overflow-auto space-y-3">
+          <div ref={tableRef} className="space-y-3 !mb-10 h-[550px]">
             {isLoading ? (
               <div className="space-y-3">
                 {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
