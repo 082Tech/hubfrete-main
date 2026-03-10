@@ -1462,12 +1462,16 @@ function GestaoEntregasDialogContent({
                                     {formatWeight(e.carga.peso_kg)}
                                   </span>
                                 )}
-                                {e.valor_frete && (
-                                  <span className="flex items-center gap-1">
-                                    <DollarSign className="w-3 h-3" />
-                                    R$ {e.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                  </span>
-                                )}
+                                {e.valor_frete && (() => {
+                                  const comP = (e as any).carga?.empresa?.comissao_hubfrete_percent || 0;
+                                  const liq = Math.round(e.valor_frete! * (1 - comP / 100) * 100) / 100;
+                                  return (
+                                    <span className="flex items-center gap-1">
+                                      <DollarSign className="w-3 h-3" />
+                                      R$ {liq.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </span>
+                                  );
+                                })()}
                                 {e.carga.descricao && (
                                   <span className="flex items-center gap-1 truncate flex-1">
                                     <Package className="w-3 h-3" />

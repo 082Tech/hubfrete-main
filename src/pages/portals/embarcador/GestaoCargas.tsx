@@ -436,22 +436,34 @@ function DetailPanel({
                 </span>
               </span>
               <span className="text-muted-foreground">Tipo: {entrega.carga.tipo}</span>
-              {entrega.valor_frete && (
-                <span className="flex items-center gap-1 text-primary font-semibold">
-                  <DollarSign className="w-3 h-3" />
-                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Inclui comissão HubFrete</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </span>
-              )}
+              {entrega.valor_frete && (() => {
+                const comissaoP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
+                const valorComissao = Math.round(entrega.valor_frete! * comissaoP / 100 * 100) / 100;
+                const liquido = entrega.valor_frete! - valorComissao;
+                return (
+                  <div className="col-span-full mt-2 p-2.5 bg-chart-2/10 rounded-lg border border-chart-2/30">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Valor bruto:</span>
+                        <span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      {comissaoP > 0 && (
+                        <div className="flex justify-between text-xs text-destructive">
+                          <span>Comissão HubFrete ({comissaoP}%):</span>
+                          <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      <Separator className="my-1" />
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold">Valor do frete:</span>
+                        <span className="text-sm font-bold text-chart-2">
+                          R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             {entrega.carga.empresa && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
