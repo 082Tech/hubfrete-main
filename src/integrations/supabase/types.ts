@@ -1413,6 +1413,83 @@ export type Database = {
           },
         ]
       }
+      faturas: {
+        Row: {
+          ano: number
+          baixa_por: string | null
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string | null
+          empresa_id: number
+          id: string
+          mes: number
+          metodo_pagamento: string | null
+          observacoes: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          qtd_entregas: number
+          quinzena: number
+          status: Database["public"]["Enums"]["status_fatura"]
+          tipo: Database["public"]["Enums"]["tipo_fatura"]
+          updated_at: string
+          valor_bruto: number
+          valor_comissao: number
+          valor_liquido: number
+        }
+        Insert: {
+          ano: number
+          baixa_por?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          empresa_id: number
+          id?: string
+          mes: number
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          qtd_entregas?: number
+          quinzena: number
+          status?: Database["public"]["Enums"]["status_fatura"]
+          tipo: Database["public"]["Enums"]["tipo_fatura"]
+          updated_at?: string
+          valor_bruto?: number
+          valor_comissao?: number
+          valor_liquido?: number
+        }
+        Update: {
+          ano?: number
+          baixa_por?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          empresa_id?: number
+          id?: string
+          mes?: number
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          periodo_fim?: string
+          periodo_inicio?: string
+          qtd_entregas?: number
+          quinzena?: number
+          status?: Database["public"]["Enums"]["status_fatura"]
+          tipo?: Database["public"]["Enums"]["tipo_fatura"]
+          updated_at?: string
+          valor_bruto?: number
+          valor_comissao?: number
+          valor_liquido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       filiais: {
         Row: {
           ativa: boolean | null
@@ -1503,6 +1580,8 @@ export type Database = {
           empresa_embarcadora_id: number | null
           empresa_transportadora_id: number | null
           entrega_id: string
+          fatura_embarcador_id: string | null
+          fatura_transportadora_id: string | null
           id: string
           metodo_pagamento: string | null
           observacoes: string | null
@@ -1521,6 +1600,8 @@ export type Database = {
           empresa_embarcadora_id?: number | null
           empresa_transportadora_id?: number | null
           entrega_id: string
+          fatura_embarcador_id?: string | null
+          fatura_transportadora_id?: string | null
           id?: string
           metodo_pagamento?: string | null
           observacoes?: string | null
@@ -1539,6 +1620,8 @@ export type Database = {
           empresa_embarcadora_id?: number | null
           empresa_transportadora_id?: number | null
           entrega_id?: string
+          fatura_embarcador_id?: string | null
+          fatura_transportadora_id?: string | null
           id?: string
           metodo_pagamento?: string | null
           observacoes?: string | null
@@ -1568,6 +1651,20 @@ export type Database = {
             columns: ["entrega_id"]
             isOneToOne: true
             referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_fatura_embarcador_id_fkey"
+            columns: ["fatura_embarcador_id"]
+            isOneToOne: false
+            referencedRelation: "faturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_fatura_transportadora_id_fkey"
+            columns: ["fatura_transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "faturas"
             referencedColumns: ["id"]
           },
         ]
@@ -3228,6 +3325,7 @@ export type Database = {
         | "entregue"
         | "problema"
         | "cancelada"
+      status_fatura: "aberta" | "fechada" | "paga" | "cancelada"
       status_pre_cadastro: "pendente" | "aprovado" | "rejeitado"
       status_viagem:
         | "em_andamento"
@@ -3273,6 +3371,7 @@ export type Database = {
         | "hopper"
       tipo_empresa: "EMBARCADOR" | "TRANSPORTADORA"
       tipo_endereco: "origem" | "destino"
+      tipo_fatura: "a_receber" | "a_pagar"
       tipo_frete: "cif" | "fob"
       tipo_notificacao:
         | "status_entrega_alterado"
@@ -3466,6 +3565,7 @@ export const Constants = {
         "problema",
         "cancelada",
       ],
+      status_fatura: ["aberta", "fechada", "paga", "cancelada"],
       status_pre_cadastro: ["pendente", "aprovado", "rejeitado"],
       status_viagem: [
         "em_andamento",
@@ -3514,6 +3614,7 @@ export const Constants = {
       ],
       tipo_empresa: ["EMBARCADOR", "TRANSPORTADORA"],
       tipo_endereco: ["origem", "destino"],
+      tipo_fatura: ["a_receber", "a_pagar"],
       tipo_frete: ["cif", "fob"],
       tipo_notificacao: [
         "status_entrega_alterado",
