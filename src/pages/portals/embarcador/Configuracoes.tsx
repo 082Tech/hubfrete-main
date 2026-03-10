@@ -41,7 +41,7 @@ import { cn } from '@/lib/utils';
 
 type Filial = Tables<'filiais'>;
 
-type TabId = 'perfil' | 'empresa' | 'contatos' | 'notificacoes' | 'seguranca' | 'integracoes';
+type TabId = 'perfil' | 'notificacoes' | 'seguranca' | 'integracoes';
 
 interface Tab {
   id: TabId;
@@ -52,8 +52,6 @@ interface Tab {
 
 const tabs: Tab[] = [
   { id: 'perfil', label: 'Perfil', icon: User, description: 'Dados pessoais e aparência' },
-  { id: 'empresa', label: 'Empresa', icon: Building2, description: 'Dados da empresa e filiais' },
-  { id: 'contatos', label: 'Contatos', icon: Users, description: 'Destinatários e remetentes' },
   { id: 'notificacoes', label: 'Notificações', icon: Bell, description: 'Alertas e canais' },
   { id: 'seguranca', label: 'Segurança', icon: Shield, description: 'Senha e autenticação' },
   { id: 'integracoes', label: 'Integrações', icon: Plug, description: 'ERPs e APIs externas' },
