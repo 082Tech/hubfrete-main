@@ -319,15 +319,7 @@ export default function Configuracoes() {
           </div>
         );
 
-      case 'empresa':
-        return (
-          <div className="space-y-6">
-            {/* Company Settings */}
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Truck className="w-5 h-5" />
-                  Dados da Transportadora
+      case 'fiscal':
                 </CardTitle>
                 <CardDescription>Informações da empresa vinculada</CardDescription>
               </CardHeader>
