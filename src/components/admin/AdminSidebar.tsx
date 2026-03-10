@@ -5,7 +5,7 @@ import {
   LayoutDashboard, TrendingUp, Activity, Truck, AlertTriangle, Building,
   User, FileText, Package, History, Clock, Award, Container, Boxes,
   UserPlus as UserPlusIcon, Camera, FileCheck, HardDrive, DollarSign,
-  MoreVertical,
+  MoreVertical, MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
