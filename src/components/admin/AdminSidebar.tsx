@@ -323,7 +323,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                     <button
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         isAnySubActive
-                          ? 'bg-destructive/10 text-destructive'
+                          ? 'bg-admin-accent/10 text-admin-accent'
                           : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                       }`}
                     >
