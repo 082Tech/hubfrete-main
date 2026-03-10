@@ -56,10 +56,10 @@ const roleLabels: Record<AdminRole, string> = {
   suporte: 'Suporte',
 };
 
-const roleBadgeVariants: Record<AdminRole, 'destructive' | 'default' | 'secondary'> = {
-  super_admin: 'destructive',
-  admin: 'default',
-  suporte: 'secondary',
+const roleBadgeVariants: Record<AdminRole, 'default' | 'secondary' | 'outline'> = {
+  super_admin: 'default',
+  admin: 'secondary',
+  suporte: 'outline',
 };
 
 export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps) {
@@ -234,7 +234,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
         <div className={`p-4 border-b border-sidebar-border ${collapsed ? 'flex flex-col items-center gap-2' : 'flex items-center justify-between'}`}>
           <Link to="/admin/torre-controle" className={`flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
             <div className="p-2 bg-admin-accent rounded-lg shrink-0">
-              <Shield className="w-5 h-5 text-admin-accent-foreground" />
+              <Truck className="w-5 h-5 text-admin-accent-foreground" />
             </div>
             {!collapsed && (
               <span className="text-xl font-bold text-sidebar-foreground">
@@ -256,7 +256,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
         {!collapsed && (
           <div className="px-4 py-3 border-b border-sidebar-border bg-sidebar-accent/10">
             <div className="flex items-center gap-2">
-              <Badge variant={roleBadgeVariants[adminUser.role]} className="text-[10px] py-0 px-1.5 h-5">
+              <Badge className="text-[10px] py-0 px-1.5 h-5 bg-admin-accent text-admin-accent-foreground">
                 <Shield className="w-2.5 h-2.5 mr-1" />
                 Torre de Controle
               </Badge>
@@ -418,7 +418,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Badge variant={roleBadgeVariants[adminUser.role]} className="text-[9px] py-0 px-1 h-4">
+                    <Badge className="text-[9px] py-0 px-1 h-4 bg-admin-accent text-admin-accent-foreground">
                       {roleLabels[adminUser.role]}
                     </Badge>
                   </div>
