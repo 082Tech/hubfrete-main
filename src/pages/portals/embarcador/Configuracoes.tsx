@@ -355,15 +355,7 @@ export default function Configuracoes() {
           </Card>
         );
 
-      case 'integracoes':
-        return (
-          <div className="space-y-6">
-            {/* ERP Integrations */}
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="w-5 h-5" />
-                  Sistemas ERP
+
                 </CardTitle>
                 <CardDescription>Conecte seu ERP para sincronização automática de dados</CardDescription>
               </CardHeader>
