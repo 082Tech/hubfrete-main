@@ -494,7 +494,7 @@ function DetailPanel({
             <div className="flex items-center gap-2 text-sm">
               <Building2 className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">Publicado por:</span>
-              <span className="font-medium">{entrega.carga.empresa.nome || 'Empresa não identificada'}</span>
+              <span className="font-medium">{entrega.carga.empresa.nome_fantasia || entrega.carga.empresa.razao_social || entrega.carga.empresa.nome || 'Empresa não identificada'}</span>
             </div>
           )}
 
