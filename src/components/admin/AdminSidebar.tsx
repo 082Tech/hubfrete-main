@@ -406,8 +406,8 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
           {!collapsed ? (
             <>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                  <span className="text-destructive font-semibold">
+                <div className="w-10 h-10 rounded-full bg-admin-accent/10 flex items-center justify-center shrink-0">
+                  <span className="text-admin-accent font-semibold">
                     {(adminUser.nome || adminUser.email || 'A').charAt(0).toUpperCase()}
                   </span>
                 </div>
