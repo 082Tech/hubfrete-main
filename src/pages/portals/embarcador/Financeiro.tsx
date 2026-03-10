@@ -256,6 +256,7 @@ export default function EmbarcadorFinanceiro() {
             </SelectContent>
           </Select>
         </div>
+      </div>
 
       {/* Quinzena Groups */}
       <div ref={tableRef} style={{ height: tableHeight }} className="overflow-auto space-y-3">
