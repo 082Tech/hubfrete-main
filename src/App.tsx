@@ -78,6 +78,7 @@ import TransportadoraMensagens from "./pages/portals/transportadora/Mensagens";
 import TransportadoraRelatorios from "./pages/portals/transportadora/Relatorios";
 import TransportadoraNotificacoes from "./pages/portals/transportadora/Notificacoes";
 import TransportadoraDadosEmpresa from "./pages/portals/transportadora/DadosEmpresa";
+import TransportadoraIntegracoes from "./pages/portals/transportadora/Integracoes";
 import TransportadoraOperacaoDiaria from "./pages/portals/transportadora/OperacaoDiaria";
 import TransportadoraFinanceiro from "./pages/portals/transportadora/Financeiro";
 
