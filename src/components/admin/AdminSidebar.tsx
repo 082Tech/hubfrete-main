@@ -233,12 +233,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
         {/* Logo & Collapse Button */}
         <div className={`p-4 border-b border-sidebar-border ${collapsed ? 'flex flex-col items-center gap-2' : 'flex items-center justify-between'}`}>
           <Link to="/admin/torre-controle" className={`flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="p-2 bg-destructive rounded-lg shrink-0">
-              <Shield className="w-5 h-5 text-destructive-foreground" />
+            <div className="p-2 bg-admin-accent rounded-lg shrink-0">
+              <Shield className="w-5 h-5 text-admin-accent-foreground" />
             </div>
             {!collapsed && (
               <span className="text-xl font-bold text-sidebar-foreground">
-                Hub<span className="text-destructive">Admin</span>
+                Hub<span className="text-admin-accent">Admin</span>
               </span>
             )}
           </Link>
