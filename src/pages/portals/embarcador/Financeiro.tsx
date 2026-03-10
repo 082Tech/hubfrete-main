@@ -106,9 +106,7 @@ export default function EmbarcadorFinanceiro() {
     const last = endOfMonth(new Date(selectedYear, selectedMonth));
     return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
   })();
-
-
-
+  const { data: registros, isLoading } = useQuery({
     queryKey: ['embarcador-financeiro', empresa?.id, statusFilter, dateFrom, dateTo],
     queryFn: async () => {
       if (!empresa?.id) return [];
