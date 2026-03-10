@@ -17,7 +17,7 @@ import {
 import { Label } from '@/components/ui/label';
 import {
   DollarSign, CheckCircle, Clock, Landmark, Save, CreditCard,
-  ChevronDown, ChevronRight, Calendar,
+  ChevronDown, ChevronRight, Calendar, Lock, LockOpen,
 } from 'lucide-react';
 import { format, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
