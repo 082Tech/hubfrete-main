@@ -239,7 +239,7 @@ export default function TorreControle() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Shield className="w-8 h-8 text-destructive" />
+            <Shield className="w-8 h-8 text-admin-accent" />
             Torre de Controle
           </h1>
           <p className="text-muted-foreground">

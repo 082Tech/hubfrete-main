@@ -68,7 +68,7 @@ type TorreUser = {
 const ITEMS_PER_PAGE = 10;
 
 const roleLabels: Record<string, { label: string; color: string }> = {
-  'super_admin': { label: 'Super Admin', color: 'bg-destructive/10 text-destructive' },
+  'super_admin': { label: 'Super Admin', color: 'bg-admin-accent/10 text-admin-accent' },
   'admin': { label: 'Admin', color: 'bg-chart-2/10 text-chart-2' },
   'suporte': { label: 'Suporte', color: 'bg-chart-1/10 text-chart-1' },
 };
