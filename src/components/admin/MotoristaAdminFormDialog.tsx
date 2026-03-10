@@ -279,7 +279,7 @@ export function MotoristaAdminFormDialog({
               <Label>Tipo de Cadastro *</Label>
               <Select 
                 value={formData.tipo_cadastro} 
-                onValueChange={(v: 'autonomo' | 'frota') => setFormData({ ...formData, tipo_cadastro: v })}
+                onValueChange={(v: 'autonomo' | 'frota' | 'terceirizado') => setFormData({ ...formData, tipo_cadastro: v })}
               >
                 <SelectTrigger>
                   <SelectValue />
