@@ -233,12 +233,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
         {/* Logo & Collapse Button */}
         <div className={`p-4 border-b border-sidebar-border ${collapsed ? 'flex flex-col items-center gap-2' : 'flex items-center justify-between'}`}>
           <Link to="/admin/torre-controle" className={`flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="p-2 bg-destructive rounded-lg shrink-0">
-              <Shield className="w-5 h-5 text-destructive-foreground" />
+            <div className="p-2 bg-admin-accent rounded-lg shrink-0">
+              <Shield className="w-5 h-5 text-admin-accent-foreground" />
             </div>
             {!collapsed && (
               <span className="text-xl font-bold text-sidebar-foreground">
-                Hub<span className="text-destructive">Admin</span>
+                Hub<span className="text-admin-accent">Admin</span>
               </span>
             )}
           </Link>
@@ -284,7 +284,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                         to={item.subItems[0].href}
                         className={`flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                           isAnySubActive
-                            ? 'bg-destructive text-destructive-foreground'
+                            ? 'bg-admin-accent text-admin-accent-foreground'
                             : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                         }`}
                       >
@@ -300,7 +300,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                             to={sub.href}
                             className={`text-xs px-2 py-1 rounded ${
                               location.pathname === sub.href
-                                ? 'bg-destructive/20 text-destructive'
+                                ? 'bg-admin-accent/20 text-admin-accent'
                                 : 'hover:bg-muted'
                             }`}
                           >
@@ -323,7 +323,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                     <button
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         isAnySubActive
-                          ? 'bg-destructive/10 text-destructive'
+                          ? 'bg-admin-accent/10 text-admin-accent'
                           : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                       }`}
                     >
@@ -343,7 +343,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                           to={sub.href}
                           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                             location.pathname === sub.href
-                              ? 'bg-destructive text-destructive-foreground'
+                              ? 'bg-admin-accent text-admin-accent-foreground'
                               : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                           }`}
                         >
@@ -365,7 +365,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                 to={item.href!}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''} ${
                   isActive
-                    ? 'bg-destructive text-destructive-foreground'
+                    ? 'bg-admin-accent text-admin-accent-foreground'
                     : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 }`}
               >
@@ -406,8 +406,8 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
           {!collapsed ? (
             <>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                  <span className="text-destructive font-semibold">
+                <div className="w-10 h-10 rounded-full bg-admin-accent/10 flex items-center justify-center shrink-0">
+                  <span className="text-admin-accent font-semibold">
                     {(adminUser.nome || adminUser.email || 'A').charAt(0).toUpperCase()}
                   </span>
                 </div>
@@ -426,7 +426,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
               </div>
               <Button
                 variant="ghost"
-                className="w-full justify-start text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
+                className="w-full justify-start text-sidebar-foreground hover:bg-admin-accent/10 hover:text-admin-accent"
                 onClick={handleLogout}
               >
                 <LogOut className="w-4 h-4 mr-2" />
@@ -439,7 +439,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
+                  className="text-sidebar-foreground hover:bg-admin-accent/10 hover:text-admin-accent"
                   onClick={handleLogout}
                 >
                   <LogOut className="w-5 h-5" />

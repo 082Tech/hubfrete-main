@@ -399,7 +399,7 @@ export default function Financeiro() {
                                           <td className="px-4 py-3 w-[16%] text-sm">{nomeEmpresa(r.empresa_embarcadora)}</td>
                                           <td className="px-4 py-3 w-[16%] text-sm">{nomeEmpresa(r.empresa_transportadora)}</td>
                                           <td className="px-4 py-3 text-right font-medium w-[12%]">{formatCurrency(r.valor_frete)}</td>
-                                          <td className="px-4 py-3 text-right text-destructive text-sm w-[10%]">
+                                          <td className="px-4 py-3 text-right text-muted-foreground text-sm w-[10%]">
                                             {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
                                           </td>
                                           <td className="px-4 py-3 text-right font-semibold text-chart-2 w-[10%]">{formatCurrency(r.valor_liquido)}</td>
