@@ -637,17 +637,18 @@ export default function Empresas() {
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>CNPJ</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Classe</TableHead>
-                    <TableHead>Filiais</TableHead>
-                    <TableHead>Usuários</TableHead>
-                    <TableHead>Criado em</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
+                    <TableRow>
+                     <TableHead className="w-[40px]"></TableHead>
+                     <TableHead>Empresa</TableHead>
+                     <TableHead>CNPJ</TableHead>
+                     <TableHead>Tipo</TableHead>
+                     <TableHead>Classe</TableHead>
+                     <TableHead className="text-center">Comissão</TableHead>
+                     <TableHead>Filiais</TableHead>
+                     <TableHead>Usuários</TableHead>
+                     <TableHead>Criado em</TableHead>
+                     <TableHead className="w-[50px]"></TableHead>
+                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedEmpresas.map((empresa) => {
