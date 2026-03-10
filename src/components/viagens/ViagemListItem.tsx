@@ -123,9 +123,14 @@ export function ViagemListItem({ viagem, isSelected, onClick }: ViagemListItemPr
         </div>
       </div>
 
-      {/* Tempo & Status */}
+      {/* Tempo, Valor & Status */}
       <div className="text-right shrink-0">
         <p className="text-xs text-muted-foreground mb-1">{tempoDecorrido}</p>
+        {totalLiquido > 0 && (
+          <p className="text-xs font-semibold text-chart-2 mb-1">
+            R$ {totalLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </p>
+        )}
         <Badge className={`text-[10px] ${statusInfo.color}`}>
           {statusInfo.label}
         </Badge>
