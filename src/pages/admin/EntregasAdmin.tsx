@@ -177,6 +177,16 @@ export default function EntregasAdmin() {
   // Apply filters
   const filteredEntregas = useMemo(() => {
     let result = entregas;
+
+    // Date filter
+    if (dateRange?.from) {
+      const from = new Date(dateRange.from); from.setHours(0,0,0,0);
+      result = result.filter(e => new Date(e.created_at || '') >= from);
+    }
+    if (dateRange?.to) {
+      const to = new Date(dateRange.to); to.setHours(23,59,59,999);
+      result = result.filter(e => new Date(e.created_at || '') <= to);
+    }
     
     // Apply search
     result = result.filter(entrega => 
