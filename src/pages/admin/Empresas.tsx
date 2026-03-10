@@ -739,7 +739,7 @@ export default function Empresas() {
                         {/* Expanded Row - Filiais & Users */}
                         {isExpanded && (
                           <TableRow key={`${empresa.id}-expanded`} className="bg-muted/30 hover:bg-muted/30">
-                            <TableCell colSpan={9} className="p-0">
+                            <TableCell colSpan={10} className="p-0">
                               <div className="p-4 space-y-4">
                                 {/* Action buttons for company */}
                                 <div className="flex gap-2 mb-4">
