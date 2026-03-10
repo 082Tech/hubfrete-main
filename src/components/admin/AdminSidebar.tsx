@@ -343,7 +343,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                           to={sub.href}
                           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                             location.pathname === sub.href
-                              ? 'bg-destructive text-destructive-foreground'
+                              ? 'bg-admin-accent text-admin-accent-foreground'
                               : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                           }`}
                         >
