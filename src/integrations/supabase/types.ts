@@ -192,6 +192,7 @@ export type Database = {
           necessidades_especiais: string[] | null
           nota_fiscal_url: string | null
           numero_onu: string | null
+          numero_pedido: string | null
           permite_fracionado: boolean | null
           peso_disponivel_kg: number | null
           peso_kg: number
@@ -251,6 +252,7 @@ export type Database = {
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
+          numero_pedido?: string | null
           permite_fracionado?: boolean | null
           peso_disponivel_kg?: number | null
           peso_kg: number
@@ -310,6 +312,7 @@ export type Database = {
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
+          numero_pedido?: string | null
           permite_fracionado?: boolean | null
           peso_disponivel_kg?: number | null
           peso_kg?: number
@@ -1040,7 +1043,9 @@ export type Database = {
         Row: {
           classe: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz: string | null
+          comissao_hubfrete_percent: number
           created_at: string
+          dados_bancarios: Json | null
           email: string | null
           id: number
           inscricao_estadual: string | null
@@ -1054,7 +1059,9 @@ export type Database = {
         Insert: {
           classe: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz?: string | null
+          comissao_hubfrete_percent?: number
           created_at?: string
+          dados_bancarios?: Json | null
           email?: string | null
           id?: number
           inscricao_estadual?: string | null
@@ -1068,7 +1075,9 @@ export type Database = {
         Update: {
           classe?: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz?: string | null
+          comissao_hubfrete_percent?: number
           created_at?: string
+          dados_bancarios?: Json | null
           email?: string | null
           id?: number
           inscricao_estadual?: string | null
@@ -1248,6 +1257,7 @@ export type Database = {
           notas_fiscais_urls: string[] | null
           numero_cte: string | null
           observacoes: string | null
+          outros_documentos: Json | null
           peso_alocado_kg: number | null
           previsao_coleta: string | null
           status: Database["public"]["Enums"]["status_entrega"] | null
@@ -1284,6 +1294,7 @@ export type Database = {
           notas_fiscais_urls?: string[] | null
           numero_cte?: string | null
           observacoes?: string | null
+          outros_documentos?: Json | null
           peso_alocado_kg?: number | null
           previsao_coleta?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
@@ -1320,6 +1331,7 @@ export type Database = {
           notas_fiscais_urls?: string[] | null
           numero_cte?: string | null
           observacoes?: string | null
+          outros_documentos?: Json | null
           peso_alocado_kg?: number | null
           previsao_coleta?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
