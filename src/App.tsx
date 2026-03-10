@@ -170,6 +170,7 @@ const App = () => {
                     <Route path="usuarios" element={<UsuariosEmpresa />} />
                     <Route path="financeiro" element={<EmbarcadorFinanceiro />} />
                     <Route path="dados-empresa" element={<EmbarcadorDadosEmpresa />} />
+                    <Route path="integracoes" element={<EmbarcadorIntegracoes />} />
                     <Route path="configuracoes" element={<Configuracoes />} />
                   </Route>
 
