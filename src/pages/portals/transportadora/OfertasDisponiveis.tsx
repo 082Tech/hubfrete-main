@@ -1854,11 +1854,34 @@ export default function OfertasDisponiveis() {
 
                       {(() => {
                         const total = calcularFreteTotal(selectedCarga);
-                        return total ? (
-                          <p className="text-lg font-semibold text-chart-2">
-                            {formatCurrency(total)}
-                          </p>
-                        ) : null;
+                        if (!total) return null;
+                        const comissaoPercent = (selectedCarga.empresa as any)?.comissao_hubfrete_percent || 0;
+                        const valorComissao = comissaoPercent > 0 ? Math.round(total * comissaoPercent / 100 * 100) / 100 : 0;
+                        const liquido = total - valorComissao;
+                        return (
+                          <div className="space-y-0.5">
+                            {comissaoPercent > 0 ? (
+                              <>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <span>Valor bruto:</span>
+                                  <span>{formatCurrency(total)}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-destructive">
+                                  <span>Comissão HubFrete ({comissaoPercent}%):</span>
+                                  <span>- {formatCurrency(valorComissao)}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-lg font-semibold text-chart-2">
+                                  <span>Valor do frete:</span>
+                                  <span>{formatCurrency(liquido)}</span>
+                                </div>
+                              </>
+                            ) : (
+                              <p className="text-lg font-semibold text-chart-2">
+                                {formatCurrency(total)}
+                              </p>
+                            )}
+                          </div>
+                        );
                       })()}
                     </div>
                   </div>
