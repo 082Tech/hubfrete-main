@@ -68,7 +68,7 @@ type Motorista = {
   categoria_cnh: string;
   validade_cnh: string;
   ativo: boolean;
-  tipo_cadastro: 'autonomo' | 'frota';
+  tipo_cadastro: 'autonomo' | 'frota' | 'terceirizado';
   created_at: string;
   empresa_id: number | null;
   empresa?: {
