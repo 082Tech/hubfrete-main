@@ -103,15 +103,16 @@ function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
 export default function EmbarcadorFinanceiro() {
   const { empresa } = useUserContext();
   const [statusFilter, setStatusFilter] = useState<string>('todos');
-  const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-  });
-  const [dateTo, setDateTo] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const dateFrom = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+  const dateTo = (() => {
+    const last = endOfMonth(new Date(selectedYear, selectedMonth));
+    return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
+  })();
 
   const { ref: tableRef, height: tableHeight } = useRemainingViewportHeight({ bottomOffset: 16 });
 
