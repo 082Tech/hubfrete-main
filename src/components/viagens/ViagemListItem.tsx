@@ -10,6 +10,10 @@ interface ViagemEntrega {
   status: string;
   origemCidade?: string;
   destinoCidade?: string;
+  valor_frete?: number | null;
+  carga?: {
+    empresa?: { comissao_hubfrete_percent?: number | null } | null;
+  };
 }
 
 interface ViagemListItemProps {
