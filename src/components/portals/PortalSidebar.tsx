@@ -813,7 +813,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                           </button>
                         </DropdownMenuTrigger>
                       </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={10}>Sua Empresa</TooltipContent>
+                      <TooltipContent side="right" sideOffset={10}>Minha Empresa</TooltipContent>
                     </Tooltip>
                     <DropdownMenuContent side="right" align="start" className="w-48">
                       {empresaSubItems.map((sub) => (
