@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
-  DollarSign, CheckCircle, Clock, CreditCard, ChevronDown, ChevronRight, Calendar,
+  DollarSign, CheckCircle, Clock, CreditCard, ChevronDown, ChevronRight, Calendar, Lock, LockOpen,
 } from 'lucide-react';
 import { format, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
