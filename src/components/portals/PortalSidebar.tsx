@@ -116,7 +116,8 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
-    // Sua Empresa is a submenu
+    // Minha Empresa is a submenu
+    { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
   ],
   transportadora: [
     { icon: Home, label: 'Home', href: '/transportadora' },
@@ -127,7 +128,8 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
     { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
-    // Sua Empresa is a submenu
+    // Minha Empresa is a submenu
+    { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
   ],
   motorista: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/motorista' },
