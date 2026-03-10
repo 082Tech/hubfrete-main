@@ -56,10 +56,10 @@ const roleLabels: Record<AdminRole, string> = {
   suporte: 'Suporte',
 };
 
-const roleBadgeVariants: Record<AdminRole, 'destructive' | 'default' | 'secondary'> = {
-  super_admin: 'destructive',
-  admin: 'default',
-  suporte: 'secondary',
+const roleBadgeVariants: Record<AdminRole, 'default' | 'secondary' | 'outline'> = {
+  super_admin: 'default',
+  admin: 'secondary',
+  suporte: 'outline',
 };
 
 export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps) {
