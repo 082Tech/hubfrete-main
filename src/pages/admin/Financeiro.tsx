@@ -94,6 +94,13 @@ export default function Financeiro() {
   });
   const [uploading, setUploading] = useState(false);
   const [comprovante, setComprovante] = useState<File | null>(null);
+  const [baixaQuinzenaDialog, setBaixaQuinzenaDialog] = useState<FaturaRow | null>(null);
+  const [baixaQuinzenaForm, setBaixaQuinzenaForm] = useState({
+    data_pagamento: format(new Date(), 'yyyy-MM-dd'),
+    metodo_pagamento: '',
+    observacoes: '',
+  });
+  const [comprovanteQuinzena, setComprovanteQuinzena] = useState<File | null>(null);
 
   // Fetch faturas for selected month
   const { data: faturas, isLoading: loadingFaturas } = useQuery({
@@ -183,6 +190,68 @@ export default function Financeiro() {
     });
   };
 
+  const baixaQuinzenaMutation = useMutation({
+    mutationFn: async (params: { faturaId: string; faturaType: 'a_receber' | 'a_pagar'; data_pagamento: string; metodo_pagamento: string; observacoes: string; comprovante_url?: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const column = params.faturaType === 'a_receber' ? 'fatura_embarcador_id' : 'fatura_transportadora_id';
+      const { error: errItems } = await supabase
+        .from('financeiro_entregas')
+        .update({
+          status: 'pago',
+          data_pagamento: params.data_pagamento,
+          metodo_pagamento: params.metodo_pagamento,
+          observacoes: params.observacoes,
+          comprovante_url: params.comprovante_url || null,
+          baixa_por: user?.id,
+        })
+        .eq(column, params.faturaId)
+        .eq('status', 'pendente');
+      if (errItems) throw errItems;
+      const { error: errFatura } = await supabase
+        .from('faturas')
+        .update({
+          status: 'paga',
+          data_pagamento: params.data_pagamento,
+          metodo_pagamento: params.metodo_pagamento,
+          observacoes: params.observacoes,
+          comprovante_url: params.comprovante_url || null,
+          baixa_por: user?.id,
+        })
+        .eq('id', params.faturaId);
+      if (errFatura) throw errFatura;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-faturas'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-fatura-items'] });
+      toast.success('Baixa da quinzena realizada com sucesso!');
+      setBaixaQuinzenaDialog(null);
+      setComprovanteQuinzena(null);
+    },
+    onError: () => toast.error('Erro ao dar baixa na quinzena'),
+  });
+
+  const handleBaixaQuinzena = async () => {
+    if (!baixaQuinzenaDialog) return;
+    if (!comprovanteQuinzena) {
+      toast.error('O comprovante de pagamento é obrigatório.');
+      return;
+    }
+    setUploading(true);
+    const ext = comprovanteQuinzena.name.split('.').pop();
+    const path = `quinzena-${baixaQuinzenaDialog.id}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('comprovantes-financeiro').upload(path, comprovanteQuinzena);
+    setUploading(false);
+    if (error) { toast.error('Erro ao enviar comprovante'); return; }
+    const { data: urlData } = supabase.storage.from('comprovantes-financeiro').getPublicUrl(path);
+
+    baixaQuinzenaMutation.mutate({
+      faturaId: baixaQuinzenaDialog.id,
+      faturaType: activeTab,
+      ...baixaQuinzenaForm,
+      comprovante_url: urlData.publicUrl,
+    });
+  };
+
   const nomeEmpresa = (emp: { nome: string | null; nome_fantasia: string | null } | null) =>
     emp?.nome_fantasia || emp?.nome || '—';
 
@@ -207,7 +276,7 @@ export default function Financeiro() {
       case 'paga': return <Badge className="bg-chart-2 text-white">Paga</Badge>;
       case 'fechada': return <Badge variant="outline" className="border-chart-4 text-chart-4">Fechada</Badge>;
       case 'cancelada': return <Badge variant="destructive">Cancelada</Badge>;
-      default: return <Badge variant="secondary">Aberta</Badge>;
+      default: return <Badge variant="secondary">Pendente</Badge>;
     }
   };
 
@@ -345,6 +414,26 @@ export default function Financeiro() {
                                 {' · '}{nomeEmpresa(fatura.empresas)}
                               </p>
                             </div>
+                            {fatura.status !== 'paga' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="hidden sm:flex shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setBaixaQuinzenaDialog(fatura);
+                                  setBaixaQuinzenaForm({
+                                    data_pagamento: format(new Date(), 'yyyy-MM-dd'),
+                                    metodo_pagamento: '',
+                                    observacoes: '',
+                                  });
+                                  setComprovanteQuinzena(null);
+                                }}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Baixa Quinzena
+                              </Button>
+                            )}
                             <div className="text-right mr-4 hidden sm:block">
                               <p className="text-lg font-bold text-foreground">
                                 {formatCurrency(activeTab === 'a_pagar' ? fatura.valor_liquido : fatura.valor_bruto)}
@@ -546,6 +635,91 @@ export default function Financeiro() {
               disabled={!baixaForm.data_pagamento || !baixaForm.metodo_pagamento || !comprovante || baixaMutation.isPending || uploading}
             >
               {baixaMutation.isPending || uploading ? 'Processando...' : 'Confirmar Baixa'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Baixa Quinzena Dialog */}
+      <Dialog open={!!baixaQuinzenaDialog} onOpenChange={() => setBaixaQuinzenaDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Dar Baixa na Quinzena Inteira</DialogTitle>
+          </DialogHeader>
+          {baixaQuinzenaDialog && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg space-y-1">
+                <p className="text-sm font-medium">
+                  {baixaQuinzenaDialog.quinzena === 1 ? '1ª' : '2ª'} Quinzena — {nomeEmpresa(baixaQuinzenaDialog.empresas)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {format(new Date(baixaQuinzenaDialog.periodo_inicio + 'T12:00:00'), 'dd/MM')} a{' '}
+                  {format(new Date(baixaQuinzenaDialog.periodo_fim + 'T12:00:00'), 'dd/MM/yyyy')} — {baixaQuinzenaDialog.qtd_entregas} entrega(s)
+                </p>
+                <p className="text-lg font-bold text-chart-2">
+                  {formatCurrency(activeTab === 'a_pagar' ? baixaQuinzenaDialog.valor_liquido : baixaQuinzenaDialog.valor_bruto)}
+                </p>
+              </div>
+
+              <div>
+                <Label>Data do Pagamento</Label>
+                <Input
+                  type="date"
+                  value={baixaQuinzenaForm.data_pagamento}
+                  onChange={(e) => setBaixaQuinzenaForm(f => ({ ...f, data_pagamento: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Método de Pagamento</Label>
+                <Select value={baixaQuinzenaForm.metodo_pagamento} onValueChange={(v) => setBaixaQuinzenaForm(f => ({ ...f, metodo_pagamento: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pix">PIX</SelectItem>
+                    <SelectItem value="ted">TED</SelectItem>
+                    <SelectItem value="boleto">Boleto</SelectItem>
+                    <SelectItem value="deposito">Depósito</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Comprovante <span className="text-destructive">*</span></Label>
+                <div className="mt-1">
+                  <label className={`flex items-center gap-2 cursor-pointer border border-dashed rounded-lg p-3 hover:bg-muted transition-colors ${!comprovanteQuinzena ? 'border-destructive/50' : 'border-border'}`}>
+                    <Upload className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {comprovanteQuinzena ? comprovanteQuinzena.name : 'Clique para anexar (obrigatório)'}
+                    </span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*,.pdf"
+                      onChange={(e) => setComprovanteQuinzena(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <Label>Observações</Label>
+                <Textarea
+                  value={baixaQuinzenaForm.observacoes}
+                  onChange={(e) => setBaixaQuinzenaForm(f => ({ ...f, observacoes: e.target.value }))}
+                  placeholder="Observações sobre o pagamento da quinzena..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBaixaQuinzenaDialog(null)}>Cancelar</Button>
+            <Button
+              onClick={handleBaixaQuinzena}
+              disabled={!baixaQuinzenaForm.data_pagamento || !baixaQuinzenaForm.metodo_pagamento || !comprovanteQuinzena || baixaQuinzenaMutation.isPending || uploading}
+            >
+              {baixaQuinzenaMutation.isPending || uploading ? 'Processando...' : 'Confirmar Baixa Quinzena'}
             </Button>
           </DialogFooter>
         </DialogContent>
