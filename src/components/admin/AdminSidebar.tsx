@@ -461,7 +461,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Badge className="text-[9px] py-0 px-1 h-4 bg-primary text-primary-foreground">
+                  <Badge className="text-[9px] py-0 px-1 h-4 bg-admin-accent text-admin-accent-foreground">
                     {roleLabels[adminUser.role]}
                   </Badge>
                 </div>
