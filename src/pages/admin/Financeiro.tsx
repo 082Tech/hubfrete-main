@@ -414,6 +414,26 @@ export default function Financeiro() {
                                 {' · '}{nomeEmpresa(fatura.empresas)}
                               </p>
                             </div>
+                            {fatura.status !== 'paga' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="hidden sm:flex shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setBaixaQuinzenaDialog(fatura);
+                                  setBaixaQuinzenaForm({
+                                    data_pagamento: format(new Date(), 'yyyy-MM-dd'),
+                                    metodo_pagamento: '',
+                                    observacoes: '',
+                                  });
+                                  setComprovanteQuinzena(null);
+                                }}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Baixa Quinzena
+                              </Button>
+                            )}
                             <div className="text-right mr-4 hidden sm:block">
                               <p className="text-lg font-bold text-foreground">
                                 {formatCurrency(activeTab === 'a_pagar' ? fatura.valor_liquido : fatura.valor_bruto)}
