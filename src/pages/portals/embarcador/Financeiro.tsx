@@ -297,19 +297,21 @@ export default function EmbarcadorFinanceiro() {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="border-t border-border flex flex-col">
+                      <Table>
+                        <TableHeader className="sticky top-0 bg-background z-10">
+                          <TableRow>
+                            <TableHead>Carga</TableHead>
+                            <TableHead>Transportadora</TableHead>
+                            <TableHead>Motorista</TableHead>
+                            <TableHead className="text-right">Valor do Frete</TableHead>
+                            <TableHead className="text-right">Comissão</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Data</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                      </Table>
                       <ScrollArea className="max-h-[400px]">
                         <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Carga</TableHead>
-                              <TableHead>Transportadora</TableHead>
-                              <TableHead>Motorista</TableHead>
-                              <TableHead className="text-right">Valor do Frete</TableHead>
-                              <TableHead className="text-right">Comissão</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Data</TableHead>
-                            </TableRow>
-                          </TableHeader>
                           <TableBody>
                             {pagedItems.map((r: any) => (
                               <TableRow key={r.id}>
@@ -341,13 +343,15 @@ export default function EmbarcadorFinanceiro() {
                         </Table>
                       </ScrollArea>
                       {group.registros.length > ITEMS_PER_PAGE && (
-                        <Pagination
-                          currentPage={page}
-                          totalPages={totalPages}
-                          totalItems={group.registros.length}
-                          itemsPerPage={ITEMS_PER_PAGE}
-                          onPageChange={(p) => setGroupPages(prev => ({ ...prev, [group.key]: p }))}
-                        />
+                        <div className="border-t border-border">
+                          <Pagination
+                            currentPage={page}
+                            totalPages={totalPages}
+                            totalItems={group.registros.length}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                            onPageChange={(p) => setGroupPages(prev => ({ ...prev, [group.key]: p }))}
+                          />
+                        </div>
                       )}
                     </div>
                   </CollapsibleContent>
