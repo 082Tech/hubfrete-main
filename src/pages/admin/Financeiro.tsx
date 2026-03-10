@@ -639,6 +639,91 @@ export default function Financeiro() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Baixa Quinzena Dialog */}
+      <Dialog open={!!baixaQuinzenaDialog} onOpenChange={() => setBaixaQuinzenaDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Dar Baixa na Quinzena Inteira</DialogTitle>
+          </DialogHeader>
+          {baixaQuinzenaDialog && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg space-y-1">
+                <p className="text-sm font-medium">
+                  {baixaQuinzenaDialog.quinzena === 1 ? '1ª' : '2ª'} Quinzena — {nomeEmpresa(baixaQuinzenaDialog.empresas)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {format(new Date(baixaQuinzenaDialog.periodo_inicio + 'T12:00:00'), 'dd/MM')} a{' '}
+                  {format(new Date(baixaQuinzenaDialog.periodo_fim + 'T12:00:00'), 'dd/MM/yyyy')} — {baixaQuinzenaDialog.qtd_entregas} entrega(s)
+                </p>
+                <p className="text-lg font-bold text-chart-2">
+                  {formatCurrency(activeTab === 'a_pagar' ? baixaQuinzenaDialog.valor_liquido : baixaQuinzenaDialog.valor_bruto)}
+                </p>
+              </div>
+
+              <div>
+                <Label>Data do Pagamento</Label>
+                <Input
+                  type="date"
+                  value={baixaQuinzenaForm.data_pagamento}
+                  onChange={(e) => setBaixaQuinzenaForm(f => ({ ...f, data_pagamento: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Método de Pagamento</Label>
+                <Select value={baixaQuinzenaForm.metodo_pagamento} onValueChange={(v) => setBaixaQuinzenaForm(f => ({ ...f, metodo_pagamento: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pix">PIX</SelectItem>
+                    <SelectItem value="ted">TED</SelectItem>
+                    <SelectItem value="boleto">Boleto</SelectItem>
+                    <SelectItem value="deposito">Depósito</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Comprovante <span className="text-destructive">*</span></Label>
+                <div className="mt-1">
+                  <label className={`flex items-center gap-2 cursor-pointer border border-dashed rounded-lg p-3 hover:bg-muted transition-colors ${!comprovanteQuinzena ? 'border-destructive/50' : 'border-border'}`}>
+                    <Upload className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {comprovanteQuinzena ? comprovanteQuinzena.name : 'Clique para anexar (obrigatório)'}
+                    </span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*,.pdf"
+                      onChange={(e) => setComprovanteQuinzena(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <Label>Observações</Label>
+                <Textarea
+                  value={baixaQuinzenaForm.observacoes}
+                  onChange={(e) => setBaixaQuinzenaForm(f => ({ ...f, observacoes: e.target.value }))}
+                  placeholder="Observações sobre o pagamento da quinzena..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBaixaQuinzenaDialog(null)}>Cancelar</Button>
+            <Button
+              onClick={handleBaixaQuinzena}
+              disabled={!baixaQuinzenaForm.data_pagamento || !baixaQuinzenaForm.metodo_pagamento || !comprovanteQuinzena || baixaQuinzenaMutation.isPending || uploading}
+            >
+              {baixaQuinzenaMutation.isPending || uploading ? 'Processando...' : 'Confirmar Baixa Quinzena'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
