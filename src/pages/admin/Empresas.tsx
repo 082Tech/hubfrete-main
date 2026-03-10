@@ -637,17 +637,18 @@ export default function Empresas() {
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>CNPJ</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Classe</TableHead>
-                    <TableHead>Filiais</TableHead>
-                    <TableHead>Usuários</TableHead>
-                    <TableHead>Criado em</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
+                    <TableRow>
+                     <TableHead className="w-[40px]"></TableHead>
+                     <TableHead>Empresa</TableHead>
+                     <TableHead>CNPJ</TableHead>
+                     <TableHead>Tipo</TableHead>
+                     <TableHead>Classe</TableHead>
+                     <TableHead className="text-center">Comissão</TableHead>
+                     <TableHead>Filiais</TableHead>
+                     <TableHead>Usuários</TableHead>
+                     <TableHead>Criado em</TableHead>
+                     <TableHead className="w-[50px]"></TableHead>
+                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedEmpresas.map((empresa) => {
@@ -689,18 +690,20 @@ export default function Empresas() {
                             {formatCnpj(empresa.cnpj_matriz)}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={empresa.tipo === 'EMBARCADOR' ? 'default' : 'secondary'}>
-                                {empresa.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
-                              </Badge>
-                              {empresa.tipo === 'EMBARCADOR' && (empresa.comissao_hubfrete_percent ?? 0) > 0 && (
-                                <Badge variant="outline" className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/30">
-                                  {empresa.comissao_hubfrete_percent}%
-                                </Badge>
-                              )}
-                            </div>
+                            <Badge variant={empresa.tipo === 'EMBARCADOR' ? 'default' : 'secondary'}>
+                              {empresa.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
+                            </Badge>
                           </TableCell>
                           <TableCell>{empresa.classe}</TableCell>
+                          <TableCell className="text-center">
+                            {empresa.tipo === 'EMBARCADOR' ? (
+                              <Badge variant="outline" className="bg-chart-4/10 text-chart-4 border-chart-4/30">
+                                {empresa.comissao_hubfrete_percent ?? 0}%
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline">{empresa._count?.filiais || 0}</Badge>
                           </TableCell>
@@ -736,7 +739,7 @@ export default function Empresas() {
                         {/* Expanded Row - Filiais & Users */}
                         {isExpanded && (
                           <TableRow key={`${empresa.id}-expanded`} className="bg-muted/30 hover:bg-muted/30">
-                            <TableCell colSpan={9} className="p-0">
+                            <TableCell colSpan={10} className="p-0">
                               <div className="p-4 space-y-4">
                                 {/* Action buttons for company */}
                                 <div className="flex gap-2 mb-4">
