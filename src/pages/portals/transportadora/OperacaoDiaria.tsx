@@ -134,7 +134,7 @@ interface Entrega {
     data_entrega_limite: string | null;
     endereco_origem?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
     endereco_destino?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
-    empresa?: { id: number; nome: string | null; comissao_hubfrete_percent?: number | null } | null;
+    empresa?: { id: number; nome: string | null; nome_fantasia?: string | null; razao_social?: string | null; comissao_hubfrete_percent?: number | null } | null;
   };
   eventos?: Array<{
     id: string;
