@@ -193,6 +193,7 @@ const App = () => {
                     <Route path="usuarios" element={<TransportadoraUsuarios />} />
                     <Route path="financeiro" element={<TransportadoraFinanceiro />} />
                     <Route path="dados-empresa" element={<TransportadoraDadosEmpresa />} />
+                    <Route path="integracoes" element={<TransportadoraIntegracoes />} />
                     <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />
                   </Route>
 
