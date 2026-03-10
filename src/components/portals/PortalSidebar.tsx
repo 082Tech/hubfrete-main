@@ -862,41 +862,111 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               )}
             </>
           ) : (
-            // Other user types: original logic
-            menuItems
-              .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')))
-              .map((item) => {
-                const isActive = location.pathname === item.href;
-                const linkContent = (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
-                      } ${isActive
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
-                      }`}
-                  >
-                    <item.icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span className="font-medium">{item.label}</span>}
-                  </Link>
-                );
-
-                if (collapsed) {
-                  return (
-                    <Tooltip key={item.href}>
-                      <TooltipTrigger asChild>
-                        {linkContent}
-                      </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={10}>
-                        {item.label}
-                      </TooltipContent>
-                    </Tooltip>
+            // Embarcador + other user types
+            <>
+              {menuItems
+                .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')))
+                .map((item) => {
+                  const isActive = location.pathname === item.href;
+                  const linkContent = (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                        } ${isActive
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                          : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                        }`}
+                    >
+                      <item.icon className="w-5 h-5 shrink-0" />
+                      {!collapsed && <span className="font-medium">{item.label}</span>}
+                    </Link>
                   );
-                }
 
-                return linkContent;
-              })
+                  if (collapsed) {
+                    return (
+                      <Tooltip key={item.href}>
+                        <TooltipTrigger asChild>
+                          {linkContent}
+                        </TooltipTrigger>
+                        <TooltipContent side="right" sideOffset={10}>
+                          {item.label}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }
+
+                  return linkContent;
+                })}
+
+              {/* Sua Empresa Submenu - for embarcador */}
+              {userType === 'embarcador' && empresaSubItems.length > 0 && (
+                collapsed ? (
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${isEmpresaSubmenuActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                              }`}
+                          >
+                            <Building2 className="w-5 h-5 shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>Sua Empresa</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent side="right" align="start" className="w-48">
+                      {empresaSubItems.map((sub) => (
+                        <DropdownMenuItem
+                          key={sub.href}
+                          onClick={() => navigate(sub.href)}
+                          className={location.pathname === sub.href ? 'bg-accent' : ''}
+                        >
+                          <sub.icon className="w-4 h-4 mr-2" />
+                          {sub.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Collapsible open={empresaOpen} onOpenChange={setEmpresaOpen}>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${isEmpresaSubmenuActive
+                          ? 'bg-sidebar-primary/10 text-sidebar-primary'
+                          : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                          }`}
+                      >
+                        <Building2 className="w-5 h-5 shrink-0" />
+                        <span className="font-medium flex-1 text-left">Sua Empresa</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${empresaOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                      {empresaSubItems.map((sub) => {
+                        const isSubActive = location.pathname === sub.href;
+                        return (
+                          <Link
+                            key={sub.href}
+                            to={sub.href}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isSubActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                              }`}
+                          >
+                            <sub.icon className="w-4 h-4 shrink-0" />
+                            <span className="text-sm">{sub.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              )}
+            </>
           )}
         </nav>
 
