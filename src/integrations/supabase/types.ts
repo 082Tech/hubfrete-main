@@ -2894,6 +2894,7 @@ export type Database = {
       status_entrega:
         | "aguardando"
         | "saiu_para_coleta"
+        | "em_transito"
         | "saiu_para_entrega"
         | "entregue"
         | "problema"
@@ -3130,6 +3131,7 @@ export const Constants = {
       status_entrega: [
         "aguardando",
         "saiu_para_coleta",
+        "em_transito",
         "saiu_para_entrega",
         "entregue",
         "problema",
