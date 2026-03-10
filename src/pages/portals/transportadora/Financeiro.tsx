@@ -23,8 +23,6 @@ import { format, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
 import { Pagination } from '@/components/admin/Pagination';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Collapsible,
   CollapsibleContent,
@@ -117,9 +115,8 @@ export default function TransportadoraFinanceiro() {
     return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
   })();
 
-  const { ref: tableRef, height: tableHeight } = useRemainingViewportHeight({ bottomOffset: 16 });
 
-  // Bank details
+
   const [bankForm, setBankForm] = useState({
     banco: '',
     agencia: '',
@@ -313,7 +310,7 @@ export default function TransportadoraFinanceiro() {
           </div>
 
           {/* Quinzena Groups */}
-          <div ref={tableRef} className="space-y-3 !mb-10 h-[550px]">
+          <div className="space-y-3 pb-10">
             {isLoading ? (
               <div className="space-y-3">
                 {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
