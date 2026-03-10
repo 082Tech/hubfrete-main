@@ -282,7 +282,16 @@ export default function TransportadoraFinanceiro() {
             </Card>
           </div>
 
-          {/* Filters */}
+          {/* Annual Chart */}
+          {empresa?.id && (
+            <AnnualBarChart
+              empresaId={empresa.id}
+              filterColumn="empresa_transportadora_id"
+              valueField="valor_liquido"
+              year={selectedYear}
+            />
+          )}
+
           <div className="flex flex-wrap gap-3 items-end">
             <div className="w-36">
               <Label className="text-xs text-muted-foreground">Status</Label>

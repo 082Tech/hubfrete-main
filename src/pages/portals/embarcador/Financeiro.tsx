@@ -217,7 +217,16 @@ export default function EmbarcadorFinanceiro() {
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Annual Chart */}
+      {empresa?.id && (
+        <AnnualBarChart
+          empresaId={empresa.id}
+          filterColumn="empresa_embarcadora_id"
+          valueField="valor_frete"
+          year={selectedYear}
+        />
+      )}
+
       <div className="flex flex-wrap gap-3 items-end">
         <div className="w-36">
           <Label className="text-xs text-muted-foreground">Status</Label>
