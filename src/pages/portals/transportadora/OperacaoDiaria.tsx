@@ -2268,6 +2268,8 @@ export default function OperacaoDiaria() {
                           status: e.status,
                           origemCidade: e.carga.endereco_origem?.cidade,
                           destinoCidade: e.carga.endereco_destino?.cidade,
+                          valor_frete: e.valor_frete,
+                          carga: { empresa: (e.carga as any).empresa },
                         })),
                       }}
                       isSelected={selectedViagem?.id === viagem.id}
