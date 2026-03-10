@@ -1692,7 +1692,7 @@ export default function OperacaoDiaria() {
                   descricao,
                   endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
                   endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude),
-                  empresa:empresas(id, comissao_hubfrete_percent)
+                  empresa:empresas(id, nome, nome_fantasia, razao_social, comissao_hubfrete_percent)
                 ),
                 eventos:entrega_eventos(id, tipo, timestamp, observacao, user_nome)
               )
