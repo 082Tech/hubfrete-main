@@ -190,6 +190,68 @@ export default function Financeiro() {
     });
   };
 
+  const baixaQuinzenaMutation = useMutation({
+    mutationFn: async (params: { faturaId: string; faturaType: 'a_receber' | 'a_pagar'; data_pagamento: string; metodo_pagamento: string; observacoes: string; comprovante_url?: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const column = params.faturaType === 'a_receber' ? 'fatura_embarcador_id' : 'fatura_transportadora_id';
+      const { error: errItems } = await supabase
+        .from('financeiro_entregas')
+        .update({
+          status: 'pago',
+          data_pagamento: params.data_pagamento,
+          metodo_pagamento: params.metodo_pagamento,
+          observacoes: params.observacoes,
+          comprovante_url: params.comprovante_url || null,
+          baixa_por: user?.id,
+        })
+        .eq(column, params.faturaId)
+        .eq('status', 'pendente');
+      if (errItems) throw errItems;
+      const { error: errFatura } = await supabase
+        .from('faturas')
+        .update({
+          status: 'paga',
+          data_pagamento: params.data_pagamento,
+          metodo_pagamento: params.metodo_pagamento,
+          observacoes: params.observacoes,
+          comprovante_url: params.comprovante_url || null,
+          baixa_por: user?.id,
+        })
+        .eq('id', params.faturaId);
+      if (errFatura) throw errFatura;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-faturas'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-fatura-items'] });
+      toast.success('Baixa da quinzena realizada com sucesso!');
+      setBaixaQuinzenaDialog(null);
+      setComprovanteQuinzena(null);
+    },
+    onError: () => toast.error('Erro ao dar baixa na quinzena'),
+  });
+
+  const handleBaixaQuinzena = async () => {
+    if (!baixaQuinzenaDialog) return;
+    if (!comprovanteQuinzena) {
+      toast.error('O comprovante de pagamento é obrigatório.');
+      return;
+    }
+    setUploading(true);
+    const ext = comprovanteQuinzena.name.split('.').pop();
+    const path = `quinzena-${baixaQuinzenaDialog.id}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('comprovantes-financeiro').upload(path, comprovanteQuinzena);
+    setUploading(false);
+    if (error) { toast.error('Erro ao enviar comprovante'); return; }
+    const { data: urlData } = supabase.storage.from('comprovantes-financeiro').getPublicUrl(path);
+
+    baixaQuinzenaMutation.mutate({
+      faturaId: baixaQuinzenaDialog.id,
+      faturaType: activeTab,
+      ...baixaQuinzenaForm,
+      comprovante_url: urlData.publicUrl,
+    });
+  };
+
   const nomeEmpresa = (emp: { nome: string | null; nome_fantasia: string | null } | null) =>
     emp?.nome_fantasia || emp?.nome || '—';
 
