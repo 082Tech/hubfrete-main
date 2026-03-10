@@ -60,6 +60,7 @@ interface ViagemEntrega {
     descricao: string;
     endereco_origem?: { cidade: string; estado: string; latitude?: number | null; longitude?: number | null } | null;
     endereco_destino?: { cidade: string; estado: string; latitude?: number | null; longitude?: number | null } | null;
+    empresa?: { id?: number; comissao_hubfrete_percent?: number | null } | null;
   };
 }
 
