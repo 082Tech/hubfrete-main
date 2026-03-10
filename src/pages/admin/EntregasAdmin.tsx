@@ -44,7 +44,7 @@ import {
   Loader2,
   MapPin,
   Building2,
-  Calendar,
+  Calendar as CalendarIcon,
   CheckCircle,
   Clock,
   AlertCircle,
