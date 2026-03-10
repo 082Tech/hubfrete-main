@@ -23,8 +23,6 @@ import { format, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
 import { Pagination } from '@/components/admin/Pagination';
-import { useRemainingViewportHeight } from '@/hooks/useRemainingViewportHeight';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Collapsible,
   CollapsibleContent,
