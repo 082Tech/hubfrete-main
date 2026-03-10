@@ -5,7 +5,7 @@ import {
   User, Users, MapPin, Calendar, BarChart3, Bell, ChevronDown, Check,
   Sparkles, Loader2, ChevronLeft, ChevronRight, Home, History, Send,
   Route, Pin, Building, MessageSquare, MoreVertical, ArrowRightLeft,
-  Link2, Container, Boxes, DollarSign,
+  Link2, Container, Boxes, DollarSign, Plug,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

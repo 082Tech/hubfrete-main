@@ -20,7 +20,7 @@ import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { ChangePasswordDialog } from '@/components/settings';
 
-type TabId = 'perfil' | 'fiscal' | 'notificacoes' | 'seguranca' | 'integracoes';
+type TabId = 'perfil' | 'fiscal' | 'notificacoes' | 'seguranca';
 
 interface Tab {
   id: TabId;
@@ -34,7 +34,6 @@ const tabs: Tab[] = [
   { id: 'fiscal', label: 'Fiscal', icon: Shield, description: 'CT-e, ICMS e configurações fiscais' },
   { id: 'notificacoes', label: 'Notificações', icon: Bell, description: 'Alertas e canais' },
   { id: 'seguranca', label: 'Segurança', icon: Shield, description: 'Senha e autenticação' },
-  { id: 'integracoes', label: 'Integrações', icon: Plug, description: 'ERPs e APIs externas' },
 ];
 
 const integrations = [
