@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Shield, Users, UserPlus, LogOut, ChevronLeft, ChevronRight, ChevronDown,
   LayoutDashboard, TrendingUp, Activity, Truck, AlertTriangle, Building,
-  User, FileText, Package, History, Clock, Award, Container,
+  User, FileText, Package, History, Clock, Award, Container, Boxes,
   UserPlus as UserPlusIcon, Camera, FileCheck, HardDrive, DollarSign,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
