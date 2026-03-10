@@ -284,7 +284,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                         to={item.subItems[0].href}
                         className={`flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                           isAnySubActive
-                            ? 'bg-destructive text-destructive-foreground'
+                            ? 'bg-admin-accent text-admin-accent-foreground'
                             : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                         }`}
                       >
