@@ -125,8 +125,8 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     // Cargas + Frota are submenus
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
     { icon: DollarSign, label: 'Financeiro', href: '/transportadora/financeiro' },
-    { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
     { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
+    { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
     // Minha Empresa is a submenu
     { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
