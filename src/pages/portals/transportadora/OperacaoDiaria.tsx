@@ -134,7 +134,7 @@ interface Entrega {
     data_entrega_limite: string | null;
     endereco_origem?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
     endereco_destino?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
-    empresa?: { id: number; nome: string | null } | null;
+    empresa?: { id: number; nome: string | null; comissao_hubfrete_percent?: number | null } | null;
   };
   eventos?: Array<{
     id: string;
@@ -232,11 +232,15 @@ function EntregaListItem({
           <Badge variant="outline" className="font-mono text-[10px] px-1.5">
             #{entrega.codigo || entrega.id.slice(0, 6)}
           </Badge>
-          {entrega.valor_frete && (
-            <span className="text-primary font-semibold">
-              R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-          )}
+          {entrega.valor_frete && (() => {
+            const comissaoP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
+            const liquido = Math.round(entrega.valor_frete! * (1 - comissaoP / 100) * 100) / 100;
+            return (
+              <span className="text-chart-2 font-semibold">
+                R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+            );
+          })()}
         </div>
       </div>
 
@@ -524,12 +528,34 @@ function DetailPanel({
                   {entrega.carga.quantidade} un
                 </span>
               )}
-              {entrega.valor_frete && (
-                <span className="flex items-center gap-1 text-primary font-semibold">
-                  <DollarSign className="w-3 h-3" />
-                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              )}
+              {entrega.valor_frete && (() => {
+                const comissaoP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
+                const valorComissao = Math.round(entrega.valor_frete! * comissaoP / 100 * 100) / 100;
+                const liquido = entrega.valor_frete! - valorComissao;
+                return (
+                  <div className="col-span-full mt-2 p-2.5 bg-chart-2/10 rounded-lg border border-chart-2/30">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Valor bruto:</span>
+                        <span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      {comissaoP > 0 && (
+                        <div className="flex justify-between text-xs text-destructive">
+                          <span>Comissão HubFrete ({comissaoP}%):</span>
+                          <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      <Separator className="my-1" />
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold">Valor do frete:</span>
+                        <span className="text-sm font-bold text-chart-2">
+                          R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -1436,12 +1462,16 @@ function GestaoEntregasDialogContent({
                                     {formatWeight(e.carga.peso_kg)}
                                   </span>
                                 )}
-                                {e.valor_frete && (
-                                  <span className="flex items-center gap-1">
-                                    <DollarSign className="w-3 h-3" />
-                                    R$ {e.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                  </span>
-                                )}
+                                {e.valor_frete && (() => {
+                                  const comP = (e as any).carga?.empresa?.comissao_hubfrete_percent || 0;
+                                  const liq = Math.round(e.valor_frete! * (1 - comP / 100) * 100) / 100;
+                                  return (
+                                    <span className="flex items-center gap-1">
+                                      <DollarSign className="w-3 h-3" />
+                                      R$ {liq.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </span>
+                                  );
+                                })()}
                                 {e.carga.descricao && (
                                   <span className="flex items-center gap-1 truncate flex-1">
                                     <Package className="w-3 h-3" />
@@ -1578,7 +1608,7 @@ export default function OperacaoDiaria() {
             data_coleta_de, data_entrega_limite,
             endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
             endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
-            empresa:empresas(id, nome)
+            empresa:empresas(id, nome, comissao_hubfrete_percent)
           )
         `)
         .in('motorista_id', motoristaIdsList)
