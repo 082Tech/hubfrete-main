@@ -12,6 +12,24 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: "1.1.0",
+    date: "2026-03-10",
+    slides: [
+      {
+        title: "Módulo Financeiro 💰",
+        description: "Novo sistema financeiro completo com faturamento quinzenal automático, comissões configuráveis por empresa e visão detalhada de receitas e pagamentos.",
+      },
+      {
+        title: "Faturas Automáticas",
+        description: "As entregas finalizadas agora geram registros financeiros automaticamente, agrupados em faturas quinzenais (1ª e 2ª quinzena) para embarcadores e transportadoras.",
+      },
+      {
+        title: "Painel Financeiro nos Portais",
+        description: "Embarcadores e transportadoras agora possuem acesso ao painel financeiro com resumo de valores, histórico de faturas e detalhamento por entrega.",
+      },
+    ],
+  },
+  {
     version: "1.0.0",
     date: "2026-03-04",
     slides: [
