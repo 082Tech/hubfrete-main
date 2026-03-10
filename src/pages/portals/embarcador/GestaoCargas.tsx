@@ -447,12 +447,10 @@ function DetailPanel({
                         <span className="text-muted-foreground">Valor bruto:</span>
                         <span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       </div>
-                      {comissaoP > 0 && (
-                        <div className="flex justify-between text-xs text-destructive">
-                          <span>Comissão HubFrete ({comissaoP}%):</span>
-                          <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        </div>
-                      )}
+                      <div className="flex justify-between text-xs text-destructive">
+                        <span>Comissão HubFrete ({comissaoP}%):</span>
+                        <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
                       <Separator className="my-1" />
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-semibold">Valor do frete:</span>

@@ -539,12 +539,10 @@ function DetailPanel({
                         <span className="text-muted-foreground">Valor bruto:</span>
                         <span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       </div>
-                      {comissaoP > 0 && (
-                        <div className="flex justify-between text-xs text-destructive">
-                          <span>Comissão HubFrete ({comissaoP}%):</span>
-                          <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        </div>
-                      )}
+                      <div className="flex justify-between text-xs text-destructive">
+                        <span>Comissão HubFrete ({comissaoP}%):</span>
+                        <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
                       <Separator className="my-1" />
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-semibold">Valor do frete:</span>
@@ -1693,7 +1691,8 @@ export default function OperacaoDiaria() {
                 carga:cargas(
                   descricao,
                   endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
-                  endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude)
+                  endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude),
+                  empresa:empresas(id, comissao_hubfrete_percent)
                 ),
                 eventos:entrega_eventos(id, tipo, timestamp, observacao, user_nome)
               )
@@ -1707,9 +1706,10 @@ export default function OperacaoDiaria() {
             .map(e => ({
               ...e,
               carga: {
-                ...e.carga,
-                endereco_origem: e.carga.endereco_origem,
-                endereco_destino: e.carga.endereco_destino,
+                      ...e.carga,
+                      endereco_origem: e.carga.endereco_origem,
+                      endereco_destino: e.carga.endereco_destino,
+                      empresa: (e.carga as any).empresa || null,
               },
               eventos: e.eventos || [],
             }));
@@ -2268,6 +2268,8 @@ export default function OperacaoDiaria() {
                           status: e.status,
                           origemCidade: e.carga.endereco_origem?.cidade,
                           destinoCidade: e.carga.endereco_destino?.cidade,
+                          valor_frete: e.valor_frete,
+                          carga: { empresa: (e.carga as any).empresa },
                         })),
                       }}
                       isSelected={selectedViagem?.id === viagem.id}
@@ -2307,6 +2309,8 @@ export default function OperacaoDiaria() {
                           status: e.status,
                           origemCidade: e.carga.endereco_origem?.cidade,
                           destinoCidade: e.carga.endereco_destino?.cidade,
+                          valor_frete: e.valor_frete,
+                          carga: { empresa: (e.carga as any).empresa },
                         })),
                       }}
                       isSelected={selectedViagem?.id === viagem.id}

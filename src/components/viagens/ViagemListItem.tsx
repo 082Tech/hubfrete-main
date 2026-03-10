@@ -10,6 +10,10 @@ interface ViagemEntrega {
   status: string;
   origemCidade?: string;
   destinoCidade?: string;
+  valor_frete?: number | null;
+  carga?: {
+    empresa?: { comissao_hubfrete_percent?: number | null } | null;
+  };
 }
 
 interface ViagemListItemProps {
@@ -58,6 +62,13 @@ export function ViagemListItem({ viagem, isSelected, onClick }: ViagemListItemPr
     .slice(0, 3);
 
   const rotaTexto = cidades.length > 0 ? cidades.join(' → ') : 'Sem destinos';
+
+  // Calcular valor líquido total da viagem
+  const totalLiquido = viagem.entregas.reduce((sum, e) => {
+    if (!e.valor_frete) return sum;
+    const comP = e.carga?.empresa?.comissao_hubfrete_percent || 0;
+    return sum + Math.round(e.valor_frete * (1 - comP / 100) * 100) / 100;
+  }, 0);
 
   return (
     <div
@@ -112,9 +123,14 @@ export function ViagemListItem({ viagem, isSelected, onClick }: ViagemListItemPr
         </div>
       </div>
 
-      {/* Tempo & Status */}
+      {/* Tempo, Valor & Status */}
       <div className="text-right shrink-0">
         <p className="text-xs text-muted-foreground mb-1">{tempoDecorrido}</p>
+        {totalLiquido > 0 && (
+          <p className="text-xs font-semibold text-chart-2 mb-1">
+            R$ {totalLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </p>
+        )}
         <Badge className={`text-[10px] ${statusInfo.color}`}>
           {statusInfo.label}
         </Badge>
