@@ -74,6 +74,10 @@ function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
       const lastDay = quinzena === 1 ? 15 : endOfMonth(new Date(year, month)).getDate();
       const firstDay = quinzena === 1 ? 1 : 16;
 
+      // Quinzena is closed if the end date has already passed
+      const endDate = new Date(year, month, lastDay, 23, 59, 59);
+      const closed = new Date() > endDate;
+
       const totalFrete = items.reduce((s, r) => s + Number(r.valor_frete), 0);
       const totalComissao = items.reduce((s, r) => s + Number(r.valor_comissao), 0);
       const qtdPendente = items.filter(r => r.status === 'pendente').length;
@@ -90,6 +94,7 @@ function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
         qtdPendente,
         qtdPago,
         status: (qtdPendente === 0 ? 'pago' : qtdPago === 0 ? 'pendente' : 'parcial') as QuinzenaGroup['status'],
+        closed,
       };
     })
     .sort((a, b) => b.key.localeCompare(a.key));
