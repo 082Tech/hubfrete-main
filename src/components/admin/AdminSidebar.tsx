@@ -78,10 +78,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     return saved === 'true';
   });
   const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(() => {
-    // Auto-expand submenu if current path matches
     const initial = new Set<string>();
     if (location.pathname.startsWith('/admin/cargas')) {
       initial.add('Ofertas');
+    }
+    if (location.pathname.startsWith('/admin/entregas')) {
+      initial.add('Cargas');
     }
     return initial;
   });
@@ -94,6 +96,9 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
   useEffect(() => {
     if (location.pathname.startsWith('/admin/cargas')) {
       setOpenSubmenus(prev => new Set(prev).add('Ofertas'));
+    }
+    if (location.pathname.startsWith('/admin/entregas')) {
+      setOpenSubmenus(prev => new Set(prev).add('Cargas'));
     }
   }, [location.pathname]);
 
