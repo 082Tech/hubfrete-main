@@ -127,10 +127,15 @@ type FilterStatus = 'all' | 'ativas' | 'finalizadas';
 const ITEMS_PER_PAGE = 15;
 
 export default function EntregasAdmin() {
+  const now = new Date();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [trackingEntrega, setTrackingEntrega] = useState<EntregaCompleta | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(now),
+    to: endOfMonth(now),
+  });
 
   // Fetch ALL entregas
   const { data: entregas = [], isLoading, refetch, isFetching } = useQuery({
