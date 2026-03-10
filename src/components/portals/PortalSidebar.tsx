@@ -84,33 +84,49 @@ const frotaSubmenu: MenuGroup = {
   ],
 };
 
+// "Sua Empresa" submenu for embarcador
+const embarcadorEmpresaSubmenu: MenuGroup = {
+  icon: Building2,
+  label: 'Sua Empresa',
+  subItems: [
+    { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais' },
+    { icon: Users, label: 'Usuários', href: '/embarcador/usuarios' },
+    { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
+  ],
+};
+
+// "Sua Empresa" submenu for transportadora
+const transportadoraEmpresaSubmenu: MenuGroup = {
+  icon: Building2,
+  label: 'Sua Empresa',
+  subItems: [
+    { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais' },
+    { icon: Users, label: 'Usuários', href: '/transportadora/usuarios' },
+    { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
+  ],
+};
+
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: Home, label: 'Home', href: '/embarcador' },
     { icon: Boxes, label: 'Minhas Ofertas', href: '/embarcador/ofertas' },
-    // Cargas is now a submenu - handled separately
-    { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
+    // Cargas is a submenu
     { icon: DollarSign, label: 'Financeiro', href: '/embarcador/financeiro' },
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
+    { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
-    { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
-    { icon: User, label: 'Usuários da Empresa', href: '/embarcador/usuarios', adminOnly: true },
-    { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
+    // Sua Empresa is a submenu
   ],
   transportadora: [
     { icon: Home, label: 'Home', href: '/transportadora' },
     { icon: Boxes, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
-    // Cargas (Em andamento + Histórico) handled as submenu (transportadoraCargasSubmenu)
-    // Minha Frota is handled as a submenu (frotaSubmenu)
-    
+    // Cargas + Frota are submenus
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
-    { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
     { icon: DollarSign, label: 'Financeiro', href: '/transportadora/financeiro' },
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
+    { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
-    { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true },
-    { icon: Users, label: 'Usuários da Empresa', href: '/transportadora/usuarios', adminOnly: true },
-    { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
+    // Sua Empresa is a submenu
   ],
   motorista: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/motorista' },
