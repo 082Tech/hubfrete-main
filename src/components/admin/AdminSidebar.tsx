@@ -5,6 +5,7 @@ import {
   LayoutDashboard, TrendingUp, Activity, Truck, AlertTriangle, Building,
   User, FileText, Package, History, Clock, Award, Container, Boxes,
   UserPlus as UserPlusIcon, Camera, FileCheck, HardDrive, DollarSign,
+  MoreVertical, MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 
 type AdminRole = 'super_admin' | 'admin' | 'suporte';
@@ -70,10 +78,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     return saved === 'true';
   });
   const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(() => {
-    // Auto-expand submenu if current path matches
     const initial = new Set<string>();
     if (location.pathname.startsWith('/admin/cargas')) {
       initial.add('Ofertas');
+    }
+    if (location.pathname.startsWith('/admin/entregas')) {
+      initial.add('Cargas');
     }
     return initial;
   });
@@ -86,6 +96,9 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
   useEffect(() => {
     if (location.pathname.startsWith('/admin/cargas')) {
       setOpenSubmenus(prev => new Set(prev).add('Ofertas'));
+    }
+    if (location.pathname.startsWith('/admin/entregas')) {
+      setOpenSubmenus(prev => new Set(prev).add('Cargas'));
     }
   }, [location.pathname]);
 
@@ -131,8 +144,11 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     {
       title: 'Cargas',
       icon: Package,
-      href: '/admin/entregas',
       roles: ['super_admin', 'admin', 'suporte'],
+      subItems: [
+        { title: 'Em andamento', href: '/admin/entregas', icon: MapPin },
+        { title: 'Histórico', href: '/admin/entregas/historico', icon: History },
+      ],
     },
     {
       title: 'Cadastros',
@@ -256,7 +272,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
         {!collapsed && (
           <div className="px-4 py-3 border-b border-sidebar-border bg-sidebar-accent/10">
             <div className="flex items-center gap-2">
-              <Badge className="text-[10px] py-0 px-1.5 h-5 bg-admin-accent text-admin-accent-foreground">
+            <Badge className="text-[10px] py-0 px-1.5 h-5 bg-primary text-primary-foreground">
                 <Shield className="w-2.5 h-2.5 mr-1" />
                 Torre de Controle
               </Badge>
@@ -401,54 +417,76 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
           })}
         </nav>
 
-        {/* User */}
-        <div className={`p-4 border-t border-sidebar-border ${collapsed ? 'flex flex-col items-center gap-2' : ''}`}>
-          {!collapsed ? (
-            <>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-admin-accent/10 flex items-center justify-center shrink-0">
-                  <span className="text-admin-accent font-semibold">
-                    {(adminUser.nome || adminUser.email || 'A').charAt(0).toUpperCase()}
-                  </span>
+        {/* User Footer */}
+        <div className={`border-t border-sidebar-border ${collapsed ? 'p-2 flex flex-col items-center' : 'p-4'}`}>
+          {collapsed ? (
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button className="relative cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <div className="w-8 h-8 rounded-full bg-admin-accent/10 flex items-center justify-center shrink-0 hover:ring-2 hover:ring-admin-accent/40 transition-all">
+                        <span className="text-admin-accent font-semibold text-sm">
+                          {(adminUser.nome || adminUser.email || 'A').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={10}>
+                  {adminUser.nome || 'Admin'}
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent side="right" align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-admin-accent/10 flex items-center justify-center shrink-0">
+                <span className="text-admin-accent font-semibold">
+                  {(adminUser.nome || adminUser.email || 'A').charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    {adminUser.nome || 'Admin'}
+                  </p>
                 </div>
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium text-sidebar-foreground truncate">
-                      {adminUser.nome || 'Admin'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Badge className="text-[9px] py-0 px-1 h-4 bg-admin-accent text-admin-accent-foreground">
-                      {roleLabels[adminUser.role]}
-                    </Badge>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <Badge className="text-[9px] py-0 px-1 h-4 bg-primary text-primary-foreground">
+                    {roleLabels[adminUser.role]}
+                  </Badge>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-sidebar-foreground hover:bg-admin-accent/10 hover:text-admin-accent"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
-            </>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-sidebar-foreground hover:bg-admin-accent/10 hover:text-admin-accent"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={10}>
-                Sair
-              </TooltipContent>
-            </Tooltip>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
         </div>
       </aside>

@@ -31,6 +31,7 @@ import VeiculosAdmin from "./pages/admin/VeiculosAdmin";
 import CargasAdmin from "./pages/admin/CargasAdmin";
 import CargasHistoricoAdmin from "./pages/admin/CargasHistoricoAdmin";
 import EntregasAdmin from "./pages/admin/EntregasAdmin";
+import EntregasHistoricoAdmin from "./pages/admin/EntregasHistoricoAdmin";
 import CarroceriasAdmin from "./pages/admin/CarroceriasAdmin";
 import AjudantesAdmin from "./pages/admin/AjudantesAdmin";
 import ProvasEntregaAdmin from "./pages/admin/ProvasEntregaAdmin";
@@ -135,6 +136,7 @@ const App = () => {
                     <Route path="cargas" element={<CargasAdmin />} />
                     <Route path="cargas/historico" element={<CargasHistoricoAdmin />} />
                     <Route path="entregas" element={<EntregasAdmin />} />
+                    <Route path="entregas/historico" element={<EntregasHistoricoAdmin />} />
                     <Route path="carrocerias" element={<CarroceriasAdmin />} />
                     <Route path="ajudantes" element={<AjudantesAdmin />} />
                     <Route path="provas-entrega" element={<ProvasEntregaAdmin />} />

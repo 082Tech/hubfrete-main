@@ -2,62 +2,28 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  Truck,
-  Search,
-  MoreHorizontal,
-  DollarSign,
-  Loader2,
-  MapPin,
-  Building2,
-  Calendar as CalendarIcon,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  XCircle,
-  Package,
-  User,
-  ChevronLeft,
-  ChevronsLeft,
-  ChevronsRight,
-  ChevronRight,
-  Map,
-  RefreshCw,
-  Filter,
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Truck, Search, MoreHorizontal, DollarSign, Loader2, MapPin, Building2,
+  Calendar as CalendarIcon, CheckCircle, Clock, AlertCircle, XCircle, Package, User,
+  ChevronLeft, ChevronsLeft, ChevronsRight, ChevronRight, Map, RefreshCw, History,
   ArrowRightLeft,
 } from 'lucide-react';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
@@ -65,7 +31,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
-// Types
+
 interface EntregaCompleta {
   id: string;
   codigo: string | null;
@@ -97,39 +63,23 @@ interface EntregaCompleta {
     peso_kg: number;
     tipo: string;
     data_entrega_limite: string | null;
-    endereco_origem: {
-      cidade: string;
-      estado: string;
-    } | null;
-    endereco_destino: {
-      cidade: string;
-      estado: string;
-    } | null;
-    empresa: {
-      nome: string | null;
-      tipo: string;
-    } | null;
+    endereco_origem: { cidade: string; estado: string } | null;
+    endereco_destino: { cidade: string; estado: string } | null;
+    empresa: { nome: string | null; tipo: string } | null;
   };
 }
 
-// Status configuration for display
 const statusEntregaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
-  'aguardando': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando', icon: Clock },
-  'saiu_para_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Saiu para Coleta', icon: Package },
-  'em_transito': { color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20', label: 'Em Trânsito', icon: ArrowRightLeft },
-  'saiu_para_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Em Rota', icon: Truck },
   'entregue': { color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', label: 'Concluída', icon: CheckCircle },
   'problema': { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Problema', icon: AlertCircle },
   'cancelada': { color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', label: 'Cancelada', icon: XCircle },
 };
 
-type FilterStatus = 'all' | 'ativas' | 'finalizadas';
 const ITEMS_PER_PAGE = 15;
 
-export default function EntregasAdmin() {
+export default function EntregasHistoricoAdmin() {
   const now = new Date();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [trackingEntrega, setTrackingEntrega] = useState<EntregaCompleta | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -137,36 +87,24 @@ export default function EntregasAdmin() {
     to: endOfMonth(now),
   });
 
-  // Fetch ALL entregas
   const { data: entregas = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['admin-todas-entregas'],
+    queryKey: ['admin-entregas-historico'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('entregas')
         .select(`
-          id,
-          codigo,
-          status,
-          created_at,
-          coletado_em,
-          entregue_em,
-          peso_alocado_kg,
-          valor_frete,
-          numero_cte,
+          id, codigo, status, created_at, coletado_em, entregue_em,
+          peso_alocado_kg, valor_frete, numero_cte,
           motorista:motoristas(id, nome_completo, telefone, email, foto_url),
           veiculo:veiculos(id, placa, tipo, marca, modelo),
           carga:cargas(
-            id,
-            codigo,
-            descricao,
-            peso_kg,
-            tipo,
-            data_entrega_limite,
+            id, codigo, descricao, peso_kg, tipo, data_entrega_limite,
             endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado),
             endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado),
             empresa:empresas!cargas_empresa_id_fkey(nome, tipo)
           )
         `)
+        .in('status', ['entregue', 'cancelada', 'problema'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -174,44 +112,39 @@ export default function EntregasAdmin() {
     },
   });
 
-  // Apply filters
   const filteredEntregas = useMemo(() => {
     let result = entregas;
 
     // Date filter
     if (dateRange?.from) {
-      const from = new Date(dateRange.from); from.setHours(0,0,0,0);
-      result = result.filter(e => new Date(e.created_at || '') >= from);
+      const from = new Date(dateRange.from);
+      from.setHours(0, 0, 0, 0);
+      result = result.filter(e => {
+        const d = new Date(e.created_at || '');
+        return d >= from;
+      });
     }
     if (dateRange?.to) {
-      const to = new Date(dateRange.to); to.setHours(23,59,59,999);
-      result = result.filter(e => new Date(e.created_at || '') <= to);
+      const to = new Date(dateRange.to);
+      to.setHours(23, 59, 59, 999);
+      result = result.filter(e => {
+        const d = new Date(e.created_at || '');
+        return d <= to;
+      });
     }
-    
-    // Apply search
-    result = result.filter(entrega => 
+
+    // Search
+    result = result.filter(entrega =>
       entrega.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entrega.carga?.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entrega.motorista?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entrega.veiculo?.placa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entrega.numero_cte?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entrega.carga?.empresa?.nome?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Apply status filter
-    switch (filterStatus) {
-      case 'ativas':
-        result = result.filter(e => ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega', 'problema'].includes(e.status || ''));
-        break;
-      case 'finalizadas':
-        result = result.filter(e => ['entregue', 'cancelada'].includes(e.status || ''));
-        break;
-    }
-
     return result;
-  }, [entregas, searchTerm, filterStatus]);
+  }, [entregas, searchTerm, dateRange]);
 
-  // Pagination
   const totalPages = Math.ceil(filteredEntregas.length / ITEMS_PER_PAGE);
   const paginatedEntregas = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -234,125 +167,69 @@ export default function EntregasAdmin() {
     return new Date(date).toLocaleDateString('pt-BR');
   };
 
-  // Calculate stats
   const stats = useMemo(() => {
-    const byStatus = entregas.reduce((acc, e) => {
-      acc[e.status || ''] = (acc[e.status || ''] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const totalFrete = entregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
-
-    return {
-      total: entregas.length,
-      aguardando: byStatus['aguardando'] || 0,
-      emRota: (byStatus['saiu_para_coleta'] || 0) + (byStatus['em_transito'] || 0) + (byStatus['saiu_para_entrega'] || 0),
-      entregue: byStatus['entregue'] || 0,
-      problema: byStatus['problema'] || 0,
-      totalFrete,
-    };
-  }, [entregas]);
+    const concluidas = filteredEntregas.filter(e => e.status === 'entregue').length;
+    const problemas = filteredEntregas.filter(e => e.status === 'problema').length;
+    const canceladas = filteredEntregas.filter(e => e.status === 'cancelada').length;
+    const totalFrete = filteredEntregas.reduce((acc, e) => acc + (e.valor_frete || 0), 0);
+    return { total: filteredEntregas.length, concluidas, problemas, canceladas, totalFrete };
+  }, [filteredEntregas]);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Truck className="w-8 h-8 text-primary" />
-            Cargas
+            <History className="w-8 h-8 text-primary" />
+            Histórico de Cargas
           </h1>
-          <p className="text-muted-foreground">
-            Visualize todas as cargas da plataforma
-          </p>
+          <p className="text-muted-foreground">Cargas finalizadas da plataforma</p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={() => refetch()}
-          disabled={isFetching}
-        >
+        <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
           <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
           Atualizar
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Truck className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
+              <div className="p-2 bg-primary/10 rounded-lg"><History className="w-5 h-5 text-primary" /></div>
+              <div><p className="text-2xl font-bold">{stats.total}</p><p className="text-xs text-muted-foreground">Total</p></div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-500/10 rounded-lg">
-                <Clock className="w-5 h-5 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.aguardando}</p>
-                <p className="text-xs text-muted-foreground">Aguardando</p>
-              </div>
+              <div className="p-2 bg-emerald-500/10 rounded-lg"><CheckCircle className="w-5 h-5 text-emerald-500" /></div>
+              <div><p className="text-2xl font-bold">{stats.concluidas}</p><p className="text-xs text-muted-foreground">Concluídas</p></div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Truck className="w-5 h-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.emRota}</p>
-                <p className="text-xs text-muted-foreground">Em Rota</p>
-              </div>
+              <div className="p-2 bg-destructive/10 rounded-lg"><AlertCircle className="w-5 h-5 text-destructive" /></div>
+              <div><p className="text-2xl font-bold">{stats.problemas}</p><p className="text-xs text-muted-foreground">Problemas</p></div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/10 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.entregue}</p>
-                <p className="text-xs text-muted-foreground">Concluídas</p>
-              </div>
+              <div className="p-2 bg-gray-500/10 rounded-lg"><XCircle className="w-5 h-5 text-gray-500" /></div>
+              <div><p className="text-2xl font-bold">{stats.canceladas}</p><p className="text-xs text-muted-foreground">Canceladas</p></div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-destructive/10 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.problema}</p>
-                <p className="text-xs text-muted-foreground">Problemas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-chart-1/10 rounded-lg">
-                <DollarSign className="w-5 h-5 text-chart-1" />
-              </div>
-              <div>
-                <p className="text-lg font-bold">{formatCurrency(stats.totalFrete)}</p>
-                <p className="text-xs text-muted-foreground">Volume Frete</p>
-              </div>
+              <div className="p-2 bg-chart-1/10 rounded-lg"><DollarSign className="w-5 h-5 text-chart-1" /></div>
+              <div><p className="text-lg font-bold">{formatCurrency(stats.totalFrete)}</p><p className="text-xs text-muted-foreground">Volume Frete</p></div>
             </div>
           </CardContent>
         </Card>
@@ -365,9 +242,9 @@ export default function EntregasAdmin() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por código, motorista, placa, CT-e ou empresa..."
+                placeholder="Buscar por código, motorista, placa ou empresa..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 className="pl-9"
               />
             </div>
@@ -383,7 +260,7 @@ export default function EntregasAdmin() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
-                <CalendarComponent
+                <Calendar
                   mode="range"
                   selected={dateRange}
                   onSelect={(range) => { setDateRange(range); setCurrentPage(1); }}
@@ -392,17 +269,6 @@ export default function EntregasAdmin() {
                 />
               </PopoverContent>
             </Popover>
-            <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v as FilterStatus); setCurrentPage(1); }}>
-              <SelectTrigger className="w-[180px]">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Filtrar status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="ativas">Ativas</SelectItem>
-                <SelectItem value="finalizadas">Finalizadas</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
@@ -428,7 +294,7 @@ export default function EntregasAdmin() {
                     <TableHead>Peso</TableHead>
                     <TableHead>Frete</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Criado</TableHead>
+                    <TableHead>Data</TableHead>
                     <TableHead className="w-10">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -441,9 +307,9 @@ export default function EntregasAdmin() {
                     </TableRow>
                   ) : (
                     paginatedEntregas.map((entrega) => {
-                      const statusConfig = statusEntregaConfig[entrega.status || ''] || statusEntregaConfig.aguardando;
+                      const statusConfig = statusEntregaConfig[entrega.status || ''] || statusEntregaConfig.entregue;
                       const StatusIcon = statusConfig.icon;
-                      
+
                       return (
                         <TableRow key={entrega.id}>
                           <TableCell>
@@ -453,27 +319,13 @@ export default function EntregasAdmin() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="font-mono text-sm text-muted-foreground">
-                              {entrega.numero_cte || '-'}
-                            </span>
+                            <span className="font-mono text-sm text-muted-foreground">{entrega.numero_cte || '-'}</span>
                           </TableCell>
                           <TableCell>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-2 max-w-[150px]">
-                                    <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
-                                    <span className="text-sm truncate">{entrega.carga?.empresa?.nome || '-'}</span>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{entrega.carga?.empresa?.nome}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {entrega.carga?.empresa?.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <div className="flex items-center gap-2 max-w-[150px]">
+                              <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                              <span className="text-sm truncate">{entrega.carga?.empresa?.nome || '-'}</span>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1 text-sm">
@@ -501,21 +353,15 @@ export default function EntregasAdmin() {
                               <span className="text-sm font-mono">{entrega.veiculo?.placa || '-'}</span>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <span className="text-sm">{formatWeight(entrega.peso_alocado_kg)}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm font-medium">{formatCurrency(entrega.valor_frete)}</span>
-                          </TableCell>
+                          <TableCell><span className="text-sm">{formatWeight(entrega.peso_alocado_kg)}</span></TableCell>
+                          <TableCell><span className="text-sm font-medium">{formatCurrency(entrega.valor_frete)}</span></TableCell>
                           <TableCell>
                             <Badge className={`${statusConfig.color} border`}>
                               <StatusIcon className="w-3 h-3 mr-1" />
                               {statusConfig.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {formatDate(entrega.created_at)}
-                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{formatDate(entrega.entregue_em || entrega.created_at)}</TableCell>
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -541,55 +387,23 @@ export default function EntregasAdmin() {
             </ScrollArea>
           )}
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between p-4 border-t">
               <p className="text-sm text-muted-foreground">
                 Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredEntregas.length)} de {filteredEntregas.length}
               </p>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(p => p - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm px-3">
-                  {currentPage} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}><ChevronsLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
+                <span className="text-sm px-3">{currentPage} / {totalPages}</span>
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}><ChevronsRight className="h-4 w-4" /></Button>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Tracking Map Dialog */}
       <TrackingMapDialog
         entregaId={trackingEntrega?.id || null}
         info={trackingEntrega?.motorista ? {
