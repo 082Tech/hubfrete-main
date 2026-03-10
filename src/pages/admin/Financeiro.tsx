@@ -94,6 +94,13 @@ export default function Financeiro() {
   });
   const [uploading, setUploading] = useState(false);
   const [comprovante, setComprovante] = useState<File | null>(null);
+  const [baixaQuinzenaDialog, setBaixaQuinzenaDialog] = useState<FaturaRow | null>(null);
+  const [baixaQuinzenaForm, setBaixaQuinzenaForm] = useState({
+    data_pagamento: format(new Date(), 'yyyy-MM-dd'),
+    metodo_pagamento: '',
+    observacoes: '',
+  });
+  const [comprovanteQuinzena, setComprovanteQuinzena] = useState<File | null>(null);
 
   // Fetch faturas for selected month
   const { data: faturas, isLoading: loadingFaturas } = useQuery({
