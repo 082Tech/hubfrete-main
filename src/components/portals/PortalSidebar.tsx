@@ -84,25 +84,26 @@ const frotaSubmenu: MenuGroup = {
   ],
 };
 
-// "Sua Empresa" submenu for embarcador
+// "Minha Empresa" submenu for embarcador
 const embarcadorEmpresaSubmenu: MenuGroup = {
   icon: Building2,
-  label: 'Sua Empresa',
+  label: 'Minha Empresa',
   subItems: [
-    { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais' },
-    { icon: Users, label: 'Usuários', href: '/embarcador/usuarios' },
-    { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
+    { icon: Building2, label: 'Dados da Empresa', href: '/embarcador/dados-empresa' },
+    { icon: Users, label: 'Contatos', href: '/embarcador/contatos' },
+    { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
+    { icon: Users, label: 'Usuários', href: '/embarcador/usuarios', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
   ],
 };
 
-// "Sua Empresa" submenu for transportadora
+// "Minha Empresa" submenu for transportadora
 const transportadoraEmpresaSubmenu: MenuGroup = {
   icon: Building2,
-  label: 'Sua Empresa',
+  label: 'Minha Empresa',
   subItems: [
-    { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais' },
-    { icon: Users, label: 'Usuários', href: '/transportadora/usuarios' },
-    { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
+    { icon: Building2, label: 'Dados da Empresa', href: '/transportadora/dados-empresa' },
+    { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
+    { icon: Users, label: 'Usuários', href: '/transportadora/usuarios', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
   ],
 };
 
