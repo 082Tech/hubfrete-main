@@ -57,6 +57,9 @@ All colors MUST be HSL.
 
     --sidebar-ring: 161 93% 30%;
 
+    --admin-accent: 0 0% 22%;
+    --admin-accent-foreground: 0 0% 98%;
+
     --chart-1: 158 64% 51%;
 
     --chart-2: 141 69% 58%;

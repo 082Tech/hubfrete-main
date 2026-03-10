@@ -89,7 +89,7 @@ export function AnnualBarChart({ empresaId, filterColumn, valueField = 'valor_fr
             />
             <Bar
               dataKey="total"
-              fill="hsl(141 69% 48%)"
+              fill="hsl(161 93% 30%)"
               radius={[4, 4, 0, 0]}
               maxBarSize={36}
             />
