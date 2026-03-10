@@ -290,10 +290,6 @@ export default function TransportadoraFinanceiro() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-40">
-              <Label className="text-xs text-muted-foreground">De</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            </div>
             <div className="w-36">
               <Label className="text-xs text-muted-foreground">Mês</Label>
               <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
