@@ -371,50 +371,52 @@ export default function TransportadoraFinanceiro() {
                         </button>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="border-t border-border flex flex-col">
-                          <Table>
-                            <TableHeader className="sticky top-0 bg-background z-10">
-                              <TableRow>
-                                <TableHead>Carga</TableHead>
-                                <TableHead>Embarcador</TableHead>
-                                <TableHead className="text-right">Frete Bruto</TableHead>
-                                <TableHead className="text-right">Comissão</TableHead>
-                                <TableHead className="text-right">Valor Líquido</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Data</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                          </Table>
-                          <ScrollArea className="max-h-[400px]">
-                            <Table>
-                              <TableBody>
-                                {pagedItems.map((r: any) => (
-                                  <TableRow key={r.id}>
-                                    <TableCell>
-                                      <p className="font-medium text-sm">{r.entregas?.codigo || '—'}</p>
-                                      <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                                    </TableCell>
-                                    <TableCell className="text-sm">{r.empresa_embarcadora?.nome_fantasia || r.empresa_embarcadora?.nome || '—'}</TableCell>
-                                    <TableCell className="text-right text-sm text-muted-foreground">{formatCurrency(r.valor_frete)}</TableCell>
-                                    <TableCell className="text-right text-sm text-destructive">
-                                      {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
-                                    </TableCell>
-                                    <TableCell className="text-right font-semibold text-chart-2">{formatCurrency(r.valor_liquido)}</TableCell>
-                                    <TableCell>
-                                      <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
-                                        {r.status === 'pago' ? 'Recebido' : 'Pendente'}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">
-                                      {r.data_pagamento
-                                        ? format(new Date(r.data_pagamento), 'dd/MM/yyyy')
-                                        : format(new Date(r.created_at), 'dd/MM/yyyy')}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </ScrollArea>
+                        <div className="border-t border-border">
+                          <div className="overflow-hidden">
+                            <table className="w-full text-sm">
+                              <thead className="bg-muted/50">
+                                <tr className="border-b border-border">
+                                  <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[18%]">Carga</th>
+                                  <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Embarcador</th>
+                                  <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Frete Bruto</th>
+                                  <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[12%]">Comissão</th>
+                                  <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Valor Líquido</th>
+                                  <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[12%]">Status</th>
+                                  <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Data</th>
+                                </tr>
+                              </thead>
+                            </table>
+                            <div className="max-h-[380px] overflow-y-auto">
+                              <table className="w-full text-sm">
+                                <tbody>
+                                  {pagedItems.map((r: any) => (
+                                    <tr key={r.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                                      <td className="px-4 py-3 w-[18%]">
+                                        <p className="font-medium">{r.entregas?.codigo || '—'}</p>
+                                        <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                                      </td>
+                                      <td className="px-4 py-3 w-[16%]">{r.empresa_embarcadora?.nome_fantasia || r.empresa_embarcadora?.nome || '—'}</td>
+                                      <td className="px-4 py-3 text-right text-muted-foreground w-[14%]">{formatCurrency(r.valor_frete)}</td>
+                                      <td className="px-4 py-3 text-right text-destructive w-[12%]">
+                                        {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
+                                      </td>
+                                      <td className="px-4 py-3 text-right font-semibold text-chart-2 w-[14%]">{formatCurrency(r.valor_liquido)}</td>
+                                      <td className="px-4 py-3 text-center w-[12%]">
+                                        <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
+                                          {r.status === 'pago' ? 'Recebido' : 'Pendente'}
+                                        </Badge>
+                                      </td>
+                                      <td className="px-4 py-3 text-right text-xs text-muted-foreground w-[14%]">
+                                        {r.data_pagamento
+                                          ? format(new Date(r.data_pagamento), 'dd/MM/yyyy')
+                                          : format(new Date(r.created_at), 'dd/MM/yyyy')}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
                           {group.registros.length > ITEMS_PER_PAGE && (
                             <div className="border-t border-border">
                               <Pagination
