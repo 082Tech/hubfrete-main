@@ -87,7 +87,7 @@ function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
         totalLiquido,
         qtdPendente,
         qtdPago,
-        status: qtdPendente === 0 ? 'pago' : qtdPago === 0 ? 'pendente' : 'parcial',
+        status: (qtdPendente === 0 ? 'pago' : qtdPago === 0 ? 'pendente' : 'parcial') as QuinzenaGroup['status'],
       };
     })
     .sort((a, b) => b.key.localeCompare(a.key));
