@@ -139,8 +139,11 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     {
       title: 'Cargas',
       icon: Package,
-      href: '/admin/entregas',
       roles: ['super_admin', 'admin', 'suporte'],
+      subItems: [
+        { title: 'Em andamento', href: '/admin/entregas', icon: MapPin },
+        { title: 'Histórico', href: '/admin/entregas/historico', icon: History },
+      ],
     },
     {
       title: 'Cadastros',
