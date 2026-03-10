@@ -426,7 +426,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
               </div>
               <Button
                 variant="ghost"
-                className="w-full justify-start text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
+                className="w-full justify-start text-sidebar-foreground hover:bg-admin-accent/10 hover:text-admin-accent"
                 onClick={handleLogout}
               >
                 <LogOut className="w-4 h-4 mr-2" />
