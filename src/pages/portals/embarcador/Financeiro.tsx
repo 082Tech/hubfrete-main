@@ -26,6 +26,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { MonthYearPicker } from '@/components/ui/month-year-picker';
+import { AnnualBarChart } from '@/components/financeiro/AnnualBarChart';
 
 const ITEMS_PER_PAGE = 10;
 
