@@ -134,7 +134,7 @@ interface Entrega {
     data_entrega_limite: string | null;
     endereco_origem?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
     endereco_destino?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
-    empresa?: { id: number; nome: string | null; comissao_hubfrete_percent?: number | null } | null;
+    empresa?: { id: number; nome: string | null; nome_fantasia?: string | null; razao_social?: string | null; comissao_hubfrete_percent?: number | null } | null;
   };
   eventos?: Array<{
     id: string;
@@ -494,7 +494,7 @@ function DetailPanel({
             <div className="flex items-center gap-2 text-sm">
               <Building2 className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">Publicado por:</span>
-              <span className="font-medium">{entrega.carga.empresa.nome || 'Empresa não identificada'}</span>
+              <span className="font-medium">{entrega.carga.empresa.nome_fantasia || entrega.carga.empresa.razao_social || entrega.carga.empresa.nome || 'Empresa não identificada'}</span>
             </div>
           )}
 
@@ -1606,7 +1606,7 @@ export default function OperacaoDiaria() {
             data_coleta_de, data_entrega_limite,
             endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
             endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
-            empresa:empresas(id, nome, comissao_hubfrete_percent)
+            empresa:empresas(id, nome, nome_fantasia, razao_social, comissao_hubfrete_percent)
           )
         `)
         .in('motorista_id', motoristaIdsList)
@@ -1692,7 +1692,7 @@ export default function OperacaoDiaria() {
                   descricao,
                   endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
                   endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude),
-                  empresa:empresas(id, comissao_hubfrete_percent)
+                  empresa:empresas(id, nome, nome_fantasia, razao_social, comissao_hubfrete_percent)
                 ),
                 eventos:entrega_eventos(id, tipo, timestamp, observacao, user_nome)
               )
