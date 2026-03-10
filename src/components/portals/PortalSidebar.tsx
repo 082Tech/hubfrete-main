@@ -902,7 +902,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                   return linkContent;
                 })}
 
-              {/* Sua Empresa Submenu - for embarcador */}
+              {/* Minha Empresa Submenu - for embarcador */}
               {userType === 'embarcador' && empresaSubItems.length > 0 && (
                 collapsed ? (
                   <DropdownMenu>
