@@ -1464,7 +1464,7 @@ function GestaoEntregasDialogContent({
                                   const comP = (e as any).carga?.empresa?.comissao_hubfrete_percent || 0;
                                   const liq = Math.round(e.valor_frete! * (1 - comP / 100) * 100) / 100;
                                   return (
-                                    <span className="flex items-center gap-1">
+                                    <span className="flex items-center gap-1 text-primary font-semibold">
                                       <DollarSign className="w-3 h-3" />
                                       R$ {liq.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </span>

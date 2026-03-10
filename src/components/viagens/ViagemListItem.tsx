@@ -127,7 +127,7 @@ export function ViagemListItem({ viagem, isSelected, onClick }: ViagemListItemPr
       <div className="text-right shrink-0">
         <p className="text-xs text-muted-foreground mb-1">{tempoDecorrido}</p>
         {totalLiquido > 0 && (
-          <p className="text-xs font-semibold mb-1" style={{ color: 'hsl(141, 69%, 45%)' }}>
+          <p className="text-xs font-semibold text-primary mb-1">
             R$ {totalLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         )}
