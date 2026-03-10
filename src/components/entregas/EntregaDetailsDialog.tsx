@@ -31,8 +31,13 @@ import {
   ExternalLink,
   AlertTriangle,
   XCircle,
-  Receipt
+  Receipt,
+  Paperclip,
+  Info,
+  Eye,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import type { OutroDocumento } from './EntregaDocumentosPanel';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { CarregamentoCarroceriasSection } from './CarregamentoCarroceriasSection';
 import type { Database } from '@/integrations/supabase/types';
@@ -102,8 +107,8 @@ interface EntregaDetailsProps {
 const statusEntregaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
   'aguardando': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando', icon: Clock },
   'saiu_para_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Saiu para Coleta', icon: Package },
-  'saiu_para_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Saiu para Entrega', icon: Truck },
-  'entregue': { color: 'bg-green-500/10 text-green-600 border-green-500/20', label: 'Entregue', icon: CheckCircle },
+  'saiu_para_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Saiu p/ Entrega', icon: Truck },
+  'entregue': { color: 'bg-green-500/10 text-green-600 border-green-500/20', label: 'Concluída', icon: CheckCircle },
   'problema': { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Problema', icon: AlertCircle },
   'cancelada': { color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', label: 'Cancelada', icon: XCircle },
 };
@@ -202,7 +207,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <Truck className="w-5 h-5" />
-              <span>Entrega - {entrega.codigo || entrega.carga.codigo}</span>
+              <span>Carga - {entrega.codigo || entrega.carga.codigo}</span>
               <Badge variant="outline" className={config?.color}>
                 <StatusIcon className="w-3 h-3 mr-1" />
                 {config?.label}
@@ -442,7 +447,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                       <Receipt className={`w-4 h-4 ${hasCanhoto ? 'text-green-600' : 'text-muted-foreground'}`} />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Canhoto de Entrega</p>
+                      <p className="font-medium text-sm">Comprovante de Entrega</p>
                       <p className="text-xs text-muted-foreground">
                         {hasCanhoto ? 'Comprovante anexado' : 'Aguardando comprovação'}
                       </p>
@@ -452,7 +457,7 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openPreview(entrega.canhoto_url!, 'Canhoto de Entrega')}
+                      onClick={() => openPreview(entrega.canhoto_url!, 'Comprovante de Entrega')}
                     >
                       <ExternalLink className="w-3 h-3 mr-1" />
                       Visualizar
@@ -463,6 +468,52 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                     </Badge>
                   )}
                 </div>
+
+                {/* Outros Documentos */}
+                {(() => {
+                  const outros: any[] = Array.isArray((entrega as any).outros_documentos) ? (entrega as any).outros_documentos : [];
+                  if (outros.length === 0) return null;
+                  return (
+                    <div className="flex flex-col gap-2 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="w-4 h-4 text-violet-500" />
+                        <span className="text-sm font-medium">Outros Documentos</span>
+                        <Badge variant="secondary" className="text-[10px]">{outros.length}</Badge>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[220px] text-xs">
+                              Documentos complementares como GNRE, comprovantes, autorizações, etc.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      {outros.map((doc: any, i: number) => (
+                        <div key={`${doc.url}-${i}`} className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-violet-500/10">
+                              <Paperclip className="w-4 h-4 text-violet-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{doc.nome}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {doc.tipo_usuario === 'embarcador' ? 'Embarcador' : 'Transportadora'}
+                              </p>
+                            </div>
+                          </div>
+                          {doc.url && (
+                            <Button variant="outline" size="sm" onClick={() => openPreview(doc.url, doc.nome)}>
+                              <Eye className="w-3 h-3 mr-1" />
+                              Ver
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 

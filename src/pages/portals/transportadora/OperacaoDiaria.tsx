@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { formatWeight } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, startOfDay } from 'date-fns';
@@ -42,7 +42,7 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  ArrowLeftRight,
+  ArrowRightLeft,
   ArrowLeft,
   MessageCircle,
   RefreshCw,
@@ -91,8 +91,9 @@ type ViewMode = 'entregas' | 'viagens';
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; column: 'pending' | 'inRoute' | 'done' }> = {
   aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800', icon: Clock, column: 'pending' },
   saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800', icon: Truck, column: 'inRoute' },
-  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin, column: 'inRoute' },
-  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', icon: CheckCircle, column: 'done' },
+  em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800', icon: ArrowRightLeft, column: 'inRoute' },
+  saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin, column: 'inRoute' },
+  entregue: { label: 'Concluída', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', icon: CheckCircle, column: 'done' },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle, column: 'done' },
 };
 
@@ -115,6 +116,7 @@ interface Entrega {
   previsao_coleta: string | null;
   // Documentos
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
   carga: {
@@ -132,7 +134,7 @@ interface Entrega {
     data_entrega_limite: string | null;
     endereco_origem?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
     endereco_destino?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
-    empresa?: { id: number; nome: string | null } | null;
+    empresa?: { id: number; nome: string | null; nome_fantasia?: string | null; razao_social?: string | null; comissao_hubfrete_percent?: number | null } | null;
   };
   eventos?: Array<{
     id: string;
@@ -230,11 +232,15 @@ function EntregaListItem({
           <Badge variant="outline" className="font-mono text-[10px] px-1.5">
             #{entrega.codigo || entrega.id.slice(0, 6)}
           </Badge>
-          {entrega.valor_frete && (
-            <span className="text-primary font-semibold">
-              R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-          )}
+          {entrega.valor_frete && (() => {
+            const comissaoP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
+            const liquido = Math.round(entrega.valor_frete! * (1 - comissaoP / 100) * 100) / 100;
+            return (
+              <span className="text-primary font-semibold">
+                R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+            );
+          })()}
         </div>
       </div>
 
@@ -270,6 +276,7 @@ function DetailPanel({
   showBackButton = false,
   onBack,
   viagemStatus,
+  onExpandMap,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
@@ -280,6 +287,7 @@ function DetailPanel({
   showBackButton?: boolean;
   onBack?: () => void;
   viagemStatus?: string | null;
+  onExpandMap?: () => void;
 }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [entregueDialogOpen, setEntregueDialogOpen] = useState(false);
@@ -338,7 +346,7 @@ function DetailPanel({
     return (
       <div className="flex items-center justify-center h-full">
         <EmptyColumnPlaceholder
-          message="Selecione uma entrega para ver os detalhes"
+          message="Selecione uma carga para ver os detalhes"
         />
       </div>
     );
@@ -358,8 +366,9 @@ function DetailPanel({
   const getNextStatus = (): { status: string; label: string; icon: React.ElementType } | null => {
     switch (entrega.status) {
       case 'aguardando': return { status: 'saiu_para_coleta', label: 'Saiu para Coleta', icon: Truck };
-      case 'saiu_para_coleta': return { status: 'saiu_para_entrega', label: 'Saiu para Entrega', icon: MapPin };
-      case 'saiu_para_entrega': return { status: 'entregue', label: 'Marcar como Entregue', icon: CheckCircle };
+      case 'saiu_para_coleta': return { status: 'em_transito', label: 'Em Trânsito', icon: ArrowRightLeft };
+      case 'em_transito': return { status: 'saiu_para_entrega', label: 'Saiu p/ Entrega', icon: MapPin };
+      case 'saiu_para_entrega': return { status: 'entregue', label: 'Marcar como Concluída', icon: CheckCircle };
       default: return null;
     }
   };
@@ -398,7 +407,7 @@ function DetailPanel({
         const { hasNfeAttached } = await import('@/lib/documentHelpers');
         const hasNfe = await hasNfeAttached(entrega.id);
         if (!hasNfe) {
-          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para entrega.');
+          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para destino.');
           setCheckingNfe(false);
           return;
         }
@@ -485,18 +494,20 @@ function DetailPanel({
             <div className="flex items-center gap-2 text-sm">
               <Building2 className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">Publicado por:</span>
-              <span className="font-medium">{entrega.carga.empresa.nome || 'Empresa não identificada'}</span>
+              <span className="font-medium">{entrega.carga.empresa.nome_fantasia || entrega.carga.empresa.razao_social || entrega.carga.empresa.nome || 'Empresa não identificada'}</span>
             </div>
           )}
 
           {/* Mapa com rotas condicionais e histórico de rastreamento */}
           <DetailPanelLeafletMap
+            key={entrega.id}
             origemCoords={origemCoords}
             destinoCoords={destinoCoords}
             driverLocation={driverLocation}
             status={entrega.status}
             height={300}
             entregaId={entrega.id}
+            onExpandClick={onExpandMap || undefined}
           />
 
           {/* Cargo description */}
@@ -505,9 +516,11 @@ function DetailPanel({
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
               <span className="flex items-center gap-1">
                 <Weight className="w-3 h-3" />
-                {entrega.peso_alocado_kg
-                  ? `${formatWeight(entrega.peso_alocado_kg)} / ${formatWeight(entrega.carga?.peso_kg)}`
-                  : formatWeight(entrega.carga?.peso_kg)}
+                {formatWeight(
+                  Array.isArray(entrega.carrocerias_alocadas) && (entrega.carrocerias_alocadas as any[]).length > 0
+                    ? (entrega.carrocerias_alocadas as any[]).reduce((sum: number, a: any) => sum + (a.peso_kg || 0), 0)
+                    : entrega.peso_alocado_kg || entrega.carga?.peso_kg
+                )}
               </span>
               {entrega.carga?.quantidade && (
                 <span className="flex items-center gap-1">
@@ -515,12 +528,32 @@ function DetailPanel({
                   {entrega.carga.quantidade} un
                 </span>
               )}
-              {entrega.valor_frete && (
-                <span className="flex items-center gap-1 text-primary font-semibold">
-                  <DollarSign className="w-3 h-3" />
-                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              )}
+              {entrega.valor_frete && (() => {
+                const comissaoP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
+                const valorComissao = Math.round(entrega.valor_frete! * comissaoP / 100 * 100) / 100;
+                const liquido = entrega.valor_frete! - valorComissao;
+                return (
+                  <div className="col-span-full mt-2 p-2.5 bg-chart-2/10 rounded-lg border border-chart-2/30">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Valor bruto:</span>
+                        <span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-destructive">
+                        <span>Comissão HubFrete ({comissaoP}%):</span>
+                        <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <Separator className="my-1" />
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold">Valor do frete:</span>
+                        <span className="text-sm font-bold text-primary">
+                          R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -641,6 +674,7 @@ function DetailPanel({
               ctes={existingCtes}
               nfesDiretas={unlinkedNfes}
               canhotoUrl={entrega.canhoto_url || null}
+              outrosDocumentos={entrega.outros_documentos || []}
               onRefresh={refreshDocs}
             />
           </div>
@@ -718,8 +752,8 @@ function DetailPanel({
                       criado: { label: 'Entrega criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
                       aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
                       inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
-                      inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-                      finalizado: { label: 'Entregue', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+                      inicio_rota: { label: 'Em Rota', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+                      finalizado: { label: 'Concluída', bgColor: 'bg-green-100 dark:bg-green-900/30' },
                       cancelado: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
                       problema: { label: 'Problema', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
                       documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
@@ -744,7 +778,7 @@ function DetailPanel({
                           ) : isCreation ? (
                             <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                           ) : (
-                            <ArrowLeftRight className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
+                            <ArrowRightLeft className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
                               evento.tipo === 'inicio_coleta' ? 'text-cyan-600 dark:text-cyan-400' :
                                 evento.tipo === 'inicio_rota' ? 'text-purple-600 dark:text-purple-400' :
                                   evento.tipo === 'finalizado' ? 'text-green-600 dark:text-green-400' :
@@ -759,7 +793,7 @@ function DetailPanel({
                           <p className="text-sm">
                             <span className="font-medium">{userName}</span>
                             <span className="text-muted-foreground">
-                              {isCreation ? ' criou esta entrega' : isDocument ? ' anexou ' : ' definiu o status como '}
+                              {isCreation ? ' criou esta carga' : isDocument ? ' anexou ' : ' definiu o status como '}
                             </span>
                             {!isCreation && <span className="font-medium">{config.label}</span>}
                           </p>
@@ -791,7 +825,7 @@ function DetailPanel({
                 Viagem não iniciada
               </p>
               <p className="text-blue-700 dark:text-blue-400">
-                Inicie a viagem primeiro para liberar as ações de entrega.
+                Inicie a viagem primeiro para liberar as ações da carga.
               </p>
             </div>
           </div>
@@ -834,7 +868,7 @@ function DetailPanel({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-destructive focus:text-destructive">
                   <Ban className="w-4 h-4 mr-2" />
-                  Cancelar entrega
+                   Cancelar carga
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -864,11 +898,11 @@ function DetailPanel({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-destructive" />
-              Cancelar entrega?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação irá cancelar a entrega <span className="font-semibold">{entrega.codigo}</span>.
-              O peso será devolvido para a carga original. Esta ação não pode ser desfeita.
+               Cancelar carga?
+             </AlertDialogTitle>
+             <AlertDialogDescription>
+               Esta ação irá cancelar a carga <span className="font-semibold">{entrega.codigo}</span>.
+               O peso será devolvido para a oferta original. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -896,12 +930,12 @@ function DetailPanel({
               <div className="space-y-3">
                 {docsCheck.complete ? (
                   <p>
-                    Todos os documentos obrigatórios estão anexados. Deseja confirmar a entrega <span className="font-semibold">{entrega.codigo}</span>?
+                    Todos os documentos obrigatórios estão anexados. Deseja confirmar a conclusão da carga <span className="font-semibold">{entrega.codigo}</span>?
                   </p>
                 ) : (
                   <>
                     <p className="text-destructive font-medium">
-                      Não é possível confirmar a entrega. Os seguintes documentos são obrigatórios:
+                      Não é possível concluir a carga. Os seguintes documentos são obrigatórios:
                     </p>
                     <ul className="list-disc list-inside text-sm space-y-1">
                       {docsCheck.missing.map((doc) => (
@@ -909,7 +943,7 @@ function DetailPanel({
                       ))}
                     </ul>
                     <p className="text-sm text-muted-foreground">
-                      Anexe todos os documentos obrigatórios para poder finalizar a entrega.
+                      Anexe todos os documentos obrigatórios para poder concluir a carga.
                     </p>
                   </>
                 )}
@@ -947,7 +981,7 @@ function DetailPanel({
               Confirmar ação?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a alterar o status da entrega <span className="font-semibold">{entrega.codigo}</span> para <span className="font-semibold">{nextStatus?.label}</span>.
+              Você está prestes a alterar o status da carga <span className="font-semibold">{entrega.codigo}</span> para <span className="font-semibold">{nextStatus?.label}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -996,14 +1030,18 @@ function DetailPanel({
 function GestaoEntregasDialogContent({
   entregas,
   localizacoes,
+  initialSelectedEntregaId,
 }: {
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+  initialSelectedEntregaId?: string | null;
 }) {
   const { empresa } = useUserContext();
+  const initialEntrega = initialSelectedEntregaId ? entregas.find(e => e.id === initialSelectedEntregaId) : null;
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
-  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
+  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(initialSelectedEntregaId ?? null);
   const [searchTerm, setSearchTerm] = useState('');
+  const hasInitializedRef = useRef(false);
 
   // Fetch viagens ativas para agrupar entregas por viagem
   type ViagemMapEntry = { viagem_id: string; codigo: string; status: string; motorista_id: string };
@@ -1108,6 +1146,16 @@ function GestaoEntregasDialogContent({
 
     return Object.values(groups);
   }, [entregas, entregaViagemMap]);
+
+  // Sync initial selection once viagemGroups are available
+  useEffect(() => {
+    if (hasInitializedRef.current || !initialEntrega?.motorista_id || viagemGroups.length === 0) return;
+    const group = viagemGroups.find(g => g.motorista_id === initialEntrega.motorista_id);
+    if (group) {
+      setSelectedMotoristaId(group.id);
+      hasInitializedRef.current = true;
+    }
+  }, [viagemGroups, initialEntrega]);
 
   // Filtrar grupos pelo termo de busca
   const filteredGroups = useMemo(() => {
@@ -1252,7 +1300,7 @@ function GestaoEntregasDialogContent({
     <>
       <DialogHeader className="px-4 py-3 border-b">
         <div className="flex items-center justify-between">
-          <DialogTitle className="text-lg font-bold">Gestão de Entregas</DialogTitle>
+          <DialogTitle className="text-lg font-bold">Gestão de Cargas</DialogTitle>
         </div>
       </DialogHeader>
 
@@ -1412,12 +1460,16 @@ function GestaoEntregasDialogContent({
                                     {formatWeight(e.carga.peso_kg)}
                                   </span>
                                 )}
-                                {e.valor_frete && (
-                                  <span className="flex items-center gap-1">
-                                    <DollarSign className="w-3 h-3" />
-                                    R$ {e.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                  </span>
-                                )}
+                                {e.valor_frete && (() => {
+                                  const comP = (e as any).carga?.empresa?.comissao_hubfrete_percent || 0;
+                                  const liq = Math.round(e.valor_frete! * (1 - comP / 100) * 100) / 100;
+                                  return (
+                                    <span className="flex items-center gap-1 text-primary font-semibold">
+                                      <DollarSign className="w-3 h-3" />
+                                      R$ {liq.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </span>
+                                  );
+                                })()}
                                 {e.carga.descricao && (
                                   <span className="flex items-center gap-1 truncate flex-1">
                                     <Package className="w-3 h-3" />
@@ -1447,16 +1499,18 @@ function GestaoEntregasDialog({
   onOpenChange,
   entregas,
   localizacoes,
+  initialSelectedEntregaId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+  initialSelectedEntregaId?: string | null;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
-        <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} />
+        <GestaoEntregasDialogContent entregas={entregas} localizacoes={localizacoes} initialSelectedEntregaId={open ? initialSelectedEntregaId : null} />
       </DialogContent>
     </Dialog>
   );
@@ -1512,7 +1566,7 @@ export default function OperacaoDiaria() {
   const [filters, setFilters] = useState<AdvancedFilters>({});
 
   // Fetch today's deliveries (by created_at) OR pending from previous days
-  const { data: entregas = [], isLoading, refetch } = useQuery({
+  const { data: entregas = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['operacao-diaria', empresa?.id],
     queryFn: async () => {
       if (!empresa?.id) return [];
@@ -1534,7 +1588,7 @@ export default function OperacaoDiaria() {
       const motoristaIdsList = motoristas.map(m => m.id);
 
       // Fetch deliveries - usando apenas os status válidos
-      const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'];
+      const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'];
 
       const { data, error } = await (supabase as any)
         .from('entregas')
@@ -1542,7 +1596,7 @@ export default function OperacaoDiaria() {
           id, codigo, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em, carrocerias_alocadas,
-          previsao_coleta, canhoto_url,
+          previsao_coleta, canhoto_url, outros_documentos,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!entregas_carga_id_fkey(
@@ -1552,7 +1606,7 @@ export default function OperacaoDiaria() {
             data_coleta_de, data_entrega_limite,
             endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
             endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
-            empresa:empresas(id, nome)
+            empresa:empresas(id, nome, nome_fantasia, razao_social, comissao_hubfrete_percent)
           )
         `)
         .in('motorista_id', motoristaIdsList)
@@ -1596,7 +1650,7 @@ export default function OperacaoDiaria() {
   });
 
   // Fetch viagens when in viagens view mode
-  const { data: viagens = [], isLoading: isLoadingViagens, refetch: refetchViagens } = useQuery({
+  const { data: viagens = [], isLoading: isLoadingViagens, isFetching: isFetchingViagens, refetch: refetchViagens } = useQuery({
     queryKey: ['gestao-viagens', empresa?.id],
     queryFn: async (): Promise<ViagemWithEntregas[]> => {
       if (!empresa?.id) return [];
@@ -1633,11 +1687,12 @@ export default function OperacaoDiaria() {
             .select(`
               entrega:entregas(
                 id, codigo, status, peso_alocado_kg, valor_frete, created_at, updated_at,
-                canhoto_url,
+                canhoto_url, outros_documentos,
                 carga:cargas(
                   descricao,
                   endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
-                  endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude)
+                  endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude),
+                  empresa:empresas(id, nome, nome_fantasia, razao_social, comissao_hubfrete_percent)
                 ),
                 eventos:entrega_eventos(id, tipo, timestamp, observacao, user_nome)
               )
@@ -1651,9 +1706,10 @@ export default function OperacaoDiaria() {
             .map(e => ({
               ...e,
               carga: {
-                ...e.carga,
-                endereco_origem: e.carga.endereco_origem,
-                endereco_destino: e.carga.endereco_destino,
+                      ...e.carga,
+                      endereco_origem: e.carga.endereco_origem,
+                      endereco_destino: e.carga.endereco_destino,
+                      empresa: (e.carga as any).empresa || null,
               },
               eventos: e.eventos || [],
             }));
@@ -1977,7 +2033,7 @@ export default function OperacaoDiaria() {
       );
     }
 
-    const ativas = filtered.filter(e => ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'].includes(e.status));
+    const ativas = filtered.filter(e => ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'].includes(e.status));
     const finalizadas = filtered.filter(e => ['entregue', 'cancelada'].includes(e.status));
     return { aguardandoEntregas: ativas, emRotaEntregas: finalizadas, filteredEntregas: filtered };
   }, [entregas, filters]);
@@ -2023,7 +2079,7 @@ export default function OperacaoDiaria() {
       <div className="flex items-center justify-between p-4 !pb-0 md:p-8 ">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-foreground">Gestão de Entregas</h1>
+            <h1 className="text-3xl font-bold text-foreground">Cargas em Andamento</h1>
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -2032,16 +2088,16 @@ export default function OperacaoDiaria() {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs text-sm p-3">
-                  <p className="font-medium mb-1">Central de Operações Diárias</p>
-                  <ul className='list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed'>
-                    <li>
-                      Acompanhe em tempo real todas as entregas do dia.
-                    </li>
-                    <li>
-                      As entregas finalizadas (entregues ou canceladas) permanecem visíveis até o fim do dia, quando são
-                      automaticamente movidas para o Histórico de Entregas.
-                    </li>
-                  </ul>
+                   <p className="font-medium mb-1">Central de Operações Diárias</p>
+                   <ul className='list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed'>
+                     <li>
+                       Acompanhe em tempo real todas as cargas do dia.
+                     </li>
+                     <li>
+                       As cargas finalizadas (entregues ou canceladas) permanecem visíveis até o fim do dia, quando são
+                       automaticamente movidas para o Histórico de Cargas.
+                     </li>
+                   </ul>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -2052,7 +2108,7 @@ export default function OperacaoDiaria() {
           {/* Switch de Visualização */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
             <Label htmlFor="view-mode-switch" className={`text-sm font-medium transition-colors ${viewMode === 'entregas' ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Entregas
+               Cargas
             </Label>
             <Switch
               id="view-mode-switch"
@@ -2072,8 +2128,14 @@ export default function OperacaoDiaria() {
 
           <Separator orientation="vertical" className="h-8" />
 
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => viewMode === 'viagens' ? refetchViagens() : refetch()}>
-            <RefreshCw className={`w-4 h-4 ${(isLoading || isLoadingViagens) ? 'animate-spin' : ''}`} />
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => {
+            if (viewMode === 'viagens') {
+              queryClient.resetQueries({ queryKey: ['gestao-viagens', empresa?.id] });
+            } else {
+              queryClient.resetQueries({ queryKey: ['operacao-diaria', empresa?.id] });
+            }
+          }}>
+            <RefreshCw className={`w-4 h-4 ${(isFetching || isFetchingViagens) ? 'animate-spin' : ''}`} />
           </Button>
           <AdvancedFiltersPopover
             filters={filters}
@@ -2108,7 +2170,7 @@ export default function OperacaoDiaria() {
       <div className="flex-1 grid overflow-hidden p-4 !pt-4 md:p-8" style={{ gridTemplateColumns: '30% 30% 40%' }}>
         {viewMode === 'entregas' ? (
           <>
-            {/* Column 1: Entregas Ativas (30%) */}
+            {/* Column 1: Cargas Ativas (30%) */}
             <div className="border rounded-l-md bg-muted/20 shadow-sm flex flex-col min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
                 <span className="text-sm font-medium text-muted-foreground">Ativas ({aguardandoEntregas.length})</span>
@@ -2120,7 +2182,7 @@ export default function OperacaoDiaria() {
                   </div>
                 ) : aguardandoEntregas.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <EmptyColumnPlaceholder message="Entregas ativas aparecerão aqui" />
+                    <EmptyColumnPlaceholder message="Cargas ativas aparecerão aqui" />
                   </div>
                 ) : (
                   aguardandoEntregas.map((entrega) => (
@@ -2135,7 +2197,7 @@ export default function OperacaoDiaria() {
               </div>
             </div>
 
-            {/* Column 2: Entregas Finalizadas (30%) */}
+            {/* Column 2: Cargas Finalizadas (30%) */}
             <div className="border border-l-0 flex flex-col bg-background shadow-sm min-w-0 overflow-hidden">
               <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
                 <span className="text-sm font-medium text-muted-foreground">Finalizadas ({emRotaEntregas.length})</span>
@@ -2147,7 +2209,7 @@ export default function OperacaoDiaria() {
                   </div>
                 ) : emRotaEntregas.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <EmptyColumnPlaceholder message="Entregas finalizadas aparecerão aqui" />
+                    <EmptyColumnPlaceholder message="Cargas finalizadas aparecerão aqui" />
                   </div>
                 ) : (
                   emRotaEntregas.map((entrega) => (
@@ -2171,6 +2233,7 @@ export default function OperacaoDiaria() {
                 isChangingStatus={statusMutation.isPending}
                 driverLocation={driverLocation}
                 onRefresh={handleRefresh}
+                onExpandMap={() => setGestaoDialogOpen(true)}
               />
             </div>
           </>
@@ -2205,6 +2268,8 @@ export default function OperacaoDiaria() {
                           status: e.status,
                           origemCidade: e.carga.endereco_origem?.cidade,
                           destinoCidade: e.carga.endereco_destino?.cidade,
+                          valor_frete: e.valor_frete,
+                          carga: { empresa: (e.carga as any).empresa },
                         })),
                       }}
                       isSelected={selectedViagem?.id === viagem.id}
@@ -2244,6 +2309,8 @@ export default function OperacaoDiaria() {
                           status: e.status,
                           origemCidade: e.carga.endereco_origem?.cidade,
                           destinoCidade: e.carga.endereco_destino?.cidade,
+                          valor_frete: e.valor_frete,
+                          carga: { empresa: (e.carga as any).empresa },
                         })),
                       }}
                       isSelected={selectedViagem?.id === viagem.id}
@@ -2271,6 +2338,7 @@ export default function OperacaoDiaria() {
                   showBackButton
                   onBack={() => setSelectedEntregaInViagem(null)}
                   viagemStatus={selectedViagemLive?.status}
+                  onExpandMap={() => setGestaoDialogOpen(true)}
                 />
               ) : (
                 /* Mostrar ViagemDetailPanel */
@@ -2311,12 +2379,13 @@ export default function OperacaoDiaria() {
         )}
       </div>
 
-      {/* Gestão de Entregas Dialog com Mapa + Motoristas */}
+      {/* Gestão de Cargas Dialog com Mapa + Motoristas */}
       <GestaoEntregasDialog
         open={gestaoDialogOpen}
         onOpenChange={setGestaoDialogOpen}
         entregas={entregas}
         localizacoes={localizacoes}
+        initialSelectedEntregaId={selectedEntregaInViagem?.id || selectedEntrega?.id}
       />
 
       {/* Daily Performance Dialog */}

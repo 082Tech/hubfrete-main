@@ -17,12 +17,12 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "HubFrete - Gestão de Fretes",
+        name: "HubFrete – Marketplace Logístico com Gestão Integrada",
         short_name: "HubFrete",
-        description: "Plataforma completa de gestão de fretes e logística",
+        description: "O marketplace logístico do Brasil. Conecte cargas a transportadoras com gestão integrada de fretes, rastreamento e documentação fiscal.",
         theme_color: "#1a1a2e",
         background_color: "#1a1a2e",
         display: "standalone",
@@ -31,17 +31,17 @@ export default defineConfig(({ mode }) => ({
         start_url: "/",
         icons: [
           {
-            src: "/pwa-192x192.png",
+            src: "/pwa-install-192.png",
             sizes: "192x192",
             type: "image/png",
           },
           {
-            src: "/pwa-512x512.png",
+            src: "/pwa-install-512.png",
             sizes: "512x512",
             type: "image/png",
           },
           {
-            src: "/pwa-512x512.png",
+            src: "/pwa-install-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
@@ -71,5 +71,6 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
 }));

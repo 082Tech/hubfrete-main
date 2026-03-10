@@ -70,6 +70,8 @@ import {
   Route,
   FileText,
   AlertTriangle,
+  ArrowRightLeft,
+  Info,
 } from 'lucide-react';
 
 // Types
@@ -98,6 +100,7 @@ interface EntregaData {
   entregue_em: string | null;
   motorista_id: string | null;
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
   motoristas: {
     nome_completo: string;
     telefone: string | null;
@@ -124,6 +127,7 @@ interface CargaData {
   valor_frete_m3: number | null;
   valor_frete_fixo: number | null;
   valor_frete_km: number | null;
+  numero_pedido: string | null;
   status: StatusCarga;
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
@@ -160,8 +164,9 @@ interface CargaData {
 const statusEntregaConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
   saiu_para_coleta: { label: 'Saiu para Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
-  saiu_para_entrega: { label: 'Saiu para Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Truck },
-  entregue: { label: 'Entregue', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
+  em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: ArrowRightLeft },
+  saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Truck },
+  entregue: { label: 'Concluída', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
   cancelada: { label: 'Cancelada', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: RotateCcw },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
   parcialmente_finalizada: { label: 'Finalizada (Parcial)', color: 'bg-gray-100 text-gray-600 border-gray-300', icon: CheckCircle2 },
@@ -200,6 +205,7 @@ export default function HistoricoCargas() {
   const [docsEntregaId, setDocsEntregaId] = useState<string | null>(null);
   const [docsEntregaCodigo, setDocsEntregaCodigo] = useState<string | null>(null);
   const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
+  const [docsEntregaOutros, setDocsEntregaOutros] = useState<any[]>([]);
 
 
   // Handle URL params for highlighting/expanding specific cargo and entrega
@@ -239,6 +245,7 @@ export default function HistoricoCargas() {
           valor_frete_m3,
           valor_frete_fixo,
           valor_frete_km,
+          numero_pedido,
           status,
           data_coleta_de,
           data_coleta_ate,
@@ -301,7 +308,7 @@ export default function HistoricoCargas() {
             entregue_em,
             motorista_id,
             canhoto_url,
-            canhoto_url,
+            outros_documentos,
             motoristas (
               nome_completo,
               telefone
@@ -825,7 +832,7 @@ export default function HistoricoCargas() {
 
             {filterStatus !== 'all' && (
               <Badge variant="outline">
-                Filtro: {filterStatus === 'entregue' ? 'Entregues' : filterStatus === 'cancelada' ? 'Canceladas' : 'Com Problemas'}
+                Filtro: {filterStatus === 'entregue' ? 'Concluídas' : filterStatus === 'cancelada' ? 'Canceladas' : 'Com Problemas'}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -993,9 +1000,17 @@ export default function HistoricoCargas() {
                                 <span className="font-medium">{formatWeight(carga.peso_kg)}</span>
                               </td>
                               <td className="p-4 align-middle">
-                                <span className="font-medium text-sm text-green-600">
-                                  {formatCurrency(getTotalFrete(carga))}
-                                </span>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="font-medium text-sm text-green-600 cursor-help inline-flex items-center gap-1">
+                                      {formatCurrency(getTotalFrete(carga))}
+                                      <Info className="w-3 h-3 text-muted-foreground" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs">Inclui comissão HubFrete</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </td>
                               <td className="p-4 align-middle text-center">
                                 <Badge variant="outline" className="text-xs">
@@ -1032,7 +1047,7 @@ export default function HistoricoCargas() {
                                   <div className="px-8 py-4">
                                     <div className="flex items-center gap-2 mb-3">
                                       <Truck className="w-4 h-4 text-primary" />
-                                      <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
+                                      <span className="text-sm font-medium">Cargas ({carga.entregas.length})</span>
                                     </div>
                                     <div className="bg-background rounded-lg border overflow-hidden">
                                       <Table>
@@ -1087,7 +1102,17 @@ export default function HistoricoCargas() {
                                                   {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
                                                 </TableCell>
                                                 <TableCell className="text-right text-sm font-medium text-emerald-600">
-                                                  {formatCurrency(entrega.valor_frete)}
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <span className="cursor-help inline-flex items-center gap-1">
+                                                        {formatCurrency(entrega.valor_frete)}
+                                                        <Info className="w-3 h-3 text-muted-foreground" />
+                                                      </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                      <p className="text-xs">Inclui comissão HubFrete</p>
+                                                    </TooltipContent>
+                                                  </Tooltip>
                                                 </TableCell>
                                                 <TableCell>
                                                   <div className="flex items-center gap-1 text-sm">
@@ -1123,6 +1148,7 @@ export default function HistoricoCargas() {
                                                       setDocsEntregaId(entrega.id);
                                                       setDocsEntregaCodigo(entrega.codigo);
                                                       setDocsEntregaCanhoto(entrega.canhoto_url);
+                                                      setDocsEntregaOutros(Array.isArray(entrega.outros_documentos) ? entrega.outros_documentos : []);
                                                       setDocsDialogOpen(true);
                                                     }}
                                                   >
@@ -1274,6 +1300,7 @@ export default function HistoricoCargas() {
           entregaId={docsEntregaId || ''}
           entregaCodigo={docsEntregaCodigo}
           canhotoUrl={docsEntregaCanhoto}
+          outrosDocumentos={docsEntregaOutros}
         />
       </TooltipProvider>
     </div>

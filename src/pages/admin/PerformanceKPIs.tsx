@@ -235,7 +235,7 @@ export default function PerformanceKPIs() {
       {/* KPI Cards */}
       <div className="grid md:grid-cols-4 gap-4">
         <KPICard
-          title="Total de Entregas"
+          title="Total de Cargas"
           value={totalEntregas.toLocaleString('pt-BR')}
           icon={<Truck className="w-5 h-5 text-primary" />}
           trend={{
@@ -295,7 +295,7 @@ export default function PerformanceKPIs() {
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="entregas">Mais Entregas</SelectItem>
+              <SelectItem value="entregas">Mais Cargas</SelectItem>
               <SelectItem value="taxa_atraso">Menor Atraso</SelectItem>
               <SelectItem value="km_rodado">Mais Km Rodado</SelectItem>
             </SelectContent>

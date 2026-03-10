@@ -5,9 +5,9 @@ import { format, formatDistanceToNow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import { parseNfeXml } from '@/lib/nfeXmlParser';
 import { toast } from 'sonner';
 import { useRealtimeLocalizacoes } from '@/hooks/useRealtimeLocalizacoes';
+import { Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,7 +25,7 @@ import {
   XCircle,
   Loader2,
   ArrowRight,
-  ArrowLeftRight,
+  ArrowRightLeft,
   MessageCircle,
   RefreshCw,
   History,
@@ -56,13 +56,16 @@ import { EntregaDocumentosPanel } from '@/components/entregas/EntregaDocumentosP
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
+import { EmbarcadorDailyPerformanceDialog } from '@/components/admin/relatorios/EmbarcadorDailyPerformanceDialog';
+import { BarChart3 } from 'lucide-react';
 
 // Status config - matching transportadora portal
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800', icon: Clock },
   saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800', icon: Truck },
-  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin },
-  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', icon: CheckCircle },
+  em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800', icon: ArrowRightLeft },
+  saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800', icon: MapPin },
+  entregue: { label: 'Concluída', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', icon: CheckCircle },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle },
 };
 
@@ -87,6 +90,8 @@ interface Entrega {
   coletado_em: string | null;
   entregue_em: string | null;
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
+  nfe_count?: number; // populated after batch fetch
   motorista?: { id: string; nome_completo: string; telefone: string | null; foto_url: string | null } | null;
   veiculo?: { id: string; placa: string; modelo: string | null; tipo: string } | null;
   eventos?: EntregaEvento[];
@@ -104,7 +109,7 @@ interface Entrega {
     data_entrega_limite: string | null;
     endereco_origem?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
     endereco_destino?: { cidade: string; estado: string; logradouro: string; numero: string | null; bairro: string | null; cep: string; latitude: number | null; longitude: number | null } | null;
-    empresa?: { id: number; nome: string | null } | null;
+    empresa?: { id: number; nome: string | null; comissao_hubfrete_percent?: number | null } | null;
   };
 }
 
@@ -126,8 +131,8 @@ function EntregaListItem({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social || 'Remetente';
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Destinatário';
 
-  // NF-e now in separate tables - pending check removed
-  const nfePending = false;
+  // NF-e pending: check from batch-fetched count
+  const nfePending = (entrega.nfe_count ?? -1) === 0 && entrega.status !== 'entregue' && entrega.status !== 'cancelada';
 
   return (
     <div
@@ -217,23 +222,23 @@ function DetailPanel({
   onClose,
   driverLocation,
   onRefresh,
+  onExpandMap,
 }: {
   entrega: Entrega | null;
   onClose: () => void;
   driverLocation: { lat: number; lng: number; heading?: number | null; isOnline?: boolean } | null;
   onRefresh: () => void;
+  onExpandMap?: () => void;
 }) {
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
-  const [isUploadingNfe, setIsUploadingNfe] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const nfeInputRef = useRef<HTMLInputElement>(null);
 
   const handleShareTracking = async () => {
     const trackCode = entrega?.tracking_code || entrega?.codigo;
     if (!trackCode) {
-      toast.error('Código de rastreio não disponível para esta entrega.');
+      toast.error('Código de rastreio não disponível para esta carga.');
       return;
     }
     try {
@@ -252,15 +257,15 @@ function DetailPanel({
   const handleNativeShare = async () => {
     const trackCode = entrega?.tracking_code || entrega?.codigo;
     if (!trackCode) {
-      toast.error('Código de rastreio não disponível para esta entrega.');
+      toast.error('Código de rastreio não disponível para esta carga.');
       return;
     }
     try {
       const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
       if (navigator.share) {
         await navigator.share({
-          title: `Rastreio de Entrega ${entrega.codigo || ''}`,
-          text: `Acompanhe em tempo real a entrega ${entrega.codigo || ''}`,
+          title: `Rastreio da Carga ${entrega.codigo || ''}`,
+          text: `Acompanhe em tempo real a carga ${entrega.codigo || ''}`,
           url: url,
         });
       } else {
@@ -271,211 +276,36 @@ function DetailPanel({
     }
   };
 
-  // Fetch NF-es for this entrega from the nfes table
-  const [isDragging, setIsDragging] = useState(false);
+  // ── Documentos (via documentHelpers — mesmo padrão da transportadora) ────────
+  const [existingCtes, setExistingCtes] = useState<any[]>([]);
+  const [unlinkedNfes, setUnlinkedNfes] = useState<any[]>([]);
+  const [docsRefreshKey, setDocsRefreshKey] = useState(0);
 
-  const { data: nfes = [], refetch: refetchNfes } = useQuery({
-    queryKey: ['entrega-nfes', entrega?.id],
-    queryFn: async () => {
-      if (!entrega?.id) return [];
-      const { data, error } = await (supabase as any)
-        .from('nfes')
-        .select('*')
-        .eq('entrega_id', entrega.id)
-        .order('created_at', { ascending: true });
-      if (error) return [];
-      return data || [];
-    },
-    enabled: !!entrega?.id,
-  });
+  const refreshDocs = useCallback(() => {
+    setDocsRefreshKey(k => k + 1);
+    onRefresh();
+  }, [onRefresh]);
 
-  const handleFilesSelection = (files: FileList | File[]) => {
-    Array.from(files).forEach(file => {
-      handleNfeFileUpload(file);
-    });
-  };
-
-  // Fetch CT-es for this entrega
-  const { data: ctes = [] } = useQuery({
-    queryKey: ['entrega-ctes', entrega?.id],
-    queryFn: async () => {
-      if (!entrega?.id) return [];
-      const { data, error } = await (supabase as any)
-        .from('ctes')
-        .select('id, numero, chave_acesso, url, focus_status, valor')
-        .eq('entrega_id', entrega.id)
-        .order('created_at', { ascending: true });
-      if (error) return [];
-      return data || [];
-    },
-    enabled: !!entrega?.id,
-  });
-
-  // Fetch Manifestos for this entrega (via viagem_entregas)
-  const { data: manifestos = [] } = useQuery({
-    queryKey: ['entrega-manifestos', entrega?.id],
-    queryFn: async () => {
-      if (!entrega?.id) return [];
-
-      const { data: veData } = await (supabase as any)
-        .from('viagem_entregas')
-        .select('viagem_id')
-        .eq('entrega_id', entrega.id)
-        .limit(1)
-        .maybeSingle();
-
-      if (!veData?.viagem_id) return [];
-
-      const { data: mData } = await (supabase as any)
-        .from('mdfes')
-        .select('id, numero, chave_acesso, pdf_path, status, created_at')
-        .eq('viagem_id', veData.viagem_id)
-        .order('created_at', { ascending: false });
-
-      if (!mData) return [];
-
-      return mData.map((m: any) => {
-        let url = null;
-        if (m.pdf_path) {
-          const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(m.pdf_path);
-          url = urlData?.publicUrl || null;
-        }
-        return {
-          id: m.id,
-          numero: m.numero || '',
-          url,
-          status: m.status
-        };
+  useEffect(() => {
+    if (entrega?.id) {
+      import('@/lib/documentHelpers').then(({ fetchCtesForEntregas, fetchNfesForEntrega }) => {
+        fetchCtesForEntregas([entrega.id]).then((map) => {
+          setExistingCtes(map[entrega.id] || []);
+        });
+        fetchNfesForEntrega(entrega.id).then((nfes) => {
+          setUnlinkedNfes(nfes.filter(nf => !(nf as any).cte_id));
+        });
       });
-    },
-    enabled: !!entrega?.id,
-  });
-
-  const handleNfeFileUpload = async (file: File) => {
-    if (!entrega) return;
-    setIsUploadingNfe(true);
-    try {
-      const isXml = file.name.toLowerCase().endsWith('.xml') || file.type === 'application/xml' || file.type === 'text/xml';
-      const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
-
-      if (!isXml && !isPdf) {
-        toast.error('Tipo de arquivo não permitido. Use PDF ou XML.');
-        setIsUploadingNfe(false);
-        return;
-      }
-
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error('Arquivo muito grande. Máximo 10MB.');
-        setIsUploadingNfe(false);
-        return;
-      }
-
-      let parsed: any = {};
-      let xmlContent: string | null = null;
-      let focusData: any = null;
-      let nfeJson: any = null;
-      let statusValidacao = 'pendente';
-
-      // Se for XML, tenta parsear e validar
-      if (isXml) {
-        xmlContent = await file.text();
-        parsed = parseNfeXml(xmlContent);
-
-        if (parsed.chaveAcesso) {
-          try {
-            toast.info('Validando NF-e na SEFAZ (Focus NFe)...');
-            const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-nfe', {
-              body: { referencia: parsed.chaveAcesso, xml_content: xmlContent }
-            });
-
-            if (!validationError && validationData?.success) {
-              nfeJson = validationData.data;
-              focusData = nfeJson?.requisicao_nota_fiscal || nfeJson?.nfe_completa?.infNFe || nfeJson;
-              statusValidacao = 'autorizada';
-              toast.success('NF-e validada com sucesso!');
-            } else {
-              console.warn('Validação Focus NFe não concluída, salvando sem validação.');
-              statusValidacao = 'nao_validada';
-            }
-          } catch (valErr) {
-            console.warn('Erro na validação Focus, prosseguindo sem validar:', valErr);
-            statusValidacao = 'nao_validada';
-          }
-        }
-      }
-
-      // Upload do arquivo ao storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `nfe_${entrega.id}_${Date.now()}.${fileExt}`;
-      const storagePath = `nfes/${fileName}`;
-      const contentType = isXml ? 'text/xml' : 'application/pdf';
-
-      const { error: uploadError } = await supabase.storage
-        .from('documentos')
-        .upload(storagePath, file, { contentType });
-
-      if (uploadError) throw new Error('Erro ao fazer upload do arquivo');
-
-      let fileUrl: string | null = null;
-      const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(storagePath);
-      fileUrl = urlData?.publicUrl || null;
-
-      // Inserir na tabela nfes
-      const insertData: any = {
-        entrega_id: entrega.id,
-        url: fileUrl,
-        status_validacao: statusValidacao,
-      };
-
-      if (isXml) {
-        insertData.xml_path = storagePath;
-        insertData.xml_content = xmlContent;
-        insertData.numero = focusData?.numero || nfeJson?.numero || parsed.numero || null;
-        insertData.chave_acesso = focusData?.chave_nfe || nfeJson?.chave_nfe || parsed.chaveAcesso || null;
-        insertData.valor = focusData?.valor_total || parsed.valor || null;
-        insertData.data_emissao = focusData?.data_emissao || parsed.dataEmissao || null;
-        insertData.peso_bruto = focusData?.peso_bruto || parsed.pesoBruto || null;
-        insertData.remetente_cnpj = focusData?.cnpj_emitente || parsed.remetenteCnpj || null;
-        insertData.remetente_razao_social = focusData?.nome_emitente || parsed.remetenteRazaoSocial || null;
-        insertData.destinatario_cnpj = focusData?.cnpj_destinatario || parsed.destinatarioCnpj || null;
-        insertData.destinatario_razao_social = focusData?.nome_destinatario || parsed.destinatarioRazaoSocial || null;
-        if (statusValidacao === 'autorizada') {
-          insertData.validado_em = new Date().toISOString();
-        }
-      }
-
-      const { error: dbError } = await (supabase as any)
-        .from('nfes')
-        .insert(insertData);
-
-      if (dbError) {
-        console.error('Erro ao salvar NF-e:', dbError);
-        throw dbError;
-      }
-
-      const label = parsed.numero || parsed.chaveAcesso?.slice(-6) || file.name;
-      toast.success(`NF-e ${label} anexada com sucesso!`);
-      refetchNfes();
-      onRefresh();
-    } catch (error: any) {
-      console.error('Erro no upload da NF-e:', error);
-      if (error.message?.includes('schema "net" does not exist')) {
-        toast.error('Erro de configuração no servidor (Extensão net faltando). Contate o suporte.');
-      } else if (error.code === '23505') {
-        toast.error('Esta Nota Fiscal já foi importada anteriormente.');
-      } else {
-        toast.error(`Erro ao enviar NF-e: ${error.message || 'Erro desconhecido'}`);
-      }
-    } finally {
-      setIsUploadingNfe(false);
-      if (nfeInputRef.current) nfeInputRef.current.value = '';
+    } else {
+      setExistingCtes([]);
+      setUnlinkedNfes([]);
     }
-  };
+  }, [entrega?.id, docsRefreshKey]);
 
   if (!entrega) {
     return (
       <div className="flex items-center justify-center h-full">
-        <EmptyColumnPlaceholder message="Selecione uma entrega para ver os detalhes" />
+        <EmptyColumnPlaceholder message="Selecione uma carga para ver os detalhes" />
       </div>
     );
   }
@@ -493,15 +323,11 @@ function DetailPanel({
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
   const destinatarioNome = entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social;
 
-  // Docs: 3 obrigatórios (NF-e, CT-e, Canhoto)
-  const hasCanhoto = !!entrega.canhoto_url;
-  const hasNfe = nfes.length > 0;
-  const hasCte = ctes.length > 0;
-  const hasManifesto = manifestos.length > 0;
-  const docsCount = (hasNfe ? 1 : 0) + (hasCte ? 1 : 0) + (hasCanhoto ? 1 : 0) + (hasManifesto ? 1 : 0);
-  const docsComplete = hasNfe && hasCte && hasManifesto && hasCanhoto;
+  // Docs count
+  const allNfes = [...existingCtes.flatMap((c: any) => c.nfes || []), ...unlinkedNfes];
+  const docsCount = (entrega.canhoto_url ? 1 : 0) + existingCtes.length + allNfes.length;
 
-  const nfePending = !hasNfe && entrega.status !== 'entregue' && entrega.status !== 'cancelada';
+  const nfePending = allNfes.length === 0 && entrega.status !== 'entregue' && entrega.status !== 'cancelada';
 
   const handleDocClick = (url: string | null, title: string) => {
     if (url) {
@@ -572,7 +398,7 @@ function DetailPanel({
         {/* Carga description + entrega ref */}
         <p className="text-sm font-medium mb-1">{entrega.carga.descricao}</p>
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 flex-wrap">
-          <span>Entrega #{entrega.codigo || entrega.id.slice(0, 6)}</span>
+          <span>Carga #{entrega.codigo || entrega.id.slice(0, 6)}</span>
           <span>•</span>
           <span>{format(new Date(entrega.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
         </div>
@@ -610,12 +436,32 @@ function DetailPanel({
                 </span>
               </span>
               <span className="text-muted-foreground">Tipo: {entrega.carga.tipo}</span>
-              {entrega.valor_frete && (
-                <span className="flex items-center gap-1 text-primary font-semibold">
-                  <DollarSign className="w-3 h-3" />
-                  R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              )}
+              {entrega.valor_frete && (() => {
+                const comissaoP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
+                const valorComissao = Math.round(entrega.valor_frete! * comissaoP / 100 * 100) / 100;
+                const liquido = entrega.valor_frete! - valorComissao;
+                return (
+                  <div className="col-span-full mt-2 p-2.5 bg-chart-2/10 rounded-lg border border-chart-2/30">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Valor bruto:</span>
+                        <span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-destructive">
+                        <span>Comissão HubFrete ({comissaoP}%):</span>
+                        <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <Separator className="my-1" />
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold">Valor do frete:</span>
+                        <span className="text-sm font-bold text-chart-2">
+                          R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             {entrega.carga.empresa && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -627,12 +473,14 @@ function DetailPanel({
 
           {/* Map */}
           <DetailPanelLeafletMap
+            key={entrega.id}
             origemCoords={origemCoords}
             destinoCoords={destinoCoords}
             driverLocation={driverLocation}
             status={entrega.status}
             height={300}
             entregaId={entrega.id}
+            onExpandClick={onExpandMap || undefined}
           />
 
           <Separator />
@@ -719,235 +567,27 @@ function DetailPanel({
 
           <Separator />
 
-          {/* Documentos */}
+          {/* Documentos — mesmo padrão UI da transportadora */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
                 <span className="font-semibold text-sm">Documentos</span>
               </div>
-              <Badge variant={docsComplete ? 'default' : 'secondary'} className={`text-[11px] px-2 py-0.5 ${docsComplete ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}>
+              <Badge variant={docsCount > 0 ? 'default' : 'secondary'} className={`text-[11px] px-2 py-0.5 ${docsCount >= 3 ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}>
                 {docsCount} anexo{docsCount !== 1 ? 's' : ''}
               </Badge>
             </div>
 
-            <div className="space-y-2">
-              {/* Canhoto */}
-              <div className={`flex items-center justify-between p-3 rounded-xl border ${hasCanhoto ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-muted/30 border-dashed'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`p-1.5 rounded-full ${hasCanhoto ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted'}`}>
-                    {hasCanhoto ? (
-                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    ) : (
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <span className={`font-medium text-sm ${hasCanhoto ? 'text-emerald-900 dark:text-emerald-100' : 'text-muted-foreground'}`}>
-                    Canhoto
-                  </span>
-                </div>
-                {hasCanhoto ? (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100" onClick={() => handleDocClick(entrega.canhoto_url, 'Canhoto')} title="Visualizar Canhoto">
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Aguardando Transportadora</span>
-                )}
-              </div>
-
-              {/* CT-es - expandido com NF-es aninhadas */}
-              <div className={`flex flex-col p-3 rounded-xl border ${hasCte ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-muted/30 border-dashed'}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-1.5 rounded-full ${hasCte ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted'}`}>
-                      {hasCte ? (
-                        <CheckCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      ) : (
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className={`font-medium text-sm ${hasCte ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'}`}>
-                        CT-e {hasCte ? `(${ctes.length})` : ''}
-                      </span>
-                      {!hasCte && <span className="text-[10px] text-muted-foreground">Gerado/Anexado pela Transportadora</span>}
-                    </div>
-                  </div>
-                  {!hasCte && <span className="text-xs text-muted-foreground">Pendente</span>}
-                </div>
-                {hasCte && (
-                  <div className="mt-2 pt-2 border-t border-amber-100 dark:border-amber-800/50 space-y-2">
-                    {ctes.map((cte: any, cIdx: number) => (
-                      <div key={cte.id} className="rounded-lg border border-amber-100 dark:border-amber-800/30 overflow-hidden">
-                        <div className="flex items-center justify-between px-2.5 py-1.5 bg-amber-50/80 dark:bg-amber-900/20">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-3.5 h-3.5 text-amber-600" />
-                            <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
-                              CT-e {cte.numero || `#${cIdx + 1}`}
-                            </span>
-                            {cte.nfes?.length > 0 && (
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-300 text-amber-600">
-                                {cte.nfes.length} NF-e{cte.nfes.length !== 1 ? 's' : ''}
-                              </Badge>
-                            )}
-                          </div>
-                          {cte.url && (
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-600"
-                              onClick={() => handleDocClick(cte.url, `CT-e ${cIdx + 1}`)}
-                              title="Visualizar CT-e"
-                            >
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                          )}
-                        </div>
-                        {cte.nfes?.length > 0 && (
-                          <div className="px-2 py-1.5 space-y-1">
-                            {cte.nfes.map((nf: any, ni: number) => (
-                              <div key={nf.id} className="flex items-center justify-between px-2 py-1 rounded-md bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
-                                <div className="flex items-center gap-1.5">
-                                  <FileCode className="w-3 h-3 text-indigo-400" />
-                                  <span className="text-indigo-800 dark:text-indigo-200">
-                                    NF-e {nf.numero || nf.chave_acesso?.slice(-6) || ni + 1}
-                                  </span>
-                                </div>
-                                {nf.url && (
-                                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-500"
-                                    onClick={() => handleDocClick(nf.url, `NF-e ${ni + 1}`)}
-                                    title="Visualizar NF-e"
-                                  >
-                                    <Eye className="w-3 h-3" />
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {/* Notas Fiscais */}
-              <div
-                className={`flex flex-col p-3 rounded-xl border transition-colors ${isDragging ? 'border-primary bg-primary/5' : hasNfe ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800' : 'bg-muted/30 border-dashed border-red-200'}`}
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
-                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsDragging(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    handleFilesSelection(e.dataTransfer.files);
-                  }
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-1.5 rounded-full ${hasNfe ? 'bg-indigo-100 dark:bg-indigo-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
-                      {hasNfe ? (
-                        <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className={`font-medium text-sm ${hasNfe ? 'text-indigo-900 dark:text-indigo-100' : 'text-red-700 dark:text-red-400'}`}>
-                        Notas Fiscais {hasNfe ? `(${nfes.length})` : ''}
-                      </span>
-                      {!hasNfe && <span className="text-[10px] text-red-600/80">Obrigatório para iniciar viagem</span>}
-                    </div>
-                  </div>
-                  <Button
-                    variant={hasNfe ? "outline" : "default"}
-                    size="sm"
-                    className={`h-8 text-xs ${hasNfe ? 'border-indigo-200 text-indigo-700 hover:bg-indigo-100' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-                    onClick={() => nfeInputRef.current?.click()}
-                    disabled={isUploadingNfe}
-                  >
-                    {isUploadingNfe ? (
-                      <Loader2 className="w-3 h-3 animate-spin mr-1.5" />
-                    ) : (
-                      <Upload className="w-3 h-3 mr-1.5" />
-                    )}
-                    {hasNfe ? 'Adicionar mais' : 'Anexar NF-e'}
-                  </Button>
-                  <input
-                    ref={nfeInputRef}
-                    type="file"
-                    multiple
-                    accept=".xml,.pdf"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files) handleFilesSelection(e.target.files);
-                      e.target.value = '';
-                    }}
-                  />
-                </div>
-
-                {/* Drop zone hint */}
-                <div
-                  className={`flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed transition-colors cursor-pointer ${isDragging ? 'border-primary bg-primary/10 text-primary' : 'border-muted-foreground/30 text-muted-foreground/60 hover:border-muted-foreground/50 hover:text-muted-foreground'}`}
-                  onClick={() => nfeInputRef.current?.click()}
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span className="text-[11px]">
-                    {isDragging ? 'Solte os arquivos aqui' : 'Arraste PDF ou XML aqui, ou clique para selecionar'}
-                  </span>
-                </div>
-
-                {hasNfe && (
-                  <div className="grid gap-2 mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-800/50">
-                    {nfes.map((nfe: any, idx: number) => {
-                      const isPdf = nfe.url?.toLowerCase().endsWith('.pdf') || (!nfe.xml_content && !nfe.xml_path);
-                      return (
-                        <div key={nfe.id} className="flex items-center justify-between bg-white dark:bg-background/50 rounded-lg p-2 border border-indigo-100/50 dark:border-indigo-800/30">
-                          <div className="flex items-center gap-2">
-                            <FileCode className="w-3.5 h-3.5 text-indigo-400" />
-                            <span className="text-xs font-medium text-indigo-900 dark:text-indigo-200">
-                              NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || `#${idx + 1}`}
-                            </span>
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 border-indigo-200 text-indigo-500">
-                              {isPdf ? 'PDF' : 'XML'}
-                            </Badge>
-                            {nfe.valor && (
-                              <span className="text-[10px] text-muted-foreground ml-1">
-                                R$ {Number(nfe.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {nfe.url && (
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={() => handleDocClick(nfe.url, `NF-e ${nfe.numero || idx + 1}`)} title="Visualizar NF-e">
-                                <Eye className="w-3 h-3" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={async () => {
-                                try {
-                                  const { error } = await (supabase as any).from('nfes').delete().eq('id', nfe.id);
-                                  if (error) throw error;
-                                  toast.success('NF-e removida com sucesso!');
-                                  refetchNfes();
-                                  onRefresh();
-                                } catch (err: any) {
-                                  toast.error('Erro ao remover NF-e');
-                                  console.error(err);
-                                }
-                              }}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
+            <EntregaDocumentosPanel
+              perfil="embarcador"
+              entregaId={entrega.id}
+              ctes={existingCtes}
+              nfesDiretas={unlinkedNfes}
+              canhotoUrl={entrega.canhoto_url || null}
+              outrosDocumentos={entrega.outros_documentos || []}
+              onRefresh={refreshDocs}
+            />
           </div>
 
           <Separator />
@@ -1003,11 +643,11 @@ function DetailPanel({
                 <div className="space-y-4">
                   {entrega.eventos.slice(0, 5).map((evento) => {
                     const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean; isCreation?: boolean }> = {
-                      criado: { label: 'Entrega criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
+                      criado: { label: 'Carga criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
                       aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
                       inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
                       inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-                      finalizado: { label: 'Entregue', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+                      finalizado: { label: 'Concluída', bgColor: 'bg-green-100 dark:bg-green-900/30' },
                       cancelado: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
                       problema: { label: 'Problema', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
                       documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
@@ -1030,7 +670,7 @@ function DetailPanel({
                           ) : isCreation ? (
                             <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                           ) : (
-                            <ArrowLeftRight className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
+                            <ArrowRightLeft className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
                               evento.tipo === 'inicio_coleta' ? 'text-cyan-600 dark:text-cyan-400' :
                                 evento.tipo === 'inicio_rota' ? 'text-purple-600 dark:text-purple-400' :
                                   evento.tipo === 'finalizado' ? 'text-green-600 dark:text-green-400' :
@@ -1089,12 +729,15 @@ function DetailPanel({
 function GestaoMapDialogContent({
   entregas,
   localizacoes,
+  initialSelectedEntregaId,
 }: {
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+  initialSelectedEntregaId?: string | null;
 }) {
-  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(null);
-  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(null);
+  const initialEntrega = initialSelectedEntregaId ? entregas.find(e => e.id === initialSelectedEntregaId) : null;
+  const [selectedMotoristaId, setSelectedMotoristaId] = useState<string | null>(initialEntrega?.motorista_id ?? null);
+  const [selectedEntregaId, setSelectedEntregaId] = useState<string | null>(initialSelectedEntregaId ?? null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Group entregas by CARGA (not motorista)
@@ -1237,13 +880,18 @@ function GestaoMapDialogContent({
                   <div
                     key={group.carga.id}
                     className={`px-3 py-2.5 border-b cursor-pointer transition-all hover:bg-muted/50 ${isExpanded ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}
+                    onClick={() => {
+                      if (!isExpanded && group.entregas.length > 0) {
+                        handleEntregaClick(group.entregas[0]);
+                      }
+                    }}
                   >
                     {/* Carga header */}
                     <div className="flex items-center gap-2 mb-1">
                       <Package className="w-4 h-4 text-primary shrink-0" />
                       <span className="font-bold text-sm font-mono">{group.carga.codigo}</span>
                       <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
-                        {group.entregas.length} entrega{group.entregas.length !== 1 ? 's' : ''}
+                        {group.entregas.length} carga{group.entregas.length !== 1 ? 's' : ''}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs mb-1 pl-6">
@@ -1304,17 +952,18 @@ function GestaoMapDialogContent({
 }
 
 function GestaoMapDialog({
-  open, onOpenChange, entregas, localizacoes,
+  open, onOpenChange, entregas, localizacoes, initialSelectedEntregaId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entregas: Entrega[];
   localizacoes: Array<{ motorista_id: string; latitude: number | null; longitude: number | null; heading?: number | null; isOnline?: boolean; updated_at?: string | null }>;
+  initialSelectedEntregaId?: string | null;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
-        <GestaoMapDialogContent entregas={entregas} localizacoes={localizacoes} />
+        <GestaoMapDialogContent entregas={entregas} localizacoes={localizacoes} initialSelectedEntregaId={open ? initialSelectedEntregaId : null} />
       </DialogContent>
     </Dialog>
   );
@@ -1323,12 +972,14 @@ function GestaoMapDialog({
 // ==================== Main Component ====================
 export default function GestaoCargas() {
   const { filialAtiva, switchingFilial } = useUserContext();
+  const queryClient = useQueryClient();
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [filters, setFilters] = useState<AdvancedFilters>({});
   const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
+  const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
 
   // Fetch entregas directly (not via cargas) filtered by embarcador's filial
-  const { data: entregas = [], isLoading, refetch } = useQuery({
+  const { data: entregas = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['gestao_entregas_embarcador', filialAtiva?.id],
     queryFn: async () => {
       if (!filialAtiva?.id) return [];
@@ -1341,7 +992,7 @@ export default function GestaoCargas() {
         .select(`
           id, codigo, status, created_at, updated_at,
           motorista_id, peso_alocado_kg, valor_frete, coletado_em, entregue_em,
-          canhoto_url,
+          canhoto_url, outros_documentos,
           motorista:motoristas(id, nome_completo, telefone, foto_url),
           veiculo:veiculos(id, placa, modelo, tipo),
           carga:cargas!inner(
@@ -1351,7 +1002,7 @@ export default function GestaoCargas() {
             data_coleta_de, data_entrega_limite,
             endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
             endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
-            empresa:empresas(id, nome)
+            empresa:empresas(id, nome, comissao_hubfrete_percent)
           )
         `)
         .eq('carga.filial_id', filialAtiva.id)
@@ -1361,7 +1012,7 @@ export default function GestaoCargas() {
       if (error) throw error;
 
       // Filter: active always show, terminal only if finalized today
-      const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'];
+      const pendingStatuses = ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'];
       const terminalStatuses = ['entregue', 'cancelada'];
 
       const filtered = (data || []).filter(e => {
@@ -1384,6 +1035,25 @@ export default function GestaoCargas() {
           return { ...entrega, eventos: eventos || [] };
         })
       );
+
+      // Batch-fetch NF-e counts per entrega
+      const entregaIds = entregasWithEvents.map(e => e.id);
+      if (entregaIds.length > 0) {
+        const { data: nfeCounts } = await (supabase as any)
+          .from('nfes')
+          .select('entrega_id')
+          .in('entrega_id', entregaIds);
+
+        const countMap: Record<string, number> = {};
+        entregaIds.forEach(id => { countMap[id] = 0; });
+        (nfeCounts || []).forEach((n: any) => {
+          if (n.entrega_id) countMap[n.entrega_id] = (countMap[n.entrega_id] || 0) + 1;
+        });
+
+        entregasWithEvents.forEach((e: any) => {
+          e.nfe_count = countMap[e.id] ?? 0;
+        });
+      }
 
       return entregasWithEvents as Entrega[];
     },
@@ -1443,7 +1113,7 @@ export default function GestaoCargas() {
       );
     }
 
-    const a = filtered.filter(e => ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'].includes(e.status));
+    const a = filtered.filter(e => ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'].includes(e.status));
     const f = filtered.filter(e => ['entregue', 'cancelada'].includes(e.status));
     return { ativas: a, finalizadas: f };
   }, [entregas, filters]);
@@ -1464,7 +1134,7 @@ export default function GestaoCargas() {
       <div className="flex items-center justify-between p-4 !pb-0 md:p-8">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-foreground">Gestão de Cargas</h1>
+            <h1 className="text-3xl font-bold text-foreground">Cargas em Andamento</h1>
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1475,8 +1145,8 @@ export default function GestaoCargas() {
                 <TooltipContent side="bottom" className="max-w-xs text-sm p-3">
                   <p className="font-medium mb-1">Acompanhamento de Entregas</p>
                   <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs leading-relaxed">
-                    <li>Acompanhe em tempo real as entregas das suas cargas.</li>
-                    <li>Entregas finalizadas permanecem visíveis até o fim do dia.</li>
+                     <li>Acompanhe em tempo real as cargas em operação.</li>
+                     <li>Cargas finalizadas permanecem visíveis até o fim do dia.</li>
                   </ul>
                 </TooltipContent>
               </Tooltip>
@@ -1485,8 +1155,10 @@ export default function GestaoCargas() {
           <p className="text-muted-foreground">Visualize sua operação diária</p>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => refetch()}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => {
+            queryClient.resetQueries({ queryKey: ['gestao_entregas_embarcador', filialAtiva?.id] });
+          }}>
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
           <AdvancedFiltersPopover
             filters={filters}
@@ -1495,6 +1167,15 @@ export default function GestaoCargas() {
             showEmbarcador={false}
             showDestinatario
           />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setPerformanceDialogOpen(true)}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Desempenho Diário
+          </Button>
           <Button
             variant="default"
             size="sm"
@@ -1521,7 +1202,7 @@ export default function GestaoCargas() {
               </div>
             ) : ativas.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <EmptyColumnPlaceholder message="Entregas ativas aparecerão aqui" />
+                <EmptyColumnPlaceholder message="Cargas ativas aparecerão aqui" />
               </div>
             ) : (
               ativas.map(e => (
@@ -1548,7 +1229,7 @@ export default function GestaoCargas() {
               </div>
             ) : finalizadas.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <EmptyColumnPlaceholder message="Entregas finalizadas do dia aparecerão aqui" />
+                <EmptyColumnPlaceholder message="Cargas finalizadas do dia aparecerão aqui" />
               </div>
             ) : (
               finalizadas.map(e => (
@@ -1570,6 +1251,7 @@ export default function GestaoCargas() {
             onClose={() => setSelectedEntrega(null)}
             driverLocation={driverLocation}
             onRefresh={() => refetch()}
+            onExpandMap={() => setGestaoDialogOpen(true)}
           />
         </div>
       </div>
@@ -1580,6 +1262,14 @@ export default function GestaoCargas() {
         onOpenChange={setGestaoDialogOpen}
         entregas={entregas}
         localizacoes={localizacoes}
+        initialSelectedEntregaId={selectedEntrega?.id}
+      />
+
+      {/* Daily Performance Dialog */}
+      <EmbarcadorDailyPerformanceDialog
+        open={performanceDialogOpen}
+        onOpenChange={setPerformanceDialogOpen}
+        entregas={entregas}
       />
     </div>
   );

@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Shield,
   Settings,
+  DollarSign,
 } from 'lucide-react';
 import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
 import { CardImmersiveBackground } from '@/components/ai-assistant/CardImmersiveBackground';
@@ -99,7 +100,7 @@ export default function TransportadoraDashboard() {
           veiculo:veiculos(placa)
         `)
         .in('motorista_id', motoristaIds)
-        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
+        .in('status', ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'])
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -157,21 +158,21 @@ export default function TransportadoraDashboard() {
               {greeting}, {firstName}! 👋
             </h1>
             <p className="text-muted-foreground">
-              {filialAtiva ? `Filial: ${filialAtiva.nome}` : 'Gerencie sua frota e entregas'}
+              {filialAtiva ? `Filial: ${filialAtiva.nome}` : 'Gerencie sua frota e cargas'}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <Button 
               variant="outline" 
-              onClick={() => navigate('/transportadora/entregas')}
+              onClick={() => navigate('/transportadora/cargas')}
               className="gap-2"
             >
               <MapPin className="w-4 h-4" />
               Rastreamento
             </Button>
-            <Button className="gap-2" onClick={() => navigate('/transportadora/cargas')}>
+            <Button className="gap-2" onClick={() => navigate('/transportadora/ofertas')}>
               <Package className="w-4 h-4" />
-              Ver Cargas
+              Ver Ofertas
             </Button>
           </div>
         </div>
@@ -201,11 +202,11 @@ export default function TransportadoraDashboard() {
                   onClick={() => navigate('/transportadora/motoristas')}
                 />
                 <StatsCard
-                  title="Entregas Ativas"
+                  title="Cargas Ativas"
                   value={stats.entregasEmAndamento}
                   icon={<Route className="w-5 h-5" />}
                   color="chart2"
-                  onClick={() => navigate('/transportadora/entregas')}
+                  onClick={() => navigate('/transportadora/cargas')}
                 />
                 <StatsCard
                   title="Aguardando Coleta"
@@ -259,10 +260,10 @@ export default function TransportadoraDashboard() {
                   <Button 
                     variant="outline" 
                     className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20"
-                    onClick={() => navigate('/transportadora/cargas')}
+                    onClick={() => navigate('/transportadora/ofertas')}
                   >
                     <Package className="w-5 h-5 text-primary" />
-                    <span className="text-xs">Cargas</span>
+                    <span className="text-xs">Ofertas</span>
                   </Button>
                   <Button 
                     variant="outline" 
@@ -283,10 +284,10 @@ export default function TransportadoraDashboard() {
                   <Button 
                     variant="outline" 
                     className="h-auto py-4 flex-col gap-2 hover:bg-chart-4/5 hover:border-chart-4/20"
-                    onClick={() => navigate('/transportadora/entregas')}
+                    onClick={() => navigate('/transportadora/financeiro')}
                   >
-                    <MapPin className="w-5 h-5 text-chart-4" />
-                    <span className="text-xs">Rastreamento</span>
+                    <DollarSign className="w-5 h-5 text-chart-4" />
+                    <span className="text-xs">Financeiro</span>
                   </Button>
                 </div>
               </CardContent>
@@ -327,7 +328,7 @@ export default function TransportadoraDashboard() {
                         "Status da frota"
                       </span>
                       <span className="px-3 py-1.5 backdrop-blur-sm bg-background/40 rounded-full text-xs text-foreground/80 border border-primary/30">
-                        "Entregas em andamento"
+                        "Cargas em andamento"
                       </span>
                     </div>
                   </div>

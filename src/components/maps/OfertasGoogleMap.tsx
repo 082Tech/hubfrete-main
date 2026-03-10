@@ -38,7 +38,7 @@ interface Carga {
   } | null;
 }
 
-interface CargasGoogleMapProps {
+interface OfertasGoogleMapProps {
   cargas: Carga[];
   onCargaClick: (carga: Carga) => void;
   hoveredCargaId: string | null;
@@ -63,13 +63,13 @@ const mapOptions: google.maps.MapOptions = {
   styles: airbnbMapStyles,
 };
 
-export default function CargasGoogleMap({
+export default function OfertasGoogleMap({
   cargas,
   onCargaClick,
   hoveredCargaId,
   setHoveredCargaId,
   onBoundsChanged,
-}: CargasGoogleMapProps) {
+}: OfertasGoogleMapProps) {
   const { isLoaded, loadError } = useGoogleMaps();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [selectedCarga, setSelectedCarga] = useState<Carga | null>(null);
@@ -316,8 +316,11 @@ export default function CargasGoogleMap({
         {cargasComCoordenadas.map((carga) => {
           const isHovered = hoveredCargaId === carga.id;
           const isSelected = selectedCarga?.id === carga.id;
-          const priceText = carga.valor_frete_tonelada
-            ? `R$${Math.round(carga.valor_frete_tonelada)}/ton`
+          const totalFrete = carga.valor_frete_tonelada
+            ? Math.round(((carga.peso_disponivel_kg ?? carga.peso_kg) / 1000) * carga.valor_frete_tonelada)
+            : null;
+          const priceText = totalFrete
+            ? `R$${totalFrete.toLocaleString('pt-BR')}`
             : 'A combinar';
 
           const lat = toNumber(carga.endereco_origem?.latitude);
@@ -448,9 +451,12 @@ export default function CargasGoogleMap({
             </div>
             <div className="text-right">
               <span className="text-lg font-bold text-primary">
-                {formatCurrency(selectedCarga.valor_frete_tonelada)}
+                {formatCurrency(
+                  selectedCarga.valor_frete_tonelada
+                    ? Math.round(((selectedCarga.peso_disponivel_kg ?? selectedCarga.peso_kg) / 1000) * selectedCarga.valor_frete_tonelada * 100) / 100
+                    : null
+                )}
               </span>
-              <span className="text-sm text-muted-foreground">/ton</span>
             </div>
           </div>
 

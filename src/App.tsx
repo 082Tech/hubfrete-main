@@ -8,6 +8,8 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { UserContextProvider } from "@/hooks/useUserContext";
 import { SplashScreen } from "@/components/SplashScreen";
+import { UpdateToast } from "@/components/UpdateToast";
+import { PatchNotesModal } from "@/components/PatchNotesModal";
 import { PortalLayoutWrapper } from "@/components/portals/PortalLayoutWrapper";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -29,6 +31,7 @@ import VeiculosAdmin from "./pages/admin/VeiculosAdmin";
 import CargasAdmin from "./pages/admin/CargasAdmin";
 import CargasHistoricoAdmin from "./pages/admin/CargasHistoricoAdmin";
 import EntregasAdmin from "./pages/admin/EntregasAdmin";
+import EntregasHistoricoAdmin from "./pages/admin/EntregasHistoricoAdmin";
 import CarroceriasAdmin from "./pages/admin/CarroceriasAdmin";
 import AjudantesAdmin from "./pages/admin/AjudantesAdmin";
 import ProvasEntregaAdmin from "./pages/admin/ProvasEntregaAdmin";
@@ -45,6 +48,8 @@ import PreCadastroMotorista from "./pages/PreCadastroMotorista";
 import Rastreio from "./pages/public/Rastreio";
 import EmbarcadorDashboard from "./pages/portals/EmbarcadorDashboard";
 import CargasPublicadas from "./pages/portals/embarcador/CargasPublicadas";
+import NovaCarga from "./pages/portals/embarcador/NovaCarga";
+
 import CargasEmRota from "./pages/portals/embarcador/GestaoCargas";
 import HistoricoCargas from "./pages/portals/embarcador/HistoricoCargas";
 import Relatorios from "./pages/portals/embarcador/Relatorios";
@@ -55,9 +60,11 @@ import Assistente from "./pages/portals/embarcador/Assistente";
 import ContatosSalvos from "./pages/portals/embarcador/ContatosSalvos";
 import EmbarcadorMensagens from "./pages/portals/embarcador/Mensagens";
 import EmbarcadorNotificacoes from "./pages/portals/embarcador/Notificacoes";
+import EmbarcadorDadosEmpresa from "./pages/portals/embarcador/DadosEmpresa";
+import EmbarcadorIntegracoes from "./pages/portals/embarcador/Integracoes";
 
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
-import TransportadoraCargas from "./pages/portals/transportadora/CargasDisponiveis";
+import TransportadoraOfertas from "./pages/portals/transportadora/OfertasDisponiveis";
 import TransportadoraFrota from "./pages/portals/transportadora/MinhaFrota";
 import TransportadoraFrotaVinculos from "./pages/portals/transportadora/FrotaVinculos";
 import TransportadoraFrotaCarrocerias from "./pages/portals/transportadora/FrotaCarrocerias";
@@ -71,7 +78,13 @@ import TransportadoraUsuarios from "./pages/portals/transportadora/UsuariosEmpre
 import TransportadoraMensagens from "./pages/portals/transportadora/Mensagens";
 import TransportadoraRelatorios from "./pages/portals/transportadora/Relatorios";
 import TransportadoraNotificacoes from "./pages/portals/transportadora/Notificacoes";
+import TransportadoraDadosEmpresa from "./pages/portals/transportadora/DadosEmpresa";
+import TransportadoraIntegracoes from "./pages/portals/transportadora/Integracoes";
 import TransportadoraOperacaoDiaria from "./pages/portals/transportadora/OperacaoDiaria";
+import TransportadoraFinanceiro from "./pages/portals/transportadora/Financeiro";
+
+import EmbarcadorFinanceiro from "./pages/portals/embarcador/Financeiro";
+import AdminFinanceiro from "./pages/admin/Financeiro";
 
 import NotFound from "./pages/NotFound";
 
@@ -95,6 +108,8 @@ const App = () => {
             <UserContextProvider>
               <Toaster />
               <Sonner />
+              <UpdateToast />
+              <PatchNotesModal />
               {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
@@ -121,11 +136,13 @@ const App = () => {
                     <Route path="cargas" element={<CargasAdmin />} />
                     <Route path="cargas/historico" element={<CargasHistoricoAdmin />} />
                     <Route path="entregas" element={<EntregasAdmin />} />
+                    <Route path="entregas/historico" element={<EntregasHistoricoAdmin />} />
                     <Route path="carrocerias" element={<CarroceriasAdmin />} />
                     <Route path="ajudantes" element={<AjudantesAdmin />} />
                     <Route path="provas-entrega" element={<ProvasEntregaAdmin />} />
                     <Route path="storage" element={<StorageExplorer />} />
                     <Route path="logs" element={<Logs />} />
+                    <Route path="financeiro" element={<AdminFinanceiro />} />
                   </Route>
                   <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
                   <Route path="/cadastro/motorista/convite" element={<CadastroMotoristaConvite />} />
@@ -142,8 +159,9 @@ const App = () => {
                   {/* Portal Embarcador - Nested routes with shared layout */}
                   <Route path="/embarcador" element={<PortalLayoutWrapper expectedUserType="embarcador" />}>
                     <Route index element={<EmbarcadorDashboard />} />
-                    <Route path="cargas" element={<CargasPublicadas />} />
-                    <Route path="cargas/em-rota" element={<CargasEmRota />} />
+                    <Route path="ofertas" element={<CargasPublicadas />} />
+                    {/* EditarCarga is now a modal dialog inside CargasPublicadas */}
+                    <Route path="cargas" element={<CargasEmRota />} />
                     <Route path="cargas/historico" element={<HistoricoCargas />} />
                     <Route path="relatorios" element={<Relatorios />} />
                     <Route path="assistente" element={<Assistente />} />
@@ -152,15 +170,18 @@ const App = () => {
                     <Route path="notificacoes" element={<EmbarcadorNotificacoes />} />
                     <Route path="filiais" element={<GerenciarFiliais />} />
                     <Route path="usuarios" element={<UsuariosEmpresa />} />
+                    <Route path="financeiro" element={<EmbarcadorFinanceiro />} />
+                    <Route path="dados-empresa" element={<EmbarcadorDadosEmpresa />} />
+                    <Route path="integracoes" element={<EmbarcadorIntegracoes />} />
                     <Route path="configuracoes" element={<Configuracoes />} />
                   </Route>
 
                   {/* Portal Transportadora - Nested routes with shared layout */}
                   <Route path="/transportadora" element={<PortalLayoutWrapper expectedUserType="transportadora" />}>
                     <Route index element={<TransportadoraDashboard />} />
-                    <Route path="cargas" element={<TransportadoraCargas />} />
-                    <Route path="entregas" element={<TransportadoraOperacaoDiaria />} />
-                    <Route path="entregas/historico" element={<TransportadoraHistoricoEntregas />} />
+                    <Route path="ofertas" element={<TransportadoraOfertas />} />
+                    <Route path="cargas" element={<TransportadoraOperacaoDiaria />} />
+                    <Route path="cargas/historico" element={<TransportadoraHistoricoEntregas />} />
                     <Route path="frota" element={<TransportadoraFrota />} />
                     <Route path="frota/carrocerias" element={<TransportadoraFrotaCarrocerias />} />
                     <Route path="frota/vinculos" element={<TransportadoraFrotaVinculos />} />
@@ -172,6 +193,9 @@ const App = () => {
                     <Route path="notificacoes" element={<TransportadoraNotificacoes />} />
                     <Route path="filiais" element={<TransportadoraFiliais />} />
                     <Route path="usuarios" element={<TransportadoraUsuarios />} />
+                    <Route path="financeiro" element={<TransportadoraFinanceiro />} />
+                    <Route path="dados-empresa" element={<TransportadoraDadosEmpresa />} />
+                    <Route path="integracoes" element={<TransportadoraIntegracoes />} />
                     <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />
                   </Route>
 

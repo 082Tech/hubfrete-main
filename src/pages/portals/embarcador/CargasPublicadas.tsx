@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,9 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
-import { EditarCargaDialog } from '@/components/cargas/EditarCargaDialog';
+import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
+
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import {
   DropdownMenu,
@@ -63,6 +63,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Trash2,
+  Plus,
   FileText,
   Pencil,
 } from 'lucide-react';
@@ -133,12 +134,17 @@ interface CargaData {
   peso_kg: number;
   peso_disponivel_kg: number | null;
   permite_fracionado: boolean | null;
+  peso_minimo_fracionado_kg: number | null;
   valor_mercadoria: number | null;
   valor_frete_tonelada: number | null;
   tipo_precificacao: string | null;
   valor_frete_m3: number | null;
   valor_frete_fixo: number | null;
   valor_frete_km: number | null;
+  unidade_precificacao: string | null;
+  quantidade_precificacao: number | null;
+  valor_unitario_precificacao: number | null;
+  numero_pedido: string | null;
   status: string;
   data_coleta_de: string | null;
   data_coleta_ate: string | null;
@@ -153,6 +159,8 @@ interface CargaData {
   destinatario_razao_social: string | null;
   destinatario_nome_fantasia: string | null;
   destinatario_cnpj: string | null;
+  destinatario_contato_nome: string | null;
+  destinatario_contato_telefone: string | null;
   endereco_origem: EnderecoData | null;
   endereco_destino: EnderecoData | null;
   entregas: EntregaData[];
@@ -179,8 +187,8 @@ interface CargaData {
 const statusEntregaConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
   saiu_para_coleta: { label: 'Saiu para Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
-  saiu_para_entrega: { label: 'Saiu para Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
-  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 },
+  saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
+  entregue: { label: 'Concluída', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
   cancelada: { label: 'Cancelada', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: RotateCcw },
 };
@@ -208,6 +216,7 @@ export default function CargasPublicadas() {
   const [cargaToDelete, setCargaToDelete] = useState<CargaData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editCarga, setEditCarga] = useState<CargaData | null>(null);
+  const navigate = useNavigate();
 
   const { ref: tableContainerRef, height: tableHeight } = useRemainingViewportHeight<HTMLDivElement>({
     bottomOffset: 32,
@@ -265,6 +274,13 @@ export default function CargasPublicadas() {
           destinatario_razao_social,
           destinatario_nome_fantasia,
           destinatario_cnpj,
+          destinatario_contato_nome,
+          destinatario_contato_telefone,
+          peso_minimo_fracionado_kg,
+          unidade_precificacao,
+          quantidade_precificacao,
+          valor_unitario_precificacao,
+          numero_pedido,
           volume_m3,
           carga_fragil,
           carga_perigosa,
@@ -726,10 +742,10 @@ export default function CargasPublicadas() {
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Package className="w-6 h-6 text-primary" />
-                Cargas Publicadas
+                Ofertas de Cargas Publicadas
               </h1>
               <p className="text-sm text-muted-foreground">
-                Cargas ativas aguardando ou em processo de alocação
+                Ofertas ativas aguardando ou em processo de alocação
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -742,7 +758,12 @@ export default function CargasPublicadas() {
                   className="pl-10"
                 />
               </div>
-              <NovaCargaDialog onSuccess={refetch} />
+              <NovaCargaDialog onSuccess={() => refetch()}>
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Nova Oferta
+                </Button>
+              </NovaCargaDialog>
             </div>
           </div>
 
@@ -901,7 +922,12 @@ export default function CargasPublicadas() {
                   <p className="text-sm text-muted-foreground mb-4">
                     {filterStatus !== 'all' ? 'Tente ajustar os filtros' : 'Crie sua primeira carga'}
                   </p>
-                  <NovaCargaDialog onSuccess={refetch} />
+                  <NovaCargaDialog onSuccess={() => refetch()}>
+                    <Button className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Nova Oferta
+                    </Button>
+                  </NovaCargaDialog>
                 </div>
               ) : (
                 <>
@@ -948,7 +974,7 @@ export default function CargasPublicadas() {
                               Frete
                             </div>
                           </th>
-                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px]">Entregas</th>
+                          <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px]">Cargas</th>
                           <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[110px]">Status</th>
                           <th className="h-12 px-4 text-left align-middle font-semibold text-foreground w-10"></th>
                         </tr>
@@ -1073,7 +1099,7 @@ export default function CargasPublicadas() {
                                 </td>
                                 <td className="p-4 align-middle text-center">
                                   <Badge variant="outline" className="text-xs">
-                                    {carga.entregas.length} {carga.entregas.length === 1 ? 'entrega' : 'entregas'}
+                                    {carga.entregas.length} {carga.entregas.length === 1 ? 'carga' : 'cargas'}
                                   </Badge>
                                 </td>
                                 <td className="p-4 align-middle">
@@ -1128,7 +1154,7 @@ export default function CargasPublicadas() {
                                     <div className="px-8 py-4">
                                       <div className="flex items-center gap-2 mb-3">
                                         <Truck className="w-4 h-4 text-primary" />
-                                        <span className="text-sm font-medium">Entregas ({carga.entregas.length})</span>
+                                        <span className="text-sm font-medium">Cargas ({carga.entregas.length})</span>
                                       </div>
                                       <div className="bg-background rounded-lg border overflow-hidden">
                                         <table className="w-full text-sm">
@@ -1385,15 +1411,6 @@ export default function CargasPublicadas() {
           />
         )}
 
-        {/* Edit Carga Dialog */}
-        {editCarga && (
-          <EditarCargaDialog
-            carga={editCarga}
-            open={!!editCarga}
-            onOpenChange={(open) => !open && setEditCarga(null)}
-            onSuccess={refetch}
-          />
-        )}
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -1418,6 +1435,16 @@ export default function CargasPublicadas() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Edit Dialog */}
+        {editCarga && (
+          <NovaCargaDialog
+            editCarga={editCarga}
+            editOpen={!!editCarga}
+            onEditOpenChange={(open) => !open && setEditCarga(null)}
+            onSuccess={() => { setEditCarga(null); refetch(); }}
+          />
+        )}
       </TooltipProvider>
     </div>
   );

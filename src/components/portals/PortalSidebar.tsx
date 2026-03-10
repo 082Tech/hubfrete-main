@@ -1,36 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Package,
-  FileText,
-  Settings,
-  LogOut,
-  Truck,
-  Building2,
-  User,
-  Users,
-  MapPin,
-  Calendar,
-  BarChart3,
-  Bell,
-  ChevronDown,
-  Check,
-  Sparkles,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Home,
-  History,
-  Send,
-  Route,
-  Pin,
-  Building,
-  MessageSquare,
-  MoreVertical,
-  ArrowRightLeft,
-  Link2,
-  Container,
+  LayoutDashboard, Package, FileText, Settings, LogOut, Truck, Building2,
+  User, Users, MapPin, Calendar, BarChart3, Bell, ChevronDown, Check,
+  Sparkles, Loader2, ChevronLeft, ChevronRight, Home, History, Send,
+  Route, Pin, Building, MessageSquare, MoreVertical, ArrowRightLeft,
+  Link2, Container, Boxes, DollarSign, Plug,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -83,17 +58,20 @@ const cargasSubmenu: MenuGroup = {
   icon: Package,
   label: 'Cargas',
   subItems: [
-    { icon: Package, label: 'Publicadas', href: '/embarcador/cargas' },
-    { icon: Route, label: 'Em Rota', href: '/embarcador/cargas/em-rota' },
+    { icon: MapPin, label: 'Em andamento', href: '/embarcador/cargas' },
     { icon: History, label: 'Histórico', href: '/embarcador/cargas/historico' },
   ],
 };
 
-// Entregas items for transportadora (no longer a submenu)
-const entregasItems = [
-  { icon: MapPin, label: 'Gestão de Entregas', href: '/transportadora/entregas' },
-  { icon: History, label: 'Histórico de Entregas', href: '/transportadora/entregas/historico' },
-];
+// Cargas submenu for transportadora (was entregas)
+const transportadoraCargasSubmenu: MenuGroup = {
+  icon: Package,
+  label: 'Minhas Cargas',
+  subItems: [
+    { icon: MapPin, label: 'Em andamento', href: '/transportadora/cargas' },
+    { icon: History, label: 'Histórico', href: '/transportadora/cargas/historico' },
+  ],
+};
 
 // Frota submenu for transportadora
 const frotaSubmenu: MenuGroup = {
@@ -106,29 +84,53 @@ const frotaSubmenu: MenuGroup = {
   ],
 };
 
+// "Minha Empresa" submenu for embarcador
+const embarcadorEmpresaSubmenu: MenuGroup = {
+  icon: Building2,
+  label: 'Minha Empresa',
+  subItems: [
+    { icon: Building2, label: 'Dados da Empresa', href: '/embarcador/dados-empresa' },
+    { icon: Users, label: 'Contatos', href: '/embarcador/contatos' },
+    { icon: Plug, label: 'Integrações', href: '/embarcador/integracoes' },
+    { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
+    { icon: Users, label: 'Usuários', href: '/embarcador/usuarios', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
+  ],
+};
+
+// "Minha Empresa" submenu for transportadora
+const transportadoraEmpresaSubmenu: MenuGroup = {
+  icon: Building2,
+  label: 'Minha Empresa',
+  subItems: [
+    { icon: Building2, label: 'Dados da Empresa', href: '/transportadora/dados-empresa' },
+    { icon: Plug, label: 'Integrações', href: '/transportadora/integracoes' },
+    { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
+    { icon: Users, label: 'Usuários', href: '/transportadora/usuarios', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
+  ],
+};
+
 const menusByType: Record<SidebarUserType, MenuItem[]> = {
   embarcador: [
     { icon: Home, label: 'Home', href: '/embarcador' },
-    // Cargas is now a submenu - handled separately
+    { icon: Boxes, label: 'Minhas Ofertas', href: '/embarcador/ofertas' },
+    // Cargas is a submenu
+    { icon: DollarSign, label: 'Financeiro', href: '/embarcador/financeiro' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
-    { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true },
-    { icon: User, label: 'Usuários da Empresa', href: '/embarcador/usuarios', adminOnly: true },
+    // Minha Empresa is a submenu
     { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
   ],
   transportadora: [
     { icon: Home, label: 'Home', href: '/transportadora' },
-    { icon: Package, label: 'Cargas Disponíveis', href: '/transportadora/cargas' },
-    // Gestão de Entregas and Histórico de Entregas are handled separately in entregasItems
-    // Minha Frota is handled as a submenu (frotaSubmenu)
-    
+    { icon: Boxes, label: 'Ofertas de Carga', href: '/transportadora/ofertas' },
+    // Cargas + Frota are submenus
     { icon: User, label: 'Motoristas', href: '/transportadora/motoristas' },
+    { icon: DollarSign, label: 'Financeiro', href: '/transportadora/financeiro' },
     { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
-    { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true },
-    { icon: Users, label: 'Usuários da Empresa', href: '/transportadora/usuarios', adminOnly: true },
+    // Minha Empresa is a submenu
     { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
   ],
   motorista: [
@@ -161,7 +163,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   const { empresa, companyInfo, filiais, filialAtiva, setFilialAtiva, cargo, switchingFilial, availableEmpresas, switchEmpresa } = useUserContext();
   const darkMode = useTheme().theme === 'dark';
   const allMenuItems = menusByType[userType];
-  const menuItems = allMenuItems.filter(item => !item.adminOnly || cargo === 'ADMIN');
+  const menuItems = allMenuItems;
   const config = portalConfig[userType];
   const PortalIcon = config.icon;
 
@@ -171,10 +173,22 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   );
   const [cargasOpen, setCargasOpen] = useState(isCargasSubmenuActive);
 
+  const isTranspCargasSubmenuActive = transportadoraCargasSubmenu.subItems.some(
+    (sub) => location.pathname === sub.href
+  );
+  const [transpCargasOpen, setTranspCargasOpen] = useState(isTranspCargasSubmenuActive);
+
   const isFrotaSubmenuActive = frotaSubmenu.subItems.some(
     (sub) => location.pathname === sub.href
   );
   const [frotaOpen, setFrotaOpen] = useState(isFrotaSubmenuActive);
+
+  const empresaSubmenu = userType === 'embarcador' ? embarcadorEmpresaSubmenu : transportadoraEmpresaSubmenu;
+  const empresaSubItems = cargo === 'ADMIN' ? empresaSubmenu.subItems : empresaSubmenu.subItems.filter(s => !(s as any).adminOnly);
+  const isEmpresaSubmenuActive = empresaSubItems.some(
+    (sub) => location.pathname === sub.href
+  );
+  const [empresaOpen, setEmpresaOpen] = useState(isEmpresaSubmenuActive);
 
   const handleLogout = async () => {
     await signOut();
@@ -450,6 +464,37 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
             })()
           )}
 
+          {/* Ofertas de Carga - only for embarcador */}
+          {userType === 'embarcador' && (
+            (() => {
+              const ofertasItem = menuItems.find(item => item.href === '/embarcador/ofertas');
+              if (!ofertasItem) return null;
+              const isActive = location.pathname === ofertasItem.href;
+              const linkContent = (
+                <Link
+                  to={ofertasItem.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                    } ${isActive
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                    }`}
+                >
+                  <ofertasItem.icon className="w-5 h-5 shrink-0" />
+                  {!collapsed && <span className="font-medium">{ofertasItem.label}</span>}
+                </Link>
+              );
+              if (collapsed) {
+                return (
+                  <Tooltip key={ofertasItem.href}>
+                    <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={10}>{ofertasItem.label}</TooltipContent>
+                  </Tooltip>
+                );
+              }
+              return linkContent;
+            })()
+          )}
+
           {/* Cargas Submenu - only for embarcador */}
           {userType === 'embarcador' && (
             collapsed ? (
@@ -468,7 +513,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                       </button>
                     </DropdownMenuTrigger>
                   </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={10}>Cargas</TooltipContent>
+                  <TooltipContent side="right" sideOffset={10}>Minhas Cargas</TooltipContent>
                 </Tooltip>
                 <DropdownMenuContent side="right" align="start" className="w-48">
                   {cargasSubmenu.subItems.map((sub) => (
@@ -553,64 +598,100 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                 return linkContent;
               })()}
 
-              {/* Cargas Disponíveis */}
+              {/* Ofertas de Carga */}
               {(() => {
-                const cargasItem = menuItems.find(item => item.href === '/transportadora/cargas');
-                if (!cargasItem) return null;
-                const isActive = location.pathname === cargasItem.href;
+                const ofertasItem = menuItems.find(item => item.href === '/transportadora/ofertas');
+                if (!ofertasItem) return null;
+                const isActive = location.pathname === ofertasItem.href;
                 const linkContent = (
                   <Link
-                    to={cargasItem.href}
+                    to={ofertasItem.href}
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
                       } ${isActive
                         ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                         : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
                       }`}
                   >
-                    <cargasItem.icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span className="font-medium">{cargasItem.label}</span>}
+                    <ofertasItem.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{ofertasItem.label}</span>}
                   </Link>
                 );
                 if (collapsed) {
                   return (
-                    <Tooltip key={cargasItem.href}>
+                    <Tooltip key={ofertasItem.href}>
                       <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={10}>{cargasItem.label}</TooltipContent>
+                      <TooltipContent side="right" sideOffset={10}>{ofertasItem.label}</TooltipContent>
                     </Tooltip>
                   );
                 }
                 return linkContent;
               })()}
 
-              {/* Entregas - Direct menu items (Gestão + Histórico) */}
-              {entregasItems.map((item) => {
-                const isActive = location.pathname === item.href;
-                const linkContent = (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
-                      } ${isActive
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+              {/* Cargas Submenu (Gestão Diária + Histórico) */}
+              {collapsed ? (
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${isTranspCargasSubmenuActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                            }`}
+                        >
+                          <Package className="w-5 h-5 shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={10}>Minhas Cargas</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent side="right" align="start" className="w-48">
+                    {transportadoraCargasSubmenu.subItems.map((sub) => (
+                      <DropdownMenuItem
+                        key={sub.href}
+                        onClick={() => navigate(sub.href)}
+                        className={location.pathname === sub.href ? 'bg-accent' : ''}
+                      >
+                        <sub.icon className="w-4 h-4 mr-2" />
+                        {sub.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Collapsible open={transpCargasOpen} onOpenChange={setTranspCargasOpen}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${isTranspCargasSubmenuActive
+                        ? 'bg-sidebar-primary/10 text-sidebar-primary'
                         : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
-                      }`}
-                  >
-                    <item.icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span className="font-medium">{item.label}</span>}
-                  </Link>
-                );
-
-                if (collapsed) {
-                  return (
-                    <Tooltip key={item.href}>
-                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={10}>{item.label}</TooltipContent>
-                    </Tooltip>
-                  );
-                }
-
-                return linkContent;
-              })}
+                        }`}
+                    >
+                      <Package className="w-5 h-5 shrink-0" />
+                      <span className="font-medium flex-1 text-left">Minhas Cargas</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${transpCargasOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                    {transportadoraCargasSubmenu.subItems.map((sub) => {
+                      const isSubActive = location.pathname === sub.href;
+                      return (
+                        <Link
+                          key={sub.href}
+                          to={sub.href}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isSubActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                            }`}
+                        >
+                          <sub.icon className="w-4 h-4 shrink-0" />
+                          <span className="text-sm">{sub.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
 
               {/* Frota Submenu */}
               {collapsed ? (
@@ -678,11 +759,12 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                 </Collapsible>
               )}
 
-              {/* Rest of transportadora menu items */}
+              {/* Rest of transportadora menu items (excluding empresa submenu items and configurações) */}
               {menuItems
                 .filter(item =>
                   item.href !== '/transportadora' &&
-                  item.href !== '/transportadora/cargas'
+                  item.href !== '/transportadora/ofertas' &&
+                  item.href !== '/transportadora/configuracoes'
                 )
                 .map((item) => {
                   const isActive = location.pathname === item.href;
@@ -716,43 +798,240 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
 
                   return linkContent;
                 })}
-            </>
-          ) : (
-            // Other user types: original logic
-            menuItems
-              .filter(item => (userType !== 'embarcador' || item.href !== '/embarcador'))
-              .map((item) => {
-                const isActive = location.pathname === item.href;
+
+              {/* Minha Empresa Submenu */}
+              {empresaSubItems.length > 0 && (
+                collapsed ? (
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${isEmpresaSubmenuActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                              }`}
+                          >
+                            <Building2 className="w-5 h-5 shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>Minha Empresa</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent side="right" align="start" className="w-48">
+                      {empresaSubItems.map((sub) => (
+                        <DropdownMenuItem
+                          key={sub.href}
+                          onClick={() => navigate(sub.href)}
+                          className={location.pathname === sub.href ? 'bg-accent' : ''}
+                        >
+                          <sub.icon className="w-4 h-4 mr-2" />
+                          {sub.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Collapsible open={empresaOpen} onOpenChange={setEmpresaOpen}>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${isEmpresaSubmenuActive
+                          ? 'bg-sidebar-primary/10 text-sidebar-primary'
+                          : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                          }`}
+                      >
+                        <Building2 className="w-5 h-5 shrink-0" />
+                        <span className="font-medium flex-1 text-left">Minha Empresa</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${empresaOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                      {empresaSubItems.map((sub) => {
+                        const isSubActive = location.pathname === sub.href;
+                        return (
+                          <Link
+                            key={sub.href}
+                            to={sub.href}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isSubActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                              }`}
+                          >
+                            <sub.icon className="w-4 h-4 shrink-0" />
+                            <span className="text-sm">{sub.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              )}
+
+              {/* Configurações - after Minha Empresa */}
+              {(() => {
+                const configItem = menuItems.find(item => item.href === '/transportadora/configuracoes');
+                if (!configItem) return null;
+                const isActive = location.pathname === configItem.href;
                 const linkContent = (
                   <Link
-                    key={item.href}
-                    to={item.href}
+                    to={configItem.href}
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
                       } ${isActive
                         ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                         : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
                       }`}
                   >
-                    <item.icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span className="font-medium">{item.label}</span>}
+                    <configItem.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{configItem.label}</span>}
                   </Link>
                 );
-
                 if (collapsed) {
                   return (
-                    <Tooltip key={item.href}>
-                      <TooltipTrigger asChild>
-                        {linkContent}
-                      </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={10}>
-                        {item.label}
-                      </TooltipContent>
+                    <Tooltip>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>{configItem.label}</TooltipContent>
                     </Tooltip>
                   );
                 }
-
                 return linkContent;
-              })
+              })()}
+            </>
+          ) : (
+            // Embarcador + other user types
+            <>
+              {menuItems
+                .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')) && !item.href.endsWith('/configuracoes'))
+                .map((item) => {
+                  const isActive = location.pathname === item.href;
+                  const linkContent = (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                        } ${isActive
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                          : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                        }`}
+                    >
+                      <item.icon className="w-5 h-5 shrink-0" />
+                      {!collapsed && <span className="font-medium">{item.label}</span>}
+                    </Link>
+                  );
+
+                  if (collapsed) {
+                    return (
+                      <Tooltip key={item.href}>
+                        <TooltipTrigger asChild>
+                          {linkContent}
+                        </TooltipTrigger>
+                        <TooltipContent side="right" sideOffset={10}>
+                          {item.label}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }
+
+                  return linkContent;
+                })}
+
+              {/* Minha Empresa Submenu - for embarcador */}
+              {userType === 'embarcador' && empresaSubItems.length > 0 && (
+                collapsed ? (
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${isEmpresaSubmenuActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                              }`}
+                          >
+                            <Building2 className="w-5 h-5 shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>Minha Empresa</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent side="right" align="start" className="w-48">
+                      {empresaSubItems.map((sub) => (
+                        <DropdownMenuItem
+                          key={sub.href}
+                          onClick={() => navigate(sub.href)}
+                          className={location.pathname === sub.href ? 'bg-accent' : ''}
+                        >
+                          <sub.icon className="w-4 h-4 mr-2" />
+                          {sub.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Collapsible open={empresaOpen} onOpenChange={setEmpresaOpen}>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${isEmpresaSubmenuActive
+                          ? 'bg-sidebar-primary/10 text-sidebar-primary'
+                          : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                          }`}
+                      >
+                        <Building2 className="w-5 h-5 shrink-0" />
+                        <span className="font-medium flex-1 text-left">Minha Empresa</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${empresaOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                      {empresaSubItems.map((sub) => {
+                        const isSubActive = location.pathname === sub.href;
+                        return (
+                          <Link
+                            key={sub.href}
+                            to={sub.href}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isSubActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                              }`}
+                          >
+                            <sub.icon className="w-4 h-4 shrink-0" />
+                            <span className="text-sm">{sub.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              )}
+
+              {/* Configurações - after Minha Empresa */}
+              {(() => {
+                const configHref = userType === 'embarcador' ? '/embarcador/configuracoes' : `/${userType}/configuracoes`;
+                const configItem = menuItems.find(item => item.href === configHref);
+                if (!configItem) return null;
+                const isActive = location.pathname === configItem.href;
+                const linkContent = (
+                  <Link
+                    to={configItem.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                      } ${isActive
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                      }`}
+                  >
+                    <configItem.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{configItem.label}</span>}
+                  </Link>
+                );
+                if (collapsed) {
+                  return (
+                    <Tooltip>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>{configItem.label}</TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return linkContent;
+              })()}
+            </>
           )}
         </nav>
 
@@ -788,52 +1067,38 @@ function UserFooter({ collapsed, profile, cargo, userType, onLogout }: UserFoote
   if (collapsed) {
     return (
       <div className="p-2 border-t border-sidebar-border flex flex-col items-center gap-2">
-        {/* Avatar */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={profile.nome_completo || 'Logo'}
-                className="w-8 h-8 rounded-full object-contain bg-white border border-sidebar-border shrink-0"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0">
-                <span className="text-sidebar-primary font-semibold text-sm">
-                  {(profile?.nome_completo || profile?.email || 'U').charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-          </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={10}>
-            {profile?.nome_completo || 'Usuário'}
-          </TooltipContent>
-        </Tooltip>
-
-        {/* 3 dots menu */}
+        {/* Avatar as dropdown trigger with notification badge */}
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent relative"
-                >
-                  <MoreVertical className="w-4 h-4" />
+                <button className="relative cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.nome_completo || 'Logo'}
+                      className="w-8 h-8 rounded-full object-contain bg-white border border-sidebar-border shrink-0 hover:ring-2 hover:ring-sidebar-primary/40 transition-all"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-sidebar-primary/10 flex items-center justify-center shrink-0 hover:ring-2 hover:ring-sidebar-primary/40 transition-all">
+                      <span className="text-sidebar-primary font-semibold text-sm">
+                        {(profile?.nome_completo || profile?.email || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                   {unreadCount > 0 && (
                     <Badge
                       variant="destructive"
-                      className="absolute -top-1 -right-1 px-1 py-0 text-[10px] min-w-[16px] h-4"
+                      className="absolute -top-1 -right-1 px-1 py-0 text-[10px] min-w-[16px] h-4 pointer-events-none"
                     >
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </Badge>
                   )}
-                </Button>
+                </button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={10}>
-              Mais opções
+              {profile?.nome_completo || 'Usuário'}
             </TooltipContent>
           </Tooltip>
           <DropdownMenuContent side="right" align="end" className="w-48">

@@ -25,6 +25,7 @@ import {
 const statusColors: Record<string, string> = {
   aguardando: 'bg-amber-500',
   saiu_para_coleta: 'bg-cyan-500',
+  em_transito: 'bg-indigo-500',
   saiu_para_entrega: 'bg-purple-500',
   entregue: 'bg-green-500',
   cancelada: 'bg-red-500',
@@ -32,8 +33,9 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   aguardando: 'Aguardando',
   saiu_para_coleta: 'Em Coleta',
-  saiu_para_entrega: 'Em Entrega',
-  entregue: 'Entregue',
+  em_transito: 'Em Trânsito',
+  saiu_para_entrega: 'Em Rota',
+  entregue: 'Concluída',
   cancelada: 'Cancelada',
 };
 
@@ -98,7 +100,7 @@ export default function Monitoramento() {
         const { data: entregas } = await (supabase as any)
           .from('entregas')
           .select('id, codigo, status, motorista_id, tracking_code')
-          .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'])
+          .in('status', ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'])
           .not('motorista_id', 'is', null);
 
         const entregaByMotorista = new Map((entregas || []).map((e: any) => [e.motorista_id, e]));
@@ -149,7 +151,7 @@ export default function Monitoramento() {
         .from('entregas')
         .select('id')
         .eq('motorista_id', selectedDriverId)
-        .in('status', ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega'] as any)
+        .in('status', ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega'] as any)
         .limit(1);
 
       if (!entregas?.[0]?.id) { setTrackingHistory([]); return; }
@@ -174,7 +176,6 @@ export default function Monitoramento() {
         latitude: h.latitude || 0,
         longitude: h.longitude || 0,
         timestamp: h.tracked_at || h.created_at || '',
-        status: h.status,
         velocidade: h.speed,
       })));
     }
@@ -239,7 +240,7 @@ export default function Monitoramento() {
           </Select>
 
           <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={refetchLocations}>
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>

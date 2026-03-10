@@ -98,6 +98,7 @@ const createLocationIcon = (type: 'origem' | 'destino') => {
 const statusColors: Record<string, string> = {
   'aguardando': '#f97316',        // Orange - waiting
   'saiu_para_coleta': '#3b82f6',  // Blue - left for pickup
+  'em_transito': '#6366f1',       // Indigo - in transit
   'saiu_para_entrega': '#8b5cf6', // Purple - left for delivery
   'entregue': '#22c55e',          // Green - delivered
   'problema': '#ef4444',          // Red - problem
@@ -107,6 +108,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   'aguardando': 'Aguardando',
   'saiu_para_coleta': 'Saiu p/ Coleta',
+  'em_transito': 'Em Trânsito',
   'saiu_para_entrega': 'Saiu p/ Entrega',
   'entregue': 'Entregue',
   'problema': 'Problema',
@@ -504,7 +506,7 @@ export function EntregasMap({
 
         {/* Tracking history points when entrega is selected */}
         {selectedEntrega && (
-          <TrackingHistoryMarkers entregaId={selectedEntrega.entregaId || selectedEntrega.id} />
+          <TrackingHistoryMarkers entregaId={selectedEntrega.entregaId || selectedEntrega.id} hideOriginDestination />
         )}
 
         {/* Suggested route: only shows remaining route when already collected */}
@@ -695,7 +697,7 @@ export function EntregasMap({
         <div className="absolute bottom-4 left-4 z-[1000] bg-background/95 backdrop-blur-sm rounded-lg p-3 border border-border shadow-lg">
           <p className="text-xs font-medium text-muted-foreground mb-2">Status</p>
           <div className="flex flex-col gap-1">
-            {['aguardando', 'saiu_para_coleta', 'saiu_para_entrega', 'problema'].map((key) => (
+            {['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega', 'problema'].map((key) => (
               <div key={key} className="flex items-center gap-1.5">
                 <div
                   className="w-3 h-3 rounded-full border-2 border-white shadow-sm"

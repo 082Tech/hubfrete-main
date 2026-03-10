@@ -92,6 +92,7 @@ type Empresa = {
   classe: string;
   created_at: string;
   logo_url: string | null;
+  comissao_hubfrete_percent: number | null;
   filiais: Filial[];
   _count: {
     filiais: number;
@@ -143,6 +144,7 @@ export default function Empresas() {
     cnpj_matriz: '',
     tipo: 'EMBARCADOR' as TipoEmpresa,
     classe: 'COMÉRCIO' as ClasseEmpresa,
+    comissao_hubfrete_percent: 0,
   });
 
   useEffect(() => {
@@ -235,7 +237,8 @@ export default function Empresas() {
           cnpj_matriz: formData.cnpj_matriz.replace(/\D/g, ''),
           tipo: formData.tipo,
           classe: formData.classe,
-        })
+          comissao_hubfrete_percent: formData.tipo === 'EMBARCADOR' ? formData.comissao_hubfrete_percent : 0,
+        } as any)
         .select()
         .single();
 
@@ -280,7 +283,8 @@ export default function Empresas() {
           cnpj_matriz: formData.cnpj_matriz.replace(/\D/g, ''),
           tipo: formData.tipo,
           classe: formData.classe,
-        })
+          comissao_hubfrete_percent: formData.tipo === 'EMBARCADOR' ? formData.comissao_hubfrete_percent : 0,
+        } as any)
         .eq('id', selectedEmpresa.id);
 
       if (error) throw error;
@@ -331,6 +335,7 @@ export default function Empresas() {
       cnpj_matriz: empresa.cnpj_matriz || '',
       tipo: empresa.tipo,
       classe: empresa.classe as ClasseEmpresa,
+      comissao_hubfrete_percent: empresa.comissao_hubfrete_percent || 0,
     });
     setEditDialogOpen(true);
   };
@@ -346,6 +351,7 @@ export default function Empresas() {
       cnpj_matriz: '',
       tipo: 'EMBARCADOR',
       classe: 'COMÉRCIO',
+      comissao_hubfrete_percent: 0,
     });
     setSelectedEmpresa(null);
   };
@@ -487,6 +493,30 @@ export default function Empresas() {
           </Select>
         </div>
       </div>
+
+      {/* Comissão HubFrete - only for Embarcadores */}
+      {formData.tipo === 'EMBARCADOR' && (
+        <div className="space-y-2">
+          <Label htmlFor="comissao">Comissão HubFrete (%)</Label>
+          <div className="relative">
+            <Input
+              id="comissao"
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
+              value={formData.comissao_hubfrete_percent}
+              onChange={(e) => setFormData({ ...formData, comissao_hubfrete_percent: parseFloat(e.target.value) || 0 })}
+              placeholder="0.00"
+              className="pr-8"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">%</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Percentual que a HubFrete retém sobre o frete das cargas deste embarcador.
+          </p>
+        </div>
+      )}
     </div>
   );
 
@@ -607,17 +637,18 @@ export default function Empresas() {
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>CNPJ</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Classe</TableHead>
-                    <TableHead>Filiais</TableHead>
-                    <TableHead>Usuários</TableHead>
-                    <TableHead>Criado em</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
+                    <TableRow>
+                     <TableHead className="w-[40px]"></TableHead>
+                     <TableHead>Empresa</TableHead>
+                     <TableHead>CNPJ</TableHead>
+                     <TableHead>Tipo</TableHead>
+                     <TableHead>Classe</TableHead>
+                     <TableHead className="text-center">Comissão</TableHead>
+                     <TableHead>Filiais</TableHead>
+                     <TableHead>Usuários</TableHead>
+                     <TableHead>Criado em</TableHead>
+                     <TableHead className="w-[50px]"></TableHead>
+                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedEmpresas.map((empresa) => {
@@ -664,6 +695,15 @@ export default function Empresas() {
                             </Badge>
                           </TableCell>
                           <TableCell>{empresa.classe}</TableCell>
+                          <TableCell className="text-center">
+                            {empresa.tipo === 'EMBARCADOR' ? (
+                              <Badge variant="outline" className="bg-chart-4/10 text-chart-4 border-chart-4/30">
+                                {empresa.comissao_hubfrete_percent ?? 0}%
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline">{empresa._count?.filiais || 0}</Badge>
                           </TableCell>
@@ -699,7 +739,7 @@ export default function Empresas() {
                         {/* Expanded Row - Filiais & Users */}
                         {isExpanded && (
                           <TableRow key={`${empresa.id}-expanded`} className="bg-muted/30 hover:bg-muted/30">
-                            <TableCell colSpan={9} className="p-0">
+                            <TableCell colSpan={10} className="p-0">
                               <div className="p-4 space-y-4">
                                 {/* Action buttons for company */}
                                 <div className="flex gap-2 mb-4">

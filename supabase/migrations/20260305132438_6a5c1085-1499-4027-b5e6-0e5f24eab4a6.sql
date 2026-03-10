@@ -1,0 +1,1 @@
+ALTER TABLE public.cargas ADD COLUMN numero_pedido text DEFAULT NULL;

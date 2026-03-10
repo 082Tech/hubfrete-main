@@ -304,8 +304,8 @@ export function ChatArea({
       em_coleta: { label: 'Em Coleta', color: 'bg-blue-500/10 text-blue-600' },
       coletado: { label: 'Coletado', color: 'bg-indigo-500/10 text-indigo-600' },
       em_transito: { label: 'Em Trânsito', color: 'bg-orange-500/10 text-orange-600' },
-      em_entrega: { label: 'Em Entrega', color: 'bg-purple-500/10 text-purple-600' },
-      entregue: { label: 'Entregue', color: 'bg-green-500/10 text-green-600' },
+      em_entrega: { label: 'Em Rota', color: 'bg-purple-500/10 text-purple-600' },
+      entregue: { label: 'Concluída', color: 'bg-green-500/10 text-green-600' },
       problema: { label: 'Problema', color: 'bg-destructive/10 text-destructive' },
       devolvida: { label: 'Devolvida', color: 'bg-amber-500/10 text-amber-600' },
       cancelada: { label: 'Cancelada', color: 'bg-muted text-muted-foreground' },
@@ -327,32 +327,32 @@ export function ChatArea({
       case 'entregue':
         return { 
           icon: CheckCircle2, 
-          title: 'Entrega concluída!', 
-          subtitle: 'Esta entrega foi finalizada com sucesso.',
+          title: 'Carga concluída!', 
+          subtitle: 'Esta carga foi finalizada com sucesso.',
           color: 'text-green-600',
           bgColor: 'bg-green-500/10',
         };
       case 'devolvida':
         return { 
           icon: RotateCcw, 
-          title: 'Entrega devolvida', 
-          subtitle: 'Esta entrega foi devolvida.',
+          title: 'Carga devolvida', 
+          subtitle: 'Esta carga foi devolvida.',
           color: 'text-amber-600',
           bgColor: 'bg-amber-500/10',
         };
       case 'cancelada':
         return { 
           icon: Ban, 
-          title: 'Entrega cancelada', 
-          subtitle: 'Esta entrega foi cancelada.',
+          title: 'Carga cancelada', 
+          subtitle: 'Esta carga foi cancelada.',
           color: 'text-muted-foreground',
           bgColor: 'bg-muted',
         };
       case 'problema':
         return { 
           icon: AlertTriangle, 
-          title: 'Entrega com problema', 
-          subtitle: 'Esta entrega foi finalizada com problema.',
+          title: 'Carga com problema', 
+          subtitle: 'Esta carga foi finalizada com problema.',
           color: 'text-destructive',
           bgColor: 'bg-destructive/10',
         };

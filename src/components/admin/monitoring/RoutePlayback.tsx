@@ -11,7 +11,6 @@ export interface TrackingPoint {
   latitude: number;
   longitude: number;
   timestamp: string;
-  status: string;
   velocidade: number | null;
 }
 

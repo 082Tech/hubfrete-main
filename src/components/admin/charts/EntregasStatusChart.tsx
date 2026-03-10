@@ -41,13 +41,13 @@ export function EntregasStatusChart({ data }: EntregasStatusChartProps) {
   return (
     <Card className="border-border">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Status das Entregas</CardTitle>
+        <CardTitle className="text-lg">Status das Cargas</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[250px]">
           {total === 0 ? (
             <div className="flex items-center justify-center h-full text-muted-foreground">
-              Nenhuma entrega registrada
+              Nenhuma carga registrada
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">

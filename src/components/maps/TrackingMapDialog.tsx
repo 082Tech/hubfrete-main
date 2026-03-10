@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GoogleMap } from '@react-google-maps/api';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Route } from 'lucide-react';
-import { GoogleMapsLoader } from './GoogleMapsLoader';
-import { TrackingHistoryGoogleMarkers, TrackingHistoryLoadingOverlay, TrackingHistoryEmptyOverlay } from './TrackingHistoryGoogleMarkers';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Route, Loader2, MapPinOff, X } from 'lucide-react';
+import { TrackingHistoryMarkers } from './TrackingHistoryMarkers';
+import 'leaflet/dist/leaflet.css';
 
 interface TrackingMapDialogProps {
   entregaId: string | null;
@@ -11,99 +12,141 @@ interface TrackingMapDialogProps {
   onClose: () => void;
 }
 
+/** Fits map bounds to all markers once data is loaded */
+function FitBoundsOnData({ shouldFit }: { shouldFit: boolean }) {
+  const map = useMap();
+  const hasFitted = useRef(false);
+
+  useEffect(() => {
+    if (!shouldFit || hasFitted.current) return;
+
+    const bounds = L.latLngBounds([]);
+    map.eachLayer((layer) => {
+      if (layer instanceof L.CircleMarker || layer instanceof L.Marker) {
+        bounds.extend(layer.getLatLng());
+      }
+    });
+
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+      hasFitted.current = true;
+    }
+  }, [map, shouldFit]);
+
+  return null;
+}
+
 export function TrackingMapDialog({ entregaId, info, onClose }: TrackingMapDialogProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
-  
-  // Use refs to avoid callback dependency issues
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const pendingBoundsRef = useRef<google.maps.LatLngBounds | null>(null);
+  const [noTrackingPoints, setNoTrackingPoints] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
 
-  // Reset state when dialog opens with new entregaId
   useEffect(() => {
     if (entregaId) {
-      setMapReady(false);
-      pendingBoundsRef.current = null;
+      setIsLoading(true);
+      setIsEmpty(false);
+      setNoTrackingPoints(false);
+      setDataReady(false);
     }
   }, [entregaId]);
-
-  // Apply pending bounds when map becomes ready
-  useEffect(() => {
-    if (mapReady && mapRef.current && pendingBoundsRef.current) {
-      mapRef.current.fitBounds(pendingBoundsRef.current, { top: 50, bottom: 50, left: 50, right: 50 });
-      pendingBoundsRef.current = null;
-    }
-  }, [mapReady]);
-
-  // Handle map load
-  const handleMapLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
-    // Small delay to ensure map is fully initialized
-    setTimeout(() => setMapReady(true), 100);
-  }, []);
-
-  // Handle bounds ready - use ref to access map instance
-  const handleBoundsReady = useCallback((bounds: google.maps.LatLngBounds | null) => {
-    if (!bounds) return;
-    
-    // Store bounds
-    pendingBoundsRef.current = bounds;
-    
-    // If map is already ready, apply immediately
-    if (mapRef.current && mapReady) {
-      mapRef.current.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
-      pendingBoundsRef.current = null;
-    }
-  }, [mapReady]);
 
   const handleLoadingChange = useCallback((loading: boolean) => {
     setIsLoading(loading);
   }, []);
 
-  const handleEmptyChange = useCallback((empty: boolean) => {
-    setIsEmpty(empty);
+  const handlePointsLoaded = useCallback((points: any[], origin: any, destination: any) => {
+    const hasAnyData = points.length > 0 || origin || destination;
+    setIsEmpty(!hasAnyData);
+    setNoTrackingPoints(points.length === 0);
+    setTimeout(() => setDataReady(true), 200);
   }, []);
 
   return (
     <Dialog open={!!entregaId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
-        <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle className="flex items-center gap-2">
-            <Route className="w-5 h-5 text-primary" />
-            Histórico de Rastreamento
-            {info && (
-              <span className="text-muted-foreground font-normal text-sm ml-2">
-                {info.motorista} • {info.placa}
-              </span>
-            )}
-          </DialogTitle>
+      <DialogContent
+        hideCloseButton
+        className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 overflow-hidden"
+      >
+        {/* Header */}
+        <DialogHeader className="px-5 py-3 border-b bg-card shrink-0">
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Route className="w-5 h-5 text-primary" />
+              Histórico de Rastreamento
+            </DialogTitle>
+            <DialogClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
+          </div>
+          {info && (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+              <span>{info.motorista}</span>
+              <span>•</span>
+              <span>{info.placa}</span>
+            </div>
+          )}
         </DialogHeader>
-        <div className="flex-1 relative">
-          {isLoading && <TrackingHistoryLoadingOverlay />}
-          {!isLoading && isEmpty && <TrackingHistoryEmptyOverlay />}
-          <GoogleMapsLoader>
-            <GoogleMap
-              mapContainerStyle={{ width: '100%', height: '100%' }}
-              center={{ lat: -23.55, lng: -46.63 }}
-              zoom={10}
-              options={{
-                disableDefaultUI: false,
-                zoomControl: true,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true,
-              }}
-              onLoad={handleMapLoad}
+
+        {/* Map */}
+        <div className="flex-1 relative min-h-0 rounded-b-lg overflow-hidden">
+          {/* Loading overlay */}
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80" style={{ zIndex: 1000 }}>
+              <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg border shadow-lg">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Carregando histórico de rastreamento...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state — fully blocks */}
+          {!isLoading && isEmpty && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background" style={{ zIndex: 1000 }}>
+              <div className="flex flex-col items-center gap-3 p-6">
+                <MapPinOff className="w-10 h-10 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="font-medium text-foreground">Nenhum histórico encontrado</p>
+                  <p className="text-sm text-muted-foreground mt-1">Ainda não há registros de rastreamento para esta carga</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* No tracking points but has O/D — show alert over the map */}
+          {!isLoading && !isEmpty && noTrackingPoints && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[2px]" style={{ zIndex: 1000 }}>
+              <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-xl border shadow-lg max-w-sm mx-4">
+                <MapPinOff className="w-9 h-9 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="font-medium text-foreground">Histórico de localização não encontrado</p>
+                  <p className="text-sm text-muted-foreground mt-1">Não foram encontrados pontos de rastreamento para esta carga. Os marcadores de origem e destino estão exibidos no mapa.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {entregaId && (
+            <MapContainer
+              key={entregaId}
+              center={[-15.78, -47.93]}
+              zoom={4}
+              style={{ width: '100%', height: '100%' }}
+              scrollWheelZoom={true}
             >
-              <TrackingHistoryGoogleMarkers
-                entregaId={entregaId}
-                onBoundsReady={handleBoundsReady}
-                onLoadingChange={handleLoadingChange}
-                onEmptyChange={handleEmptyChange}
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-            </GoogleMap>
-          </GoogleMapsLoader>
+              <TrackingHistoryMarkers
+                entregaId={entregaId}
+                onLoadingChange={handleLoadingChange}
+                onPointsLoaded={handlePointsLoaded}
+              />
+              <FitBoundsOnData shouldFit={dataReady} />
+            </MapContainer>
+          )}
         </div>
       </DialogContent>
     </Dialog>

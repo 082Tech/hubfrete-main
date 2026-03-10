@@ -101,7 +101,7 @@ const columns: ColumnDefinition[] = [
   { id: 'codigo', label: 'Viagem', minWidth: '120px', sticky: 'left', sortable: true, sortKey: 'codigo' },
   { id: 'motorista', label: 'Motorista', minWidth: '140px', sortable: true, sortKey: 'motorista' },
   { id: 'rotas', label: 'Rotas', minWidth: '200px' },
-  { id: 'entregas', label: 'Entregas', minWidth: '80px', sortable: true, sortKey: 'entregas' },
+  { id: 'entregas', label: 'Cargas', minWidth: '80px', sortable: true, sortKey: 'entregas' },
   { id: 'status', label: 'Status', minWidth: '100px', sortable: true, sortKey: 'status' },
   { id: 'manifesto', label: 'MDF-e', minWidth: '80px' },
   { id: 'km', label: 'KM', minWidth: '80px', sortable: true, sortKey: 'km' },
@@ -437,7 +437,7 @@ export default function HistoricoViagens({ advancedFilters }: HistoricoViagensPr
                 )}
                 <DropdownMenuItem onClick={() => {/* TODO: expandir entregas */}}>
                   <Eye className="w-4 h-4 mr-2" />
-                  Ver entregas ({v.entregas.length})
+                  Ver cargas ({v.entregas.length})
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

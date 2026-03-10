@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,7 +8,6 @@ import { useUserContext } from '@/hooks/useUserContext';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -19,6 +18,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { WeightInput } from '@/components/ui/weight-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -35,17 +35,21 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, Eye, DollarSign } from 'lucide-react';
+import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, DollarSign, Weight, Info, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { LocationData } from '@/components/maps/LocationPickerMap';
 import type { Database } from '@/integrations/supabase/types';
 import { RemetenteSection } from './RemetenteSection';
 import { DestinoSection } from './DestinoSection';
 import { NecessidadesEspeciais } from './NecessidadesEspeciais';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
 import { ResumoSection } from './ResumoSection';
-import { VeiculoCarroceriaSelect, ALL_VEICULOS, ALL_CARROCERIAS } from './VeiculoCarroceriaSelect';
+import { VeiculoCarroceriaSelect } from './VeiculoCarroceriaSelect';
+import { cn } from '@/lib/utils';
 
 type TipoCarga = Database['public']['Enums']['tipo_carga'];
 
@@ -61,9 +65,12 @@ const tipoCargaOptions: { value: TipoCarga; label: string }[] = [
   { value: 'container', label: 'Container' },
 ];
 
-type TipoPrecificacao = 'por_tonelada';
+// Pricing types: por_tonelada (always) and valor_fixo (only for carga fechada)
+const TIPOS_FRETE = [
+  { value: 'por_tonelada', label: 'Por Tonelada (R$/ton)' },
+  { value: 'valor_fixo', label: 'Valor Fixo (Frete Fechado)' },
+] as const;
 
-// Helpers para calcular datas
 const todayStr = () => new Date().toISOString().split('T')[0];
 const addDays = (days: number) => {
   const d = new Date();
@@ -72,18 +79,17 @@ const addDays = (days: number) => {
 };
 
 const formSchema = z.object({
-  // Dados da carga
   descricao: z.string().min(5, 'Descrição deve ter no mínimo 5 caracteres'),
   tipo: z.enum(['granel_solido', 'granel_liquido', 'carga_seca', 'refrigerada', 'congelada', 'perigosa', 'viva', 'indivisivel', 'container'] as const),
+  numero_pedido: z.string().optional(),
   peso_kg: z.coerce.number().min(0.0001, 'Peso deve ser maior que 0'),
   volume_m3: z.coerce.number().optional(),
   quantidade_paletes: z.coerce.number().optional(),
   valor_mercadoria: z.coerce.number().optional(),
-  tipo_precificacao: z.literal('por_tonelada').default('por_tonelada'),
+  tipo_frete: z.enum(['por_tonelada', 'valor_fixo']).default('por_tonelada'),
   valor_frete_tonelada: z.coerce.number().optional(),
+  valor_frete_fixo: z.coerce.number().optional(),
   permite_fracionado: z.boolean().default(true),
-
-  // Características especiais
   carga_fragil: z.boolean().default(false),
   carga_perigosa: z.boolean().default(false),
   carga_viva: z.boolean().default(false),
@@ -92,55 +98,141 @@ const formSchema = z.object({
   temperatura_min: z.coerce.number().optional(),
   temperatura_max: z.coerce.number().optional(),
   numero_onu: z.string().optional(),
-
-  // Datas
   data_coleta_de: z.string().min(1, 'Data de coleta é obrigatória'),
   data_coleta_ate: z.string().optional(),
   data_entrega_limite: z.string().optional(),
   expira_em: z.string().min(1, 'Data de expiração é obrigatória'),
-
-  // Regras de carregamento
   regras_carregamento: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+  return (
+    <div className="flex items-center gap-2 pb-2">
+      <Icon className="w-4 h-4 text-primary" />
+      <h3 className="font-semibold text-sm">{title}</h3>
+    </div>
+  );
+}
+
+// ─── Tab definitions ─────────────────────────────────────────────────────────
+const TABS = [
+  { id: 'dados', label: 'Dados', icon: Package },
+  { id: 'peso_frete', label: 'Peso & Frete', icon: Weight },
+  { id: 'requisitos', label: 'Requisitos', icon: ClipboardList },
+  { id: 'origem', label: 'Origem', icon: MapPin },
+  { id: 'destino', label: 'Destino', icon: Truck },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
+export interface CargaToEdit {
+  id: string;
+  codigo: string;
+  descricao: string;
+  tipo: string;
+  peso_kg: number;
+  peso_disponivel_kg: number | null;
+  permite_fracionado: boolean | null;
+  peso_minimo_fracionado_kg: number | null;
+  valor_mercadoria: number | null;
+  numero_pedido?: string | null;
+  volume_m3: number | null;
+  quantidade_paletes?: number | null;
+  unidade_precificacao?: string | null;
+  quantidade_precificacao?: number | null;
+  valor_unitario_precificacao?: number | null;
+  tipo_precificacao?: string | null;
+  valor_frete_tonelada: number | null;
+  valor_frete_m3?: number | null;
+  valor_frete_fixo?: number | null;
+  valor_frete_km?: number | null;
+  carga_fragil: boolean | null;
+  carga_perigosa: boolean | null;
+  carga_viva: boolean | null;
+  empilhavel: boolean | null;
+  requer_refrigeracao: boolean | null;
+  temperatura_min: number | null;
+  temperatura_max: number | null;
+  numero_onu: string | null;
+  necessidades_especiais: string[] | null;
+  regras_carregamento: string | null;
+  nota_fiscal_url: string | null;
+  data_coleta_de: string | null;
+  data_coleta_ate: string | null;
+  data_entrega_limite: string | null;
+  expira_em: string;
+  veiculo_requisitos: {
+    tipos_veiculo?: string[];
+    tipos_carroceria?: string[];
+  } | null;
+  endereco_origem: {
+    id: string;
+    logradouro: string;
+    numero: string | null;
+    complemento?: string | null;
+    bairro: string | null;
+    cidade: string;
+    estado: string;
+    cep: string;
+    contato_nome: string | null;
+    contato_telefone: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
+  endereco_destino: {
+    id: string;
+    logradouro: string;
+    numero: string | null;
+    complemento?: string | null;
+    bairro: string | null;
+    cidade: string;
+    estado: string;
+    cep: string;
+    contato_nome: string | null;
+    contato_telefone: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
+  destinatario_razao_social: string | null;
+  destinatario_nome_fantasia: string | null;
+  destinatario_cnpj: string | null;
+  destinatario_contato_nome?: string | null;
+  destinatario_contato_telefone?: string | null;
+}
+
 interface NovaCargaDialogProps {
   onSuccess?: () => void;
   children?: React.ReactNode;
+  /** When provided, the dialog opens in edit mode */
+  editCarga?: CargaToEdit | null;
+  /** Controlled open state for edit mode */
+  editOpen?: boolean;
+  /** Controlled onOpenChange for edit mode */
+  onEditOpenChange?: (open: boolean) => void;
 }
 
-export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
-  const [open, setOpen] = useState(false);
+export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEditOpenChange }: NovaCargaDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isEditMode = !!editCarga;
+  const open = isEditMode ? (editOpen ?? false) : internalOpen;
+  const setOpen = isEditMode ? (onEditOpenChange ?? setInternalOpen) : setInternalOpen;
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('carga');
+  const [activeTab, setActiveTab] = useState<TabId>('dados');
   const { filialAtiva, empresa, userType } = useUserContext();
 
+  const [showExitDialog, setShowExitDialog] = useState(false);
+
   const initialLocationData: LocationData = {
-    latitude: 0,
-    longitude: 0,
-    cep: '',
-    logradouro: '',
-    numero: '',
-    complemento: '',
-    bairro: '',
-    cidade: '',
-    estado: '',
-    contato_nome: '',
-    contato_telefone: '',
+    latitude: 0, longitude: 0, cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', contato_nome: '', contato_telefone: '',
   };
 
-  // Additional state for new fields
   const [necessidadesEspeciais, setNecessidadesEspeciais] = useState<string[]>([]);
   const [pesoMinimoFracionado, setPesoMinimoFracionado] = useState<number | null>(null);
-
-  // Vehicle and body type requirements - start empty (deselected)
   const [veiculosSelecionados, setVeiculosSelecionados] = useState<string[]>([]);
   const [carroceriasSelecionadas, setCarroceriasSelecionadas] = useState<string[]>([]);
-
-  // Location data for origin and destination
   const [origemData, setOrigemData] = useState<LocationData>(initialLocationData);
-
   const [destinoData, setDestinoData] = useState<LocationData>(initialLocationData);
 
   const resetDialogState = () => {
@@ -151,66 +243,249 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     setCarroceriasSelecionadas([]);
     setOrigemData(initialLocationData);
     setDestinoData(initialLocationData);
-    setActiveTab('carga');
+    setActiveTab('dados');
   };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      descricao: '',
-      tipo: 'carga_seca',
-      peso_kg: 0,
-      tipo_precificacao: 'por_tonelada',
-      valor_frete_tonelada: 0,
-      permite_fracionado: true,
-      carga_fragil: false,
-      carga_perigosa: false,
-      carga_viva: false,
-      empilhavel: true,
-      requer_refrigeracao: false,
-      regras_carregamento: '',
-      expira_em: addDays(30),
+      descricao: '', tipo: 'carga_seca', peso_kg: 0, tipo_frete: 'por_tonelada',
+      valor_frete_tonelada: undefined, valor_frete_fixo: undefined,
+      permite_fracionado: true, carga_fragil: false, carga_perigosa: false, carga_viva: false,
+      empilhavel: true, requer_refrigeracao: false, regras_carregamento: '', expira_em: addDays(30), numero_pedido: '',
     },
   });
 
+  // Pre-fill form in edit mode
+  useEffect(() => {
+    if (editCarga && open) {
+      form.reset({
+        descricao: editCarga.descricao || '',
+        tipo: editCarga.tipo as TipoCarga || 'carga_seca',
+        peso_kg: editCarga.peso_kg || 0,
+        volume_m3: editCarga.volume_m3 || undefined,
+        quantidade_paletes: editCarga.quantidade_paletes || undefined,
+        valor_mercadoria: editCarga.valor_mercadoria || undefined,
+        numero_pedido: editCarga.numero_pedido || '',
+        tipo_frete: editCarga.valor_frete_fixo ? 'valor_fixo' : 'por_tonelada',
+        valor_frete_tonelada: editCarga.valor_frete_tonelada || undefined,
+        valor_frete_fixo: editCarga.valor_frete_fixo || undefined,
+        permite_fracionado: editCarga.permite_fracionado ?? true,
+        carga_fragil: editCarga.carga_fragil ?? false,
+        carga_perigosa: editCarga.carga_perigosa ?? false,
+        carga_viva: editCarga.carga_viva ?? false,
+        empilhavel: editCarga.empilhavel ?? true,
+        requer_refrigeracao: editCarga.requer_refrigeracao ?? false,
+        temperatura_min: editCarga.temperatura_min || undefined,
+        temperatura_max: editCarga.temperatura_max || undefined,
+        numero_onu: editCarga.numero_onu || '',
+        data_coleta_de: editCarga.data_coleta_de ? editCarga.data_coleta_de.split('T')[0] : todayStr(),
+        data_coleta_ate: editCarga.data_coleta_ate ? editCarga.data_coleta_ate.split('T')[0] : undefined,
+        data_entrega_limite: editCarga.data_entrega_limite ? editCarga.data_entrega_limite.split('T')[0] : undefined,
+        expira_em: editCarga.expira_em ? editCarga.expira_em.split('T')[0] : addDays(30),
+        regras_carregamento: editCarga.regras_carregamento || '',
+      });
+      setNecessidadesEspeciais(editCarga.necessidades_especiais || []);
+      setPesoMinimoFracionado(editCarga.peso_minimo_fracionado_kg || null);
+      setVeiculosSelecionados(editCarga.veiculo_requisitos?.tipos_veiculo || []);
+      setCarroceriasSelecionadas(editCarga.veiculo_requisitos?.tipos_carroceria || []);
+      if (editCarga.endereco_origem) {
+        setOrigemData({
+          latitude: editCarga.endereco_origem.latitude || 0, longitude: editCarga.endereco_origem.longitude || 0,
+          cep: editCarga.endereco_origem.cep || '', logradouro: editCarga.endereco_origem.logradouro || '',
+          numero: editCarga.endereco_origem.numero || '', complemento: editCarga.endereco_origem.complemento || '',
+          bairro: editCarga.endereco_origem.bairro || '', cidade: editCarga.endereco_origem.cidade || '',
+          estado: editCarga.endereco_origem.estado || '', contato_nome: editCarga.endereco_origem.contato_nome || '',
+          contato_telefone: editCarga.endereco_origem.contato_telefone || '',
+        });
+      }
+      if (editCarga.endereco_destino) {
+        setDestinoData({
+          latitude: editCarga.endereco_destino.latitude || 0, longitude: editCarga.endereco_destino.longitude || 0,
+          cep: editCarga.endereco_destino.cep || '', logradouro: editCarga.endereco_destino.logradouro || '',
+          numero: editCarga.endereco_destino.numero || '', complemento: editCarga.endereco_destino.complemento || '',
+          bairro: editCarga.endereco_destino.bairro || '', cidade: editCarga.endereco_destino.cidade || '',
+          estado: editCarga.endereco_destino.estado || '',
+          contato_nome: editCarga.destinatario_contato_nome || editCarga.endereco_destino.contato_nome || '',
+          contato_telefone: editCarga.destinatario_contato_telefone || editCarga.endereco_destino.contato_telefone || '',
+          razao_social: editCarga.destinatario_razao_social || '',
+          cnpj: editCarga.destinatario_cnpj || '',
+        });
+      }
+      setActiveTab('dados');
+    }
+  }, [editCarga, open, form]);
+
   const pesoKg = form.watch('peso_kg');
+  const tipoFrete = form.watch('tipo_frete');
   const valorFreteTonelada = form.watch('valor_frete_tonelada');
-
-  // Preview do frete total (por tonelada)
-  const freteTotal = pesoKg && valorFreteTonelada ? Math.round((pesoKg / 1000) * valorFreteTonelada * 100) / 100 : 0;
-
+  const valorFreteFixo = form.watch('valor_frete_fixo');
   const requerRefrigeracao = form.watch('requer_refrigeracao');
   const cargaPerigosa = form.watch('carga_perigosa');
+  const permitefracionado = form.watch('permite_fracionado');
+
+  // When fracionado is enabled, force tipo_frete to por_tonelada
+  useEffect(() => {
+    if (permitefracionado && tipoFrete === 'valor_fixo') {
+      form.setValue('tipo_frete', 'por_tonelada');
+    }
+  }, [permitefracionado, tipoFrete, form]);
+
+  // Calculate total freight for por_tonelada
+  const pesoTon = pesoKg > 0 ? Math.round((pesoKg / 1000) * 10000) / 10000 : 0;
+  const freteTotalTon = tipoFrete === 'por_tonelada' && pesoTon > 0 && (valorFreteTonelada ?? 0) > 0
+    ? Math.round(pesoTon * (valorFreteTonelada ?? 0) * 100) / 100
+    : 0;
+  const freteTotal = tipoFrete === 'valor_fixo' ? (valorFreteFixo ?? 0) : freteTotalTon;
 
   const validateLocations = (): boolean => {
     if (!origemData.cidade || !origemData.logradouro) {
       toast.error('Verifique os dados do remetente');
-      setActiveTab('origem');
       return false;
     }
     if (!destinoData.cidade || !destinoData.logradouro) {
       toast.error('Verifique os dados do destinatário');
-      setActiveTab('destino');
       return false;
     }
     return true;
   };
 
+  // ─── Tab navigation ────────────────────────────────────────────────────────
+  const currentTabIndex = TABS.findIndex((t) => t.id === activeTab);
+  const isLastTab = currentTabIndex === TABS.length - 1;
+  const isFirstTab = currentTabIndex === 0;
+
+  const validateCurrentTab = async (): Promise<boolean> => {
+    switch (activeTab) {
+      case 'dados': {
+        const result = await form.trigger(['descricao', 'tipo', 'data_coleta_de', 'expira_em']);
+        if (!result) toast.error('Preencha os campos obrigatórios desta etapa');
+        return result;
+      }
+      case 'peso_frete': {
+        const result = await form.trigger(['peso_kg']);
+        if (!result) toast.error('Peso é obrigatório');
+        return result;
+      }
+      case 'requisitos':
+        return true;
+      case 'origem': {
+        if (!origemData.cidade || !origemData.logradouro) {
+          toast.error('Verifique os dados do remetente');
+          return false;
+        }
+        return true;
+      }
+      case 'destino':
+        return validateLocations();
+      default:
+        return true;
+    }
+  };
+
+  const goNext = async () => {
+    const valid = await validateCurrentTab();
+    if (!valid) return;
+    if (!isLastTab) {
+      setActiveTab(TABS[currentTabIndex + 1].id);
+    }
+  };
+
+  const goPrev = () => {
+    if (!isFirstTab) {
+      setActiveTab(TABS[currentTabIndex - 1].id);
+    }
+  };
+
   const onSubmit = async (values: FormValues) => {
-    // Validação crítica: somente embarcadores podem publicar cargas
-    if (userType !== 'embarcador') {
-      toast.error('Somente embarcadores podem publicar cargas. Verifique a empresa selecionada.');
+    if (!isEditMode && userType !== 'embarcador') {
+      toast.error('Somente embarcadores podem publicar cargas.');
       return;
     }
-
-    if (!empresa?.id) {
+    if (!isEditMode && !empresa?.id) {
       toast.error('Nenhuma empresa selecionada. Faça login novamente.');
       return;
     }
-
     if (!validateLocations()) return;
 
-    // Capturar dados antes de fechar
+    if (isEditMode && editCarga) {
+      setIsLoading(true);
+      try {
+        const weightDiff = values.peso_kg - editCarga.peso_kg;
+        const newPesoDisponivel = Math.max(0, (editCarga.peso_disponivel_kg ?? editCarga.peso_kg) + weightDiff);
+
+        const { error: cargaError } = await supabase
+          .from('cargas')
+          .update({
+            descricao: values.descricao, tipo: values.tipo,
+            peso_kg: values.peso_kg, peso_disponivel_kg: newPesoDisponivel,
+            volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
+            valor_mercadoria: values.valor_mercadoria || null,
+            numero_pedido: values.numero_pedido || null,
+            tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'fixo' : 'por_tonelada',
+            valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (freteTotal > 0 ? freteTotal : null) : null,
+            valor_frete_fixo: values.tipo_frete === 'valor_fixo' ? (values.valor_frete_fixo || null) : null,
+            valor_frete_m3: null, valor_frete_km: null,
+            permite_fracionado: values.permite_fracionado,
+            peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionado : null,
+            carga_fragil: values.carga_fragil, carga_perigosa: values.carga_perigosa,
+            carga_viva: values.carga_viva, empilhavel: values.empilhavel,
+            requer_refrigeracao: values.requer_refrigeracao,
+            temperatura_min: values.temperatura_min || null, temperatura_max: values.temperatura_max || null,
+            numero_onu: values.numero_onu || null,
+            data_coleta_de: values.data_coleta_de ? `${values.data_coleta_de}T12:00:00` : values.data_coleta_de,
+            data_coleta_ate: values.data_coleta_ate ? `${values.data_coleta_ate}T12:00:00` : null,
+            data_entrega_limite: values.data_entrega_limite ? `${values.data_entrega_limite}T12:00:00` : null,
+            expira_em: `${values.expira_em}T23:59:59`,
+            necessidades_especiais: necessidadesEspeciais,
+            regras_carregamento: values.regras_carregamento || null,
+            veiculo_requisitos: { tipos_veiculo: veiculosSelecionados, tipos_carroceria: carroceriasSelecionadas },
+            destinatario_razao_social: destinoData.razao_social || null,
+            destinatario_nome_fantasia: destinoData.razao_social || null,
+            destinatario_cnpj: destinoData.cnpj || null,
+            destinatario_contato_nome: destinoData.contato_nome || null,
+            destinatario_contato_telefone: destinoData.contato_telefone || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editCarga.id);
+
+        if (cargaError) { toast.error('Erro ao atualizar carga: ' + cargaError.message); setIsLoading(false); return; }
+
+        if (editCarga.endereco_origem?.id) {
+          await supabase.from('enderecos_carga').update({
+            cep: origemData.cep, logradouro: origemData.logradouro, numero: origemData.numero || null,
+            complemento: origemData.complemento || null, bairro: origemData.bairro || null,
+            cidade: origemData.cidade, estado: origemData.estado,
+            contato_nome: origemData.contato_nome || null, contato_telefone: origemData.contato_telefone || null,
+            latitude: origemData.latitude || null, longitude: origemData.longitude || null,
+            updated_at: new Date().toISOString(),
+          }).eq('id', editCarga.endereco_origem.id);
+        }
+
+        if (editCarga.endereco_destino?.id) {
+          await supabase.from('enderecos_carga').update({
+            cep: destinoData.cep, logradouro: destinoData.logradouro, numero: destinoData.numero || null,
+            complemento: destinoData.complemento || null, bairro: destinoData.bairro || null,
+            cidade: destinoData.cidade, estado: destinoData.estado,
+            contato_nome: destinoData.contato_nome || null, contato_telefone: destinoData.contato_telefone || null,
+            latitude: destinoData.latitude || null, longitude: destinoData.longitude || null,
+            updated_at: new Date().toISOString(),
+          }).eq('id', editCarga.endereco_destino.id);
+        }
+
+        toast.success('Carga atualizada com sucesso!');
+        setOpen(false);
+        onSuccess?.();
+      } catch (error) {
+        console.error('Erro inesperado:', error);
+        toast.error('Erro inesperado ao atualizar carga');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Create mode
     const capturedOrigemData = { ...origemData };
     const capturedDestinoData = { ...destinoData };
     const capturedNecessidades = [...necessidadesEspeciais];
@@ -218,186 +493,94 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
     const capturedVeiculos = [...veiculosSelecionados];
     const capturedCarrocerias = [...carroceriasSelecionadas];
     const capturedFilialId = filialAtiva?.id || null;
-    const capturedEmpresaId = empresa.id;
+    const capturedEmpresaId = empresa!.id;
 
-    // Fechar modal imediatamente e mostrar notificação
     resetDialogState();
     setOpen(false);
     toast.loading('Carga sendo criada, aguarde...', { id: 'creating-carga' });
 
-    // Executar criação em background
-    createCargaInBackground(
-      values,
-      capturedOrigemData,
-      capturedDestinoData,
-      capturedNecessidades,
-      null, // nota fiscal not collected at creation
-      capturedPesoMinimo,
-      capturedVeiculos,
-      capturedCarrocerias,
-      capturedFilialId,
-      capturedEmpresaId
-    );
+    createCargaInBackground(values, capturedOrigemData, capturedDestinoData, capturedNecessidades, capturedPesoMinimo, capturedVeiculos, capturedCarrocerias, capturedFilialId, capturedEmpresaId);
   };
 
   const createCargaInBackground = async (
-    values: FormValues,
-    origemDataCaptured: LocationData,
-    destinoDataCaptured: LocationData,
-    necessidadesEspeciaisCaptured: string[],
-    notaFiscalUrlCaptured: string | null,
-    pesoMinimoFracionadoCaptured: number | null,
-    veiculosSelecionadosCaptured: string[],
-    carroceriasSelecionadasCaptured: string[],
-    filialIdCaptured: number | null,
-    empresaIdCaptured: number
+    values: FormValues, origemD: LocationData, destinoD: LocationData,
+    necessidades: string[], pesoMinimo: number | null,
+    veiculos: string[], carrocerias: string[],
+    filialId: number | null, empresaId: number,
   ) => {
     try {
-      // Use the empresa_id from the UI context (not from RPC) to prevent
-      // publishing under the wrong company after a company switch
-      const empresaId = empresaIdCaptured;
-
-      // Create the load with filial_id and destinatario fields
-      const { data: carga, error: cargaError } = await supabase
+        const { data: carga, error: cargaError } = await supabase
         .from('cargas')
         .insert({
-          empresa_id: empresaId,
-          filial_id: filialIdCaptured,
-          descricao: values.descricao,
-          tipo: values.tipo,
-          peso_kg: values.peso_kg,
-          peso_disponivel_kg: values.peso_kg,
-          volume_m3: values.volume_m3 || null,
-          quantidade_paletes: values.quantidade_paletes || null,
+          empresa_id: empresaId, filial_id: filialId,
+          descricao: values.descricao, tipo: values.tipo,
+          peso_kg: values.peso_kg, peso_disponivel_kg: values.peso_kg,
+          volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
-          tipo_precificacao: 'por_tonelada',
-          valor_frete_tonelada: values.valor_frete_tonelada ? Math.round(values.valor_frete_tonelada * 100) / 100 : null,
-          valor_frete_m3: null,
-          valor_frete_fixo: null,
-          valor_frete_km: null,
+          tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'fixo' : 'por_tonelada',
+          valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (freteTotal > 0 ? freteTotal : null) : null,
+          valor_frete_fixo: values.tipo_frete === 'valor_fixo' ? (values.valor_frete_fixo || null) : null,
           permite_fracionado: values.permite_fracionado,
-          peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionadoCaptured : null,
-          carga_fragil: values.carga_fragil,
-          carga_perigosa: values.carga_perigosa,
-          carga_viva: values.carga_viva,
-          empilhavel: values.empilhavel,
+          peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimo : null,
+          carga_fragil: values.carga_fragil, carga_perigosa: values.carga_perigosa,
+          carga_viva: values.carga_viva, empilhavel: values.empilhavel,
           requer_refrigeracao: values.requer_refrigeracao,
-          temperatura_min: values.temperatura_min || null,
-          temperatura_max: values.temperatura_max || null,
+          temperatura_min: values.temperatura_min || null, temperatura_max: values.temperatura_max || null,
           numero_onu: values.numero_onu || null,
-          // Anexar T12:00:00 para evitar shift de timezone ao salvar em colunas do tipo date
           data_coleta_de: values.data_coleta_de ? `${values.data_coleta_de}T12:00:00` : values.data_coleta_de,
           data_coleta_ate: values.data_coleta_ate ? `${values.data_coleta_ate}T12:00:00` : null,
           data_entrega_limite: values.data_entrega_limite ? `${values.data_entrega_limite}T12:00:00` : null,
           expira_em: `${values.expira_em}T23:59:59`,
-          status: 'publicada',
-          codigo: null as unknown as string,
-          necessidades_especiais: necessidadesEspeciaisCaptured,
+          status: 'publicada', codigo: null as unknown as string,
+          numero_pedido: values.numero_pedido || null,
+          necessidades_especiais: necessidades,
           regras_carregamento: values.regras_carregamento || null,
-          nota_fiscal_url: notaFiscalUrlCaptured,
-          veiculo_requisitos: {
-            tipos_veiculo: veiculosSelecionadosCaptured,
-            tipos_carroceria: carroceriasSelecionadasCaptured,
-          },
-          remetente_razao_social: origemDataCaptured.razao_social || null,
-          remetente_nome_fantasia: origemDataCaptured.razao_social || null,
-          remetente_cnpj: origemDataCaptured.cnpj || null,
-          remetente_contato_nome: origemDataCaptured.contato_nome || null,
-          remetente_contato_telefone: origemDataCaptured.contato_telefone || null,
-          destinatario_razao_social: destinoDataCaptured.razao_social || null,
-          destinatario_nome_fantasia: destinoDataCaptured.razao_social || null,
-          destinatario_cnpj: destinoDataCaptured.cnpj || null,
-          destinatario_contato_nome: destinoDataCaptured.contato_nome || null,
-          destinatario_contato_telefone: destinoDataCaptured.contato_telefone || null,
-        })
-        .select()
-        .single();
+          nota_fiscal_url: null,
+          veiculo_requisitos: { tipos_veiculo: veiculos, tipos_carroceria: carrocerias },
+          remetente_razao_social: origemD.razao_social || null,
+          remetente_nome_fantasia: origemD.razao_social || null,
+          remetente_cnpj: origemD.cnpj || null,
+          remetente_contato_nome: origemD.contato_nome || null,
+          remetente_contato_telefone: origemD.contato_telefone || null,
+          destinatario_razao_social: destinoD.razao_social || null,
+          destinatario_nome_fantasia: destinoD.razao_social || null,
+          destinatario_cnpj: destinoD.cnpj || null,
+          destinatario_contato_nome: destinoD.contato_nome || null,
+          destinatario_contato_telefone: destinoD.contato_telefone || null,
+        }).select().single();
 
-      if (cargaError) {
-        console.error('Erro ao criar carga:', cargaError);
-        toast.error('Erro ao criar carga: ' + cargaError.message, { id: 'creating-carga' });
-        return;
-      }
+      if (cargaError) { toast.error('Erro ao criar carga: ' + cargaError.message, { id: 'creating-carga' }); return; }
 
-      // Create origin address
       const { data: origemEndereco, error: origemError } = await supabase
         .from('enderecos_carga')
         .insert({
-          carga_id: carga.id,
-          tipo: 'origem',
-          cep: origemDataCaptured.cep,
-          logradouro: origemDataCaptured.logradouro,
-          numero: origemDataCaptured.numero || null,
-          complemento: origemDataCaptured.complemento || null,
-          bairro: origemDataCaptured.bairro || null,
-          cidade: origemDataCaptured.cidade,
-          estado: origemDataCaptured.estado,
-          contato_nome: origemDataCaptured.contato_nome || null,
-          contato_telefone: origemDataCaptured.contato_telefone || null,
-          latitude: origemDataCaptured.latitude || null,
-          longitude: origemDataCaptured.longitude || null,
-        })
-        .select('id')
-        .single();
+          carga_id: carga.id, tipo: 'origem', cep: origemD.cep, logradouro: origemD.logradouro,
+          numero: origemD.numero || null, complemento: origemD.complemento || null,
+          bairro: origemD.bairro || null, cidade: origemD.cidade, estado: origemD.estado,
+          contato_nome: origemD.contato_nome || null, contato_telefone: origemD.contato_telefone || null,
+          latitude: origemD.latitude || null, longitude: origemD.longitude || null,
+        }).select('id').single();
 
-      if (origemError || !origemEndereco) {
-        console.error('Erro ao criar endereço de origem:', origemError);
-        toast.error('Erro ao criar endereço de origem', { id: 'creating-carga' });
-        return;
-      }
+      if (origemError || !origemEndereco) { toast.error('Erro ao criar endereço de origem', { id: 'creating-carga' }); return; }
 
-      // Create destination address
       const { data: destinoEndereco, error: destinoError } = await supabase
         .from('enderecos_carga')
         .insert({
-          carga_id: carga.id,
-          tipo: 'destino',
-          cep: destinoDataCaptured.cep,
-          logradouro: destinoDataCaptured.logradouro,
-          numero: destinoDataCaptured.numero || null,
-          complemento: destinoDataCaptured.complemento || null,
-          bairro: destinoDataCaptured.bairro || null,
-          cidade: destinoDataCaptured.cidade,
-          estado: destinoDataCaptured.estado,
-          contato_nome: destinoDataCaptured.contato_nome || null,
-          contato_telefone: destinoDataCaptured.contato_telefone || null,
-          latitude: destinoDataCaptured.latitude || null,
-          longitude: destinoDataCaptured.longitude || null,
-        })
-        .select('id')
-        .single();
+          carga_id: carga.id, tipo: 'destino', cep: destinoD.cep, logradouro: destinoD.logradouro,
+          numero: destinoD.numero || null, complemento: destinoD.complemento || null,
+          bairro: destinoD.bairro || null, cidade: destinoD.cidade, estado: destinoD.estado,
+          contato_nome: destinoD.contato_nome || null, contato_telefone: destinoD.contato_telefone || null,
+          latitude: destinoD.latitude || null, longitude: destinoD.longitude || null,
+        }).select('id').single();
 
-      if (destinoError || !destinoEndereco) {
-        console.error('Erro ao criar endereço de destino:', destinoError);
-        toast.error('Erro ao criar endereço de destino', { id: 'creating-carga' });
-        return;
-      }
+      if (destinoError || !destinoEndereco) { toast.error('Erro ao criar endereço de destino', { id: 'creating-carga' }); return; }
 
-      // Link addresses to cargo
-      const { error: updateCargaError } = await supabase
-        .from('cargas')
-        .update({
-          endereco_origem_id: origemEndereco.id,
-          endereco_destino_id: destinoEndereco.id,
-        })
-        .eq('id', carga.id);
+      await supabase.from('cargas').update({
+        endereco_origem_id: origemEndereco.id, endereco_destino_id: destinoEndereco.id,
+      }).eq('id', carga.id);
 
-      if (updateCargaError) {
-        console.error('Erro ao vincular endereços à carga:', updateCargaError);
-        toast.error('Erro ao vincular endereços à carga', { id: 'creating-carga' });
-        return;
-      }
-
-      // Buscar o código gerado pelo trigger
-      const { data: cargaFinal } = await supabase
-        .from('cargas')
-        .select('codigo')
-        .eq('id', carga.id)
-        .single();
-
-      const codigoCarga = cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase();
-
-      toast.success(`Carga criada com sucesso! Código: ${codigoCarga}`, { id: 'creating-carga' });
+      const { data: cargaFinal } = await supabase.from('cargas').select('codigo').eq('id', carga.id).single();
+      toast.success(`Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
       onSuccess?.();
     } catch (error) {
       console.error('Erro inesperado:', error);
@@ -406,572 +589,415 @@ export function NovaCargaDialog({ onSuccess, children }: NovaCargaDialogProps) {
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) resetDialogState();
+    if (!nextOpen) {
+      setShowExitDialog(true);
+      return;
+    }
     setOpen(nextOpen);
   };
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nova Carga
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto z-[9999]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Package className="w-5 h-5" />
-            Nova Carga
-          </DialogTitle>
-          <DialogDescription>
-            Preencha os dados da carga e verifique os locais de origem e destino
-          </DialogDescription>
-        </DialogHeader>
+  const confirmClose = () => {
+    setShowExitDialog(false);
+    resetDialogState();
+    setOpen(false);
+  };
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="carga" className="gap-2">
-                  <Package className="w-4 h-4" />
-                  <span className="hidden sm:inline">Carga</span>
-                </TabsTrigger>
-                <TabsTrigger value="requisitos" className="gap-2">
-                  <ClipboardList className="w-4 h-4" />
-                  <span className="hidden sm:inline">Requisitos</span>
-                </TabsTrigger>
-                <TabsTrigger value="origem" className="gap-2">
-                  <MapPin className="w-4 h-4" />
-                  <span className="hidden sm:inline">Remetente</span>
-                </TabsTrigger>
-                <TabsTrigger value="destino" className="gap-2">
-                  <Truck className="w-4 h-4" />
-                  <span className="hidden sm:inline">Destinatário</span>
-                </TabsTrigger>
-                <TabsTrigger value="resumo" className="gap-2">
-                  <Eye className="w-4 h-4" />
-                  <span className="hidden sm:inline">Resumo</span>
-                </TabsTrigger>
-              </TabsList>
+  // ─── Render tab content ────────────────────────────────────────────────────
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'dados':
+        return (
+          <div className="space-y-4">
+            <FormField control={form.control} name="descricao" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Descrição da Carga *</FormLabel>
+                <FormControl><Textarea placeholder="Descreva a carga (ex: Minério de ferro - Lote A)" className="min-h-[60px]" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <div className="grid grid-cols-3 gap-3">
+              <FormField control={form.control} name="tipo" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo *</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                    <SelectContent className="bg-popover border-border">
+                      {tipoCargaOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="numero_pedido" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nº Pedido</FormLabel>
+                  <FormControl><Input placeholder="Opcional" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="valor_mercadoria" render={({ field }) => (
+                <FormItem><FormLabel>Valor Mercadoria</FormLabel><FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+              )} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <FormField control={form.control} name="data_coleta_de" render={({ field }) => (
+                <FormItem><FormLabel>Coleta Em *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="data_coleta_ate" render={({ field }) => (
+                <FormItem><FormLabel>Coleta Até</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="data_entrega_limite" render={({ field }) => (
+                <FormItem><FormLabel>Entrega Limite</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField control={form.control} name="volume_m3" render={({ field }) => (
+                <FormItem><FormLabel>Volume (m³)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="expira_em" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Expiração *</FormLabel>
+                  <FormControl><Input type="date" min={todayStr()} max={addDays(365)} {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
+          </div>
+        );
 
-              <TabsContent value="carga" className="space-y-4 mt-4">
-                <FormField
-                  control={form.control}
-                  name="descricao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição da Carga *</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Descreva a carga (ex: Minério de ferro - Lote A)"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="tipo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de Carga *</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o tipo" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-popover border-border z-[10000]">
-                            {tipoCargaOptions.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="peso_kg"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Peso (kg) *</FormLabel>
-                        <FormControl>
-                          <WeightInput
-                            placeholder="0"
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="volume_m3"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Volume (m³)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="quantidade_paletes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Qtd. Paletes</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="valor_mercadoria"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Valor Mercadoria</FormLabel>
-                        <FormControl>
-                          <CurrencyInput
-                            placeholder="0,00"
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Seção de Frete */}
-                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                  <h4 className="font-medium text-sm flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    Valor do Frete
-                  </h4>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="valor_frete_tonelada"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Frete por Tonelada</FormLabel>
-                          <FormControl>
-                            <CurrencyInput
-                              placeholder="0,00"
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Frete Total Estimado</Label>
-                      <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center">
-                        <span className="font-bold text-primary">
-                          {freteTotal > 0
-                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotal)
-                            : 'R$ 0,00'}
-                        </span>
-                      </div>
-                      {pesoKg > 0 && (valorFreteTonelada ?? 0) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {(pesoKg / 1000).toFixed(2)}t × R$ {(valorFreteTonelada ?? 0).toFixed(2)}/ton
-                        </p>
-                      )}
-                    </div>
+      case 'peso_frete':
+        return (
+          <div className="space-y-5">
+            <Alert className="border-primary/20 bg-primary/5">
+              <Weight className="w-4 h-4 text-primary" />
+              <AlertDescription className="text-xs leading-relaxed">
+                <strong>Por que o peso é essencial?</strong> Nosso sistema utiliza o peso para validar automaticamente a compatibilidade com a capacidade física das carrocerias dos motoristas no momento do aceite. Sem peso, não é possível garantir que o veículo suporta a carga — é a base de toda a operação logística.
+              </AlertDescription>
+            </Alert>
+            <FormField control={form.control} name="peso_kg" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Peso Total da Carga (kg) *</FormLabel>
+                <FormControl><WeightInput placeholder="Ex: 25.000" value={field.value} onValueChange={field.onChange} /></FormControl>
+                {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {parseFloat((pesoKg / 1000).toFixed(4))} toneladas</p>}
+                <FormMessage />
+              </FormItem>
+            )} />
+            <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+              <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
+                <FormItem className="flex items-start space-x-3 space-y-0">
+                  <FormControl><Checkbox checked={field.value ?? true} onCheckedChange={field.onChange} className="mt-0.5" /></FormControl>
+                  <div className="space-y-1">
+                    <FormLabel className="font-medium text-sm">Permitir transporte fracionado (LTL)</FormLabel>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Ao ativar, múltiplos motoristas podem aceitar frações do peso total, respeitando o limite mínimo definido abaixo e a capacidade do veículo.
+                    </p>
                   </div>
-
-                  <FormField
-                    control={form.control}
-                    name="permite_fracionado"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormLabel className="font-normal text-sm">
-                          Permitir transporte fracionado (múltiplos motoristas)
-                        </FormLabel>
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.watch('permite_fracionado') && (
-                    <div className="ml-6 p-3 bg-muted/50 rounded-md border">
-                      <Label className="text-sm">Peso Mínimo por Entrega (kg)</Label>
-                      <WeightInput
-                        placeholder="Ex: 15.000 (15 toneladas)"
-                        className="mt-2"
-                        value={pesoMinimoFracionado || undefined}
-                        onValueChange={(v) => setPesoMinimoFracionado(v || null)}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Deixe vazio para não ter limite mínimo
-                      </p>
-                    </div>
-                  )}
+                </FormItem>
+              )} />
+              {form.watch('permite_fracionado') && (
+                <div className="ml-7 pt-1">
+                  <Label className="text-sm">Peso Mínimo por Fração (kg)</Label>
+                  <WeightInput placeholder="Ex: 5.000" className="mt-1.5 max-w-[260px]" value={pesoMinimoFracionado || undefined} onValueChange={(v) => setPesoMinimoFracionado(v || null)} />
+                  <p className="text-[11px] text-muted-foreground mt-1">Cada motorista deve aceitar pelo menos este peso.</p>
                 </div>
+              )}
+            </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="data_coleta_de"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Data de Coleta *</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+            {/* Frete Section */}
+            <Separator className="my-2" />
+            <SectionHeader icon={DollarSign} title="Precificação do Frete" />
 
-                  <FormField
-                    control={form.control}
-                    name="data_coleta_ate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Coleta Até</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+            {!permitefracionado && (
+              <FormField control={form.control} name="tipo_frete" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Frete</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent className="bg-popover border-border">
+                      {TIPOS_FRETE.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            )}
 
-                  <FormField
-                    control={form.control}
-                    name="data_entrega_limite"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Entrega Limite</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+            {tipoFrete === 'por_tonelada' && (
+              <div className="space-y-3">
+                <FormField control={form.control} name="valor_frete_tonelada" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor por Tonelada (R$/ton)</FormLabel>
+                    <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                {freteTotalTon > 0 && (
+                  <div className="p-3 rounded-lg border bg-muted/30 space-y-0.5">
+                    <Label className="text-xs text-muted-foreground">Frete Total Estimado</Label>
+                    <p className="text-xl font-bold text-primary">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotalTon)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {pesoTon} TON × R$ {(valorFreteTonelada ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/TON
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
-                {/* Expiração da publicação */}
-                <div className="p-4 rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/10">
-                  <FormField
-                    control={form.control}
-                    name="expira_em"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-amber-800 dark:text-amber-300 font-medium">
-                          Expiração da Publicação
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            min={todayStr()}
-                            max={addDays(365)}
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
-                          A carga será removida automaticamente nesta data se não for totalmente carregada. Máximo: 1 ano.
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* NF-e info alert */}
-                <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
-                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
-                    As Notas Fiscais (NF-e) serão solicitadas quando as entregas forem geradas para esta carga.
+            {tipoFrete === 'valor_fixo' && (
+              <div className="space-y-3">
+                <FormField control={form.control} name="valor_frete_fixo" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor do Frete (R$)</FormLabel>
+                    <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <Alert className="border-muted">
+                  <Info className="w-4 h-4" />
+                  <AlertDescription className="text-xs">
+                    Valor fixo independente do peso carregado. Disponível apenas para carga fechada (sem fracionamento).
                   </AlertDescription>
                 </Alert>
-              </TabsContent>
+              </div>
+            )}
+          </div>
+        );
 
-              <TabsContent value="requisitos" className="space-y-6 mt-4">
-                <div className="space-y-3">
-                  <Label>Características Especiais</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="carga_fragil"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">Carga Frágil</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="carga_perigosa"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">Carga Perigosa</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="carga_viva"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">Carga Viva</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="empilhavel"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">Empilhável</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="requer_refrigeracao"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">Requer Refrigeração</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {requerRefrigeracao && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="temperatura_min"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Temperatura Mínima (°C)</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="-18" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="temperatura_max"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Temperatura Máxima (°C)</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="4" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-
-                {cargaPerigosa && (
-                  <FormField
-                    control={form.control}
-                    name="numero_onu"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Número ONU</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: UN1203" {...field} />
-                        </FormControl>
-                        <FormMessage />
+      case 'requisitos':
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm">Características Especiais</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {(['carga_fragil', 'carga_perigosa', 'carga_viva', 'empilhavel', 'requer_refrigeracao'] as const).map((name) => {
+                  const labels: Record<string, string> = {
+                    carga_fragil: 'Frágil', carga_perigosa: 'Perigosa', carga_viva: 'Carga Viva',
+                    empilhavel: 'Empilhável', requer_refrigeracao: 'Refrigeração',
+                  };
+                  return (
+                    <FormField key={name} control={form.control} name={name} render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        <FormLabel className="font-normal text-sm">{labels[name]}</FormLabel>
                       </FormItem>
-                    )}
-                  />
+                    )} />
+                  );
+                })}
+              </div>
+            </div>
+            {requerRefrigeracao && (
+              <div className="grid grid-cols-2 gap-3">
+                <FormField control={form.control} name="temperatura_min" render={({ field }) => (
+                  <FormItem><FormLabel>Temp. Mín (°C)</FormLabel><FormControl><Input type="number" placeholder="-18" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="temperatura_max" render={({ field }) => (
+                  <FormItem><FormLabel>Temp. Máx (°C)</FormLabel><FormControl><Input type="number" placeholder="4" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              </div>
+            )}
+            {cargaPerigosa && (
+              <FormField control={form.control} name="numero_onu" render={({ field }) => (
+                <FormItem><FormLabel>Número ONU</FormLabel><FormControl><Input placeholder="Ex: UN1203" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+            )}
+            <VeiculoCarroceriaSelect
+              veiculosSelecionados={veiculosSelecionados} carroceriasSelecionadas={carroceriasSelecionadas}
+              onVeiculosChange={setVeiculosSelecionados} onCarroceriasChange={setCarroceriasSelecionadas}
+            />
+            <NecessidadesEspeciais value={necessidadesEspeciais} onChange={setNecessidadesEspeciais} />
+            {necessidadesEspeciais.includes('palete') && (
+              <FormField control={form.control} name="quantidade_paletes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantidade de Paletes</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="Ex: 20" className="max-w-[200px]" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            )}
+            <FormField control={form.control} name="regras_carregamento" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Regras de Carregamento</FormLabel>
+                <FormControl><Textarea placeholder="Instruções especiais..." className="min-h-[60px]" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </div>
+        );
+
+      case 'origem':
+        return (
+          <RemetenteSection initialData={origemData} onLocationChange={setOrigemData} />
+        );
+
+      case 'destino':
+        return (
+          <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
+        );
+    }
+  };
+
+  return (
+    <>
+    <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{isEditMode ? 'Cancelar edição?' : 'Deseja sair?'}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {isEditMode
+              ? 'As alterações não salvas serão perdidas. Deseja continuar editando ou cancelar?'
+              : 'Os dados preenchidos serão perdidos. Deseja voltar ou continuar criando a oferta de carga?'}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{isEditMode ? 'Continuar editando' : 'Continuar criando'}</AlertDialogCancel>
+          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={confirmClose}>
+            {isEditMode ? 'Cancelar edição' : 'Sair sem salvar'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {!isEditMode && (
+        <DialogTrigger asChild>
+          {children || (
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" />
+              Nova Oferta
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
+      <DialogContent className="max-w-[95vw] w-[1400px] h-[90vh] max-h-[90vh] p-0 flex flex-col overflow-hidden" hideCloseButton>
+        {/* 2-column layout — no separate header */}
+        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,360px]">
+          {/* Left: Form */}
+          <div className="flex flex-col overflow-hidden">
+            {/* Title + Step indicators merged */}
+            <div className="flex items-center gap-3 px-5 py-3 bg-card shrink-0 overflow-x-auto border-b">
+              <DialogHeader className="space-y-0 shrink-0">
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <Package className="w-4 h-4 text-primary" />
+                  {isEditMode ? `Editar Oferta — ${editCarga?.codigo}` : 'Nova Oferta'}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="h-5 w-px bg-border shrink-0" />
+              <div className="flex items-center gap-1">
+                {TABS.map((tab, i) => {
+                  const Icon = tab.icon;
+                  const isActive = tab.id === activeTab;
+                  const isPast = i < currentTabIndex;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        if (isEditMode || i <= currentTabIndex) setActiveTab(tab.id);
+                      }}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap',
+                        isActive && 'bg-primary text-primary-foreground shadow-sm',
+                        (isPast || isEditMode) && !isActive && 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20',
+                        !isActive && !isPast && !isEditMode && 'text-muted-foreground cursor-default',
+                      )}
+                    >
+                      {isPast && !isActive ? (
+                        <Check className="w-3.5 h-3.5" />
+                      ) : (
+                        <Icon className="w-3.5 h-3.5" />
+                      )}
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <ScrollArea className="flex-1">
+              <div className="max-w-3xl p-5">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="[&_input]:bg-background [&_textarea]:bg-background [&_select]:bg-background [&_[role=combobox]]:bg-background">
+                    {renderTabContent()}
+                  </form>
+                </Form>
+              </div>
+            </ScrollArea>
+
+            {/* Fixed footer */}
+            <div className="border-t bg-card px-5 py-2.5 flex items-center justify-between gap-2 shrink-0">
+              <div>
+                {!isFirstTab && (
+                  <Button type="button" variant="outline" size="sm" onClick={goPrev} disabled={isLoading}>
+                    <ArrowLeft className="w-4 h-4 mr-1" />
+                    Voltar
+                  </Button>
                 )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowExitDialog(true)} disabled={isLoading}>
+                  Cancelar
+                </Button>
+                {isLastTab ? (
+                  <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
+                    {isLoading ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Salvando...</>) : (<><Package className="w-4 h-4 mr-1" />{isEditMode ? 'Salvar Alterações' : 'Criar Oferta'}</>)}
+                  </Button>
+                ) : (
+                  <Button type="button" size="sm" onClick={goNext}>
+                    Próximo
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
 
-                {/* Veículos e Carrocerias Aceitos */}
-                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
-                  <VeiculoCarroceriaSelect
-                    veiculosSelecionados={veiculosSelecionados}
-                    carroceriasSelecionadas={carroceriasSelecionadas}
-                    onVeiculosChange={setVeiculosSelecionados}
-                    onCarroceriasChange={setCarroceriasSelecionadas}
-                  />
-                </div>
-
-                {/* Necessidades Especiais */}
-                <NecessidadesEspeciais
-                  value={necessidadesEspeciais}
-                  onChange={setNecessidadesEspeciais}
-                />
-
-                {/* Regras de Carregamento */}
-                <FormField
-                  control={form.control}
-                  name="regras_carregamento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Regras de Carregamento</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Instruções especiais para carregamento (ex: Não tomblar, manter na vertical, empilhar máximo 3 caixas...)"
-                          className="min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-
-              <TabsContent value="origem" className="mt-4">
-                <RemetenteSection
-                  initialData={origemData}
-                  onLocationChange={setOrigemData}
-                />
-              </TabsContent>
-
-              <TabsContent value="destino" className="mt-4">
-                <DestinoSection
-                  initialData={destinoData}
-                  onLocationChange={setDestinoData}
-                />
-              </TabsContent>
-
-              <TabsContent value="resumo" className="mt-4">
+          {/* Right: Live Summary (hidden on mobile) */}
+          <div className="hidden lg:flex flex-col border-l bg-muted/20 overflow-hidden">
+            <div className="px-4 py-4 border-b bg-card flex items-center min-h-[53px]">
+              <h2 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Resumo</h2>
+            </div>
+            <ScrollArea className="flex-1">
+              <div className="p-3">
                 <ResumoSection
                   origemData={origemData}
                   destinoData={destinoData}
                   cargaData={{
-                    descricao: form.getValues('descricao'),
-                    tipo: form.getValues('tipo'),
-                    peso_kg: form.getValues('peso_kg'),
-                    volume_m3: form.getValues('volume_m3'),
-                    valor_mercadoria: form.getValues('valor_mercadoria'),
-                    valor_frete_tonelada: form.getValues('valor_frete_tonelada'),
-                    data_coleta_de: form.getValues('data_coleta_de'),
-                    data_coleta_ate: form.getValues('data_coleta_ate'),
-                    data_entrega_limite: form.getValues('data_entrega_limite'),
-                    carga_fragil: form.getValues('carga_fragil'),
-                    carga_perigosa: form.getValues('carga_perigosa'),
-                    carga_viva: form.getValues('carga_viva'),
-                    empilhavel: form.getValues('empilhavel'),
-                    requer_refrigeracao: form.getValues('requer_refrigeracao'),
-                    temperatura_min: form.getValues('temperatura_min'),
-                    temperatura_max: form.getValues('temperatura_max'),
-                    numero_onu: form.getValues('numero_onu'),
-                    regras_carregamento: form.getValues('regras_carregamento'),
+                    descricao: form.watch('descricao'),
+                    tipo: form.watch('tipo'),
+                    peso_kg: form.watch('peso_kg'),
+                    volume_m3: form.watch('volume_m3'),
+                    valor_mercadoria: form.watch('valor_mercadoria'),
+                    tipo_frete: form.watch('tipo_frete'),
+                    valor_frete_tonelada: form.watch('valor_frete_tonelada'),
+                    valor_frete_fixo: form.watch('valor_frete_fixo'),
+                    data_coleta_de: form.watch('data_coleta_de'),
+                    data_coleta_ate: form.watch('data_coleta_ate'),
+                    data_entrega_limite: form.watch('data_entrega_limite'),
+                    carga_fragil: form.watch('carga_fragil'),
+                    carga_perigosa: form.watch('carga_perigosa'),
+                    carga_viva: form.watch('carga_viva'),
+                    empilhavel: form.watch('empilhavel'),
+                    requer_refrigeracao: form.watch('requer_refrigeracao'),
+                    temperatura_min: form.watch('temperatura_min'),
+                    temperatura_max: form.watch('temperatura_max'),
+                    numero_onu: form.watch('numero_onu'),
+                    regras_carregamento: form.watch('regras_carregamento'),
                   }}
                   necessidadesEspeciais={necessidadesEspeciais}
                   notaFiscalUrl={null}
                   veiculosSelecionados={veiculosSelecionados}
                   carroceriasSelecionadas={carroceriasSelecionadas}
                 />
-              </TabsContent>
-            </Tabs>
-
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={isLoading}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Package className="w-4 h-4 mr-2" />
-                    Criar Carga
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </Form>
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

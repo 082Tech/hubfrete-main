@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -248,7 +249,7 @@ export default function StorageExplorer() {
             fetchFilesInPath(selectedBucket, currentPath);
           }
         }}>
-          <RefreshCw className="w-4 h-4 mr-2" />
+          <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
           Atualizar
         </Button>
       </div>

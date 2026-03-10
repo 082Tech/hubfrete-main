@@ -119,15 +119,22 @@ export default function Motoristas() {
           comprovante_endereco_url, comprovante_endereco_titular_nome,
           comprovante_endereco_titular_doc_url, comprovante_vinculo_url,
           possui_ajudante, ativo, foto_url,
-          veiculos:veiculos!veiculos_motorista_id_fkey(id, placa, tipo, marca, modelo, uf, antt_rntrc, documento_veiculo_url, comprovante_endereco_proprietario_url, proprietario_nome, proprietario_cpf_cnpj, carroceria_integrada, capacidade_kg, capacidade_m3),
-          carrocerias:carrocerias!carrocerias_motorista_id_fkey(id, placa, tipo, marca, modelo, capacidade_kg, capacidade_m3),
+          veiculos:veiculos!veiculos_motorista_padrao_id_fkey(id, placa, tipo, marca, modelo, uf, antt_rntrc, documento_veiculo_url, comprovante_endereco_proprietario_url, proprietario_nome, proprietario_cpf_cnpj, carroceria_integrada, capacidade_kg, capacidade_m3, carrocerias(id, placa, tipo, marca, modelo, capacidade_kg, capacidade_m3)),
           ajudantes(id, nome, cpf, telefone, tipo_cadastro, comprovante_vinculo_url, ativo)
         `)
         .eq('empresa_id', empresa.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as MotoristaCompleto[];
+      // Flatten carrocerias from nested veiculos into top-level field
+      return (data || []).map((m: any) => ({
+        ...m,
+        carrocerias: (m.veiculos || []).flatMap((v: any) => v.carrocerias || []),
+        veiculos: (m.veiculos || []).map((v: any) => {
+          const { carrocerias, ...rest } = v;
+          return rest;
+        }),
+      })) as MotoristaCompleto[];
     },
     enabled: !!empresa?.id,
   });
@@ -357,12 +364,11 @@ export default function Motoristas() {
           </td>
         );
       case 'tipo': {
-        const tipoLabels: Record<string, string> = { frota: 'Frota', autonomo: 'Autônomo', terceirizado: 'Terceirizado' };
+        const tipoLabels: Record<string, string> = { frota: 'Frota', autonomo: 'Autônomo' };
         const tipo = motorista.tipo_cadastro || 'frota';
         return (
           <td className="p-4 align-middle">
             <Badge variant="outline" className={
-              tipo === 'terceirizado' ? 'bg-chart-4/10 text-chart-4 border-chart-4/20' :
               tipo === 'autonomo' ? 'bg-chart-5/10 text-chart-5 border-chart-5/20' :
               'bg-primary/10 text-primary border-primary/20'
             }>

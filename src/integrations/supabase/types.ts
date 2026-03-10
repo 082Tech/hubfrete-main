@@ -192,6 +192,7 @@ export type Database = {
           necessidades_especiais: string[] | null
           nota_fiscal_url: string | null
           numero_onu: string | null
+          numero_pedido: string | null
           permite_fracionado: boolean | null
           peso_disponivel_kg: number | null
           peso_kg: number
@@ -251,6 +252,7 @@ export type Database = {
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
+          numero_pedido?: string | null
           permite_fracionado?: boolean | null
           peso_disponivel_kg?: number | null
           peso_kg: number
@@ -310,6 +312,7 @@ export type Database = {
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
+          numero_pedido?: string | null
           permite_fracionado?: boolean | null
           peso_disponivel_kg?: number | null
           peso_kg?: number
@@ -1040,7 +1043,9 @@ export type Database = {
         Row: {
           classe: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz: string | null
+          comissao_hubfrete_percent: number
           created_at: string
+          dados_bancarios: Json | null
           email: string | null
           id: number
           inscricao_estadual: string | null
@@ -1054,7 +1059,9 @@ export type Database = {
         Insert: {
           classe: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz?: string | null
+          comissao_hubfrete_percent?: number
           created_at?: string
+          dados_bancarios?: Json | null
           email?: string | null
           id?: number
           inscricao_estadual?: string | null
@@ -1068,7 +1075,9 @@ export type Database = {
         Update: {
           classe?: Database["public"]["Enums"]["classe_empresa"]
           cnpj_matriz?: string | null
+          comissao_hubfrete_percent?: number
           created_at?: string
+          dados_bancarios?: Json | null
           email?: string | null
           id?: number
           inscricao_estadual?: string | null
@@ -1226,6 +1235,7 @@ export type Database = {
           canhoto_url: string | null
           carga_id: string
           carroceria_id: string | null
+          carroceria_id_2: string | null
           carrocerias_alocadas: Json | null
           checklist_veiculo: Json | null
           codigo: string | null
@@ -1247,6 +1257,7 @@ export type Database = {
           notas_fiscais_urls: string[] | null
           numero_cte: string | null
           observacoes: string | null
+          outros_documentos: Json | null
           peso_alocado_kg: number | null
           previsao_coleta: string | null
           status: Database["public"]["Enums"]["status_entrega"] | null
@@ -1261,6 +1272,7 @@ export type Database = {
           canhoto_url?: string | null
           carga_id: string
           carroceria_id?: string | null
+          carroceria_id_2?: string | null
           carrocerias_alocadas?: Json | null
           checklist_veiculo?: Json | null
           codigo?: string | null
@@ -1282,6 +1294,7 @@ export type Database = {
           notas_fiscais_urls?: string[] | null
           numero_cte?: string | null
           observacoes?: string | null
+          outros_documentos?: Json | null
           peso_alocado_kg?: number | null
           previsao_coleta?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
@@ -1296,6 +1309,7 @@ export type Database = {
           canhoto_url?: string | null
           carga_id?: string
           carroceria_id?: string | null
+          carroceria_id_2?: string | null
           carrocerias_alocadas?: Json | null
           checklist_veiculo?: Json | null
           codigo?: string | null
@@ -1317,6 +1331,7 @@ export type Database = {
           notas_fiscais_urls?: string[] | null
           numero_cte?: string | null
           observacoes?: string | null
+          outros_documentos?: Json | null
           peso_alocado_kg?: number | null
           previsao_coleta?: string | null
           status?: Database["public"]["Enums"]["status_entrega"] | null
@@ -1332,6 +1347,13 @@ export type Database = {
             columns: ["carga_id"]
             isOneToOne: false
             referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_carroceria_id_2_fkey"
+            columns: ["carroceria_id_2"]
+            isOneToOne: false
+            referencedRelation: "carrocerias"
             referencedColumns: ["id"]
           },
           {
@@ -1353,6 +1375,80 @@ export type Database = {
             columns: ["veiculo_id"]
             isOneToOne: false
             referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      faturas: {
+        Row: {
+          ano: number
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string | null
+          empresa_id: number
+          id: string
+          mes: number
+          metodo_pagamento: string | null
+          observacoes: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          qtd_entregas: number | null
+          quinzena: number
+          status: string
+          tipo: string
+          updated_at: string
+          valor_bruto: number | null
+          valor_comissao: number | null
+          valor_liquido: number | null
+        }
+        Insert: {
+          ano: number
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          empresa_id: number
+          id?: string
+          mes: number
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          qtd_entregas?: number | null
+          quinzena: number
+          status?: string
+          tipo: string
+          updated_at?: string
+          valor_bruto?: number | null
+          valor_comissao?: number | null
+          valor_liquido?: number | null
+        }
+        Update: {
+          ano?: number
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          empresa_id?: number
+          id?: string
+          mes?: number
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          periodo_fim?: string
+          periodo_inicio?: string
+          qtd_entregas?: number | null
+          quinzena?: number
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor_bruto?: number | null
+          valor_comissao?: number | null
+          valor_liquido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -1433,6 +1529,99 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financeiro_entregas: {
+        Row: {
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string | null
+          empresa_embarcadora_id: number | null
+          empresa_transportadora_id: number | null
+          entrega_id: string
+          fatura_embarcador_id: string | null
+          fatura_transportadora_id: string | null
+          id: string
+          metodo_pagamento: string | null
+          observacoes: string | null
+          status: string
+          updated_at: string
+          valor_comissao: number
+          valor_frete: number
+          valor_liquido: number
+        }
+        Insert: {
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          empresa_embarcadora_id?: number | null
+          empresa_transportadora_id?: number | null
+          entrega_id: string
+          fatura_embarcador_id?: string | null
+          fatura_transportadora_id?: string | null
+          id?: string
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_comissao?: number
+          valor_frete?: number
+          valor_liquido?: number
+        }
+        Update: {
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          empresa_embarcadora_id?: number | null
+          empresa_transportadora_id?: number | null
+          entrega_id?: string
+          fatura_embarcador_id?: string | null
+          fatura_transportadora_id?: string | null
+          id?: string
+          metodo_pagamento?: string | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_comissao?: number
+          valor_frete?: number
+          valor_liquido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_entregas_empresa_embarcadora_id_fkey"
+            columns: ["empresa_embarcadora_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_empresa_transportadora_id_fkey"
+            columns: ["empresa_transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_fatura_embarcador_id_fkey"
+            columns: ["fatura_embarcador_id"]
+            isOneToOne: false
+            referencedRelation: "faturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_fatura_transportadora_id_fkey"
+            columns: ["fatura_transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "faturas"
             referencedColumns: ["id"]
           },
         ]
@@ -2502,6 +2691,7 @@ export type Database = {
           capacidade_kg: number | null
           capacidade_m3: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
+          carroceria_id_2: string | null
           carroceria_integrada: boolean | null
           comprovante_endereco_proprietario_url: string | null
           created_at: string | null
@@ -2535,6 +2725,7 @@ export type Database = {
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
+          carroceria_id_2?: string | null
           carroceria_integrada?: boolean | null
           comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
@@ -2568,6 +2759,7 @@ export type Database = {
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria?: Database["public"]["Enums"]["tipo_carroceria"]
+          carroceria_id_2?: string | null
           carroceria_integrada?: boolean | null
           comprovante_endereco_proprietario_url?: string | null
           created_at?: string | null
@@ -2595,6 +2787,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "veiculos_carroceria_id_2_fkey"
+            columns: ["carroceria_id_2"]
+            isOneToOne: false
+            referencedRelation: "carrocerias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "veiculos_empresa_id_fkey"
             columns: ["empresa_id"]
@@ -2743,21 +2942,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_carga_tx: {
-        Args: {
-          p_carga_id: string
-          p_carroceria_id: string
-          p_carrocerias_alocadas?: Json
-          p_motorista_id: string
-          p_peso_kg: number
-          p_previsao_coleta?: string
-          p_user_name: string
-          p_valor_frete: number
-          p_veiculo_id: string
-          p_viagem_id: string
-        }
-        Returns: Json
-      }
+      accept_carga_tx:
+        | {
+            Args: {
+              p_carga_id: string
+              p_carroceria_id: string
+              p_carrocerias_alocadas?: Json
+              p_motorista_id: string
+              p_peso_kg: number
+              p_previsao_coleta?: string
+              p_user_name: string
+              p_valor_frete: number
+              p_veiculo_id: string
+              p_viagem_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_carga_id: string
+              p_carroceria_id: string
+              p_carroceria_id_2?: string
+              p_motorista_id: string
+              p_peso_kg: number
+              p_user_name?: string
+              p_valor_frete?: number
+              p_veiculo_id: string
+              p_viagem_id?: string
+            }
+            Returns: Json
+          }
       create_chat_for_entrega: {
         Args: { p_entrega_id: string }
         Returns: string
@@ -2859,6 +3073,7 @@ export type Database = {
       status_entrega:
         | "aguardando"
         | "saiu_para_coleta"
+        | "em_transito"
         | "saiu_para_entrega"
         | "entregue"
         | "problema"
@@ -3095,6 +3310,7 @@ export const Constants = {
       status_entrega: [
         "aguardando",
         "saiu_para_coleta",
+        "em_transito",
         "saiu_para_entrega",
         "entregue",
         "problema",

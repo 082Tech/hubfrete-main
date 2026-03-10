@@ -24,7 +24,11 @@ import {
     AlertCircle,
     CheckCircle,
     Package,
+    Paperclip,
+    Info,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import type { OutroDocumento } from './EntregaDocumentosPanel';
 
 interface EntregaDocsDialogProps {
     open: boolean;
@@ -32,6 +36,7 @@ interface EntregaDocsDialogProps {
     entregaId: string;
     entregaCodigo?: string | null;
     canhotoUrl?: string | null;
+    outrosDocumentos?: OutroDocumento[];
 }
 
 interface CteRow {
@@ -137,6 +142,7 @@ export function EntregaDocsDialog({
     entregaId,
     entregaCodigo,
     canhotoUrl,
+    outrosDocumentos = [],
 }: EntregaDocsDialogProps) {
     const [loading, setLoading] = useState(false);
     const [ctes, setCtes] = useState<CteRow[]>([]);
@@ -193,7 +199,7 @@ export function EntregaDocsDialog({
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-base">
                             <Package className="w-4 h-4 text-primary" />
-                            Documentos da Entrega
+                            Documentos da Carga
                             {entregaCodigo && (
                                 <span className="font-mono text-sm text-muted-foreground font-normal">
                                     – {entregaCodigo}
@@ -301,6 +307,64 @@ export function EntregaDocsDialog({
                                     missing={!hasCanhoto}
                                 />
                             </div>
+
+                            {/* ── Outros Documentos ────────────────────── */}
+                            {outrosDocumentos.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                        <Paperclip className="w-3.5 h-3.5 text-violet-500" />
+                                        <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wide">
+                                            Outros Documentos
+                                        </span>
+                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                                            {outrosDocumentos.length}
+                                        </Badge>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="max-w-[220px] text-xs">
+                                                    Documentos complementares como GNRE, comprovantes, autorizações, etc.
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        {outrosDocumentos.map((doc, i) => (
+                                            <div
+                                                key={`${doc.url}-${i}`}
+                                                className={`flex items-center justify-between px-3 py-2.5 rounded-xl border ${
+                                                    doc.url
+                                                        ? 'border-border bg-card'
+                                                        : 'border-dashed border-muted bg-muted/20'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <Paperclip className="w-4 h-4 text-violet-500 shrink-0" />
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-semibold truncate text-foreground">{doc.nome}</p>
+                                                        <p className="text-[10px] text-muted-foreground truncate">
+                                                            {doc.tipo_usuario === 'embarcador' ? 'Embarcador' : 'Transportadora'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {doc.url && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 px-2 gap-1 text-primary hover:bg-primary/10 shrink-0"
+                                                        onClick={() => openPreview(doc.url, doc.nome)}
+                                                    >
+                                                        <Eye className="w-3 h-3" />
+                                                        <span className="text-xs">Ver</span>
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </DialogContent>

@@ -57,8 +57,8 @@ const CHART_COLORS = [
 const statusLabels: Record<string, string> = {
   'aguardando': 'Aguardando',
   'saiu_para_coleta': 'Saiu para Coleta',
-  'saiu_para_entrega': 'Saiu para Entrega',
-  'entregue': 'Entregue',
+  'saiu_para_entrega': 'Em Rota',
+  'entregue': 'Concluída',
   'problema': 'Problema',
   'cancelada': 'Cancelada',
 };
@@ -611,7 +611,7 @@ export default function TransportadoraRelatorios() {
                       <CardContent className="p-5">
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-sm text-muted-foreground">Total de Entregas</p>
+                            <p className="text-sm text-muted-foreground">Total de Cargas</p>
                             <p className="text-3xl font-bold text-foreground mt-1">{kpis.totalEntregas}</p>
                             <p className="text-xs text-muted-foreground mt-1">
                               ~{kpis.mediaEntregasDia.toFixed(1)}/dia
@@ -826,7 +826,7 @@ export default function TransportadoraRelatorios() {
                             />
                             <Legend />
                             <Area type="monotone" dataKey="coletas" name="Coletas" stroke="hsl(var(--chart-1))" fillOpacity={1} fill="url(#colorColetasT)" />
-                            <Area type="monotone" dataKey="entregas" name="Entregas" stroke="hsl(var(--chart-2))" fillOpacity={1} fill="url(#colorEntregasT)" />
+                            <Area type="monotone" dataKey="entregas" name="Cargas" stroke="hsl(var(--chart-2))" fillOpacity={1} fill="url(#colorEntregasT)" />
                           </AreaChart>
                         </ResponsiveContainer>
                       </CardContent>

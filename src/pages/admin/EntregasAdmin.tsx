@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -42,7 +44,7 @@ import {
   Loader2,
   MapPin,
   Building2,
-  Calendar,
+  Calendar as CalendarIcon,
   CheckCircle,
   Clock,
   AlertCircle,
@@ -56,9 +58,13 @@ import {
   Map,
   RefreshCw,
   Filter,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
-
+import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { DateRange } from 'react-day-picker';
 // Types
 interface EntregaCompleta {
   id: string;
@@ -110,8 +116,9 @@ interface EntregaCompleta {
 const statusEntregaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
   'aguardando': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Aguardando', icon: Clock },
   'saiu_para_coleta': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Saiu para Coleta', icon: Package },
-  'saiu_para_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Saiu para Entrega', icon: Truck },
-  'entregue': { color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', label: 'Entregue', icon: CheckCircle },
+  'em_transito': { color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20', label: 'Em Trânsito', icon: ArrowRightLeft },
+  'saiu_para_entrega': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', label: 'Em Rota', icon: Truck },
+  'entregue': { color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', label: 'Concluída', icon: CheckCircle },
   'problema': { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Problema', icon: AlertCircle },
   'cancelada': { color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', label: 'Cancelada', icon: XCircle },
 };
@@ -120,10 +127,15 @@ type FilterStatus = 'all' | 'ativas' | 'finalizadas';
 const ITEMS_PER_PAGE = 15;
 
 export default function EntregasAdmin() {
+  const now = new Date();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [trackingEntrega, setTrackingEntrega] = useState<EntregaCompleta | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(now),
+    to: endOfMonth(now),
+  });
 
   // Fetch ALL entregas
   const { data: entregas = [], isLoading, refetch, isFetching } = useQuery({
@@ -165,6 +177,16 @@ export default function EntregasAdmin() {
   // Apply filters
   const filteredEntregas = useMemo(() => {
     let result = entregas;
+
+    // Date filter
+    if (dateRange?.from) {
+      const from = new Date(dateRange.from); from.setHours(0,0,0,0);
+      result = result.filter(e => new Date(e.created_at || '') >= from);
+    }
+    if (dateRange?.to) {
+      const to = new Date(dateRange.to); to.setHours(23,59,59,999);
+      result = result.filter(e => new Date(e.created_at || '') <= to);
+    }
     
     // Apply search
     result = result.filter(entrega => 
@@ -179,7 +201,7 @@ export default function EntregasAdmin() {
     // Apply status filter
     switch (filterStatus) {
       case 'ativas':
-        result = result.filter(e => ['aguardando', 'saiu_para_coleta', 'saiu_para_entrega', 'problema'].includes(e.status || ''));
+        result = result.filter(e => ['aguardando', 'saiu_para_coleta', 'em_transito', 'saiu_para_entrega', 'problema'].includes(e.status || ''));
         break;
       case 'finalizadas':
         result = result.filter(e => ['entregue', 'cancelada'].includes(e.status || ''));
@@ -224,7 +246,7 @@ export default function EntregasAdmin() {
     return {
       total: entregas.length,
       aguardando: byStatus['aguardando'] || 0,
-      emRota: (byStatus['saiu_para_coleta'] || 0) + (byStatus['saiu_para_entrega'] || 0),
+      emRota: (byStatus['saiu_para_coleta'] || 0) + (byStatus['em_transito'] || 0) + (byStatus['saiu_para_entrega'] || 0),
       entregue: byStatus['entregue'] || 0,
       problema: byStatus['problema'] || 0,
       totalFrete,
@@ -238,10 +260,10 @@ export default function EntregasAdmin() {
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             <Truck className="w-8 h-8 text-primary" />
-            Entregas
+            Cargas
           </h1>
           <p className="text-muted-foreground">
-            Visualize todas as entregas da plataforma
+            Visualize todas as cargas da plataforma
           </p>
         </div>
         <Button 
@@ -303,7 +325,7 @@ export default function EntregasAdmin() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.entregue}</p>
-                <p className="text-xs text-muted-foreground">Entregues</p>
+                <p className="text-xs text-muted-foreground">Concluídas</p>
               </div>
             </div>
           </CardContent>
@@ -349,6 +371,27 @@ export default function EntregasAdmin() {
                 className="pl-9"
               />
             </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-auto justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>{format(dateRange.from, 'dd/MM/yy')} - {format(dateRange.to, 'dd/MM/yy')}</>
+                    ) : format(dateRange.from, 'dd/MM/yyyy')
+                  ) : 'Período'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarComponent
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={(range) => { setDateRange(range); setCurrentPage(1); }}
+                  locale={ptBR}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
             <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v as FilterStatus); setCurrentPage(1); }}>
               <SelectTrigger className="w-[180px]">
                 <Filter className="w-4 h-4 mr-2" />

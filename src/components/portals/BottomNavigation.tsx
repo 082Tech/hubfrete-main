@@ -6,6 +6,8 @@ import {
   MessageSquare,
   Menu,
   Route,
+  Send,
+  Boxes,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,15 +22,15 @@ interface NavItem {
 
 const embarcadorNavItems: NavItem[] = [
   { icon: Home, label: 'Home', href: '/embarcador' },
-  { icon: Package, label: 'Cargas', href: '/embarcador/cargas', excludePatterns: ['/embarcador/cargas/em-rota'] },
-  { icon: Route, label: 'Entregas', href: '/embarcador/cargas/em-rota' },
+  { icon: Boxes, label: 'Ofertas', href: '/embarcador/ofertas' },
+  { icon: Package, label: 'Cargas', href: '/embarcador/cargas' },
   { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
 ];
 
 const transportadoraNavItems: NavItem[] = [
   { icon: Home, label: 'Home', href: '/transportadora' },
+  { icon: Boxes, label: 'Ofertas', href: '/transportadora/ofertas' },
   { icon: Package, label: 'Cargas', href: '/transportadora/cargas' },
-  { icon: Route, label: 'Entregas', href: '/transportadora/entregas' },
   { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
 ];
 

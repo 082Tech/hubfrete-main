@@ -35,6 +35,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Loader2,
+  ArrowRightLeft,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -53,6 +54,7 @@ import { EntregaDocsDialog } from '@/components/entregas/EntregaDocsDialog';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
+import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 import { ViagemDetailsHistoricoDialog } from '@/components/viagens/ViagemDetailsHistoricoDialog';
 
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
@@ -67,6 +69,7 @@ interface EntregaInViagem {
   numero_cte: string | null;
   nfes: { id: string }[];
   canhoto_url: string | null;
+  outros_documentos: any[] | null;
   entregue_em: string | null;
   updated_at: string | null;
   motorista: {
@@ -144,8 +147,9 @@ const viagemStatusConfig: Record<string, { color: string; label: string; icon: R
 const entregaStatusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
   saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
-  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
-  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle },
+  em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: ArrowRightLeft },
+  saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
+  entregue: { label: 'Concluída', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle },
   cancelada: { label: 'Cancelada', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: Ban },
 };
@@ -181,6 +185,10 @@ export default function HistoricoEntregas() {
   const [trackingViagemId, setTrackingViagemId] = useState<string | null>(null);
   const [trackingViagemInfo, setTrackingViagemInfo] = useState<{ motorista: string; placa: string; codigo: string } | null>(null);
 
+  // Tracking map (entrega-level)
+  const [trackingEntregaId, setTrackingEntregaId] = useState<string | null>(null);
+  const [trackingEntregaInfo, setTrackingEntregaInfo] = useState<{ motorista: string; placa: string } | null>(null);
+
   // Viagem detail dialog
   const [detailViagemOpen, setDetailViagemOpen] = useState(false);
   const [selectedViagem, setSelectedViagem] = useState<ViagemHistorico | null>(null);
@@ -190,6 +198,7 @@ export default function HistoricoEntregas() {
   const [docsEntregaId, setDocsEntregaId] = useState<string | null>(null);
   const [docsEntregaCodigo, setDocsEntregaCodigo] = useState<string | null>(null);
   const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
+  const [docsEntregaOutros, setDocsEntregaOutros] = useState<any[]>([]);
 
   const { data: viagens = [], isLoading } = useQuery({
     queryKey: ['historico_viagens_expandable', empresa?.id],
@@ -236,7 +245,7 @@ export default function HistoricoEntregas() {
           .from('entregas')
           .select(`
             id, codigo, status, peso_alocado_kg, valor_frete,
-            numero_cte, canhoto_url, previsao_coleta,
+            numero_cte, canhoto_url, outros_documentos, previsao_coleta,
             entregue_em, updated_at,
             ctes(id),
             nfes(id),
@@ -644,7 +653,7 @@ export default function HistoricoEntregas() {
                           </th>
                           <th className="h-12 px-4 text-center align-middle font-semibold text-foreground min-w-[90px] cursor-pointer" onClick={() => handleSort('entregas')}>
                             <div className="flex items-center justify-center">
-                              Entregas
+                              Cargas
                               <SortIcon field="entregas" />
                             </div>
                           </th>
@@ -826,7 +835,7 @@ export default function HistoricoEntregas() {
                                     <div className="px-8 py-4">
                                       <div className="flex items-center gap-2 mb-3">
                                         <Package className="w-4 h-4 text-primary" />
-                                        <span className="text-sm font-medium">Entregas ({viagem.entregas.length})</span>
+                                        <span className="text-sm font-medium">Cargas ({viagem.entregas.length})</span>
                                       </div>
                                       <div className="bg-background rounded-lg border overflow-hidden">
                                         <table className="w-full text-sm">
@@ -916,6 +925,7 @@ export default function HistoricoEntregas() {
                                                         setDocsEntregaId(entrega.id);
                                                         setDocsEntregaCodigo(entrega.codigo || entrega.carga.codigo);
                                                         setDocsEntregaCanhoto(entrega.canhoto_url);
+                                                        setDocsEntregaOutros(Array.isArray(entrega.outros_documentos) ? entrega.outros_documentos : []);
                                                         setDocsDialogOpen(true);
                                                       }}
                                                     >
@@ -948,6 +958,16 @@ export default function HistoricoEntregas() {
                                                         }}>
                                                           <MessageCircle className="w-4 h-4 mr-2" />
                                                           Ver conversa
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => {
+                                                          setTrackingEntregaId(entrega.id);
+                                                          setTrackingEntregaInfo({
+                                                            motorista: viagem.motorista?.nome_completo || 'Motorista',
+                                                            placa: viagem.veiculo?.placa || '-',
+                                                          });
+                                                        }}>
+                                                          <Route className="w-4 h-4 mr-2" />
+                                                          Ver rastreamento
                                                         </DropdownMenuItem>
                                                       </DropdownMenuContent>
                                                     </DropdownMenu>
@@ -993,7 +1013,7 @@ export default function HistoricoEntregas() {
                           {viagem.motorista?.nome_completo || 'Sem motorista'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {viagem.entregas.length} {viagem.entregas.length === 1 ? 'entrega' : 'entregas'}
+                          {viagem.entregas.length} {viagem.entregas.length === 1 ? 'carga' : 'cargas'}
                           {viagem.km_total ? ` • ${viagem.km_total} km` : ''}
                         </p>
                       </div>
@@ -1044,12 +1064,19 @@ export default function HistoricoEntregas() {
           entregaId={docsEntregaId || ''}
           entregaCodigo={docsEntregaCodigo}
           canhotoUrl={docsEntregaCanhoto}
+          outrosDocumentos={docsEntregaOutros}
         />
 
         <ViagemTrackingMapDialog
           viagemId={trackingViagemId}
           info={trackingViagemInfo}
           onClose={() => { setTrackingViagemId(null); setTrackingViagemInfo(null); }}
+        />
+
+        <TrackingMapDialog
+          entregaId={trackingEntregaId}
+          info={trackingEntregaInfo}
+          onClose={() => { setTrackingEntregaId(null); setTrackingEntregaInfo(null); }}
         />
 
         <ViagemDetailsHistoricoDialog

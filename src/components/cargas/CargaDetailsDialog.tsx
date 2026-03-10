@@ -54,6 +54,8 @@ interface CargaDetailsProps {
     valor_frete_m3?: number | null;
     valor_frete_fixo?: number | null;
     valor_frete_km?: number | null;
+    numero_pedido?: string | null;
+    quantidade_paletes?: number | null;
     status: StatusCarga | null;
     data_coleta_de: string | null;
     data_coleta_ate: string | null;
@@ -131,7 +133,7 @@ const statusCargaConfig: Record<string, { color: string; label: string; icon: Re
   'aceita': { color: 'bg-purple-500/10 text-purple-600', label: 'Aceita', icon: Package },
   'em_coleta': { color: 'bg-cyan-500/10 text-cyan-600', label: 'Em Coleta', icon: Truck },
   'em_transito': { color: 'bg-orange-500/10 text-orange-600', label: 'Em Trânsito', icon: Navigation },
-  'entregue': { color: 'bg-green-500/10 text-green-600', label: 'Entregue', icon: CheckCircle },
+  'entregue': { color: 'bg-green-500/10 text-green-600', label: 'Concluída', icon: CheckCircle },
   'cancelada': { color: 'bg-red-500/10 text-red-600', label: 'Cancelada', icon: AlertTriangle },
 };
 
@@ -164,8 +166,8 @@ const statusEntregaConfig: Record<string, { color: string; label: string }> = {
   'em_coleta': { color: 'bg-blue-500/10 text-blue-600', label: 'Em Coleta' },
   'coletado': { color: 'bg-cyan-500/10 text-cyan-600', label: 'Coletado' },
   'em_transito': { color: 'bg-orange-500/10 text-orange-600', label: 'Em Trânsito' },
-  'em_entrega': { color: 'bg-purple-500/10 text-purple-600', label: 'Em Entrega' },
-  'entregue': { color: 'bg-green-500/10 text-green-600', label: 'Entregue' },
+  'em_entrega': { color: 'bg-purple-500/10 text-purple-600', label: 'Em Rota' },
+  'entregue': { color: 'bg-green-500/10 text-green-600', label: 'Concluída' },
   'problema': { color: 'bg-red-500/10 text-red-600', label: 'Problema' },
   'devolvida': { color: 'bg-red-500/10 text-red-600', label: 'Devolvida' },
 };
@@ -217,9 +219,15 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
           {/* Descrição */}
           <div>
             <p className="text-lg font-medium">{carga.descricao}</p>
-            <p className="text-sm text-muted-foreground">
-              Criado em {formatDate(carga.created_at)}
-            </p>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span>Criado em {formatDate(carga.created_at)}</span>
+              {carga.numero_pedido && (
+                <Badge variant="outline" className="text-xs">
+                  <FileText className="w-3 h-3 mr-1" />
+                  Pedido: {carga.numero_pedido}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <Separator />
@@ -504,7 +512,7 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <PackageOpen className="w-4 h-4" />
-                    Entregas ({Array.isArray(carga.entregas) ? (carga.entregas as any[]).length : 1})
+                    Cargas ({Array.isArray(carga.entregas) ? (carga.entregas as any[]).length : 1})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">

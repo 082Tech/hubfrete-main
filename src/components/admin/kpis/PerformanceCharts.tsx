@@ -33,7 +33,7 @@ export function EntregasPorMesChart({ data }: { data: ChartData[] }) {
   return (
     <Card className="border-border">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">Entregas por Mês</CardTitle>
+        <CardTitle className="text-sm font-medium">Cargas por Mês</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={250}>

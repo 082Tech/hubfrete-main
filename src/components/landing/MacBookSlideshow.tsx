@@ -23,8 +23,8 @@ const showcaseScreens = [
   },
   { 
     id: 4, 
-    title: 'Gestão de Entregas',
-    subtitle: 'Acompanhe entregas em tempo real',
+     title: 'Gestão de Cargas',
+     subtitle: 'Acompanhe cargas em tempo real',
     image: '/image-4.png'
   },
 ];

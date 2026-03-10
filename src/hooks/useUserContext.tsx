@@ -19,6 +19,7 @@ export interface Empresa {
   tipo: 'EMBARCADOR' | 'TRANSPORTADORA';
   classe: string;
   logo_url: string | null;
+  comissao_hubfrete_percent: number | null;
 }
 
 export interface CompanyInfo {
@@ -210,7 +211,8 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
                 cnpj_matriz,
                 tipo,
                 classe,
-                logo_url
+                logo_url,
+                comissao_hubfrete_percent
               )
             )
           )
@@ -241,6 +243,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
                   tipo: emp.tipo,
                   classe: emp.classe,
                   logo_url: emp.logo_url,
+                  comissao_hubfrete_percent: emp.comissao_hubfrete_percent ?? null,
                 });
               }
             }

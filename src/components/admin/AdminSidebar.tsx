@@ -1,30 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Shield,
-  Users,
-  UserPlus,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  LayoutDashboard,
-  TrendingUp,
-  Activity,
-  Truck,
-  AlertTriangle,
-  Building,
-  User,
-  FileText,
-  Package,
-  History,
-  Clock,
-  Award,
-  Container,
-  UserPlus as UserPlusIcon,
-  Camera,
-  FileCheck,
-  HardDrive,
+  Shield, Users, UserPlus, LogOut, ChevronLeft, ChevronRight, ChevronDown,
+  LayoutDashboard, TrendingUp, Activity, Truck, AlertTriangle, Building,
+  User, FileText, Package, History, Clock, Award, Container, Boxes,
+  UserPlus as UserPlusIcon, Camera, FileCheck, HardDrive, DollarSign,
+  MoreVertical, MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +20,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 
 type AdminRole = 'super_admin' | 'admin' | 'suporte';
@@ -76,10 +64,10 @@ const roleLabels: Record<AdminRole, string> = {
   suporte: 'Suporte',
 };
 
-const roleBadgeVariants: Record<AdminRole, 'destructive' | 'default' | 'secondary'> = {
-  super_admin: 'destructive',
-  admin: 'default',
-  suporte: 'secondary',
+const roleBadgeVariants: Record<AdminRole, 'default' | 'secondary' | 'outline'> = {
+  super_admin: 'default',
+  admin: 'secondary',
+  suporte: 'outline',
 };
 
 export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps) {
@@ -90,9 +78,11 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     return saved === 'true';
   });
   const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(() => {
-    // Auto-expand submenu if current path matches
     const initial = new Set<string>();
     if (location.pathname.startsWith('/admin/cargas')) {
+      initial.add('Ofertas');
+    }
+    if (location.pathname.startsWith('/admin/entregas')) {
       initial.add('Cargas');
     }
     return initial;
@@ -105,6 +95,9 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
   // Update open submenus when location changes
   useEffect(() => {
     if (location.pathname.startsWith('/admin/cargas')) {
+      setOpenSubmenus(prev => new Set(prev).add('Ofertas'));
+    }
+    if (location.pathname.startsWith('/admin/entregas')) {
       setOpenSubmenus(prev => new Set(prev).add('Cargas'));
     }
   }, [location.pathname]);
@@ -140,8 +133,8 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       roles: ['super_admin', 'admin'],
     },
     {
-      title: 'Cargas',
-      icon: Package,
+      title: 'Ofertas',
+      icon: Boxes,
       roles: ['super_admin', 'admin', 'suporte'],
       subItems: [
         { title: 'Publicadas', href: '/admin/cargas', icon: Clock },
@@ -149,10 +142,13 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       ],
     },
     {
-      title: 'Entregas',
-      icon: Truck,
-      href: '/admin/entregas',
+      title: 'Cargas',
+      icon: Package,
       roles: ['super_admin', 'admin', 'suporte'],
+      subItems: [
+        { title: 'Em andamento', href: '/admin/entregas', icon: MapPin },
+        { title: 'Histórico', href: '/admin/entregas/historico', icon: History },
+      ],
     },
     {
       title: 'Cadastros',
@@ -177,7 +173,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       icon: Camera,
       roles: ['super_admin', 'admin', 'suporte'],
       subItems: [
-        { title: 'Provas de Entrega', href: '/admin/provas-entrega', icon: Camera },
+        { title: 'Comprovantes', href: '/admin/provas-entrega', icon: Camera },
         { title: 'Storage Explorer', href: '/admin/storage', icon: HardDrive },
       ],
     },
@@ -211,6 +207,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       icon: FileCheck,
       href: '/admin/documentos',
       roles: ['super_admin', 'admin', 'suporte'],
+    },
+    {
+      title: 'Financeiro',
+      icon: DollarSign,
+      href: '/admin/financeiro',
+      roles: ['super_admin', 'admin'],
     },
     {
       title: 'Relatórios',
@@ -247,12 +249,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
         {/* Logo & Collapse Button */}
         <div className={`p-4 border-b border-sidebar-border ${collapsed ? 'flex flex-col items-center gap-2' : 'flex items-center justify-between'}`}>
           <Link to="/admin/torre-controle" className={`flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="p-2 bg-destructive rounded-lg shrink-0">
-              <Shield className="w-5 h-5 text-destructive-foreground" />
+            <div className="p-2 bg-admin-accent rounded-lg shrink-0">
+              <Truck className="w-5 h-5 text-admin-accent-foreground" />
             </div>
             {!collapsed && (
               <span className="text-xl font-bold text-sidebar-foreground">
-                Hub<span className="text-destructive">Admin</span>
+                Hub<span className="text-admin-accent">Admin</span>
               </span>
             )}
           </Link>
@@ -270,7 +272,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
         {!collapsed && (
           <div className="px-4 py-3 border-b border-sidebar-border bg-sidebar-accent/10">
             <div className="flex items-center gap-2">
-              <Badge variant={roleBadgeVariants[adminUser.role]} className="text-[10px] py-0 px-1.5 h-5">
+            <Badge className="text-[10px] py-0 px-1.5 h-5 bg-primary text-primary-foreground">
                 <Shield className="w-2.5 h-2.5 mr-1" />
                 Torre de Controle
               </Badge>
@@ -298,7 +300,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                         to={item.subItems[0].href}
                         className={`flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                           isAnySubActive
-                            ? 'bg-destructive text-destructive-foreground'
+                            ? 'bg-admin-accent text-admin-accent-foreground'
                             : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                         }`}
                       >
@@ -314,7 +316,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                             to={sub.href}
                             className={`text-xs px-2 py-1 rounded ${
                               location.pathname === sub.href
-                                ? 'bg-destructive/20 text-destructive'
+                                ? 'bg-admin-accent/20 text-admin-accent'
                                 : 'hover:bg-muted'
                             }`}
                           >
@@ -337,7 +339,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                     <button
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         isAnySubActive
-                          ? 'bg-destructive/10 text-destructive'
+                          ? 'bg-admin-accent/10 text-admin-accent'
                           : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                       }`}
                     >
@@ -357,7 +359,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                           to={sub.href}
                           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                             location.pathname === sub.href
-                              ? 'bg-destructive text-destructive-foreground'
+                              ? 'bg-admin-accent text-admin-accent-foreground'
                               : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                           }`}
                         >
@@ -379,7 +381,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                 to={item.href!}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''} ${
                   isActive
-                    ? 'bg-destructive text-destructive-foreground'
+                    ? 'bg-admin-accent text-admin-accent-foreground'
                     : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 }`}
               >
@@ -415,54 +417,76 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
           })}
         </nav>
 
-        {/* User */}
-        <div className={`p-4 border-t border-sidebar-border ${collapsed ? 'flex flex-col items-center gap-2' : ''}`}>
-          {!collapsed ? (
-            <>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                  <span className="text-destructive font-semibold">
-                    {(adminUser.nome || adminUser.email || 'A').charAt(0).toUpperCase()}
-                  </span>
+        {/* User Footer */}
+        <div className={`border-t border-sidebar-border ${collapsed ? 'p-2 flex flex-col items-center' : 'p-4'}`}>
+          {collapsed ? (
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button className="relative cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <div className="w-8 h-8 rounded-full bg-admin-accent/10 flex items-center justify-center shrink-0 hover:ring-2 hover:ring-admin-accent/40 transition-all">
+                        <span className="text-admin-accent font-semibold text-sm">
+                          {(adminUser.nome || adminUser.email || 'A').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={10}>
+                  {adminUser.nome || 'Admin'}
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent side="right" align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-admin-accent/10 flex items-center justify-center shrink-0">
+                <span className="text-admin-accent font-semibold">
+                  {(adminUser.nome || adminUser.email || 'A').charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    {adminUser.nome || 'Admin'}
+                  </p>
                 </div>
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium text-sidebar-foreground truncate">
-                      {adminUser.nome || 'Admin'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Badge variant={roleBadgeVariants[adminUser.role]} className="text-[9px] py-0 px-1 h-4">
-                      {roleLabels[adminUser.role]}
-                    </Badge>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <Badge className="text-[9px] py-0 px-1 h-4 bg-admin-accent text-admin-accent-foreground">
+                    {roleLabels[adminUser.role]}
+                  </Badge>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
-            </>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={10}>
-                Sair
-              </TooltipContent>
-            </Tooltip>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
         </div>
       </aside>

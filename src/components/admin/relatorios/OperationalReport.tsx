@@ -42,7 +42,7 @@ export function OperationalReport({ data, isLoading = false }: OperationalReport
       rows,
       summary: [
         { label: 'Total de Cargas', value: formatNumber(data.totalCargas) },
-        { label: 'Total de Entregas', value: formatNumber(data.totalEntregas) },
+        { label: 'Total de Cargas', value: formatNumber(data.totalEntregas) },
         { label: 'Tempo Médio de Entrega', value: `${data.tempoMedioEntrega} horas` },
       ],
     });
@@ -58,7 +58,7 @@ export function OperationalReport({ data, isLoading = false }: OperationalReport
       rows,
       summary: [
         { label: 'Total de Cargas', value: data.totalCargas },
-        { label: 'Total de Entregas', value: data.totalEntregas },
+        { label: 'Total de Cargas', value: data.totalEntregas },
         { label: 'Tempo Médio de Entrega (horas)', value: data.tempoMedioEntrega },
       ],
     });
@@ -95,7 +95,7 @@ export function OperationalReport({ data, isLoading = false }: OperationalReport
             </div>
             <div>
               <p className="text-2xl font-bold">{formatNumber(data.totalEntregas)}</p>
-              <p className="text-xs text-muted-foreground">Total de Entregas</p>
+              <p className="text-xs text-muted-foreground">Total de Cargas</p>
             </div>
           </CardContent>
         </Card>
@@ -154,7 +154,7 @@ export function OperationalReport({ data, isLoading = false }: OperationalReport
 
         <Card className="border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Entregas por Status</CardTitle>
+            <CardTitle className="text-sm font-medium">Cargas por Status</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>

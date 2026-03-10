@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
   Share, Printer, X, Weight, DollarSign, Clock, History,
-  Loader2, MoreVertical, Ban, AlertTriangle, AlertCircle
+  Loader2, MoreVertical, Ban, AlertTriangle, AlertCircle, ArrowRightLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +60,7 @@ interface ViagemEntrega {
     descricao: string;
     endereco_origem?: { cidade: string; estado: string; latitude?: number | null; longitude?: number | null } | null;
     endereco_destino?: { cidade: string; estado: string; latitude?: number | null; longitude?: number | null } | null;
+    empresa?: { id?: number; comissao_hubfrete_percent?: number | null } | null;
   };
 }
 
@@ -97,8 +98,9 @@ interface ViagemDetailPanelProps {
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   aguardando: { label: 'Aguardando', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300', icon: Clock },
   saiu_para_coleta: { label: 'Saiu p/ Coleta', color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300', icon: Truck },
+  em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300', icon: ArrowRightLeft },
   saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', icon: MapPin },
-  entregue: { label: 'Entregue', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', icon: CheckCircle },
+  entregue: { label: 'Concluída', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', icon: CheckCircle },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', icon: XCircle },
 };
 
@@ -152,32 +154,37 @@ export function ViagemDetailPanel({
   });
 
   // Fetch CT-es and NF-es for document validation
+  const allEntregaIds = useMemo(() => {
+    if (!viagem) return [];
+    return viagem.entregas.map(e => e.id);
+  }, [viagem]);
+
   const entregaIds = useMemo(() => {
     if (!viagem) return [];
     return viagem.entregas.filter(e => e.status === 'entregue').map(e => e.id);
   }, [viagem]);
 
   const { data: ctesMap } = useQuery({
-    queryKey: ['viagem-ctes-validation', viagem?.id, entregaIds],
-    queryFn: () => fetchCtesForEntregas(entregaIds),
-    enabled: entregaIds.length > 0,
+    queryKey: ['viagem-ctes-validation', viagem?.id, allEntregaIds],
+    queryFn: () => fetchCtesForEntregas(allEntregaIds),
+    enabled: allEntregaIds.length > 0,
   });
 
   const { data: nfesCountMap } = useQuery({
-    queryKey: ['viagem-nfes-validation', viagem?.id, entregaIds],
+    queryKey: ['viagem-nfes-validation', viagem?.id, allEntregaIds],
     queryFn: async () => {
-      if (entregaIds.length === 0) return {};
+      if (allEntregaIds.length === 0) return {};
       const { data } = await (supabase as any)
         .from('nfes')
         .select('entrega_id')
-        .in('entrega_id', entregaIds);
+        .in('entrega_id', allEntregaIds);
       const map: Record<string, number> = {};
       (data || []).forEach((n: any) => {
         map[n.entrega_id] = (map[n.entrega_id] || 0) + 1;
       });
       return map;
     },
-    enabled: entregaIds.length > 0,
+    enabled: allEntregaIds.length > 0,
   });
 
   const activeManifesto = useMemo(() => {
@@ -288,7 +295,9 @@ export function ViagemDetailPanel({
   // Resumo de documentos das entregas
   const docsResumo = viagem.entregas.map(e => ({
     codigo: e.codigo,
-    pod: !!e.canhoto_url,
+    canhoto: !!e.canhoto_url,
+    nfes: nfesCountMap?.[e.id] || 0,
+    ctes: ctesMap?.[e.id]?.length || 0,
   }));
 
   // Preparar pontos para o mapa multi-ponto
@@ -347,11 +356,11 @@ export function ViagemDetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Entregas desta Viagem (above map for context) */}
+          {/* Cargas desta Viagem (above map for context) */}
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Package className="w-4 h-4 text-muted-foreground" />
-              <span className="font-semibold text-sm">Entregas desta Viagem ({viagem.entregas.length})</span>
+              <span className="font-semibold text-sm">Cargas desta Viagem ({viagem.entregas.length})</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {viagem.entregas.map(entrega => {
@@ -381,6 +390,18 @@ export function ViagemDetailPanel({
                           {entrega.carga.endereco_origem?.cidade || '—'} → {entrega.carga.endereco_destino?.cidade || '—'}
                         </span>
                       </div>
+                      {entrega.valor_frete != null && (() => {
+                        const comP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
+                        const valorComissao = Math.round(entrega.valor_frete! * comP / 100 * 100) / 100;
+                        const liquido = entrega.valor_frete! - valorComissao;
+                        return (
+                          <div className="text-[10px] space-y-0.5 mt-1 p-1.5 bg-chart-2/10 rounded border border-chart-2/20">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Bruto:</span><span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                            <div className="flex justify-between text-destructive"><span>Comissão ({comP}%):</span><span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                            <div className="flex justify-between font-bold text-chart-2"><span>Líquido:</span><span>R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                          </div>
+                        );
+                      })()}
                       {missingDocs.length > 0 && entrega.status !== 'cancelada' && (
                         <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
                           <AlertCircle className="w-3 h-3 shrink-0" />
@@ -397,6 +418,7 @@ export function ViagemDetailPanel({
           {/* Mapa Multi-Ponto with tracking dots */}
           <div className="relative z-0">
             <ViagemMultiPointMap
+              key={viagem.id}
               entregas={mapEntregas}
               driverLocation={driverLocation}
               trackingPoints={trackingPoints}
@@ -462,11 +484,17 @@ export function ViagemDetailPanel({
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="font-medium text-xs">Documentos das Entregas</span>
             </div>
-            <div className="space-y-1 text-xs">
+            <div className="space-y-1.5 text-xs">
               {docsResumo.map(doc => (
-                <div key={doc.codigo} className="flex items-center gap-2 text-muted-foreground">
-                  <Badge variant="outline" className="text-[9px] px-1">{doc.codigo}</Badge>
-                  <span>POD {doc.pod ? '✓' : '✗'}</span>
+                <div key={doc.codigo} className="flex items-center gap-3 text-muted-foreground">
+                  <Badge variant="outline" className="text-[9px] px-1 font-mono">{doc.codigo}</Badge>
+                  <span className="flex items-center gap-1">
+                    Canhoto {doc.canhoto
+                      ? <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                      : <XCircle className="w-3 h-3 text-red-500 dark:text-red-400" />}
+                  </span>
+                  <span>NF-e: {doc.nfes}</span>
+                  <span>CT-e: {doc.ctes}</span>
                 </div>
               ))}
             </div>
@@ -536,8 +564,22 @@ export function ViagemDetailPanel({
           ) : isViagemEmAndamento ? (
             <Button
               className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
-              disabled={!entregasValidation.canFinalize || isProcessingViagem}
-              onClick={() => setFinalizarDialogOpen(true)}
+              disabled={isProcessingViagem}
+              onClick={() => {
+                if (!entregasValidation.canFinalize) {
+                  const issues: string[] = [];
+                  if (entregasValidation.pendingCount > 0) {
+                    issues.push(`${entregasValidation.pendingCount} entrega(s) pendente(s): ${entregasValidation.pendingEntregas.join(', ')}`);
+                  }
+                  issues.push(...entregasValidation.docIssues);
+                  toast.error('Não é possível finalizar a viagem', {
+                    description: issues.map(i => `• ${i}`).join('\n'),
+                    duration: 8000,
+                  });
+                  return;
+                }
+                setFinalizarDialogOpen(true);
+              }}
             >
               {isProcessingViagem ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -550,88 +592,30 @@ export function ViagemDetailPanel({
         </div>
       )}
 
-      {/* Aviso de entregas pendentes ou documentos faltantes (apenas em andamento) */}
-      {isViagemEmAndamento && !entregasValidation.canFinalize && (
-        <div className="px-3 pb-3 mt-1 space-y-2">
-          {entregasValidation.pendingCount > 0 && (
-            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-800 dark:text-amber-300">
-                  {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}
-                </p>
-                <p className="text-amber-700 dark:text-amber-400">
-                  Finalize ou cancele as entregas antes de finalizar a viagem.
-                </p>
-              </div>
-            </div>
-          )}
-          {entregasValidation.docIssues.length > 0 && entregasValidation.pendingCount === 0 && (
-            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs">
-              <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-800 dark:text-amber-300">
-                  Documentos pendentes
-                </p>
-                <ul className="text-amber-700 dark:text-amber-400 mt-1 space-y-0.5">
-                  {entregasValidation.docIssues.map((issue, i) => (
-                    <li key={i}>• {issue}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+
+
 
       {/* Dialog de confirmação para finalizar viagem */}
       <AlertDialog open={finalizarDialogOpen} onOpenChange={setFinalizarDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Finalizar Viagem</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div>
-                {entregasValidation.canFinalize ? (
-                  <p>
-                    Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
-                    <br /><br />
-                    Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas e com documentos completos.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    <p>Não é possível finalizar a viagem.</p>
-                    {entregasValidation.pendingCount > 0 && (
-                      <p>
-                        Existem {entregasValidation.pendingCount} entrega{entregasValidation.pendingCount > 1 ? 's' : ''} pendente{entregasValidation.pendingCount > 1 ? 's' : ''}: {entregasValidation.pendingEntregas.join(', ')}
-                      </p>
-                    )}
-                    {entregasValidation.docIssues.length > 0 && (
-                      <div>
-                        <p className="font-medium">Documentos pendentes:</p>
-                        <ul className="mt-1 space-y-0.5 text-sm">
-                          {entregasValidation.docIssues.map((issue, i) => (
-                            <li key={i}>• {issue}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+            <AlertDialogDescription>
+              Tem certeza que deseja finalizar a viagem <strong>{viagem.codigo}</strong>?
+              <br /><br />
+              Todas as {viagem.entregas.length} entrega{viagem.entregas.length > 1 ? 's' : ''} estão finalizadas e com documentos completos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isProcessingViagem}>Cancelar</AlertDialogCancel>
-            {entregasValidation.canFinalize && (
-              <AlertDialogAction
-                onClick={handleFinalizarViagem}
-                disabled={isProcessingViagem}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {isProcessingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Confirmar Finalização
-              </AlertDialogAction>
-            )}
+            <AlertDialogAction
+              onClick={handleFinalizarViagem}
+              disabled={isProcessingViagem}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isProcessingViagem && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Confirmar Finalização
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

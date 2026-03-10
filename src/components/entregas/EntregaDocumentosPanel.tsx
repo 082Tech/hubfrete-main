@@ -9,8 +9,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
     FileText, Plus, Upload, Eye, Trash2,
-    FileCode, Stamp, Loader2, X, CheckCircle, AlertCircle, File,
+    FileCode, Stamp, Loader2, X, CheckCircle, AlertCircle, File, Paperclip, Info,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -20,12 +21,21 @@ import type { CteDoc, NfeDoc } from '@/lib/documentHelpers';
 
 export type DocumentosPerfil = 'embarcador' | 'transportadora';
 
+export interface OutroDocumento {
+    url: string;
+    nome: string;
+    uploaded_by: string;
+    uploaded_at: string;
+    tipo_usuario: 'embarcador' | 'transportadora';
+}
+
 interface EntregaDocumentosPanelProps {
     perfil: DocumentosPerfil;
     entregaId: string;
     ctes: CteDoc[];
     nfesDiretas?: NfeDoc[];
     canhotoUrl?: string | null;
+    outrosDocumentos?: OutroDocumento[];
     onRefresh: () => void;
 }
 
@@ -222,6 +232,52 @@ function CteCard({
     );
 }
 
+// ─── NfeRow ──────────────────────────────────────────────────────────────────
+function NfeRow({
+    nfe, index, onPreview, onDelete,
+}: {
+    nfe: NfeDoc; index: number;
+    onPreview: (url: string, title: string) => void;
+    onDelete: (id: string) => void;
+}) {
+    const [deleting, setDeleting] = useState(false);
+
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDeleting(true);
+        try {
+            const { error } = await (supabase as any).from('nfes').delete().eq('id', nfe.id);
+            if (error) throw error;
+            toast.success('NF-e removida!');
+            onDelete(nfe.id);
+        } catch (err: any) {
+            toast.error(`Erro ao remover NF-e: ${err?.message || 'Erro'}`);
+            setDeleting(false);
+        }
+    };
+
+    return (
+        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/40 bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
+            <div className="flex items-center gap-2">
+                <FileCode className="w-3 h-3 text-indigo-400" />
+                <span className="text-indigo-800 dark:text-indigo-200">NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || index + 1}</span>
+            </div>
+            <div className="flex items-center gap-0.5">
+                {nfe.url && (
+                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-500"
+                        onClick={() => onPreview(nfe.url!, `NF-e ${index + 1}`)}>
+                        <Eye className="w-3 h-3" />
+                    </Button>
+                )}
+                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-destructive hover:bg-destructive/10"
+                    title="Excluir NF-e" onClick={handleDelete} disabled={deleting}>
+                    {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                </Button>
+            </div>
+        </div>
+    );
+}
+
 // ─── SectionTitle ─────────────────────────────────────────────────────────────
 function SectionTitle({ icon, label, count, badge }: {
     icon: React.ReactNode; label: string; count?: number; badge?: string;
@@ -242,16 +298,22 @@ function SectionTitle({ icon, label, count, badge }: {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function EntregaDocumentosPanel({
-    perfil, entregaId, ctes: ctesProp, nfesDiretas = [], canhotoUrl: canhotoUrlProp, onRefresh,
+    perfil, entregaId, ctes: ctesProp, nfesDiretas = [], canhotoUrl: canhotoUrlProp, outrosDocumentos: outrosDocsProp = [], onRefresh,
 }: EntregaDocumentosPanelProps) {
 
     // ── Estado LOCAL (atualiza imediatamente sem depender do ciclo do pai) ──────
     const [localCtes, setLocalCtes] = useState<CteDoc[]>(ctesProp);
     const [localCanhotoUrl, setLocalCanhotoUrl] = useState<string | null>(canhotoUrlProp ?? null);
+    const [localOutros, setLocalOutros] = useState<OutroDocumento[]>(outrosDocsProp);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     // Sincroniza quando o pai manda novos dados
     useEffect(() => { setLocalCtes(ctesProp); }, [ctesProp]);
     useEffect(() => { setLocalCanhotoUrl(canhotoUrlProp ?? null); }, [canhotoUrlProp]);
+    useEffect(() => { setLocalOutros(outrosDocsProp); }, [outrosDocsProp]);
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+    }, []);
 
     // ── Preview dialog ──────────────────────────────────────────────────────────
     const [previewOpen, setPreviewOpen] = useState(false);
@@ -312,8 +374,12 @@ export function EntregaDocumentosPanel({
     };
 
     const handleDeleteCte = (id: string) => {
-        // Atualiza local imediatamente (o toast já foi mostrado pelo CteCard)
         setLocalCtes((prev) => prev.filter((c) => c.id !== id));
+        onRefresh();
+    };
+
+    const handleDeleteNfe = (id: string) => {
+        // NF-e removida pelo NfeRow, apenas refresh
         onRefresh();
     };
 
@@ -411,6 +477,72 @@ export function EntregaDocumentosPanel({
         }
     };
 
+    // ── Outros Documentos staging ───────────────────────────────────────────────
+    const [stagingOutros, setStagingOutros] = useState<StagingFile[]>([]);
+    const [uploadingOutro, setUploadingOutro] = useState(false);
+    const outroRef = useRef<HTMLInputElement>(null);
+
+    const handleOutroFiles = (files: File[]) => {
+        const remaining = 10 - localOutros.length;
+        if (remaining <= 0) { toast.error('Limite de 10 documentos atingido'); return; }
+        const { valid, errors } = validateFiles(files);
+        errors.forEach((e) => toast.error(e));
+        const capped = valid.slice(0, remaining - stagingOutros.length);
+        if (capped.length < valid.length) toast.warning(`Apenas ${capped.length} arquivo(s) adicionado(s) (limite de 10)`);
+        if (capped.length) setStagingOutros((prev) => [...prev, ...toStaging(capped)]);
+    };
+
+    const removeOutroStaging = (id: string) => {
+        setStagingOutros((prev) => {
+            const s = prev.find((x) => x.id === id);
+            if (s?.preview) URL.revokeObjectURL(s.preview);
+            return prev.filter((x) => x.id !== id);
+        });
+    };
+
+    const confirmOutroUpload = async () => {
+        if (!currentUserId) return;
+        setUploadingOutro(true);
+        try {
+            const newDocs: OutroDocumento[] = [];
+            for (const s of stagingOutros) {
+                const ext = s.file.name.split('.').pop();
+                const path = `outros/${entregaId}/${Date.now()}_${Math.random().toString(36).slice(7)}.${ext}`;
+                const url = await uploadFile(s.file, path);
+                newDocs.push({
+                    url, nome: s.file.name,
+                    uploaded_by: currentUserId,
+                    uploaded_at: new Date().toISOString(),
+                    tipo_usuario: perfil,
+                });
+            }
+            const updated = [...localOutros, ...newDocs];
+            const { error } = await supabase.from('entregas').update({ outros_documentos: updated as any }).eq('id', entregaId);
+            if (error) throw error;
+            setLocalOutros(updated);
+            setStagingOutros([]);
+            toast.success(newDocs.length > 1 ? `${newDocs.length} documentos adicionados!` : 'Documento adicionado!');
+            onRefresh();
+        } catch (err: any) {
+            toast.error(`Erro ao salvar: ${err?.message || 'Erro'}`);
+        } finally {
+            setUploadingOutro(false);
+        }
+    };
+
+    const handleRemoveOutro = async (index: number) => {
+        const updated = localOutros.filter((_, i) => i !== index);
+        try {
+            const { error } = await supabase.from('entregas').update({ outros_documentos: updated as any }).eq('id', entregaId);
+            if (error) throw error;
+            setLocalOutros(updated);
+            toast.success('Documento removido!');
+            onRefresh();
+        } catch (err: any) {
+            toast.error(`Erro ao remover: ${err?.message || 'Erro'}`);
+        }
+    };
+
     // ─────────────────────────────────────────────────────────────────────────────
     return (
         <div className="space-y-4">
@@ -418,36 +550,92 @@ export function EntregaDocumentosPanel({
             {/* ═══ NF-e do Embarcador ═══ */}
             {perfil === 'embarcador' && (
                 <section className="space-y-2">
-                    <SectionTitle icon={<FileCode className="w-3.5 h-3.5 text-indigo-500" />} label="Notas Fiscais" count={nfesDiretas.length} />
+                    {/* Prominent header like the reference */}
+                    <div className={`rounded-xl border-2 p-3 flex items-center justify-between ${
+                        nfesDiretas.length === 0
+                            ? 'border-red-200 dark:border-red-800/40 bg-red-50/50 dark:bg-red-900/10'
+                            : 'border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/50 dark:bg-emerald-900/10'
+                    }`}>
+                        <div className="flex items-center gap-2.5">
+                            {nfesDiretas.length === 0 ? (
+                                <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                            ) : (
+                                <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+                            )}
+                            <div>
+                                <p className="text-sm font-semibold">Notas Fiscais</p>
+                                <p className={`text-[11px] ${nfesDiretas.length === 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                    {nfesDiretas.length === 0
+                                        ? 'Obrigatório para iniciar viagem'
+                                        : `${nfesDiretas.length} NF-e${nfesDiretas.length !== 1 ? 's' : ''} anexada${nfesDiretas.length !== 1 ? 's' : ''}`}
+                                </p>
+                            </div>
+                        </div>
+                        <Button
+                            size="sm"
+                            className={`gap-1.5 shrink-0 ${nfesDiretas.length === 0 ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
+                            variant={nfesDiretas.length === 0 ? 'default' : 'outline'}
+                            onClick={() => nfeRef.current?.click()}
+                        >
+                            <Upload className="w-3.5 h-3.5" />
+                            Anexar NF-e
+                        </Button>
+                    </div>
 
+                    {/* Existing NF-e list */}
                     {nfesDiretas.length > 0 && (
                         <div className="space-y-1">
                             {nfesDiretas.map((nfe, i) => (
-                                <div key={nfe.id} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/40 bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
-                                    <div className="flex items-center gap-2">
-                                        <FileCode className="w-3 h-3 text-indigo-400" />
-                                        <span className="text-indigo-800 dark:text-indigo-200">NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || i + 1}</span>
-                                    </div>
-                                    {nfe.url && (
-                                        <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-indigo-500"
-                                            onClick={() => openPreview(nfe.url!, `NF-e ${i + 1}`)}>
-                                            <Eye className="w-3 h-3" />
-                                        </Button>
-                                    )}
-                                </div>
+                                <NfeRow key={nfe.id} nfe={nfe} index={i} onPreview={openPreview} onDelete={handleDeleteNfe} />
                             ))}
                         </div>
                     )}
 
+                    {/* Staging or dropzone */}
                     {stagingNfes.length > 0 ? (
                         <StagingList items={stagingNfes} onRemove={removeNfeStaging} onConfirm={confirmNfeUpload} uploading={uploadingNfe} label="NF-es" />
                     ) : (
                         <DropZone
-                            label="Arrastar NF-es aqui"
-                            hint="PDF ou XML • até 10 MB • múltiplos permitidos"
-                            accentColor="border-indigo-200 dark:border-indigo-800/40 hover:border-indigo-400"
+                            label="Arraste PDF ou XML aqui, ou clique para selecionar"
+                            hint="PDF, XML ou imagem • até 10 MB • múltiplos permitidos"
+                            accentColor="border-muted-foreground/20 hover:border-primary/40"
                             inputRef={nfeRef} multiple onFiles={handleNfeFiles}
                         />
+                    )}
+                </section>
+            )}
+
+            {/* ═══ CT-es read-only (embarcador) ═══ */}
+            {perfil === 'embarcador' && (
+                <section className="space-y-2">
+                    <SectionTitle icon={<FileText className="w-3.5 h-3.5 text-amber-500" />} label="CT-es" count={localCtes.length > 0 ? localCtes.length : undefined} />
+
+                    {localCtes.length > 0 ? (
+                        <div className="space-y-2">
+                            {localCtes.map((cte, i) => (
+                                <div key={cte.id} className="rounded-xl border border-amber-200 dark:border-amber-800/40 overflow-hidden bg-card">
+                                    <div className="flex items-center justify-between px-3 py-2.5 bg-amber-50/80 dark:bg-amber-900/10">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <FileText className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                            <span className="text-xs font-semibold text-amber-900 dark:text-amber-100 truncate">
+                                                CT-e {cte.numero || `#${i + 1}`}
+                                            </span>
+                                        </div>
+                                        {cte.url && (
+                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-600 hover:bg-amber-100 shrink-0"
+                                                onClick={() => openPreview(cte.url!, `CT-e ${cte.numero || i + 1}`)}>
+                                                <Eye className="w-3 h-3" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-muted text-xs text-muted-foreground">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            Aguardando transportadora
+                        </div>
                     )}
                 </section>
             )}
@@ -601,6 +789,73 @@ export function EntregaDocumentosPanel({
                         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                         Aguardando transportadora
                     </div>
+                )}
+            </section>
+
+            {/* ═══ Outros Documentos ═══ */}
+            <section className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                    <Paperclip className="w-3.5 h-3.5 text-violet-500" />
+                    <span className="text-xs font-semibold">Outros Documentos</span>
+                    {localOutros.length > 0 && (
+                        <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{localOutros.length}/10</Badge>
+                    )}
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[220px] text-xs">
+                                Anexe documentos complementares como GNRE, comprovantes de pagamento, autorizações, etc. Limite de 10 arquivos.
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
+
+                {localOutros.length > 0 && (
+                    <div className="space-y-1.5">
+                        {localOutros.map((doc, i) => (
+                            <div key={`${doc.url}-${i}`} className="rounded-xl border border-violet-200 dark:border-violet-800/40 overflow-hidden bg-card">
+                                <div className="flex items-center justify-between px-3 py-2.5 bg-violet-50/60 dark:bg-violet-900/10">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <Paperclip className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                                        <span className="text-xs font-semibold text-violet-900 dark:text-violet-100 truncate">{doc.nome}</span>
+                                        <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0">
+                                            {doc.tipo_usuario === 'embarcador' ? 'Embarcador' : 'Transportadora'}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-0.5 shrink-0">
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-violet-600 hover:bg-violet-100"
+                                            title="Visualizar" onClick={() => openPreview(doc.url, doc.nome)}>
+                                            <Eye className="w-3 h-3" />
+                                        </Button>
+                                        {doc.tipo_usuario === perfil && (
+                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                                                title="Remover" onClick={() => handleRemoveOutro(i)}>
+                                                <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {localOutros.length >= 10 ? (
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-muted text-xs text-muted-foreground">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        Limite de 10 documentos atingido
+                    </div>
+                ) : stagingOutros.length > 0 ? (
+                    <StagingList items={stagingOutros} onRemove={removeOutroStaging} onConfirm={confirmOutroUpload} uploading={uploadingOutro} label="documentos" />
+                ) : (
+                    <DropZone
+                        label="Arrastar documentos aqui"
+                        hint="GNRE, comprovantes, autorizações • PDF, XML, JPG, PNG • até 10 MB"
+                        accentColor="border-violet-200 dark:border-violet-800/40 hover:border-violet-400"
+                        inputRef={outroRef} multiple onFiles={handleOutroFiles}
+                    />
                 )}
             </section>
 

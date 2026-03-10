@@ -54,6 +54,7 @@ interface DailyPerformanceDialogProps {
 const STATUS_COLORS: Record<string, string> = {
   aguardando: '#f59e0b',
   saiu_para_coleta: '#06b6d4',
+  em_transito: '#6366f1',
   saiu_para_entrega: '#a855f7',
   entregue: '#22c55e',
   cancelada: '#ef4444',
@@ -62,8 +63,9 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   aguardando: 'Aguardando',
   saiu_para_coleta: 'Saiu p/ Coleta',
-  saiu_para_entrega: 'Saiu p/ Entrega',
-  entregue: 'Entregue',
+  em_transito: 'Em Trânsito',
+  saiu_para_entrega: 'Em Rota',
+  entregue: 'Concluída',
   cancelada: 'Cancelada',
 };
 
@@ -116,8 +118,8 @@ export function DailyPerformanceDialog({
     const data = [
       { name: 'Aguardando', value: metrics.aguardando, color: STATUS_COLORS.aguardando },
       { name: 'Saiu p/ Coleta', value: metrics.coleta, color: STATUS_COLORS.saiu_para_coleta },
-      { name: 'Saiu p/ Entrega', value: metrics.emRota, color: STATUS_COLORS.saiu_para_entrega },
-      { name: 'Entregue', value: metrics.entregues, color: STATUS_COLORS.entregue },
+      { name: 'Em Rota', value: metrics.emRota, color: STATUS_COLORS.saiu_para_entrega },
+      { name: 'Concluída', value: metrics.entregues, color: STATUS_COLORS.entregue },
       { name: 'Cancelada', value: metrics.canceladas, color: STATUS_COLORS.cancelada },
     ].filter(d => d.value > 0);
     return data;
@@ -159,7 +161,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                   <Package className="w-3.5 h-3.5" />
-                  Total de Entregas
+                  Total de Cargas
                 </div>
                 <p className="text-2xl font-bold">{metrics.total}</p>
               </CardContent>
@@ -181,7 +183,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                   <CheckCircle className="w-3.5 h-3.5" />
-                  Valor Entregue
+                  Valor Concluído
                 </div>
                 <p className="text-2xl font-bold text-green-600">
                   R$ {metrics.valorEntregue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -193,7 +195,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                   <TrendingUp className="w-3.5 h-3.5" />
-                  Taxa de Entrega
+                  Taxa de Conclusão
                 </div>
                 <p className="text-2xl font-bold">{metrics.taxaEntrega}%</p>
               </CardContent>
@@ -222,7 +224,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-3 text-center">
                 <Truck className="w-4 h-4 text-purple-600 mx-auto mb-1" />
                 <p className="text-lg font-bold text-purple-800">{metrics.emRota}</p>
-                <p className="text-[10px] text-purple-700">Saiu p/ Entrega</p>
+                <p className="text-[10px] text-purple-700">Em Rota</p>
               </CardContent>
             </Card>
 
@@ -230,7 +232,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-3 text-center">
                 <CheckCircle className="w-4 h-4 text-green-600 mx-auto mb-1" />
                 <p className="text-lg font-bold text-green-800">{metrics.entregues}</p>
-                <p className="text-[10px] text-green-700">Entregue</p>
+                <p className="text-[10px] text-green-700">Concluída</p>
               </CardContent>
             </Card>
 
@@ -289,7 +291,7 @@ export function DailyPerformanceDialog({
             {/* Bar Chart - Entregas por Motorista */}
             <Card className="border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Top 5 Motoristas (Entregas)</CardTitle>
+                <CardTitle className="text-sm font-medium">Top 5 Motoristas (Cargas)</CardTitle>
               </CardHeader>
               <CardContent>
                 {motoristaData.length > 0 ? (
@@ -311,7 +313,7 @@ export function DailyPerformanceDialog({
                           borderRadius: '8px',
                         }}
                         formatter={(value: number, name: string) => {
-                          if (name === 'entregas') return [value, 'Entregas'];
+                          if (name === 'entregas') return [value, 'Cargas'];
                           return [value, name];
                         }}
                       />
