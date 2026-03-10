@@ -84,25 +84,26 @@ const frotaSubmenu: MenuGroup = {
   ],
 };
 
-// "Sua Empresa" submenu for embarcador
+// "Minha Empresa" submenu for embarcador
 const embarcadorEmpresaSubmenu: MenuGroup = {
   icon: Building2,
-  label: 'Sua Empresa',
+  label: 'Minha Empresa',
   subItems: [
-    { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais' },
-    { icon: Users, label: 'Usuários', href: '/embarcador/usuarios' },
-    { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
+    { icon: Building2, label: 'Dados da Empresa', href: '/embarcador/dados-empresa' },
+    { icon: Users, label: 'Contatos', href: '/embarcador/contatos' },
+    { icon: Building, label: 'Gerenciar Filiais', href: '/embarcador/filiais', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
+    { icon: Users, label: 'Usuários', href: '/embarcador/usuarios', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
   ],
 };
 
-// "Sua Empresa" submenu for transportadora
+// "Minha Empresa" submenu for transportadora
 const transportadoraEmpresaSubmenu: MenuGroup = {
   icon: Building2,
-  label: 'Sua Empresa',
+  label: 'Minha Empresa',
   subItems: [
-    { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais' },
-    { icon: Users, label: 'Usuários', href: '/transportadora/usuarios' },
-    { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
+    { icon: Building2, label: 'Dados da Empresa', href: '/transportadora/dados-empresa' },
+    { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
+    { icon: Users, label: 'Usuários', href: '/transportadora/usuarios', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
   ],
 };
 
@@ -115,7 +116,8 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
     { icon: BarChart3, label: 'Relatórios', href: '/embarcador/relatorios' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
-    // Sua Empresa is a submenu
+    // Minha Empresa is a submenu
+    { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
   ],
   transportadora: [
     { icon: Home, label: 'Home', href: '/transportadora' },
@@ -126,7 +128,8 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
     { icon: BarChart3, label: 'Relatórios', href: '/transportadora/relatorios' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
-    // Sua Empresa is a submenu
+    // Minha Empresa is a submenu
+    { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
   ],
   motorista: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/motorista' },
@@ -179,7 +182,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   const [frotaOpen, setFrotaOpen] = useState(isFrotaSubmenuActive);
 
   const empresaSubmenu = userType === 'embarcador' ? embarcadorEmpresaSubmenu : transportadoraEmpresaSubmenu;
-  const empresaSubItems = cargo === 'ADMIN' ? empresaSubmenu.subItems : empresaSubmenu.subItems.filter(s => s.href.includes('configuracoes'));
+  const empresaSubItems = cargo === 'ADMIN' ? empresaSubmenu.subItems : empresaSubmenu.subItems.filter(s => !(s as any).adminOnly);
   const isEmpresaSubmenuActive = empresaSubItems.some(
     (sub) => location.pathname === sub.href
   );

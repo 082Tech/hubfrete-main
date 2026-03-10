@@ -59,6 +59,7 @@ import Assistente from "./pages/portals/embarcador/Assistente";
 import ContatosSalvos from "./pages/portals/embarcador/ContatosSalvos";
 import EmbarcadorMensagens from "./pages/portals/embarcador/Mensagens";
 import EmbarcadorNotificacoes from "./pages/portals/embarcador/Notificacoes";
+import EmbarcadorDadosEmpresa from "./pages/portals/embarcador/DadosEmpresa";
 
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraOfertas from "./pages/portals/transportadora/OfertasDisponiveis";
@@ -75,6 +76,7 @@ import TransportadoraUsuarios from "./pages/portals/transportadora/UsuariosEmpre
 import TransportadoraMensagens from "./pages/portals/transportadora/Mensagens";
 import TransportadoraRelatorios from "./pages/portals/transportadora/Relatorios";
 import TransportadoraNotificacoes from "./pages/portals/transportadora/Notificacoes";
+import TransportadoraDadosEmpresa from "./pages/portals/transportadora/DadosEmpresa";
 import TransportadoraOperacaoDiaria from "./pages/portals/transportadora/OperacaoDiaria";
 import TransportadoraFinanceiro from "./pages/portals/transportadora/Financeiro";
 
@@ -165,6 +167,7 @@ const App = () => {
                     <Route path="filiais" element={<GerenciarFiliais />} />
                     <Route path="usuarios" element={<UsuariosEmpresa />} />
                     <Route path="financeiro" element={<EmbarcadorFinanceiro />} />
+                    <Route path="dados-empresa" element={<EmbarcadorDadosEmpresa />} />
                     <Route path="configuracoes" element={<Configuracoes />} />
                   </Route>
 
@@ -186,6 +189,7 @@ const App = () => {
                     <Route path="filiais" element={<TransportadoraFiliais />} />
                     <Route path="usuarios" element={<TransportadoraUsuarios />} />
                     <Route path="financeiro" element={<TransportadoraFinanceiro />} />
+                    <Route path="dados-empresa" element={<TransportadoraDadosEmpresa />} />
                     <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />
                   </Route>
 
