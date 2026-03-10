@@ -754,7 +754,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                 </Collapsible>
               )}
 
-              {/* Rest of transportadora menu items */}
+              {/* Rest of transportadora menu items (excluding empresa submenu items) */}
               {menuItems
                 .filter(item =>
                   item.href !== '/transportadora' &&
@@ -792,6 +792,74 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
 
                   return linkContent;
                 })}
+
+              {/* Sua Empresa Submenu */}
+              {empresaSubItems.length > 0 && (
+                collapsed ? (
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className={`flex items-center justify-center w-full px-3 py-2 rounded-lg transition-colors ${isEmpresaSubmenuActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                              }`}
+                          >
+                            <Building2 className="w-5 h-5 shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>Sua Empresa</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent side="right" align="start" className="w-48">
+                      {empresaSubItems.map((sub) => (
+                        <DropdownMenuItem
+                          key={sub.href}
+                          onClick={() => navigate(sub.href)}
+                          className={location.pathname === sub.href ? 'bg-accent' : ''}
+                        >
+                          <sub.icon className="w-4 h-4 mr-2" />
+                          {sub.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Collapsible open={empresaOpen} onOpenChange={setEmpresaOpen}>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${isEmpresaSubmenuActive
+                          ? 'bg-sidebar-primary/10 text-sidebar-primary'
+                          : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                          }`}
+                      >
+                        <Building2 className="w-5 h-5 shrink-0" />
+                        <span className="font-medium flex-1 text-left">Sua Empresa</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${empresaOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                      {empresaSubItems.map((sub) => {
+                        const isSubActive = location.pathname === sub.href;
+                        return (
+                          <Link
+                            key={sub.href}
+                            to={sub.href}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isSubActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                              }`}
+                          >
+                            <sub.icon className="w-4 h-4 shrink-0" />
+                            <span className="text-sm">{sub.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              )}
             </>
           ) : (
             // Other user types: original logic
