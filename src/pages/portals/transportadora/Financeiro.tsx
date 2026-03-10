@@ -17,7 +17,7 @@ import {
 import { Label } from '@/components/ui/label';
 import {
   DollarSign, CheckCircle, Clock, Landmark, Save, CreditCard,
-  ChevronDown, ChevronRight, Calendar,
+  ChevronDown, ChevronRight, Calendar, Lock, LockOpen,
 } from 'lucide-react';
 import { format, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
@@ -40,6 +40,7 @@ interface QuinzenaGroup {
   qtdPendente: number;
   qtdPago: number;
   status: 'pendente' | 'parcial' | 'pago';
+  closed: boolean;
 }
 
 function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
@@ -71,6 +72,10 @@ function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
       const lastDay = quinzena === 1 ? 15 : endOfMonth(new Date(year, month)).getDate();
       const firstDay = quinzena === 1 ? 1 : 16;
 
+      // Quinzena is closed if the end date has already passed
+      const endDate = new Date(year, month, lastDay, 23, 59, 59);
+      const closed = new Date() > endDate;
+
       const totalBruto = items.reduce((s, r) => s + Number(r.valor_frete), 0);
       const totalComissao = items.reduce((s, r) => s + Number(r.valor_comissao), 0);
       const totalLiquido = items.reduce((s, r) => s + Number(r.valor_liquido), 0);
@@ -88,6 +93,7 @@ function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
         qtdPendente,
         qtdPago,
         status: (qtdPendente === 0 ? 'pago' : qtdPago === 0 ? 'pendente' : 'parcial') as QuinzenaGroup['status'],
+        closed,
       };
     })
     .sort((a, b) => b.key.localeCompare(a.key));
@@ -316,11 +322,20 @@ export default function TransportadoraFinanceiro() {
                             <Calendar className="w-5 h-5 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-semibold text-foreground">{group.label}</p>
                               {statusBadge(group.status)}
+                              {group.closed ? (
+                                <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground gap-1">
+                                  <Lock className="w-3 h-3" /> Fechada
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-chart-1 text-chart-1 gap-1">
+                                  <LockOpen className="w-3 h-3" /> Aberta
+                                </Badge>
+                              )}
                             </div>
-                            <p className="text-xs text-muted-foreground">{group.period} — {group.registros.length} entrega(s)</p>
+                            <p className="text-xs text-muted-foreground">{group.period} — {group.registros.length} carga(s)</p>
                           </div>
                           <div className="text-right mr-4 hidden sm:block">
                             <p className="text-lg font-bold text-chart-2">{formatCurrency(group.totalLiquido)}</p>
