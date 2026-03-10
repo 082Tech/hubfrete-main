@@ -866,12 +866,41 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                   </Collapsible>
                 )
               )}
+
+              {/* Configurações - after Minha Empresa */}
+              {(() => {
+                const configItem = menuItems.find(item => item.href === '/transportadora/configuracoes');
+                if (!configItem) return null;
+                const isActive = location.pathname === configItem.href;
+                const linkContent = (
+                  <Link
+                    to={configItem.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                      } ${isActive
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                      }`}
+                  >
+                    <configItem.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{configItem.label}</span>}
+                  </Link>
+                );
+                if (collapsed) {
+                  return (
+                    <Tooltip>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>{configItem.label}</TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return linkContent;
+              })()}
             </>
           ) : (
             // Embarcador + other user types
             <>
               {menuItems
-                .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')))
+                .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')) && !item.href.endsWith('/configuracoes'))
                 .map((item) => {
                   const isActive = location.pathname === item.href;
                   const linkContent = (
