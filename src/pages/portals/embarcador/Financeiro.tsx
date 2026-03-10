@@ -243,7 +243,7 @@ export default function EmbarcadorFinanceiro() {
       </div>
 
       {/* Quinzena Groups */}
-      <div ref={tableRef} className="space-y-3 !mb-10 h-[550px]">
+      <div className="space-y-3 pb-10">
         {isLoading ? (
           <div className="space-y-3">
             {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
