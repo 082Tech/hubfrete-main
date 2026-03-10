@@ -35,12 +35,8 @@ const tabs: Tab[] = [
   { id: 'seguranca', label: 'Segurança', icon: Shield, description: 'Senha e autenticação' },
 ];
 
-const integrations = [
-  { id: 'totvs', name: 'TOTVS Protheus', description: 'Integração com módulos de faturamento e logística', icon: Database, status: 'disconnected' as const, category: 'erp' as const },
-  { id: 'emakers', name: 'Emakers TMS', description: 'Sistema de gerenciamento de transporte', icon: Database, status: 'disconnected' as const, category: 'erp' as const },
-  { id: 'sap', name: 'SAP S/4HANA', description: 'Integração com módulos de supply chain', icon: Database, status: 'disconnected' as const, category: 'erp' as const },
-  { id: 'api', name: 'API Própria', description: 'Conecte seu sistema através da nossa REST API', icon: Code, status: 'disconnected' as const, category: 'api' as const },
-];
+
+
 
 export default function Configuracoes() {
   const { empresa } = useUserContext();
