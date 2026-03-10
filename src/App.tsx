@@ -60,6 +60,7 @@ import ContatosSalvos from "./pages/portals/embarcador/ContatosSalvos";
 import EmbarcadorMensagens from "./pages/portals/embarcador/Mensagens";
 import EmbarcadorNotificacoes from "./pages/portals/embarcador/Notificacoes";
 import EmbarcadorDadosEmpresa from "./pages/portals/embarcador/DadosEmpresa";
+import EmbarcadorIntegracoes from "./pages/portals/embarcador/Integracoes";
 
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraOfertas from "./pages/portals/transportadora/OfertasDisponiveis";
