@@ -178,6 +178,13 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   );
   const [frotaOpen, setFrotaOpen] = useState(isFrotaSubmenuActive);
 
+  const empresaSubmenu = userType === 'embarcador' ? embarcadorEmpresaSubmenu : transportadoraEmpresaSubmenu;
+  const empresaSubItems = cargo === 'ADMIN' ? empresaSubmenu.subItems : empresaSubmenu.subItems.filter(s => s.href.includes('configuracoes'));
+  const isEmpresaSubmenuActive = empresaSubItems.some(
+    (sub) => location.pathname === sub.href
+  );
+  const [empresaOpen, setEmpresaOpen] = useState(isEmpresaSubmenuActive);
+
   const handleLogout = async () => {
     await signOut();
     localStorage.removeItem('hubfrete_filial_ativa');
