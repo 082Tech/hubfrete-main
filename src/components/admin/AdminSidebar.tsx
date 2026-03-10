@@ -300,7 +300,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
                             to={sub.href}
                             className={`text-xs px-2 py-1 rounded ${
                               location.pathname === sub.href
-                                ? 'bg-destructive/20 text-destructive'
+                                ? 'bg-admin-accent/20 text-admin-accent'
                                 : 'hover:bg-muted'
                             }`}
                           >
