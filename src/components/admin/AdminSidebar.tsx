@@ -256,7 +256,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
         {!collapsed && (
           <div className="px-4 py-3 border-b border-sidebar-border bg-sidebar-accent/10">
             <div className="flex items-center gap-2">
-              <Badge variant={roleBadgeVariants[adminUser.role]} className="text-[10px] py-0 px-1.5 h-5">
+              <Badge className="text-[10px] py-0 px-1.5 h-5 bg-admin-accent text-admin-accent-foreground">
                 <Shield className="w-2.5 h-2.5 mr-1" />
                 Torre de Controle
               </Badge>
