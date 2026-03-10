@@ -9,8 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  User, Bell, Shield, Mail, Phone, Key, Save, Sun, Moon, Monitor,
-  Plug, ExternalLink, Check, AlertCircle, Code, Database, Plus
+  User, Bell, Shield, Mail, Phone, Key, Save, Sun, Moon, Monitor
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';

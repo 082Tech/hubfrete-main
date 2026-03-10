@@ -8,26 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  User,
-  Bell,
-  Shield,
-  Building2,
-  MapPin,
-  Mail,
-  Phone,
-  Key,
-  Save,
-  Plus,
-  Sun,
-  Moon,
-  Monitor,
-  Plug,
-  ExternalLink,
-  Check,
-  AlertCircle,
-  Code,
-  Database,
-  Users
+  User, Bell, Shield, Mail, Phone, Key, Save, Sun, Moon, Monitor
 } from 'lucide-react';
 import { ContatosSettingsTab } from '@/components/contatos';
 import { ChangePasswordDialog } from '@/components/settings';
