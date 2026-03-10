@@ -546,7 +546,7 @@ function DetailPanel({
                       <Separator className="my-1" />
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-semibold">Valor do frete:</span>
-                        <span className="text-sm font-bold text-chart-2">
+                        <span className="text-sm font-bold text-primary">
                           R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
