@@ -236,9 +236,9 @@ export default function EmbarcadorDashboard() {
                     <BarChart3 className="w-5 h-5 text-chart-1" />
                     <span className="text-xs">Relatórios</span>
                   </Button>
-                  <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-chart-2/5 hover:border-chart-2/20" onClick={() => navigate('/embarcador/filiais')}>
-                    <MapPin className="w-5 h-5 text-chart-2" />
-                    <span className="text-xs">Filiais</span>
+                  <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-chart-2/5 hover:border-chart-2/20" onClick={() => navigate('/embarcador/financeiro')}>
+                    <DollarSign className="w-5 h-5 text-chart-2" />
+                    <span className="text-xs">Financeiro</span>
                   </Button>
                   <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-chart-4/5 hover:border-chart-4/20" onClick={() => navigate('/embarcador/configuracoes')}>
                     <Settings className="w-5 h-5 text-chart-4" />

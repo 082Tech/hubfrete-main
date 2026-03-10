@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Shield,
   Settings,
+  DollarSign,
 } from 'lucide-react';
 import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
 import { CardImmersiveBackground } from '@/components/ai-assistant/CardImmersiveBackground';
@@ -283,10 +284,10 @@ export default function TransportadoraDashboard() {
                   <Button 
                     variant="outline" 
                     className="h-auto py-4 flex-col gap-2 hover:bg-chart-4/5 hover:border-chart-4/20"
-                    onClick={() => navigate('/transportadora/cargas')}
+                    onClick={() => navigate('/transportadora/financeiro')}
                   >
-                    <MapPin className="w-5 h-5 text-chart-4" />
-                    <span className="text-xs">Rastreamento</span>
+                    <DollarSign className="w-5 h-5 text-chart-4" />
+                    <span className="text-xs">Financeiro</span>
                   </Button>
                 </div>
               </CardContent>
