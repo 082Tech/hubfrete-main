@@ -690,18 +690,20 @@ export default function Empresas() {
                             {formatCnpj(empresa.cnpj_matriz)}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={empresa.tipo === 'EMBARCADOR' ? 'default' : 'secondary'}>
-                                {empresa.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
-                              </Badge>
-                              {empresa.tipo === 'EMBARCADOR' && (empresa.comissao_hubfrete_percent ?? 0) > 0 && (
-                                <Badge variant="outline" className="text-[10px] bg-chart-4/10 text-chart-4 border-chart-4/30">
-                                  {empresa.comissao_hubfrete_percent}%
-                                </Badge>
-                              )}
-                            </div>
+                            <Badge variant={empresa.tipo === 'EMBARCADOR' ? 'default' : 'secondary'}>
+                              {empresa.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
+                            </Badge>
                           </TableCell>
                           <TableCell>{empresa.classe}</TableCell>
+                          <TableCell className="text-center">
+                            {empresa.tipo === 'EMBARCADOR' ? (
+                              <Badge variant="outline" className="bg-chart-4/10 text-chart-4 border-chart-4/30">
+                                {empresa.comissao_hubfrete_percent ?? 0}%
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline">{empresa._count?.filiais || 0}</Badge>
                           </TableCell>
