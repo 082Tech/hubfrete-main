@@ -63,6 +63,13 @@ export function ViagemListItem({ viagem, isSelected, onClick }: ViagemListItemPr
 
   const rotaTexto = cidades.length > 0 ? cidades.join(' → ') : 'Sem destinos';
 
+  // Calcular valor líquido total da viagem
+  const totalLiquido = viagem.entregas.reduce((sum, e) => {
+    if (!e.valor_frete) return sum;
+    const comP = e.carga?.empresa?.comissao_hubfrete_percent || 0;
+    return sum + Math.round(e.valor_frete * (1 - comP / 100) * 100) / 100;
+  }, 0);
+
   return (
     <div
       className={`flex items-start gap-3 bg-card px-4 py-3 cursor-pointer transition-all hover:bg-muted/50 border-b ${
