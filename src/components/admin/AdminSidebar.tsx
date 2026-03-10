@@ -121,7 +121,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     },
     {
       title: 'Ofertas',
-      icon: Package,
+      icon: Boxes,
       roles: ['super_admin', 'admin', 'suporte'],
       subItems: [
         { title: 'Publicadas', href: '/admin/cargas', icon: Clock },
