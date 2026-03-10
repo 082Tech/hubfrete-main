@@ -40,6 +40,7 @@ interface QuinzenaGroup {
   qtdPendente: number;
   qtdPago: number;
   status: 'pendente' | 'parcial' | 'pago';
+  closed: boolean;
 }
 
 function getQuinzenaGroups(registros: any[]): QuinzenaGroup[] {
