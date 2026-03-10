@@ -342,6 +342,9 @@ export default function Financeiro() {
                           <div>
                             <p className="font-medium text-sm">{r.entregas?.codigo || '—'}</p>
                             <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                            {r.entregas?.motoristas?.nome_completo && (
+                              <p className="text-xs text-muted-foreground">🚛 {r.entregas.motoristas.nome_completo}</p>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">{nomeEmpresa(r.empresa_embarcadora)}</TableCell>
