@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Shield, Users, UserPlus, LogOut, ChevronLeft, ChevronRight, ChevronDown,
   LayoutDashboard, TrendingUp, Activity, Truck, AlertTriangle, Building,
-  User, FileText, Package, History, Clock, Award, Container,
+  User, FileText, Package, History, Clock, Award, Container, Boxes,
   UserPlus as UserPlusIcon, Camera, FileCheck, HardDrive, DollarSign,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -121,7 +121,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     },
     {
       title: 'Ofertas',
-      icon: Package,
+      icon: Boxes,
       roles: ['super_admin', 'admin', 'suporte'],
       subItems: [
         { title: 'Publicadas', href: '/admin/cargas', icon: Clock },
@@ -130,7 +130,7 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     },
     {
       title: 'Cargas',
-      icon: Truck,
+      icon: Package,
       href: '/admin/entregas',
       roles: ['super_admin', 'admin', 'suporte'],
     },
