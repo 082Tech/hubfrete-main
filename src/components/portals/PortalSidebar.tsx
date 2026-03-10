@@ -759,11 +759,12 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                 </Collapsible>
               )}
 
-              {/* Rest of transportadora menu items (excluding empresa submenu items) */}
+              {/* Rest of transportadora menu items (excluding empresa submenu items and configurações) */}
               {menuItems
                 .filter(item =>
                   item.href !== '/transportadora' &&
-                  item.href !== '/transportadora/ofertas'
+                  item.href !== '/transportadora/ofertas' &&
+                  item.href !== '/transportadora/configuracoes'
                 )
                 .map((item) => {
                   const isActive = location.pathname === item.href;
