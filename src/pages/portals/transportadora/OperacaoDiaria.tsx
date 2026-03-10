@@ -1606,7 +1606,7 @@ export default function OperacaoDiaria() {
             data_coleta_de, data_entrega_limite,
             endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
             endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, logradouro, numero, bairro, cep, latitude, longitude),
-            empresa:empresas(id, nome, comissao_hubfrete_percent)
+            empresa:empresas(id, nome, nome_fantasia, razao_social, comissao_hubfrete_percent)
           )
         `)
         .in('motorista_id', motoristaIdsList)
