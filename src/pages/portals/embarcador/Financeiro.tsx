@@ -26,6 +26,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { MonthYearPicker } from '@/components/ui/month-year-picker';
+import { AnnualBarChart } from '@/components/financeiro/AnnualBarChart';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -216,7 +217,16 @@ export default function EmbarcadorFinanceiro() {
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Annual Chart */}
+      {empresa?.id && (
+        <AnnualBarChart
+          empresaId={empresa.id}
+          filterColumn="empresa_embarcadora_id"
+          valueField="valor_frete"
+          year={selectedYear}
+        />
+      )}
+
       <div className="flex flex-wrap gap-3 items-end">
         <div className="w-36">
           <Label className="text-xs text-muted-foreground">Status</Label>
