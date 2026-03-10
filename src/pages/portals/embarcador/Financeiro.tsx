@@ -107,9 +107,8 @@ export default function EmbarcadorFinanceiro() {
     return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
   })();
 
-  const { ref: tableRef, height: tableHeight } = useRemainingViewportHeight({ bottomOffset: 16 });
 
-  const { data: registros, isLoading } = useQuery({
+
     queryKey: ['embarcador-financeiro', empresa?.id, statusFilter, dateFrom, dateTo],
     queryFn: async () => {
       if (!empresa?.id) return [];

@@ -115,9 +115,8 @@ export default function TransportadoraFinanceiro() {
     return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
   })();
 
-  const { ref: tableRef, height: tableHeight } = useRemainingViewportHeight({ bottomOffset: 16 });
 
-  // Bank details
+
   const [bankForm, setBankForm] = useState({
     banco: '',
     agencia: '',
