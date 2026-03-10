@@ -232,11 +232,15 @@ function EntregaListItem({
           <Badge variant="outline" className="font-mono text-[10px] px-1.5">
             #{entrega.codigo || entrega.id.slice(0, 6)}
           </Badge>
-          {entrega.valor_frete && (
-            <span className="text-primary font-semibold">
-              R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-          )}
+          {entrega.valor_frete && (() => {
+            const comissaoP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
+            const liquido = Math.round(entrega.valor_frete! * (1 - comissaoP / 100) * 100) / 100;
+            return (
+              <span className="text-chart-2 font-semibold">
+                R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+            );
+          })()}
         </div>
       </div>
 
