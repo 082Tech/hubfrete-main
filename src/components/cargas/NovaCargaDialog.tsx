@@ -65,9 +65,9 @@ const tipoCargaOptions: { value: TipoCarga; label: string }[] = [
   { value: 'container', label: 'Container' },
 ];
 
-// Pricing types: por_kg (always) and valor_fixo (only for carga fechada)
+// Pricing types: por_tonelada (always) and valor_fixo (only for carga fechada)
 const TIPOS_FRETE = [
-  { value: 'por_tonelada', label: 'Por Kg (R$/kg)' },
+  { value: 'por_tonelada', label: 'Por Tonelada (R$/ton)' },
   { value: 'valor_fixo', label: 'Valor Fixo (Frete Fechado)' },
 ] as const;
 
@@ -332,11 +332,12 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     }
   }, [permitefracionado, tipoFrete, form]);
 
-  // Calculate total freight for por_kg
-  const freteTotalKg = tipoFrete === 'por_tonelada' && pesoKg > 0 && (valorFreteTonelada ?? 0) > 0
-    ? Math.round(pesoKg * (valorFreteTonelada ?? 0) * 100) / 100
+  // Calculate total freight for por_tonelada
+  const pesoTon = pesoKg > 0 ? Math.round((pesoKg / 1000) * 10000) / 10000 : 0;
+  const freteTotalTon = tipoFrete === 'por_tonelada' && pesoTon > 0 && (valorFreteTonelada ?? 0) > 0
+    ? Math.round(pesoTon * (valorFreteTonelada ?? 0) * 100) / 100
     : 0;
-  const freteTotal = tipoFrete === 'valor_fixo' ? (valorFreteFixo ?? 0) : freteTotalKg;
+  const freteTotal = tipoFrete === 'valor_fixo' ? (valorFreteFixo ?? 0) : freteTotalTon;
 
   const validateLocations = (): boolean => {
     if (!origemData.cidade || !origemData.logradouro) {
@@ -728,19 +729,19 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
               <div className="space-y-3">
                 <FormField control={form.control} name="valor_frete_tonelada" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor por Kg (R$/kg)</FormLabel>
+                    <FormLabel>Valor por Tonelada (R$/ton)</FormLabel>
                     <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
-                {freteTotalKg > 0 && (
+                {freteTotalTon > 0 && (
                   <div className="p-3 rounded-lg border bg-muted/30 space-y-0.5">
                     <Label className="text-xs text-muted-foreground">Frete Total Estimado</Label>
                     <p className="text-xl font-bold text-primary">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotalKg)}
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotalTon)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {pesoKg.toLocaleString('pt-BR')} kg × R$ {(valorFreteTonelada ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/kg
+                      {pesoTon} TON × R$ {(valorFreteTonelada ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/TON
                     </p>
                   </div>
                 )}
