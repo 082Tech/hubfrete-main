@@ -25,6 +25,7 @@ export default function EmbarcadorDashboard() {
   } = useAuth();
   const navigate = useNavigate();
   const [chatMessage, setChatMessage] = useState('');
+  const [novaCargaOpen, setNovaCargaOpen] = useState(false);
 
   // Get greeting based on time of day
   const greeting = useMemo(() => {
