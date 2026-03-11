@@ -297,6 +297,10 @@ export default function HistoricoEntregas() {
     totalEntregas: viagens.reduce((acc, v) => acc + v.entregas.length, 0),
   }), [viagens]);
 
+  // Flat list of all entregas (for cargas view)
+  const allEntregas = useMemo(() => {
+    return filtered.flatMap(v => v.entregas.map(e => ({ ...e, viagem: v })));
+  }, [filtered]);
 
   const filtered = useMemo(() => {
     let result = viagens;
