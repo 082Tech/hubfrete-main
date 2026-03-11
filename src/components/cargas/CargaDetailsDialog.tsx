@@ -455,13 +455,13 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
               {(() => {
                 const tp = carga.tipo_precificacao || 'por_tonelada';
                 const labelMap: Record<string, string> = {
-                  por_tonelada: 'Frete por tonelada',
+                  por_tonelada: 'Frete por kg',
                   por_m3: 'Frete por m³',
                   fixo: 'Frete fixo',
                   por_km: 'Frete por km',
                 };
                 const suffixMap: Record<string, string> = {
-                  por_tonelada: '/ton',
+                  por_tonelada: '/kg',
                   por_m3: '/m³',
                   fixo: '',
                   por_km: '/km',
