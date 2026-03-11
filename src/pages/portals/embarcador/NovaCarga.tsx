@@ -178,7 +178,7 @@ export default function NovaCarga() {
           volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
           tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'fixo' : 'por_tonelada',
-          valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (freteTotal > 0 ? freteTotal : null) : null,
+          valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (values.valor_frete_tonelada || null) : null,
           valor_frete_fixo: values.tipo_frete === 'valor_fixo' ? (values.valor_frete_fixo || null) : null,
           permite_fracionado: values.permite_fracionado,
           peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimoFracionado : null,
@@ -253,11 +253,11 @@ export default function NovaCarga() {
       }).eq('id', carga.id);
 
       const { data: cargaFinal } = await supabase.from('cargas').select('codigo').eq('id', carga.id).single();
-      toast.success(`Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
+      toast.success(`Oferta de Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
       navigate('/embarcador/ofertas');
     } catch (error) {
       console.error('Erro inesperado:', error);
-      toast.error('Erro inesperado ao criar carga', { id: 'creating-carga' });
+      toast.error('Erro inesperado ao criar oferta', { id: 'creating-carga' });
     } finally {
       setIsLoading(false);
     }
@@ -385,7 +385,7 @@ export default function NovaCarga() {
                       <FormLabel>Peso Total (kg) *</FormLabel>
                       <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
                       <p className="text-xs text-muted-foreground">
-                        {pesoKg > 0 && pesoKg >= 1000 ? `≈ ${(pesoKg / 1000).toFixed(2)} toneladas` : 'Peso obrigatório — principal critério do sistema'}
+                        {pesoKg > 0 && pesoKg >= 1000 ? `≈ ${parseFloat((pesoKg / 1000).toFixed(4)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 4 })} toneladas` : 'Peso obrigatório — principal critério do sistema'}
                       </p>
                       <FormMessage />
                     </FormItem>

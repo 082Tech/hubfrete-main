@@ -1,1 +1,0 @@
-ALTER TABLE public.entregas ADD COLUMN previsao_coleta timestamp with time zone NULL;

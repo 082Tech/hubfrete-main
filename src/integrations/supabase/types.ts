@@ -472,6 +472,47 @@ export type Database = {
           },
         ]
       }
+      certificados_digitais: {
+        Row: {
+          cnpj_titular: string | null
+          created_at: string
+          data_validade: string | null
+          empresa_id: number
+          nome_titular: string | null
+          pfx_base64: string
+          senha_encriptada: string
+          updated_at: string
+        }
+        Insert: {
+          cnpj_titular?: string | null
+          created_at?: string
+          data_validade?: string | null
+          empresa_id: number
+          nome_titular?: string | null
+          pfx_base64: string
+          senha_encriptada: string
+          updated_at?: string
+        }
+        Update: {
+          cnpj_titular?: string | null
+          created_at?: string
+          data_validade?: string | null
+          empresa_id?: number
+          nome_titular?: string | null
+          pfx_base64?: string
+          senha_encriptada?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificados_digitais_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chamado_mensagens: {
         Row: {
           anexo_nome: string | null
@@ -1382,6 +1423,7 @@ export type Database = {
       faturas: {
         Row: {
           ano: number
+          baixa_por: string | null
           comprovante_url: string | null
           created_at: string
           data_pagamento: string | null
@@ -1394,8 +1436,8 @@ export type Database = {
           periodo_inicio: string
           qtd_entregas: number | null
           quinzena: number
-          status: string
-          tipo: string
+          status: Database["public"]["Enums"]["status_fatura"]
+          tipo: Database["public"]["Enums"]["tipo_fatura"]
           updated_at: string
           valor_bruto: number | null
           valor_comissao: number | null
@@ -1403,6 +1445,7 @@ export type Database = {
         }
         Insert: {
           ano: number
+          baixa_por?: string | null
           comprovante_url?: string | null
           created_at?: string
           data_pagamento?: string | null
@@ -1415,8 +1458,8 @@ export type Database = {
           periodo_inicio: string
           qtd_entregas?: number | null
           quinzena: number
-          status?: string
-          tipo: string
+          status?: Database["public"]["Enums"]["status_fatura"]
+          tipo: Database["public"]["Enums"]["tipo_fatura"]
           updated_at?: string
           valor_bruto?: number | null
           valor_comissao?: number | null
@@ -1424,6 +1467,7 @@ export type Database = {
         }
         Update: {
           ano?: number
+          baixa_por?: string | null
           comprovante_url?: string | null
           created_at?: string
           data_pagamento?: string | null
@@ -1436,8 +1480,8 @@ export type Database = {
           periodo_inicio?: string
           qtd_entregas?: number | null
           quinzena?: number
-          status?: string
-          tipo?: string
+          status?: Database["public"]["Enums"]["status_fatura"]
+          tipo?: Database["public"]["Enums"]["tipo_fatura"]
           updated_at?: string
           valor_bruto?: number | null
           valor_comissao?: number | null
@@ -1535,9 +1579,11 @@ export type Database = {
       }
       financeiro_entregas: {
         Row: {
+          baixa_por: string | null
           comprovante_url: string | null
           created_at: string
           data_pagamento: string | null
+          data_vencimento: string | null
           empresa_embarcadora_id: number | null
           empresa_transportadora_id: number | null
           entrega_id: string
@@ -1553,9 +1599,11 @@ export type Database = {
           valor_liquido: number
         }
         Insert: {
+          baixa_por?: string | null
           comprovante_url?: string | null
           created_at?: string
           data_pagamento?: string | null
+          data_vencimento?: string | null
           empresa_embarcadora_id?: number | null
           empresa_transportadora_id?: number | null
           entrega_id: string
@@ -1571,9 +1619,11 @@ export type Database = {
           valor_liquido?: number
         }
         Update: {
+          baixa_por?: string | null
           comprovante_url?: string | null
           created_at?: string
           data_pagamento?: string | null
+          data_vencimento?: string | null
           empresa_embarcadora_id?: number | null
           empresa_transportadora_id?: number | null
           entrega_id?: string
@@ -1688,6 +1738,85 @@ export type Database = {
           },
         ]
       }
+      gnres: {
+        Row: {
+          cargas_id: string | null
+          codigo_barras: string | null
+          created_at: string
+          data_vencimento: string
+          empresa_id: number
+          id: string
+          linha_digitavel: string | null
+          motivo_rejeicao: string | null
+          nfe_id: string | null
+          numero_recibo: string | null
+          receita: string
+          status: string
+          uf_favorecida: string
+          valor: number
+          xml_envio: string | null
+          xml_retorno: string | null
+        }
+        Insert: {
+          cargas_id?: string | null
+          codigo_barras?: string | null
+          created_at?: string
+          data_vencimento: string
+          empresa_id: number
+          id?: string
+          linha_digitavel?: string | null
+          motivo_rejeicao?: string | null
+          nfe_id?: string | null
+          numero_recibo?: string | null
+          receita: string
+          status?: string
+          uf_favorecida: string
+          valor: number
+          xml_envio?: string | null
+          xml_retorno?: string | null
+        }
+        Update: {
+          cargas_id?: string | null
+          codigo_barras?: string | null
+          created_at?: string
+          data_vencimento?: string
+          empresa_id?: number
+          id?: string
+          linha_digitavel?: string | null
+          motivo_rejeicao?: string | null
+          nfe_id?: string | null
+          numero_recibo?: string | null
+          receita?: string
+          status?: string
+          uf_favorecida?: string
+          valor?: number
+          xml_envio?: string | null
+          xml_retorno?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gnres_cargas_id_fkey"
+            columns: ["cargas_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gnres_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gnres_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_active_chat: {
         Row: {
           id: number
@@ -1780,6 +1909,133 @@ export type Database = {
             columns: ["viagem_id"]
             isOneToOne: false
             referencedRelation: "viagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manifesto_ctes: {
+        Row: {
+          cte_id: string | null
+          id: string
+          manifesto_id: string | null
+        }
+        Insert: {
+          cte_id?: string | null
+          id?: string
+          manifesto_id?: string | null
+        }
+        Update: {
+          cte_id?: string | null
+          id?: string
+          manifesto_id?: string | null
+        }
+        Relationships: []
+      }
+      manifestos: {
+        Row: {
+          chave_acesso: string | null
+          created_at: string | null
+          empresa_id: number | null
+          focus_ref: string | null
+          focus_status: string | null
+          id: string
+          numero: string | null
+          updated_at: string | null
+          url: string | null
+          viagem_id: string | null
+          xml_url: string | null
+        }
+        Insert: {
+          chave_acesso?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          focus_ref?: string | null
+          focus_status?: string | null
+          id?: string
+          numero?: string | null
+          updated_at?: string | null
+          url?: string | null
+          viagem_id?: string | null
+          xml_url?: string | null
+        }
+        Update: {
+          chave_acesso?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          focus_ref?: string | null
+          focus_status?: string | null
+          id?: string
+          numero?: string | null
+          updated_at?: string | null
+          url?: string | null
+          viagem_id?: string | null
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manifestos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manifestos_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: false
+            referencedRelation: "viagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdfe_documentos: {
+        Row: {
+          chave_acesso: string
+          created_at: string | null
+          cte_id: string | null
+          id: string
+          mdfe_id: string
+          nfe_id: string | null
+          tipo: string
+        }
+        Insert: {
+          chave_acesso: string
+          created_at?: string | null
+          cte_id?: string | null
+          id?: string
+          mdfe_id: string
+          nfe_id?: string | null
+          tipo: string
+        }
+        Update: {
+          chave_acesso?: string
+          created_at?: string | null
+          cte_id?: string | null
+          id?: string
+          mdfe_id?: string
+          nfe_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdfe_documentos_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfe_documentos_mdfe_id_fkey"
+            columns: ["mdfe_id"]
+            isOneToOne: false
+            referencedRelation: "mdfes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfe_documentos_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfes"
             referencedColumns: ["id"]
           },
         ]
@@ -2942,36 +3198,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_carga_tx:
-        | {
-            Args: {
-              p_carga_id: string
-              p_carroceria_id: string
-              p_carrocerias_alocadas?: Json
-              p_motorista_id: string
-              p_peso_kg: number
-              p_previsao_coleta?: string
-              p_user_name: string
-              p_valor_frete: number
-              p_veiculo_id: string
-              p_viagem_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_carga_id: string
-              p_carroceria_id: string
-              p_carroceria_id_2?: string
-              p_motorista_id: string
-              p_peso_kg: number
-              p_user_name?: string
-              p_valor_frete?: number
-              p_veiculo_id: string
-              p_viagem_id?: string
-            }
-            Returns: Json
-          }
+      accept_carga_tx: {
+        Args: {
+          p_carga_id: string
+          p_carroceria_id: string
+          p_carrocerias_alocadas?: Json
+          p_motorista_id: string
+          p_peso_kg: number
+          p_previsao_coleta?: string
+          p_user_name: string
+          p_valor_frete: number
+          p_veiculo_id: string
+          p_viagem_id: string
+        }
+        Returns: Json
+      }
       create_chat_for_entrega: {
         Args: { p_entrega_id: string }
         Returns: string
@@ -3004,9 +3245,14 @@ export type Database = {
         Returns: Json
       }
       finalizar_viagem: { Args: { p_viagem_id: string }; Returns: undefined }
+      generate_tracking_code: { Args: never; Returns: string }
       get_admin_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["admin_role"]
+      }
+      get_public_tracking_info: {
+        Args: { _tracking_code: string }
+        Returns: Json
       }
       get_user_empresa_id: { Args: { _user_id: string }; Returns: number }
       get_user_empresa_tipo: { Args: { _user_id: string }; Returns: string }
@@ -3078,6 +3324,7 @@ export type Database = {
         | "entregue"
         | "problema"
         | "cancelada"
+      status_fatura: "aberta" | "fechada" | "paga" | "cancelada"
       status_pre_cadastro: "pendente" | "aprovado" | "rejeitado"
       status_viagem:
         | "em_andamento"
@@ -3123,6 +3370,7 @@ export type Database = {
         | "hopper"
       tipo_empresa: "EMBARCADOR" | "TRANSPORTADORA"
       tipo_endereco: "origem" | "destino"
+      tipo_fatura: "a_receber" | "a_pagar"
       tipo_frete: "cif" | "fob"
       tipo_notificacao:
         | "status_entrega_alterado"
@@ -3316,6 +3564,7 @@ export const Constants = {
         "problema",
         "cancelada",
       ],
+      status_fatura: ["aberta", "fechada", "paga", "cancelada"],
       status_pre_cadastro: ["pendente", "aprovado", "rejeitado"],
       status_viagem: [
         "em_andamento",
@@ -3364,6 +3613,7 @@ export const Constants = {
       ],
       tipo_empresa: ["EMBARCADOR", "TRANSPORTADORA"],
       tipo_endereco: ["origem", "destino"],
+      tipo_fatura: ["a_receber", "a_pagar"],
       tipo_frete: ["cif", "fob"],
       tipo_notificacao: [
         "status_entrega_alterado",

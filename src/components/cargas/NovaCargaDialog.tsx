@@ -216,8 +216,9 @@ interface NovaCargaDialogProps {
 export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEditOpenChange }: NovaCargaDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isEditMode = !!editCarga;
-  const open = isEditMode ? (editOpen ?? false) : internalOpen;
-  const setOpen = isEditMode ? (onEditOpenChange ?? setInternalOpen) : setInternalOpen;
+  const isControlled = editOpen !== undefined;
+  const open = isControlled ? (editOpen ?? false) : internalOpen;
+  const setOpen = isControlled ? (onEditOpenChange ?? setInternalOpen) : setInternalOpen;
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('dados');
   const { filialAtiva, empresa, userType } = useUserContext();
@@ -423,7 +424,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
             valor_mercadoria: values.valor_mercadoria || null,
             numero_pedido: values.numero_pedido || null,
             tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'fixo' : 'por_tonelada',
-            valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (freteTotal > 0 ? freteTotal : null) : null,
+            valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (values.valor_frete_tonelada || null) : null,
             valor_frete_fixo: values.tipo_frete === 'valor_fixo' ? (values.valor_frete_fixo || null) : null,
             valor_frete_m3: null, valor_frete_km: null,
             permite_fracionado: values.permite_fracionado,
@@ -518,7 +519,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
           volume_m3: values.volume_m3 || null, quantidade_paletes: values.quantidade_paletes || null,
           valor_mercadoria: values.valor_mercadoria || null,
           tipo_precificacao: values.tipo_frete === 'valor_fixo' ? 'fixo' : 'por_tonelada',
-          valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (freteTotal > 0 ? freteTotal : null) : null,
+          valor_frete_tonelada: values.tipo_frete === 'por_tonelada' ? (values.valor_frete_tonelada || null) : null,
           valor_frete_fixo: values.tipo_frete === 'valor_fixo' ? (values.valor_frete_fixo || null) : null,
           permite_fracionado: values.permite_fracionado,
           peso_minimo_fracionado_kg: values.permite_fracionado ? pesoMinimo : null,
@@ -580,11 +581,11 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
       }).eq('id', carga.id);
 
       const { data: cargaFinal } = await supabase.from('cargas').select('codigo').eq('id', carga.id).single();
-      toast.success(`Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
+      toast.success(`Oferta de Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
       onSuccess?.();
     } catch (error) {
       console.error('Erro inesperado:', error);
-      toast.error('Erro inesperado ao criar carga', { id: 'creating-carga' });
+      toast.error('Erro inesperado ao criar oferta', { id: 'creating-carga' });
     }
   };
 
@@ -680,7 +681,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
               <FormItem>
                 <FormLabel>Peso Total da Carga (kg) *</FormLabel>
                 <FormControl><WeightInput placeholder="Ex: 25.000" value={field.value} onValueChange={field.onChange} /></FormControl>
-                {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {parseFloat((pesoKg / 1000).toFixed(4))} toneladas</p>}
+                {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {parseFloat((pesoKg / 1000).toFixed(4)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 4 })} toneladas</p>}
                 <FormMessage />
               </FormItem>
             )} />

@@ -3,6 +3,8 @@ import { formatWeight } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -159,8 +161,11 @@ const ITEMS_PER_PAGE = 15;
 type SortField = 'encerrada_em' | 'codigo' | 'motorista' | 'entregas' | 'km';
 type SortOrder = 'asc' | 'desc';
 
+  type HistoricoViewMode = 'viagens' | 'cargas';
+
 export default function HistoricoEntregas() {
   const { empresa } = useUserContext();
+  const [viewMode, setViewMode] = useState<HistoricoViewMode>('viagens');
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -292,7 +297,6 @@ export default function HistoricoEntregas() {
     totalEntregas: viagens.reduce((acc, v) => acc + v.entregas.length, 0),
   }), [viagens]);
 
-  // Filtering
   const filtered = useMemo(() => {
     let result = viagens;
 
@@ -365,6 +369,11 @@ export default function HistoricoEntregas() {
     return result;
   }, [viagens, selectedStatus, advancedFilters]);
 
+  // Flat list of all entregas (for cargas view)
+  const allEntregas = useMemo(() => {
+    return filtered.flatMap(v => v.entregas.map(e => ({ ...e, viagem: v })));
+  }, [filtered]);
+
   // Sorting
   const sortedData = useMemo(() => {
     const sorted = [...filtered];
@@ -392,12 +401,44 @@ export default function HistoricoEntregas() {
     return sorted;
   }, [filtered, sortField, sortOrder]);
 
+  // Sorting for cargas flat view
+  const sortedCargas = useMemo(() => {
+    const sorted = [...allEntregas];
+    sorted.sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'encerrada_em':
+          comparison = new Date(a.entregue_em || a.updated_at || '').getTime() - new Date(b.entregue_em || b.updated_at || '').getTime();
+          break;
+        case 'codigo':
+          comparison = (a.codigo || a.carga.codigo).localeCompare(b.codigo || b.carga.codigo, 'pt-BR');
+          break;
+        case 'motorista':
+          comparison = (a.motorista?.nome_completo || '').localeCompare(b.motorista?.nome_completo || '', 'pt-BR');
+          break;
+        case 'km':
+          comparison = (a.peso_alocado_kg || a.carga.peso_kg || 0) - (b.peso_alocado_kg || b.carga.peso_kg || 0);
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+    return sorted;
+  }, [allEntregas, sortField, sortOrder]);
+
   // Pagination
-  const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
+  const activeDataLength = viewMode === 'viagens' ? sortedData.length : sortedCargas.length;
+  const totalPages = Math.ceil(activeDataLength / ITEMS_PER_PAGE);
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return sortedData.slice(start, start + ITEMS_PER_PAGE);
   }, [sortedData, currentPage]);
+
+  const paginatedCargas = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedCargas.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedCargas, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -468,7 +509,7 @@ export default function HistoricoEntregas() {
     return (
       <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/30">
         <div className="text-sm text-muted-foreground">
-          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length}
+          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, activeDataLength)} de {activeDataLength}
         </div>
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
@@ -508,6 +549,24 @@ export default function HistoricoEntregas() {
               <p className="text-muted-foreground">Todas as viagens e entregas</p>
             </div>
             <div className="flex items-center gap-4">
+              {/* Switch de Visualização */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
+                <Label htmlFor="historico-view-switch" className={`text-sm font-medium transition-colors ${viewMode === 'cargas' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Cargas
+                </Label>
+                <Switch
+                  id="historico-view-switch"
+                  checked={viewMode === 'viagens'}
+                  onCheckedChange={(checked) => {
+                    setViewMode(checked ? 'viagens' : 'cargas');
+                    setCurrentPage(1);
+                  }}
+                />
+                <Label htmlFor="historico-view-switch" className={`text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === 'viagens' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <Route className="w-3.5 h-3.5" />
+                  Viagens
+                </Label>
+              </div>
               <AdvancedFiltersPopover
                 filters={advancedFilters}
                 onFiltersChange={setAdvancedFilters}
@@ -582,8 +641,8 @@ export default function HistoricoEntregas() {
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <div className="flex gap-2 items-center text-sm text-muted-foreground">
-              <Route className="w-4 h-4" />
-              Viagens finalizadas
+              {viewMode === 'viagens' ? <Route className="w-4 h-4" /> : <Package className="w-4 h-4" />}
+              {viewMode === 'viagens' ? 'Viagens finalizadas' : 'Todas as cargas'}
             </div>
 
             {selectedStatus && (
@@ -601,7 +660,10 @@ export default function HistoricoEntregas() {
             )}
 
             <div className="ml-auto text-sm text-muted-foreground">
-              {sortedData.length} {sortedData.length === 1 ? 'viagem' : 'viagens'}
+              {viewMode === 'viagens'
+                ? `${sortedData.length} ${sortedData.length === 1 ? 'viagem' : 'viagens'}`
+                : `${allEntregas.length} ${allEntregas.length === 1 ? 'carga' : 'cargas'}`
+              }
             </div>
           </div>
 
@@ -612,7 +674,8 @@ export default function HistoricoEntregas() {
                 <div className="flex items-center justify-center py-12 flex-1">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
-              ) : paginatedData.length === 0 ? (
+              ) : viewMode === 'viagens' ? (
+                paginatedData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center flex-1">
                   <Route className="w-12 h-12 text-muted-foreground/50 mb-4" />
                   <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma viagem encontrada</h3>
@@ -991,6 +1054,181 @@ export default function HistoricoEntregas() {
 
                   {renderPagination()}
                 </>
+              )
+              ) : (
+                /* === CARGAS FLAT TABLE === */
+                paginatedCargas.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center flex-1">
+                  <Package className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma carga encontrada</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {selectedStatus || Object.keys(advancedFilters).length > 0 ? 'Tente ajustar os filtros' : 'As cargas aparecerão aqui'}
+                  </p>
+                  {(selectedStatus || Object.keys(advancedFilters).length > 0) && (
+                    <Button variant="outline" size="sm" onClick={() => { setAdvancedFilters({}); setSelectedStatus(null); }}>
+                      Limpar filtros
+                    </Button>
+                  )}
+                </div>
+                ) : (
+                <>
+                  <div className="flex-1 min-h-0 overflow-auto">
+                    <table className="w-full caption-bottom text-sm">
+                      <thead className="sticky top-0 z-20 bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+                        <tr className="border-b">
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[130px] cursor-pointer" onClick={() => handleSort('codigo')}>
+                            <div className="flex items-center">
+                              Código
+                              <SortIcon field="codigo" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[120px]">Viagem</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[150px] cursor-pointer" onClick={() => handleSort('motorista')}>
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              Motorista
+                              <SortIcon field="motorista" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[120px]">Embarcador</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[120px]">Destinatário</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[200px]">
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              Rota
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-right align-middle font-semibold text-foreground min-w-[80px]">Peso</th>
+                          <th className="h-12 px-4 text-right align-middle font-semibold text-foreground min-w-[100px]">Frete</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[100px]">Status</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[100px] cursor-pointer" onClick={() => handleSort('encerrada_em')}>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              Data
+                              <SortIcon field="encerrada_em" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedCargas.map((entrega) => {
+                          const eStatus = entrega.status || 'aguardando';
+                          const eConfig = entregaStatusConfig[eStatus] || entregaStatusConfig.aguardando;
+                          const EStatusIcon = eConfig.icon;
+                          const origem = entrega.carga.endereco_origem;
+                          const destino = entrega.carga.endereco_destino;
+
+                          return (
+                            <tr key={entrega.id} className="border-b transition-colors hover:bg-muted/50">
+                              <td className="p-4 align-middle font-mono text-sm font-medium text-primary text-nowrap">
+                                {entrega.codigo || entrega.carga.codigo}
+                              </td>
+                              <td className="p-4 align-middle text-nowrap">
+                                <Badge variant="secondary" className="text-xs font-mono">
+                                  {(entrega as any).viagem?.codigo || '-'}
+                                </Badge>
+                              </td>
+                              <td className="p-4 align-middle text-nowrap">
+                                {entrega.motorista ? (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                      <User className="w-3 h-3 text-primary" />
+                                    </div>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-sm truncate max-w-[100px]">{entrega.motorista.nome_completo}</span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{entrega.motorista.nome_completo}</TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                ) : <span className="text-sm text-muted-foreground">-</span>}
+                              </td>
+                              <td className="p-4 align-middle text-nowrap">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-sm truncate max-w-[100px] block">{entrega.carga.empresa?.nome || '-'}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{entrega.carga.empresa?.nome || 'Não informado'}</TooltipContent>
+                                </Tooltip>
+                              </td>
+                              <td className="p-4 align-middle text-nowrap">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-sm truncate max-w-[100px] block">
+                                      {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Não informado'}</TooltipContent>
+                                </Tooltip>
+                              </td>
+                              <td className="p-4 align-middle text-nowrap">
+                                <div className="flex items-center gap-1 text-sm">
+                                  <span className="truncate max-w-[70px]">{origem?.cidade || '-'}</span>
+                                  <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                                  <span className="truncate max-w-[70px]">{destino?.cidade || '-'}</span>
+                                </div>
+                              </td>
+                              <td className="p-4 align-middle text-right text-sm font-medium">
+                                {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
+                              </td>
+                              <td className="p-4 align-middle text-right text-sm font-medium text-green-600">
+                                {formatCurrency(entrega.valor_frete)}
+                              </td>
+                              <td className="p-4 align-middle">
+                                <Badge className={`${eConfig.color} text-xs`}>
+                                  <EStatusIcon className="w-3 h-3 mr-1" />
+                                  {eConfig.label}
+                                </Badge>
+                              </td>
+                              <td className="p-4 align-middle text-sm text-muted-foreground text-nowrap">
+                                {entrega.entregue_em
+                                  ? new Date(entrega.entregue_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+                                  : entrega.updated_at
+                                    ? new Date(entrega.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+                                    : '-'}
+                              </td>
+                              <td className="p-4 align-middle">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={() => handleOpenDetails(entrega)}>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      Ver detalhes
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      setChatEntregaId(entrega.id);
+                                      setChatSheetOpen(true);
+                                    }}>
+                                      <MessageCircle className="w-4 h-4 mr-2" />
+                                      Ver conversa
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      setTrackingEntregaId(entrega.id);
+                                      setTrackingEntregaInfo({
+                                        motorista: entrega.motorista?.nome_completo || 'Motorista',
+                                        placa: entrega.veiculo?.placa || '-',
+                                      });
+                                    }}>
+                                      <Route className="w-4 h-4 mr-2" />
+                                      Ver rastreamento
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {renderPagination()}
+                </>
+                )
               )}
             </CardContent>
           </Card>
