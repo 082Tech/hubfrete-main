@@ -329,10 +329,12 @@ export default function EmbarcadorDashboard() {
         </Card>
       </div>
 
-      <NovaCargaDialog
-        open={novaCargaOpen}
-        onOpenChange={setNovaCargaOpen}
-        onSuccess={() => setNovaCargaOpen(false)}
-      />
+      {novaCargaOpen && (
+        <NovaCargaDialog
+          editOpen={novaCargaOpen}
+          onEditOpenChange={setNovaCargaOpen}
+          onSuccess={() => setNovaCargaOpen(false)}
+        />
+      )}
     </div>;
 }
