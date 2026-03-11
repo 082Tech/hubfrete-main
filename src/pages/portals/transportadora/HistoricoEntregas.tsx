@@ -161,6 +161,8 @@ const ITEMS_PER_PAGE = 15;
 type SortField = 'encerrada_em' | 'codigo' | 'motorista' | 'entregas' | 'km';
 type SortOrder = 'asc' | 'desc';
 
+  type HistoricoViewMode = 'viagens' | 'cargas';
+
 export default function HistoricoEntregas() {
   const { empresa } = useUserContext();
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
