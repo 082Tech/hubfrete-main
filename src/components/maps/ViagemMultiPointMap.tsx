@@ -97,15 +97,8 @@ const createTruckLeafletIcon = (heading: number, isOnline: boolean) => {
   });
 };
 
-// Status colors (same as TrackingHistoryMarkers)
-const statusColors: Record<string, string> = {
-  'aguardando': '#f59e0b',
-  'saiu_para_coleta': '#06b6d4',
-  'saiu_para_entrega': '#a855f7',
-  'entregue': '#22c55e',
-  'problema': '#ef4444',
-  'cancelada': '#ef4444',
-};
+/** HubFrete primary green – unified tracking color */
+const HUBFRETE_GREEN = '#05924d';
 
 const statusLabels: Record<string, string> = {
   'aguardando': 'Aguardando',
