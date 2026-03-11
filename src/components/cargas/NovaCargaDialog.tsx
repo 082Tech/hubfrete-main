@@ -728,19 +728,19 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
               <div className="space-y-3">
                 <FormField control={form.control} name="valor_frete_tonelada" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor por Tonelada (R$/ton)</FormLabel>
+                    <FormLabel>Valor por Kg (R$/kg)</FormLabel>
                     <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
-                {freteTotalTon > 0 && (
+                {freteTotalKg > 0 && (
                   <div className="p-3 rounded-lg border bg-muted/30 space-y-0.5">
                     <Label className="text-xs text-muted-foreground">Frete Total Estimado</Label>
                     <p className="text-xl font-bold text-primary">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotalTon)}
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotalKg)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {pesoTon} TON × R$ {(valorFreteTonelada ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/TON
+                      {pesoKg.toLocaleString('pt-BR')} kg × R$ {(valorFreteTonelada ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/kg
                     </p>
                   </div>
                 )}
