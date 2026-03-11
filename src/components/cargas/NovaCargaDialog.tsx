@@ -65,9 +65,9 @@ const tipoCargaOptions: { value: TipoCarga; label: string }[] = [
   { value: 'container', label: 'Container' },
 ];
 
-// Pricing types: por_tonelada (always) and valor_fixo (only for carga fechada)
+// Pricing types: por_kg (always) and valor_fixo (only for carga fechada)
 const TIPOS_FRETE = [
-  { value: 'por_tonelada', label: 'Por Tonelada (R$/ton)' },
+  { value: 'por_tonelada', label: 'Por Kg (R$/kg)' },
   { value: 'valor_fixo', label: 'Valor Fixo (Frete Fechado)' },
 ] as const;
 
