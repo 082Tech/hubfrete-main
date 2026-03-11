@@ -165,6 +165,7 @@ type SortOrder = 'asc' | 'desc';
 
 export default function HistoricoEntregas() {
   const { empresa } = useUserContext();
+  const [viewMode, setViewMode] = useState<HistoricoViewMode>('viagens');
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
