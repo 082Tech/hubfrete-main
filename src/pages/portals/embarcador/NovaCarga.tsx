@@ -385,7 +385,7 @@ export default function NovaCarga() {
                       <FormLabel>Peso Total (kg) *</FormLabel>
                       <FormControl><WeightInput placeholder="0" value={field.value} onValueChange={field.onChange} /></FormControl>
                       <p className="text-xs text-muted-foreground">
-                        {pesoKg > 0 && pesoKg >= 1000 ? `≈ ${(pesoKg / 1000).toFixed(2)} toneladas` : 'Peso obrigatório — principal critério do sistema'}
+                        {pesoKg > 0 && pesoKg >= 1000 ? `≈ ${parseFloat((pesoKg / 1000).toFixed(4)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 4 })} toneladas` : 'Peso obrigatório — principal critério do sistema'}
                       </p>
                       <FormMessage />
                     </FormItem>
