@@ -253,7 +253,7 @@ export default function NovaCarga() {
       }).eq('id', carga.id);
 
       const { data: cargaFinal } = await supabase.from('cargas').select('codigo').eq('id', carga.id).single();
-      toast.success(`Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
+      toast.success(`Oferta de Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
       navigate('/embarcador/ofertas');
     } catch (error) {
       console.error('Erro inesperado:', error);
