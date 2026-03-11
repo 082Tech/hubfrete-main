@@ -584,7 +584,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
       onSuccess?.();
     } catch (error) {
       console.error('Erro inesperado:', error);
-      toast.error('Erro inesperado ao criar carga', { id: 'creating-carga' });
+      toast.error('Erro inesperado ao criar oferta', { id: 'creating-carga' });
     }
   };
 
