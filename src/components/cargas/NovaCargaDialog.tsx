@@ -216,8 +216,9 @@ interface NovaCargaDialogProps {
 export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEditOpenChange }: NovaCargaDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isEditMode = !!editCarga;
-  const open = isEditMode ? (editOpen ?? false) : internalOpen;
-  const setOpen = isEditMode ? (onEditOpenChange ?? setInternalOpen) : setInternalOpen;
+  const isControlled = editOpen !== undefined;
+  const open = isControlled ? (editOpen ?? false) : internalOpen;
+  const setOpen = isControlled ? (onEditOpenChange ?? setInternalOpen) : setInternalOpen;
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('dados');
   const { filialAtiva, empresa, userType } = useUserContext();
