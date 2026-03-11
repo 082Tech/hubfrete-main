@@ -513,6 +513,24 @@ export default function HistoricoEntregas() {
               <p className="text-muted-foreground">Todas as viagens e entregas</p>
             </div>
             <div className="flex items-center gap-4">
+              {/* Switch de Visualização */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
+                <Label htmlFor="historico-view-switch" className={`text-sm font-medium transition-colors ${viewMode === 'cargas' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Cargas
+                </Label>
+                <Switch
+                  id="historico-view-switch"
+                  checked={viewMode === 'viagens'}
+                  onCheckedChange={(checked) => {
+                    setViewMode(checked ? 'viagens' : 'cargas');
+                    setCurrentPage(1);
+                  }}
+                />
+                <Label htmlFor="historico-view-switch" className={`text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === 'viagens' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <Route className="w-3.5 h-3.5" />
+                  Viagens
+                </Label>
+              </div>
               <AdvancedFiltersPopover
                 filters={advancedFilters}
                 onFiltersChange={setAdvancedFilters}
