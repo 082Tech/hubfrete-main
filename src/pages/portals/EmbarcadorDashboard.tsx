@@ -15,6 +15,7 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { Input } from '@/components/ui/input';
 import { startOfMonth, endOfMonth, parseISO, subDays } from 'date-fns';
 import { useMemo, useState } from 'react';
+import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 export default function EmbarcadorDashboard() {
   const {
     empresa,
