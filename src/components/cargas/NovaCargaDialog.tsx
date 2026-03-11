@@ -580,11 +580,11 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
       }).eq('id', carga.id);
 
       const { data: cargaFinal } = await supabase.from('cargas').select('codigo').eq('id', carga.id).single();
-      toast.success(`Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
+      toast.success(`Oferta de Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
       onSuccess?.();
     } catch (error) {
       console.error('Erro inesperado:', error);
-      toast.error('Erro inesperado ao criar carga', { id: 'creating-carga' });
+      toast.error('Erro inesperado ao criar oferta', { id: 'creating-carga' });
     }
   };
 

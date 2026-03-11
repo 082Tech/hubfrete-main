@@ -141,9 +141,6 @@ interface CargaData {
   valor_frete_m3: number | null;
   valor_frete_fixo: number | null;
   valor_frete_km: number | null;
-  unidade_precificacao: string | null;
-  quantidade_precificacao: number | null;
-  valor_unitario_precificacao: number | null;
   numero_pedido: string | null;
   status: string;
   data_coleta_de: string | null;
@@ -277,9 +274,6 @@ export default function CargasPublicadas() {
           destinatario_contato_nome,
           destinatario_contato_telefone,
           peso_minimo_fracionado_kg,
-          unidade_precificacao,
-          quantidade_precificacao,
-          valor_unitario_precificacao,
           numero_pedido,
           volume_m3,
           carga_fragil,
