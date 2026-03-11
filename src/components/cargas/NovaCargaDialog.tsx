@@ -332,12 +332,11 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     }
   }, [permitefracionado, tipoFrete, form]);
 
-  // Calculate total freight for por_tonelada
-  const pesoTon = pesoKg > 0 ? Math.round((pesoKg / 1000) * 10000) / 10000 : 0;
-  const freteTotalTon = tipoFrete === 'por_tonelada' && pesoTon > 0 && (valorFreteTonelada ?? 0) > 0
-    ? Math.round(pesoTon * (valorFreteTonelada ?? 0) * 100) / 100
+  // Calculate total freight for por_kg
+  const freteTotalKg = tipoFrete === 'por_tonelada' && pesoKg > 0 && (valorFreteTonelada ?? 0) > 0
+    ? Math.round(pesoKg * (valorFreteTonelada ?? 0) * 100) / 100
     : 0;
-  const freteTotal = tipoFrete === 'valor_fixo' ? (valorFreteFixo ?? 0) : freteTotalTon;
+  const freteTotal = tipoFrete === 'valor_fixo' ? (valorFreteFixo ?? 0) : freteTotalKg;
 
   const validateLocations = (): boolean => {
     if (!origemData.cidade || !origemData.logradouro) {
