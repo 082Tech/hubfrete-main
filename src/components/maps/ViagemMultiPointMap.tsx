@@ -100,14 +100,6 @@ const createTruckLeafletIcon = (heading: number, isOnline: boolean) => {
 /** HubFrete primary green – unified tracking color */
 const HUBFRETE_GREEN = '#05924d';
 
-const statusLabels: Record<string, string> = {
-  'aguardando': 'Aguardando',
-  'saiu_para_coleta': 'Saiu para Coleta',
-  'saiu_para_entrega': 'Saiu para Entrega',
-  'entregue': 'Concluída',
-  'problema': 'Problema',
-  'cancelada': 'Cancelada',
-};
 
 function formatDateTime(dateString: string): string {
   return new Date(dateString).toLocaleString('pt-BR', {
