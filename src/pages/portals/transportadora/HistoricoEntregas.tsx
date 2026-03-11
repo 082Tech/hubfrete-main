@@ -401,12 +401,44 @@ export default function HistoricoEntregas() {
     return sorted;
   }, [filtered, sortField, sortOrder]);
 
+  // Sorting for cargas flat view
+  const sortedCargas = useMemo(() => {
+    const sorted = [...allEntregas];
+    sorted.sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'encerrada_em':
+          comparison = new Date(a.entregue_em || a.updated_at || '').getTime() - new Date(b.entregue_em || b.updated_at || '').getTime();
+          break;
+        case 'codigo':
+          comparison = (a.codigo || a.carga.codigo).localeCompare(b.codigo || b.carga.codigo, 'pt-BR');
+          break;
+        case 'motorista':
+          comparison = (a.motorista?.nome_completo || '').localeCompare(b.motorista?.nome_completo || '', 'pt-BR');
+          break;
+        case 'km':
+          comparison = (a.peso_alocado_kg || a.carga.peso_kg || 0) - (b.peso_alocado_kg || b.carga.peso_kg || 0);
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+    return sorted;
+  }, [allEntregas, sortField, sortOrder]);
+
   // Pagination
-  const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
+  const activeDataLength = viewMode === 'viagens' ? sortedData.length : sortedCargas.length;
+  const totalPages = Math.ceil(activeDataLength / ITEMS_PER_PAGE);
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return sortedData.slice(start, start + ITEMS_PER_PAGE);
   }, [sortedData, currentPage]);
+
+  const paginatedCargas = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedCargas.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedCargas, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
