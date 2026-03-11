@@ -3324,6 +3324,7 @@ export type Database = {
         | "entregue"
         | "problema"
         | "cancelada"
+      status_fatura: "aberta" | "fechada" | "paga" | "cancelada"
       status_pre_cadastro: "pendente" | "aprovado" | "rejeitado"
       status_viagem:
         | "em_andamento"
@@ -3369,6 +3370,7 @@ export type Database = {
         | "hopper"
       tipo_empresa: "EMBARCADOR" | "TRANSPORTADORA"
       tipo_endereco: "origem" | "destino"
+      tipo_fatura: "a_receber" | "a_pagar"
       tipo_frete: "cif" | "fob"
       tipo_notificacao:
         | "status_entrega_alterado"
@@ -3562,6 +3564,7 @@ export const Constants = {
         "problema",
         "cancelada",
       ],
+      status_fatura: ["aberta", "fechada", "paga", "cancelada"],
       status_pre_cadastro: ["pendente", "aprovado", "rejeitado"],
       status_viagem: [
         "em_andamento",
@@ -3610,6 +3613,7 @@ export const Constants = {
       ],
       tipo_empresa: ["EMBARCADOR", "TRANSPORTADORA"],
       tipo_endereco: ["origem", "destino"],
+      tipo_fatura: ["a_receber", "a_pagar"],
       tipo_frete: ["cif", "fob"],
       tipo_notificacao: [
         "status_entrega_alterado",
