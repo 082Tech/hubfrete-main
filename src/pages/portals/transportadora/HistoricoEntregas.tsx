@@ -509,7 +509,7 @@ export default function HistoricoEntregas() {
     return (
       <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/30">
         <div className="text-sm text-muted-foreground">
-          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length}
+          Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, activeDataLength)} de {activeDataLength}
         </div>
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
