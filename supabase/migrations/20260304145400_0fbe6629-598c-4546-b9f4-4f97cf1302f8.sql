@@ -1,1 +1,0 @@
-ALTER TABLE public.entregas ADD COLUMN IF NOT EXISTS outros_documentos jsonb DEFAULT '[]'::jsonb;
