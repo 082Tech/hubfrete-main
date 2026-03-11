@@ -605,8 +605,8 @@ export default function HistoricoEntregas() {
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <div className="flex gap-2 items-center text-sm text-muted-foreground">
-              <Route className="w-4 h-4" />
-              Viagens finalizadas
+              {viewMode === 'viagens' ? <Route className="w-4 h-4" /> : <Package className="w-4 h-4" />}
+              {viewMode === 'viagens' ? 'Viagens finalizadas' : 'Todas as cargas'}
             </div>
 
             {selectedStatus && (
@@ -624,7 +624,10 @@ export default function HistoricoEntregas() {
             )}
 
             <div className="ml-auto text-sm text-muted-foreground">
-              {sortedData.length} {sortedData.length === 1 ? 'viagem' : 'viagens'}
+              {viewMode === 'viagens'
+                ? `${sortedData.length} ${sortedData.length === 1 ? 'viagem' : 'viagens'}`
+                : `${allEntregas.length} ${allEntregas.length === 1 ? 'carga' : 'cargas'}`
+              }
             </div>
           </div>
 
