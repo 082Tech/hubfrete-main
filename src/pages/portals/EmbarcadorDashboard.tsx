@@ -15,6 +15,7 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { Input } from '@/components/ui/input';
 import { startOfMonth, endOfMonth, parseISO, subDays } from 'date-fns';
 import { useMemo, useState } from 'react';
+import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 export default function EmbarcadorDashboard() {
   const {
     empresa,
@@ -25,6 +26,7 @@ export default function EmbarcadorDashboard() {
   } = useAuth();
   const navigate = useNavigate();
   const [chatMessage, setChatMessage] = useState('');
+  const [novaCargaOpen, setNovaCargaOpen] = useState(false);
 
   // Get greeting based on time of day
   const greeting = useMemo(() => {
@@ -167,9 +169,9 @@ export default function EmbarcadorDashboard() {
               <BarChart3 className="w-4 h-4" />
               Relatórios
             </Button>
-            <Button className="gap-2" onClick={() => navigate('/embarcador/ofertas/nova')}>
+            <Button className="gap-2" onClick={() => setNovaCargaOpen(true)}>
               <Plus className="w-4 h-4" />
-              Nova Carga
+              Nova Oferta
             </Button>
           </div>
         </div>
@@ -326,5 +328,13 @@ export default function EmbarcadorDashboard() {
           </a>
         </Card>
       </div>
+
+      {novaCargaOpen && (
+        <NovaCargaDialog
+          editOpen={novaCargaOpen}
+          onEditOpenChange={setNovaCargaOpen}
+          onSuccess={() => setNovaCargaOpen(false)}
+        />
+      )}
     </div>;
 }
