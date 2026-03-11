@@ -1436,8 +1436,8 @@ export type Database = {
           periodo_inicio: string
           qtd_entregas: number | null
           quinzena: number
-          status: string
-          tipo: string
+          status: Database["public"]["Enums"]["status_fatura"]
+          tipo: Database["public"]["Enums"]["tipo_fatura"]
           updated_at: string
           valor_bruto: number | null
           valor_comissao: number | null
@@ -1458,8 +1458,8 @@ export type Database = {
           periodo_inicio: string
           qtd_entregas?: number | null
           quinzena: number
-          status?: string
-          tipo: string
+          status?: Database["public"]["Enums"]["status_fatura"]
+          tipo: Database["public"]["Enums"]["tipo_fatura"]
           updated_at?: string
           valor_bruto?: number | null
           valor_comissao?: number | null
@@ -1480,8 +1480,8 @@ export type Database = {
           periodo_inicio?: string
           qtd_entregas?: number | null
           quinzena?: number
-          status?: string
-          tipo?: string
+          status?: Database["public"]["Enums"]["status_fatura"]
+          tipo?: Database["public"]["Enums"]["tipo_fatura"]
           updated_at?: string
           valor_bruto?: number | null
           valor_comissao?: number | null
