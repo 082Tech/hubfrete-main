@@ -1054,6 +1054,181 @@ export default function HistoricoEntregas() {
 
                   {renderPagination()}
                 </>
+              )
+              ) : (
+                /* === CARGAS FLAT TABLE === */
+                paginatedCargas.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center flex-1">
+                  <Package className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma carga encontrada</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {selectedStatus || Object.keys(advancedFilters).length > 0 ? 'Tente ajustar os filtros' : 'As cargas aparecerão aqui'}
+                  </p>
+                  {(selectedStatus || Object.keys(advancedFilters).length > 0) && (
+                    <Button variant="outline" size="sm" onClick={() => { setAdvancedFilters({}); setSelectedStatus(null); }}>
+                      Limpar filtros
+                    </Button>
+                  )}
+                </div>
+                ) : (
+                <>
+                  <div className="flex-1 min-h-0 overflow-auto">
+                    <table className="w-full caption-bottom text-sm">
+                      <thead className="sticky top-0 z-20 bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+                        <tr className="border-b">
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[130px] cursor-pointer" onClick={() => handleSort('codigo')}>
+                            <div className="flex items-center">
+                              Código
+                              <SortIcon field="codigo" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[120px]">Viagem</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[150px] cursor-pointer" onClick={() => handleSort('motorista')}>
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              Motorista
+                              <SortIcon field="motorista" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[120px]">Embarcador</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[120px]">Destinatário</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[200px]">
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              Rota
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-right align-middle font-semibold text-foreground min-w-[80px]">Peso</th>
+                          <th className="h-12 px-4 text-right align-middle font-semibold text-foreground min-w-[100px]">Frete</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[100px]">Status</th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground min-w-[100px] cursor-pointer" onClick={() => handleSort('encerrada_em')}>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              Data
+                              <SortIcon field="encerrada_em" />
+                            </div>
+                          </th>
+                          <th className="h-12 px-4 text-left align-middle font-semibold text-foreground w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedCargas.map((entrega) => {
+                          const eStatus = entrega.status || 'aguardando';
+                          const eConfig = entregaStatusConfig[eStatus] || entregaStatusConfig.aguardando;
+                          const EStatusIcon = eConfig.icon;
+                          const origem = entrega.carga.endereco_origem;
+                          const destino = entrega.carga.endereco_destino;
+
+                          return (
+                            <tr key={entrega.id} className="border-b transition-colors hover:bg-muted/50">
+                              <td className="p-4 align-middle font-mono text-sm font-medium text-primary text-nowrap">
+                                {entrega.codigo || entrega.carga.codigo}
+                              </td>
+                              <td className="p-4 align-middle text-nowrap">
+                                <Badge variant="secondary" className="text-xs font-mono">
+                                  {(entrega as any).viagem?.codigo || '-'}
+                                </Badge>
+                              </td>
+                              <td className="p-4 align-middle text-nowrap">
+                                {entrega.motorista ? (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                      <User className="w-3 h-3 text-primary" />
+                                    </div>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-sm truncate max-w-[100px]">{entrega.motorista.nome_completo}</span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{entrega.motorista.nome_completo}</TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                ) : <span className="text-sm text-muted-foreground">-</span>}
+                              </td>
+                              <td className="p-4 align-middle text-nowrap">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-sm truncate max-w-[100px] block">{entrega.carga.empresa?.nome || '-'}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{entrega.carga.empresa?.nome || 'Não informado'}</TooltipContent>
+                                </Tooltip>
+                              </td>
+                              <td className="p-4 align-middle text-nowrap">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-sm truncate max-w-[100px] block">
+                                      {entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || '-'}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{entrega.carga.destinatario_nome_fantasia || entrega.carga.destinatario_razao_social || 'Não informado'}</TooltipContent>
+                                </Tooltip>
+                              </td>
+                              <td className="p-4 align-middle text-nowrap">
+                                <div className="flex items-center gap-1 text-sm">
+                                  <span className="truncate max-w-[70px]">{origem?.cidade || '-'}</span>
+                                  <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                                  <span className="truncate max-w-[70px]">{destino?.cidade || '-'}</span>
+                                </div>
+                              </td>
+                              <td className="p-4 align-middle text-right text-sm font-medium">
+                                {formatPeso(entrega.peso_alocado_kg || entrega.carga.peso_kg)}
+                              </td>
+                              <td className="p-4 align-middle text-right text-sm font-medium text-green-600">
+                                {formatCurrency(entrega.valor_frete)}
+                              </td>
+                              <td className="p-4 align-middle">
+                                <Badge className={`${eConfig.color} text-xs`}>
+                                  <EStatusIcon className="w-3 h-3 mr-1" />
+                                  {eConfig.label}
+                                </Badge>
+                              </td>
+                              <td className="p-4 align-middle text-sm text-muted-foreground text-nowrap">
+                                {entrega.entregue_em
+                                  ? new Date(entrega.entregue_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+                                  : entrega.updated_at
+                                    ? new Date(entrega.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+                                    : '-'}
+                              </td>
+                              <td className="p-4 align-middle">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={() => handleOpenDetails(entrega)}>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      Ver detalhes
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      setChatEntregaId(entrega.id);
+                                      setChatSheetOpen(true);
+                                    }}>
+                                      <MessageCircle className="w-4 h-4 mr-2" />
+                                      Ver conversa
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      setTrackingEntregaId(entrega.id);
+                                      setTrackingEntregaInfo({
+                                        motorista: entrega.motorista?.nome_completo || 'Motorista',
+                                        placa: entrega.veiculo?.placa || '-',
+                                      });
+                                    }}>
+                                      <Route className="w-4 h-4 mr-2" />
+                                      Ver rastreamento
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {renderPagination()}
+                </>
+                )
               )}
             </CardContent>
           </Card>
