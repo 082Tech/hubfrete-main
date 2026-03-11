@@ -3,6 +3,8 @@ import { formatWeight } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -159,8 +161,11 @@ const ITEMS_PER_PAGE = 15;
 type SortField = 'encerrada_em' | 'codigo' | 'motorista' | 'entregas' | 'km';
 type SortOrder = 'asc' | 'desc';
 
+  type HistoricoViewMode = 'viagens' | 'cargas';
+
 export default function HistoricoEntregas() {
   const { empresa } = useUserContext();
+  const [viewMode, setViewMode] = useState<HistoricoViewMode>('viagens');
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({});
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -292,7 +297,11 @@ export default function HistoricoEntregas() {
     totalEntregas: viagens.reduce((acc, v) => acc + v.entregas.length, 0),
   }), [viagens]);
 
-  // Filtering
+  // Flat list of all entregas (for cargas view)
+  const allEntregas = useMemo(() => {
+    return filtered.flatMap(v => v.entregas.map(e => ({ ...e, viagem: v })));
+  }, [filtered]);
+
   const filtered = useMemo(() => {
     let result = viagens;
 
@@ -508,6 +517,24 @@ export default function HistoricoEntregas() {
               <p className="text-muted-foreground">Todas as viagens e entregas</p>
             </div>
             <div className="flex items-center gap-4">
+              {/* Switch de Visualização */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
+                <Label htmlFor="historico-view-switch" className={`text-sm font-medium transition-colors ${viewMode === 'cargas' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Cargas
+                </Label>
+                <Switch
+                  id="historico-view-switch"
+                  checked={viewMode === 'viagens'}
+                  onCheckedChange={(checked) => {
+                    setViewMode(checked ? 'viagens' : 'cargas');
+                    setCurrentPage(1);
+                  }}
+                />
+                <Label htmlFor="historico-view-switch" className={`text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === 'viagens' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <Route className="w-3.5 h-3.5" />
+                  Viagens
+                </Label>
+              </div>
               <AdvancedFiltersPopover
                 filters={advancedFilters}
                 onFiltersChange={setAdvancedFilters}
@@ -582,8 +609,8 @@ export default function HistoricoEntregas() {
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <div className="flex gap-2 items-center text-sm text-muted-foreground">
-              <Route className="w-4 h-4" />
-              Viagens finalizadas
+              {viewMode === 'viagens' ? <Route className="w-4 h-4" /> : <Package className="w-4 h-4" />}
+              {viewMode === 'viagens' ? 'Viagens finalizadas' : 'Todas as cargas'}
             </div>
 
             {selectedStatus && (
@@ -601,7 +628,10 @@ export default function HistoricoEntregas() {
             )}
 
             <div className="ml-auto text-sm text-muted-foreground">
-              {sortedData.length} {sortedData.length === 1 ? 'viagem' : 'viagens'}
+              {viewMode === 'viagens'
+                ? `${sortedData.length} ${sortedData.length === 1 ? 'viagem' : 'viagens'}`
+                : `${allEntregas.length} ${allEntregas.length === 1 ? 'carga' : 'cargas'}`
+              }
             </div>
           </div>
 

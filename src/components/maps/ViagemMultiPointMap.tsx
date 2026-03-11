@@ -97,24 +97,9 @@ const createTruckLeafletIcon = (heading: number, isOnline: boolean) => {
   });
 };
 
-// Status colors (same as TrackingHistoryMarkers)
-const statusColors: Record<string, string> = {
-  'aguardando': '#f59e0b',
-  'saiu_para_coleta': '#06b6d4',
-  'saiu_para_entrega': '#a855f7',
-  'entregue': '#22c55e',
-  'problema': '#ef4444',
-  'cancelada': '#ef4444',
-};
+/** HubFrete primary green – unified tracking color */
+const HUBFRETE_GREEN = '#05924d';
 
-const statusLabels: Record<string, string> = {
-  'aguardando': 'Aguardando',
-  'saiu_para_coleta': 'Saiu para Coleta',
-  'saiu_para_entrega': 'Saiu para Entrega',
-  'entregue': 'Concluída',
-  'problema': 'Problema',
-  'cancelada': 'Cancelada',
-};
 
 function formatDateTime(dateString: string): string {
   return new Date(dateString).toLocaleString('pt-BR', {
@@ -218,10 +203,8 @@ export function ViagemMultiPointMap({
           />
         )}
 
-        {/* Tracking history dots - same style as TrackingHistoryMarkers */}
+        {/* Tracking history dots - unified HubFrete green */}
         {trackingPoints.map((point, idx) => {
-          const color = statusColors[point.status || 'aguardando'] || '#6b7280';
-          const label = statusLabels[point.status || 'aguardando'] || point.status || 'Em trânsito';
           const isFirst = idx === 0;
           const isLast = idx === trackingPoints.length - 1;
 
@@ -233,13 +216,13 @@ export function ViagemMultiPointMap({
               pathOptions={{
                 color: 'white',
                 weight: 2,
-                fillColor: color,
+                fillColor: HUBFRETE_GREEN,
                 fillOpacity: isFirst || isLast ? 1 : 0.8,
               }}
             >
               <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
                 <div className="text-xs min-w-[120px]">
-                  <div className="font-medium">{label}</div>
+                  <div className="font-medium">Ponto de rastreamento</div>
                   <div className="text-gray-500 mt-0.5">{formatDateTime(point.tracked_at)}</div>
                   {point.speed != null && <div className="text-gray-500">{Math.round(point.speed)} km/h</div>}
                   {isFirst && <div className="mt-1 text-green-600 font-medium">📍 Início</div>}
