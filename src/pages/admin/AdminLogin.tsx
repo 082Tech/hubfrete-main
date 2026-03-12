@@ -67,29 +67,29 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-destructive/5 via-background to-primary/10 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-800 p-4">
       {/* Background elements */}
-      <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-destructive/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-primary/20 rounded-full blur-2xl" />
+      <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-neutral-800/40 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-primary/10 rounded-full blur-2xl" />
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="p-2 bg-destructive rounded-lg">
-            <Shield className="w-6 h-6 text-destructive-foreground" />
+          <div className="p-2 bg-neutral-800 rounded-lg border border-neutral-700">
+            <Shield className="w-6 h-6 text-white" />
           </div>
-          <span className="text-2xl font-bold text-foreground">
+          <span className="text-2xl font-bold text-white">
             Hub<span className="text-primary">Frete</span>
-            <span className="text-destructive ml-2 text-sm">Admin</span>
+            <span className="text-neutral-400 ml-2 text-sm">Admin</span>
           </span>
         </div>
 
-        <Card className="border-destructive/20 shadow-xl">
+        <Card className="border-neutral-700 shadow-xl bg-neutral-900/80 backdrop-blur">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-2xl text-white">
               {success ? 'Acesso Autorizado!' : 'Acesso Administrativo'}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-neutral-400">
               {success ? 'Redirecionando para a Torre de Controle...' : 'Área restrita para administradores'}
             </CardDescription>
           </CardHeader>
@@ -97,11 +97,11 @@ export default function AdminLogin() {
           <CardContent>
             {success ? (
               <div className="flex flex-col items-center gap-4 py-8">
-                <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-8 h-8 text-destructive" />
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-primary" />
                 </div>
-                <p className="text-muted-foreground">Preparando a Torre de Controle...</p>
-                <Loader2 className="w-6 h-6 animate-spin text-destructive" />
+                <p className="text-neutral-400">Preparando a Torre de Controle...</p>
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : (
               <form onSubmit={handleLogin} className="space-y-4">
@@ -134,7 +134,7 @@ export default function AdminLogin() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-destructive hover:bg-destructive/90" disabled={loading}>
+                <Button type="submit" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -152,7 +152,7 @@ export default function AdminLogin() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
+        <p className="text-center text-sm text-neutral-500 mt-6">
           <Link to="/" className="hover:text-primary">
             ← Voltar para o site
           </Link>
