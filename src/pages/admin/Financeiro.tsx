@@ -83,7 +83,7 @@ export default function Financeiro() {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [activeTab, setActiveTab] = useState<'a_receber' | 'a_pagar'>('a_receber');
+  const [activeTab, setActiveTab] = useState<'a_receber' | 'a_pagar' | 'a_pagar_autonomos'>('a_receber');
   const [openFatura, setOpenFatura] = useState<string | null>(null);
   const [faturaPages, setFaturaPages] = useState<Record<string, number>>({});
   const [baixaDialog, setBaixaDialog] = useState<FinanceiroEntrega | null>(null);
