@@ -142,35 +142,50 @@ export default function Financeiro() {
     },
   });
 
-  // Fetch financeiro_entregas for autonomous drivers
-  const { data: autonomoItems, isLoading: loadingAutonomos } = useQuery({
-    queryKey: ['admin-financeiro-autonomos', selectedMonth, selectedYear],
+  // Fetch faturas_motoristas for autonomous drivers
+  const { data: faturasMotoristas, isLoading: loadingAutonomos } = useQuery({
+    queryKey: ['admin-faturas-motoristas', selectedMonth, selectedYear],
     queryFn: async () => {
-      const startDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
-      const endDate = format(endOfMonth(new Date(selectedYear, selectedMonth)), 'yyyy-MM-dd');
+      const { data, error } = await supabase
+        .from('faturas_motoristas' as any)
+        .select(`*, motoristas!inner(nome_completo)`)
+        .eq('mes', selectedMonth + 1)
+        .eq('ano', selectedYear)
+        .order('quinzena', { ascending: true });
+      if (error) throw error;
+      return data as unknown as FaturaMotoristaRow[];
+    },
+    enabled: activeTab === 'a_pagar_autonomos',
+  });
 
+  const [openFaturaMotorista, setOpenFaturaMotorista] = useState<string | null>(null);
+
+  // Fetch financeiro_entregas for expanded motorista fatura
+  const { data: faturaMotoristaItems, isLoading: loadingMotoristaItems } = useQuery({
+    queryKey: ['admin-fatura-motorista-items', openFaturaMotorista],
+    queryFn: async () => {
+      if (!openFaturaMotorista) return [];
+      // Find the fatura to get motorista_id and period
+      const fm = faturasMotoristas?.find(f => f.id === openFaturaMotorista);
+      if (!fm) return [];
       const { data, error } = await supabase
         .from('financeiro_entregas')
         .select(`
           *,
           entregas!inner(codigo, motorista_id, carga_id,
-            motoristas!inner(nome_completo, tipo_cadastro),
+            motoristas!inner(nome_completo, tipo_cadastro, id),
             cargas(codigo, descricao)
           ),
-          empresa_transportadora:empresas!financeiro_entregas_empresa_transportadora_id_fkey(nome, nome_fantasia),
           empresa_embarcadora:empresas!financeiro_entregas_empresa_embarcadora_id_fkey(nome, nome_fantasia)
         `)
-        .gte('created_at', startDate)
-        .lte('created_at', endDate + 'T23:59:59')
+        .gte('created_at', fm.periodo_inicio)
+        .lte('created_at', fm.periodo_fim + 'T23:59:59')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-
-      // Filter autonomous drivers client-side
-      return (data as unknown as (FinanceiroEntrega & { entregas: { motoristas: { tipo_cadastro: string } } })[])
-        .filter(item => item.entregas?.motoristas?.tipo_cadastro === 'autonomo') as unknown as FinanceiroEntrega[];
+      // Filter by motorista_id
+      return (data as any[]).filter((item: any) => item.entregas?.motoristas?.id === fm.motorista_id) as unknown as FinanceiroEntrega[];
     },
-    enabled: activeTab === 'a_pagar_autonomos',
+    enabled: !!openFaturaMotorista,
   });
 
   // Fetch items for expanded fatura
