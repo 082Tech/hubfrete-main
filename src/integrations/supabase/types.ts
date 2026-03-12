@@ -1658,6 +1658,7 @@ export type Database = {
           empresa_transportadora_id: number | null
           entrega_id: string
           fatura_embarcador_id: string | null
+          fatura_motorista_id: string | null
           fatura_transportadora_id: string | null
           id: string
           metodo_pagamento: string | null
@@ -1678,6 +1679,7 @@ export type Database = {
           empresa_transportadora_id?: number | null
           entrega_id: string
           fatura_embarcador_id?: string | null
+          fatura_motorista_id?: string | null
           fatura_transportadora_id?: string | null
           id?: string
           metodo_pagamento?: string | null
@@ -1698,6 +1700,7 @@ export type Database = {
           empresa_transportadora_id?: number | null
           entrega_id?: string
           fatura_embarcador_id?: string | null
+          fatura_motorista_id?: string | null
           fatura_transportadora_id?: string | null
           id?: string
           metodo_pagamento?: string | null
@@ -1735,6 +1738,13 @@ export type Database = {
             columns: ["fatura_embarcador_id"]
             isOneToOne: false
             referencedRelation: "faturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_fatura_motorista_id_fkey"
+            columns: ["fatura_motorista_id"]
+            isOneToOne: false
+            referencedRelation: "faturas_motoristas"
             referencedColumns: ["id"]
           },
           {
