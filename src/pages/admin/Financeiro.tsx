@@ -350,7 +350,9 @@ export default function Financeiro() {
           />
         </div>
 
-        <TabsContent value={activeTab} className="space-y-6 mt-4">
+        {/* Faturas tabs (a_receber / a_pagar) */}
+        {(activeTab === 'a_receber' || activeTab === 'a_pagar') && (
+        <TabsContent value={activeTab} className="space-y-6 mt-4" forceMount>
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="border-border">
@@ -597,6 +599,178 @@ export default function Financeiro() {
               })
             )}
           </div>
+        </TabsContent>
+        )}
+
+        {/* Autonomous drivers tab */}
+        <TabsContent value="a_pagar_autonomos" className="space-y-6 mt-4">
+          {(() => {
+            const autoTotalBruto = autonomoItems?.reduce((s, r) => s + Number(r.valor_frete), 0) || 0;
+            const autoTotalComissao = autonomoItems?.reduce((s, r) => s + Number(r.valor_comissao), 0) || 0;
+            const autoTotalLiquido = autonomoItems?.reduce((s, r) => s + Number(r.valor_liquido), 0) || 0;
+            const autoTotalEntregas = autonomoItems?.length || 0;
+            const autoPagos = autonomoItems?.filter(r => r.status === 'pago').length || 0;
+            const autoPendentes = autoTotalEntregas - autoPagos;
+
+            const autoPage = faturaPages['autonomos'] || 1;
+            const autoTotalPages = Math.max(1, Math.ceil(autoTotalEntregas / ITEMS_PER_PAGE));
+            const pagedAuto = autonomoItems?.slice((autoPage - 1) * ITEMS_PER_PAGE, autoPage * ITEMS_PER_PAGE) || [];
+
+            return (
+              <>
+                {/* Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="border-border">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-chart-4/10 rounded-lg">
+                        <DollarSign className="w-5 h-5 text-chart-4" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{formatCurrency(autoTotalBruto)}</p>
+                        <p className="text-xs text-muted-foreground">Frete Bruto</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <TrendingUp className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{formatCurrency(autoTotalComissao)}</p>
+                        <p className="text-xs text-muted-foreground">Comissão HubFrete</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-chart-2/10 rounded-lg">
+                        <CheckCircle className="w-5 h-5 text-chart-2" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{formatCurrency(autoTotalLiquido)}</p>
+                        <p className="text-xs text-muted-foreground">A Pagar (Líquido)</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-accent rounded-lg">
+                        <User className="w-5 h-5 text-accent-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{autoTotalEntregas}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {autoPendentes} pendente(s) · {autoPagos} pago(s)
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Items list */}
+                <Card className="border-border">
+                  {loadingAutonomos ? (
+                    <CardContent className="p-6 space-y-3">
+                      {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                    </CardContent>
+                  ) : !autonomoItems?.length ? (
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      Nenhuma entrega de motorista autônomo encontrada neste período
+                    </CardContent>
+                  ) : (
+                    <>
+                      <div className="overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/50">
+                            <tr className="border-b border-border">
+                              <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[18%]">Entrega</th>
+                              <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[18%]">Motorista</th>
+                              <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Embarcador</th>
+                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[12%]">Bruto</th>
+                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Comissão</th>
+                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Líquido</th>
+                              <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[8%]">Status</th>
+                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[6%]"></th>
+                            </tr>
+                          </thead>
+                        </table>
+                        <div className="max-h-[500px] overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <tbody>
+                              {pagedAuto.map((r) => (
+                                <tr key={r.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                                  <td className="px-4 py-3 w-[18%]">
+                                    <p className="font-medium">{r.entregas?.codigo || '—'}</p>
+                                    <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                                  </td>
+                                  <td className="px-4 py-3 w-[18%]">
+                                    <div className="flex items-center gap-1.5">
+                                      <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                      <span className="text-sm">{r.entregas?.motoristas?.nome_completo || '—'}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 w-[14%] text-sm">{nomeEmpresa(r.empresa_embarcadora)}</td>
+                                  <td className="px-4 py-3 text-right font-medium w-[12%]">{formatCurrency(r.valor_frete)}</td>
+                                  <td className="px-4 py-3 text-right text-muted-foreground text-sm w-[10%]">
+                                    {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
+                                  </td>
+                                  <td className="px-4 py-3 text-right font-semibold text-chart-2 w-[10%]">{formatCurrency(r.valor_liquido)}</td>
+                                  <td className="px-4 py-3 text-center w-[8%]">
+                                    <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
+                                      {r.status === 'pago' ? 'Pago' : 'Pendente'}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-3 w-[6%]">
+                                    {r.status === 'pendente' && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setBaixaDialog(r);
+                                          setBaixaForm({
+                                            data_pagamento: format(new Date(), 'yyyy-MM-dd'),
+                                            metodo_pagamento: '',
+                                            observacoes: '',
+                                          });
+                                          setComprovante(null);
+                                        }}
+                                      >
+                                        <CheckCircle className="w-4 h-4 mr-1" />
+                                        Baixa
+                                      </Button>
+                                    )}
+                                    {r.status === 'pago' && r.comprovante_url && (
+                                      <Button size="sm" variant="ghost" asChild>
+                                        <a href={r.comprovante_url} target="_blank" rel="noreferrer">
+                                          <Eye className="w-4 h-4" />
+                                        </a>
+                                      </Button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                      {autoTotalEntregas > ITEMS_PER_PAGE && (
+                        <div className="border-t border-border">
+                          <Pagination
+                            currentPage={autoPage}
+                            totalPages={autoTotalPages}
+                            totalItems={autoTotalEntregas}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                            onPageChange={(p) => setFaturaPages(prev => ({ ...prev, autonomos: p }))}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </Card>
+              </>
+            );
+          })()}
         </TabsContent>
       </Tabs>
 
