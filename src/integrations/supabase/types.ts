@@ -2299,6 +2299,7 @@ export type Database = {
           comprovante_vinculo_url: string | null
           cpf: string
           created_at: string | null
+          dados_bancarios: Json | null
           email: string | null
           empresa_id: number | null
           foto_url: string | null
@@ -2329,6 +2330,7 @@ export type Database = {
           comprovante_vinculo_url?: string | null
           cpf: string
           created_at?: string | null
+          dados_bancarios?: Json | null
           email?: string | null
           empresa_id?: number | null
           foto_url?: string | null
@@ -2359,6 +2361,7 @@ export type Database = {
           comprovante_vinculo_url?: string | null
           cpf?: string
           created_at?: string | null
+          dados_bancarios?: Json | null
           email?: string | null
           empresa_id?: number | null
           foto_url?: string | null
