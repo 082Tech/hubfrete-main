@@ -280,7 +280,7 @@ export default function Financeiro() {
 
     baixaQuinzenaMutation.mutate({
       faturaId: baixaQuinzenaDialog.id,
-      faturaType: activeTab,
+      faturaType: faturasTipo as 'a_receber' | 'a_pagar',
       ...baixaQuinzenaForm,
       comprovante_url: urlData.publicUrl,
     });
