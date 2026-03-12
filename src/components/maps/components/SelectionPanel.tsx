@@ -15,7 +15,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   em_coleta: { label: 'Em Coleta', className: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
   coletado: { label: 'Coletado', className: 'bg-sky-500/10 text-sky-600 border-sky-500/20' },
   em_transito: { label: 'Em Trânsito', className: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
-  em_entrega: { label: 'Em Rota', className: 'bg-violet-500/10 text-violet-600 border-violet-500/20' },
+  em_entrega: { label: 'Saiu p/ Entrega', className: 'bg-violet-500/10 text-violet-600 border-violet-500/20' },
   entregue: { label: 'Concluída', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
   problema: { label: 'Problema', className: 'bg-rose-500/10 text-rose-600 border-rose-500/20' },
 };

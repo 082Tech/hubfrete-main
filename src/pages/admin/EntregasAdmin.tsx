@@ -312,7 +312,7 @@ export default function EntregasAdmin() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.emRota}</p>
-                <p className="text-xs text-muted-foreground">Em Rota</p>
+                <p className="text-xs text-muted-foreground">Saiu p/ Entrega</p>
               </div>
             </div>
           </CardContent>

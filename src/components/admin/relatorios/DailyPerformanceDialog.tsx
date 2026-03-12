@@ -224,7 +224,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-3 text-center">
                 <Truck className="w-4 h-4 text-purple-600 mx-auto mb-1" />
                 <p className="text-lg font-bold text-purple-800">{metrics.emRota}</p>
-                <p className="text-[10px] text-purple-700">Em Rota</p>
+                <p className="text-[10px] text-purple-700">Saiu p/ Entrega</p>
               </CardContent>
             </Card>
 
