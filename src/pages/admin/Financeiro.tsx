@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   DollarSign, CheckCircle, Clock, TrendingUp, Search, Eye, Upload,
-  ChevronDown, ChevronRight, Calendar, Lock, LockOpen, ArrowDownLeft, ArrowUpRight,
+  ChevronDown, ChevronRight, Calendar, Lock, LockOpen, ArrowDownLeft, ArrowUpRight, User,
 } from 'lucide-react';
 import { format, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
