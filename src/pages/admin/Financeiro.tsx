@@ -641,6 +641,7 @@ export default function Financeiro() {
         {/* Autonomous drivers tab */}
         <TabsContent value="a_pagar_autonomos" className="space-y-6 mt-4">
           {(() => {
+            const DRIVERS_PER_PAGE = 15;
             const autoTotalBruto = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_bruto), 0) || 0;
             const autoTotalComissao = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_comissao), 0) || 0;
             const autoTotalLiquido = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_liquido), 0) || 0;
@@ -658,98 +659,166 @@ export default function Financeiro() {
               const qEntregas = items.reduce((s, f) => s + Number(f.qtd_entregas), 0);
               const first = items[0];
               const periodoLabel = `${format(new Date(first.periodo_inicio + 'T12:00:00'), 'dd/MM')} a ${format(new Date(first.periodo_fim + 'T12:00:00'), 'dd/MM/yyyy')}`;
+              const endDate = new Date(first.periodo_fim + 'T23:59:59');
+              const closed = new Date() > endDate;
+
+              const pageKey = `q${quinzena}-drivers`;
+              const driverPage = faturaPages[pageKey] || 1;
+              const totalDriverPages = Math.max(1, Math.ceil(items.length / DRIVERS_PER_PAGE));
+              const pagedDrivers = items.slice((driverPage - 1) * DRIVERS_PER_PAGE, driverPage * DRIVERS_PER_PAGE);
 
               return (
-                <div key={quinzena} className="space-y-2">
+                <div key={quinzena} className="space-y-3">
                   <div className="flex items-center justify-between px-1">
                     <h3 className="text-sm font-semibold text-foreground">
                       {quinzena === 1 ? '1ª' : '2ª'} Quinzena — {periodoLabel}
                     </h3>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>{items.length} motorista(s)</span>
                       <span>{qEntregas} entrega(s)</span>
                       <span>Bruto: {formatCurrency(qBruto)}</span>
                       <span className="font-semibold text-chart-2">Líquido: {formatCurrency(qLiquido)}</span>
                     </div>
                   </div>
 
-                  {items.map((fm) => {
+                  {pagedDrivers.map((fm) => {
                     const isOpen = openFaturaMotorista === fm.id;
-                    const page = faturaPages[fm.id] || 1;
-                    const totalPages = Math.max(1, Math.ceil((faturaMotoristaItems?.length || 0) / ITEMS_PER_PAGE));
-                    const pagedItems = isOpen ? (faturaMotoristaItems?.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE) || []) : [];
+                    const itemPage = faturaPages[fm.id] || 1;
+                    const totalItemPages = Math.max(1, Math.ceil((faturaMotoristaItems?.length || 0) / 10));
+                    const pagedItems = isOpen ? (faturaMotoristaItems?.slice((itemPage - 1) * 10, itemPage * 10) || []) : [];
 
                     return (
                       <Collapsible key={fm.id} open={isOpen} onOpenChange={() => setOpenFaturaMotorista(prev => prev === fm.id ? null : fm.id)}>
                         <Card className="border-border">
                           <CollapsibleTrigger asChild>
-                            <CardContent className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors">
-                              <div className="flex items-center gap-4">
-                                {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                                <div className="flex items-center gap-2">
-                                  <User className="w-4 h-4 text-muted-foreground" />
-                                  <span className="font-medium">{fm.motoristas?.nome_completo || '—'}</span>
+                            <button className="w-full text-left">
+                              <CardContent className="p-4 flex items-center gap-4">
+                                <div className="p-2 bg-primary/10 rounded-lg">
+                                  <User className="w-5 h-5 text-primary" />
                                 </div>
-                                <span className="text-xs text-muted-foreground">{fm.qtd_entregas} entrega(s)</span>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <div className="text-right">
-                                  <p className="text-sm font-bold text-chart-2">{formatCurrency(fm.valor_liquido)}</p>
-                                  <p className="text-xs text-muted-foreground">Bruto: {formatCurrency(fm.valor_bruto)}</p>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-semibold text-foreground">
+                                      {fm.motoristas?.nome_completo || '—'}
+                                    </p>
+                                    {faturaStatusBadge(fm.status)}
+                                    {closed ? (
+                                      <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground gap-1">
+                                        <Lock className="w-3 h-3" /> Fechada
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="border-chart-1 text-chart-1 gap-1">
+                                        <LockOpen className="w-3 h-3" /> Aberta
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {periodoLabel} — {fm.qtd_entregas} entrega(s)
+                                  </p>
                                 </div>
-                                {faturaStatusBadge(fm.status)}
-                              </div>
-                            </CardContent>
+                                {fm.status !== 'paga' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="hidden sm:flex shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Reuse baixa quinzena dialog adapted for motorista
+                                      setBaixaQuinzenaDialog({
+                                        ...fm,
+                                        empresa_id: 0,
+                                        tipo: 'a_pagar' as any,
+                                        empresas: { nome: fm.motoristas?.nome_completo || null, nome_fantasia: null },
+                                      } as any);
+                                      setBaixaQuinzenaForm({
+                                        data_pagamento: format(new Date(), 'yyyy-MM-dd'),
+                                        metodo_pagamento: '',
+                                        observacoes: '',
+                                      });
+                                      setComprovanteQuinzena(null);
+                                    }}
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    Baixa Quinzena
+                                  </Button>
+                                )}
+                                <div className="text-right mr-4 hidden sm:block">
+                                  <p className="text-lg font-bold text-foreground">
+                                    {formatCurrency(fm.valor_liquido)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Comissão: {formatCurrency(fm.valor_comissao)}
+                                  </p>
+                                </div>
+                                {isOpen ? (
+                                  <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
+                                ) : (
+                                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+                                )}
+                              </CardContent>
+                            </button>
                           </CollapsibleTrigger>
                           <CollapsibleContent>
                             <div className="border-t border-border">
-                              {loadingMotoristaItems ? (
-                                <div className="p-4 space-y-2">
-                                  {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                              {loadingMotoristaItems && isOpen ? (
+                                <div className="p-6 space-y-3">
+                                  {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
                                 </div>
-                              ) : !faturaMotoristaItems?.length ? (
-                                <div className="p-6 text-center text-muted-foreground text-sm">Nenhum lançamento encontrado</div>
                               ) : (
                                 <>
-                                  <table className="w-full text-sm">
-                                    <thead className="bg-muted/50">
-                                      <tr className="border-b border-border">
-                                        <th className="text-left font-medium text-muted-foreground px-4 py-2">Entrega</th>
-                                        <th className="text-left font-medium text-muted-foreground px-4 py-2">Embarcador</th>
-                                        <th className="text-right font-medium text-muted-foreground px-4 py-2">Bruto</th>
-                                        <th className="text-right font-medium text-muted-foreground px-4 py-2">Comissão</th>
-                                        <th className="text-right font-medium text-muted-foreground px-4 py-2">Líquido</th>
-                                        <th className="text-center font-medium text-muted-foreground px-4 py-2">Status</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {pagedItems.map((r) => (
-                                        <tr key={r.id} className="border-b border-border hover:bg-muted/30">
-                                          <td className="px-4 py-2">
-                                            <p className="font-medium">{r.entregas?.codigo || '—'}</p>
-                                            <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                                          </td>
-                                          <td className="px-4 py-2 text-sm">{nomeEmpresa(r.empresa_embarcadora)}</td>
-                                          <td className="px-4 py-2 text-right">{formatCurrency(r.valor_frete)}</td>
-                                          <td className="px-4 py-2 text-right text-muted-foreground">
-                                            {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
-                                          </td>
-                                          <td className="px-4 py-2 text-right font-semibold text-chart-2">{formatCurrency(r.valor_liquido)}</td>
-                                          <td className="px-4 py-2 text-center">
-                                            <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
-                                              {r.status === 'pago' ? 'Pago' : 'Pendente'}
-                                            </Badge>
-                                          </td>
+                                  <div className="overflow-hidden">
+                                    <table className="w-full text-sm">
+                                      <thead className="bg-muted/50">
+                                        <tr className="border-b border-border">
+                                          <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[20%]">Entrega</th>
+                                          <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[20%]">Embarcador</th>
+                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Bruto</th>
+                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Comissão</th>
+                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Líquido</th>
+                                          <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Status</th>
                                         </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                  {(faturaMotoristaItems?.length || 0) > ITEMS_PER_PAGE && (
+                                      </thead>
+                                    </table>
+                                    <div className="max-h-[400px] overflow-y-auto">
+                                      <table className="w-full text-sm">
+                                        <tbody>
+                                          {pagedItems.map((r) => (
+                                            <tr key={r.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                                              <td className="px-4 py-3 w-[20%]">
+                                                <p className="font-medium">{r.entregas?.codigo || '—'}</p>
+                                                <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                                              </td>
+                                              <td className="px-4 py-3 w-[20%] text-sm">{nomeEmpresa(r.empresa_embarcadora)}</td>
+                                              <td className="px-4 py-3 text-right font-medium w-[15%]">{formatCurrency(r.valor_frete)}</td>
+                                              <td className="px-4 py-3 text-right text-muted-foreground text-sm w-[15%]">
+                                                {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
+                                              </td>
+                                              <td className="px-4 py-3 text-right font-semibold text-chart-2 w-[15%]">{formatCurrency(r.valor_liquido)}</td>
+                                              <td className="px-4 py-3 text-center w-[15%]">
+                                                <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
+                                                  {r.status === 'pago' ? 'Pago' : 'Pendente'}
+                                                </Badge>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                          {pagedItems.length === 0 && (
+                                            <tr>
+                                              <td colSpan={6} className="text-center text-muted-foreground py-8">
+                                                Nenhum lançamento encontrado
+                                              </td>
+                                            </tr>
+                                          )}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                  {(faturaMotoristaItems?.length || 0) > 10 && (
                                     <div className="border-t border-border">
                                       <Pagination
-                                        currentPage={page}
-                                        totalPages={totalPages}
+                                        currentPage={itemPage}
+                                        totalPages={totalItemPages}
                                         totalItems={faturaMotoristaItems?.length || 0}
-                                        itemsPerPage={ITEMS_PER_PAGE}
+                                        itemsPerPage={10}
                                         onPageChange={(p) => setFaturaPages(prev => ({ ...prev, [fm.id]: p }))}
                                       />
                                     </div>
@@ -762,6 +831,16 @@ export default function Financeiro() {
                       </Collapsible>
                     );
                   })}
+
+                  {items.length > DRIVERS_PER_PAGE && (
+                    <Pagination
+                      currentPage={driverPage}
+                      totalPages={totalDriverPages}
+                      totalItems={items.length}
+                      itemsPerPage={DRIVERS_PER_PAGE}
+                      onPageChange={(p) => setFaturaPages(prev => ({ ...prev, [pageKey]: p }))}
+                    />
+                  )}
                 </div>
               );
             };
