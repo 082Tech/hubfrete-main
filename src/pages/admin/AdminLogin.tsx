@@ -67,29 +67,29 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-muted via-background to-muted dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-800 p-4">
       {/* Background elements */}
-      <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-neutral-800/40 rounded-full blur-3xl" />
+      <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-muted/60 dark:bg-neutral-800/40 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-primary/10 rounded-full blur-2xl" />
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="p-2 bg-neutral-800 rounded-lg border border-neutral-700">
-            <Shield className="w-6 h-6 text-white" />
+          <div className="p-2 bg-foreground/10 dark:bg-neutral-800 rounded-lg border border-border">
+            <Shield className="w-6 h-6 text-foreground" />
           </div>
-          <span className="text-2xl font-bold text-white">
+          <span className="text-2xl font-bold text-foreground">
             Hub<span className="text-primary">Frete</span>
-            <span className="text-neutral-400 ml-2 text-sm">Admin</span>
+            <span className="text-muted-foreground ml-2 text-sm">Admin</span>
           </span>
         </div>
 
-        <Card className="border-neutral-700 shadow-xl bg-neutral-900/80 backdrop-blur">
+        <Card className="border-border shadow-xl bg-card/80 backdrop-blur">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-white">
+            <CardTitle className="text-2xl text-foreground">
               {success ? 'Acesso Autorizado!' : 'Acesso Administrativo'}
             </CardTitle>
-            <CardDescription className="text-neutral-400">
+            <CardDescription>
               {success ? 'Redirecionando para a Torre de Controle...' : 'Área restrita para administradores'}
             </CardDescription>
           </CardHeader>
@@ -100,7 +100,7 @@ export default function AdminLogin() {
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-8 h-8 text-primary" />
                 </div>
-                <p className="text-neutral-400">Preparando a Torre de Controle...</p>
+                <p className="text-muted-foreground">Preparando a Torre de Controle...</p>
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : (
@@ -134,7 +134,7 @@ export default function AdminLogin() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -152,7 +152,7 @@ export default function AdminLogin() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-neutral-500 mt-6">
+        <p className="text-center text-sm text-muted-foreground mt-6">
           <Link to="/" className="hover:text-primary">
             ← Voltar para o site
           </Link>
