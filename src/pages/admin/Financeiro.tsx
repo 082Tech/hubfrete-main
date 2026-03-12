@@ -337,6 +337,10 @@ export default function Financeiro() {
               <ArrowUpRight className="w-4 h-4" />
               A Pagar (Transportadoras)
             </TabsTrigger>
+            <TabsTrigger value="a_pagar_autonomos" className="gap-2">
+              <User className="w-4 h-4" />
+              A Pagar (Autônomos)
+            </TabsTrigger>
           </TabsList>
           <MonthYearPicker
             month={selectedMonth}
