@@ -17,8 +17,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   DollarSign, CheckCircle, Clock, TrendingUp, Search, Eye, Upload,
-  ChevronDown, ChevronRight, Calendar, Lock, LockOpen, ArrowDownLeft, ArrowUpRight, User,
+  ChevronDown, ChevronRight, Calendar, Lock, LockOpen, ArrowDownLeft, ArrowUpRight, User, Landmark,
 } from 'lucide-react';
+import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
 import { format, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
@@ -122,6 +123,7 @@ export default function Financeiro() {
     observacoes: '',
   });
   const [comprovanteQuinzena, setComprovanteQuinzena] = useState<File | null>(null);
+  const [bankTarget, setBankTarget] = useState<{ type: 'motorista'; id: string; nome: string } | { type: 'empresa'; id: number; nome: string } | null>(null);
 
   const faturasTipo = activeTab === 'a_pagar_autonomos' ? 'a_pagar' : activeTab;
 
@@ -490,6 +492,20 @@ export default function Financeiro() {
                                 {' · '}{nomeEmpresa(fatura.empresas)}
                               </p>
                             </div>
+                            {activeTab === 'a_pagar' && fatura.empresas && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="hidden sm:flex shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setBankTarget({ type: 'empresa', id: fatura.empresa_id, nome: nomeEmpresa(fatura.empresas) });
+                                }}
+                                title="Dados bancários"
+                              >
+                                <Landmark className="w-4 h-4" />
+                              </Button>
+                            )}
                             {fatura.status !== 'paga' && (
                               <Button
                                 size="sm"
@@ -716,6 +732,18 @@ export default function Financeiro() {
                                     {periodoLabel} — {fm.qtd_entregas} entrega(s)
                                   </p>
                                 </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="hidden sm:flex shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setBankTarget({ type: 'motorista', id: fm.motorista_id, nome: fm.motoristas?.nome_completo || '—' });
+                                  }}
+                                  title="Dados bancários"
+                                >
+                                  <Landmark className="w-4 h-4" />
+                                </Button>
                                 {fm.status !== 'paga' && (
                                   <Button
                                     size="sm"
@@ -723,7 +751,6 @@ export default function Financeiro() {
                                     className="hidden sm:flex shrink-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      // Reuse baixa quinzena dialog adapted for motorista
                                       setBaixaQuinzenaDialog({
                                         ...fm,
                                         empresa_id: 0,
@@ -1084,6 +1111,12 @@ export default function Financeiro() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DadosBancariosDialog
+        target={bankTarget}
+        open={!!bankTarget}
+        onOpenChange={(open) => { if (!open) setBankTarget(null); }}
+      />
     </div>
   );
 }
