@@ -152,7 +152,7 @@ export default function AdminLogin() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
+        <p className="text-center text-sm text-neutral-500 mt-6">
           <Link to="/" className="hover:text-primary">
             ← Voltar para o site
           </Link>
