@@ -304,7 +304,7 @@ export function ChatArea({
       em_coleta: { label: 'Em Coleta', color: 'bg-blue-500/10 text-blue-600' },
       coletado: { label: 'Coletado', color: 'bg-indigo-500/10 text-indigo-600' },
       em_transito: { label: 'Em Trânsito', color: 'bg-orange-500/10 text-orange-600' },
-      em_entrega: { label: 'Em Rota', color: 'bg-purple-500/10 text-purple-600' },
+      em_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-500/10 text-purple-600' },
       entregue: { label: 'Concluída', color: 'bg-green-500/10 text-green-600' },
       problema: { label: 'Problema', color: 'bg-destructive/10 text-destructive' },
       devolvida: { label: 'Devolvida', color: 'bg-amber-500/10 text-amber-600' },

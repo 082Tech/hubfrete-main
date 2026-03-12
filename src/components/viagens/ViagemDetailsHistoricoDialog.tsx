@@ -77,7 +77,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 const entregaStatusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700', icon: Clock },
   saiu_para_coleta: { label: 'Coleta', color: 'bg-blue-100 text-blue-700', icon: Truck },
-  saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-700', icon: MapPin },
+  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-700', icon: MapPin },
   entregue: { label: 'Concluída', color: 'bg-green-100 text-green-700', icon: CheckCircle },
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-700', icon: Ban },
 };

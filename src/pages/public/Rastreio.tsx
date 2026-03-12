@@ -148,7 +148,7 @@ export default function Rastreio() {
     const getStatusLabel = (status: string) => {
         switch (status) {
             case 'ENTREGUE': return 'Entregue';
-            case 'EM_ROTA': return 'Em Rota';
+            case 'EM_ROTA': return 'Saiu p/ Entrega';
             case 'PENDENTE': return 'Pendente';
             case 'CANCELADO': return 'Cancelado';
             case 'AGUARDANDO_COLETA': return 'Aguardando Coleta';

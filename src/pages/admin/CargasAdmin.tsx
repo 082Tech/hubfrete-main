@@ -145,7 +145,7 @@ const statusEntregaConfig: Record<string, { label: string; color: string; icon: 
   aguardando: { label: 'Aguardando', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock },
   saiu_para_coleta: { label: 'Saiu para Coleta', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Truck },
   em_transito: { label: 'Em Trânsito', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: ArrowRightLeft },
-  saiu_para_entrega: { label: 'Em Rota', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
+  saiu_para_entrega: { label: 'Saiu p/ Entrega', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: MapPin },
   entregue: { label: 'Concluída', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
   cancelada: { label: 'Cancelada', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: RotateCcw },

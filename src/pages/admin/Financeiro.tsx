@@ -17,8 +17,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   DollarSign, CheckCircle, Clock, TrendingUp, Search, Eye, Upload,
-  ChevronDown, ChevronRight, Calendar, Lock, LockOpen, ArrowDownLeft, ArrowUpRight,
+  ChevronDown, ChevronRight, Calendar, Lock, LockOpen, ArrowDownLeft, ArrowUpRight, User, Landmark,
 } from 'lucide-react';
+import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
 import { format, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
@@ -52,6 +53,27 @@ interface FaturaRow {
   empresas: { nome: string | null; nome_fantasia: string | null } | null;
 }
 
+interface FaturaMotoristaRow {
+  id: string;
+  motorista_id: string;
+  quinzena: number;
+  mes: number;
+  ano: number;
+  periodo_inicio: string;
+  periodo_fim: string;
+  valor_bruto: number;
+  valor_comissao: number;
+  valor_liquido: number;
+  qtd_entregas: number;
+  status: string;
+  data_pagamento: string | null;
+  metodo_pagamento: string | null;
+  comprovante_url: string | null;
+  observacoes: string | null;
+  created_at: string;
+  motoristas: { nome_completo: string } | null;
+}
+
 interface FinanceiroEntrega {
   id: string;
   entrega_id: string;
@@ -83,7 +105,7 @@ export default function Financeiro() {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [activeTab, setActiveTab] = useState<'a_receber' | 'a_pagar'>('a_receber');
+  const [activeTab, setActiveTab] = useState<'a_receber' | 'a_pagar' | 'a_pagar_autonomos'>('a_receber');
   const [openFatura, setOpenFatura] = useState<string | null>(null);
   const [faturaPages, setFaturaPages] = useState<Record<string, number>>({});
   const [baixaDialog, setBaixaDialog] = useState<FinanceiroEntrega | null>(null);
@@ -101,21 +123,71 @@ export default function Financeiro() {
     observacoes: '',
   });
   const [comprovanteQuinzena, setComprovanteQuinzena] = useState<File | null>(null);
+  const [bankTarget, setBankTarget] = useState<{ type: 'motorista'; id: string; nome: string } | { type: 'empresa'; id: number; nome: string } | null>(null);
+
+  const faturasTipo = activeTab === 'a_pagar_autonomos' ? 'a_pagar' : activeTab;
 
   // Fetch faturas for selected month
   const { data: faturas, isLoading: loadingFaturas } = useQuery({
     queryKey: ['admin-faturas', activeTab, selectedMonth, selectedYear],
     queryFn: async () => {
+      if (activeTab === 'a_pagar_autonomos') return [] as FaturaRow[];
       const { data, error } = await supabase
         .from('faturas')
         .select(`*, empresas!faturas_empresa_id_fkey(nome, nome_fantasia)`)
-        .eq('tipo', activeTab)
+        .eq('tipo', faturasTipo)
         .eq('mes', selectedMonth + 1)
         .eq('ano', selectedYear)
         .order('quinzena', { ascending: true });
       if (error) throw error;
       return data as unknown as FaturaRow[];
     },
+  });
+
+  // Fetch faturas_motoristas for autonomous drivers
+  const { data: faturasMotoristas, isLoading: loadingAutonomos } = useQuery({
+    queryKey: ['admin-faturas-motoristas', selectedMonth, selectedYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('faturas_motoristas' as any)
+        .select(`*, motoristas!inner(nome_completo)`)
+        .eq('mes', selectedMonth + 1)
+        .eq('ano', selectedYear)
+        .order('quinzena', { ascending: true });
+      if (error) throw error;
+      return data as unknown as FaturaMotoristaRow[];
+    },
+    enabled: activeTab === 'a_pagar_autonomos',
+  });
+
+  const [openFaturaMotorista, setOpenFaturaMotorista] = useState<string | null>(null);
+
+  // Fetch financeiro_entregas for expanded motorista fatura
+  const { data: faturaMotoristaItems, isLoading: loadingMotoristaItems } = useQuery({
+    queryKey: ['admin-fatura-motorista-items', openFaturaMotorista],
+    queryFn: async () => {
+      if (!openFaturaMotorista) return [];
+      // Find the fatura to get motorista_id and period
+      const fm = faturasMotoristas?.find(f => f.id === openFaturaMotorista);
+      if (!fm) return [];
+      const { data, error } = await supabase
+        .from('financeiro_entregas')
+        .select(`
+          *,
+          entregas!inner(codigo, motorista_id, carga_id,
+            motoristas!inner(nome_completo, tipo_cadastro, id),
+            cargas(codigo, descricao)
+          ),
+          empresa_embarcadora:empresas!financeiro_entregas_empresa_embarcadora_id_fkey(nome, nome_fantasia)
+        `)
+        .gte('created_at', fm.periodo_inicio)
+        .lte('created_at', fm.periodo_fim + 'T23:59:59')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      // Filter by motorista_id
+      return (data as any[]).filter((item: any) => item.entregas?.motoristas?.id === fm.motorista_id) as unknown as FinanceiroEntrega[];
+    },
+    enabled: !!openFaturaMotorista,
   });
 
   // Fetch items for expanded fatura
@@ -246,7 +318,7 @@ export default function Financeiro() {
 
     baixaQuinzenaMutation.mutate({
       faturaId: baixaQuinzenaDialog.id,
-      faturaType: activeTab,
+      faturaType: faturasTipo as 'a_receber' | 'a_pagar',
       ...baixaQuinzenaForm,
       comprovante_url: urlData.publicUrl,
     });
@@ -303,6 +375,10 @@ export default function Financeiro() {
               <ArrowUpRight className="w-4 h-4" />
               A Pagar (Transportadoras)
             </TabsTrigger>
+            <TabsTrigger value="a_pagar_autonomos" className="gap-2">
+              <User className="w-4 h-4" />
+              A Pagar (Autônomos)
+            </TabsTrigger>
           </TabsList>
           <MonthYearPicker
             month={selectedMonth}
@@ -312,7 +388,9 @@ export default function Financeiro() {
           />
         </div>
 
-        <TabsContent value={activeTab} className="space-y-6 mt-4">
+        {/* Faturas tabs (a_receber / a_pagar) */}
+        {(activeTab === 'a_receber' || activeTab === 'a_pagar') && (
+        <TabsContent value={activeTab} className="space-y-6 mt-4" forceMount>
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="border-border">
@@ -414,6 +492,20 @@ export default function Financeiro() {
                                 {' · '}{nomeEmpresa(fatura.empresas)}
                               </p>
                             </div>
+                            {activeTab === 'a_pagar' && fatura.empresas && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="hidden sm:flex shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setBankTarget({ type: 'empresa', id: fatura.empresa_id, nome: nomeEmpresa(fatura.empresas) });
+                                }}
+                                title="Dados bancários"
+                              >
+                                <Landmark className="w-4 h-4" />
+                              </Button>
+                            )}
                             {fatura.status !== 'paga' && (
                               <Button
                                 size="sm"
@@ -559,6 +651,301 @@ export default function Financeiro() {
               })
             )}
           </div>
+        </TabsContent>
+        )}
+
+        {/* Autonomous drivers tab */}
+        <TabsContent value="a_pagar_autonomos" className="space-y-6 mt-4">
+          {(() => {
+            const DRIVERS_PER_PAGE = 15;
+            const autoTotalBruto = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_bruto), 0) || 0;
+            const autoTotalComissao = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_comissao), 0) || 0;
+            const autoTotalLiquido = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_liquido), 0) || 0;
+            const autoTotalEntregas = faturasMotoristas?.reduce((s, f) => s + Number(f.qtd_entregas), 0) || 0;
+            const autoPagas = faturasMotoristas?.filter(f => f.status === 'paga').length || 0;
+
+            // Group by quinzena
+            const q1 = faturasMotoristas?.filter(f => f.quinzena === 1) || [];
+            const q2 = faturasMotoristas?.filter(f => f.quinzena === 2) || [];
+
+            const renderQuinzena = (quinzena: number, items: FaturaMotoristaRow[]) => {
+              if (!items.length) return null;
+              const qBruto = items.reduce((s, f) => s + Number(f.valor_bruto), 0);
+              const qLiquido = items.reduce((s, f) => s + Number(f.valor_liquido), 0);
+              const qEntregas = items.reduce((s, f) => s + Number(f.qtd_entregas), 0);
+              const first = items[0];
+              const periodoLabel = `${format(new Date(first.periodo_inicio + 'T12:00:00'), 'dd/MM')} a ${format(new Date(first.periodo_fim + 'T12:00:00'), 'dd/MM/yyyy')}`;
+              const endDate = new Date(first.periodo_fim + 'T23:59:59');
+              const closed = new Date() > endDate;
+
+              const pageKey = `q${quinzena}-drivers`;
+              const driverPage = faturaPages[pageKey] || 1;
+              const totalDriverPages = Math.max(1, Math.ceil(items.length / DRIVERS_PER_PAGE));
+              const pagedDrivers = items.slice((driverPage - 1) * DRIVERS_PER_PAGE, driverPage * DRIVERS_PER_PAGE);
+
+              return (
+                <div key={quinzena} className="space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {quinzena === 1 ? '1ª' : '2ª'} Quinzena — {periodoLabel}
+                    </h3>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>{items.length} motorista(s)</span>
+                      <span>{qEntregas} entrega(s)</span>
+                      <span>Bruto: {formatCurrency(qBruto)}</span>
+                      <span className="font-semibold text-chart-2">Líquido: {formatCurrency(qLiquido)}</span>
+                    </div>
+                  </div>
+
+                  {pagedDrivers.map((fm) => {
+                    const isOpen = openFaturaMotorista === fm.id;
+                    const itemPage = faturaPages[fm.id] || 1;
+                    const totalItemPages = Math.max(1, Math.ceil((faturaMotoristaItems?.length || 0) / 10));
+                    const pagedItems = isOpen ? (faturaMotoristaItems?.slice((itemPage - 1) * 10, itemPage * 10) || []) : [];
+
+                    return (
+                      <Collapsible key={fm.id} open={isOpen} onOpenChange={() => setOpenFaturaMotorista(prev => prev === fm.id ? null : fm.id)}>
+                        <Card className="border-border">
+                          <CollapsibleTrigger asChild>
+                            <button className="w-full text-left">
+                              <CardContent className="p-4 flex items-center gap-4">
+                                <div className="p-2 bg-primary/10 rounded-lg">
+                                  <User className="w-5 h-5 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-semibold text-foreground">
+                                      {fm.motoristas?.nome_completo || '—'}
+                                    </p>
+                                    {faturaStatusBadge(fm.status)}
+                                    {closed ? (
+                                      <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground gap-1">
+                                        <Lock className="w-3 h-3" /> Fechada
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="border-chart-1 text-chart-1 gap-1">
+                                        <LockOpen className="w-3 h-3" /> Aberta
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {periodoLabel} — {fm.qtd_entregas} entrega(s)
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="hidden sm:flex shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setBankTarget({ type: 'motorista', id: fm.motorista_id, nome: fm.motoristas?.nome_completo || '—' });
+                                  }}
+                                  title="Dados bancários"
+                                >
+                                  <Landmark className="w-4 h-4" />
+                                </Button>
+                                {fm.status !== 'paga' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="hidden sm:flex shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setBaixaQuinzenaDialog({
+                                        ...fm,
+                                        empresa_id: 0,
+                                        tipo: 'a_pagar' as any,
+                                        empresas: { nome: fm.motoristas?.nome_completo || null, nome_fantasia: null },
+                                      } as any);
+                                      setBaixaQuinzenaForm({
+                                        data_pagamento: format(new Date(), 'yyyy-MM-dd'),
+                                        metodo_pagamento: '',
+                                        observacoes: '',
+                                      });
+                                      setComprovanteQuinzena(null);
+                                    }}
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    Baixa Quinzena
+                                  </Button>
+                                )}
+                                <div className="text-right mr-4 hidden sm:block">
+                                  <p className="text-lg font-bold text-foreground">
+                                    {formatCurrency(fm.valor_liquido)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Comissão: {formatCurrency(fm.valor_comissao)}
+                                  </p>
+                                </div>
+                                {isOpen ? (
+                                  <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
+                                ) : (
+                                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+                                )}
+                              </CardContent>
+                            </button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="border-t border-border">
+                              {loadingMotoristaItems && isOpen ? (
+                                <div className="p-6 space-y-3">
+                                  {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="overflow-hidden">
+                                    <table className="w-full text-sm">
+                                      <thead className="bg-muted/50">
+                                        <tr className="border-b border-border">
+                                          <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[20%]">Entrega</th>
+                                          <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[20%]">Embarcador</th>
+                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Bruto</th>
+                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Comissão</th>
+                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Líquido</th>
+                                          <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Status</th>
+                                        </tr>
+                                      </thead>
+                                    </table>
+                                    <div className="max-h-[400px] overflow-y-auto">
+                                      <table className="w-full text-sm">
+                                        <tbody>
+                                          {pagedItems.map((r) => (
+                                            <tr key={r.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                                              <td className="px-4 py-3 w-[20%]">
+                                                <p className="font-medium">{r.entregas?.codigo || '—'}</p>
+                                                <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                                              </td>
+                                              <td className="px-4 py-3 w-[20%] text-sm">{nomeEmpresa(r.empresa_embarcadora)}</td>
+                                              <td className="px-4 py-3 text-right font-medium w-[15%]">{formatCurrency(r.valor_frete)}</td>
+                                              <td className="px-4 py-3 text-right text-muted-foreground text-sm w-[15%]">
+                                                {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
+                                              </td>
+                                              <td className="px-4 py-3 text-right font-semibold text-chart-2 w-[15%]">{formatCurrency(r.valor_liquido)}</td>
+                                              <td className="px-4 py-3 text-center w-[15%]">
+                                                <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
+                                                  {r.status === 'pago' ? 'Pago' : 'Pendente'}
+                                                </Badge>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                          {pagedItems.length === 0 && (
+                                            <tr>
+                                              <td colSpan={6} className="text-center text-muted-foreground py-8">
+                                                Nenhum lançamento encontrado
+                                              </td>
+                                            </tr>
+                                          )}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                  {(faturaMotoristaItems?.length || 0) > 10 && (
+                                    <div className="border-t border-border">
+                                      <Pagination
+                                        currentPage={itemPage}
+                                        totalPages={totalItemPages}
+                                        totalItems={faturaMotoristaItems?.length || 0}
+                                        itemsPerPage={10}
+                                        onPageChange={(p) => setFaturaPages(prev => ({ ...prev, [fm.id]: p }))}
+                                      />
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </CollapsibleContent>
+                        </Card>
+                      </Collapsible>
+                    );
+                  })}
+
+                  {items.length > DRIVERS_PER_PAGE && (
+                    <Pagination
+                      currentPage={driverPage}
+                      totalPages={totalDriverPages}
+                      totalItems={items.length}
+                      itemsPerPage={DRIVERS_PER_PAGE}
+                      onPageChange={(p) => setFaturaPages(prev => ({ ...prev, [pageKey]: p }))}
+                    />
+                  )}
+                </div>
+              );
+            };
+
+            return (
+              <>
+                {/* Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="border-border">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-chart-4/10 rounded-lg">
+                        <DollarSign className="w-5 h-5 text-chart-4" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{formatCurrency(autoTotalBruto)}</p>
+                        <p className="text-xs text-muted-foreground">Frete Bruto</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <TrendingUp className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{formatCurrency(autoTotalComissao)}</p>
+                        <p className="text-xs text-muted-foreground">Comissão HubFrete</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-chart-2/10 rounded-lg">
+                        <CheckCircle className="w-5 h-5 text-chart-2" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{formatCurrency(autoTotalLiquido)}</p>
+                        <p className="text-xs text-muted-foreground">A Pagar (Líquido)</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="p-2 bg-accent rounded-lg">
+                        <User className="w-5 h-5 text-accent-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{autoTotalEntregas}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {faturasMotoristas?.length || 0} fatura(s) · {autoPagas} paga(s)
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Faturas agrupadas por quinzena */}
+                <div className="space-y-4 pb-10">
+                  {loadingAutonomos ? (
+                    <div className="space-y-3">
+                      {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+                    </div>
+                  ) : !faturasMotoristas?.length ? (
+                    <Card className="border-border">
+                      <CardContent className="py-12 text-center text-muted-foreground">
+                        Nenhuma fatura de motorista autônomo encontrada neste período
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      {renderQuinzena(1, q1)}
+                      {renderQuinzena(2, q2)}
+                    </>
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </TabsContent>
       </Tabs>
 
@@ -724,6 +1111,12 @@ export default function Financeiro() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DadosBancariosDialog
+        target={bankTarget}
+        open={!!bankTarget}
+        onOpenChange={(open) => { if (!open) setBankTarget(null); }}
+      />
     </div>
   );
 }

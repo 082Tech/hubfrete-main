@@ -119,7 +119,7 @@ export default function Motoristas() {
           comprovante_endereco_url, comprovante_endereco_titular_nome,
           comprovante_endereco_titular_doc_url, comprovante_vinculo_url,
           possui_ajudante, ativo, foto_url,
-          veiculos:veiculos!veiculos_motorista_padrao_id_fkey(id, placa, tipo, marca, modelo, uf, antt_rntrc, documento_veiculo_url, comprovante_endereco_proprietario_url, proprietario_nome, proprietario_cpf_cnpj, carroceria_integrada, capacidade_kg, capacidade_m3, carrocerias(id, placa, tipo, marca, modelo, capacidade_kg, capacidade_m3)),
+          veiculos:veiculos!veiculos_motorista_padrao_id_fkey(id, placa, tipo, marca, modelo, uf, antt_rntrc, documento_veiculo_url, comprovante_endereco_proprietario_url, proprietario_nome, proprietario_cpf_cnpj, carroceria_integrada, capacidade_kg, capacidade_m3, carrocerias:carrocerias!carrocerias_veiculo_id_fkey(id, placa, tipo, marca, modelo, capacidade_kg, capacidade_m3)),
           ajudantes(id, nome, cpf, telefone, tipo_cadastro, comprovante_vinculo_url, ativo)
         `)
         .eq('empresa_id', empresa.id)
