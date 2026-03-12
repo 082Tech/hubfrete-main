@@ -52,6 +52,27 @@ interface FaturaRow {
   empresas: { nome: string | null; nome_fantasia: string | null } | null;
 }
 
+interface FaturaMotoristaRow {
+  id: string;
+  motorista_id: string;
+  quinzena: number;
+  mes: number;
+  ano: number;
+  periodo_inicio: string;
+  periodo_fim: string;
+  valor_bruto: number;
+  valor_comissao: number;
+  valor_liquido: number;
+  qtd_entregas: number;
+  status: string;
+  data_pagamento: string | null;
+  metodo_pagamento: string | null;
+  comprovante_url: string | null;
+  observacoes: string | null;
+  created_at: string;
+  motoristas: { nome_completo: string } | null;
+}
+
 interface FinanceiroEntrega {
   id: string;
   entrega_id: string;
