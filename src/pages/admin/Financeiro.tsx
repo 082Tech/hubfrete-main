@@ -641,16 +641,130 @@ export default function Financeiro() {
         {/* Autonomous drivers tab */}
         <TabsContent value="a_pagar_autonomos" className="space-y-6 mt-4">
           {(() => {
-            const autoTotalBruto = autonomoItems?.reduce((s, r) => s + Number(r.valor_frete), 0) || 0;
-            const autoTotalComissao = autonomoItems?.reduce((s, r) => s + Number(r.valor_comissao), 0) || 0;
-            const autoTotalLiquido = autonomoItems?.reduce((s, r) => s + Number(r.valor_liquido), 0) || 0;
-            const autoTotalEntregas = autonomoItems?.length || 0;
-            const autoPagos = autonomoItems?.filter(r => r.status === 'pago').length || 0;
-            const autoPendentes = autoTotalEntregas - autoPagos;
+            const autoTotalBruto = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_bruto), 0) || 0;
+            const autoTotalComissao = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_comissao), 0) || 0;
+            const autoTotalLiquido = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_liquido), 0) || 0;
+            const autoTotalEntregas = faturasMotoristas?.reduce((s, f) => s + Number(f.qtd_entregas), 0) || 0;
+            const autoPagas = faturasMotoristas?.filter(f => f.status === 'paga').length || 0;
 
-            const autoPage = faturaPages['autonomos'] || 1;
-            const autoTotalPages = Math.max(1, Math.ceil(autoTotalEntregas / ITEMS_PER_PAGE));
-            const pagedAuto = autonomoItems?.slice((autoPage - 1) * ITEMS_PER_PAGE, autoPage * ITEMS_PER_PAGE) || [];
+            // Group by quinzena
+            const q1 = faturasMotoristas?.filter(f => f.quinzena === 1) || [];
+            const q2 = faturasMotoristas?.filter(f => f.quinzena === 2) || [];
+
+            const renderQuinzena = (quinzena: number, items: FaturaMotoristaRow[]) => {
+              if (!items.length) return null;
+              const qBruto = items.reduce((s, f) => s + Number(f.valor_bruto), 0);
+              const qLiquido = items.reduce((s, f) => s + Number(f.valor_liquido), 0);
+              const qEntregas = items.reduce((s, f) => s + Number(f.qtd_entregas), 0);
+              const first = items[0];
+              const periodoLabel = `${format(new Date(first.periodo_inicio + 'T12:00:00'), 'dd/MM')} a ${format(new Date(first.periodo_fim + 'T12:00:00'), 'dd/MM/yyyy')}`;
+
+              return (
+                <div key={quinzena} className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {quinzena === 1 ? '1ª' : '2ª'} Quinzena — {periodoLabel}
+                    </h3>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>{qEntregas} entrega(s)</span>
+                      <span>Bruto: {formatCurrency(qBruto)}</span>
+                      <span className="font-semibold text-chart-2">Líquido: {formatCurrency(qLiquido)}</span>
+                    </div>
+                  </div>
+
+                  {items.map((fm) => {
+                    const isOpen = openFaturaMotorista === fm.id;
+                    const page = faturaPages[fm.id] || 1;
+                    const totalPages = Math.max(1, Math.ceil((faturaMotoristaItems?.length || 0) / ITEMS_PER_PAGE));
+                    const pagedItems = isOpen ? (faturaMotoristaItems?.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE) || []) : [];
+
+                    return (
+                      <Collapsible key={fm.id} open={isOpen} onOpenChange={() => setOpenFaturaMotorista(prev => prev === fm.id ? null : fm.id)}>
+                        <Card className="border-border">
+                          <CollapsibleTrigger asChild>
+                            <CardContent className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors">
+                              <div className="flex items-center gap-4">
+                                {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                                <div className="flex items-center gap-2">
+                                  <User className="w-4 h-4 text-muted-foreground" />
+                                  <span className="font-medium">{fm.motoristas?.nome_completo || '—'}</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">{fm.qtd_entregas} entrega(s)</span>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                  <p className="text-sm font-bold text-chart-2">{formatCurrency(fm.valor_liquido)}</p>
+                                  <p className="text-xs text-muted-foreground">Bruto: {formatCurrency(fm.valor_bruto)}</p>
+                                </div>
+                                {faturaStatusBadge(fm.status)}
+                              </div>
+                            </CardContent>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="border-t border-border">
+                              {loadingMotoristaItems ? (
+                                <div className="p-4 space-y-2">
+                                  {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                                </div>
+                              ) : !faturaMotoristaItems?.length ? (
+                                <div className="p-6 text-center text-muted-foreground text-sm">Nenhum lançamento encontrado</div>
+                              ) : (
+                                <>
+                                  <table className="w-full text-sm">
+                                    <thead className="bg-muted/50">
+                                      <tr className="border-b border-border">
+                                        <th className="text-left font-medium text-muted-foreground px-4 py-2">Entrega</th>
+                                        <th className="text-left font-medium text-muted-foreground px-4 py-2">Embarcador</th>
+                                        <th className="text-right font-medium text-muted-foreground px-4 py-2">Bruto</th>
+                                        <th className="text-right font-medium text-muted-foreground px-4 py-2">Comissão</th>
+                                        <th className="text-right font-medium text-muted-foreground px-4 py-2">Líquido</th>
+                                        <th className="text-center font-medium text-muted-foreground px-4 py-2">Status</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {pagedItems.map((r) => (
+                                        <tr key={r.id} className="border-b border-border hover:bg-muted/30">
+                                          <td className="px-4 py-2">
+                                            <p className="font-medium">{r.entregas?.codigo || '—'}</p>
+                                            <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                                          </td>
+                                          <td className="px-4 py-2 text-sm">{nomeEmpresa(r.empresa_embarcadora)}</td>
+                                          <td className="px-4 py-2 text-right">{formatCurrency(r.valor_frete)}</td>
+                                          <td className="px-4 py-2 text-right text-muted-foreground">
+                                            {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
+                                          </td>
+                                          <td className="px-4 py-2 text-right font-semibold text-chart-2">{formatCurrency(r.valor_liquido)}</td>
+                                          <td className="px-4 py-2 text-center">
+                                            <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
+                                              {r.status === 'pago' ? 'Pago' : 'Pendente'}
+                                            </Badge>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                  {(faturaMotoristaItems?.length || 0) > ITEMS_PER_PAGE && (
+                                    <div className="border-t border-border">
+                                      <Pagination
+                                        currentPage={page}
+                                        totalPages={totalPages}
+                                        totalItems={faturaMotoristaItems?.length || 0}
+                                        itemsPerPage={ITEMS_PER_PAGE}
+                                        onPageChange={(p) => setFaturaPages(prev => ({ ...prev, [fm.id]: p }))}
+                                      />
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </CollapsibleContent>
+                        </Card>
+                      </Collapsible>
+                    );
+                  })}
+                </div>
+              );
+            };
 
             return (
               <>
@@ -697,113 +811,32 @@ export default function Financeiro() {
                       <div>
                         <p className="text-2xl font-bold">{autoTotalEntregas}</p>
                         <p className="text-xs text-muted-foreground">
-                          {autoPendentes} pendente(s) · {autoPagos} pago(s)
+                          {faturasMotoristas?.length || 0} fatura(s) · {autoPagas} paga(s)
                         </p>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
 
-                {/* Items list */}
-                <Card className="border-border">
+                {/* Faturas agrupadas por quinzena */}
+                <div className="space-y-4 pb-10">
                   {loadingAutonomos ? (
-                    <CardContent className="p-6 space-y-3">
-                      {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-                    </CardContent>
-                  ) : !autonomoItems?.length ? (
-                    <CardContent className="py-12 text-center text-muted-foreground">
-                      Nenhuma entrega de motorista autônomo encontrada neste período
-                    </CardContent>
+                    <div className="space-y-3">
+                      {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+                    </div>
+                  ) : !faturasMotoristas?.length ? (
+                    <Card className="border-border">
+                      <CardContent className="py-12 text-center text-muted-foreground">
+                        Nenhuma fatura de motorista autônomo encontrada neste período
+                      </CardContent>
+                    </Card>
                   ) : (
                     <>
-                      <div className="overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead className="bg-muted/50">
-                            <tr className="border-b border-border">
-                              <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[18%]">Entrega</th>
-                              <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[18%]">Motorista</th>
-                              <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Embarcador</th>
-                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[12%]">Bruto</th>
-                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Comissão</th>
-                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Líquido</th>
-                              <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[8%]">Status</th>
-                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[6%]"></th>
-                            </tr>
-                          </thead>
-                        </table>
-                        <div className="max-h-[500px] overflow-y-auto">
-                          <table className="w-full text-sm">
-                            <tbody>
-                              {pagedAuto.map((r) => (
-                                <tr key={r.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                                  <td className="px-4 py-3 w-[18%]">
-                                    <p className="font-medium">{r.entregas?.codigo || '—'}</p>
-                                    <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                                  </td>
-                                  <td className="px-4 py-3 w-[18%]">
-                                    <div className="flex items-center gap-1.5">
-                                      <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                      <span className="text-sm">{r.entregas?.motoristas?.nome_completo || '—'}</span>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3 w-[14%] text-sm">{nomeEmpresa(r.empresa_embarcadora)}</td>
-                                  <td className="px-4 py-3 text-right font-medium w-[12%]">{formatCurrency(r.valor_frete)}</td>
-                                  <td className="px-4 py-3 text-right text-muted-foreground text-sm w-[10%]">
-                                    {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
-                                  </td>
-                                  <td className="px-4 py-3 text-right font-semibold text-chart-2 w-[10%]">{formatCurrency(r.valor_liquido)}</td>
-                                  <td className="px-4 py-3 text-center w-[8%]">
-                                    <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
-                                      {r.status === 'pago' ? 'Pago' : 'Pendente'}
-                                    </Badge>
-                                  </td>
-                                  <td className="px-4 py-3 w-[6%]">
-                                    {r.status === 'pendente' && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setBaixaDialog(r);
-                                          setBaixaForm({
-                                            data_pagamento: format(new Date(), 'yyyy-MM-dd'),
-                                            metodo_pagamento: '',
-                                            observacoes: '',
-                                          });
-                                          setComprovante(null);
-                                        }}
-                                      >
-                                        <CheckCircle className="w-4 h-4 mr-1" />
-                                        Baixa
-                                      </Button>
-                                    )}
-                                    {r.status === 'pago' && r.comprovante_url && (
-                                      <Button size="sm" variant="ghost" asChild>
-                                        <a href={r.comprovante_url} target="_blank" rel="noreferrer">
-                                          <Eye className="w-4 h-4" />
-                                        </a>
-                                      </Button>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                      {autoTotalEntregas > ITEMS_PER_PAGE && (
-                        <div className="border-t border-border">
-                          <Pagination
-                            currentPage={autoPage}
-                            totalPages={autoTotalPages}
-                            totalItems={autoTotalEntregas}
-                            itemsPerPage={ITEMS_PER_PAGE}
-                            onPageChange={(p) => setFaturaPages(prev => ({ ...prev, autonomos: p }))}
-                          />
-                        </div>
-                      )}
+                      {renderQuinzena(1, q1)}
+                      {renderQuinzena(2, q2)}
                     </>
                   )}
-                </Card>
+                </div>
               </>
             );
           })()}
