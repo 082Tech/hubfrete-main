@@ -102,20 +102,54 @@ export default function Financeiro() {
   });
   const [comprovanteQuinzena, setComprovanteQuinzena] = useState<File | null>(null);
 
+  const faturasTipo = activeTab === 'a_pagar_autonomos' ? 'a_pagar' : activeTab;
+
   // Fetch faturas for selected month
   const { data: faturas, isLoading: loadingFaturas } = useQuery({
     queryKey: ['admin-faturas', activeTab, selectedMonth, selectedYear],
     queryFn: async () => {
+      if (activeTab === 'a_pagar_autonomos') return [] as FaturaRow[];
       const { data, error } = await supabase
         .from('faturas')
         .select(`*, empresas!faturas_empresa_id_fkey(nome, nome_fantasia)`)
-        .eq('tipo', activeTab)
+        .eq('tipo', faturasTipo)
         .eq('mes', selectedMonth + 1)
         .eq('ano', selectedYear)
         .order('quinzena', { ascending: true });
       if (error) throw error;
       return data as unknown as FaturaRow[];
     },
+  });
+
+  // Fetch financeiro_entregas for autonomous drivers
+  const { data: autonomoItems, isLoading: loadingAutonomos } = useQuery({
+    queryKey: ['admin-financeiro-autonomos', selectedMonth, selectedYear],
+    queryFn: async () => {
+      const startDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+      const endDate = format(endOfMonth(new Date(selectedYear, selectedMonth)), 'yyyy-MM-dd');
+
+      const { data, error } = await supabase
+        .from('financeiro_entregas')
+        .select(`
+          *,
+          entregas!inner(codigo, motorista_id, carga_id,
+            motoristas!inner(nome_completo, tipo_cadastro),
+            cargas(codigo, descricao)
+          ),
+          empresa_transportadora:empresas!financeiro_entregas_empresa_transportadora_id_fkey(nome, nome_fantasia),
+          empresa_embarcadora:empresas!financeiro_entregas_empresa_embarcadora_id_fkey(nome, nome_fantasia)
+        `)
+        .gte('created_at', startDate)
+        .lte('created_at', endDate + 'T23:59:59')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Filter autonomous drivers client-side
+      return (data as unknown as (FinanceiroEntrega & { entregas: { motoristas: { tipo_cadastro: string } } })[])
+        .filter(item => item.entregas?.motoristas?.tipo_cadastro === 'autonomo') as unknown as FinanceiroEntrega[];
+    },
+    enabled: activeTab === 'a_pagar_autonomos',
   });
 
   // Fetch items for expanded fatura
