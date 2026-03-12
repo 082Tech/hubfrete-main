@@ -134,7 +134,7 @@ export default function AdminLogin() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-destructive hover:bg-destructive/90" disabled={loading}>
+                <Button type="submit" className="w-full bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
