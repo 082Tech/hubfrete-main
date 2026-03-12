@@ -21,7 +21,7 @@ const COLORS = {
 
 const LABELS = {
   aguardando: 'Aguardando',
-  emRota: 'Em Rota',
+  emRota: 'Saiu p/ Entrega',
   entregue: 'Entregue',
   problema: 'Problema',
   cancelada: 'Cancelada',

@@ -208,7 +208,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   aguardando: 'Aguardando',
   saiu_para_coleta: 'Em Coleta',
-  saiu_para_entrega: 'Em Rota',
+  saiu_para_entrega: 'Saiu p/ Entrega',
   entregue: 'Concluída',
   cancelada: 'Cancelada',
 };
@@ -316,7 +316,7 @@ function StatusIndicators({ statusCounts }: { statusCounts: GestaoLeafletMapProp
         <span className="text-xs font-medium">{statusCounts.coleta}</span>
       </div>
       <div className="w-px h-4 bg-border" />
-      <div className="flex items-center gap-1.5" title="Em Rota">
+      <div className="flex items-center gap-1.5" title="Saiu p/ Entrega">
         <span className="w-3 h-3 rounded-full bg-purple-500 dark:bg-purple-400" />
         <span className="text-xs font-medium">{statusCounts.entrega}</span>
       </div>

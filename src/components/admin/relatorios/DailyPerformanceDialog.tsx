@@ -64,7 +64,7 @@ const STATUS_LABELS: Record<string, string> = {
   aguardando: 'Aguardando',
   saiu_para_coleta: 'Saiu p/ Coleta',
   em_transito: 'Em Trânsito',
-  saiu_para_entrega: 'Em Rota',
+  saiu_para_entrega: 'Saiu p/ Entrega',
   entregue: 'Concluída',
   cancelada: 'Cancelada',
 };
@@ -118,7 +118,7 @@ export function DailyPerformanceDialog({
     const data = [
       { name: 'Aguardando', value: metrics.aguardando, color: STATUS_COLORS.aguardando },
       { name: 'Saiu p/ Coleta', value: metrics.coleta, color: STATUS_COLORS.saiu_para_coleta },
-      { name: 'Em Rota', value: metrics.emRota, color: STATUS_COLORS.saiu_para_entrega },
+      { name: 'Saiu p/ Entrega', value: metrics.emRota, color: STATUS_COLORS.saiu_para_entrega },
       { name: 'Concluída', value: metrics.entregues, color: STATUS_COLORS.entregue },
       { name: 'Cancelada', value: metrics.canceladas, color: STATUS_COLORS.cancelada },
     ].filter(d => d.value > 0);
@@ -224,7 +224,7 @@ export function DailyPerformanceDialog({
               <CardContent className="p-3 text-center">
                 <Truck className="w-4 h-4 text-purple-600 mx-auto mb-1" />
                 <p className="text-lg font-bold text-purple-800">{metrics.emRota}</p>
-                <p className="text-[10px] text-purple-700">Em Rota</p>
+                <p className="text-[10px] text-purple-700">Saiu p/ Entrega</p>
               </CardContent>
             </Card>
 
