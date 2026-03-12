@@ -1490,6 +1490,83 @@ export type Database = {
           },
         ]
       }
+      faturas_motoristas: {
+        Row: {
+          ano: number
+          baixa_por: string | null
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string | null
+          id: string
+          mes: number
+          metodo_pagamento: string | null
+          motorista_id: string
+          observacoes: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          qtd_entregas: number
+          quinzena: number
+          status: string
+          tipo: string
+          updated_at: string
+          valor_bruto: number
+          valor_comissao: number
+          valor_liquido: number
+        }
+        Insert: {
+          ano: number
+          baixa_por?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          mes: number
+          metodo_pagamento?: string | null
+          motorista_id: string
+          observacoes?: string | null
+          periodo_fim: string
+          periodo_inicio: string
+          qtd_entregas?: number
+          quinzena: number
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor_bruto?: number
+          valor_comissao?: number
+          valor_liquido?: number
+        }
+        Update: {
+          ano?: number
+          baixa_por?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          mes?: number
+          metodo_pagamento?: string | null
+          motorista_id?: string
+          observacoes?: string | null
+          periodo_fim?: string
+          periodo_inicio?: string
+          qtd_entregas?: number
+          quinzena?: number
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor_bruto?: number
+          valor_comissao?: number
+          valor_liquido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturas_motoristas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       filiais: {
         Row: {
           ativa: boolean | null
