@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { EntregaDocsDialog } from '@/components/entregas/EntregaDocsDialog';
+import { ChatSheet } from '@/components/mensagens/ChatSheet';
 
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 
