@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,8 @@ import {
   Paperclip,
   Info,
   Eye,
+  Shuffle,
+  History,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import type { OutroDocumento } from './EntregaDocumentosPanel';
@@ -143,9 +145,11 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
   const [nfes, setNfes] = useState<any[]>([]);
+  const [eventos, setEventos] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!entrega?.id || !open) { setNfes([]); return; }
+    if (!entrega?.id || !open) { setNfes([]); setEventos([]); return; }
+    // Fetch NF-es
     (async () => {
       const { data } = await (supabase as any)
         .from('nfes')
@@ -153,6 +157,15 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
         .eq('entrega_id', entrega.id)
         .order('created_at', { ascending: true });
       setNfes(data || []);
+    })();
+    // Fetch eventos
+    (async () => {
+      const { data } = await supabase
+        .from('entrega_eventos')
+        .select('id, tipo, timestamp, observacao, user_nome, entrega_id')
+        .eq('entrega_id', entrega.id)
+        .order('timestamp', { ascending: false });
+      setEventos(data || []);
     })();
   }, [entrega?.id, open]);
 
@@ -581,6 +594,56 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                 </CardContent>
               </Card>
             </div>
+
+            {/* Histórico de Eventos */}
+            {eventos.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <History className="w-4 h-4" />
+                    Histórico de Eventos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {eventos.map((evento, idx) => {
+                      const eventoIconMap: Record<string, { icon: React.ElementType; color: string }> = {
+                        'status_change': { icon: Shuffle, color: 'text-blue-500' },
+                        'documento_anexado': { icon: FileText, color: 'text-violet-500' },
+                        'cte_emitido': { icon: FileCheck, color: 'text-green-500' },
+                        'coleta_realizada': { icon: Package, color: 'text-emerald-500' },
+                        'entrega_realizada': { icon: CheckCircle, color: 'text-green-600' },
+                        'problema_reportado': { icon: AlertCircle, color: 'text-destructive' },
+                      };
+                      const eventConfig = eventoIconMap[evento.tipo] || { icon: Clock, color: 'text-muted-foreground' };
+                      const EventIcon = eventConfig.icon;
+
+                      return (
+                        <div key={evento.id} className="flex items-start gap-3">
+                          <div className="relative flex flex-col items-center">
+                            <div className={`w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0`}>
+                              <EventIcon className={`w-3.5 h-3.5 ${eventConfig.color}`} />
+                            </div>
+                            {idx < eventos.length - 1 && (
+                              <div className="w-px h-full bg-border absolute top-7" />
+                            )}
+                          </div>
+                          <div className="flex-1 pb-3">
+                            <p className="text-sm">
+                              {evento.user_nome && <span className="font-medium">{evento.user_nome} </span>}
+                              {evento.observacao || evento.tipo.replace(/_/g, ' ')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(evento.timestamp).toLocaleString('pt-BR')}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </DialogContent>
       </Dialog>
