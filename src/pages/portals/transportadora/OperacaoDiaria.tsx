@@ -1095,6 +1095,12 @@ function GestaoEntregasDialogContent({
     enabled: !!empresa?.id,
   });
 
+  // Filtrar apenas entregas ativas para o mapa (sem finalizadas)
+  const activeEntregas = useMemo(() => {
+    const terminalStatuses = ['entregue', 'cancelada', 'problema'];
+    return entregas.filter(e => !terminalStatuses.includes(e.status));
+  }, [entregas]);
+
   // Agrupar entregas por viagem (e motorista sem viagem como grupo separado)
   const viagemGroups = useMemo(() => {
     type ViagemGroup = {
@@ -1109,7 +1115,7 @@ function GestaoEntregasDialogContent({
 
     const groups: Record<string, ViagemGroup> = {};
 
-    entregas.forEach(e => {
+    activeEntregas.forEach(e => {
       if (!e.motorista_id || !e.motorista) return;
 
       const viagemInfo = entregaViagemMap[e.id];
