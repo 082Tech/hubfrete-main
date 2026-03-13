@@ -33,7 +33,7 @@ interface ViagemHistoricoProps {
   actionUserName?: string;
 }
 
-export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
+export function ViagemHistorico({ viagem, entregas, actionUserName }: ViagemHistoricoProps) {
   const timelineItems: TimelineEvent[] = [];
   const baseTime = new Date(viagem.created_at).getTime();
 
