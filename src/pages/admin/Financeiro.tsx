@@ -774,7 +774,7 @@ export default function Financeiro() {
                                     {formatCurrency(fm.valor_liquido)}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    Comissão: {formatCurrency(fm.valor_comissao)}
+                                    Taxa: {formatCurrency(fm.valor_comissao)}
                                   </p>
                                 </div>
                                 {isOpen ? (
