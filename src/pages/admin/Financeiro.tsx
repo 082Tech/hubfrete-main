@@ -531,7 +531,7 @@ export default function Financeiro() {
                                 {formatCurrency(activeTab === 'a_pagar' ? fatura.valor_liquido : fatura.valor_bruto)}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Comissão: {formatCurrency(fatura.valor_comissao)}
+                                Taxa: {formatCurrency(fatura.valor_comissao)}
                               </p>
                             </div>
                             {isOpen ? (
