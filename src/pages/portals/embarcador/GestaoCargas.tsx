@@ -58,6 +58,7 @@ import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { EmbarcadorDailyPerformanceDialog } from '@/components/admin/relatorios/EmbarcadorDailyPerformanceDialog';
 import { BarChart3 } from 'lucide-react';
+import { EventTimeline } from '@/components/shared/EventTimeline';
 
 // Status config - matching transportadora portal
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {

@@ -83,6 +83,7 @@ import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { DailyPerformanceDialog } from '@/components/admin/relatorios/DailyPerformanceDialog';
 import { BarChart3 } from 'lucide-react';
 import { ViagemListItem, ViagemDetailPanel } from '@/components/viagens';
+import { EventTimeline } from '@/components/shared/EventTimeline';
 
 type ViewMode = 'entregas' | 'viagens';
 
