@@ -182,7 +182,7 @@ type SortOrder = 'asc' | 'desc';
 const ITEMS_PER_PAGE = 15;
 
 export default function HistoricoCargas() {
-  const { filialAtiva } = useUserContext();
+  const { filialAtiva, empresa } = useUserContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [detailsCarga, setDetailsCarga] = useState<CargaData | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
