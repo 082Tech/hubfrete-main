@@ -269,8 +269,22 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       }
 
       chatsOffsetRef.current = rawOffset;
-      // Show button only when there are still raw rows after filling current visible page
-      setHasMoreChats(hasMoreRawRows);
+
+      // Confirm next raw row existence to avoid false-positive button on exact-multiple pages
+      let hasMoreChatsToLoad = hasMoreRawRows;
+      if (hasMoreRawRows) {
+        const { data: nextRow, error: nextRowError } = await supabase
+          .from('chats')
+          .select('id')
+          .order('updated_at', { ascending: false })
+          .range(rawOffset, rawOffset);
+
+        if (!nextRowError) {
+          hasMoreChatsToLoad = (nextRow?.length ?? 0) > 0;
+        }
+      }
+
+      setHasMoreChats(hasMoreChatsToLoad);
 
     } catch (error: any) {
       console.error('Error fetching chats:', error);
