@@ -397,7 +397,7 @@ export function ViagemDetailPanel({
                         return (
                           <div className="text-[10px] space-y-0.5 mt-1 p-1.5 bg-chart-2/10 rounded border border-chart-2/20">
                             <div className="flex justify-between"><span className="text-muted-foreground">Bruto:</span><span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-                            <div className="flex justify-between text-destructive"><span>Comissão ({comP}%):</span><span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                            <div className="flex justify-between text-destructive"><span>Taxa ({comP}%):</span><span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
                             <div className="flex justify-between font-bold text-chart-2"><span>Líquido:</span><span>R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
                           </div>
                         );

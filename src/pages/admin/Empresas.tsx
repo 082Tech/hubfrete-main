@@ -643,7 +643,7 @@ export default function Empresas() {
                      <TableHead>CNPJ</TableHead>
                      <TableHead>Tipo</TableHead>
                      <TableHead>Classe</TableHead>
-                     <TableHead className="text-center">Comissão</TableHead>
+                     <TableHead className="text-center">Taxa</TableHead>
                      <TableHead>Filiais</TableHead>
                      <TableHead>Usuários</TableHead>
                      <TableHead>Criado em</TableHead>

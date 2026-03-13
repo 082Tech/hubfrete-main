@@ -448,7 +448,7 @@ function DetailPanel({
                         <span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex justify-between text-xs text-destructive">
-                        <span>Comissão HubFrete ({comissaoP}%):</span>
+                        <span>Taxa HubFrete ({comissaoP}%):</span>
                         <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       </div>
                       <Separator className="my-1" />

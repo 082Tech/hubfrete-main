@@ -310,7 +310,7 @@ export default function EmbarcadorFinanceiro() {
                               <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[18%]">Transportadora</th>
                               <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Motorista</th>
                               <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Valor do Frete</th>
-                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Comissão</th>
+                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Taxa</th>
                               <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Status</th>
                               <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Data</th>
                             </tr>

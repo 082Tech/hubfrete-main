@@ -800,7 +800,7 @@ export default function Financeiro() {
                                           <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[20%]">Entrega</th>
                                           <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[20%]">Embarcador</th>
                                           <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Bruto</th>
-                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Comissão</th>
+                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Taxa</th>
                                           <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Líquido</th>
                                           <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Status</th>
                                         </tr>
