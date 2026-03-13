@@ -112,18 +112,10 @@ export function ChatList({
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <MessageSquare className="h-12 w-12 text-muted-foreground mb-3" />
             <p className="text-muted-foreground">
-              {searchTerm ? 'Nenhuma conversa encontrada' : showFinalized ? 'Nenhuma conversa ainda' : 'Nenhuma conversa ativa'}
+              {searchTerm ? 'Nenhuma conversa encontrada' : 'Nenhuma conversa ativa'}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              {!searchTerm && !showFinalized && finalizedCount > 0 && (
-                <button 
-                  onClick={() => setShowFinalized(true)}
-                  className="text-primary hover:underline"
-                >
-                  Ver {finalizedCount} conversa{finalizedCount > 1 ? 's' : ''} finalizada{finalizedCount > 1 ? 's' : ''}
-                </button>
-              )}
-              {!searchTerm && showFinalized && 'As conversas aparecerão aqui quando houver entregas'}
+              {!searchTerm && 'As conversas aparecerão aqui quando houver entregas em andamento'}
             </p>
           </div>
         ) : (
