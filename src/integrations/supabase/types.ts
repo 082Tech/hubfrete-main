@@ -161,6 +161,50 @@ export type Database = {
         }
         Relationships: []
       }
+      carga_eventos: {
+        Row: {
+          carga_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          observacao: string | null
+          timestamp: string
+          tipo: string
+          user_id: string | null
+          user_nome: string | null
+        }
+        Insert: {
+          carga_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          observacao?: string | null
+          timestamp?: string
+          tipo: string
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Update: {
+          carga_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          observacao?: string | null
+          timestamp?: string
+          tipo?: string
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carga_eventos_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cargas: {
         Row: {
           carga_fragil: boolean | null

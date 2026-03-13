@@ -181,29 +181,14 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
 
   useEffect(() => {
     if (!carga?.id || !open) { setEventos([]); return; }
-    // Fetch events from all entregas of this carga
     (async () => {
-      // Get entregas ids for this carga
-      const { data: entregas } = await supabase
-        .from('entregas')
-        .select('id, codigo')
-        .eq('carga_id', carga.id);
-      
-      if (!entregas || entregas.length === 0) { setEventos([]); return; }
-
-      const entregaIds = entregas.map(e => e.id);
-      const entregaCodigoMap = Object.fromEntries(entregas.map(e => [e.id, e.codigo]));
-
       const { data: evts } = await supabase
-        .from('entrega_eventos')
-        .select('id, tipo, timestamp, observacao, user_nome, entrega_id')
-        .in('entrega_id', entregaIds)
+        .from('carga_eventos' as any)
+        .select('id, tipo, timestamp, observacao, user_nome')
+        .eq('carga_id', carga.id)
         .order('timestamp', { ascending: false });
       
-      setEventos((evts || []).map(e => ({
-        ...e,
-        entityCodigo: entregaCodigoMap[e.entrega_id] || undefined,
-      })));
+      setEventos(evts || []);
     })();
   }, [carga?.id, open]);
 
@@ -681,9 +666,9 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
                   timestamp: e.timestamp,
                   observacao: e.observacao,
                   user_nome: e.user_nome,
-                  entityCodigo: e.entityCodigo,
-                  entityType: 'entrega' as const,
+                  entityType: 'oferta' as const,
                 }))}
+                emptyMessage="Nenhum evento registrado para esta oferta"
               />
             </CardContent>
           </Card>
