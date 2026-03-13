@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -31,11 +32,14 @@ import {
   Navigation,
   CheckCircle,
   PackageOpen,
-  FileSearch
+  FileSearch,
+  History,
 } from 'lucide-react';
 import { NfeValidationStatus } from './NfeValidationStatus';
+import { EventTimeline } from '@/components/shared/EventTimeline';
 import type { Database } from '@/integrations/supabase/types';
 import { formatWeight } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 type StatusCarga = Database['public']['Enums']['status_carga'];
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
@@ -173,6 +177,36 @@ const statusEntregaConfig: Record<string, { color: string; label: string }> = {
 };
 
 export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsProps) {
+  const [eventos, setEventos] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!carga?.id || !open) { setEventos([]); return; }
+    // Fetch events from all entregas of this carga
+    (async () => {
+      // Get entregas ids for this carga
+      const { data: entregas } = await supabase
+        .from('entregas')
+        .select('id, codigo')
+        .eq('carga_id', carga.id);
+      
+      if (!entregas || entregas.length === 0) { setEventos([]); return; }
+
+      const entregaIds = entregas.map(e => e.id);
+      const entregaCodigoMap = Object.fromEntries(entregas.map(e => [e.id, e.codigo]));
+
+      const { data: evts } = await supabase
+        .from('entrega_eventos')
+        .select('id, tipo, timestamp, observacao, user_nome, entrega_id')
+        .in('entrega_id', entregaIds)
+        .order('timestamp', { ascending: false });
+      
+      setEventos((evts || []).map(e => ({
+        ...e,
+        entityCodigo: entregaCodigoMap[e.entrega_id] || undefined,
+      })));
+    })();
+  }, [carga?.id, open]);
+
   // Early return if carga is null to prevent accessing properties of null
   if (!carga) {
     return (
@@ -630,6 +664,29 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
               </Card>
             </>
           )}
+
+          {/* Histórico de Eventos */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <History className="w-4 h-4" />
+                Histórico de Eventos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EventTimeline
+                events={eventos.map((e: any) => ({
+                  id: e.id,
+                  tipo: e.tipo,
+                  timestamp: e.timestamp,
+                  observacao: e.observacao,
+                  user_nome: e.user_nome,
+                  entityCodigo: e.entityCodigo,
+                  entityType: 'entrega' as const,
+                }))}
+              />
+            </CardContent>
+          </Card>
         </div>
       </DialogContent>
     </Dialog>
