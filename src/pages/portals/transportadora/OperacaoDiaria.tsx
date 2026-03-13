@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { formatWeight } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, startOfDay } from 'date-fns';
@@ -1095,6 +1096,12 @@ function GestaoEntregasDialogContent({
     enabled: !!empresa?.id,
   });
 
+  // Filtrar apenas entregas ativas para o mapa (sem finalizadas)
+  const activeEntregas = useMemo(() => {
+    const terminalStatuses = ['entregue', 'cancelada', 'problema'];
+    return entregas.filter(e => !terminalStatuses.includes(e.status));
+  }, [entregas]);
+
   // Agrupar entregas por viagem (e motorista sem viagem como grupo separado)
   const viagemGroups = useMemo(() => {
     type ViagemGroup = {
@@ -1109,7 +1116,7 @@ function GestaoEntregasDialogContent({
 
     const groups: Record<string, ViagemGroup> = {};
 
-    entregas.forEach(e => {
+    activeEntregas.forEach(e => {
       if (!e.motorista_id || !e.motorista) return;
 
       const viagemInfo = entregaViagemMap[e.id];
@@ -1146,7 +1153,7 @@ function GestaoEntregasDialogContent({
     });
 
     return Object.values(groups);
-  }, [entregas, entregaViagemMap]);
+  }, [activeEntregas, entregaViagemMap]);
 
   // Sync initial selection once viagemGroups are available
   useEffect(() => {
@@ -1562,7 +1569,9 @@ export default function OperacaoDiaria() {
   const [selectedViagem, setSelectedViagem] = useState<ViagemWithEntregas | null>(null);
   const [selectedEntregaInViagem, setSelectedEntregaInViagem] = useState<Entrega | null>(null); // Stack navigation for viagem view
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
-  const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
+  // Auto-open map dialog if navigated with ?mapa=1
+  const [searchParams] = useSearchParams();
+  const [gestaoDialogOpen, setGestaoDialogOpen] = useState(searchParams.get('mapa') === '1');
   const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
   const [filters, setFilters] = useState<AdvancedFilters>({});
 
