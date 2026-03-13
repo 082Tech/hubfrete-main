@@ -425,35 +425,13 @@ function DetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Carga specs - top priority */}
-          <div className="bg-muted/30 rounded-lg p-3 space-y-1.5">
-            <div className="flex items-center gap-3 text-xs flex-wrap">
-              <span className="flex items-center gap-1">
-                <Weight className="w-3 h-3 text-muted-foreground" />
-                <span className="font-medium">
-                  {entrega.peso_alocado_kg ? `${formatWeight(entrega.peso_alocado_kg)} / ` : ''}
-                  {formatWeight(entrega.carga.peso_kg)}
-                </span>
-              </span>
-              <span className="text-muted-foreground">Tipo: {entrega.carga.tipo}</span>
-              {entrega.valor_frete && (
-                <div className="col-span-full mt-2 p-2.5 bg-chart-2/10 rounded-lg border border-chart-2/30">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold">Valor do frete:</span>
-                    <span className="text-sm font-bold text-chart-2">
-                      R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </div>
-              )}
+          {/* Publicado por */}
+          {entrega.carga.empresa && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Building2 className="w-3 h-3" />
+              Publicado por: <span className="font-medium text-foreground">{entrega.carga.empresa.nome}</span>
             </div>
-            {entrega.carga.empresa && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Building2 className="w-3 h-3" />
-                Publicado por: <span className="font-medium text-foreground">{entrega.carga.empresa.nome}</span>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Map */}
           <DetailPanelLeafletMap
@@ -466,6 +444,21 @@ function DetailPanel({
             entregaId={entrega.id}
             onExpandClick={onExpandMap || undefined}
           />
+
+          {/* Specs line below map */}
+          <div className="flex items-center justify-between text-xs">
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Weight className="w-3 h-3" />
+              {entrega.peso_alocado_kg ? `${formatWeight(entrega.peso_alocado_kg)} / ` : ''}
+              {formatWeight(entrega.carga.peso_kg)}
+              <span className="ml-1">• Tipo: {entrega.carga.tipo}</span>
+            </span>
+            {entrega.valor_frete && (
+              <span className="font-semibold text-foreground">
+                Valor do frete: R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+            )}
+          </div>
 
           <Separator />
 
