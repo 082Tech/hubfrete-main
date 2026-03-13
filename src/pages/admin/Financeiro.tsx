@@ -558,7 +558,7 @@ export default function Financeiro() {
                                       <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Embarcador</th>
                                       <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Transportadora</th>
                                       <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[12%]">Bruto</th>
-                                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Comissão</th>
+                                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Taxa</th>
                                       <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Líquido</th>
                                       <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[8%]">Status</th>
                                       <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[6%]"></th>
