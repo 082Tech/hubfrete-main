@@ -277,9 +277,6 @@ export default function EmbarcadorFinanceiro() {
                         </div>
                         <div className="text-right mr-4 hidden sm:block">
                           <p className="text-lg font-bold text-foreground">{formatCurrency(group.totalFrete)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Taxa: {formatCurrency(group.totalComissao)}
-                          </p>
                         </div>
                         {isOpen ? (
                           <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
