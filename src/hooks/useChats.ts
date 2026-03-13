@@ -90,7 +90,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
               valor_frete
             )
           `)
-          .not('entregas.status', 'in', '("entregue","devolvida","cancelada","problema")')
+          .not('entregas.status', 'in', '("entregue","cancelada","problema")')
           .order('updated_at', { ascending: false })
           .range(rawOffset, rawOffset + remainingSlots - 1);
 
