@@ -1152,7 +1152,7 @@ function GestaoEntregasDialogContent({
     });
 
     return Object.values(groups);
-  }, [entregas, entregaViagemMap]);
+  }, [activeEntregas, entregaViagemMap]);
 
   // Sync initial selection once viagemGroups are available
   useEffect(() => {
