@@ -7,7 +7,7 @@ import {
   User, 
   Building2, 
   Scale,
-  Phone,
+  
   Clock,
   CheckCircle,
   AlertCircle,
