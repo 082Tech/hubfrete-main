@@ -664,6 +664,29 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
               </Card>
             </>
           )}
+
+          {/* Histórico de Eventos */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <History className="w-4 h-4" />
+                Histórico de Eventos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EventTimeline
+                events={eventos.map((e: any) => ({
+                  id: e.id,
+                  tipo: e.tipo,
+                  timestamp: e.timestamp,
+                  observacao: e.observacao,
+                  user_nome: e.user_nome,
+                  entityCodigo: e.entityCodigo,
+                  entityType: 'entrega' as const,
+                }))}
+              />
+            </CardContent>
+          </Card>
         </div>
       </DialogContent>
     </Dialog>
