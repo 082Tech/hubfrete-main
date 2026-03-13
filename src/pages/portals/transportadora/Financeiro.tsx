@@ -262,7 +262,7 @@ export default function TransportadoraFinanceiro() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{formatCurrency(totalComissao)}</p>
-                  <p className="text-xs text-muted-foreground">Comissão HubFrete</p>
+                  <p className="text-xs text-muted-foreground">Taxa HubFrete</p>
                 </div>
               </CardContent>
             </Card>
@@ -356,7 +356,7 @@ export default function TransportadoraFinanceiro() {
                             <div className="text-right mr-4 hidden sm:block">
                               <p className="text-lg font-bold text-chart-2">{formatCurrency(group.totalLiquido)}</p>
                               <p className="text-xs text-muted-foreground">
-                                Bruto: {formatCurrency(group.totalBruto)} | Comissão: {formatCurrency(group.totalComissao)}
+                                Bruto: {formatCurrency(group.totalBruto)} | Taxa: {formatCurrency(group.totalComissao)}
                               </p>
                             </div>
                             {isOpen ? (
@@ -376,7 +376,7 @@ export default function TransportadoraFinanceiro() {
                                   <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[18%]">Carga</th>
                                   <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Embarcador</th>
                                   <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Frete Bruto</th>
-                                  <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[12%]">Comissão</th>
+                                  <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[12%]">Taxa</th>
                                   <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Valor Líquido</th>
                                   <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[12%]">Status</th>
                                   <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Data</th>

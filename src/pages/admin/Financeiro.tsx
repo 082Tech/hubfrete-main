@@ -411,7 +411,7 @@ export default function Financeiro() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{formatCurrency(totalComissao)}</p>
-                  <p className="text-xs text-muted-foreground">Comissão HubFrete</p>
+                   <p className="text-xs text-muted-foreground">Taxa HubFrete</p>
                 </div>
               </CardContent>
             </Card>
@@ -531,7 +531,7 @@ export default function Financeiro() {
                                 {formatCurrency(activeTab === 'a_pagar' ? fatura.valor_liquido : fatura.valor_bruto)}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Comissão: {formatCurrency(fatura.valor_comissao)}
+                                Taxa: {formatCurrency(fatura.valor_comissao)}
                               </p>
                             </div>
                             {isOpen ? (
@@ -558,7 +558,7 @@ export default function Financeiro() {
                                       <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Embarcador</th>
                                       <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Transportadora</th>
                                       <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[12%]">Bruto</th>
-                                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Comissão</th>
+                                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Taxa</th>
                                       <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Líquido</th>
                                       <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[8%]">Status</th>
                                       <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[6%]"></th>
@@ -774,7 +774,7 @@ export default function Financeiro() {
                                     {formatCurrency(fm.valor_liquido)}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    Comissão: {formatCurrency(fm.valor_comissao)}
+                                    Taxa: {formatCurrency(fm.valor_comissao)}
                                   </p>
                                 </div>
                                 {isOpen ? (
@@ -800,7 +800,7 @@ export default function Financeiro() {
                                           <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[20%]">Entrega</th>
                                           <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[20%]">Embarcador</th>
                                           <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Bruto</th>
-                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Comissão</th>
+                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Taxa</th>
                                           <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Líquido</th>
                                           <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Status</th>
                                         </tr>
@@ -894,7 +894,7 @@ export default function Financeiro() {
                       </div>
                       <div>
                         <p className="text-2xl font-bold">{formatCurrency(autoTotalComissao)}</p>
-                        <p className="text-xs text-muted-foreground">Comissão HubFrete</p>
+                        <p className="text-xs text-muted-foreground">Taxa HubFrete</p>
                       </div>
                     </CardContent>
                   </Card>

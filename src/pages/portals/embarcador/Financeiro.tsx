@@ -195,7 +195,7 @@ export default function EmbarcadorFinanceiro() {
             </div>
             <div>
               <p className="text-2xl font-bold">{formatCurrency(totalComissao)}</p>
-              <p className="text-xs text-muted-foreground">Comissão HubFrete</p>
+              <p className="text-xs text-muted-foreground">Taxa HubFrete</p>
             </div>
           </CardContent>
         </Card>
@@ -289,7 +289,7 @@ export default function EmbarcadorFinanceiro() {
                         <div className="text-right mr-4 hidden sm:block">
                           <p className="text-lg font-bold text-foreground">{formatCurrency(group.totalFrete)}</p>
                           <p className="text-xs text-muted-foreground">
-                            Comissão: {formatCurrency(group.totalComissao)}
+                            Taxa: {formatCurrency(group.totalComissao)}
                           </p>
                         </div>
                         {isOpen ? (
@@ -310,7 +310,7 @@ export default function EmbarcadorFinanceiro() {
                               <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[18%]">Transportadora</th>
                               <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Motorista</th>
                               <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Valor do Frete</th>
-                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Comissão</th>
+                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Taxa</th>
                               <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Status</th>
                               <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Data</th>
                             </tr>

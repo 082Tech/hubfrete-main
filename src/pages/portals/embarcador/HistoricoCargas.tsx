@@ -1008,7 +1008,7 @@ export default function HistoricoCargas() {
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p className="text-xs">Inclui comissão HubFrete</p>
+                                     <p className="text-xs">Inclui taxa HubFrete</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </td>
@@ -1110,7 +1110,7 @@ export default function HistoricoCargas() {
                                                       </span>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                      <p className="text-xs">Inclui comissão HubFrete</p>
+                                                      <p className="text-xs">Inclui taxa HubFrete</p>
                                                     </TooltipContent>
                                                   </Tooltip>
                                                 </TableCell>
