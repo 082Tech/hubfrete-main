@@ -190,17 +190,6 @@ export default function EmbarcadorFinanceiro() {
         </Card>
         <Card className="border-border">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <CreditCard className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{formatCurrency(totalComissao)}</p>
-              <p className="text-xs text-muted-foreground">Taxa HubFrete</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 bg-accent rounded-lg">
               <DollarSign className="w-5 h-5 text-accent-foreground" />
             </div>
