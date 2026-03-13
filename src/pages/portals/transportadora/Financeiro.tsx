@@ -262,7 +262,7 @@ export default function TransportadoraFinanceiro() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{formatCurrency(totalComissao)}</p>
-                  <p className="text-xs text-muted-foreground">Comissão HubFrete</p>
+                  <p className="text-xs text-muted-foreground">Taxa HubFrete</p>
                 </div>
               </CardContent>
             </Card>
