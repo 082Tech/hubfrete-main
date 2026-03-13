@@ -666,9 +666,9 @@ export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsPr
                   timestamp: e.timestamp,
                   observacao: e.observacao,
                   user_nome: e.user_nome,
-                  entityCodigo: e.entityCodigo,
-                  entityType: 'entrega' as const,
+                  entityType: 'oferta' as const,
                 }))}
+                emptyMessage="Nenhum evento registrado para esta oferta"
               />
             </CardContent>
           </Card>
