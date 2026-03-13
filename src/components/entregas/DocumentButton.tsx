@@ -127,6 +127,7 @@ export function DocumentButton({
       }
 
       toast.success(`${docLabels[type]} anexado com sucesso!`);
+      setSyncing(true);
       onUploaded();
     } catch (err: any) {
       console.error('Upload error:', err);
@@ -138,8 +139,8 @@ export function DocumentButton({
   };
 
   // Determine visual state
-  const isClickable = hasDoc || (canAttach && !uploading);
-  const showUploadHint = !hasDoc && canAttach;
+  const isClickable = hasDoc || (canAttach && !uploading && !syncing);
+  const showUploadHint = !hasDoc && canAttach && !syncing;
 
   const bgClass = hasDoc
     ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer'
