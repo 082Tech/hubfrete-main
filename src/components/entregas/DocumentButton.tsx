@@ -142,7 +142,9 @@ export function DocumentButton({
   const isClickable = hasDoc || (canAttach && !uploading && !syncing);
   const showUploadHint = !hasDoc && canAttach && !syncing;
 
-  const bgClass = hasDoc
+  const bgClass = syncing
+    ? 'bg-primary/5 border-primary/30 dark:bg-primary/10 dark:border-primary/20 cursor-wait'
+    : hasDoc
     ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer'
     : showUploadHint
       ? 'bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:hover:bg-amber-900/30 cursor-pointer'
