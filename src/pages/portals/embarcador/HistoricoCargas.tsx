@@ -1298,6 +1298,15 @@ export default function HistoricoCargas() {
           canhotoUrl={docsEntregaCanhoto}
           outrosDocumentos={docsEntregaOutros}
         />
+
+        {/* Chat Sheet */}
+        <ChatSheet
+          open={chatSheetOpen}
+          onOpenChange={setChatSheetOpen}
+          entregaId={chatEntregaId}
+          userType="embarcador"
+          empresaId={filialAtiva?.empresa_id ?? undefined}
+        />
       </TooltipProvider>
     </div>
   );
