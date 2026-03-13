@@ -281,7 +281,7 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
                 />
               </div>
             </div>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
 
