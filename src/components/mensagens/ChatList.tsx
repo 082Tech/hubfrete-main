@@ -1,20 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, MessageSquare, Filter, Loader2 } from 'lucide-react';
+import { Search, MessageSquare, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChatListItem } from './ChatListItem';
 import { Chat } from './types';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-
-// Finalized delivery statuses
-const FINALIZED_STATUSES = ['entregue', 'devolvida', 'cancelada', 'problema'];
 
 interface ChatListProps {
   chats: Chat[];
