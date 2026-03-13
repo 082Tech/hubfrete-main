@@ -127,7 +127,7 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
             </DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="px-6 py-4 space-y-6">
               {/* Info Grid */}
               <div className="grid grid-cols-2 gap-4">
