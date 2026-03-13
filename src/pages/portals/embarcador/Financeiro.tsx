@@ -289,7 +289,7 @@ export default function EmbarcadorFinanceiro() {
                         <div className="text-right mr-4 hidden sm:block">
                           <p className="text-lg font-bold text-foreground">{formatCurrency(group.totalFrete)}</p>
                           <p className="text-xs text-muted-foreground">
-                            Comissão: {formatCurrency(group.totalComissao)}
+                            Taxa: {formatCurrency(group.totalComissao)}
                           </p>
                         </div>
                         {isOpen ? (
