@@ -164,7 +164,7 @@ export default function TransportadoraDashboard() {
           <div className="flex items-center gap-3">
             <Button 
               variant="outline" 
-              onClick={() => navigate('/transportadora/cargas')}
+              onClick={() => navigate('/transportadora/cargas?mapa=1')}
               className="gap-2"
             >
               <MapPin className="w-4 h-4" />
