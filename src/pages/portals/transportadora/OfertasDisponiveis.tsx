@@ -3119,7 +3119,7 @@ export default function OfertasDisponiveis() {
                             {comissaoPercent > 0 && (
                               <>
                                 <div className="flex justify-between text-sm text-destructive">
-                                  <span>Comissão HubFrete ({comissaoPercent}%):</span>
+                                  <span>Taxa HubFrete ({comissaoPercent}%):</span>
                                   <span>- {formatCurrency(valorComissao)}</span>
                                 </div>
                               </>

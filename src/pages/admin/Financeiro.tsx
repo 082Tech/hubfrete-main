@@ -894,7 +894,7 @@ export default function Financeiro() {
                       </div>
                       <div>
                         <p className="text-2xl font-bold">{formatCurrency(autoTotalComissao)}</p>
-                        <p className="text-xs text-muted-foreground">Comissão HubFrete</p>
+                        <p className="text-xs text-muted-foreground">Taxa HubFrete</p>
                       </div>
                     </CardContent>
                   </Card>
