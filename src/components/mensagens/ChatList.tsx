@@ -59,19 +59,7 @@ export function ChatList({
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, [handleScroll, getScrollContainer]);
 
-  // Count finalized chats
-  const finalizedCount = chats.filter(chat => 
-    chat.entrega?.status && FINALIZED_STATUSES.includes(chat.entrega.status)
-  ).length;
-
-  const activeCount = chats.length - finalizedCount;
-
   const filteredChats = chats.filter(chat => {
-    // First filter by finalized status
-    const isFinalized = chat.entrega?.status && FINALIZED_STATUSES.includes(chat.entrega.status);
-    if (!showFinalized && isFinalized) return false;
-    
-    // Then filter by search term
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     
