@@ -494,10 +494,10 @@ export default function Empresas() {
         </div>
       </div>
 
-      {/* Comissão HubFrete - only for Embarcadores */}
+      {/* Taxa HubFrete - only for Embarcadores */}
       {formData.tipo === 'EMBARCADOR' && (
         <div className="space-y-2">
-          <Label htmlFor="comissao">Comissão HubFrete (%)</Label>
+          <Label htmlFor="comissao">Taxa HubFrete (%)</Label>
           <div className="relative">
             <Input
               id="comissao"
