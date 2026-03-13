@@ -126,7 +126,7 @@ export function EventTimeline({ events, maxItems, emptyMessage = 'Nenhum evento 
           const contextSuffix = isTrip
             ? ' (viagem)'
             : item.entityType === 'entrega'
-              ? ' (entrega)'
+              ? ' (carga)'
               : item.entityType === 'oferta'
                 ? ' (oferta)'
                 : '';
