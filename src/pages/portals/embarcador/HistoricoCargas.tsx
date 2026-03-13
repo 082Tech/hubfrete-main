@@ -1152,6 +1152,10 @@ export default function HistoricoCargas() {
                                                       </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
+                                                      <DropdownMenuItem onClick={() => handleOpenEntregaDetails(entrega, carga)}>
+                                                        <Eye className="w-4 h-4 mr-2" />
+                                                        Ver detalhes
+                                                      </DropdownMenuItem>
                                                       <DropdownMenuItem onClick={() => {
                                                         setChatEntregaId(entrega.id);
                                                         setChatSheetOpen(true);
