@@ -29,6 +29,8 @@ interface ViagemHistoricoProps {
     ended_at?: string | null;
   };
   entregas: ViagemEntrega[];
+  /** Nome do usuário que realizou ações manuais (iniciar, finalizar, cancelar viagem) */
+  actionUserName?: string;
 }
 
 export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
