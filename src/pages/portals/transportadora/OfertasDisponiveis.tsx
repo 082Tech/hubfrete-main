@@ -803,7 +803,18 @@ export default function OfertasDisponiveis() {
         entregaCodigo: result.entrega_codigo,
       };
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      // Register offer-level event
+      supabase.from('carga_eventos' as any).insert({
+        carga_id: variables.cargaId,
+        tipo: data.merged ? 'peso_adicionado' : 'carga_gerada',
+        timestamp: new Date().toISOString(),
+        user_nome: variables.userName,
+        observacao: data.merged
+          ? `Peso adicionado à carga ${data.entregaCodigo || ''}`
+          : `Carga ${data.entregaCodigo || ''} gerada`,
+      }).then(() => {});
+
       if (data.merged) {
         toast.success(`Peso adicionado à entrega existente (${data.entregaCodigo || ''})`);
       } else {
