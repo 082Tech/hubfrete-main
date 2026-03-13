@@ -216,13 +216,6 @@ export function ChatDetailsSheet({ chat, open, onOpenChange, userType }: ChatDet
                         )}
                       </div>
                     </div>
-                    {motorista.telefone && (
-                      <Button variant="ghost" size="icon" className="shrink-0" asChild>
-                        <a href={`tel:${motorista.telefone}`}>
-                          <Phone className="w-4 h-4" />
-                        </a>
-                      </Button>
-                    )}
                   </div>
                 )}
               </div>
