@@ -35,6 +35,8 @@ import {
   Paperclip,
   Info,
   Eye,
+import {
+  Shuffle, History,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import type { OutroDocumento } from './EntregaDocumentosPanel';
