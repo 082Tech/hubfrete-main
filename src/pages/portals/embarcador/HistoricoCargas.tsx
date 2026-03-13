@@ -209,8 +209,11 @@ export default function HistoricoCargas() {
   const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
   const [docsEntregaOutros, setDocsEntregaOutros] = useState<any[]>([]);
 
+  // Chat sheet state
+  const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
-  // Handle URL params for highlighting/expanding specific cargo and entrega
+
   useEffect(() => {
     const cargaId = searchParams.get('carga');
     const entregaId = searchParams.get('entrega');
