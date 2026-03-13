@@ -681,7 +681,7 @@ function DetailPanel({
 
           <Separator />
 
-          {/* Driver & Vehicle + Chat Button + Status Online/Offline */}
+          {/* Driver & Vehicle + Status Online/Offline */}
           {entrega.motorista && (
             <Card className="shadow-none border">
               <CardContent className="p-2">
@@ -719,19 +719,20 @@ function DetailPanel({
                       </div>
                     )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => setChatSheetOpen(true)}
-                  >
-                    <MessageCircle className="w-4 h-4 mr-1.5" />
-                    Chat
-                  </Button>
                 </div>
               </CardContent>
             </Card>
           )}
+
+          {/* Chat da Carga - botão separado */}
+          <Button
+            variant="outline"
+            className="w-full justify-center gap-2"
+            onClick={() => setChatSheetOpen(true)}
+          >
+            <MessageCircle className="w-4 h-4" />
+            Abrir Chat da Carga
+          </Button>
 
           {/* History Timeline */}
           <div>
