@@ -838,7 +838,7 @@ function GestaoMapDialogContent({
         </div>
         <div className="flex-[3] border-l flex flex-col bg-background">
           <div className="px-3 py-2 border-b bg-muted/30 space-y-2">
-            <span className="text-sm font-medium">Cargas ({filteredGroups.length})</span>
+            <span className="text-sm font-medium">Cargas ({filteredGroups.reduce((sum, g) => sum + g.entregas.length, 0)})</span>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
