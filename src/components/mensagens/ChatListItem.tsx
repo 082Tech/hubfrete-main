@@ -76,7 +76,8 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
 
   const getAvatar = () => {
     if (userType === 'embarcador') {
-      return chat.entrega?.motorista?.foto_url || chat.entrega?.motorista?.empresa?.logo_url;
+      // Prioritize transportadora logo; show motorista photo only for autonomous drivers
+      return chat.entrega?.motorista?.empresa?.logo_url || chat.entrega?.motorista?.foto_url;
     }
     return chat.entrega?.carga?.empresa?.logo_url;
   };
