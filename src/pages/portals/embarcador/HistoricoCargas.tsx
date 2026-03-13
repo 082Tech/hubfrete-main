@@ -1305,7 +1305,7 @@ export default function HistoricoCargas() {
           onOpenChange={setChatSheetOpen}
           entregaId={chatEntregaId}
           userType="embarcador"
-          empresaId={filialAtiva?.empresa_id ?? undefined}
+          empresaId={filialAtiva ? undefined : undefined}
         />
       </TooltipProvider>
     </div>
