@@ -1568,7 +1568,9 @@ export default function OperacaoDiaria() {
   const [selectedViagem, setSelectedViagem] = useState<ViagemWithEntregas | null>(null);
   const [selectedEntregaInViagem, setSelectedEntregaInViagem] = useState<Entrega | null>(null); // Stack navigation for viagem view
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
-  const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
+  // Auto-open map dialog if navigated with ?mapa=1
+  const [searchParams] = useSearchParams();
+  const [gestaoDialogOpen, setGestaoDialogOpen] = useState(searchParams.get('mapa') === '1');
   const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
   const [filters, setFilters] = useState<AdvancedFilters>({});
 
