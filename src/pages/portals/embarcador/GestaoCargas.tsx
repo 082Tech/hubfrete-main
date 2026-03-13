@@ -425,6 +425,12 @@ function DetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
+          {/* Chat Button */}
+          <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => setChatSheetOpen(true)}>
+            <MessageCircle className="w-4 h-4" />
+            Abrir Chat da Carga
+          </Button>
+
           {/* Publicado por */}
           {entrega.carga.empresa && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
