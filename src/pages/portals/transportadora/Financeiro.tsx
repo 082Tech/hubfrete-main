@@ -356,7 +356,7 @@ export default function TransportadoraFinanceiro() {
                             <div className="text-right mr-4 hidden sm:block">
                               <p className="text-lg font-bold text-chart-2">{formatCurrency(group.totalLiquido)}</p>
                               <p className="text-xs text-muted-foreground">
-                                Bruto: {formatCurrency(group.totalBruto)} | Comissão: {formatCurrency(group.totalComissao)}
+                                Bruto: {formatCurrency(group.totalBruto)} | Taxa: {formatCurrency(group.totalComissao)}
                               </p>
                             </div>
                             {isOpen ? (
