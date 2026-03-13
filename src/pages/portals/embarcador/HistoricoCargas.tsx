@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { EntregaDocsDialog } from '@/components/entregas/EntregaDocsDialog';
+import { ChatSheet } from '@/components/mensagens/ChatSheet';
 
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 
@@ -72,6 +73,7 @@ import {
   AlertTriangle,
   ArrowRightLeft,
   Info,
+  MessageCircle,
 } from 'lucide-react';
 
 // Types
@@ -180,7 +182,7 @@ type SortOrder = 'asc' | 'desc';
 const ITEMS_PER_PAGE = 15;
 
 export default function HistoricoCargas() {
-  const { filialAtiva } = useUserContext();
+  const { filialAtiva, empresa } = useUserContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [detailsCarga, setDetailsCarga] = useState<CargaData | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -207,8 +209,11 @@ export default function HistoricoCargas() {
   const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
   const [docsEntregaOutros, setDocsEntregaOutros] = useState<any[]>([]);
 
+  // Chat sheet state
+  const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
-  // Handle URL params for highlighting/expanding specific cargo and entrega
+
   useEffect(() => {
     const cargaId = searchParams.get('carga');
     const entregaId = searchParams.get('entrega');
@@ -1148,6 +1153,13 @@ export default function HistoricoCargas() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                       <DropdownMenuItem onClick={() => {
+                                                        setChatEntregaId(entrega.id);
+                                                        setChatSheetOpen(true);
+                                                      }}>
+                                                        <MessageCircle className="w-4 h-4 mr-2" />
+                                                        Ver conversa
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => {
                                                         setTrackingMapEntregaId(entrega.id);
                                                         setTrackingMapInfo({
                                                           motorista: entrega.motoristas?.nome_completo || 'Motorista',
@@ -1285,6 +1297,15 @@ export default function HistoricoCargas() {
           entregaCodigo={docsEntregaCodigo}
           canhotoUrl={docsEntregaCanhoto}
           outrosDocumentos={docsEntregaOutros}
+        />
+
+        {/* Chat Sheet */}
+        <ChatSheet
+          open={chatSheetOpen}
+          onOpenChange={setChatSheetOpen}
+          entregaId={chatEntregaId}
+          userType="embarcador"
+          empresaId={empresa?.id}
         />
       </TooltipProvider>
     </div>
