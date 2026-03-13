@@ -12,7 +12,8 @@ export default function TransportadoraMensagens() {
   const [showChatList, setShowChatList] = useState(true);
   const hasAutoSelected = useRef(false);
   const { setIsInChatView } = useChatView();
-  const { empresa_id: empresaId } = useUserContext();
+  const { empresa } = useUserContext();
+  const empresaId = empresa?.id;
 
   // Get entrega ID from URL params
   const entregaIdFromUrl = searchParams.get('entrega');
