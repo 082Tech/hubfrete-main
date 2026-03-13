@@ -177,6 +177,36 @@ const statusEntregaConfig: Record<string, { color: string; label: string }> = {
 };
 
 export function CargaDetailsDialog({ carga, open, onOpenChange }: CargaDetailsProps) {
+  const [eventos, setEventos] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!carga?.id || !open) { setEventos([]); return; }
+    // Fetch events from all entregas of this carga
+    (async () => {
+      // Get entregas ids for this carga
+      const { data: entregas } = await supabase
+        .from('entregas')
+        .select('id, codigo')
+        .eq('carga_id', carga.id);
+      
+      if (!entregas || entregas.length === 0) { setEventos([]); return; }
+
+      const entregaIds = entregas.map(e => e.id);
+      const entregaCodigoMap = Object.fromEntries(entregas.map(e => [e.id, e.codigo]));
+
+      const { data: evts } = await supabase
+        .from('entrega_eventos')
+        .select('id, tipo, timestamp, observacao, user_nome, entrega_id')
+        .in('entrega_id', entregaIds)
+        .order('timestamp', { ascending: false });
+      
+      setEventos((evts || []).map(e => ({
+        ...e,
+        entityCodigo: entregaCodigoMap[e.entrega_id] || undefined,
+      })));
+    })();
+  }, [carga?.id, open]);
+
   // Early return if carga is null to prevent accessing properties of null
   if (!carga) {
     return (
