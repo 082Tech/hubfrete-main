@@ -9,7 +9,7 @@ interface UseChatsOptions {
 }
 
 const MESSAGES_PER_PAGE = 20;
-const CHATS_PER_PAGE = 15;
+const CHATS_PER_PAGE = 20;
 
 export function useChats({ userType, empresaId }: UseChatsOptions) {
   const [chats, setChats] = useState<Chat[]>([]);
