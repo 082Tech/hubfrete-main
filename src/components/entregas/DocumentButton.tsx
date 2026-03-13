@@ -42,6 +42,14 @@ export function DocumentButton({
 }: DocumentButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  // Clear syncing state when hasDoc updates (parent refetched)
+  useEffect(() => {
+    if (syncing && hasDoc) {
+      setSyncing(false);
+    }
+  }, [hasDoc, syncing]);
 
   const label = type === 'nfe' && count !== undefined
     ? `${docLabels[type]} (${count})`
