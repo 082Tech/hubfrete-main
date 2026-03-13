@@ -44,12 +44,18 @@ export function DocumentButton({
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
-  // Clear syncing state when hasDoc updates (parent refetched)
+  // Clear syncing state when hasDoc/count updates (parent refetched) or after timeout
   useEffect(() => {
-    if (syncing && hasDoc) {
-      setSyncing(false);
+    if (syncing) {
+      if (hasDoc) {
+        setSyncing(false);
+      } else {
+        // Fallback: clear after 8s in case refetch doesn't change hasDoc
+        const timer = setTimeout(() => setSyncing(false), 8000);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [hasDoc, syncing]);
+  }, [hasDoc, count, syncing]);
 
   const label = type === 'nfe' && count !== undefined
     ? `${docLabels[type]} (${count})`
