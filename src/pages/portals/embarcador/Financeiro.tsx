@@ -190,17 +190,6 @@ export default function EmbarcadorFinanceiro() {
         </Card>
         <Card className="border-border">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <CreditCard className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{formatCurrency(totalComissao)}</p>
-              <p className="text-xs text-muted-foreground">Taxa HubFrete</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 bg-accent rounded-lg">
               <DollarSign className="w-5 h-5 text-accent-foreground" />
             </div>
@@ -288,9 +277,6 @@ export default function EmbarcadorFinanceiro() {
                         </div>
                         <div className="text-right mr-4 hidden sm:block">
                           <p className="text-lg font-bold text-foreground">{formatCurrency(group.totalFrete)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Taxa: {formatCurrency(group.totalComissao)}
-                          </p>
                         </div>
                         {isOpen ? (
                           <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
@@ -309,8 +295,7 @@ export default function EmbarcadorFinanceiro() {
                               <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[18%]">Carga</th>
                               <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[18%]">Transportadora</th>
                               <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Motorista</th>
-                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Valor do Frete</th>
-                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Taxa</th>
+                              <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[24%]">Valor do Frete</th>
                               <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Status</th>
                               <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[14%]">Data</th>
                             </tr>
@@ -329,10 +314,7 @@ export default function EmbarcadorFinanceiro() {
                                     {r.empresa_transportadora?.nome_fantasia || r.empresa_transportadora?.nome || '—'}
                                   </td>
                                   <td className="px-4 py-3 w-[16%]">{r.entregas?.motoristas?.nome_completo || '—'}</td>
-                                  <td className="px-4 py-3 text-right font-semibold w-[14%]">{formatCurrency(r.valor_frete)}</td>
-                                  <td className="px-4 py-3 text-right text-xs text-muted-foreground w-[10%]">
-                                    {r.valor_comissao > 0 ? formatCurrency(r.valor_comissao) : '—'}
-                                  </td>
+                                  <td className="px-4 py-3 text-right font-semibold w-[24%]">{formatCurrency(r.valor_frete)}</td>
                                   <td className="px-4 py-3 text-center w-[10%]">
                                     <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
                                       {r.status === 'pago' ? 'Pago' : 'A Pagar'}
