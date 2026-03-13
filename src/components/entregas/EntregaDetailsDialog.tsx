@@ -42,6 +42,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import type { OutroDocumento } from './EntregaDocumentosPanel';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { CarregamentoCarroceriasSection } from './CarregamentoCarroceriasSection';
+import { EventTimeline } from '@/components/shared/EventTimeline';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
