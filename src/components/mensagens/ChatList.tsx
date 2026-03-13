@@ -28,7 +28,6 @@ export function ChatList({
   userType 
 }: ChatListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [showFinalized, setShowFinalized] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Get scroll container
