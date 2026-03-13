@@ -35,6 +35,12 @@ const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: 
   viagem_finalizada: { label: 'Finalizada', bgColor: 'bg-green-100 dark:bg-green-900/30', isTrip: true },
   viagem_cancelada: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30', isTrip: true },
   // Oferta lifecycle
+  oferta_publicada: { label: 'Oferta publicada', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isCreation: true },
+  carga_gerada: { label: 'Carga gerada', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+  carga_cancelada: { label: 'Carga cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  oferta_expirada: { label: 'Oferta expirada', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
+  oferta_excluida: { label: 'Oferta excluída', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  peso_adicionado: { label: 'Peso adicionado à carga', bgColor: 'bg-indigo-100 dark:bg-indigo-900/30' },
   publicada: { label: 'Publicada', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
   parcialmente_alocada: { label: 'Parcialmente Alocada', bgColor: 'bg-indigo-100 dark:bg-indigo-900/30' },
   totalmente_alocada: { label: 'Totalmente Alocada', bgColor: 'bg-green-100 dark:bg-green-900/30' },
