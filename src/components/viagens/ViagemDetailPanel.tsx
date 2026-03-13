@@ -520,6 +520,7 @@ export function ViagemDetailPanel({
                 ended_at: viagem.ended_at,
               }}
               entregas={viagem.entregas}
+              actionUserName={viagem.motorista?.nome_completo}
             />
           </div>
         </div>
