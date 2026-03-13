@@ -621,7 +621,7 @@ function DetailPanel({
               <div className="relative">
                 <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-border" />
                 <div className="space-y-4">
-                  {entrega.eventos.slice(0, 5).map((evento) => {
+                  {[...entrega.eventos].reverse().slice(0, 5).map((evento) => {
                     const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean; isCreation?: boolean }> = {
                       criado: { label: 'Carga criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
                       aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
