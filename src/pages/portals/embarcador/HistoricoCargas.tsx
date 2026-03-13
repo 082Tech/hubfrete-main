@@ -1153,12 +1153,22 @@ export default function HistoricoCargas() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                       <DropdownMenuItem onClick={() => {
+                                                        setChatEntregaId(entrega.id);
+                                                        setChatSheetOpen(true);
+                                                      }}>
+                                                        <MessageCircle className="w-4 h-4 mr-2" />
+                                                        Ver conversa
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => {
                                                         setTrackingMapEntregaId(entrega.id);
                                                         setTrackingMapInfo({
                                                           motorista: entrega.motoristas?.nome_completo || 'Motorista',
                                                           placa: entrega.veiculos?.placa || '-',
                                                         });
                                                       }}>
+                                                        <Route className="w-4 h-4 mr-2" />
+                                                        Ver histórico no mapa
+                                                      </DropdownMenuItem>
                                                         <Route className="w-4 h-4 mr-2" />
                                                         Ver histórico no mapa
                                                       </DropdownMenuItem>
