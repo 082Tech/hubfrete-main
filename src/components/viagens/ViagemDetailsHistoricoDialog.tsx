@@ -10,7 +10,7 @@ import { formatWeight } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Separator } from '@/components/ui/separator';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemHistorico as ViagemHistoricoTimeline } from './ViagemHistorico';
