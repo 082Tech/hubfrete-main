@@ -259,7 +259,7 @@ export default function NovaCarga() {
         carga_id: carga.id,
         tipo: 'oferta_publicada',
         timestamp: new Date().toISOString(),
-        user_nome: empresa?.nome_fantasia || empresa?.razao_social || 'Embarcador',
+        user_nome: empresa?.nome || 'Embarcador',
       });
       
       toast.success(`Oferta de Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
