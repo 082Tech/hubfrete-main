@@ -1169,9 +1169,6 @@ export default function HistoricoCargas() {
                                                         <Route className="w-4 h-4 mr-2" />
                                                         Ver histórico no mapa
                                                       </DropdownMenuItem>
-                                                        <Route className="w-4 h-4 mr-2" />
-                                                        Ver histórico no mapa
-                                                      </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                   </DropdownMenu>
                                                 </TableCell>
