@@ -166,12 +166,12 @@ export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
     });
   });
 
-  // Sort: by timestamp ascending (oldest first = top), then by _sortOrder ascending for same-time events
+  // Sort: by timestamp descending (newest first = top), then by _sortOrder descending for same-time events
   const sortedTimeline = timelineItems.sort((a, b) => {
-    const timeDiff = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+    const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     if (Math.abs(timeDiff) < 100) {
-      // Same moment (~100ms window): use sort order (lower = earlier in timeline)
-      return a._sortOrder - b._sortOrder;
+      // Same moment (~100ms window): use sort order (higher = earlier in timeline when descending)
+      return b._sortOrder - a._sortOrder;
     }
     return timeDiff;
   });
