@@ -73,6 +73,7 @@ import {
   AlertTriangle,
   ArrowRightLeft,
   Info,
+  MessageCircle,
 } from 'lucide-react';
 
 // Types
