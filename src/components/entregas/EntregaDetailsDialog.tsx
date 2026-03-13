@@ -145,9 +145,11 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
   const [nfes, setNfes] = useState<any[]>([]);
+  const [eventos, setEventos] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!entrega?.id || !open) { setNfes([]); return; }
+    if (!entrega?.id || !open) { setNfes([]); setEventos([]); return; }
+    // Fetch NF-es
     (async () => {
       const { data } = await (supabase as any)
         .from('nfes')
@@ -155,6 +157,15 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
         .eq('entrega_id', entrega.id)
         .order('created_at', { ascending: true });
       setNfes(data || []);
+    })();
+    // Fetch eventos
+    (async () => {
+      const { data } = await supabase
+        .from('entrega_eventos')
+        .select('id, tipo, timestamp, observacao, user_nome, entrega_id')
+        .eq('entrega_id', entrega.id)
+        .order('timestamp', { ascending: false });
+      setEventos(data || []);
     })();
   }, [entrega?.id, open]);
 
