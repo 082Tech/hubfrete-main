@@ -111,9 +111,22 @@ export function ViagemHistorico({ viagem, entregas, actionUserName }: ViagemHist
     });
   });
 
-  // Sort descending
+  // Priority for deterministic ordering when timestamps match
+  // Lower number = should appear LATER (bottom) in descending sort
+  const typePriority: Record<string, number> = {
+    viagem_criada: 1,
+    criado: 2,
+    viagem_aguardando: 3,
+    aceite: 4,
+  };
+
   const sortedTimeline = timelineItems.sort((a, b) => {
-    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    if (timeDiff !== 0) return timeDiff;
+    // Same timestamp: higher priority number appears first (top) in descending list
+    const pa = typePriority[a.tipo] ?? 50;
+    const pb = typePriority[b.tipo] ?? 50;
+    return pb - pa;
   });
 
   return <EventTimeline events={sortedTimeline} />;
