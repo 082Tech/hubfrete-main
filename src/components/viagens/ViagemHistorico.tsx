@@ -29,9 +29,11 @@ interface ViagemHistoricoProps {
     ended_at?: string | null;
   };
   entregas: ViagemEntrega[];
+  /** Nome do usuário que realizou ações manuais (iniciar, finalizar, cancelar viagem) */
+  actionUserName?: string;
 }
 
-export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
+export function ViagemHistorico({ viagem, entregas, actionUserName }: ViagemHistoricoProps) {
   const timelineItems: TimelineEvent[] = [];
   const baseTime = new Date(viagem.created_at).getTime();
 
@@ -62,25 +64,25 @@ export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
     });
   }
 
-  // Trip em_andamento
+  // Trip em_andamento (ação do usuário, não do sistema)
   if (['em_andamento', 'finalizada', 'cancelada'].includes(viagem.status) && viagem.started_at) {
     timelineItems.push({
       id: `viagem-em-andamento-${viagem.id}`,
       timestamp: viagem.started_at,
       tipo: 'viagem_em_andamento',
-      user_nome: 'Sistema',
+      user_nome: actionUserName || tripCreatorName,
       entityCodigo: viagem.codigo,
       entityType: 'viagem',
     });
   }
 
-  // Trip finalization/cancellation
+  // Trip finalization/cancellation (ação do usuário)
   if (viagem.status === 'finalizada') {
     timelineItems.push({
       id: `viagem-finished-${viagem.id}`,
       timestamp: viagem.ended_at || viagem.updated_at || viagem.created_at,
       tipo: 'viagem_finalizada',
-      user_nome: 'Sistema',
+      user_nome: actionUserName || tripCreatorName,
       entityCodigo: viagem.codigo,
       entityType: 'viagem',
     });
@@ -89,7 +91,7 @@ export function ViagemHistorico({ viagem, entregas }: ViagemHistoricoProps) {
       id: `viagem-cancelled-${viagem.id}`,
       timestamp: viagem.updated_at || viagem.created_at,
       tipo: 'viagem_cancelada',
-      user_nome: 'Sistema',
+      user_nome: actionUserName || tripCreatorName,
       entityCodigo: viagem.codigo,
       entityType: 'viagem',
     });

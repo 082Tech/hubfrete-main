@@ -266,6 +266,7 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
                 </div>
                 <ViagemHistoricoTimeline
                   viagem={{ id: viagem.id, codigo: viagem.codigo, status: viagem.status, created_at: viagem.created_at }}
+                  actionUserName={viagem.motorista?.nome_completo}
                   entregas={viagem.entregas.map(e => ({
                     id: e.id,
                     codigo: e.codigo || e.carga.codigo,

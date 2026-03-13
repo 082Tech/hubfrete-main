@@ -455,7 +455,7 @@ function DetailPanel({
                 <ArrowLeft className="w-3.5 h-3.5" />
               </Button>
             )}
-            <span className="text-xs text-muted-foreground">Entrega Nº</span>
+            <span className="text-xs text-muted-foreground">Carga Nº</span>
             <Badge variant="outline" className="font-mono font-bold text-xs px-2 border-primary text-primary">
               {entrega.codigo || entrega.id.slice(0, 8)}
             </Badge>
