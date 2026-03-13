@@ -157,7 +157,7 @@ export function DocumentButton({
         disabled={!isClickable}
         className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${bgClass}`}
       >
-        {uploading ? (
+        {uploading || syncing ? (
           <Loader2 className="w-3 h-3 animate-spin text-primary" />
         ) : hasDoc ? (
           <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
@@ -166,7 +166,7 @@ export function DocumentButton({
         ) : (
           <XCircle className="w-3 h-3 text-muted-foreground" />
         )}
-        <span>{label}</span>
+        <span>{syncing ? `${label} ✓` : label}</span>
       </button>
 
       {canAttach && (
