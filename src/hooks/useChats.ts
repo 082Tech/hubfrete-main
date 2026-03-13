@@ -253,8 +253,10 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       }
 
       chatsOffsetRef.current = offset + chatsData.length;
-      // Only show "load more" if DB returned a full page AND we got at least 1 visible chat
-      setHasMoreChats(chatsData.length >= CHATS_PER_PAGE && assembledChats.length > 0);
+      // If DB returned fewer rows than page size, there are no more rows to fetch
+      // If DB returned a full page but all were filtered out client-side, keep trying
+      const dbHasMore = chatsData.length >= CHATS_PER_PAGE;
+      setHasMoreChats(dbHasMore);
 
     } catch (error: any) {
       console.error('Error fetching chats:', error);
