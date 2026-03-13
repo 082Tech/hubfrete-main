@@ -314,10 +314,7 @@ export default function EmbarcadorFinanceiro() {
                                     {r.empresa_transportadora?.nome_fantasia || r.empresa_transportadora?.nome || '—'}
                                   </td>
                                   <td className="px-4 py-3 w-[16%]">{r.entregas?.motoristas?.nome_completo || '—'}</td>
-                                  <td className="px-4 py-3 text-right font-semibold w-[14%]">{formatCurrency(r.valor_frete)}</td>
-                                  <td className="px-4 py-3 text-right text-xs text-muted-foreground w-[10%]">
-                                    {r.valor_comissao > 0 ? formatCurrency(r.valor_comissao) : '—'}
-                                  </td>
+                                  <td className="px-4 py-3 text-right font-semibold w-[24%]">{formatCurrency(r.valor_frete)}</td>
                                   <td className="px-4 py-3 text-center w-[10%]">
                                     <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
                                       {r.status === 'pago' ? 'Pago' : 'A Pagar'}
