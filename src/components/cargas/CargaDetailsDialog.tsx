@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -31,11 +32,14 @@ import {
   Navigation,
   CheckCircle,
   PackageOpen,
-  FileSearch
+  FileSearch,
+  History,
 } from 'lucide-react';
 import { NfeValidationStatus } from './NfeValidationStatus';
+import { EventTimeline } from '@/components/shared/EventTimeline';
 import type { Database } from '@/integrations/supabase/types';
 import { formatWeight } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 type StatusCarga = Database['public']['Enums']['status_carga'];
 type StatusEntrega = Database['public']['Enums']['status_entrega'];
