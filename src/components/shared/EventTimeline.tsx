@@ -109,7 +109,9 @@ export function EventTimeline({ events, maxItems, emptyMessage = 'Nenhum evento 
           if (isCreation) {
             actionText = item.tipo === 'viagem_criada'
               ? ' criou esta viagem'
-              : ' criou esta entrega';
+              : item.entityType === 'oferta'
+                ? ' publicou esta oferta'
+                : ' criou esta carga';
           } else if (isDocument) {
             actionText = ' anexou ';
             labelText = config.label;
