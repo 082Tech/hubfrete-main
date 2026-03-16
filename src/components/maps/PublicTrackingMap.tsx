@@ -83,7 +83,7 @@ function FitBoundsOnce({ points }: { points: [number, number][] }) {
   return null;
 }
 
-function MapContent({ latitude, longitude, lastUpdate, origem, destino }: PublicTrackingMapProps) {
+function MapContent({ latitude, longitude, heading, lastUpdate, origem, destino }: PublicTrackingMapProps) {
   const hasLocation = latitude !== undefined && longitude !== undefined;
 
   const isOnline = useMemo(() => {
