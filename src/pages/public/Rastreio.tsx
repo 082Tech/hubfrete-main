@@ -341,7 +341,7 @@ export default function Rastreio() {
                                     <CardTitle>Localização em Tempo Real</CardTitle>
                                 </div>
                             </CardHeader>
-                            <div className="h-[400px] w-full relative">
+                            <div className="h-[400px] w-full relative overflow-hidden">
                                 <PublicTrackingMap
                                     latitude={data.entrega.localizacao_atual?.latitude}
                                     longitude={data.entrega.localizacao_atual?.longitude}
