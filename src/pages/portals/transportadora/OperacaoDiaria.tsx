@@ -69,6 +69,7 @@ import {
   Search,
   HelpCircle,
   Route,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
