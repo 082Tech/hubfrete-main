@@ -52,6 +52,18 @@ interface TrackingData {
             valor: number | null;
             quantidade: number | null;
         } | null;
+        origem: {
+            latitude: number;
+            longitude: number;
+            cidade: string | null;
+            estado: string | null;
+        } | null;
+        destino: {
+            latitude: number;
+            longitude: number;
+            cidade: string | null;
+            estado: string | null;
+        } | null;
     };
     eventos: {
         id: string;
@@ -334,6 +346,8 @@ export default function Rastreio() {
                                     latitude={data.entrega.localizacao_atual?.latitude}
                                     longitude={data.entrega.localizacao_atual?.longitude}
                                     lastUpdate={data.entrega.localizacao_atual?.updated_at}
+                                    origem={data.entrega.origem ? { lat: data.entrega.origem.latitude, lng: data.entrega.origem.longitude } : null}
+                                    destino={data.entrega.destino ? { lat: data.entrega.destino.latitude, lng: data.entrega.destino.longitude } : null}
                                 />
                             </div>
                         </Card>
