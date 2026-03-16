@@ -1551,7 +1551,7 @@ export default function OperacaoDiaria() {
       const { data, error } = await (supabase as any)
         .from('entregas')
         .select(`
-          id, codigo, status, created_at, updated_at,
+          id, codigo, tracking_code, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em, carrocerias_alocadas,
           previsao_coleta, canhoto_url, outros_documentos,
