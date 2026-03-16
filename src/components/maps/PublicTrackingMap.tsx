@@ -130,7 +130,7 @@ function MapContent({ latitude, longitude, lastUpdate, origem, destino }: Public
       </MapContainer>
 
       {hasLocation && lastUpdate && (
-        <div className="absolute top-2 left-2 z-[1000] bg-white/90 backdrop-blur px-3 py-1 rounded-md shadow text-xs font-medium text-gray-700">
+        <div className="absolute top-2 right-2 z-[1000] bg-white/90 backdrop-blur px-3 py-1 rounded-md shadow text-xs font-medium text-gray-700">
           Atualizado {formatDistanceToNow(new Date(lastUpdate), { locale: ptBR, addSuffix: true })}
         </div>
       )}
