@@ -346,6 +346,7 @@ export default function Rastreio() {
                                 <PublicTrackingMap
                                     latitude={data.entrega.localizacao_atual?.latitude}
                                     longitude={data.entrega.localizacao_atual?.longitude}
+                                    heading={data.entrega.localizacao_atual?.heading}
                                     lastUpdate={data.entrega.localizacao_atual?.updated_at}
                                     origem={data.entrega.origem ? { lat: data.entrega.origem.latitude, lng: data.entrega.origem.longitude } : null}
                                     destino={data.entrega.destino ? { lat: data.entrega.destino.latitude, lng: data.entrega.destino.longitude } : null}
