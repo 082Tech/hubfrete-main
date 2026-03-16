@@ -104,6 +104,7 @@ type EntregaStatus = string;
 interface Entrega {
   id: string;
   codigo: string;
+  tracking_code?: string | null;
   status: EntregaStatus;
   created_at: string;
   updated_at: string;
