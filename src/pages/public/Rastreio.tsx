@@ -365,22 +365,18 @@ export default function Rastreio() {
                                         return cleaned.length > 0;
                                     };
 
-                                    return (
+                                     return (
                                         <div className="relative">
+                                            {/* Continuous vertical line through all dots */}
+                                            {data.eventos.length > 1 && (
+                                                <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-border" />
+                                            )}
                                             {data.eventos.map((evento, index) => (
                                                 <div key={evento.id} className="relative flex gap-4 pb-8 last:pb-0">
-                                                    {/* Vertical line + dot column */}
-                                                     <div className="flex flex-col items-center">
-                                                         {index > 0 && (
-                                                             <div className="w-0.5 h-3 bg-gray-200" />
-                                                         )}
-                                                         <div className={`relative z-10 w-4 h-4 rounded-full shrink-0 ${index === 0 ? 'bg-primary ring-4 ring-primary/20' : 'bg-gray-300'}`}>
-                                                             {index === 0 && <div className="absolute inset-0 m-auto w-1.5 h-1.5 bg-white rounded-full" />}
-                                                         </div>
-                                                         {index < data.eventos.length - 1 && (
-                                                             <div className="w-0.5 flex-1 bg-gray-200" />
-                                                         )}
-                                                     </div>
+                                                    {/* Dot */}
+                                                    <div className={`relative z-10 mt-0.5 w-4 h-4 rounded-full shrink-0 ${index === 0 ? 'bg-primary ring-4 ring-primary/20' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                                                        {index === 0 && <div className="absolute inset-0 m-auto w-1.5 h-1.5 bg-white rounded-full" />}
+                                                    </div>
 
                                                     {/* Content */}
                                                     <div className="flex-1 flex flex-col md:flex-row md:items-start justify-between gap-1 -mt-0.5">
