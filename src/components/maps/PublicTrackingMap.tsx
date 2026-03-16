@@ -1,9 +1,10 @@
-import { GoogleMap, Marker } from '@react-google-maps/api';
+import { GoogleMap, OverlayView } from '@react-google-maps/api';
 import { useMemo, useState } from 'react';
 import { GoogleMapsLoader, airbnbMapStyles, defaultMapContainerStyle } from './GoogleMapsLoader';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MapPinOff } from 'lucide-react';
+import { TruckIcon } from './TruckIcon';
 
 interface PublicTrackingMapProps {
     latitude?: number;
