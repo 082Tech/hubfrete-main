@@ -18,6 +18,7 @@ L.Icon.Default.mergeOptions({
 interface PublicTrackingMapProps {
   latitude?: number;
   longitude?: number;
+  heading?: number | null;
   lastUpdate?: string | null;
   origem?: { lat: number; lng: number } | null;
   destino?: { lat: number; lng: number } | null;
@@ -82,7 +83,7 @@ function FitBoundsOnce({ points }: { points: [number, number][] }) {
   return null;
 }
 
-function MapContent({ latitude, longitude, lastUpdate, origem, destino }: PublicTrackingMapProps) {
+function MapContent({ latitude, longitude, heading, lastUpdate, origem, destino }: PublicTrackingMapProps) {
   const hasLocation = latitude !== undefined && longitude !== undefined;
 
   const isOnline = useMemo(() => {
@@ -104,7 +105,7 @@ function MapContent({ latitude, longitude, lastUpdate, origem, destino }: Public
     return pts;
   }, [origem, destino, hasLocation, latitude, longitude]);
 
-  const truckIcon = useMemo(() => createTruckIcon(0, isOnline), [isOnline]);
+  const truckIcon = useMemo(() => createTruckIcon(heading ?? 0, isOnline), [isOnline, heading]);
   const origemIcon = useMemo(() => createLocationIcon('origem'), []);
   const destinoIcon = useMemo(() => createLocationIcon('destino'), []);
 
