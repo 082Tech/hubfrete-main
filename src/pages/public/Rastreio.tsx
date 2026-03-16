@@ -366,27 +366,31 @@ export default function Rastreio() {
                                     };
 
                                     return (
-                                        <div className="relative pl-8 md:pl-12 space-y-6 before:absolute before:left-3 md:before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200">
+                                        <div className="relative">
                                             {data.eventos.map((evento, index) => (
-                                                <div key={evento.id} className="relative">
-                                                    <div className={`absolute -left-8 md:-left-[3.25rem] w-6 h-6 rounded-full border-4 border-white flex items-center justify-center
-                                                        ${index === 0 ? 'bg-primary ring-4 ring-primary/20' : 'bg-gray-300'}`}>
-                                                        {index === 0 && <div className="w-2 h-2 bg-white rounded-full" />}
+                                                <div key={evento.id} className="relative flex gap-4 pb-8 last:pb-0">
+                                                    {/* Vertical line + dot column */}
+                                                    <div className="flex flex-col items-center">
+                                                        <div className={`relative z-10 w-4 h-4 rounded-full shrink-0 ${index === 0 ? 'bg-primary ring-4 ring-primary/20' : 'bg-gray-300'}`}>
+                                                            {index === 0 && <div className="absolute inset-0 m-auto w-1.5 h-1.5 bg-white rounded-full" />}
+                                                        </div>
+                                                        {index < data.eventos.length - 1 && (
+                                                            <div className="w-0.5 flex-1 bg-gray-200 mt-1" />
+                                                        )}
                                                     </div>
 
-                                                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-2">
+                                                    {/* Content */}
+                                                    <div className="flex-1 flex flex-col md:flex-row md:items-start justify-between gap-1 -mt-0.5">
                                                         <div>
-                                                            <h4 className={`font-semibold text-lg ${index === 0 ? 'text-primary' : 'text-gray-900'}`}>
+                                                            <h4 className={`font-semibold ${index === 0 ? 'text-primary' : 'text-foreground'}`}>
                                                                 {getEventLabel(evento.tipo, evento.descricao)}
                                                             </h4>
-                                                            {hasValidLocation(evento.localizacao) && (
-                                                                <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
-                                                                    <MapPin className="w-3 h-3" />
-                                                                    {evento.localizacao}
-                                                                </p>
-                                                            )}
+                                                            <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1">
+                                                                <MapPin className="w-3 h-3 shrink-0" />
+                                                                {hasValidLocation(evento.localizacao) ? evento.localizacao : 'Localização não registrada'}
+                                                            </p>
                                                         </div>
-                                                        <span className="text-sm bg-gray-100 px-3 py-1 rounded-full text-gray-600 font-medium whitespace-nowrap">
+                                                        <span className="text-xs bg-muted px-3 py-1 rounded-full text-muted-foreground font-medium whitespace-nowrap">
                                                             {format(new Date(evento.data), "dd/MM/yyyy 'às' HH:mm")}
                                                         </span>
                                                     </div>
@@ -394,7 +398,7 @@ export default function Rastreio() {
                                             ))}
 
                                             {data.eventos.length === 0 && (
-                                                <div className="text-center py-8 text-gray-500">
+                                                <div className="text-center py-8 text-muted-foreground">
                                                     <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                                     <p>Nenhum evento registrado ainda.</p>
                                                 </div>
