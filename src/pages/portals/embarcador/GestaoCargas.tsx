@@ -30,7 +30,7 @@ import {
   RefreshCw,
   History,
   Share,
-  Printer,
+  // Printer removed
   X,
   ArrowUpRight,
   FileText,
@@ -236,15 +236,19 @@ function DetailPanel({
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
+  const getTrackingUrl = () => {
+    const trackCode = entrega?.tracking_code;
+    if (!trackCode) return null;
+    return `${window.location.origin}/rastreio?codigo=${trackCode}`;
+  };
+
   const handleShareTracking = async () => {
-    const trackCode = entrega?.tracking_code || entrega?.codigo;
-    if (!trackCode) {
+    const url = getTrackingUrl();
+    if (!url) {
       toast.error('Código de rastreio não disponível para esta carga.');
       return;
     }
     try {
-      // The public tracking route is /rastreio
-      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
       await navigator.clipboard.writeText(url);
       setIsCopied(true);
       toast.success('Link de rastreio copiado para a área de transferência!');
@@ -255,14 +259,22 @@ function DetailPanel({
     }
   };
 
+  const handleOpenTracking = () => {
+    const url = getTrackingUrl();
+    if (!url) {
+      toast.error('Código de rastreio não disponível para esta carga.');
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
   const handleNativeShare = async () => {
-    const trackCode = entrega?.tracking_code || entrega?.codigo;
-    if (!trackCode) {
+    const url = getTrackingUrl();
+    if (!url) {
       toast.error('Código de rastreio não disponível para esta carga.');
       return;
     }
     try {
-      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
       if (navigator.share) {
         await navigator.share({
           title: `Rastreio da Carga ${entrega.codigo || ''}`,
@@ -390,8 +402,18 @@ function DetailPanel({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <Button variant="ghost" size="icon" className="h-7 w-7"><ArrowUpRight className="w-3.5 h-3.5" /></Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7"><Printer className="w-3.5 h-3.5" /></Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleOpenTracking}>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Abrir rastreio em nova aba</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}><X className="w-3.5 h-3.5" /></Button>
           </div>
         </div>
@@ -923,7 +945,7 @@ export default function GestaoCargas() {
       const { data, error } = await supabase
         .from('entregas')
         .select(`
-          id, codigo, status, created_at, updated_at,
+          id, codigo, tracking_code, status, created_at, updated_at,
           motorista_id, peso_alocado_kg, valor_frete, coletado_em, entregue_em,
           canhoto_url, outros_documentos,
           motorista:motoristas(id, nome_completo, telefone, foto_url),

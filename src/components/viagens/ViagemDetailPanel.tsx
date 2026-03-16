@@ -4,7 +4,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
-  Share, Printer, X, Weight, DollarSign, Clock, History,
+  X, Weight, DollarSign, Clock, History,
   Loader2, MoreVertical, Ban, AlertTriangle, AlertCircle, ArrowRightLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -325,12 +325,6 @@ export function ViagemDetailPanel({
             </Badge>
           </div>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Share className="w-3.5 h-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Printer className="w-3.5 h-3.5" />
-            </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
               <X className="w-3.5 h-3.5" />
             </Button>
