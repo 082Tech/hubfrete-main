@@ -386,8 +386,8 @@ export default function Rastreio() {
                 {searched && !data && !loading && (
                     <div className="text-center py-12">
                         <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-medium text-gray-900">Nenhuma entrega encontrada</h3>
-                        <p className="text-gray-500 mt-2">Verifique se a chave de acesso está correta e tente novamente.</p>
+                        <h3 className="text-xl font-medium text-gray-900">Nenhuma carga encontrada</h3>
+                        <p className="text-gray-500 mt-2">Verifique se o código de rastreio está correto e tente novamente.</p>
                     </div>
                 )}
             </main>
