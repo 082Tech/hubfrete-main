@@ -30,7 +30,7 @@ import {
   RefreshCw,
   History,
   Share,
-  Printer,
+  // Printer removed
   X,
   ArrowUpRight,
   FileText,

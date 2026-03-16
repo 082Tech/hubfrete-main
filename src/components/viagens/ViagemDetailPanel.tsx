@@ -4,7 +4,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
-  Share, Printer, X, Weight, DollarSign, Clock, History,
+  X, Weight, DollarSign, Clock, History,
   Loader2, MoreVertical, Ban, AlertTriangle, AlertCircle, ArrowRightLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
