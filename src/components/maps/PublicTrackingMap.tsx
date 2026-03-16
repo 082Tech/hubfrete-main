@@ -105,7 +105,7 @@ function MapContent({ latitude, longitude, heading, lastUpdate, origem, destino 
     return pts;
   }, [origem, destino, hasLocation, latitude, longitude]);
 
-  const truckIcon = useMemo(() => createTruckIcon(0, isOnline), [isOnline]);
+  const truckIcon = useMemo(() => createTruckIcon(heading ?? 0, isOnline), [isOnline, heading]);
   const origemIcon = useMemo(() => createLocationIcon('origem'), []);
   const destinoIcon = useMemo(() => createLocationIcon('destino'), []);
 
