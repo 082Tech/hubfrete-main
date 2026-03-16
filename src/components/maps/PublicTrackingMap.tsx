@@ -85,6 +85,12 @@ function FitBoundsOnce({ points }: { points: [number, number][] }) {
 function MapContent({ latitude, longitude, lastUpdate, origem, destino }: PublicTrackingMapProps) {
   const hasLocation = latitude !== undefined && longitude !== undefined;
 
+  const isOnline = useMemo(() => {
+    if (!lastUpdate) return false;
+    const diff = (Date.now() - new Date(lastUpdate).getTime()) / 1000;
+    return diff <= 120; // 2 minutes
+  }, [lastUpdate]);
+
   const center = useMemo((): [number, number] => {
     if (hasLocation) return [latitude, longitude];
     return [-15.7801, -47.9292];
@@ -92,13 +98,13 @@ function MapContent({ latitude, longitude, lastUpdate, origem, destino }: Public
 
   const boundsPoints = useMemo(() => {
     const pts: [number, number][] = [];
-    if (origem) pts.push([origem.lat, origem.lng]);
-    if (destino) pts.push([destino.lat, destino.lng]);
+    if (origem && origem.lat && origem.lng) pts.push([origem.lat, origem.lng]);
+    if (destino && destino.lat && destino.lng) pts.push([destino.lat, destino.lng]);
     if (hasLocation) pts.push([latitude, longitude]);
     return pts;
   }, [origem, destino, hasLocation, latitude, longitude]);
 
-  const truckIcon = useMemo(() => createTruckIcon(0, true), []);
+  const truckIcon = useMemo(() => createTruckIcon(0, isOnline), [isOnline]);
   const origemIcon = useMemo(() => createLocationIcon('origem'), []);
   const destinoIcon = useMemo(() => createLocationIcon('destino'), []);
 
