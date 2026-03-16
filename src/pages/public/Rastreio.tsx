@@ -42,6 +42,7 @@ interface TrackingData {
         localizacao_atual: {
             latitude: number;
             longitude: number;
+            heading: number | null;
             updated_at: string;
         } | null;
         carga: {
