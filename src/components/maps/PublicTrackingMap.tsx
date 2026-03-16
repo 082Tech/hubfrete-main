@@ -18,6 +18,7 @@ L.Icon.Default.mergeOptions({
 interface PublicTrackingMapProps {
   latitude?: number;
   longitude?: number;
+  heading?: number | null;
   lastUpdate?: string | null;
   origem?: { lat: number; lng: number } | null;
   destino?: { lat: number; lng: number } | null;
