@@ -52,6 +52,18 @@ interface TrackingData {
             valor: number | null;
             quantidade: number | null;
         } | null;
+        origem: {
+            latitude: number;
+            longitude: number;
+            cidade: string | null;
+            estado: string | null;
+        } | null;
+        destino: {
+            latitude: number;
+            longitude: number;
+            cidade: string | null;
+            estado: string | null;
+        } | null;
     };
     eventos: {
         id: string;
