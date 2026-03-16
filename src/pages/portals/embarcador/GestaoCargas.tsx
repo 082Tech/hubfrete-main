@@ -236,9 +236,15 @@ function DetailPanel({
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
+  const getTrackingUrl = () => {
+    const trackCode = entrega?.tracking_code;
+    if (!trackCode) return null;
+    return `${window.location.origin}/rastreio?codigo=${trackCode}`;
+  };
+
   const handleShareTracking = async () => {
-    const trackCode = entrega?.tracking_code || entrega?.codigo;
-    if (!trackCode) {
+    const url = getTrackingUrl();
+    if (!url) {
       toast.error('Código de rastreio não disponível para esta carga.');
       return;
     }
