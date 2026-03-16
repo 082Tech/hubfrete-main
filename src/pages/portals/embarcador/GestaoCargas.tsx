@@ -249,8 +249,6 @@ function DetailPanel({
       return;
     }
     try {
-      // The public tracking route is /rastreio
-      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
       await navigator.clipboard.writeText(url);
       setIsCopied(true);
       toast.success('Link de rastreio copiado para a área de transferência!');
