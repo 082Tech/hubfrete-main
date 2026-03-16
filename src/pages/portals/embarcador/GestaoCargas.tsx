@@ -259,14 +259,22 @@ function DetailPanel({
     }
   };
 
+  const handleOpenTracking = () => {
+    const url = getTrackingUrl();
+    if (!url) {
+      toast.error('Código de rastreio não disponível para esta carga.');
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
   const handleNativeShare = async () => {
-    const trackCode = entrega?.tracking_code || entrega?.codigo;
-    if (!trackCode) {
+    const url = getTrackingUrl();
+    if (!url) {
       toast.error('Código de rastreio não disponível para esta carga.');
       return;
     }
     try {
-      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
       if (navigator.share) {
         await navigator.share({
           title: `Rastreio da Carga ${entrega.codigo || ''}`,
