@@ -325,12 +325,6 @@ export function ViagemDetailPanel({
             </Badge>
           </div>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Share className="w-3.5 h-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Printer className="w-3.5 h-3.5" />
-            </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
               <X className="w-3.5 h-3.5" />
             </Button>
