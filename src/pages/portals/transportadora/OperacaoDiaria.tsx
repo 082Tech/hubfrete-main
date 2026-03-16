@@ -462,15 +462,80 @@ function DetailPanel({
             </Badge>
           </div>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Share className="w-3.5 h-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Printer className="w-3.5 h-3.5" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      const trackCode = entrega.tracking_code;
+                      if (!trackCode) {
+                        toast.error('Código de rastreio não disponível para esta carga.');
+                        return;
+                      }
+                      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
+                      navigator.clipboard.writeText(url).then(() => {
+                        toast.success('Link de rastreio copiado!');
+                      });
+                    }}
+                  >
+                    <LinkIcon className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Copiar link de rastreio</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      const trackCode = entrega.tracking_code;
+                      if (!trackCode) {
+                        toast.error('Código de rastreio não disponível para esta carga.');
+                        return;
+                      }
+                      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
+                      if (navigator.share) {
+                        navigator.share({ title: `Rastreio da Carga`, url });
+                      } else {
+                        toast.error('Seu navegador não suporta compartilhamento nativo.');
+                      }
+                    }}
+                  >
+                    <Share className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Compartilhar</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      const trackCode = entrega.tracking_code;
+                      if (!trackCode) {
+                        toast.error('Código de rastreio não disponível para esta carga.');
+                        return;
+                      }
+                      window.open(`${window.location.origin}/rastreio?codigo=${trackCode}`, '_blank');
+                    }}
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Abrir rastreio em nova aba</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
               <X className="w-3.5 h-3.5" />
             </Button>
