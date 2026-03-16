@@ -1,9 +1,10 @@
-import { GoogleMap, Marker } from '@react-google-maps/api';
+import { GoogleMap, OverlayView } from '@react-google-maps/api';
 import { useMemo, useState } from 'react';
 import { GoogleMapsLoader, airbnbMapStyles, defaultMapContainerStyle } from './GoogleMapsLoader';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MapPinOff } from 'lucide-react';
+import { TruckIcon } from './TruckIcon';
 
 interface PublicTrackingMapProps {
     latitude?: number;
@@ -55,20 +56,15 @@ function MapContent({ latitude, longitude, lastUpdate }: PublicTrackingMapProps)
             >
                 {hasLocation && (
                     <>
-                        <Marker
+                        <OverlayView
                             position={center}
-                            icon={{
-                                url: `data:image/svg+xml,${encodeURIComponent(`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 40 40">
-                    <circle cx="20" cy="20" r="18" fill="#22c55e" stroke="white" stroke-width="3"/>
-                    <path d="M14 20h12M14 20l4 4M14 20l4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(0, 0)"/>
-                  </svg>
-                `)}`,
-                                scaledSize: new google.maps.Size(48, 48),
-                                anchor: new google.maps.Point(24, 24),
-                            }}
-                            title={`Atualizado ${lastUpdate ? formatDistanceToNow(new Date(lastUpdate), { locale: ptBR, addSuffix: true }) : ''}`}
-                        />
+                            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                            getPixelPositionOffset={() => ({ x: -24, y: -24 })}
+                        >
+                            <div title={`Atualizado ${lastUpdate ? formatDistanceToNow(new Date(lastUpdate), { locale: ptBR, addSuffix: true }) : ''}`}>
+                                <TruckIcon heading={0} isOnline={true} size={48} />
+                            </div>
+                        </OverlayView>
 
                         {lastUpdate && (
                             <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-3 py-1 rounded-md shadow text-xs font-medium text-gray-700">
