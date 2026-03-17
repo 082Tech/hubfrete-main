@@ -165,7 +165,7 @@ export function FinanceCalendar({
   return (
     <div className="space-y-4">
       {/* 2-column layout: Calendar + Day Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,420px)_1fr] gap-4">
         {/* Left: Calendar */}
         <Card className="border-border overflow-hidden">
           <CardContent className="p-0">
