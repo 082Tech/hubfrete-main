@@ -65,6 +65,7 @@ import { Pagination } from '@/components/admin/Pagination';
 import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
 import { FilialFormDialog } from '@/components/admin/FilialFormDialog';
 import { AddUserToCompanyDialog } from '@/components/admin/AddUserToCompanyDialog';
+import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
 
 type Usuario = {
   id: number;
