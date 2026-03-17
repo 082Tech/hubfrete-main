@@ -788,13 +788,15 @@ export default function Financeiro() {
                         </div>
                         <div className="text-center p-2 rounded-md bg-muted/40">
                           <p className="text-sm font-bold text-foreground">
+                            {cfg.tipo_pagamento === 'faturado' && cfg.dia_fixo ? `Dia ${cfg.dia_fixo}` : '—'}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">Fechamento</p>
+                        </div>
+                        <div className="text-center p-2 rounded-md bg-muted/40">
+                          <p className="text-sm font-bold text-foreground">
                             {cfg.antecipacao_permitida ? `${cfg.taxa_antecipacao_percent}%` : '—'}
                           </p>
                           <p className="text-[9px] text-muted-foreground">Taxa Antec.</p>
-                        </div>
-                        <div className="text-center p-2 rounded-md bg-muted/40">
-                          <p className="text-sm font-bold text-foreground">{cicloLabel(cfg.ciclo_faturamento)}</p>
-                          <p className="text-[9px] text-muted-foreground">Ciclo</p>
                         </div>
                       </div>
 
