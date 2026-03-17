@@ -193,7 +193,7 @@ export default function EmbarcadorFinanceiro() {
                           <p className="font-semibold text-foreground">{group.label}</p>
                           <p className="text-xs text-muted-foreground">
                             {group.items.length} {group.items.length === 1 ? 'entrega' : 'entregas'}
-                            {diaFixo && ` · Venc. dia ${diaFixo}`}
+                            {diaFixo && ` · Fecha dia ${diaFixo}`}
                             {pendingCount > 0 && <span className="text-chart-4 ml-2">({pendingCount} pendente{pendingCount > 1 ? 's' : ''})</span>}
                           </p>
                         </div>
