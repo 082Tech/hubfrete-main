@@ -525,6 +525,13 @@ export default function MotoristasAdmin() {
         motorista={selectedMotorista}
         onSuccess={fetchMotoristas}
       />
+
+      {/* Bank Account Dialog */}
+      <DadosBancariosDialog
+        target={bankTarget}
+        open={!!bankTarget}
+        onOpenChange={(open) => { if (!open) setBankTarget(null); }}
+      />
     </div>
   );
 }
