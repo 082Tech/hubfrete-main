@@ -624,8 +624,8 @@ export default function Financeiro() {
               const groupPago = group.items.filter(r => r.status === 'pago').reduce((s, r) => s + Number(r.valor_frete), 0);
               const groupPendente = group.items.filter(r => r.status === 'pendente').length;
               const allPaid = group.items.every(r => r.status === 'pago');
-              const ciclo = group.config?.ciclo_faturamento || 'mensal';
               const diaFixo = group.config?.dia_fixo;
+              const prazoDias = group.config?.prazo_dias || 30;
               const monthLabel = format(new Date(selectedYear, selectedMonth), 'MMM/yy', { locale: ptBR });
 
               return (
@@ -641,8 +641,8 @@ export default function Financeiro() {
                       <div className="text-left">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-foreground">{nomeEmpresa(group.empresa)}</p>
-                          <Badge variant="outline" className="text-[9px]">Faturado · {cicloLabel(ciclo)}</Badge>
-                          {diaFixo && <Badge variant="outline" className="text-[9px]">Venc. dia {diaFixo}</Badge>}
+                          <Badge variant="outline" className="text-[9px]">Faturado</Badge>
+                          {diaFixo && <Badge variant="outline" className="text-[9px]">Fecha dia {diaFixo} · +{prazoDias}d</Badge>}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {group.items.length} {group.items.length === 1 ? 'entrega' : 'entregas'} · {monthLabel}
