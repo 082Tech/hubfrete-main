@@ -335,6 +335,34 @@ export default function TorreControle() {
               />
             </div>
 
+            {/* Finance Summary */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card className="border-chart-2/30 bg-chart-2/5 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/admin/financeiro')}>
+                <CardContent className="p-5 flex items-center gap-4">
+                  <div className="p-3 bg-chart-2/10 rounded-xl">
+                    <ArrowDownLeft className="w-6 h-6 text-chart-2" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">A receber hoje</p>
+                    <p className="text-2xl font-bold text-chart-2">{formatCurrency(stats?.receberHoje || 0)}</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                </CardContent>
+              </Card>
+              <Card className="border-chart-4/30 bg-chart-4/5 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/admin/financeiro')}>
+                <CardContent className="p-5 flex items-center gap-4">
+                  <div className="p-3 bg-chart-4/10 rounded-xl">
+                    <ArrowUpRight className="w-6 h-6 text-chart-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">A pagar hoje</p>
+                    <p className="text-2xl font-bold text-chart-4">{formatCurrency(stats?.pagarHoje || 0)}</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Charts Row */}
             <div className="grid lg:grid-cols-2 gap-6">
               <AccessChart data={accessData} />
