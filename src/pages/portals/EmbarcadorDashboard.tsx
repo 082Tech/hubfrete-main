@@ -222,21 +222,22 @@ export default function EmbarcadorDashboard() {
                   </CardContent>
                 </Card>
 
+                {aPagarHoje > 0 && (
                 <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/embarcador/financeiro')}>
                   <CardContent className="p-5 flex items-center gap-4">
-                    <div className="p-3 bg-chart-2/10 rounded-xl">
-                      <DollarSign className="w-6 h-6 text-chart-2" />
+                    <div className="p-3 bg-chart-4/10 rounded-xl">
+                      <DollarSign className="w-6 h-6 text-chart-4" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Financeiro</p>
-                      <p className="text-2xl font-bold text-foreground">
-                        {formatCurrency(stats.valorTotalMercadorias)}
+                      <p className="text-sm text-muted-foreground">A pagar hoje</p>
+                      <p className="text-2xl font-bold text-chart-4">
+                        {formatCurrency(aPagarHoje)}
                       </p>
-                      <p className="text-xs text-muted-foreground">em ofertas ativas</p>
                     </div>
                     <ArrowUpRight className="w-5 h-5 text-muted-foreground" />
                   </CardContent>
                 </Card>
+                )}
               </div>
             </>}
 
