@@ -758,7 +758,6 @@ export default function Financeiro() {
                       tipo_pagamento: cfg.tipo_pagamento,
                       prazo_dias: cfg.prazo_dias,
                       dia_fixo: cfg.dia_fixo?.toString() || '',
-                      ciclo_faturamento: cfg.ciclo_faturamento,
                       antecipacao_permitida: cfg.antecipacao_permitida,
                       taxa_antecipacao_percent: cfg.taxa_antecipacao_percent,
                       limite_credito: cfg.limite_credito,
