@@ -39,6 +39,7 @@ interface FinanceCalendarProps {
 }
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const PAGE_SIZE = 10;
 
 export function FinanceCalendar({
   recebiveis,
@@ -50,6 +51,9 @@ export function FinanceCalendar({
   perspective = 'transportadora',
 }: FinanceCalendarProps) {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [page, setPage] = useState(1);
+
+  const isEmbarcador = perspective === 'embarcador';
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -73,6 +77,16 @@ export function FinanceCalendar({
     return dayMap[key] || [];
   }, [selectedDay, dayMap]);
 
+  // Reset page when day changes
+  const handleSelectDay = (day: Date) => {
+    const isSelected = selectedDay && isSameDay(day, selectedDay);
+    setSelectedDay(isSelected ? null : day);
+    setPage(1);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(selectedItems.length / PAGE_SIZE));
+  const paginatedItems = selectedItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const startDayOfWeek = getDay(monthStart);
 
   const getDotInfo = (day: Date) => {
@@ -81,15 +95,14 @@ export function FinanceCalendar({
     if (!items || items.length === 0) return null;
     const hasPago = items.some(r => r.status === 'pago');
     const hasPendente = items.some(r => r.status === 'pendente');
-    const hasAntecipado = items.some(r => r.antecipado);
-    const total = items.reduce((s, r) => s + Number(perspective === 'embarcador' ? r.valor_frete : r.valor_liquido), 0);
+    const hasAntecipado = !isEmbarcador && items.some(r => r.antecipado);
+    const total = items.reduce((s, r) => s + Number(isEmbarcador ? r.valor_frete : r.valor_liquido), 0);
     return { count: items.length, hasPago, hasPendente, hasAntecipado, total };
   };
 
   const nomeEmpresa = (emp: { nome: string | null; nome_fantasia: string | null } | null | undefined) =>
     emp?.nome_fantasia || emp?.nome || '—';
 
-  // Day detail panel (right side)
   const renderDayDetail = () => {
     if (!selectedDay) {
       return (
@@ -101,8 +114,8 @@ export function FinanceCalendar({
     }
 
     return (
-      <div className="p-4 space-y-3 overflow-y-auto h-full">
-        <div className="flex items-center justify-between">
+      <div className="p-4 flex flex-col h-full">
+        <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-foreground">
             {format(selectedDay, "dd 'de' MMMM", { locale: ptBR })}
           </p>
@@ -114,49 +127,83 @@ export function FinanceCalendar({
         {selectedItems.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro neste dia</p>
         ) : (
-          <div className="space-y-2">
-            {selectedItems.map(r => (
-              <div key={r.id} className="p-3 rounded-lg bg-muted/40 border border-border">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-sm font-medium truncate">{r.entregas?.codigo || '—'}</p>
-                      {r.antecipado && (
-                        <Badge className="bg-primary text-primary-foreground text-[9px] px-1 py-0">Antecipado</Badge>
-                      )}
-                      <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={cn(
-                        'text-[9px] px-1 py-0',
-                        r.status === 'pago' && 'bg-chart-2 text-white',
-                      )}>
-                        {r.status === 'pago'
-                          ? (perspective === 'embarcador' ? 'Pago' : 'Recebido')
-                          : (perspective === 'embarcador' ? 'A Pagar' : 'Pendente')}
-                      </Badge>
+          <>
+            <div className="space-y-2 flex-1 overflow-y-auto">
+              {paginatedItems.map(r => (
+                <div key={r.id} className="p-3 rounded-lg bg-muted/40 border border-border">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-sm font-medium truncate">{r.entregas?.codigo || '—'}</p>
+                        {!isEmbarcador && r.antecipado && (
+                          <Badge className="bg-primary text-primary-foreground text-[9px] px-1 py-0">Antecipado</Badge>
+                        )}
+                        <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={cn(
+                          'text-[9px] px-1 py-0',
+                          r.status === 'pago' && 'bg-chart-2 text-white',
+                        )}>
+                          {r.status === 'pago'
+                            ? (isEmbarcador ? 'Pago' : 'Recebido')
+                            : (isEmbarcador ? 'A Pagar' : 'Pendente')}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {perspective === 'transportadora'
+                          ? nomeEmpresa(r.empresa_embarcadora)
+                          : nomeEmpresa(r.empresa_transportadora)}
+                        {r.entregas?.cargas?.codigo && ` · ${r.entregas.cargas.codigo}`}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {perspective === 'transportadora'
-                        ? nomeEmpresa(r.empresa_embarcadora)
-                        : nomeEmpresa(r.empresa_transportadora)}
-                      {r.entregas?.cargas?.codigo && ` · ${r.entregas.cargas.codigo}`}
-                    </p>
+                    <div className="text-right ml-2 shrink-0">
+                      <p className="text-sm font-bold">
+                        {formatCurrency(isEmbarcador ? r.valor_frete : r.valor_liquido)}
+                      </p>
+                      {!isEmbarcador && r.antecipado && r.valor_taxa_antecipacao && Number(r.valor_taxa_antecipacao) > 0 && (
+                        <p className="text-[10px] text-chart-4">taxa: {formatCurrency(Number(r.valor_taxa_antecipacao))}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right ml-2 shrink-0">
-                    <p className="text-sm font-bold">
-                      {formatCurrency(perspective === 'embarcador' ? r.valor_frete : r.valor_liquido)}
-                    </p>
-                    {r.antecipado && r.valor_taxa_antecipacao && Number(r.valor_taxa_antecipacao) > 0 && (
-                      <p className="text-[10px] text-chart-4">taxa: {formatCurrency(Number(r.valor_taxa_antecipacao))}</p>
-                    )}
-                  </div>
+                  {onAntecipar && canAntecipar?.(r) && (
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-chart-4 mt-1.5 w-full justify-start" onClick={() => onAntecipar(r)}>
+                      <Zap className="w-3 h-3 mr-0.5" /> Solicitar Antecipação
+                    </Button>
+                  )}
                 </div>
-                {onAntecipar && canAntecipar?.(r) && (
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-chart-4 mt-1.5 w-full justify-start" onClick={() => onAntecipar(r)}>
-                    <Zap className="w-3 h-3 mr-0.5" /> Solicitar Antecipação
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
+                <p className="text-[10px] text-muted-foreground">
+                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, selectedItems.length)} de {selectedItems.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    disabled={page <= 1}
+                    onClick={() => setPage(p => p - 1)}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
                   </Button>
-                )}
+                  <span className="text-[11px] text-muted-foreground px-2">
+                    {page}/{totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -164,12 +211,10 @@ export function FinanceCalendar({
 
   return (
     <div className="space-y-4">
-      {/* 2-column layout: Calendar + Day Details */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,420px)_1fr] gap-4">
         {/* Left: Calendar */}
         <Card className="border-border overflow-hidden">
           <CardContent className="p-0">
-            {/* Month header */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30">
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMonthChange(subMonths(currentMonth, 1))}>
                 <ChevronLeft className="w-4 h-4" />
@@ -182,7 +227,6 @@ export function FinanceCalendar({
               </Button>
             </div>
 
-            {/* Weekday headers */}
             <div className="grid grid-cols-7 border-b border-border">
               {WEEKDAYS.map(d => (
                 <div key={d} className="text-center py-1.5 text-[11px] font-medium text-muted-foreground">
@@ -191,7 +235,6 @@ export function FinanceCalendar({
               ))}
             </div>
 
-            {/* Days grid */}
             <div className="grid grid-cols-7">
               {Array.from({ length: startDayOfWeek }).map((_, i) => (
                 <div key={`empty-${i}`} className="aspect-square border-b border-r border-border last:border-r-0" />
@@ -205,7 +248,7 @@ export function FinanceCalendar({
                 return (
                   <button
                     key={idx}
-                    onClick={() => setSelectedDay(isSelected ? null : day)}
+                    onClick={() => handleSelectDay(day)}
                     className={cn(
                       'aspect-square relative flex flex-col items-center justify-center gap-0.5 border-b border-r border-border transition-colors hover:bg-muted/50',
                       isSelected && 'bg-primary/10 ring-1 ring-primary',
@@ -246,18 +289,20 @@ export function FinanceCalendar({
               </div>
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                 <span className="w-1.5 h-1.5 rounded-full bg-chart-2" />
-                {perspective === 'embarcador' ? 'Pago' : 'Recebido'}
+                {isEmbarcador ? 'Pago' : 'Recebido'}
               </div>
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                Antecipado
-              </div>
+              {!isEmbarcador && (
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  Antecipado
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Right: Day details */}
-        <Card className="border-border overflow-hidden min-h-[300px]">
+        <Card className="border-border overflow-hidden max-h-[500px]">
           <CardContent className="p-0 h-full">
             {renderDayDetail()}
           </CardContent>
