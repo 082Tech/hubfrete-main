@@ -95,6 +95,7 @@ export default function MotoristasAdmin() {
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [selectedMotorista, setSelectedMotorista] = useState<Motorista | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [bankTarget, setBankTarget] = useState<{ type: 'motorista'; id: string; nome: string } | null>(null);
 
   useEffect(() => {
     fetchMotoristas();
