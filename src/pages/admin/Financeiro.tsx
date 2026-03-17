@@ -933,27 +933,18 @@ export default function Financeiro() {
                 </Select>
               </div>
               <div>
-                <Label>{configForm.tipo_pagamento === 'faturado' ? 'Prazo após ciclo (dias)' : 'Prazo (dias)'}</Label>
+                <Label>{configForm.tipo_pagamento === 'faturado' ? 'Prazo após fechamento (dias)' : 'Prazo (dias)'}</Label>
                 <Input type="number" value={configForm.prazo_dias} onChange={(e) => setConfigForm(f => ({ ...f, prazo_dias: parseInt(e.target.value) || 0 }))} />
+                {configForm.tipo_pagamento === 'faturado' && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Dias adicionais para pagamento após o fechamento</p>
+                )}
               </div>
             </div>
             {configForm.tipo_pagamento === 'faturado' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Dia Fixo de Vencimento</Label>
-                  <Input type="number" placeholder="Ex: 15" min={1} max={28} value={configForm.dia_fixo} onChange={(e) => setConfigForm(f => ({ ...f, dia_fixo: e.target.value }))} />
-                  <p className="text-[10px] text-muted-foreground mt-1">Dia do mês seguinte ao ciclo</p>
-                </div>
-                <div>
-                  <Label>Ciclo de Faturamento</Label>
-                  <Select value={configForm.ciclo_faturamento} onValueChange={(v) => setConfigForm(f => ({ ...f, ciclo_faturamento: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="quinzenal">Quinzenal</SelectItem>
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label>Dia de Fechamento da Fatura</Label>
+                <Input type="number" placeholder="Ex: 15" min={1} max={28} value={configForm.dia_fixo} onChange={(e) => setConfigForm(f => ({ ...f, dia_fixo: e.target.value }))} />
+                <p className="text-[10px] text-muted-foreground mt-1">Acumula entregas do mês e fecha a fatura neste dia</p>
               </div>
             )}
             <div className="border-t border-border pt-4 space-y-3">
