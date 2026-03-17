@@ -97,6 +97,24 @@ export default function EmbarcadorDashboard() {
     enabled: !!empresa?.id
   });
 
+  // Fetch a pagar hoje
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const { data: aPagarHoje = 0 } = useQuery({
+    queryKey: ['embarcador-a-pagar-hoje', empresa?.id, today],
+    queryFn: async () => {
+      if (!empresa?.id) return 0;
+      const { data, error } = await supabase
+        .from('financeiro_entregas')
+        .select('valor_frete')
+        .eq('empresa_embarcadora_id', empresa.id)
+        .eq('status', 'pendente')
+        .eq('data_vencimento', today);
+      if (error) throw error;
+      return (data || []).reduce((s, r) => s + Number(r.valor_frete || 0), 0);
+    },
+    enabled: !!empresa?.id,
+  });
+
   // Calculate stats
   const stats = useMemo(() => {
     const activeCargas = cargas.filter(c => c.status && !['entregue', 'cancelada'].includes(c.status)).length;
