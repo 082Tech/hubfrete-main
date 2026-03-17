@@ -30,7 +30,7 @@ import {
   RefreshCw,
   History,
   Share,
-  Printer,
+  // Printer removed
   X,
   ArrowUpRight,
   FileText,
@@ -58,6 +58,7 @@ import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { EmbarcadorDailyPerformanceDialog } from '@/components/admin/relatorios/EmbarcadorDailyPerformanceDialog';
 import { BarChart3 } from 'lucide-react';
+import { EventTimeline } from '@/components/shared/EventTimeline';
 
 // Status config - matching transportadora portal
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -235,15 +236,19 @@ function DetailPanel({
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
+  const getTrackingUrl = () => {
+    const trackCode = entrega?.tracking_code;
+    if (!trackCode) return null;
+    return `${window.location.origin}/rastreio?codigo=${trackCode}`;
+  };
+
   const handleShareTracking = async () => {
-    const trackCode = entrega?.tracking_code || entrega?.codigo;
-    if (!trackCode) {
+    const url = getTrackingUrl();
+    if (!url) {
       toast.error('Código de rastreio não disponível para esta carga.');
       return;
     }
     try {
-      // The public tracking route is /rastreio
-      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
       await navigator.clipboard.writeText(url);
       setIsCopied(true);
       toast.success('Link de rastreio copiado para a área de transferência!');
@@ -254,14 +259,22 @@ function DetailPanel({
     }
   };
 
+  const handleOpenTracking = () => {
+    const url = getTrackingUrl();
+    if (!url) {
+      toast.error('Código de rastreio não disponível para esta carga.');
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
   const handleNativeShare = async () => {
-    const trackCode = entrega?.tracking_code || entrega?.codigo;
-    if (!trackCode) {
+    const url = getTrackingUrl();
+    if (!url) {
       toast.error('Código de rastreio não disponível para esta carga.');
       return;
     }
     try {
-      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
       if (navigator.share) {
         await navigator.share({
           title: `Rastreio da Carga ${entrega.codigo || ''}`,
@@ -389,8 +402,18 @@ function DetailPanel({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <Button variant="ghost" size="icon" className="h-7 w-7"><ArrowUpRight className="w-3.5 h-3.5" /></Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7"><Printer className="w-3.5 h-3.5" /></Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleOpenTracking}>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Abrir rastreio em nova aba</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}><X className="w-3.5 h-3.5" /></Button>
           </div>
         </div>
@@ -425,51 +448,19 @@ function DetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Carga specs - top priority */}
-          <div className="bg-muted/30 rounded-lg p-3 space-y-1.5">
-            <div className="flex items-center gap-3 text-xs flex-wrap">
-              <span className="flex items-center gap-1">
-                <Weight className="w-3 h-3 text-muted-foreground" />
-                <span className="font-medium">
-                  {entrega.peso_alocado_kg ? `${formatWeight(entrega.peso_alocado_kg)} / ` : ''}
-                  {formatWeight(entrega.carga.peso_kg)}
-                </span>
-              </span>
-              <span className="text-muted-foreground">Tipo: {entrega.carga.tipo}</span>
-              {entrega.valor_frete && (() => {
-                const comissaoP = entrega.carga?.empresa?.comissao_hubfrete_percent || 0;
-                const valorComissao = Math.round(entrega.valor_frete! * comissaoP / 100 * 100) / 100;
-                const liquido = entrega.valor_frete! - valorComissao;
-                return (
-                  <div className="col-span-full mt-2 p-2.5 bg-chart-2/10 rounded-lg border border-chart-2/30">
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Valor bruto:</span>
-                        <span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex justify-between text-xs text-destructive">
-                        <span>Comissão HubFrete ({comissaoP}%):</span>
-                        <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <Separator className="my-1" />
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold">Valor do frete:</span>
-                        <span className="text-sm font-bold text-chart-2">
-                          R$ {liquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
+          {/* Chat Button */}
+          <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => setChatSheetOpen(true)}>
+            <MessageCircle className="w-4 h-4" />
+            Abrir Chat da Carga
+          </Button>
+
+          {/* Publicado por */}
+          {entrega.carga.empresa && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Building2 className="w-3 h-3" />
+              Publicado por: <span className="font-medium text-foreground">{entrega.carga.empresa.nome}</span>
             </div>
-            {entrega.carga.empresa && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Building2 className="w-3 h-3" />
-                Publicado por: <span className="font-medium text-foreground">{entrega.carga.empresa.nome}</span>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Map */}
           <DetailPanelLeafletMap
@@ -482,6 +473,21 @@ function DetailPanel({
             entregaId={entrega.id}
             onExpandClick={onExpandMap || undefined}
           />
+
+          {/* Specs line below map */}
+          <div className="flex items-center justify-between text-xs">
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Weight className="w-3 h-3" />
+              {entrega.peso_alocado_kg ? `${formatWeight(entrega.peso_alocado_kg)} / ` : ''}
+              {formatWeight(entrega.carga.peso_kg)}
+              <span className="ml-1">• Tipo: {entrega.carga.tipo}</span>
+            </span>
+            {entrega.valor_frete && (
+              <span className="font-semibold text-foreground">
+                Valor do frete: R$ {entrega.valor_frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+            )}
+          </div>
 
           <Separator />
 
@@ -592,7 +598,7 @@ function DetailPanel({
 
           <Separator />
 
-          {/* Driver & Vehicle + Chat */}
+          {/* Driver & Vehicle */}
           {entrega.motorista && (
             <Card className="shadow-none border">
               <CardContent className="p-2">
@@ -622,14 +628,11 @@ function DetailPanel({
                       </div>
                     )}
                   </div>
-                  <Button variant="outline" size="sm" className="shrink-0" onClick={() => setChatSheetOpen(true)}>
-                    <MessageCircle className="w-4 h-4 mr-1.5" />
-                    Chat
-                  </Button>
                 </div>
               </CardContent>
             </Card>
           )}
+
           {/* History Timeline */}
           <div>
             <div className="flex items-center gap-2 mb-3">
@@ -638,65 +641,17 @@ function DetailPanel({
             </div>
 
             {entrega.eventos && entrega.eventos.length > 0 ? (
-              <div className="relative">
-                <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-border" />
-                <div className="space-y-4">
-                  {entrega.eventos.slice(0, 5).map((evento) => {
-                    const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean; isCreation?: boolean }> = {
-                      criado: { label: 'Carga criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
-                      aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-                      inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
-                      inicio_rota: { label: 'Saiu para Entrega', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-                      finalizado: { label: 'Concluída', bgColor: 'bg-green-100 dark:bg-green-900/30' },
-                      cancelado: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-                      problema: { label: 'Problema', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
-                      documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-                      cte_anexado: { label: 'CT-e anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-                      manifesto_anexado: { label: 'Manifesto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-                      canhoto_anexado: { label: 'Canhoto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-                      nf_anexada: { label: 'Nota Fiscal anexada', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-                    };
-
-                    const config = tipoConfig[evento.tipo] || { label: evento.tipo.replace(/_/g, ' '), bgColor: 'bg-muted dark:bg-muted/50' };
-                    const userName = evento.user_nome || 'Sistema';
-                    const isDocument = config.isDocument || evento.tipo.includes('documento') || evento.tipo.includes('anexa');
-                    const isCreation = config.isCreation;
-
-                    return (
-                      <div key={evento.id} className="relative flex items-start gap-3">
-                        <div className={`relative z-10 w-8 h-8 rounded-md ${config.bgColor} flex items-center justify-center shrink-0`}>
-                          {isDocument ? (
-                            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          ) : isCreation ? (
-                            <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                          ) : (
-                            <ArrowRightLeft className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
-                              evento.tipo === 'inicio_coleta' ? 'text-cyan-600 dark:text-cyan-400' :
-                                evento.tipo === 'inicio_rota' ? 'text-purple-600 dark:text-purple-400' :
-                                  evento.tipo === 'finalizado' ? 'text-green-600 dark:text-green-400' :
-                                    evento.tipo === 'cancelado' ? 'text-red-600 dark:text-red-400' :
-                                      evento.tipo === 'problema' ? 'text-orange-600 dark:text-orange-400' :
-                                        'text-muted-foreground'
-                              }`} />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0 pt-1">
-                          <p className="text-sm">
-                            <span className="font-medium">{userName}</span>
-                            <span className="text-muted-foreground">
-                              {isCreation ? ' criou esta entrega' : isDocument ? ' anexou ' : ' definiu o status como '}
-                            </span>
-                            {!isCreation && <span className="font-medium">{config.label}</span>}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {format(new Date(evento.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <EventTimeline
+                events={[...entrega.eventos].reverse().map(e => ({
+                  id: e.id,
+                  tipo: e.tipo,
+                  timestamp: e.timestamp,
+                  observacao: e.observacao,
+                  user_nome: e.user_nome,
+                  entityType: 'entrega' as const,
+                }))}
+                maxItems={5}
+              />
             ) : (
               <p className="text-sm text-muted-foreground text-center py-3">
                 Nenhum evento registrado
@@ -858,7 +813,7 @@ function GestaoMapDialogContent({
         </div>
         <div className="flex-[3] border-l flex flex-col bg-background">
           <div className="px-3 py-2 border-b bg-muted/30 space-y-2">
-            <span className="text-sm font-medium">Cargas ({filteredGroups.length})</span>
+            <span className="text-sm font-medium">Cargas ({filteredGroups.reduce((sum, g) => sum + g.entregas.length, 0)})</span>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
@@ -990,7 +945,7 @@ export default function GestaoCargas() {
       const { data, error } = await supabase
         .from('entregas')
         .select(`
-          id, codigo, status, created_at, updated_at,
+          id, codigo, tracking_code, status, created_at, updated_at,
           motorista_id, peso_alocado_kg, valor_frete, coletado_em, entregue_em,
           canhoto_url, outros_documentos,
           motorista:motoristas(id, nome_completo, telefone, foto_url),

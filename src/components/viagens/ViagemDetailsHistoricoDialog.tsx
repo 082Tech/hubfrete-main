@@ -10,7 +10,7 @@ import { formatWeight } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Separator } from '@/components/ui/separator';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemHistorico as ViagemHistoricoTimeline } from './ViagemHistorico';
@@ -127,7 +127,7 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
             </DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="px-6 py-4 space-y-6">
               {/* Info Grid */}
               <div className="grid grid-cols-2 gap-4">
@@ -266,6 +266,7 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
                 </div>
                 <ViagemHistoricoTimeline
                   viagem={{ id: viagem.id, codigo: viagem.codigo, status: viagem.status, created_at: viagem.created_at }}
+                  actionUserName={viagem.motorista?.nome_completo}
                   entregas={viagem.entregas.map(e => ({
                     id: e.id,
                     codigo: e.codigo || e.carga.codigo,
@@ -281,7 +282,7 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
                 />
               </div>
             </div>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
 

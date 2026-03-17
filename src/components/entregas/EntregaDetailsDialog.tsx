@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -35,11 +35,14 @@ import {
   Paperclip,
   Info,
   Eye,
+  Shuffle,
+  History,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import type { OutroDocumento } from './EntregaDocumentosPanel';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { CarregamentoCarroceriasSection } from './CarregamentoCarroceriasSection';
+import { EventTimeline } from '@/components/shared/EventTimeline';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
@@ -143,9 +146,11 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
   const [nfes, setNfes] = useState<any[]>([]);
+  const [eventos, setEventos] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!entrega?.id || !open) { setNfes([]); return; }
+    if (!entrega?.id || !open) { setNfes([]); setEventos([]); return; }
+    // Fetch NF-es
     (async () => {
       const { data } = await (supabase as any)
         .from('nfes')
@@ -153,6 +158,15 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
         .eq('entrega_id', entrega.id)
         .order('created_at', { ascending: true });
       setNfes(data || []);
+    })();
+    // Fetch eventos
+    (async () => {
+      const { data } = await supabase
+        .from('entrega_eventos')
+        .select('id, tipo, timestamp, observacao, user_nome, entrega_id')
+        .eq('entrega_id', entrega.id)
+        .order('timestamp', { ascending: false });
+      setEventos(data || []);
     })();
   }, [entrega?.id, open]);
 
@@ -581,6 +595,28 @@ export function EntregaDetailsDialog({ entrega, open, onOpenChange }: EntregaDet
                 </CardContent>
               </Card>
             </div>
+
+            {/* Histórico de Eventos */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <History className="w-4 h-4" />
+                  Histórico de Eventos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <EventTimeline
+                  events={eventos.map(e => ({
+                    id: e.id,
+                    tipo: e.tipo,
+                    timestamp: e.timestamp,
+                    observacao: e.observacao,
+                    user_nome: e.user_nome,
+                    entityType: 'entrega' as const,
+                  }))}
+                />
+              </CardContent>
+            </Card>
           </div>
         </DialogContent>
       </Dialog>

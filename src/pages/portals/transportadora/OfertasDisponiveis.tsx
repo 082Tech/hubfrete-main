@@ -803,7 +803,18 @@ export default function OfertasDisponiveis() {
         entregaCodigo: result.entrega_codigo,
       };
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      // Register offer-level event
+      supabase.from('carga_eventos' as any).insert({
+        carga_id: variables.cargaId,
+        tipo: data.merged ? 'peso_adicionado' : 'carga_gerada',
+        timestamp: new Date().toISOString(),
+        user_nome: variables.userName,
+        observacao: data.merged
+          ? `Peso adicionado à carga ${data.entregaCodigo || ''}`
+          : `Carga ${data.entregaCodigo || ''} gerada`,
+      }).then(() => {});
+
       if (data.merged) {
         toast.success(`Peso adicionado à entrega existente (${data.entregaCodigo || ''})`);
       } else {
@@ -1867,7 +1878,7 @@ export default function OfertasDisponiveis() {
                                   <span>{formatCurrency(total)}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-destructive">
-                                  <span>Comissão HubFrete ({comissaoPercent}%):</span>
+                                   <span>Taxa HubFrete ({comissaoPercent}%):</span>
                                   <span>- {formatCurrency(valorComissao)}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-lg font-semibold text-chart-2">
@@ -3119,7 +3130,7 @@ export default function OfertasDisponiveis() {
                             {comissaoPercent > 0 && (
                               <>
                                 <div className="flex justify-between text-sm text-destructive">
-                                  <span>Comissão HubFrete ({comissaoPercent}%):</span>
+                                  <span>Taxa HubFrete ({comissaoPercent}%):</span>
                                   <span>- {formatCurrency(valorComissao)}</span>
                                 </div>
                               </>

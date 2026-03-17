@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Upload, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -42,6 +42,20 @@ export function DocumentButton({
 }: DocumentButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  // Clear syncing state when hasDoc/count updates (parent refetched) or after timeout
+  useEffect(() => {
+    if (syncing) {
+      if (hasDoc) {
+        setSyncing(false);
+      } else {
+        // Fallback: clear after 8s in case refetch doesn't change hasDoc
+        const timer = setTimeout(() => setSyncing(false), 8000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [hasDoc, count, syncing]);
 
   const label = type === 'nfe' && count !== undefined
     ? `${docLabels[type]} (${count})`
@@ -119,6 +133,7 @@ export function DocumentButton({
       }
 
       toast.success(`${docLabels[type]} anexado com sucesso!`);
+      setSyncing(true);
       onUploaded();
     } catch (err: any) {
       console.error('Upload error:', err);
@@ -130,10 +145,12 @@ export function DocumentButton({
   };
 
   // Determine visual state
-  const isClickable = hasDoc || (canAttach && !uploading);
-  const showUploadHint = !hasDoc && canAttach;
+  const isClickable = hasDoc || (canAttach && !uploading && !syncing);
+  const showUploadHint = !hasDoc && canAttach && !syncing;
 
-  const bgClass = hasDoc
+  const bgClass = syncing
+    ? 'bg-primary/5 border-primary/30 dark:bg-primary/10 dark:border-primary/20 cursor-wait'
+    : hasDoc
     ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 cursor-pointer'
     : showUploadHint
       ? 'bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:hover:bg-amber-900/30 cursor-pointer'
@@ -146,7 +163,7 @@ export function DocumentButton({
         disabled={!isClickable}
         className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors text-left ${bgClass}`}
       >
-        {uploading ? (
+        {uploading || syncing ? (
           <Loader2 className="w-3 h-3 animate-spin text-primary" />
         ) : hasDoc ? (
           <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
@@ -155,7 +172,7 @@ export function DocumentButton({
         ) : (
           <XCircle className="w-3 h-3 text-muted-foreground" />
         )}
-        <span>{label}</span>
+        <span>{syncing ? `${label} ✓` : label}</span>
       </button>
 
       {canAttach && (

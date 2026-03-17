@@ -253,6 +253,15 @@ export default function NovaCarga() {
       }).eq('id', carga.id);
 
       const { data: cargaFinal } = await supabase.from('cargas').select('codigo').eq('id', carga.id).single();
+      
+      // Register offer event
+      await supabase.from('carga_eventos' as any).insert({
+        carga_id: carga.id,
+        tipo: 'oferta_publicada',
+        timestamp: new Date().toISOString(),
+        user_nome: empresa?.nome || 'Embarcador',
+      });
+      
       toast.success(`Oferta de Carga criada com sucesso! Código: ${cargaFinal?.codigo || carga.id.slice(0, 8).toUpperCase()}`, { id: 'creating-carga' });
       navigate('/embarcador/ofertas');
     } catch (error) {

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -16,72 +17,38 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
-  DollarSign, CheckCircle, Clock, TrendingUp, Search, Eye, Upload,
-  ChevronDown, ChevronRight, Calendar, Lock, LockOpen, ArrowDownLeft, ArrowUpRight, User, Landmark,
+  DollarSign, CheckCircle, Clock, TrendingUp, Eye, Upload,
+  ArrowDownLeft, ArrowUpRight, Landmark, Settings, Zap,
+  Search, Building2, ShieldCheck, AlertTriangle, Truck, User,
+  FileText, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
-import { format, endOfMonth } from 'date-fns';
+import { format, differenceInDays, startOfMonth, endOfMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
 import { Pagination } from '@/components/admin/Pagination';
-import {
-  Collapsible, CollapsibleContent, CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { MonthYearPicker } from '@/components/ui/month-year-picker';
 
-const ITEMS_PER_PAGE = 15;
-
-interface FaturaRow {
-  id: string;
-  empresa_id: number;
-  tipo: 'a_receber' | 'a_pagar';
-  quinzena: number;
-  mes: number;
-  ano: number;
-  periodo_inicio: string;
-  periodo_fim: string;
-  valor_bruto: number;
-  valor_comissao: number;
-  valor_liquido: number;
-  qtd_entregas: number;
-  status: string;
-  data_pagamento: string | null;
-  metodo_pagamento: string | null;
-  comprovante_url: string | null;
-  observacoes: string | null;
-  created_at: string;
-  empresas: { nome: string | null; nome_fantasia: string | null } | null;
-}
-
-interface FaturaMotoristaRow {
-  id: string;
-  motorista_id: string;
-  quinzena: number;
-  mes: number;
-  ano: number;
-  periodo_inicio: string;
-  periodo_fim: string;
-  valor_bruto: number;
-  valor_comissao: number;
-  valor_liquido: number;
-  qtd_entregas: number;
-  status: string;
-  data_pagamento: string | null;
-  metodo_pagamento: string | null;
-  comprovante_url: string | null;
-  observacoes: string | null;
-  created_at: string;
-  motoristas: { nome_completo: string } | null;
-}
+const ITEMS_PER_PAGE = 20;
 
 interface FinanceiroEntrega {
   id: string;
   entrega_id: string;
   empresa_transportadora_id: number | null;
   empresa_embarcadora_id: number | null;
+  motorista_id: string | null;
+  tipo_beneficiario: string | null;
   valor_frete: number;
   valor_comissao: number;
   valor_liquido: number;
+  valor_taxa_antecipacao: number;
+  valor_final: number | null;
+  antecipado: boolean;
+  data_antecipacao: string | null;
+  taxa_antecipacao_percent: number;
+  dias_antecipados: number;
+  data_vencimento: string | null;
   status: string;
   data_pagamento: string | null;
   metodo_pagamento: string | null;
@@ -100,103 +67,80 @@ interface FinanceiroEntrega {
   empresa_embarcadora: { nome: string | null; nome_fantasia: string | null } | null;
 }
 
+interface ConfigFinanceira {
+  id: string;
+  empresa_id: number;
+  tipo_pagamento: string;
+  prazo_dias: number;
+  dia_fixo: number | null;
+  ciclo_faturamento: string;
+  antecipacao_permitida: boolean;
+  taxa_antecipacao_percent: number;
+  limite_credito: number;
+  credito_utilizado: number;
+  empresas?: { nome: string | null; nome_fantasia: string | null; cnpj_matriz: string | null } | null;
+}
+
+type TabType = 'recebiveis_pos' | 'recebiveis_fat' | 'pgt_transportadoras' | 'pgt_autonomos' | 'config';
+
 export default function Financeiro() {
   const queryClient = useQueryClient();
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [activeTab, setActiveTab] = useState<'a_receber' | 'a_pagar' | 'a_pagar_autonomos'>('a_receber');
-  const [openFatura, setOpenFatura] = useState<string | null>(null);
-  const [faturaPages, setFaturaPages] = useState<Record<string, number>>({});
+  const [activeTab, setActiveTab] = useState<TabType>('recebiveis_pos');
+  const [statusFilter, setStatusFilter] = useState('todos');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+
   const [baixaDialog, setBaixaDialog] = useState<FinanceiroEntrega | null>(null);
-  const [baixaForm, setBaixaForm] = useState({
-    data_pagamento: format(new Date(), 'yyyy-MM-dd'),
-    metodo_pagamento: '',
-    observacoes: '',
-  });
+  const [baixaForm, setBaixaForm] = useState({ data_pagamento: format(new Date(), 'yyyy-MM-dd'), metodo_pagamento: '', observacoes: '' });
   const [uploading, setUploading] = useState(false);
   const [comprovante, setComprovante] = useState<File | null>(null);
-  const [baixaQuinzenaDialog, setBaixaQuinzenaDialog] = useState<FaturaRow | null>(null);
-  const [baixaQuinzenaForm, setBaixaQuinzenaForm] = useState({
-    data_pagamento: format(new Date(), 'yyyy-MM-dd'),
-    metodo_pagamento: '',
-    observacoes: '',
-  });
-  const [comprovanteQuinzena, setComprovanteQuinzena] = useState<File | null>(null);
   const [bankTarget, setBankTarget] = useState<{ type: 'motorista'; id: string; nome: string } | { type: 'empresa'; id: number; nome: string } | null>(null);
 
-  const faturasTipo = activeTab === 'a_pagar_autonomos' ? 'a_pagar' : activeTab;
+  const [configDialog, setConfigDialog] = useState<ConfigFinanceira | null>(null);
+  const [configForm, setConfigForm] = useState({
+    tipo_pagamento: 'pos_pago',
+    prazo_dias: 30,
+    dia_fixo: '',
+    antecipacao_permitida: false,
+    taxa_antecipacao_percent: 2,
+    limite_credito: 0,
+  });
 
-  // Fetch faturas for selected month
-  const { data: faturas, isLoading: loadingFaturas } = useQuery({
-    queryKey: ['admin-faturas', activeTab, selectedMonth, selectedYear],
+  // Expanded invoice groups in faturado tab
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const dateFrom = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+  const dateTo = (() => {
+    const d = new Date(selectedYear, selectedMonth + 1, 0);
+    return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+
+  const isFinancialTab = activeTab !== 'config';
+
+  // Fetch configs to know which embarcadores are faturado
+  const { data: allConfigs } = useQuery({
+    queryKey: ['admin-all-config-financeira'],
     queryFn: async () => {
-      if (activeTab === 'a_pagar_autonomos') return [] as FaturaRow[];
       const { data, error } = await supabase
-        .from('faturas')
-        .select(`*, empresas!faturas_empresa_id_fkey(nome, nome_fantasia)`)
-        .eq('tipo', faturasTipo)
-        .eq('mes', selectedMonth + 1)
-        .eq('ano', selectedYear)
-        .order('quinzena', { ascending: true });
+        .from('empresa_config_financeira' as any)
+        .select('empresa_id, tipo_pagamento, ciclo_faturamento, dia_fixo, prazo_dias');
       if (error) throw error;
-      return data as unknown as FaturaRow[];
+      return data as any[];
     },
   });
 
-  // Fetch faturas_motoristas for autonomous drivers
-  const { data: faturasMotoristas, isLoading: loadingAutonomos } = useQuery({
-    queryKey: ['admin-faturas-motoristas', selectedMonth, selectedYear],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('faturas_motoristas' as any)
-        .select(`*, motoristas!inner(nome_completo)`)
-        .eq('mes', selectedMonth + 1)
-        .eq('ano', selectedYear)
-        .order('quinzena', { ascending: true });
-      if (error) throw error;
-      return data as unknown as FaturaMotoristaRow[];
-    },
-    enabled: activeTab === 'a_pagar_autonomos',
-  });
+  const faturadoEmpresaIds = useMemo(() => {
+    if (!allConfigs) return new Set<number>();
+    return new Set(allConfigs.filter((c: any) => c.tipo_pagamento === 'faturado').map((c: any) => c.empresa_id as number));
+  }, [allConfigs]);
 
-  const [openFaturaMotorista, setOpenFaturaMotorista] = useState<string | null>(null);
-
-  // Fetch financeiro_entregas for expanded motorista fatura
-  const { data: faturaMotoristaItems, isLoading: loadingMotoristaItems } = useQuery({
-    queryKey: ['admin-fatura-motorista-items', openFaturaMotorista],
+  const { data: allRecebiveis, isLoading } = useQuery({
+    queryKey: ['admin-recebiveis', selectedMonth, selectedYear, statusFilter],
     queryFn: async () => {
-      if (!openFaturaMotorista) return [];
-      // Find the fatura to get motorista_id and period
-      const fm = faturasMotoristas?.find(f => f.id === openFaturaMotorista);
-      if (!fm) return [];
-      const { data, error } = await supabase
-        .from('financeiro_entregas')
-        .select(`
-          *,
-          entregas!inner(codigo, motorista_id, carga_id,
-            motoristas!inner(nome_completo, tipo_cadastro, id),
-            cargas(codigo, descricao)
-          ),
-          empresa_embarcadora:empresas!financeiro_entregas_empresa_embarcadora_id_fkey(nome, nome_fantasia)
-        `)
-        .gte('created_at', fm.periodo_inicio)
-        .lte('created_at', fm.periodo_fim + 'T23:59:59')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      // Filter by motorista_id
-      return (data as any[]).filter((item: any) => item.entregas?.motoristas?.id === fm.motorista_id) as unknown as FinanceiroEntrega[];
-    },
-    enabled: !!openFaturaMotorista,
-  });
-
-  // Fetch items for expanded fatura
-  const { data: faturaItems, isLoading: loadingItems } = useQuery({
-    queryKey: ['admin-fatura-items', openFatura],
-    queryFn: async () => {
-      if (!openFatura) return [];
-      const column = activeTab === 'a_receber' ? 'fatura_embarcador_id' : 'fatura_transportadora_id';
-      const { data, error } = await supabase
+      let query = supabase
         .from('financeiro_entregas')
         .select(`
           *,
@@ -207,13 +151,105 @@ export default function Financeiro() {
           empresa_transportadora:empresas!financeiro_entregas_empresa_transportadora_id_fkey(nome, nome_fantasia),
           empresa_embarcadora:empresas!financeiro_entregas_empresa_embarcadora_id_fkey(nome, nome_fantasia)
         `)
-        .eq(column, openFatura)
-        .order('created_at', { ascending: false });
+        .gte('created_at', dateFrom)
+        .lte('created_at', dateTo + 'T23:59:59')
+        .order('data_vencimento', { ascending: true, nullsFirst: false });
+
+      if (statusFilter !== 'todos') query = query.eq('status', statusFilter);
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as unknown as FinanceiroEntrega[];
     },
-    enabled: !!openFatura,
+    enabled: isFinancialTab,
   });
+
+  const { data: configs, isLoading: loadingConfigs } = useQuery({
+    queryKey: ['admin-config-financeira'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('empresa_config_financeira' as any)
+        .select(`*, empresas!empresa_config_financeira_empresa_id_fkey(nome, nome_fantasia, cnpj_matriz)`)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as unknown as ConfigFinanceira[];
+    },
+    enabled: activeTab === 'config',
+  });
+
+  const { data: embarcadores } = useQuery({
+    queryKey: ['embarcador-empresas-for-config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('empresas')
+        .select('id, nome, nome_fantasia, cnpj_matriz')
+        .eq('tipo', 'EMBARCADOR')
+        .order('nome', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: activeTab === 'config',
+  });
+
+
+  // Filter data based on active tab
+  const filtered = useMemo(() => {
+    if (!allRecebiveis) return [];
+    let items = allRecebiveis;
+
+    if (activeTab === 'recebiveis_pos') {
+      // Show only items from non-faturado embarcadores
+      items = items.filter(r => !faturadoEmpresaIds.has(r.empresa_embarcadora_id || 0));
+    } else if (activeTab === 'recebiveis_fat') {
+      // Show only items from faturado embarcadores
+      items = items.filter(r => faturadoEmpresaIds.has(r.empresa_embarcadora_id || 0));
+    } else if (activeTab === 'pgt_transportadoras') {
+      items = items.filter(r => r.tipo_beneficiario === 'transportadora');
+    } else if (activeTab === 'pgt_autonomos') {
+      items = items.filter(r => r.tipo_beneficiario === 'autonomo');
+    }
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      items = items.filter(r =>
+        r.entregas?.codigo?.toLowerCase().includes(term) ||
+        r.entregas?.cargas?.codigo?.toLowerCase().includes(term) ||
+        r.entregas?.motoristas?.nome_completo?.toLowerCase().includes(term) ||
+        r.empresa_transportadora?.nome_fantasia?.toLowerCase().includes(term) ||
+        r.empresa_embarcadora?.nome_fantasia?.toLowerCase().includes(term)
+      );
+    }
+    return items;
+  }, [allRecebiveis, activeTab, searchTerm, faturadoEmpresaIds]);
+
+  // Group faturado items by embarcador for the faturado tab
+  const faturadoGroups = useMemo(() => {
+    if (activeTab !== 'recebiveis_fat') return [];
+    const map: Record<number, { empresa: { nome: string | null; nome_fantasia: string | null } | null; empresaId: number; items: FinanceiroEntrega[]; config: any }> = {};
+    for (const r of filtered) {
+      const eId = r.empresa_embarcadora_id || 0;
+      if (!map[eId]) {
+        const cfg = allConfigs?.find((c: any) => c.empresa_id === eId);
+        map[eId] = { empresa: r.empresa_embarcadora, empresaId: eId, items: [], config: cfg };
+      }
+      map[eId].items.push(r);
+    }
+    return Object.values(map);
+  }, [filtered, activeTab, allConfigs]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const pagedItems = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  const totalBruto = filtered.reduce((s, r) => s + Number(r.valor_frete), 0);
+  const totalComissao = filtered.reduce((s, r) => s + Number(r.valor_comissao), 0);
+  const totalLiquido = filtered.reduce((s, r) => s + Number(r.valor_liquido), 0);
+  const totalPendente = filtered.filter(r => r.status === 'pendente').length;
+  const totalPago = filtered.filter(r => r.status === 'pago').length;
+  const totalAntecipados = filtered.filter(r => r.antecipado).length;
+  const totalVencidos = filtered.filter(r => r.status === 'pendente' && r.data_vencimento && new Date(r.data_vencimento) < new Date()).length;
+
+  const nomeEmpresa = (emp: { nome: string | null; nome_fantasia: string | null } | null) =>
+    emp?.nome_fantasia || emp?.nome || '—';
 
   const baixaMutation = useMutation({
     mutationFn: async (params: { id: string; data_pagamento: string; metodo_pagamento: string; observacoes: string; comprovante_url?: string }) => {
@@ -232,8 +268,7 @@ export default function Financeiro() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-faturas'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-fatura-items'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-recebiveis'] });
       toast.success('Baixa realizada com sucesso!');
       setBaixaDialog(null);
       setComprovante(null);
@@ -243,10 +278,7 @@ export default function Financeiro() {
 
   const handleBaixa = async () => {
     if (!baixaDialog) return;
-    if (!comprovante) {
-      toast.error('O comprovante de pagamento é obrigatório.');
-      return;
-    }
+    if (!comprovante) { toast.error('O comprovante é obrigatório.'); return; }
     setUploading(true);
     const ext = comprovante.name.split('.').pop();
     const path = `${baixaDialog.id}/${Date.now()}.${ext}`;
@@ -254,726 +286,591 @@ export default function Financeiro() {
     setUploading(false);
     if (error) { toast.error('Erro ao enviar comprovante'); return; }
     const { data: urlData } = supabase.storage.from('comprovantes-financeiro').getPublicUrl(path);
-
-    baixaMutation.mutate({
-      id: baixaDialog.id,
-      ...baixaForm,
-      comprovante_url: urlData.publicUrl,
-    });
+    baixaMutation.mutate({ id: baixaDialog.id, ...baixaForm, comprovante_url: urlData.publicUrl });
   };
 
-  const baixaQuinzenaMutation = useMutation({
-    mutationFn: async (params: { faturaId: string; faturaType: 'a_receber' | 'a_pagar'; data_pagamento: string; metodo_pagamento: string; observacoes: string; comprovante_url?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const column = params.faturaType === 'a_receber' ? 'fatura_embarcador_id' : 'fatura_transportadora_id';
-      const { error: errItems } = await supabase
-        .from('financeiro_entregas')
-        .update({
-          status: 'pago',
-          data_pagamento: params.data_pagamento,
-          metodo_pagamento: params.metodo_pagamento,
-          observacoes: params.observacoes,
-          comprovante_url: params.comprovante_url || null,
-          baixa_por: user?.id,
-        })
-        .eq(column, params.faturaId)
-        .eq('status', 'pendente');
-      if (errItems) throw errItems;
-      const { error: errFatura } = await supabase
-        .from('faturas')
-        .update({
-          status: 'paga',
-          data_pagamento: params.data_pagamento,
-          metodo_pagamento: params.metodo_pagamento,
-          observacoes: params.observacoes,
-          comprovante_url: params.comprovante_url || null,
-          baixa_por: user?.id,
-        })
-        .eq('id', params.faturaId);
-      if (errFatura) throw errFatura;
+  const saveConfigMutation = useMutation({
+    mutationFn: async (params: { empresa_id: number; form: typeof configForm }) => {
+      const payload = {
+        empresa_id: params.empresa_id,
+        tipo_pagamento: params.form.tipo_pagamento,
+        prazo_dias: params.form.prazo_dias,
+        dia_fixo: params.form.dia_fixo ? parseInt(params.form.dia_fixo) : null,
+        ciclo_faturamento: 'mensal',
+        antecipacao_permitida: params.form.antecipacao_permitida,
+        taxa_antecipacao_percent: params.form.taxa_antecipacao_percent,
+        limite_credito: params.form.limite_credito,
+      };
+      const { error } = await supabase
+        .from('empresa_config_financeira' as any)
+        .upsert(payload as any, { onConflict: 'empresa_id' });
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-faturas'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-fatura-items'] });
-      toast.success('Baixa da quinzena realizada com sucesso!');
-      setBaixaQuinzenaDialog(null);
-      setComprovanteQuinzena(null);
+      queryClient.invalidateQueries({ queryKey: ['admin-config-financeira'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-config-financeira'] });
+      toast.success('Configuração salva!');
+      setConfigDialog(null);
     },
-    onError: () => toast.error('Erro ao dar baixa na quinzena'),
+    onError: () => toast.error('Erro ao salvar configuração'),
   });
 
-  const handleBaixaQuinzena = async () => {
-    if (!baixaQuinzenaDialog) return;
-    if (!comprovanteQuinzena) {
-      toast.error('O comprovante de pagamento é obrigatório.');
-      return;
+  const statusBadge = (r: FinanceiroEntrega) => {
+    if (r.status === 'pago') return <Badge className="bg-chart-2 text-white text-[10px]">Pago</Badge>;
+    if (r.antecipado) return <Badge className="bg-chart-4 text-white text-[10px]">Antecipado</Badge>;
+    if (r.data_vencimento && new Date(r.data_vencimento) < new Date() && r.status === 'pendente') {
+      return <Badge variant="destructive" className="text-[10px]">Vencido</Badge>;
     }
-    setUploading(true);
-    const ext = comprovanteQuinzena.name.split('.').pop();
-    const path = `quinzena-${baixaQuinzenaDialog.id}/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('comprovantes-financeiro').upload(path, comprovanteQuinzena);
-    setUploading(false);
-    if (error) { toast.error('Erro ao enviar comprovante'); return; }
-    const { data: urlData } = supabase.storage.from('comprovantes-financeiro').getPublicUrl(path);
-
-    baixaQuinzenaMutation.mutate({
-      faturaId: baixaQuinzenaDialog.id,
-      faturaType: faturasTipo as 'a_receber' | 'a_pagar',
-      ...baixaQuinzenaForm,
-      comprovante_url: urlData.publicUrl,
-    });
+    return <Badge variant="secondary" className="text-[10px]">Pendente</Badge>;
   };
 
-  const nomeEmpresa = (emp: { nome: string | null; nome_fantasia: string | null } | null) =>
-    emp?.nome_fantasia || emp?.nome || '—';
-
-  const totalBruto = faturas?.reduce((s, f) => s + Number(f.valor_bruto), 0) || 0;
-  const totalComissao = faturas?.reduce((s, f) => s + Number(f.valor_comissao), 0) || 0;
-  const totalLiquido = faturas?.reduce((s, f) => s + Number(f.valor_liquido), 0) || 0;
-  const totalEntregas = faturas?.reduce((s, f) => s + Number(f.qtd_entregas), 0) || 0;
-
-  const toggleFatura = (id: string) => {
-    setOpenFatura(prev => prev === id ? null : id);
-    if (!faturaPages[id]) setFaturaPages(p => ({ ...p, [id]: 1 }));
-  };
-
-  const getPagedItems = () => {
-    if (!faturaItems || !openFatura) return [];
-    const page = faturaPages[openFatura] || 1;
-    return faturaItems.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-  };
-
-  const faturaStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paga': return <Badge className="bg-chart-2 text-white">Paga</Badge>;
-      case 'fechada': return <Badge variant="outline" className="border-chart-4 text-chart-4">Fechada</Badge>;
-      case 'cancelada': return <Badge variant="destructive">Cancelada</Badge>;
-      default: return <Badge variant="secondary">Pendente</Badge>;
+  const tipoPagamentoLabel = (tipo: string) => {
+    switch (tipo) {
+      case 'pos_pago': return 'Pós-pago';
+      case 'faturado': return 'Faturado';
+      default: return tipo;
     }
   };
 
-  const isClosed = (f: FaturaRow) => {
-    const endDate = new Date(f.periodo_fim + 'T23:59:59');
-    return new Date() > endDate;
+  const cicloLabel = (c: string) => {
+    switch (c) {
+      case 'semanal': return 'Semanal';
+      case 'quinzenal': return 'Quinzenal';
+      case 'mensal': return 'Mensal';
+      default: return c;
+    }
+  };
+
+  const isRecebiveis = activeTab === 'recebiveis_pos' || activeTab === 'recebiveis_fat';
+  const isPgtTransportadoras = activeTab === 'pgt_transportadoras';
+  const isPgtAutonomos = activeTab === 'pgt_autonomos';
+
+  const baixaLabel = isRecebiveis ? 'Recebimento' : 'Pagamento';
+  const baixaDialogTitle = isRecebiveis ? 'Confirmar Recebimento' : 'Confirmar Pagamento Enviado';
+  const baixaDialogDesc = isRecebiveis
+    ? 'Confirme que o valor foi recebido do embarcador'
+    : isPgtTransportadoras
+      ? 'Confirme que o pagamento foi enviado à transportadora'
+      : 'Confirme que o pagamento foi enviado ao motorista autônomo';
+
+  const getKPIs = () => {
+    if (isRecebiveis) {
+      return [
+        { label: 'Frete Bruto', value: formatCurrency(totalBruto), icon: DollarSign, color: 'text-chart-4' },
+        { label: 'Taxa HubFrete', value: formatCurrency(totalComissao), icon: TrendingUp, color: 'text-primary' },
+        { label: 'Total a Receber', value: formatCurrency(totalBruto), icon: ArrowDownLeft, color: 'text-chart-2' },
+        { label: 'Pendentes', value: String(totalPendente), icon: Clock, color: 'text-muted-foreground' },
+        { label: 'Recebidos', value: String(totalPago), icon: CheckCircle, color: 'text-chart-2' },
+        { label: 'Vencidos', value: String(totalVencidos), icon: AlertTriangle, color: 'text-destructive' },
+      ];
+    }
+    return [
+      { label: 'Total a Pagar', value: formatCurrency(totalLiquido), icon: ArrowUpRight, color: 'text-destructive' },
+      { label: 'Taxa Descontada', value: formatCurrency(totalComissao), icon: TrendingUp, color: 'text-primary' },
+      { label: 'Pendentes', value: String(totalPendente), icon: Clock, color: 'text-muted-foreground' },
+      { label: 'Pagos', value: String(totalPago), icon: CheckCircle, color: 'text-chart-2' },
+      { label: 'Vencidos', value: String(totalVencidos), icon: AlertTriangle, color: 'text-destructive' },
+      { label: 'Antecipados', value: String(totalAntecipados), icon: Zap, color: 'text-chart-4' },
+    ];
+  };
+
+  const renderTableHead = () => (
+    <thead className="bg-muted/40 sticky top-0">
+      <tr className="border-b border-border">
+        <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">Carga</th>
+        {isRecebiveis ? (
+          <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">Embarcador</th>
+        ) : (
+          <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">
+            {isPgtTransportadoras ? 'Transportadora' : 'Motorista'}
+          </th>
+        )}
+        <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">
+          {isRecebiveis ? 'Valor Frete' : 'Bruto'}
+        </th>
+        {!isRecebiveis && (
+          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Taxa</th>
+        )}
+        <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">
+          {isRecebiveis ? 'A Receber' : 'Líquido'}
+        </th>
+        <th className="text-center font-medium text-muted-foreground px-4 py-2.5 text-xs">Vencimento</th>
+        <th className="text-center font-medium text-muted-foreground px-4 py-2.5 text-xs">Status</th>
+        <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Ações</th>
+      </tr>
+    </thead>
+  );
+
+  const renderTableRow = (r: FinanceiroEntrega) => {
+    const dias = r.data_vencimento ? differenceInDays(new Date(r.data_vencimento), new Date()) : null;
+    return (
+      <tr key={r.id} className="border-b border-border hover:bg-muted/20 transition-colors">
+        <td className="px-4 py-3">
+          <p className="font-medium text-foreground">{r.entregas?.codigo || '—'}</p>
+          <p className="text-[11px] text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+              isRecebiveis ? 'bg-chart-4/10' : isPgtTransportadoras ? 'bg-primary/10' : 'bg-chart-4/10'
+            }`}>
+              {isRecebiveis
+                ? <Building2 className="w-3 h-3 text-chart-4" />
+                : isPgtTransportadoras
+                  ? <Truck className="w-3 h-3 text-primary" />
+                  : <User className="w-3 h-3 text-chart-4" />
+              }
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm truncate">
+                {isRecebiveis
+                  ? nomeEmpresa(r.empresa_embarcadora)
+                  : isPgtTransportadoras
+                    ? nomeEmpresa(r.empresa_transportadora)
+                    : r.entregas?.motoristas?.nome_completo || '—'
+                }
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {isRecebiveis ? 'Embarcador' : isPgtTransportadoras ? 'Transportadora' : 'Autônomo'}
+              </p>
+            </div>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-right font-medium">{formatCurrency(r.valor_frete)}</td>
+        {!isRecebiveis && (
+          <td className="px-4 py-3 text-right text-muted-foreground">
+            {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
+          </td>
+        )}
+        <td className="px-4 py-3 text-right font-semibold text-chart-2">
+          {formatCurrency(isRecebiveis ? r.valor_frete : r.valor_liquido)}
+        </td>
+        <td className="px-4 py-3 text-center">
+          {r.data_vencimento ? (
+            <div className="text-xs">
+              <p className="font-medium">{format(new Date(r.data_vencimento), 'dd/MM/yy')}</p>
+              {r.status === 'pendente' && dias !== null && (
+                <p className={dias < 0 ? 'text-destructive font-medium' : dias <= 5 ? 'text-chart-4' : 'text-muted-foreground'}>
+                  {dias < 0 ? `${Math.abs(dias)}d atraso` : dias === 0 ? 'Hoje' : `em ${dias}d`}
+                </p>
+              )}
+            </div>
+          ) : <span className="text-xs text-muted-foreground">—</span>}
+        </td>
+        <td className="px-4 py-3 text-center">{statusBadge(r)}</td>
+        <td className="px-4 py-3 text-right">
+          <div className="flex items-center gap-1 justify-end">
+            {!isRecebiveis && isPgtAutonomos && r.entregas?.motoristas && (
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setBankTarget({ type: 'motorista', id: r.motorista_id!, nome: r.entregas!.motoristas!.nome_completo })} title="Dados bancários">
+                <Landmark className="w-3.5 h-3.5" />
+              </Button>
+            )}
+            {!isRecebiveis && isPgtTransportadoras && r.empresa_transportadora_id && (
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setBankTarget({ type: 'empresa', id: r.empresa_transportadora_id!, nome: nomeEmpresa(r.empresa_transportadora) })} title="Dados bancários">
+                <Landmark className="w-3.5 h-3.5" />
+              </Button>
+            )}
+            {r.status === 'pendente' && (
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                setBaixaDialog(r);
+                setBaixaForm({ data_pagamento: format(new Date(), 'yyyy-MM-dd'), metodo_pagamento: '', observacoes: '' });
+                setComprovante(null);
+              }}>
+                <CheckCircle className="w-3.5 h-3.5 mr-1" /> Baixa
+              </Button>
+            )}
+            {r.status === 'pago' && r.comprovante_url && (
+              <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
+                <a href={r.comprovante_url} target="_blank" rel="noreferrer"><Eye className="w-3.5 h-3.5" /></a>
+              </Button>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
+  const renderFinancialTable = () => (
+    <div className="space-y-5 mt-5">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {getKPIs().map((kpi, i) => (
+          <Card key={i} className="border-border">
+            <CardContent className="p-3 flex items-center gap-2.5">
+              <kpi.icon className={`w-4 h-4 ${kpi.color} shrink-0`} />
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-tight truncate">{kpi.value}</p>
+                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-end">
+        <MonthYearPicker month={selectedMonth} year={selectedYear} onChangeMonth={setSelectedMonth} onChangeYear={setSelectedYear} />
+        <div className="w-32">
+          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Status</Label>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="pago">Pago</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1 max-w-xs">
+          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Buscar</Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input className="pl-9 h-9" placeholder="Código, empresa, motorista..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <Card className="border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            {renderTableHead()}
+          </table>
+          <div className="max-h-[520px] overflow-y-auto">
+            <table className="w-full text-sm">
+              <tbody>
+                {isLoading ? (
+                  [...Array(6)].map((_, i) => (
+                    <tr key={i}><td colSpan={9} className="p-3"><Skeleton className="h-10 w-full" /></td></tr>
+                  ))
+                ) : pagedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-center text-muted-foreground py-16">
+                      <DollarSign className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                      <p>Nenhum registro encontrado no período</p>
+                    </td>
+                  </tr>
+                ) : (
+                  pagedItems.map(renderTableRow)
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {filtered.length > ITEMS_PER_PAGE && (
+          <div className="border-t border-border">
+            <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={setPage} />
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+
+  const renderFaturadoTab = () => {
+    const toggleGroup = (key: string) => {
+      setExpandedGroups(prev => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key); else next.add(key);
+        return next;
+      });
+    };
+
+    return (
+      <div className="space-y-5 mt-5">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {getKPIs().map((kpi, i) => (
+            <Card key={i} className="border-border">
+              <CardContent className="p-3 flex items-center gap-2.5">
+                <kpi.icon className={`w-4 h-4 ${kpi.color} shrink-0`} />
+                <div className="min-w-0">
+                  <p className="text-lg font-bold leading-tight truncate">{kpi.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 items-end">
+          <MonthYearPicker month={selectedMonth} year={selectedYear} onChangeMonth={setSelectedMonth} onChangeYear={setSelectedYear} />
+          <div className="flex-1 max-w-xs">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Buscar</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input className="pl-9 h-9" placeholder="Código, empresa..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Grouped by embarcador */}
+        {isLoading ? (
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+          </div>
+        ) : faturadoGroups.length === 0 ? (
+          <Card className="border-dashed border-2 border-border">
+            <CardContent className="py-16 text-center">
+              <FileText className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+              <p className="text-muted-foreground">Nenhuma fatura encontrada no período</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {faturadoGroups.map(group => {
+              const key = `${group.empresaId}`;
+              const isExpanded = expandedGroups.has(key);
+              const groupTotal = group.items.reduce((s, r) => s + Number(r.valor_frete), 0);
+              const groupPago = group.items.filter(r => r.status === 'pago').reduce((s, r) => s + Number(r.valor_frete), 0);
+              const groupPendente = group.items.filter(r => r.status === 'pendente').length;
+              const allPaid = group.items.every(r => r.status === 'pago');
+              const diaFixo = group.config?.dia_fixo;
+              const prazoDias = group.config?.prazo_dias || 30;
+              const monthLabel = format(new Date(selectedYear, selectedMonth), 'MMM/yy', { locale: ptBR });
+
+              return (
+                <Card key={key} className="border-border overflow-hidden">
+                  <button
+                    onClick={() => toggleGroup(key)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="text-left">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-foreground">{nomeEmpresa(group.empresa)}</p>
+                          <Badge variant="outline" className="text-[9px]">Faturado</Badge>
+                          {diaFixo && <Badge variant="outline" className="text-[9px]">Fecha dia {diaFixo} · +{prazoDias}d</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {group.items.length} {group.items.length === 1 ? 'entrega' : 'entregas'} · {monthLabel}
+                          {groupPendente > 0 && <span className="text-chart-4 ml-2">({groupPendente} pendente{groupPendente > 1 ? 's' : ''})</span>}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-foreground">{formatCurrency(groupTotal)}</p>
+                        {groupPago > 0 && <p className="text-[10px] text-chart-2">{formatCurrency(groupPago)} recebido</p>}
+                      </div>
+                      {allPaid
+                        ? <Badge className="bg-chart-2 text-white text-[10px]">Quitada</Badge>
+                        : <Badge variant="secondary" className="text-[10px]">Aberta</Badge>
+                      }
+                      {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t border-border">
+                      <table className="w-full text-sm">
+                        {renderTableHead()}
+                        <tbody>
+                          {group.items.map(renderTableRow)}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
-        <p className="text-sm text-muted-foreground">Gestão de faturas, repasses e pagamentos da plataforma</p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
+          <p className="text-sm text-muted-foreground">Recebíveis e pagamentos · Modelo fintech logística</p>
+        </div>
+        <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-xs font-medium">
+          <DollarSign className="w-3.5 h-3.5" />
+          {format(new Date(selectedYear, selectedMonth), 'MMMM yyyy', { locale: ptBR })}
+        </Badge>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setOpenFatura(null); }}>
-        <div className="flex flex-wrap items-center gap-4 justify-between">
-          <TabsList>
-            <TabsTrigger value="a_receber" className="gap-2">
-              <ArrowDownLeft className="w-4 h-4" />
-              A Receber (Embarcadores)
-            </TabsTrigger>
-            <TabsTrigger value="a_pagar" className="gap-2">
-              <ArrowUpRight className="w-4 h-4" />
-              A Pagar (Transportadoras)
-            </TabsTrigger>
-            <TabsTrigger value="a_pagar_autonomos" className="gap-2">
-              <User className="w-4 h-4" />
-              A Pagar (Autônomos)
-            </TabsTrigger>
-          </TabsList>
-          <MonthYearPicker
-            month={selectedMonth}
-            year={selectedYear}
-            onChangeMonth={setSelectedMonth}
-            onChangeYear={setSelectedYear}
-          />
-        </div>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as TabType); setPage(1); setStatusFilter('todos'); setSearchTerm(''); setExpandedGroups(new Set()); }}>
+        <TabsList className="bg-muted/50">
+          <TabsTrigger value="recebiveis_pos" className="gap-2">
+            <ArrowDownLeft className="w-4 h-4" /> Recebíveis Pós-pago
+          </TabsTrigger>
+          <TabsTrigger value="recebiveis_fat" className="gap-2">
+            <FileText className="w-4 h-4" /> Recebíveis Faturado
+          </TabsTrigger>
+          <TabsTrigger value="pgt_transportadoras" className="gap-2">
+            <Truck className="w-4 h-4" /> Pgto Transportadoras
+          </TabsTrigger>
+          <TabsTrigger value="pgt_autonomos" className="gap-2">
+            <User className="w-4 h-4" /> Pgto Autônomos
+          </TabsTrigger>
+          <TabsTrigger value="config" className="gap-2">
+            <Settings className="w-4 h-4" /> Config Embarcadores
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Faturas tabs (a_receber / a_pagar) */}
-        {(activeTab === 'a_receber' || activeTab === 'a_pagar') && (
-        <TabsContent value={activeTab} className="space-y-6 mt-4" forceMount>
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 bg-chart-4/10 rounded-lg">
-                  <DollarSign className="w-5 h-5 text-chart-4" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{formatCurrency(totalBruto)}</p>
-                  <p className="text-xs text-muted-foreground">Frete Bruto</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{formatCurrency(totalComissao)}</p>
-                  <p className="text-xs text-muted-foreground">Comissão HubFrete</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 bg-chart-2/10 rounded-lg">
-                  <CheckCircle className="w-5 h-5 text-chart-2" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{formatCurrency(totalLiquido)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {activeTab === 'a_receber' ? 'Líquido Transportadora' : 'A Pagar'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 bg-accent rounded-lg">
-                  <Clock className="w-5 h-5 text-accent-foreground" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{totalEntregas}</p>
-                  <p className="text-xs text-muted-foreground">Entregas no período</p>
-                </div>
-              </CardContent>
-            </Card>
+        <TabsContent value="recebiveis_pos">{renderFinancialTable()}</TabsContent>
+        <TabsContent value="recebiveis_fat">{renderFaturadoTab()}</TabsContent>
+        <TabsContent value="pgt_transportadoras">{renderFinancialTable()}</TabsContent>
+        <TabsContent value="pgt_autonomos">{renderFinancialTable()}</TabsContent>
+
+        {/* ===== CONFIG TAB ===== */}
+        <TabsContent value="config" className="space-y-5 mt-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Regras Financeiras por Embarcador</h2>
+              <p className="text-xs text-muted-foreground">Tipo de pagamento, prazo, antecipação e limite de crédito</p>
+            </div>
+            <Button size="sm" onClick={() => {
+              setConfigDialog({ id: '', empresa_id: 0, tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: null, ciclo_faturamento: 'mensal', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0, credito_utilizado: 0 });
+              setConfigForm({ tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: '', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0 });
+            }}>
+              <Settings className="w-4 h-4 mr-2" /> Nova Config
+            </Button>
           </div>
 
-          {/* Faturas (Quinzenas) */}
-          <div className="space-y-3 pb-10">
-            {loadingFaturas ? (
-              <div className="space-y-3">
-                {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
-              </div>
-            ) : !faturas?.length ? (
-              <Card className="border-border">
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  Nenhuma fatura encontrada para este período
-                </CardContent>
-              </Card>
-            ) : (
-              faturas.map((fatura) => {
-                const isOpen = openFatura === fatura.id;
-                const closed = isClosed(fatura);
-                const page = faturaPages[fatura.id] || 1;
-                const totalPages = Math.max(1, Math.ceil((faturaItems?.length || 0) / ITEMS_PER_PAGE));
-                const pagedItems = isOpen ? getPagedItems() : [];
-
+          {loadingConfigs ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-xl" />)}
+            </div>
+          ) : !configs?.length ? (
+            <Card className="border-dashed border-2 border-border">
+              <CardContent className="py-16 text-center">
+                <Building2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+                <p className="text-muted-foreground">Nenhuma configuração cadastrada</p>
+                <p className="text-xs text-muted-foreground mt-1">Clique em "Nova Config" para definir regras de um embarcador</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {configs.map((cfg) => {
+                const creditPercent = cfg.limite_credito > 0 ? Math.min(100, (cfg.credito_utilizado / cfg.limite_credito) * 100) : 0;
                 return (
-                  <Collapsible key={fatura.id} open={isOpen} onOpenChange={() => toggleFatura(fatura.id)}>
-                    <Card className="border-border">
-                      <CollapsibleTrigger asChild>
-                        <button className="w-full text-left">
-                          <CardContent className="p-4 flex items-center gap-4">
-                            <div className="p-2 bg-primary/10 rounded-lg">
-                              <Calendar className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="font-semibold text-foreground">
-                                  {fatura.quinzena === 1 ? '1ª' : '2ª'} Quinzena
-                                </p>
-                                {faturaStatusBadge(fatura.status)}
-                                {closed ? (
-                                  <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground gap-1">
-                                    <Lock className="w-3 h-3" /> Fechada
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="border-chart-1 text-chart-1 gap-1">
-                                    <LockOpen className="w-3 h-3" /> Aberta
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {format(new Date(fatura.periodo_inicio + 'T12:00:00'), 'dd/MM')} a{' '}
-                                {format(new Date(fatura.periodo_fim + 'T12:00:00'), 'dd/MM/yyyy')} — {fatura.qtd_entregas} entrega(s)
-                                {' · '}{nomeEmpresa(fatura.empresas)}
-                              </p>
-                            </div>
-                            {activeTab === 'a_pagar' && fatura.empresas && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="hidden sm:flex shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setBankTarget({ type: 'empresa', id: fatura.empresa_id, nome: nomeEmpresa(fatura.empresas) });
-                                }}
-                                title="Dados bancários"
-                              >
-                                <Landmark className="w-4 h-4" />
-                              </Button>
-                            )}
-                            {fatura.status !== 'paga' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="hidden sm:flex shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setBaixaQuinzenaDialog(fatura);
-                                  setBaixaQuinzenaForm({
-                                    data_pagamento: format(new Date(), 'yyyy-MM-dd'),
-                                    metodo_pagamento: '',
-                                    observacoes: '',
-                                  });
-                                  setComprovanteQuinzena(null);
-                                }}
-                              >
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Baixa Quinzena
-                              </Button>
-                            )}
-                            <div className="text-right mr-4 hidden sm:block">
-                              <p className="text-lg font-bold text-foreground">
-                                {formatCurrency(activeTab === 'a_pagar' ? fatura.valor_liquido : fatura.valor_bruto)}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Comissão: {formatCurrency(fatura.valor_comissao)}
-                              </p>
-                            </div>
-                            {isOpen ? (
-                              <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
-                            ) : (
-                              <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-                            )}
-                          </CardContent>
-                        </button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <div className="border-t border-border">
-                          {loadingItems && isOpen ? (
-                            <div className="p-6 space-y-3">
-                              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-                            </div>
-                          ) : (
-                            <>
-                              <div className="overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <thead className="bg-muted/50">
-                                    <tr className="border-b border-border">
-                                      <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Entrega</th>
-                                      <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Embarcador</th>
-                                      <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[16%]">Transportadora</th>
-                                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[12%]">Bruto</th>
-                                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Comissão</th>
-                                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[10%]">Líquido</th>
-                                      <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[8%]">Status</th>
-                                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[6%]"></th>
-                                    </tr>
-                                  </thead>
-                                </table>
-                                <div className="max-h-[400px] overflow-y-auto">
-                                  <table className="w-full text-sm">
-                                    <tbody>
-                                      {pagedItems.map((r) => (
-                                        <tr key={r.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                                          <td className="px-4 py-3 w-[16%]">
-                                            <p className="font-medium">{r.entregas?.codigo || '—'}</p>
-                                            <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                                            {r.entregas?.motoristas?.nome_completo && (
-                                              <p className="text-xs text-muted-foreground">🚛 {r.entregas.motoristas.nome_completo}</p>
-                                            )}
-                                          </td>
-                                          <td className="px-4 py-3 w-[16%] text-sm">{nomeEmpresa(r.empresa_embarcadora)}</td>
-                                          <td className="px-4 py-3 w-[16%] text-sm">{nomeEmpresa(r.empresa_transportadora)}</td>
-                                          <td className="px-4 py-3 text-right font-medium w-[12%]">{formatCurrency(r.valor_frete)}</td>
-                                          <td className="px-4 py-3 text-right text-muted-foreground text-sm w-[10%]">
-                                            {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
-                                          </td>
-                                          <td className="px-4 py-3 text-right font-semibold text-chart-2 w-[10%]">{formatCurrency(r.valor_liquido)}</td>
-                                          <td className="px-4 py-3 text-center w-[8%]">
-                                            <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
-                                              {r.status === 'pago' ? 'Pago' : 'Pendente'}
-                                            </Badge>
-                                          </td>
-                                          <td className="px-4 py-3 w-[6%]">
-                                            {r.status === 'pendente' && (
-                                              <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setBaixaDialog(r);
-                                                  setBaixaForm({
-                                                    data_pagamento: format(new Date(), 'yyyy-MM-dd'),
-                                                    metodo_pagamento: '',
-                                                    observacoes: '',
-                                                  });
-                                                  setComprovante(null);
-                                                }}
-                                              >
-                                                <CheckCircle className="w-4 h-4 mr-1" />
-                                                Baixa
-                                              </Button>
-                                            )}
-                                            {r.status === 'pago' && r.comprovante_url && (
-                                              <Button size="sm" variant="ghost" asChild>
-                                                <a href={r.comprovante_url} target="_blank" rel="noreferrer">
-                                                  <Eye className="w-4 h-4" />
-                                                </a>
-                                              </Button>
-                                            )}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                      {pagedItems.length === 0 && (
-                                        <tr>
-                                          <td colSpan={8} className="text-center text-muted-foreground py-8">
-                                            Nenhum registro nesta fatura
-                                          </td>
-                                        </tr>
-                                      )}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                              {(faturaItems?.length || 0) > ITEMS_PER_PAGE && (
-                                <div className="border-t border-border">
-                                  <Pagination
-                                    currentPage={page}
-                                    totalPages={totalPages}
-                                    totalItems={faturaItems?.length || 0}
-                                    itemsPerPage={ITEMS_PER_PAGE}
-                                    onPageChange={(p) => setFaturaPages(prev => ({ ...prev, [fatura.id]: p }))}
-                                  />
-                                </div>
-                              )}
-                            </>
-                          )}
+                  <Card key={cfg.id} className="border-border hover:shadow-md transition-all cursor-pointer group" onClick={() => {
+                    setConfigDialog(cfg);
+                    setConfigForm({
+                      tipo_pagamento: cfg.tipo_pagamento,
+                      prazo_dias: cfg.prazo_dias,
+                      dia_fixo: cfg.dia_fixo?.toString() || '',
+                      antecipacao_permitida: cfg.antecipacao_permitida,
+                      taxa_antecipacao_percent: cfg.taxa_antecipacao_percent,
+                      limite_credito: cfg.limite_credito,
+                    });
+                  }}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Building2 className="w-4.5 h-4.5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground text-sm">{cfg.empresas?.nome_fantasia || cfg.empresas?.nome || '—'}</p>
+                            <p className="text-[10px] text-muted-foreground">{cfg.empresas?.cnpj_matriz || ''}</p>
+                          </div>
                         </div>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {tipoPagamentoLabel(cfg.tipo_pagamento)}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="text-center p-2 rounded-md bg-muted/40">
+                          <p className="text-sm font-bold text-foreground">
+                            {cfg.tipo_pagamento === 'faturado' && cfg.dia_fixo ? `Dia ${cfg.dia_fixo}` : `D+${cfg.prazo_dias}`}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">{cfg.tipo_pagamento === 'faturado' ? 'Vencimento' : 'Prazo'}</p>
+                        </div>
+                        <div className="text-center p-2 rounded-md bg-muted/40">
+                          <p className="text-sm font-bold text-foreground">
+                            {cfg.tipo_pagamento === 'faturado' && cfg.dia_fixo ? `Dia ${cfg.dia_fixo}` : '—'}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">Fechamento</p>
+                        </div>
+                        <div className="text-center p-2 rounded-md bg-muted/40">
+                          <p className="text-sm font-bold text-foreground">
+                            {cfg.antecipacao_permitida ? `${cfg.taxa_antecipacao_percent}%` : '—'}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">Taxa Antec.</p>
+                        </div>
+                      </div>
+
+                      {cfg.limite_credito > 0 && (
+                        <div>
+                          <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                            <span>Crédito utilizado</span>
+                            <span>{formatCurrency(cfg.credito_utilizado)} / {formatCurrency(cfg.limite_credito)}</span>
+                          </div>
+                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${creditPercent > 80 ? 'bg-destructive' : creditPercent > 50 ? 'bg-chart-4' : 'bg-chart-2'}`}
+                              style={{ width: `${creditPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 pt-1">
+                        {cfg.antecipacao_permitida ? (
+                          <Badge className="bg-chart-2/10 text-chart-2 text-[9px] border-0">
+                            <ShieldCheck className="w-2.5 h-2.5 mr-0.5" /> Antecipação ativa
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[9px] border-0">Antecipação desligada</Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 );
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </TabsContent>
-        )}
 
-        {/* Autonomous drivers tab */}
-        <TabsContent value="a_pagar_autonomos" className="space-y-6 mt-4">
-          {(() => {
-            const DRIVERS_PER_PAGE = 15;
-            const autoTotalBruto = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_bruto), 0) || 0;
-            const autoTotalComissao = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_comissao), 0) || 0;
-            const autoTotalLiquido = faturasMotoristas?.reduce((s, f) => s + Number(f.valor_liquido), 0) || 0;
-            const autoTotalEntregas = faturasMotoristas?.reduce((s, f) => s + Number(f.qtd_entregas), 0) || 0;
-            const autoPagas = faturasMotoristas?.filter(f => f.status === 'paga').length || 0;
-
-            // Group by quinzena
-            const q1 = faturasMotoristas?.filter(f => f.quinzena === 1) || [];
-            const q2 = faturasMotoristas?.filter(f => f.quinzena === 2) || [];
-
-            const renderQuinzena = (quinzena: number, items: FaturaMotoristaRow[]) => {
-              if (!items.length) return null;
-              const qBruto = items.reduce((s, f) => s + Number(f.valor_bruto), 0);
-              const qLiquido = items.reduce((s, f) => s + Number(f.valor_liquido), 0);
-              const qEntregas = items.reduce((s, f) => s + Number(f.qtd_entregas), 0);
-              const first = items[0];
-              const periodoLabel = `${format(new Date(first.periodo_inicio + 'T12:00:00'), 'dd/MM')} a ${format(new Date(first.periodo_fim + 'T12:00:00'), 'dd/MM/yyyy')}`;
-              const endDate = new Date(first.periodo_fim + 'T23:59:59');
-              const closed = new Date() > endDate;
-
-              const pageKey = `q${quinzena}-drivers`;
-              const driverPage = faturaPages[pageKey] || 1;
-              const totalDriverPages = Math.max(1, Math.ceil(items.length / DRIVERS_PER_PAGE));
-              const pagedDrivers = items.slice((driverPage - 1) * DRIVERS_PER_PAGE, driverPage * DRIVERS_PER_PAGE);
-
-              return (
-                <div key={quinzena} className="space-y-3">
-                  <div className="flex items-center justify-between px-1">
-                    <h3 className="text-sm font-semibold text-foreground">
-                      {quinzena === 1 ? '1ª' : '2ª'} Quinzena — {periodoLabel}
-                    </h3>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>{items.length} motorista(s)</span>
-                      <span>{qEntregas} entrega(s)</span>
-                      <span>Bruto: {formatCurrency(qBruto)}</span>
-                      <span className="font-semibold text-chart-2">Líquido: {formatCurrency(qLiquido)}</span>
-                    </div>
-                  </div>
-
-                  {pagedDrivers.map((fm) => {
-                    const isOpen = openFaturaMotorista === fm.id;
-                    const itemPage = faturaPages[fm.id] || 1;
-                    const totalItemPages = Math.max(1, Math.ceil((faturaMotoristaItems?.length || 0) / 10));
-                    const pagedItems = isOpen ? (faturaMotoristaItems?.slice((itemPage - 1) * 10, itemPage * 10) || []) : [];
-
-                    return (
-                      <Collapsible key={fm.id} open={isOpen} onOpenChange={() => setOpenFaturaMotorista(prev => prev === fm.id ? null : fm.id)}>
-                        <Card className="border-border">
-                          <CollapsibleTrigger asChild>
-                            <button className="w-full text-left">
-                              <CardContent className="p-4 flex items-center gap-4">
-                                <div className="p-2 bg-primary/10 rounded-lg">
-                                  <User className="w-5 h-5 text-primary" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="font-semibold text-foreground">
-                                      {fm.motoristas?.nome_completo || '—'}
-                                    </p>
-                                    {faturaStatusBadge(fm.status)}
-                                    {closed ? (
-                                      <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground gap-1">
-                                        <Lock className="w-3 h-3" /> Fechada
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline" className="border-chart-1 text-chart-1 gap-1">
-                                        <LockOpen className="w-3 h-3" /> Aberta
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    {periodoLabel} — {fm.qtd_entregas} entrega(s)
-                                  </p>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="hidden sm:flex shrink-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setBankTarget({ type: 'motorista', id: fm.motorista_id, nome: fm.motoristas?.nome_completo || '—' });
-                                  }}
-                                  title="Dados bancários"
-                                >
-                                  <Landmark className="w-4 h-4" />
-                                </Button>
-                                {fm.status !== 'paga' && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="hidden sm:flex shrink-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setBaixaQuinzenaDialog({
-                                        ...fm,
-                                        empresa_id: 0,
-                                        tipo: 'a_pagar' as any,
-                                        empresas: { nome: fm.motoristas?.nome_completo || null, nome_fantasia: null },
-                                      } as any);
-                                      setBaixaQuinzenaForm({
-                                        data_pagamento: format(new Date(), 'yyyy-MM-dd'),
-                                        metodo_pagamento: '',
-                                        observacoes: '',
-                                      });
-                                      setComprovanteQuinzena(null);
-                                    }}
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                    Baixa Quinzena
-                                  </Button>
-                                )}
-                                <div className="text-right mr-4 hidden sm:block">
-                                  <p className="text-lg font-bold text-foreground">
-                                    {formatCurrency(fm.valor_liquido)}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Comissão: {formatCurrency(fm.valor_comissao)}
-                                  </p>
-                                </div>
-                                {isOpen ? (
-                                  <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
-                                ) : (
-                                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-                                )}
-                              </CardContent>
-                            </button>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="border-t border-border">
-                              {loadingMotoristaItems && isOpen ? (
-                                <div className="p-6 space-y-3">
-                                  {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="overflow-hidden">
-                                    <table className="w-full text-sm">
-                                      <thead className="bg-muted/50">
-                                        <tr className="border-b border-border">
-                                          <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[20%]">Entrega</th>
-                                          <th className="text-left font-medium text-muted-foreground px-4 py-2.5 w-[20%]">Embarcador</th>
-                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Bruto</th>
-                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Comissão</th>
-                                          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Líquido</th>
-                                          <th className="text-center font-medium text-muted-foreground px-4 py-2.5 w-[15%]">Status</th>
-                                        </tr>
-                                      </thead>
-                                    </table>
-                                    <div className="max-h-[400px] overflow-y-auto">
-                                      <table className="w-full text-sm">
-                                        <tbody>
-                                          {pagedItems.map((r) => (
-                                            <tr key={r.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                                              <td className="px-4 py-3 w-[20%]">
-                                                <p className="font-medium">{r.entregas?.codigo || '—'}</p>
-                                                <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                                              </td>
-                                              <td className="px-4 py-3 w-[20%] text-sm">{nomeEmpresa(r.empresa_embarcadora)}</td>
-                                              <td className="px-4 py-3 text-right font-medium w-[15%]">{formatCurrency(r.valor_frete)}</td>
-                                              <td className="px-4 py-3 text-right text-muted-foreground text-sm w-[15%]">
-                                                {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
-                                              </td>
-                                              <td className="px-4 py-3 text-right font-semibold text-chart-2 w-[15%]">{formatCurrency(r.valor_liquido)}</td>
-                                              <td className="px-4 py-3 text-center w-[15%]">
-                                                <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={r.status === 'pago' ? 'bg-chart-2 text-white' : ''}>
-                                                  {r.status === 'pago' ? 'Pago' : 'Pendente'}
-                                                </Badge>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                          {pagedItems.length === 0 && (
-                                            <tr>
-                                              <td colSpan={6} className="text-center text-muted-foreground py-8">
-                                                Nenhum lançamento encontrado
-                                              </td>
-                                            </tr>
-                                          )}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </div>
-                                  {(faturaMotoristaItems?.length || 0) > 10 && (
-                                    <div className="border-t border-border">
-                                      <Pagination
-                                        currentPage={itemPage}
-                                        totalPages={totalItemPages}
-                                        totalItems={faturaMotoristaItems?.length || 0}
-                                        itemsPerPage={10}
-                                        onPageChange={(p) => setFaturaPages(prev => ({ ...prev, [fm.id]: p }))}
-                                      />
-                                    </div>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </CollapsibleContent>
-                        </Card>
-                      </Collapsible>
-                    );
-                  })}
-
-                  {items.length > DRIVERS_PER_PAGE && (
-                    <Pagination
-                      currentPage={driverPage}
-                      totalPages={totalDriverPages}
-                      totalItems={items.length}
-                      itemsPerPage={DRIVERS_PER_PAGE}
-                      onPageChange={(p) => setFaturaPages(prev => ({ ...prev, [pageKey]: p }))}
-                    />
-                  )}
-                </div>
-              );
-            };
-
-            return (
-              <>
-                {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Card className="border-border">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="p-2 bg-chart-4/10 rounded-lg">
-                        <DollarSign className="w-5 h-5 text-chart-4" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{formatCurrency(autoTotalBruto)}</p>
-                        <p className="text-xs text-muted-foreground">Frete Bruto</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-border">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <TrendingUp className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{formatCurrency(autoTotalComissao)}</p>
-                        <p className="text-xs text-muted-foreground">Comissão HubFrete</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-border">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="p-2 bg-chart-2/10 rounded-lg">
-                        <CheckCircle className="w-5 h-5 text-chart-2" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{formatCurrency(autoTotalLiquido)}</p>
-                        <p className="text-xs text-muted-foreground">A Pagar (Líquido)</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-border">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="p-2 bg-accent rounded-lg">
-                        <User className="w-5 h-5 text-accent-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{autoTotalEntregas}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {faturasMotoristas?.length || 0} fatura(s) · {autoPagas} paga(s)
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Faturas agrupadas por quinzena */}
-                <div className="space-y-4 pb-10">
-                  {loadingAutonomos ? (
-                    <div className="space-y-3">
-                      {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
-                    </div>
-                  ) : !faturasMotoristas?.length ? (
-                    <Card className="border-border">
-                      <CardContent className="py-12 text-center text-muted-foreground">
-                        Nenhuma fatura de motorista autônomo encontrada neste período
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <>
-                      {renderQuinzena(1, q1)}
-                      {renderQuinzena(2, q2)}
-                    </>
-                  )}
-                </div>
-              </>
-            );
-          })()}
-        </TabsContent>
       </Tabs>
 
-      {/* Baixa Dialog */}
+      {/* ===== BAIXA DIALOG ===== */}
       <Dialog open={!!baixaDialog} onOpenChange={() => setBaixaDialog(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Dar Baixa no Pagamento</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-chart-2" /> {baixaDialogTitle}
+            </DialogTitle>
           </DialogHeader>
           {baixaDialog && (
             <div className="space-y-4">
-              <div className="p-3 bg-muted rounded-lg space-y-1">
-                <p className="text-sm font-medium">Entrega: {baixaDialog.entregas?.codigo}</p>
-                <p className="text-xs text-muted-foreground">Transportadora: {nomeEmpresa(baixaDialog.empresa_transportadora)}</p>
-                <p className="text-lg font-bold text-chart-2">{formatCurrency(baixaDialog.valor_liquido)}</p>
+              <p className="text-xs text-muted-foreground">{baixaDialogDesc}</p>
+              <div className="p-3 bg-muted rounded-lg space-y-1.5">
+                <p className="text-sm font-medium">Carga: {baixaDialog.entregas?.codigo}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isRecebiveis
+                    ? `Embarcador: ${nomeEmpresa(baixaDialog.empresa_embarcadora)}`
+                    : baixaDialog.tipo_beneficiario === 'autonomo'
+                      ? `Motorista: ${baixaDialog.entregas?.motoristas?.nome_completo}`
+                      : `Transportadora: ${nomeEmpresa(baixaDialog.empresa_transportadora)}`
+                  }
+                </p>
+                {baixaDialog.data_vencimento && (
+                  <p className="text-xs text-muted-foreground">
+                    Vencimento: {format(new Date(baixaDialog.data_vencimento), 'dd/MM/yyyy')}
+                  </p>
+                )}
+                <p className="text-lg font-bold text-chart-2">
+                  {formatCurrency(isRecebiveis ? baixaDialog.valor_frete : baixaDialog.valor_liquido)}
+                </p>
               </div>
-
               <div>
-                <Label>Data do Pagamento</Label>
-                <Input
-                  type="date"
-                  value={baixaForm.data_pagamento}
-                  onChange={(e) => setBaixaForm(f => ({ ...f, data_pagamento: e.target.value }))}
-                />
+                <Label>Data do {baixaLabel}</Label>
+                <Input type="date" value={baixaForm.data_pagamento} onChange={(e) => setBaixaForm(f => ({ ...f, data_pagamento: e.target.value }))} />
               </div>
-
               <div>
-                <Label>Método de Pagamento</Label>
+                <Label>Método</Label>
                 <Select value={baixaForm.metodo_pagamento} onValueChange={(v) => setBaixaForm(f => ({ ...f, metodo_pagamento: v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
@@ -985,138 +882,115 @@ export default function Financeiro() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
                 <Label>Comprovante <span className="text-destructive">*</span></Label>
-                <div className="mt-1">
-                  <label className={`flex items-center gap-2 cursor-pointer border border-dashed rounded-lg p-3 hover:bg-muted transition-colors ${!comprovante ? 'border-destructive/50' : 'border-border'}`}>
-                    <Upload className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      {comprovante ? comprovante.name : 'Clique para anexar (obrigatório)'}
-                    </span>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*,.pdf"
-                      onChange={(e) => setComprovante(e.target.files?.[0] || null)}
-                    />
-                  </label>
-                </div>
+                <label className={`flex items-center gap-2 cursor-pointer border border-dashed rounded-lg p-3 hover:bg-muted transition-colors ${!comprovante ? 'border-destructive/40' : 'border-chart-2'}`}>
+                  <Upload className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">{comprovante ? comprovante.name : 'Clique para anexar (obrigatório)'}</span>
+                  <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setComprovante(e.target.files?.[0] || null)} />
+                </label>
               </div>
-
               <div>
                 <Label>Observações</Label>
-                <Textarea
-                  value={baixaForm.observacoes}
-                  onChange={(e) => setBaixaForm(f => ({ ...f, observacoes: e.target.value }))}
-                  placeholder="Observações sobre o pagamento..."
-                  rows={3}
-                />
+                <Textarea value={baixaForm.observacoes} onChange={(e) => setBaixaForm(f => ({ ...f, observacoes: e.target.value }))} placeholder="Observações..." rows={2} />
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setBaixaDialog(null)}>Cancelar</Button>
-            <Button
-              onClick={handleBaixa}
-              disabled={!baixaForm.data_pagamento || !baixaForm.metodo_pagamento || !comprovante || baixaMutation.isPending || uploading}
-            >
-              {baixaMutation.isPending || uploading ? 'Processando...' : 'Confirmar Baixa'}
+            <Button onClick={handleBaixa} disabled={!baixaForm.data_pagamento || !baixaForm.metodo_pagamento || !comprovante || baixaMutation.isPending || uploading}>
+              {baixaMutation.isPending || uploading ? 'Processando...' : `Confirmar ${baixaLabel}`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Baixa Quinzena Dialog */}
-      <Dialog open={!!baixaQuinzenaDialog} onOpenChange={() => setBaixaQuinzenaDialog(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Dar Baixa na Quinzena Inteira</DialogTitle>
-          </DialogHeader>
-          {baixaQuinzenaDialog && (
-            <div className="space-y-4">
-              <div className="p-3 bg-muted rounded-lg space-y-1">
-                <p className="text-sm font-medium">
-                  {baixaQuinzenaDialog.quinzena === 1 ? '1ª' : '2ª'} Quinzena — {nomeEmpresa(baixaQuinzenaDialog.empresas)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(baixaQuinzenaDialog.periodo_inicio + 'T12:00:00'), 'dd/MM')} a{' '}
-                  {format(new Date(baixaQuinzenaDialog.periodo_fim + 'T12:00:00'), 'dd/MM/yyyy')} — {baixaQuinzenaDialog.qtd_entregas} entrega(s)
-                </p>
-                <p className="text-lg font-bold text-chart-2">
-                  {formatCurrency(activeTab === 'a_pagar' ? baixaQuinzenaDialog.valor_liquido : baixaQuinzenaDialog.valor_bruto)}
-                </p>
-              </div>
-
+      {/* ===== CONFIG DIALOG ===== */}
+      <Dialog open={!!configDialog} onOpenChange={() => setConfigDialog(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Settings className="w-5 h-5" /> Configuração Financeira</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            {!configDialog?.id && (
               <div>
-                <Label>Data do Pagamento</Label>
-                <Input
-                  type="date"
-                  value={baixaQuinzenaForm.data_pagamento}
-                  onChange={(e) => setBaixaQuinzenaForm(f => ({ ...f, data_pagamento: e.target.value }))}
-                />
-              </div>
-
-              <div>
-                <Label>Método de Pagamento</Label>
-                <Select value={baixaQuinzenaForm.metodo_pagamento} onValueChange={(v) => setBaixaQuinzenaForm(f => ({ ...f, metodo_pagamento: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <Label>Embarcador</Label>
+                <Select value={configDialog?.empresa_id?.toString() || ''} onValueChange={(v) => setConfigDialog(prev => prev ? { ...prev, empresa_id: parseInt(v) } : null)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="ted">TED</SelectItem>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="deposito">Depósito</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
+                    {embarcadores?.map(e => (
+                      <SelectItem key={e.id} value={e.id.toString()}>{e.nome_fantasia || e.nome || e.cnpj_matriz}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-
+            )}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Comprovante <span className="text-destructive">*</span></Label>
-                <div className="mt-1">
-                  <label className={`flex items-center gap-2 cursor-pointer border border-dashed rounded-lg p-3 hover:bg-muted transition-colors ${!comprovanteQuinzena ? 'border-destructive/50' : 'border-border'}`}>
-                    <Upload className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      {comprovanteQuinzena ? comprovanteQuinzena.name : 'Clique para anexar (obrigatório)'}
-                    </span>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*,.pdf"
-                      onChange={(e) => setComprovanteQuinzena(e.target.files?.[0] || null)}
-                    />
-                  </label>
-                </div>
+                <Label>Tipo de Pagamento</Label>
+                <Select value={configForm.tipo_pagamento} onValueChange={(v) => setConfigForm(f => ({ ...f, tipo_pagamento: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pos_pago">Pós-pago (D+X)</SelectItem>
+                    <SelectItem value="faturado">Faturado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-
               <div>
-                <Label>Observações</Label>
-                <Textarea
-                  value={baixaQuinzenaForm.observacoes}
-                  onChange={(e) => setBaixaQuinzenaForm(f => ({ ...f, observacoes: e.target.value }))}
-                  placeholder="Observações sobre o pagamento da quinzena..."
-                  rows={3}
-                />
+                <Label>{configForm.tipo_pagamento === 'faturado' ? 'Prazo após fechamento (dias)' : 'Prazo (dias)'}</Label>
+                <Input type="number" value={configForm.prazo_dias} onChange={(e) => setConfigForm(f => ({ ...f, prazo_dias: parseInt(e.target.value) || 0 }))} />
+                {configForm.tipo_pagamento === 'faturado' && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Dias adicionais para pagamento após o fechamento</p>
+                )}
               </div>
             </div>
-          )}
+            {configForm.tipo_pagamento === 'faturado' && (
+              <div>
+                <Label>Dia de Fechamento da Fatura</Label>
+                <Input type="number" placeholder="Ex: 15" min={1} max={28} value={configForm.dia_fixo} onChange={(e) => setConfigForm(f => ({ ...f, dia_fixo: e.target.value }))} />
+                <p className="text-[10px] text-muted-foreground mt-1">Acumula entregas do mês e fecha a fatura neste dia</p>
+              </div>
+            )}
+            <div className="border-t border-border pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold">Antecipação</p>
+                  <p className="text-[10px] text-muted-foreground">Permitir que transportadores antecipem recebíveis deste embarcador</p>
+                </div>
+                <Switch checked={configForm.antecipacao_permitida} onCheckedChange={(v) => setConfigForm(f => ({ ...f, antecipacao_permitida: v }))} />
+              </div>
+              {configForm.antecipacao_permitida && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Taxa de Antecipação (%)</Label>
+                    <Input type="number" step="0.1" value={configForm.taxa_antecipacao_percent} onChange={(e) => setConfigForm(f => ({ ...f, taxa_antecipacao_percent: parseFloat(e.target.value) || 0 }))} />
+                  </div>
+                  <div>
+                    <Label>Limite de Crédito (R$)</Label>
+                    <Input type="number" value={configForm.limite_credito} onChange={(e) => setConfigForm(f => ({ ...f, limite_credito: parseFloat(e.target.value) || 0 }))} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBaixaQuinzenaDialog(null)}>Cancelar</Button>
-            <Button
-              onClick={handleBaixaQuinzena}
-              disabled={!baixaQuinzenaForm.data_pagamento || !baixaQuinzenaForm.metodo_pagamento || !comprovanteQuinzena || baixaQuinzenaMutation.isPending || uploading}
-            >
-              {baixaQuinzenaMutation.isPending || uploading ? 'Processando...' : 'Confirmar Baixa Quinzena'}
+            <Button variant="outline" onClick={() => setConfigDialog(null)}>Cancelar</Button>
+            <Button onClick={() => {
+              if (!configDialog?.empresa_id) { toast.error('Selecione um embarcador'); return; }
+              saveConfigMutation.mutate({ empresa_id: configDialog.empresa_id, form: configForm });
+            }} disabled={saveConfigMutation.isPending}>
+              {saveConfigMutation.isPending ? 'Salvando...' : 'Salvar Configuração'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <DadosBancariosDialog
-        target={bankTarget}
-        open={!!bankTarget}
-        onOpenChange={(open) => { if (!open) setBankTarget(null); }}
-      />
+      {/* Bank Details Dialog */}
+      {bankTarget && (
+        <DadosBancariosDialog
+          open={!!bankTarget}
+          onOpenChange={() => setBankTarget(null)}
+          target={bankTarget}
+        />
+      )}
     </div>
   );
 }

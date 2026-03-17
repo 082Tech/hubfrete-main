@@ -128,6 +128,21 @@ export type Database = {
           },
         ]
       }
+      app_config: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value: string
+        }
+        Update: {
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
       auditoria_logs: {
         Row: {
           dados_anteriores: Json | null
@@ -160,6 +175,50 @@ export type Database = {
           usuario_id?: string | null
         }
         Relationships: []
+      }
+      carga_eventos: {
+        Row: {
+          carga_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          observacao: string | null
+          timestamp: string
+          tipo: string
+          user_id: string | null
+          user_nome: string | null
+        }
+        Insert: {
+          carga_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          observacao?: string | null
+          timestamp?: string
+          tipo: string
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Update: {
+          carga_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          observacao?: string | null
+          timestamp?: string
+          tipo?: string
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carga_eventos_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cargas: {
         Row: {
@@ -1080,6 +1139,59 @@ export type Database = {
         }
         Relationships: []
       }
+      empresa_config_financeira: {
+        Row: {
+          antecipacao_permitida: boolean
+          ciclo_faturamento: string | null
+          created_at: string
+          credito_utilizado: number
+          dia_fixo: number | null
+          empresa_id: number
+          id: string
+          limite_credito: number
+          prazo_dias: number
+          taxa_antecipacao_percent: number
+          tipo_pagamento: string
+          updated_at: string
+        }
+        Insert: {
+          antecipacao_permitida?: boolean
+          ciclo_faturamento?: string | null
+          created_at?: string
+          credito_utilizado?: number
+          dia_fixo?: number | null
+          empresa_id: number
+          id?: string
+          limite_credito?: number
+          prazo_dias?: number
+          taxa_antecipacao_percent?: number
+          tipo_pagamento?: string
+          updated_at?: string
+        }
+        Update: {
+          antecipacao_permitida?: boolean
+          ciclo_faturamento?: string | null
+          created_at?: string
+          credito_utilizado?: number
+          dia_fixo?: number | null
+          empresa_id?: number
+          id?: string
+          limite_credito?: number
+          prazo_dias?: number
+          taxa_antecipacao_percent?: number
+          tipo_pagamento?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_config_financeira_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           classe: Database["public"]["Enums"]["classe_empresa"]
@@ -1420,83 +1532,6 @@ export type Database = {
           },
         ]
       }
-      faturas: {
-        Row: {
-          ano: number
-          baixa_por: string | null
-          comprovante_url: string | null
-          created_at: string
-          data_pagamento: string | null
-          empresa_id: number
-          id: string
-          mes: number
-          metodo_pagamento: string | null
-          observacoes: string | null
-          periodo_fim: string
-          periodo_inicio: string
-          qtd_entregas: number | null
-          quinzena: number
-          status: Database["public"]["Enums"]["status_fatura"]
-          tipo: Database["public"]["Enums"]["tipo_fatura"]
-          updated_at: string
-          valor_bruto: number | null
-          valor_comissao: number | null
-          valor_liquido: number | null
-        }
-        Insert: {
-          ano: number
-          baixa_por?: string | null
-          comprovante_url?: string | null
-          created_at?: string
-          data_pagamento?: string | null
-          empresa_id: number
-          id?: string
-          mes: number
-          metodo_pagamento?: string | null
-          observacoes?: string | null
-          periodo_fim: string
-          periodo_inicio: string
-          qtd_entregas?: number | null
-          quinzena: number
-          status?: Database["public"]["Enums"]["status_fatura"]
-          tipo: Database["public"]["Enums"]["tipo_fatura"]
-          updated_at?: string
-          valor_bruto?: number | null
-          valor_comissao?: number | null
-          valor_liquido?: number | null
-        }
-        Update: {
-          ano?: number
-          baixa_por?: string | null
-          comprovante_url?: string | null
-          created_at?: string
-          data_pagamento?: string | null
-          empresa_id?: number
-          id?: string
-          mes?: number
-          metodo_pagamento?: string | null
-          observacoes?: string | null
-          periodo_fim?: string
-          periodo_inicio?: string
-          qtd_entregas?: number | null
-          quinzena?: number
-          status?: Database["public"]["Enums"]["status_fatura"]
-          tipo?: Database["public"]["Enums"]["tipo_fatura"]
-          updated_at?: string
-          valor_bruto?: number | null
-          valor_comissao?: number | null
-          valor_liquido?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "faturas_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       filiais: {
         Row: {
           ativa: boolean | null
@@ -1579,11 +1614,14 @@ export type Database = {
       }
       financeiro_entregas: {
         Row: {
+          antecipado: boolean
           baixa_por: string | null
           comprovante_url: string | null
           created_at: string
+          data_antecipacao: string | null
           data_pagamento: string | null
           data_vencimento: string | null
+          dias_antecipados: number | null
           empresa_embarcadora_id: number | null
           empresa_transportadora_id: number | null
           entrega_id: string
@@ -1591,19 +1629,27 @@ export type Database = {
           fatura_transportadora_id: string | null
           id: string
           metodo_pagamento: string | null
+          motorista_id: string | null
           observacoes: string | null
           status: string
+          taxa_antecipacao_percent: number | null
+          tipo_beneficiario: string | null
           updated_at: string
           valor_comissao: number
+          valor_final: number | null
           valor_frete: number
           valor_liquido: number
+          valor_taxa_antecipacao: number | null
         }
         Insert: {
+          antecipado?: boolean
           baixa_por?: string | null
           comprovante_url?: string | null
           created_at?: string
+          data_antecipacao?: string | null
           data_pagamento?: string | null
           data_vencimento?: string | null
+          dias_antecipados?: number | null
           empresa_embarcadora_id?: number | null
           empresa_transportadora_id?: number | null
           entrega_id: string
@@ -1611,19 +1657,27 @@ export type Database = {
           fatura_transportadora_id?: string | null
           id?: string
           metodo_pagamento?: string | null
+          motorista_id?: string | null
           observacoes?: string | null
           status?: string
+          taxa_antecipacao_percent?: number | null
+          tipo_beneficiario?: string | null
           updated_at?: string
           valor_comissao?: number
+          valor_final?: number | null
           valor_frete?: number
           valor_liquido?: number
+          valor_taxa_antecipacao?: number | null
         }
         Update: {
+          antecipado?: boolean
           baixa_por?: string | null
           comprovante_url?: string | null
           created_at?: string
+          data_antecipacao?: string | null
           data_pagamento?: string | null
           data_vencimento?: string | null
+          dias_antecipados?: number | null
           empresa_embarcadora_id?: number | null
           empresa_transportadora_id?: number | null
           entrega_id?: string
@@ -1631,12 +1685,17 @@ export type Database = {
           fatura_transportadora_id?: string | null
           id?: string
           metodo_pagamento?: string | null
+          motorista_id?: string | null
           observacoes?: string | null
           status?: string
+          taxa_antecipacao_percent?: number | null
+          tipo_beneficiario?: string | null
           updated_at?: string
           valor_comissao?: number
+          valor_final?: number | null
           valor_frete?: number
           valor_liquido?: number
+          valor_taxa_antecipacao?: number | null
         }
         Relationships: [
           {
@@ -1661,17 +1720,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "financeiro_entregas_fatura_embarcador_id_fkey"
-            columns: ["fatura_embarcador_id"]
+            foreignKeyName: "financeiro_entregas_motorista_id_fkey"
+            columns: ["motorista_id"]
             isOneToOne: false
-            referencedRelation: "faturas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financeiro_entregas_fatura_transportadora_id_fkey"
-            columns: ["fatura_transportadora_id"]
-            isOneToOne: false
-            referencedRelation: "faturas"
+            referencedRelation: "motoristas"
             referencedColumns: ["id"]
           },
         ]
@@ -3327,7 +3379,6 @@ export type Database = {
         | "entregue"
         | "problema"
         | "cancelada"
-      status_fatura: "aberta" | "fechada" | "paga" | "cancelada"
       status_pre_cadastro: "pendente" | "aprovado" | "rejeitado"
       status_viagem:
         | "em_andamento"
@@ -3373,7 +3424,6 @@ export type Database = {
         | "hopper"
       tipo_empresa: "EMBARCADOR" | "TRANSPORTADORA"
       tipo_endereco: "origem" | "destino"
-      tipo_fatura: "a_receber" | "a_pagar"
       tipo_frete: "cif" | "fob"
       tipo_notificacao:
         | "status_entrega_alterado"
@@ -3567,7 +3617,6 @@ export const Constants = {
         "problema",
         "cancelada",
       ],
-      status_fatura: ["aberta", "fechada", "paga", "cancelada"],
       status_pre_cadastro: ["pendente", "aprovado", "rejeitado"],
       status_viagem: [
         "em_andamento",
@@ -3616,7 +3665,6 @@ export const Constants = {
       ],
       tipo_empresa: ["EMBARCADOR", "TRANSPORTADORA"],
       tipo_endereco: ["origem", "destino"],
-      tipo_fatura: ["a_receber", "a_pagar"],
       tipo_frete: ["cif", "fob"],
       tipo_notificacao: [
         "status_entrega_alterado",

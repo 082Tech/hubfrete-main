@@ -2,17 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChatList, ChatArea } from '@/components/mensagens';
 import { useChats } from '@/hooks/useChats';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useUserContext } from '@/hooks/useUserContext';
 
 import { useChatView } from '@/contexts/ChatViewContext';
 
 export default function Mensagens() {
   const [searchParams] = useSearchParams();
-  const [empresaId, setEmpresaId] = useState<number | undefined>();
   const [showChatList, setShowChatList] = useState(true);
   const hasAutoSelected = useRef(false);
   const { setIsInChatView } = useChatView();
+  const { empresa } = useUserContext();
+  const empresaId = empresa?.id;
 
   // Get entrega ID from URL params
   const entregaIdFromUrl = searchParams.get('entrega');
@@ -22,20 +23,6 @@ export default function Mensagens() {
     setIsInChatView(!showChatList);
     return () => setIsInChatView(false);
   }, [showChatList, setIsInChatView]);
-
-  // Get empresa_id for current user
-  useEffect(() => {
-    const fetchEmpresaId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase.rpc('get_user_empresa_id', { _user_id: user.id });
-      if (data) {
-        setEmpresaId(data);
-      }
-    };
-    fetchEmpresaId();
-  }, []);
 
   const {
     chats,

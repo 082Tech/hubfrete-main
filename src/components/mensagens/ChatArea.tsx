@@ -411,20 +411,44 @@ export function ChatArea({
           </Button>
         )}
         
-        <Avatar className="h-10 w-10 md:h-12 md:w-12 shrink-0 ring-2 ring-primary/10">
-          <AvatarImage src={getChatAvatar()} />
-          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm md:text-base">
-            {getChatTitle().substring(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        {/* Stacked participant avatars */}
+        <div className="flex -space-x-2 shrink-0">
+          {/* Embarcador avatar */}
+          <Avatar className="h-9 w-9 md:h-10 md:w-10 ring-2 ring-card z-30">
+            <AvatarImage src={chat.entrega?.carga?.empresa?.logo_url} className="object-cover" />
+            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+              {(chat.entrega?.carga?.empresa?.nome || 'E').substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {/* Transportadora avatar */}
+          {chat.entrega?.motorista?.empresa && (
+            <Avatar className="h-9 w-9 md:h-10 md:w-10 ring-2 ring-card z-20">
+              <AvatarImage src={chat.entrega.motorista.empresa.logo_url} className="object-cover" />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                {(chat.entrega.motorista.empresa.nome || 'T').substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          )}
+          {/* Motorista avatar */}
+          {chat.entrega?.motorista && (
+            <Avatar className="h-9 w-9 md:h-10 md:w-10 ring-2 ring-card z-10">
+              <AvatarImage src={chat.entrega.motorista.foto_url} className="object-cover" />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                {(chat.entrega.motorista.nome_completo || 'M').substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          )}
+        </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold truncate text-sm md:text-base">{getChatTitle()}</h3>
+            <h3 className="font-semibold truncate text-sm md:text-base">
+              {chat.entrega?.carga?.codigo || 'Carga'}
+            </h3>
             {getStatusBadge()}
           </div>
           <p className="text-xs md:text-sm text-muted-foreground truncate">
-            {chat.entrega?.carga?.codigo}{!compact && ' • Toque para ver detalhes'}
+            {getChatTitle()}{!compact && ' • Toque para ver detalhes'}
           </p>
         </div>
         

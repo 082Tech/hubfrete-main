@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 import { EntregaDetailsDialog } from '@/components/entregas/EntregaDetailsDialog';
 import { EntregaDocsDialog } from '@/components/entregas/EntregaDocsDialog';
+import { ChatSheet } from '@/components/mensagens/ChatSheet';
 
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 
@@ -72,6 +73,7 @@ import {
   AlertTriangle,
   ArrowRightLeft,
   Info,
+  MessageCircle,
 } from 'lucide-react';
 
 // Types
@@ -180,7 +182,7 @@ type SortOrder = 'asc' | 'desc';
 const ITEMS_PER_PAGE = 15;
 
 export default function HistoricoCargas() {
-  const { filialAtiva } = useUserContext();
+  const { filialAtiva, empresa } = useUserContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [detailsCarga, setDetailsCarga] = useState<CargaData | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -207,8 +209,11 @@ export default function HistoricoCargas() {
   const [docsEntregaCanhoto, setDocsEntregaCanhoto] = useState<string | null>(null);
   const [docsEntregaOutros, setDocsEntregaOutros] = useState<any[]>([]);
 
+  // Chat sheet state
+  const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [chatEntregaId, setChatEntregaId] = useState<string | null>(null);
 
-  // Handle URL params for highlighting/expanding specific cargo and entrega
+
   useEffect(() => {
     const cargaId = searchParams.get('carga');
     const entregaId = searchParams.get('entrega');
@@ -1000,17 +1005,9 @@ export default function HistoricoCargas() {
                                 <span className="font-medium">{formatWeight(carga.peso_kg)}</span>
                               </td>
                               <td className="p-4 align-middle">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="font-medium text-sm text-green-600 cursor-help inline-flex items-center gap-1">
-                                      {formatCurrency(getTotalFrete(carga))}
-                                      <Info className="w-3 h-3 text-muted-foreground" />
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="text-xs">Inclui comissão HubFrete</p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                <span className="font-medium text-sm text-green-600">
+                                  {formatCurrency(getTotalFrete(carga))}
+                                </span>
                               </td>
                               <td className="p-4 align-middle text-center">
                                 <Badge variant="outline" className="text-xs">
@@ -1102,17 +1099,9 @@ export default function HistoricoCargas() {
                                                   {entrega.peso_alocado_kg ? formatWeight(entrega.peso_alocado_kg) : '-'}
                                                 </TableCell>
                                                 <TableCell className="text-right text-sm font-medium text-emerald-600">
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <span className="cursor-help inline-flex items-center gap-1">
-                                                        {formatCurrency(entrega.valor_frete)}
-                                                        <Info className="w-3 h-3 text-muted-foreground" />
-                                                      </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                      <p className="text-xs">Inclui comissão HubFrete</p>
-                                                    </TooltipContent>
-                                                  </Tooltip>
+                                                <span className="text-sm font-medium text-emerald-600">
+                                                  {formatCurrency(entrega.valor_frete)}
+                                                </span>
                                                 </TableCell>
                                                 <TableCell>
                                                   <div className="flex items-center gap-1 text-sm">
@@ -1163,6 +1152,17 @@ export default function HistoricoCargas() {
                                                       </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
+                                                      <DropdownMenuItem onClick={() => handleOpenEntregaDetails(entrega, carga)}>
+                                                        <Eye className="w-4 h-4 mr-2" />
+                                                        Ver detalhes
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => {
+                                                        setChatEntregaId(entrega.id);
+                                                        setChatSheetOpen(true);
+                                                      }}>
+                                                        <MessageCircle className="w-4 h-4 mr-2" />
+                                                        Ver conversa
+                                                      </DropdownMenuItem>
                                                       <DropdownMenuItem onClick={() => {
                                                         setTrackingMapEntregaId(entrega.id);
                                                         setTrackingMapInfo({
@@ -1301,6 +1301,15 @@ export default function HistoricoCargas() {
           entregaCodigo={docsEntregaCodigo}
           canhotoUrl={docsEntregaCanhoto}
           outrosDocumentos={docsEntregaOutros}
+        />
+
+        {/* Chat Sheet */}
+        <ChatSheet
+          open={chatSheetOpen}
+          onOpenChange={setChatSheetOpen}
+          entregaId={chatEntregaId}
+          userType="embarcador"
+          empresaId={empresa?.id}
         />
       </TooltipProvider>
     </div>

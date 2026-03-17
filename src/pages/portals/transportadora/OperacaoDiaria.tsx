@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { formatWeight } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, startOfDay } from 'date-fns';
@@ -48,7 +49,7 @@ import {
   RefreshCw,
   History,
   Share,
-  Printer,
+  // Printer removed
   X,
   ArrowUpRight,
   Map,
@@ -68,6 +69,7 @@ import {
   Search,
   HelpCircle,
   Route,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -82,6 +84,7 @@ import { ChatSheet } from '@/components/mensagens/ChatSheet';
 import { DailyPerformanceDialog } from '@/components/admin/relatorios/DailyPerformanceDialog';
 import { BarChart3 } from 'lucide-react';
 import { ViagemListItem, ViagemDetailPanel } from '@/components/viagens';
+import { EventTimeline } from '@/components/shared/EventTimeline';
 
 type ViewMode = 'entregas' | 'viagens';
 
@@ -102,6 +105,7 @@ type EntregaStatus = string;
 interface Entrega {
   id: string;
   codigo: string;
+  tracking_code?: string | null;
   status: EntregaStatus;
   created_at: string;
   updated_at: string;
@@ -453,21 +457,86 @@ function DetailPanel({
                 <ArrowLeft className="w-3.5 h-3.5" />
               </Button>
             )}
-            <span className="text-xs text-muted-foreground">Entrega Nº</span>
+            <span className="text-xs text-muted-foreground">Carga Nº</span>
             <Badge variant="outline" className="font-mono font-bold text-xs px-2 border-primary text-primary">
               {entrega.codigo || entrega.id.slice(0, 8)}
             </Badge>
           </div>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Share className="w-3.5 h-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <Printer className="w-3.5 h-3.5" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      const trackCode = entrega.tracking_code;
+                      if (!trackCode) {
+                        toast.error('Código de rastreio não disponível para esta carga.');
+                        return;
+                      }
+                      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
+                      navigator.clipboard.writeText(url).then(() => {
+                        toast.success('Link de rastreio copiado!');
+                      });
+                    }}
+                  >
+                    <LinkIcon className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Copiar link de rastreio</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      const trackCode = entrega.tracking_code;
+                      if (!trackCode) {
+                        toast.error('Código de rastreio não disponível para esta carga.');
+                        return;
+                      }
+                      const url = `${window.location.origin}/rastreio?codigo=${trackCode}`;
+                      if (navigator.share) {
+                        navigator.share({ title: `Rastreio da Carga`, url });
+                      } else {
+                        toast.error('Seu navegador não suporta compartilhamento nativo.');
+                      }
+                    }}
+                  >
+                    <Share className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Compartilhar</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      const trackCode = entrega.tracking_code;
+                      if (!trackCode) {
+                        toast.error('Código de rastreio não disponível para esta carga.');
+                        return;
+                      }
+                      window.open(`${window.location.origin}/rastreio?codigo=${trackCode}`, '_blank');
+                    }}
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Abrir rastreio em nova aba</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
               <X className="w-3.5 h-3.5" />
             </Button>
@@ -489,6 +558,16 @@ function DetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
+          {/* Chat Button */}
+          <Button
+            variant="outline"
+            className="w-full justify-center gap-2"
+            onClick={() => setChatSheetOpen(true)}
+          >
+            <MessageCircle className="w-4 h-4" />
+            Abrir Chat da Carga
+          </Button>
+
           {/* Empresa que publicou */}
           {entrega.carga.empresa && (
             <div className="flex items-center gap-2 text-sm">
@@ -540,7 +619,7 @@ function DetailPanel({
                         <span>R$ {entrega.valor_frete!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex justify-between text-xs text-destructive">
-                        <span>Comissão HubFrete ({comissaoP}%):</span>
+                        <span>Taxa HubFrete ({comissaoP}%):</span>
                         <span>- R$ {valorComissao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       </div>
                       <Separator className="my-1" />
@@ -681,7 +760,7 @@ function DetailPanel({
 
           <Separator />
 
-          {/* Driver & Vehicle + Chat Button + Status Online/Offline */}
+          {/* Driver & Vehicle + Status Online/Offline */}
           {entrega.motorista && (
             <Card className="shadow-none border">
               <CardContent className="p-2">
@@ -719,15 +798,6 @@ function DetailPanel({
                       </div>
                     )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => setChatSheetOpen(true)}
-                  >
-                    <MessageCircle className="w-4 h-4 mr-1.5" />
-                    Chat
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -741,71 +811,17 @@ function DetailPanel({
             </div>
 
             {entrega.eventos && entrega.eventos.length > 0 ? (
-              <div className="relative">
-                {/* Linha vertical de timeline */}
-                <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-border" />
-
-                <div className="space-y-4">
-                  {entrega.eventos.slice(0, 5).map((evento, idx) => {
-                    // Mapear tipo do evento para label legível e cor
-                    const tipoConfig: Record<string, { label: string; bgColor: string; isDocument?: boolean; isCreation?: boolean }> = {
-                      criado: { label: 'Entrega criada', bgColor: 'bg-gray-100 dark:bg-gray-900/30', isCreation: true },
-                      aceite: { label: 'Aguardando', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-                      inicio_coleta: { label: 'Saiu para Coleta', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
-                      inicio_rota: { label: 'Saiu p/ Entrega', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-                      finalizado: { label: 'Concluída', bgColor: 'bg-green-100 dark:bg-green-900/30' },
-                      cancelado: { label: 'Cancelada', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-                      problema: { label: 'Problema', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
-                      documento_anexado: { label: 'Documento anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-                      cte_anexado: { label: 'CT-e anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-                      manifesto_anexado: { label: 'Manifesto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-                      canhoto_anexado: { label: 'Canhoto anexado', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-                      nf_anexada: { label: 'Nota Fiscal anexada', bgColor: 'bg-blue-100 dark:bg-blue-900/30', isDocument: true },
-                    };
-
-                    const config = tipoConfig[evento.tipo] || { label: evento.tipo.replace(/_/g, ' '), bgColor: 'bg-muted dark:bg-muted/50' };
-                    const userName = evento.user_nome || 'Sistema';
-                    const isDocument = config.isDocument || evento.tipo.includes('documento') || evento.tipo.includes('anexa');
-                    const isCreation = config.isCreation;
-                    const isLast = idx === (entrega.eventos!.length || 0) - 1;
-
-                    return (
-                      <div key={evento.id} className="relative flex items-start gap-3">
-                        {/* Ícone com cor de fundo baseada no status */}
-                        <div className={`relative z-10 w-8 h-8 rounded-md ${config.bgColor} flex items-center justify-center shrink-0`}>
-                          {isDocument ? (
-                            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          ) : isCreation ? (
-                            <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                          ) : (
-                            <ArrowRightLeft className={`w-4 h-4 ${evento.tipo === 'aceite' ? 'text-amber-600 dark:text-amber-400' :
-                              evento.tipo === 'inicio_coleta' ? 'text-cyan-600 dark:text-cyan-400' :
-                                evento.tipo === 'inicio_rota' ? 'text-purple-600 dark:text-purple-400' :
-                                  evento.tipo === 'finalizado' ? 'text-green-600 dark:text-green-400' :
-                                    evento.tipo === 'cancelado' ? 'text-red-600 dark:text-red-400' :
-                                      evento.tipo === 'problema' ? 'text-orange-600 dark:text-orange-400' :
-                                        'text-muted-foreground'
-                              }`} />
-                          )}
-                        </div>
-
-                        <div className="flex-1 min-w-0 pt-1">
-                          <p className="text-sm">
-                            <span className="font-medium">{userName}</span>
-                            <span className="text-muted-foreground">
-                              {isCreation ? ' criou esta carga' : isDocument ? ' anexou ' : ' definiu o status como '}
-                            </span>
-                            {!isCreation && <span className="font-medium">{config.label}</span>}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {format(new Date(evento.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <EventTimeline
+                events={[...entrega.eventos].reverse().map(e => ({
+                  id: e.id,
+                  tipo: e.tipo,
+                  timestamp: e.timestamp,
+                  observacao: e.observacao,
+                  user_nome: e.user_nome,
+                  entityType: 'entrega' as const,
+                }))}
+                maxItems={5}
+              />
             ) : (
               <p className="text-sm text-muted-foreground text-center py-3">
                 Nenhum evento registrado
@@ -1094,6 +1110,12 @@ function GestaoEntregasDialogContent({
     enabled: !!empresa?.id,
   });
 
+  // Filtrar apenas entregas ativas para o mapa (sem finalizadas)
+  const activeEntregas = useMemo(() => {
+    const terminalStatuses = ['entregue', 'cancelada', 'problema'];
+    return entregas.filter(e => !terminalStatuses.includes(e.status));
+  }, [entregas]);
+
   // Agrupar entregas por viagem (e motorista sem viagem como grupo separado)
   const viagemGroups = useMemo(() => {
     type ViagemGroup = {
@@ -1108,7 +1130,7 @@ function GestaoEntregasDialogContent({
 
     const groups: Record<string, ViagemGroup> = {};
 
-    entregas.forEach(e => {
+    activeEntregas.forEach(e => {
       if (!e.motorista_id || !e.motorista) return;
 
       const viagemInfo = entregaViagemMap[e.id];
@@ -1145,7 +1167,7 @@ function GestaoEntregasDialogContent({
     });
 
     return Object.values(groups);
-  }, [entregas, entregaViagemMap]);
+  }, [activeEntregas, entregaViagemMap]);
 
   // Sync initial selection once viagemGroups are available
   useEffect(() => {
@@ -1561,7 +1583,9 @@ export default function OperacaoDiaria() {
   const [selectedViagem, setSelectedViagem] = useState<ViagemWithEntregas | null>(null);
   const [selectedEntregaInViagem, setSelectedEntregaInViagem] = useState<Entrega | null>(null); // Stack navigation for viagem view
   const [motoristaIds, setMotoristaIds] = useState<string[]>([]);
-  const [gestaoDialogOpen, setGestaoDialogOpen] = useState(false);
+  // Auto-open map dialog if navigated with ?mapa=1
+  const [searchParams] = useSearchParams();
+  const [gestaoDialogOpen, setGestaoDialogOpen] = useState(searchParams.get('mapa') === '1');
   const [performanceDialogOpen, setPerformanceDialogOpen] = useState(false);
   const [filters, setFilters] = useState<AdvancedFilters>({});
 
@@ -1593,7 +1617,7 @@ export default function OperacaoDiaria() {
       const { data, error } = await (supabase as any)
         .from('entregas')
         .select(`
-          id, codigo, status, created_at, updated_at,
+          id, codigo, tracking_code, status, created_at, updated_at,
           motorista_id, veiculo_id, carroceria_id,
           peso_alocado_kg, valor_frete, coletado_em, entregue_em, carrocerias_alocadas,
           previsao_coleta, canhoto_url, outros_documentos,
