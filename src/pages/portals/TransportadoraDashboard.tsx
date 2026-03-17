@@ -112,7 +112,24 @@ export default function TransportadoraDashboard() {
     enabled: !!empresa?.id,
   });
 
-  // Stats
+  // Fetch a receber hoje
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const { data: aReceberHoje = 0 } = useQuery({
+    queryKey: ['transportadora-a-receber-hoje', empresa?.id, today],
+    queryFn: async () => {
+      if (!empresa?.id) return 0;
+      const { data, error } = await supabase
+        .from('financeiro_entregas')
+        .select('valor_liquido')
+        .eq('empresa_transportadora_id', empresa.id)
+        .eq('status', 'pendente')
+        .eq('data_vencimento', today);
+      if (error) throw error;
+      return (data || []).reduce((s, r) => s + Number(r.valor_liquido || 0), 0);
+    },
+    enabled: !!empresa?.id,
+  });
+
   const stats = useMemo(() => {
     const veiculosAtivos = veiculos.filter((v: any) => v.ativo).length;
     const motoristasAtivos = motoristas.filter((m: any) => m.ativo).length;
