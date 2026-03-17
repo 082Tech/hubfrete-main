@@ -262,7 +262,6 @@ export default function TransportadoraDashboard() {
                   </CardContent>
                 </Card>
 
-                {aReceberHoje > 0 && (
                 <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/transportadora/financeiro')}>
                   <CardContent className="p-5 flex items-center gap-4">
                     <div className="p-3 bg-chart-2/10 rounded-xl">
@@ -277,7 +276,6 @@ export default function TransportadoraDashboard() {
                     <ArrowUpRight className="w-5 h-5 text-muted-foreground" />
                   </CardContent>
                 </Card>
-                )}
               </div>
             </>
             )}
