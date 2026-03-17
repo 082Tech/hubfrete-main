@@ -27,8 +27,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-  import { useMemo, useState } from 'react';
-  import { format } from 'date-fns';
+import { useMemo, useState } from 'react';
+import { format } from 'date-fns';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 
