@@ -76,31 +76,13 @@ export default function EmbarcadorFinanceiro() {
   // Group by period for faturado view
   const faturaGroups = useMemo(() => {
     if (!isFaturado || registros.length === 0) return [];
-    const ciclo = configFinanceira?.ciclo_faturamento || 'mensal';
-    const groups: Record<string, { label: string; items: any[] }> = {};
+    const monthLabel = format(monthStart, 'MMM/yyyy', { locale: ptBR });
+    const diaFechamento = configFinanceira?.dia_fixo;
+    const prazoDias = configFinanceira?.prazo_dias || 30;
+    const label = `Fatura · ${monthLabel}${diaFechamento ? ` · Fecha dia ${diaFechamento} · +${prazoDias}d` : ''}`;
 
-    for (const r of registros) {
-      let key: string;
-      let label: string;
-      const d = r.data_vencimento ? new Date(r.data_vencimento) : new Date();
-      const monthLabel = format(monthStart, 'MMM/yyyy', { locale: ptBR });
-
-      if (ciclo === 'quinzenal') {
-        const day = d.getDate();
-        const q = day <= 15 ? '1' : '2';
-        key = `${q}`;
-        label = q === '1' ? `1ª Quinzena · ${monthLabel}` : `2ª Quinzena · ${monthLabel}`;
-      } else {
-        key = 'mensal';
-        label = `Fatura · ${monthLabel}`;
-      }
-
-      if (!groups[key]) groups[key] = { label, items: [] };
-      groups[key].items.push(r);
-    }
-
-    return Object.entries(groups).map(([key, val]) => ({ key, ...val }));
-  }, [registros, isFaturado, configFinanceira]);
+    return [{ key: 'mensal', label, items: registros }];
+  }, [registros, isFaturado, configFinanceira, monthStart]);
 
   const toggleGroup = (key: string) => {
     setExpandedGroups(prev => {
