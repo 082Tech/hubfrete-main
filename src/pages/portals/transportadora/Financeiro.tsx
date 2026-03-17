@@ -16,6 +16,7 @@ import {
 import { Label } from '@/components/ui/label';
 import {
   Landmark, Save, Zap, Calendar, BarChart3, AlertTriangle,
+  DollarSign, Clock, CheckCircle, TrendingUp,
 } from 'lucide-react';
 import { format, endOfMonth, startOfMonth, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -72,7 +73,6 @@ export default function TransportadoraFinanceiro() {
     },
   });
 
-  // Load bank details
   useQuery({
     queryKey: ['empresa-dados-bancarios', empresa?.id],
     queryFn: async () => {
@@ -133,15 +133,69 @@ export default function TransportadoraFinanceiro() {
     return cfg?.antecipacao_permitida === true;
   };
 
+  const totalPendente = registros.filter(r => r.status === 'pendente').reduce((s: number, r: any) => s + Number(r.valor_liquido), 0);
+  const totalRecebido = registros.filter(r => r.status === 'pago').reduce((s: number, r: any) => s + Number(r.valor_liquido), 0);
+  const totalAntecipados = registros.filter(r => r.antecipado).length;
+  const countPendente = registros.filter(r => r.status === 'pendente').length;
+
   return (
     <div className="h-full overflow-auto p-6 space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
-        <p className="text-sm text-muted-foreground">Recebíveis individuais — cada carga finalizada vence em D+30</p>
+        <p className="text-sm text-muted-foreground">Cada carga finalizada gera um recebível individual D+30</p>
       </div>
 
-      <Tabs defaultValue="calendario" className="space-y-6">
-        <TabsList>
+      {/* Summary strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="border-border">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-chart-4/10 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5 text-chart-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente)}</p>
+              <p className="text-[11px] text-muted-foreground">{countPendente} a receber</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-chart-2/10 flex items-center justify-center shrink-0">
+              <CheckCircle className="w-5 h-5 text-chart-2" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-chart-2">{formatCurrency(totalRecebido)}</p>
+              <p className="text-[11px] text-muted-foreground">Recebido no mês</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente + totalRecebido)}</p>
+              <p className="text-[11px] text-muted-foreground">Total do mês</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-chart-4/10 flex items-center justify-center shrink-0">
+              <Zap className="w-5 h-5 text-chart-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-chart-4">{totalAntecipados}</p>
+              <p className="text-[11px] text-muted-foreground">Antecipados</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="calendario" className="space-y-4">
+        <TabsList className="bg-muted/50">
           <TabsTrigger value="calendario" className="gap-2">
             <Calendar className="w-4 h-4" /> Calendário
           </TabsTrigger>
@@ -229,7 +283,11 @@ export default function TransportadoraFinanceiro() {
       {/* Antecipação Dialog */}
       <Dialog open={!!antecipacaoDialog} onOpenChange={() => setAntecipacaoDialog(null)}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-chart-4" /> Solicitar Antecipação</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-chart-4" /> Solicitar Antecipação
+            </DialogTitle>
+          </DialogHeader>
           {antecipacaoDialog && (() => {
             const cfg = configEmbarcadores?.[antecipacaoDialog.empresa_embarcadora_id];
             const taxa = cfg?.taxa_antecipacao_percent || 2;
