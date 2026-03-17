@@ -16,7 +16,7 @@ import {
 import { Label } from '@/components/ui/label';
 import {
   Landmark, Save, Zap, Calendar, BarChart3, AlertTriangle,
-  DollarSign, Clock, CheckCircle, TrendingUp,
+  Clock, CheckCircle, TrendingUp,
 } from 'lucide-react';
 import { format, endOfMonth, startOfMonth, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -36,7 +36,7 @@ export default function TransportadoraFinanceiro() {
   const [bankForm, setBankForm] = useState({ banco: '', agencia: '', conta: '', tipo_conta: 'corrente', pix: '', titular: '' });
   const [bankLoaded, setBankLoaded] = useState(false);
 
-  const { data: registros = [], isLoading } = useQuery({
+  const { data: registros = [] } = useQuery({
     queryKey: ['transportadora-financeiro', empresa?.id, monthStart.toISOString()],
     queryFn: async () => {
       if (!empresa?.id) return [];
@@ -139,7 +139,7 @@ export default function TransportadoraFinanceiro() {
   const countPendente = registros.filter(r => r.status === 'pendente').length;
 
   return (
-    <div className="h-full overflow-auto p-6 space-y-6">
+    <div className="h-full overflow-auto p-6 space-y-5">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
@@ -149,52 +149,52 @@ export default function TransportadoraFinanceiro() {
       {/* Summary strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="border-border">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-chart-4/10 flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5 text-chart-4" />
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-chart-4/10 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4 text-chart-4" />
             </div>
             <div>
-              <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente)}</p>
-              <p className="text-[11px] text-muted-foreground">{countPendente} a receber</p>
+              <p className="text-lg font-bold text-foreground">{formatCurrency(totalPendente)}</p>
+              <p className="text-[10px] text-muted-foreground">{countPendente} a receber</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-chart-2/10 flex items-center justify-center shrink-0">
-              <CheckCircle className="w-5 h-5 text-chart-2" />
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-chart-2/10 flex items-center justify-center shrink-0">
+              <CheckCircle className="w-4 h-4 text-chart-2" />
             </div>
             <div>
-              <p className="text-xl font-bold text-chart-2">{formatCurrency(totalRecebido)}</p>
-              <p className="text-[11px] text-muted-foreground">Recebido no mês</p>
+              <p className="text-lg font-bold text-chart-2">{formatCurrency(totalRecebido)}</p>
+              <p className="text-[10px] text-muted-foreground">Recebido no mês</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <TrendingUp className="w-5 h-5 text-primary" />
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente + totalRecebido)}</p>
-              <p className="text-[11px] text-muted-foreground">Total do mês</p>
+              <p className="text-lg font-bold text-foreground">{formatCurrency(totalPendente + totalRecebido)}</p>
+              <p className="text-[10px] text-muted-foreground">Total do mês</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-chart-4/10 flex items-center justify-center shrink-0">
-              <Zap className="w-5 h-5 text-chart-4" />
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-chart-4/10 flex items-center justify-center shrink-0">
+              <Zap className="w-4 h-4 text-chart-4" />
             </div>
             <div>
-              <p className="text-xl font-bold text-chart-4">{totalAntecipados}</p>
-              <p className="text-[11px] text-muted-foreground">Antecipados</p>
+              <p className="text-lg font-bold text-chart-4">{totalAntecipados}</p>
+              <p className="text-[10px] text-muted-foreground">Antecipados</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="calendario" className="space-y-4">
+      <Tabs defaultValue="calendario" className="space-y-3">
         <TabsList className="bg-muted/50">
           <TabsTrigger value="calendario" className="gap-2">
             <Calendar className="w-4 h-4" /> Calendário
