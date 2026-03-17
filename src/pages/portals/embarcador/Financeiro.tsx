@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, BarChart3 } from 'lucide-react';
+import { Calendar, BarChart3, DollarSign, Clock, CheckCircle } from 'lucide-react';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { FinanceCalendar } from '@/components/financeiro/FinanceCalendar';
 import { AnnualBarChart } from '@/components/financeiro/AnnualBarChart';
+import { formatCurrency } from '@/lib/reportExport';
 
 export default function EmbarcadorFinanceiro() {
   const { empresa } = useUserContext();
@@ -64,23 +66,65 @@ export default function EmbarcadorFinanceiro() {
     }
   };
 
+  const totalPendente = registros.filter(r => r.status === 'pendente').reduce((s: number, r: any) => s + Number(r.valor_frete), 0);
+  const totalPago = registros.filter(r => r.status === 'pago').reduce((s: number, r: any) => s + Number(r.valor_frete), 0);
+  const countPendente = registros.filter(r => r.status === 'pendente').length;
+
   return (
     <div className="h-full overflow-auto p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
           <p className="text-sm text-muted-foreground">Acompanhe seus pagamentos por carga finalizada</p>
         </div>
         {configFinanceira && (
-          <Badge variant="outline" className="text-sm gap-1.5 px-3 py-1.5">
+          <Badge variant="outline" className="text-xs gap-1.5 px-3 py-1.5">
             <Calendar className="w-3.5 h-3.5" />
             {tipoPagamentoLabel(configFinanceira.tipo_pagamento)} · D+{configFinanceira.prazo_dias}
           </Badge>
         )}
       </div>
 
-      <Tabs defaultValue="calendario" className="space-y-6">
-        <TabsList>
+      {/* Summary strip */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="border-border">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-chart-4/10 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5 text-chart-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente)}</p>
+              <p className="text-[11px] text-muted-foreground">{countPendente} pagamento{countPendente !== 1 ? 's' : ''} pendente{countPendente !== 1 ? 's' : ''}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-chart-2/10 flex items-center justify-center shrink-0">
+              <CheckCircle className="w-5 h-5 text-chart-2" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-chart-2">{formatCurrency(totalPago)}</p>
+              <p className="text-[11px] text-muted-foreground">Pagos no mês</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <DollarSign className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente + totalPago)}</p>
+              <p className="text-[11px] text-muted-foreground">Total do mês</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="calendario" className="space-y-4">
+        <TabsList className="bg-muted/50">
           <TabsTrigger value="calendario" className="gap-2">
             <Calendar className="w-4 h-4" /> Calendário
           </TabsTrigger>

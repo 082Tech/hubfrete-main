@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -17,11 +18,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   DollarSign, CheckCircle, Clock, TrendingUp, Eye, Upload,
-  ArrowDownLeft, ArrowUpRight, User, Landmark, Settings, Zap, Calendar as CalendarIcon,
-  Search,
+  ArrowDownLeft, ArrowUpRight, Landmark, Settings, Zap, Calendar as CalendarIcon,
+  Search, Building2, ShieldCheck, CreditCard, AlertTriangle,
 } from 'lucide-react';
 import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
-import { format, addDays, differenceInDays } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
 import { Pagination } from '@/components/admin/Pagination';
@@ -40,6 +42,7 @@ interface FinanceiroEntrega {
   valor_comissao: number;
   valor_liquido: number;
   valor_taxa_antecipacao: number;
+  valor_final: number | null;
   antecipado: boolean;
   data_antecipacao: string | null;
   taxa_antecipacao_percent: number;
@@ -82,19 +85,18 @@ export default function Financeiro() {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [activeTab, setActiveTab] = useState<'a_receber' | 'a_pagar' | 'config'>('a_receber');
+  const [activeTab, setActiveTab] = useState<'recebiveis' | 'config'>('recebiveis');
   const [statusFilter, setStatusFilter] = useState('todos');
+  const [tipoFilter, setTipoFilter] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
 
-  // Baixa dialog
   const [baixaDialog, setBaixaDialog] = useState<FinanceiroEntrega | null>(null);
   const [baixaForm, setBaixaForm] = useState({ data_pagamento: format(new Date(), 'yyyy-MM-dd'), metodo_pagamento: '', observacoes: '' });
   const [uploading, setUploading] = useState(false);
   const [comprovante, setComprovante] = useState<File | null>(null);
   const [bankTarget, setBankTarget] = useState<{ type: 'motorista'; id: string; nome: string } | { type: 'empresa'; id: number; nome: string } | null>(null);
 
-  // Config dialog
   const [configDialog, setConfigDialog] = useState<ConfigFinanceira | null>(null);
   const [configForm, setConfigForm] = useState({
     tipo_pagamento: 'pos_pago',
@@ -112,11 +114,9 @@ export default function Financeiro() {
     return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   })();
 
-  // Fetch recebíveis
   const { data: recebiveis, isLoading } = useQuery({
-    queryKey: ['admin-recebiveis', activeTab, selectedMonth, selectedYear, statusFilter],
+    queryKey: ['admin-recebiveis', selectedMonth, selectedYear, statusFilter],
     queryFn: async () => {
-      if (activeTab === 'config') return [];
       let query = supabase
         .from('financeiro_entregas')
         .select(`
@@ -138,10 +138,9 @@ export default function Financeiro() {
       if (error) throw error;
       return data as unknown as FinanceiroEntrega[];
     },
-    enabled: activeTab !== 'config',
+    enabled: activeTab === 'recebiveis',
   });
 
-  // Fetch configs
   const { data: configs, isLoading: loadingConfigs } = useQuery({
     queryKey: ['admin-config-financeira'],
     queryFn: async () => {
@@ -155,7 +154,6 @@ export default function Financeiro() {
     enabled: activeTab === 'config',
   });
 
-  // Fetch embarcador empresas for config creation
   const { data: embarcadores } = useQuery({
     queryKey: ['embarcador-empresas-for-config'],
     queryFn: async () => {
@@ -170,15 +168,11 @@ export default function Financeiro() {
     enabled: activeTab === 'config',
   });
 
-  // Filter by tab type
   const filtered = useMemo(() => {
     if (!recebiveis) return [];
     let items = recebiveis;
-    if (activeTab === 'a_receber') {
-      // Embarcador side - nothing to filter specifically, all are "a receber" from embarcadores
-    } else if (activeTab === 'a_pagar') {
-      // Already showing all - the tab distinction is conceptual
-    }
+    if (tipoFilter === 'autonomo') items = items.filter(r => r.tipo_beneficiario === 'autonomo');
+    else if (tipoFilter === 'transportadora') items = items.filter(r => r.tipo_beneficiario === 'transportadora');
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       items = items.filter(r =>
@@ -190,7 +184,7 @@ export default function Financeiro() {
       );
     }
     return items;
-  }, [recebiveis, activeTab, searchTerm]);
+  }, [recebiveis, tipoFilter, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const pagedItems = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -199,12 +193,13 @@ export default function Financeiro() {
   const totalComissao = filtered.reduce((s, r) => s + Number(r.valor_comissao), 0);
   const totalLiquido = filtered.reduce((s, r) => s + Number(r.valor_liquido), 0);
   const totalPendente = filtered.filter(r => r.status === 'pendente').length;
+  const totalPago = filtered.filter(r => r.status === 'pago').length;
   const totalAntecipados = filtered.filter(r => r.antecipado).length;
+  const totalVencidos = filtered.filter(r => r.status === 'pendente' && r.data_vencimento && new Date(r.data_vencimento) < new Date()).length;
 
   const nomeEmpresa = (emp: { nome: string | null; nome_fantasia: string | null } | null) =>
     emp?.nome_fantasia || emp?.nome || '—';
 
-  // Baixa mutation
   const baixaMutation = useMutation({
     mutationFn: async (params: { id: string; data_pagamento: string; metodo_pagamento: string; observacoes: string; comprovante_url?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -243,7 +238,6 @@ export default function Financeiro() {
     baixaMutation.mutate({ id: baixaDialog.id, ...baixaForm, comprovante_url: urlData.publicUrl });
   };
 
-  // Config mutation
   const saveConfigMutation = useMutation({
     mutationFn: async (params: { empresa_id: number; form: typeof configForm }) => {
       const payload = {
@@ -270,247 +264,245 @@ export default function Financeiro() {
   });
 
   const statusBadge = (r: FinanceiroEntrega) => {
-    if (r.status === 'pago') return <Badge className="bg-chart-2 text-white">Pago</Badge>;
-    if (r.antecipado) return <Badge className="bg-chart-4 text-white">Antecipado</Badge>;
-    // Check if past due
+    if (r.status === 'pago') return <Badge className="bg-chart-2 text-white text-[10px]">Pago</Badge>;
+    if (r.antecipado) return <Badge className="bg-chart-4 text-white text-[10px]">Antecipado</Badge>;
     if (r.data_vencimento && new Date(r.data_vencimento) < new Date() && r.status === 'pendente') {
-      return <Badge variant="destructive">Vencido</Badge>;
+      return <Badge variant="destructive" className="text-[10px]">Vencido</Badge>;
     }
-    return <Badge variant="secondary">Pendente</Badge>;
-  };
-
-  const vencimentoBadge = (r: FinanceiroEntrega) => {
-    if (!r.data_vencimento) return <span className="text-xs text-muted-foreground">—</span>;
-    const dias = differenceInDays(new Date(r.data_vencimento), new Date());
-    return (
-      <div className="text-xs">
-        <p className="font-medium">{format(new Date(r.data_vencimento), 'dd/MM/yyyy')}</p>
-        {r.status === 'pendente' && (
-          <p className={dias < 0 ? 'text-destructive' : dias <= 5 ? 'text-chart-4' : 'text-muted-foreground'}>
-            {dias < 0 ? `${Math.abs(dias)}d atraso` : dias === 0 ? 'Hoje' : `em ${dias}d`}
-          </p>
-        )}
-      </div>
-    );
+    return <Badge variant="secondary" className="text-[10px]">Pendente</Badge>;
   };
 
   const tipoPagamentoLabel = (tipo: string) => {
     switch (tipo) {
       case 'pre_pago': return 'Pré-pago';
-      case 'pos_pago': return 'Pós-pago (D+X)';
+      case 'pos_pago': return 'Pós-pago';
       case 'faturado': return 'Faturado';
       default: return tipo;
     }
   };
 
+  const cicloLabel = (c: string) => {
+    switch (c) {
+      case 'semanal': return 'Semanal';
+      case 'quinzenal': return 'Quinzenal';
+      case 'mensal': return 'Mensal';
+      default: return c;
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
-        <p className="text-sm text-muted-foreground">Recebíveis individuais D+30 — gestão completa de pagamentos</p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
+          <p className="text-sm text-muted-foreground">Recebíveis individuais D+30 · Modelo fintech logística</p>
+        </div>
+        <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-xs font-medium">
+          <DollarSign className="w-3.5 h-3.5" />
+          {format(new Date(selectedYear, selectedMonth), 'MMMM yyyy', { locale: ptBR })}
+        </Badge>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setPage(1); }}>
-        <div className="flex flex-wrap items-center gap-4 justify-between">
-          <TabsList>
-            <TabsTrigger value="a_receber" className="gap-2">
-              <ArrowDownLeft className="w-4 h-4" /> A Receber
-            </TabsTrigger>
-            <TabsTrigger value="a_pagar" className="gap-2">
-              <ArrowUpRight className="w-4 h-4" /> A Pagar
-            </TabsTrigger>
-            <TabsTrigger value="config" className="gap-2">
-              <Settings className="w-4 h-4" /> Config Embarcadores
-            </TabsTrigger>
-          </TabsList>
-          {activeTab !== 'config' && (
+        <TabsList className="bg-muted/50">
+          <TabsTrigger value="recebiveis" className="gap-2">
+            <DollarSign className="w-4 h-4" /> Recebíveis
+          </TabsTrigger>
+          <TabsTrigger value="config" className="gap-2">
+            <Settings className="w-4 h-4" /> Config Embarcadores
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ===== RECEBÍVEIS TAB ===== */}
+        <TabsContent value="recebiveis" className="space-y-5 mt-5">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { label: 'Frete Bruto', value: formatCurrency(totalBruto), icon: DollarSign, color: 'text-chart-4' },
+              { label: 'Taxa HubFrete', value: formatCurrency(totalComissao), icon: TrendingUp, color: 'text-primary' },
+              { label: 'Líquido a Pagar', value: formatCurrency(totalLiquido), icon: ArrowUpRight, color: 'text-chart-2' },
+              { label: 'Pendentes', value: String(totalPendente), icon: Clock, color: 'text-muted-foreground' },
+              { label: 'Vencidos', value: String(totalVencidos), icon: AlertTriangle, color: 'text-destructive' },
+              { label: 'Antecipados', value: String(totalAntecipados), icon: Zap, color: 'text-chart-4' },
+            ].map((kpi, i) => (
+              <Card key={i} className="border-border">
+                <CardContent className="p-3 flex items-center gap-2.5">
+                  <kpi.icon className={`w-4 h-4 ${kpi.color} shrink-0`} />
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold leading-tight truncate">{kpi.value}</p>
+                    <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 items-end">
             <MonthYearPicker month={selectedMonth} year={selectedYear} onChangeMonth={setSelectedMonth} onChangeYear={setSelectedYear} />
-          )}
-        </div>
-
-        {/* Recebíveis tabs */}
-        {(activeTab === 'a_receber' || activeTab === 'a_pagar') && (
-          <TabsContent value={activeTab} className="space-y-6 mt-4" forceMount>
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-chart-4/10 rounded-lg"><DollarSign className="w-5 h-5 text-chart-4" /></div>
-                  <div>
-                    <p className="text-2xl font-bold">{formatCurrency(totalBruto)}</p>
-                    <p className="text-xs text-muted-foreground">Frete Bruto</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg"><TrendingUp className="w-5 h-5 text-primary" /></div>
-                  <div>
-                    <p className="text-2xl font-bold">{formatCurrency(totalComissao)}</p>
-                    <p className="text-xs text-muted-foreground">Taxa HubFrete</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-chart-2/10 rounded-lg"><CheckCircle className="w-5 h-5 text-chart-2" /></div>
-                  <div>
-                    <p className="text-2xl font-bold">{formatCurrency(totalLiquido)}</p>
-                    <p className="text-xs text-muted-foreground">{activeTab === 'a_receber' ? 'Líquido' : 'A Pagar'}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-accent rounded-lg"><Clock className="w-5 h-5 text-accent-foreground" /></div>
-                  <div>
-                    <p className="text-2xl font-bold">{totalPendente}</p>
-                    <p className="text-xs text-muted-foreground">Pendentes</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 bg-chart-4/10 rounded-lg"><Zap className="w-5 h-5 text-chart-4" /></div>
-                  <div>
-                    <p className="text-2xl font-bold">{totalAntecipados}</p>
-                    <p className="text-xs text-muted-foreground">Antecipados</p>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="w-32">
+              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Status</Label>
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="pago">Pago</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap gap-3 items-end">
-              <div className="w-36">
-                <Label className="text-xs text-muted-foreground">Status</Label>
-                <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="pago">Pago</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1 max-w-xs">
-                <Label className="text-xs text-muted-foreground">Buscar</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    className="pl-9"
-                    placeholder="Código, empresa, motorista..."
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-                  />
-                </div>
+            <div className="w-36">
+              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Beneficiário</Label>
+              <Select value={tipoFilter} onValueChange={(v) => { setTipoFilter(v); setPage(1); }}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="transportadora">Transportadoras</SelectItem>
+                  <SelectItem value="autonomo">Autônomos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1 max-w-xs">
+              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Buscar</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input className="pl-9 h-9" placeholder="Código, empresa, motorista..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} />
               </div>
             </div>
+          </div>
 
-            {/* Table */}
-            <Card className="border-border">
-              <div className="overflow-hidden">
+          {/* Table */}
+          <Card className="border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 sticky top-0">
+                  <tr className="border-b border-border">
+                    <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">Carga</th>
+                    <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">Beneficiário</th>
+                    <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">Embarcador</th>
+                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Bruto</th>
+                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Taxa</th>
+                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Líquido</th>
+                    <th className="text-center font-medium text-muted-foreground px-4 py-2.5 text-xs">Vencimento</th>
+                    <th className="text-center font-medium text-muted-foreground px-4 py-2.5 text-xs">Status</th>
+                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Ações</th>
+                  </tr>
+                </thead>
+              </table>
+              <div className="max-h-[520px] overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr className="border-b border-border">
-                      <th className="text-left font-medium text-muted-foreground px-4 py-2.5">Carga</th>
-                      <th className="text-left font-medium text-muted-foreground px-4 py-2.5">Beneficiário</th>
-                      <th className="text-left font-medium text-muted-foreground px-4 py-2.5">Embarcador</th>
-                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5">Bruto</th>
-                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5">Taxa</th>
-                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5">Líquido</th>
-                      <th className="text-center font-medium text-muted-foreground px-4 py-2.5">Vencimento</th>
-                      <th className="text-center font-medium text-muted-foreground px-4 py-2.5">Status</th>
-                      <th className="text-right font-medium text-muted-foreground px-4 py-2.5"></th>
-                    </tr>
-                  </thead>
-                </table>
-                <div className="max-h-[520px] overflow-y-auto">
-                  <table className="w-full text-sm">
-                    <tbody>
-                      {isLoading ? (
-                        [...Array(5)].map((_, i) => (
-                          <tr key={i}><td colSpan={9} className="p-3"><Skeleton className="h-10 w-full" /></td></tr>
-                        ))
-                      ) : pagedItems.length === 0 ? (
-                        <tr><td colSpan={9} className="text-center text-muted-foreground py-12">Nenhum recebível encontrado no período</td></tr>
-                      ) : (
-                        pagedItems.map((r) => (
-                          <tr key={r.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                  <tbody>
+                    {isLoading ? (
+                      [...Array(6)].map((_, i) => (
+                        <tr key={i}><td colSpan={9} className="p-3"><Skeleton className="h-10 w-full" /></td></tr>
+                      ))
+                    ) : pagedItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="text-center text-muted-foreground py-16">
+                          <DollarSign className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                          <p>Nenhum recebível encontrado no período</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      pagedItems.map((r) => {
+                        const dias = r.data_vencimento ? differenceInDays(new Date(r.data_vencimento), new Date()) : null;
+                        return (
+                          <tr key={r.id} className="border-b border-border hover:bg-muted/20 transition-colors">
                             <td className="px-4 py-3">
-                              <p className="font-medium">{r.entregas?.codigo || '—'}</p>
-                              <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+                              <p className="font-medium text-foreground">{r.entregas?.codigo || '—'}</p>
+                              <p className="text-[11px] text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
                             </td>
                             <td className="px-4 py-3">
-                              <p className="text-sm">
-                                {r.tipo_beneficiario === 'autonomo'
-                                  ? r.entregas?.motoristas?.nome_completo
-                                  : nomeEmpresa(r.empresa_transportadora)}
-                              </p>
-                              <Badge variant="outline" className="text-[10px] mt-0.5">
-                                {r.tipo_beneficiario === 'autonomo' ? 'Autônomo' : 'Transportadora'}
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${r.tipo_beneficiario === 'autonomo' ? 'bg-chart-4/10' : 'bg-primary/10'}`}>
+                                  {r.tipo_beneficiario === 'autonomo'
+                                    ? <Landmark className="w-3 h-3 text-chart-4" />
+                                    : <Building2 className="w-3 h-3 text-primary" />}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm truncate">
+                                    {r.tipo_beneficiario === 'autonomo'
+                                      ? r.entregas?.motoristas?.nome_completo
+                                      : nomeEmpresa(r.empresa_transportadora)}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {r.tipo_beneficiario === 'autonomo' ? 'Autônomo' : 'Transportadora'}
+                                  </p>
+                                </div>
+                              </div>
                             </td>
-                            <td className="px-4 py-3 text-sm">{nomeEmpresa(r.empresa_embarcadora)}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">{nomeEmpresa(r.empresa_embarcadora)}</td>
                             <td className="px-4 py-3 text-right font-medium">{formatCurrency(r.valor_frete)}</td>
-                            <td className="px-4 py-3 text-right text-muted-foreground text-sm">
+                            <td className="px-4 py-3 text-right text-muted-foreground">
                               {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
                             </td>
                             <td className="px-4 py-3 text-right font-semibold text-chart-2">{formatCurrency(r.valor_liquido)}</td>
-                            <td className="px-4 py-3 text-center">{vencimentoBadge(r)}</td>
+                            <td className="px-4 py-3 text-center">
+                              {r.data_vencimento ? (
+                                <div className="text-xs">
+                                  <p className="font-medium">{format(new Date(r.data_vencimento), 'dd/MM/yy')}</p>
+                                  {r.status === 'pendente' && dias !== null && (
+                                    <p className={dias < 0 ? 'text-destructive font-medium' : dias <= 5 ? 'text-chart-4' : 'text-muted-foreground'}>
+                                      {dias < 0 ? `${Math.abs(dias)}d atraso` : dias === 0 ? 'Hoje' : `em ${dias}d`}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : <span className="text-xs text-muted-foreground">—</span>}
+                            </td>
                             <td className="px-4 py-3 text-center">{statusBadge(r)}</td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center gap-1 justify-end">
                                 {r.tipo_beneficiario === 'autonomo' && r.entregas?.motoristas && (
-                                  <Button size="sm" variant="ghost" onClick={() => setBankTarget({ type: 'motorista', id: r.motorista_id!, nome: r.entregas!.motoristas!.nome_completo })} title="Dados bancários">
-                                    <Landmark className="w-4 h-4" />
+                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setBankTarget({ type: 'motorista', id: r.motorista_id!, nome: r.entregas!.motoristas!.nome_completo })} title="Dados bancários">
+                                    <Landmark className="w-3.5 h-3.5" />
                                   </Button>
                                 )}
                                 {r.tipo_beneficiario !== 'autonomo' && r.empresa_transportadora_id && (
-                                  <Button size="sm" variant="ghost" onClick={() => setBankTarget({ type: 'empresa', id: r.empresa_transportadora_id!, nome: nomeEmpresa(r.empresa_transportadora) })} title="Dados bancários">
-                                    <Landmark className="w-4 h-4" />
+                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setBankTarget({ type: 'empresa', id: r.empresa_transportadora_id!, nome: nomeEmpresa(r.empresa_transportadora) })} title="Dados bancários">
+                                    <Landmark className="w-3.5 h-3.5" />
                                   </Button>
                                 )}
                                 {r.status === 'pendente' && (
-                                  <Button size="sm" variant="outline" onClick={() => {
+                                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
                                     setBaixaDialog(r);
                                     setBaixaForm({ data_pagamento: format(new Date(), 'yyyy-MM-dd'), metodo_pagamento: '', observacoes: '' });
                                     setComprovante(null);
                                   }}>
-                                    <CheckCircle className="w-4 h-4 mr-1" /> Baixa
+                                    <CheckCircle className="w-3.5 h-3.5 mr-1" /> Baixa
                                   </Button>
                                 )}
                                 {r.status === 'pago' && r.comprovante_url && (
-                                  <Button size="sm" variant="ghost" asChild>
-                                    <a href={r.comprovante_url} target="_blank" rel="noreferrer"><Eye className="w-4 h-4" /></a>
+                                  <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
+                                    <a href={r.comprovante_url} target="_blank" rel="noreferrer"><Eye className="w-3.5 h-3.5" /></a>
                                   </Button>
                                 )}
                               </div>
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
-              {filtered.length > ITEMS_PER_PAGE && (
-                <div className="border-t border-border">
-                  <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={setPage} />
-                </div>
-              )}
-            </Card>
-          </TabsContent>
-        )}
+            </div>
+            {filtered.length > ITEMS_PER_PAGE && (
+              <div className="border-t border-border">
+                <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={setPage} />
+              </div>
+            )}
+          </Card>
+        </TabsContent>
 
-        {/* Config Embarcadores tab */}
-        <TabsContent value="config" className="space-y-6 mt-4">
+        {/* ===== CONFIG TAB ===== */}
+        <TabsContent value="config" className="space-y-5 mt-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Configuração Financeira por Embarcador</h2>
-              <p className="text-sm text-muted-foreground">Define tipo de pagamento, prazo, antecipação e limite de crédito</p>
+              <h2 className="text-lg font-semibold text-foreground">Regras Financeiras por Embarcador</h2>
+              <p className="text-xs text-muted-foreground">Tipo de pagamento, prazo, antecipação e limite de crédito</p>
             </div>
-            <Button onClick={() => {
+            <Button size="sm" onClick={() => {
               setConfigDialog({ id: '', empresa_id: 0, tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: null, ciclo_faturamento: 'mensal', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0, credito_utilizado: 0 });
               setConfigForm({ tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: '', ciclo_faturamento: 'mensal', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0 });
             }}>
@@ -519,66 +511,108 @@ export default function Financeiro() {
           </div>
 
           {loadingConfigs ? (
-            <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-xl" />)}
+            </div>
           ) : !configs?.length ? (
-            <Card className="border-border">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                Nenhuma configuração financeira cadastrada. Clique em "Nova Config" para definir condições de um embarcador.
+            <Card className="border-dashed border-2 border-border">
+              <CardContent className="py-16 text-center">
+                <Building2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+                <p className="text-muted-foreground">Nenhuma configuração cadastrada</p>
+                <p className="text-xs text-muted-foreground mt-1">Clique em "Nova Config" para definir regras de um embarcador</p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {configs.map((cfg) => (
-                <Card key={cfg.id} className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => {
-                  setConfigDialog(cfg);
-                  setConfigForm({
-                    tipo_pagamento: cfg.tipo_pagamento,
-                    prazo_dias: cfg.prazo_dias,
-                    dia_fixo: cfg.dia_fixo?.toString() || '',
-                    ciclo_faturamento: cfg.ciclo_faturamento,
-                    antecipacao_permitida: cfg.antecipacao_permitida,
-                    taxa_antecipacao_percent: cfg.taxa_antecipacao_percent,
-                    limite_credito: cfg.limite_credito,
-                  });
-                }}>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold text-foreground">{cfg.empresas?.nome_fantasia || cfg.empresas?.nome || '—'}</p>
-                      <Badge variant="outline">{tipoPagamentoLabel(cfg.tipo_pagamento)}</Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div>
-                        <p className="font-medium text-foreground">D+{cfg.prazo_dias}</p>
-                        <p>Prazo padrão</p>
+              {configs.map((cfg) => {
+                const creditPercent = cfg.limite_credito > 0 ? Math.min(100, (cfg.credito_utilizado / cfg.limite_credito) * 100) : 0;
+                return (
+                  <Card key={cfg.id} className="border-border hover:shadow-md transition-all cursor-pointer group" onClick={() => {
+                    setConfigDialog(cfg);
+                    setConfigForm({
+                      tipo_pagamento: cfg.tipo_pagamento,
+                      prazo_dias: cfg.prazo_dias,
+                      dia_fixo: cfg.dia_fixo?.toString() || '',
+                      ciclo_faturamento: cfg.ciclo_faturamento,
+                      antecipacao_permitida: cfg.antecipacao_permitida,
+                      taxa_antecipacao_percent: cfg.taxa_antecipacao_percent,
+                      limite_credito: cfg.limite_credito,
+                    });
+                  }}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Building2 className="w-4.5 h-4.5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground text-sm">{cfg.empresas?.nome_fantasia || cfg.empresas?.nome || '—'}</p>
+                            <p className="text-[10px] text-muted-foreground">{cfg.empresas?.cnpj_matriz || ''}</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {tipoPagamentoLabel(cfg.tipo_pagamento)}
+                        </Badge>
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground">{formatCurrency(cfg.limite_credito)}</p>
-                        <p>Limite de crédito</p>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="text-center p-2 rounded-md bg-muted/40">
+                          <p className="text-sm font-bold text-foreground">D+{cfg.prazo_dias}</p>
+                          <p className="text-[9px] text-muted-foreground">Prazo</p>
+                        </div>
+                        <div className="text-center p-2 rounded-md bg-muted/40">
+                          <p className="text-sm font-bold text-foreground">
+                            {cfg.antecipacao_permitida ? `${cfg.taxa_antecipacao_percent}%` : '—'}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">Taxa Antec.</p>
+                        </div>
+                        <div className="text-center p-2 rounded-md bg-muted/40">
+                          <p className="text-sm font-bold text-foreground">{cicloLabel(cfg.ciclo_faturamento)}</p>
+                          <p className="text-[9px] text-muted-foreground">Ciclo</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground">{cfg.antecipacao_permitida ? `${cfg.taxa_antecipacao_percent}%` : 'Não'}</p>
-                        <p>Antecipação</p>
+
+                      {/* Credit bar */}
+                      {cfg.limite_credito > 0 && (
+                        <div>
+                          <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                            <span>Crédito utilizado</span>
+                            <span>{formatCurrency(cfg.credito_utilizado)} / {formatCurrency(cfg.limite_credito)}</span>
+                          </div>
+                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${creditPercent > 80 ? 'bg-destructive' : creditPercent > 50 ? 'bg-chart-4' : 'bg-chart-2'}`}
+                              style={{ width: `${creditPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 pt-1">
+                        {cfg.antecipacao_permitida ? (
+                          <Badge className="bg-chart-2/10 text-chart-2 text-[9px] border-0">
+                            <ShieldCheck className="w-2.5 h-2.5 mr-0.5" /> Antecipação ativa
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[9px] border-0">Antecipação desligada</Badge>
+                        )}
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground">{cfg.ciclo_faturamento}</p>
-                        <p>Ciclo</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>
       </Tabs>
 
-      {/* Baixa Dialog */}
+      {/* ===== BAIXA DIALOG ===== */}
       <Dialog open={!!baixaDialog} onOpenChange={() => setBaixaDialog(null)}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Dar Baixa no Pagamento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><CheckCircle className="w-5 h-5 text-chart-2" /> Dar Baixa no Pagamento</DialogTitle></DialogHeader>
           {baixaDialog && (
             <div className="space-y-4">
-              <div className="p-3 bg-muted rounded-lg space-y-1">
+              <div className="p-3 bg-muted rounded-lg space-y-1.5">
                 <p className="text-sm font-medium">Carga: {baixaDialog.entregas?.codigo}</p>
                 <p className="text-xs text-muted-foreground">
                   {baixaDialog.tipo_beneficiario === 'autonomo' ? baixaDialog.entregas?.motoristas?.nome_completo : nomeEmpresa(baixaDialog.empresa_transportadora)}
@@ -609,7 +643,7 @@ export default function Financeiro() {
               </div>
               <div>
                 <Label>Comprovante <span className="text-destructive">*</span></Label>
-                <label className={`flex items-center gap-2 cursor-pointer border border-dashed rounded-lg p-3 hover:bg-muted transition-colors ${!comprovante ? 'border-destructive/50' : 'border-border'}`}>
+                <label className={`flex items-center gap-2 cursor-pointer border border-dashed rounded-lg p-3 hover:bg-muted transition-colors ${!comprovante ? 'border-destructive/40' : 'border-chart-2'}`}>
                   <Upload className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">{comprovante ? comprovante.name : 'Clique para anexar (obrigatório)'}</span>
                   <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setComprovante(e.target.files?.[0] || null)} />
@@ -617,7 +651,7 @@ export default function Financeiro() {
               </div>
               <div>
                 <Label>Observações</Label>
-                <Textarea value={baixaForm.observacoes} onChange={(e) => setBaixaForm(f => ({ ...f, observacoes: e.target.value }))} placeholder="Observações..." rows={3} />
+                <Textarea value={baixaForm.observacoes} onChange={(e) => setBaixaForm(f => ({ ...f, observacoes: e.target.value }))} placeholder="Observações..." rows={2} />
               </div>
             </div>
           )}
@@ -630,10 +664,10 @@ export default function Financeiro() {
         </DialogContent>
       </Dialog>
 
-      {/* Config Dialog */}
+      {/* ===== CONFIG DIALOG ===== */}
       <Dialog open={!!configDialog} onOpenChange={() => setConfigDialog(null)}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Configuração Financeira do Embarcador</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Settings className="w-5 h-5" /> Configuração Financeira</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {!configDialog?.id && (
               <div>
@@ -684,11 +718,13 @@ export default function Financeiro() {
                 </div>
               </div>
             )}
-            <div className="border-t border-border pt-4">
-              <h3 className="text-sm font-semibold mb-3">Antecipação</h3>
-              <div className="flex items-center gap-3 mb-3">
-                <Label>Antecipação Permitida</Label>
-                <input type="checkbox" checked={configForm.antecipacao_permitida} onChange={(e) => setConfigForm(f => ({ ...f, antecipacao_permitida: e.target.checked }))} className="h-4 w-4 rounded border-border" />
+            <div className="border-t border-border pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold">Antecipação</p>
+                  <p className="text-[10px] text-muted-foreground">Permitir que transportadores antecipem recebíveis deste embarcador</p>
+                </div>
+                <Switch checked={configForm.antecipacao_permitida} onCheckedChange={(v) => setConfigForm(f => ({ ...f, antecipacao_permitida: v }))} />
               </div>
               {configForm.antecipacao_permitida && (
                 <div className="grid grid-cols-2 gap-4">
@@ -717,7 +753,13 @@ export default function Financeiro() {
       </Dialog>
 
       {/* Bank Details Dialog */}
-      <DadosBancariosDialog target={bankTarget} open={!!bankTarget} onOpenChange={() => setBankTarget(null)} />
+      {bankTarget && (
+        <DadosBancariosDialog
+          open={!!bankTarget}
+          onOpenChange={() => setBankTarget(null)}
+          target={bankTarget}
+        />
+      )}
     </div>
   );
 }
