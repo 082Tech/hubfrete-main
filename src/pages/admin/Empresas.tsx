@@ -15,6 +15,7 @@ import {
   Users,
   User,
   UserPlus,
+  Landmark,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
