@@ -1532,83 +1532,6 @@ export type Database = {
           },
         ]
       }
-      faturas: {
-        Row: {
-          ano: number
-          baixa_por: string | null
-          comprovante_url: string | null
-          created_at: string
-          data_pagamento: string | null
-          empresa_id: number
-          id: string
-          mes: number
-          metodo_pagamento: string | null
-          observacoes: string | null
-          periodo_fim: string
-          periodo_inicio: string
-          qtd_entregas: number | null
-          quinzena: number
-          status: Database["public"]["Enums"]["status_fatura"]
-          tipo: Database["public"]["Enums"]["tipo_fatura"]
-          updated_at: string
-          valor_bruto: number | null
-          valor_comissao: number | null
-          valor_liquido: number | null
-        }
-        Insert: {
-          ano: number
-          baixa_por?: string | null
-          comprovante_url?: string | null
-          created_at?: string
-          data_pagamento?: string | null
-          empresa_id: number
-          id?: string
-          mes: number
-          metodo_pagamento?: string | null
-          observacoes?: string | null
-          periodo_fim: string
-          periodo_inicio: string
-          qtd_entregas?: number | null
-          quinzena: number
-          status?: Database["public"]["Enums"]["status_fatura"]
-          tipo: Database["public"]["Enums"]["tipo_fatura"]
-          updated_at?: string
-          valor_bruto?: number | null
-          valor_comissao?: number | null
-          valor_liquido?: number | null
-        }
-        Update: {
-          ano?: number
-          baixa_por?: string | null
-          comprovante_url?: string | null
-          created_at?: string
-          data_pagamento?: string | null
-          empresa_id?: number
-          id?: string
-          mes?: number
-          metodo_pagamento?: string | null
-          observacoes?: string | null
-          periodo_fim?: string
-          periodo_inicio?: string
-          qtd_entregas?: number | null
-          quinzena?: number
-          status?: Database["public"]["Enums"]["status_fatura"]
-          tipo?: Database["public"]["Enums"]["tipo_fatura"]
-          updated_at?: string
-          valor_bruto?: number | null
-          valor_comissao?: number | null
-          valor_liquido?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "faturas_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       filiais: {
         Row: {
           ativa: boolean | null
@@ -1794,20 +1717,6 @@ export type Database = {
             columns: ["entrega_id"]
             isOneToOne: false
             referencedRelation: "entregas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financeiro_entregas_fatura_embarcador_id_fkey"
-            columns: ["fatura_embarcador_id"]
-            isOneToOne: false
-            referencedRelation: "faturas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financeiro_entregas_fatura_transportadora_id_fkey"
-            columns: ["fatura_transportadora_id"]
-            isOneToOne: false
-            referencedRelation: "faturas"
             referencedColumns: ["id"]
           },
           {
@@ -3470,7 +3379,6 @@ export type Database = {
         | "entregue"
         | "problema"
         | "cancelada"
-      status_fatura: "aberta" | "fechada" | "paga" | "cancelada"
       status_pre_cadastro: "pendente" | "aprovado" | "rejeitado"
       status_viagem:
         | "em_andamento"
@@ -3516,7 +3424,6 @@ export type Database = {
         | "hopper"
       tipo_empresa: "EMBARCADOR" | "TRANSPORTADORA"
       tipo_endereco: "origem" | "destino"
-      tipo_fatura: "a_receber" | "a_pagar"
       tipo_frete: "cif" | "fob"
       tipo_notificacao:
         | "status_entrega_alterado"
@@ -3710,7 +3617,6 @@ export const Constants = {
         "problema",
         "cancelada",
       ],
-      status_fatura: ["aberta", "fechada", "paga", "cancelada"],
       status_pre_cadastro: ["pendente", "aprovado", "rejeitado"],
       status_viagem: [
         "em_andamento",
@@ -3759,7 +3665,6 @@ export const Constants = {
       ],
       tipo_empresa: ["EMBARCADOR", "TRANSPORTADORA"],
       tipo_endereco: ["origem", "destino"],
-      tipo_fatura: ["a_receber", "a_pagar"],
       tipo_frete: ["cif", "fob"],
       tipo_notificacao: [
         "status_entrega_alterado",
