@@ -165,7 +165,7 @@ export function FinanceCalendar({
   return (
     <div className="space-y-4">
       {/* 2-column layout: Calendar + Day Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,420px)_1fr] gap-4">
         {/* Left: Calendar */}
         <Card className="border-border overflow-hidden">
           <CardContent className="p-0">
@@ -194,7 +194,7 @@ export function FinanceCalendar({
             {/* Days grid */}
             <div className="grid grid-cols-7">
               {Array.from({ length: startDayOfWeek }).map((_, i) => (
-                <div key={`empty-${i}`} className="aspect-[4/3] border-b border-r border-border last:border-r-0" />
+                <div key={`empty-${i}`} className="aspect-square border-b border-r border-border last:border-r-0" />
               ))}
 
               {daysInMonth.map((day, idx) => {
@@ -207,7 +207,7 @@ export function FinanceCalendar({
                     key={idx}
                     onClick={() => setSelectedDay(isSelected ? null : day)}
                     className={cn(
-                      'aspect-[4/3] relative flex flex-col items-center justify-center gap-0.5 border-b border-r border-border transition-colors hover:bg-muted/50',
+                      'aspect-square relative flex flex-col items-center justify-center gap-0.5 border-b border-r border-border transition-colors hover:bg-muted/50',
                       isSelected && 'bg-primary/10 ring-1 ring-primary',
                       today && !isSelected && 'bg-accent/50',
                     )}
@@ -257,7 +257,7 @@ export function FinanceCalendar({
         </Card>
 
         {/* Right: Day details */}
-        <Card className="border-border overflow-hidden min-h-[300px] lg:max-h-[500px]">
+        <Card className="border-border overflow-hidden min-h-[300px]">
           <CardContent className="p-0 h-full">
             {renderDayDetail()}
           </CardContent>
