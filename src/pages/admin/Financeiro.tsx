@@ -191,6 +191,22 @@ export default function Financeiro() {
     enabled: activeTab === 'config',
   });
 
+  const [transpSearch, setTranspSearch] = useState('');
+
+  const { data: transportadoras, isLoading: loadingTransp } = useQuery({
+    queryKey: ['admin-transportadoras-contas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('empresas')
+        .select('id, nome, nome_fantasia, cnpj_matriz, dados_bancarios, email, telefone')
+        .eq('tipo', 'TRANSPORTADORA')
+        .order('nome_fantasia', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: activeTab === 'config_transp',
+  });
+
   // Filter data based on active tab
   const filtered = useMemo(() => {
     if (!allRecebiveis) return [];
