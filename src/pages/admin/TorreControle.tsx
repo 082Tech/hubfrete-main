@@ -118,8 +118,8 @@ export default function TorreControle() {
         supabase.from('pre_cadastros').select('id', { count: 'exact' }).eq('status', 'pendente'),
         supabase.from('usuarios').select('id', { count: 'exact' }),
         supabase.from('entregas').select('id', { count: 'exact' }).gte('created_at', format(new Date(), 'yyyy-MM-dd')),
-        supabase.from('financeiro_entregas').select('valor_frete').eq('status', 'pendente').eq('data_vencimento', format(new Date(), 'yyyy-MM-dd')),
-        supabase.from('financeiro_entregas').select('valor_liquido').eq('status', 'pendente').eq('data_vencimento', format(new Date(), 'yyyy-MM-dd')).in('tipo_beneficiario', ['transportadora', 'autonomo']),
+        supabase.from('financeiro_entregas').select('valor_frete').eq('status', 'pendente').eq('data_vencimento', format(new Date(), 'yyyy-MM-dd')) as any,
+        supabase.from('financeiro_entregas').select('valor_liquido').eq('status', 'pendente').eq('data_vencimento', format(new Date(), 'yyyy-MM-dd')).in('tipo_beneficiario', ['transportadora', 'autonomo']) as any,
       ]);
 
       const empresas = empresasRes.data || [];
