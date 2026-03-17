@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -18,8 +18,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   DollarSign, CheckCircle, Clock, TrendingUp, Eye, Upload,
-  ArrowDownLeft, ArrowUpRight, Landmark, Settings, Zap, Calendar as CalendarIcon,
-  Search, Building2, ShieldCheck, CreditCard, AlertTriangle,
+  ArrowDownLeft, ArrowUpRight, Landmark, Settings, Zap,
+  Search, Building2, ShieldCheck, AlertTriangle, Truck, User,
 } from 'lucide-react';
 import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
 import { format, differenceInDays } from 'date-fns';
@@ -80,14 +80,15 @@ interface ConfigFinanceira {
   empresas?: { nome: string | null; nome_fantasia: string | null; cnpj_matriz: string | null } | null;
 }
 
+type TabType = 'recebiveis' | 'pgt_transportadoras' | 'pgt_autonomos' | 'config';
+
 export default function Financeiro() {
   const queryClient = useQueryClient();
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [activeTab, setActiveTab] = useState<'recebiveis' | 'config'>('recebiveis');
+  const [activeTab, setActiveTab] = useState<TabType>('recebiveis');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [tipoFilter, setTipoFilter] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
 
@@ -114,7 +115,9 @@ export default function Financeiro() {
     return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   })();
 
-  const { data: recebiveis, isLoading } = useQuery({
+  const isFinancialTab = activeTab !== 'config';
+
+  const { data: allRecebiveis, isLoading } = useQuery({
     queryKey: ['admin-recebiveis', selectedMonth, selectedYear, statusFilter],
     queryFn: async () => {
       let query = supabase
@@ -138,7 +141,7 @@ export default function Financeiro() {
       if (error) throw error;
       return data as unknown as FinanceiroEntrega[];
     },
-    enabled: activeTab === 'recebiveis',
+    enabled: isFinancialTab,
   });
 
   const { data: configs, isLoading: loadingConfigs } = useQuery({
@@ -168,11 +171,19 @@ export default function Financeiro() {
     enabled: activeTab === 'config',
   });
 
+  // Filter data based on active tab
   const filtered = useMemo(() => {
-    if (!recebiveis) return [];
-    let items = recebiveis;
-    if (tipoFilter === 'autonomo') items = items.filter(r => r.tipo_beneficiario === 'autonomo');
-    else if (tipoFilter === 'transportadora') items = items.filter(r => r.tipo_beneficiario === 'transportadora');
+    if (!allRecebiveis) return [];
+    let items = allRecebiveis;
+
+    // Tab-specific filtering
+    if (activeTab === 'pgt_transportadoras') {
+      items = items.filter(r => r.tipo_beneficiario === 'transportadora');
+    } else if (activeTab === 'pgt_autonomos') {
+      items = items.filter(r => r.tipo_beneficiario === 'autonomo');
+    }
+    // recebiveis tab: show all (from embarcador perspective)
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       items = items.filter(r =>
@@ -184,7 +195,7 @@ export default function Financeiro() {
       );
     }
     return items;
-  }, [recebiveis, tipoFilter, searchTerm]);
+  }, [allRecebiveis, activeTab, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const pagedItems = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -290,13 +301,240 @@ export default function Financeiro() {
     }
   };
 
+  // Tab-specific labels
+  const isRecebiveis = activeTab === 'recebiveis';
+  const isPgtTransportadoras = activeTab === 'pgt_transportadoras';
+  const isPgtAutonomos = activeTab === 'pgt_autonomos';
+
+  const baixaLabel = isRecebiveis ? 'Recebimento' : 'Pagamento';
+  const baixaDialogTitle = isRecebiveis ? 'Confirmar Recebimento' : 'Confirmar Pagamento Enviado';
+  const baixaDialogDesc = isRecebiveis
+    ? 'Confirme que o valor foi recebido do embarcador'
+    : isPgtTransportadoras
+      ? 'Confirme que o pagamento foi enviado à transportadora'
+      : 'Confirme que o pagamento foi enviado ao motorista autônomo';
+
+  const getKPIs = () => {
+    if (isRecebiveis) {
+      return [
+        { label: 'Frete Bruto', value: formatCurrency(totalBruto), icon: DollarSign, color: 'text-chart-4' },
+        { label: 'Taxa HubFrete', value: formatCurrency(totalComissao), icon: TrendingUp, color: 'text-primary' },
+        { label: 'Total a Receber', value: formatCurrency(totalBruto), icon: ArrowDownLeft, color: 'text-chart-2' },
+        { label: 'Pendentes', value: String(totalPendente), icon: Clock, color: 'text-muted-foreground' },
+        { label: 'Recebidos', value: String(totalPago), icon: CheckCircle, color: 'text-chart-2' },
+        { label: 'Vencidos', value: String(totalVencidos), icon: AlertTriangle, color: 'text-destructive' },
+      ];
+    }
+    return [
+      { label: 'Total a Pagar', value: formatCurrency(totalLiquido), icon: ArrowUpRight, color: 'text-destructive' },
+      { label: 'Taxa Descontada', value: formatCurrency(totalComissao), icon: TrendingUp, color: 'text-primary' },
+      { label: 'Pendentes', value: String(totalPendente), icon: Clock, color: 'text-muted-foreground' },
+      { label: 'Pagos', value: String(totalPago), icon: CheckCircle, color: 'text-chart-2' },
+      { label: 'Vencidos', value: String(totalVencidos), icon: AlertTriangle, color: 'text-destructive' },
+      { label: 'Antecipados', value: String(totalAntecipados), icon: Zap, color: 'text-chart-4' },
+    ];
+  };
+
+  // Table columns differ per tab
+  const renderTableHead = () => (
+    <thead className="bg-muted/40 sticky top-0">
+      <tr className="border-b border-border">
+        <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">Carga</th>
+        {isRecebiveis ? (
+          <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">Embarcador</th>
+        ) : (
+          <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">
+            {isPgtTransportadoras ? 'Transportadora' : 'Motorista'}
+          </th>
+        )}
+        <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">
+          {isRecebiveis ? 'Valor Frete' : 'Bruto'}
+        </th>
+        {!isRecebiveis && (
+          <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Taxa</th>
+        )}
+        <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">
+          {isRecebiveis ? 'A Receber' : 'Líquido'}
+        </th>
+        <th className="text-center font-medium text-muted-foreground px-4 py-2.5 text-xs">Vencimento</th>
+        <th className="text-center font-medium text-muted-foreground px-4 py-2.5 text-xs">Status</th>
+        <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Ações</th>
+      </tr>
+    </thead>
+  );
+
+  const renderTableRow = (r: FinanceiroEntrega) => {
+    const dias = r.data_vencimento ? differenceInDays(new Date(r.data_vencimento), new Date()) : null;
+    return (
+      <tr key={r.id} className="border-b border-border hover:bg-muted/20 transition-colors">
+        <td className="px-4 py-3">
+          <p className="font-medium text-foreground">{r.entregas?.codigo || '—'}</p>
+          <p className="text-[11px] text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+              isRecebiveis ? 'bg-chart-4/10' : isPgtTransportadoras ? 'bg-primary/10' : 'bg-chart-4/10'
+            }`}>
+              {isRecebiveis
+                ? <Building2 className="w-3 h-3 text-chart-4" />
+                : isPgtTransportadoras
+                  ? <Truck className="w-3 h-3 text-primary" />
+                  : <User className="w-3 h-3 text-chart-4" />
+              }
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm truncate">
+                {isRecebiveis
+                  ? nomeEmpresa(r.empresa_embarcadora)
+                  : isPgtTransportadoras
+                    ? nomeEmpresa(r.empresa_transportadora)
+                    : r.entregas?.motoristas?.nome_completo || '—'
+                }
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {isRecebiveis ? 'Embarcador' : isPgtTransportadoras ? 'Transportadora' : 'Autônomo'}
+              </p>
+            </div>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-right font-medium">{formatCurrency(r.valor_frete)}</td>
+        {!isRecebiveis && (
+          <td className="px-4 py-3 text-right text-muted-foreground">
+            {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
+          </td>
+        )}
+        <td className="px-4 py-3 text-right font-semibold text-chart-2">
+          {formatCurrency(isRecebiveis ? r.valor_frete : r.valor_liquido)}
+        </td>
+        <td className="px-4 py-3 text-center">
+          {r.data_vencimento ? (
+            <div className="text-xs">
+              <p className="font-medium">{format(new Date(r.data_vencimento), 'dd/MM/yy')}</p>
+              {r.status === 'pendente' && dias !== null && (
+                <p className={dias < 0 ? 'text-destructive font-medium' : dias <= 5 ? 'text-chart-4' : 'text-muted-foreground'}>
+                  {dias < 0 ? `${Math.abs(dias)}d atraso` : dias === 0 ? 'Hoje' : `em ${dias}d`}
+                </p>
+              )}
+            </div>
+          ) : <span className="text-xs text-muted-foreground">—</span>}
+        </td>
+        <td className="px-4 py-3 text-center">{statusBadge(r)}</td>
+        <td className="px-4 py-3 text-right">
+          <div className="flex items-center gap-1 justify-end">
+            {!isRecebiveis && isPgtAutonomos && r.entregas?.motoristas && (
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setBankTarget({ type: 'motorista', id: r.motorista_id!, nome: r.entregas!.motoristas!.nome_completo })} title="Dados bancários">
+                <Landmark className="w-3.5 h-3.5" />
+              </Button>
+            )}
+            {!isRecebiveis && isPgtTransportadoras && r.empresa_transportadora_id && (
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setBankTarget({ type: 'empresa', id: r.empresa_transportadora_id!, nome: nomeEmpresa(r.empresa_transportadora) })} title="Dados bancários">
+                <Landmark className="w-3.5 h-3.5" />
+              </Button>
+            )}
+            {r.status === 'pendente' && (
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                setBaixaDialog(r);
+                setBaixaForm({ data_pagamento: format(new Date(), 'yyyy-MM-dd'), metodo_pagamento: '', observacoes: '' });
+                setComprovante(null);
+              }}>
+                <CheckCircle className="w-3.5 h-3.5 mr-1" /> Baixa
+              </Button>
+            )}
+            {r.status === 'pago' && r.comprovante_url && (
+              <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
+                <a href={r.comprovante_url} target="_blank" rel="noreferrer"><Eye className="w-3.5 h-3.5" /></a>
+              </Button>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
+  const renderFinancialTable = () => (
+    <div className="space-y-5 mt-5">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {getKPIs().map((kpi, i) => (
+          <Card key={i} className="border-border">
+            <CardContent className="p-3 flex items-center gap-2.5">
+              <kpi.icon className={`w-4 h-4 ${kpi.color} shrink-0`} />
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-tight truncate">{kpi.value}</p>
+                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-end">
+        <MonthYearPicker month={selectedMonth} year={selectedYear} onChangeMonth={setSelectedMonth} onChangeYear={setSelectedYear} />
+        <div className="w-32">
+          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Status</Label>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="pago">Pago</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1 max-w-xs">
+          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Buscar</Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input className="pl-9 h-9" placeholder="Código, empresa, motorista..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <Card className="border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            {renderTableHead()}
+          </table>
+          <div className="max-h-[520px] overflow-y-auto">
+            <table className="w-full text-sm">
+              <tbody>
+                {isLoading ? (
+                  [...Array(6)].map((_, i) => (
+                    <tr key={i}><td colSpan={9} className="p-3"><Skeleton className="h-10 w-full" /></td></tr>
+                  ))
+                ) : pagedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-center text-muted-foreground py-16">
+                      <DollarSign className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                      <p>Nenhum registro encontrado no período</p>
+                    </td>
+                  </tr>
+                ) : (
+                  pagedItems.map(renderTableRow)
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {filtered.length > ITEMS_PER_PAGE && (
+          <div className="border-t border-border">
+            <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={setPage} />
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
-          <p className="text-sm text-muted-foreground">Recebíveis individuais D+30 · Modelo fintech logística</p>
+          <p className="text-sm text-muted-foreground">Recebíveis e pagamentos · Modelo fintech logística</p>
         </div>
         <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-xs font-medium">
           <DollarSign className="w-3.5 h-3.5" />
@@ -304,196 +542,25 @@ export default function Financeiro() {
         </Badge>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setPage(1); }}>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as TabType); setPage(1); setStatusFilter('todos'); setSearchTerm(''); }}>
         <TabsList className="bg-muted/50">
           <TabsTrigger value="recebiveis" className="gap-2">
-            <DollarSign className="w-4 h-4" /> Recebíveis
+            <ArrowDownLeft className="w-4 h-4" /> Recebíveis
+          </TabsTrigger>
+          <TabsTrigger value="pgt_transportadoras" className="gap-2">
+            <Truck className="w-4 h-4" /> Pgto Transportadoras
+          </TabsTrigger>
+          <TabsTrigger value="pgt_autonomos" className="gap-2">
+            <User className="w-4 h-4" /> Pgto Autônomos
           </TabsTrigger>
           <TabsTrigger value="config" className="gap-2">
             <Settings className="w-4 h-4" /> Config Embarcadores
           </TabsTrigger>
         </TabsList>
 
-        {/* ===== RECEBÍVEIS TAB ===== */}
-        <TabsContent value="recebiveis" className="space-y-5 mt-5">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { label: 'Frete Bruto', value: formatCurrency(totalBruto), icon: DollarSign, color: 'text-chart-4' },
-              { label: 'Taxa HubFrete', value: formatCurrency(totalComissao), icon: TrendingUp, color: 'text-primary' },
-              { label: 'Líquido a Pagar', value: formatCurrency(totalLiquido), icon: ArrowUpRight, color: 'text-chart-2' },
-              { label: 'Pendentes', value: String(totalPendente), icon: Clock, color: 'text-muted-foreground' },
-              { label: 'Vencidos', value: String(totalVencidos), icon: AlertTriangle, color: 'text-destructive' },
-              { label: 'Antecipados', value: String(totalAntecipados), icon: Zap, color: 'text-chart-4' },
-            ].map((kpi, i) => (
-              <Card key={i} className="border-border">
-                <CardContent className="p-3 flex items-center gap-2.5">
-                  <kpi.icon className={`w-4 h-4 ${kpi.color} shrink-0`} />
-                  <div className="min-w-0">
-                    <p className="text-lg font-bold leading-tight truncate">{kpi.value}</p>
-                    <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3 items-end">
-            <MonthYearPicker month={selectedMonth} year={selectedYear} onChangeMonth={setSelectedMonth} onChangeYear={setSelectedYear} />
-            <div className="w-32">
-              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Status</Label>
-              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="pago">Pago</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-36">
-              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Beneficiário</Label>
-              <Select value={tipoFilter} onValueChange={(v) => { setTipoFilter(v); setPage(1); }}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="transportadora">Transportadoras</SelectItem>
-                  <SelectItem value="autonomo">Autônomos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 max-w-xs">
-              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Buscar</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input className="pl-9 h-9" placeholder="Código, empresa, motorista..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} />
-              </div>
-            </div>
-          </div>
-
-          {/* Table */}
-          <Card className="border-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 sticky top-0">
-                  <tr className="border-b border-border">
-                    <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">Carga</th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">Beneficiário</th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-2.5 text-xs">Embarcador</th>
-                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Bruto</th>
-                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Taxa</th>
-                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Líquido</th>
-                    <th className="text-center font-medium text-muted-foreground px-4 py-2.5 text-xs">Vencimento</th>
-                    <th className="text-center font-medium text-muted-foreground px-4 py-2.5 text-xs">Status</th>
-                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5 text-xs">Ações</th>
-                  </tr>
-                </thead>
-              </table>
-              <div className="max-h-[520px] overflow-y-auto">
-                <table className="w-full text-sm">
-                  <tbody>
-                    {isLoading ? (
-                      [...Array(6)].map((_, i) => (
-                        <tr key={i}><td colSpan={9} className="p-3"><Skeleton className="h-10 w-full" /></td></tr>
-                      ))
-                    ) : pagedItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="text-center text-muted-foreground py-16">
-                          <DollarSign className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                          <p>Nenhum recebível encontrado no período</p>
-                        </td>
-                      </tr>
-                    ) : (
-                      pagedItems.map((r) => {
-                        const dias = r.data_vencimento ? differenceInDays(new Date(r.data_vencimento), new Date()) : null;
-                        return (
-                          <tr key={r.id} className="border-b border-border hover:bg-muted/20 transition-colors">
-                            <td className="px-4 py-3">
-                              <p className="font-medium text-foreground">{r.entregas?.codigo || '—'}</p>
-                              <p className="text-[11px] text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${r.tipo_beneficiario === 'autonomo' ? 'bg-chart-4/10' : 'bg-primary/10'}`}>
-                                  {r.tipo_beneficiario === 'autonomo'
-                                    ? <Landmark className="w-3 h-3 text-chart-4" />
-                                    : <Building2 className="w-3 h-3 text-primary" />}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm truncate">
-                                    {r.tipo_beneficiario === 'autonomo'
-                                      ? r.entregas?.motoristas?.nome_completo
-                                      : nomeEmpresa(r.empresa_transportadora)}
-                                  </p>
-                                  <p className="text-[10px] text-muted-foreground">
-                                    {r.tipo_beneficiario === 'autonomo' ? 'Autônomo' : 'Transportadora'}
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-muted-foreground">{nomeEmpresa(r.empresa_embarcadora)}</td>
-                            <td className="px-4 py-3 text-right font-medium">{formatCurrency(r.valor_frete)}</td>
-                            <td className="px-4 py-3 text-right text-muted-foreground">
-                              {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
-                            </td>
-                            <td className="px-4 py-3 text-right font-semibold text-chart-2">{formatCurrency(r.valor_liquido)}</td>
-                            <td className="px-4 py-3 text-center">
-                              {r.data_vencimento ? (
-                                <div className="text-xs">
-                                  <p className="font-medium">{format(new Date(r.data_vencimento), 'dd/MM/yy')}</p>
-                                  {r.status === 'pendente' && dias !== null && (
-                                    <p className={dias < 0 ? 'text-destructive font-medium' : dias <= 5 ? 'text-chart-4' : 'text-muted-foreground'}>
-                                      {dias < 0 ? `${Math.abs(dias)}d atraso` : dias === 0 ? 'Hoje' : `em ${dias}d`}
-                                    </p>
-                                  )}
-                                </div>
-                              ) : <span className="text-xs text-muted-foreground">—</span>}
-                            </td>
-                            <td className="px-4 py-3 text-center">{statusBadge(r)}</td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center gap-1 justify-end">
-                                {r.tipo_beneficiario === 'autonomo' && r.entregas?.motoristas && (
-                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setBankTarget({ type: 'motorista', id: r.motorista_id!, nome: r.entregas!.motoristas!.nome_completo })} title="Dados bancários">
-                                    <Landmark className="w-3.5 h-3.5" />
-                                  </Button>
-                                )}
-                                {r.tipo_beneficiario !== 'autonomo' && r.empresa_transportadora_id && (
-                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setBankTarget({ type: 'empresa', id: r.empresa_transportadora_id!, nome: nomeEmpresa(r.empresa_transportadora) })} title="Dados bancários">
-                                    <Landmark className="w-3.5 h-3.5" />
-                                  </Button>
-                                )}
-                                {r.status === 'pendente' && (
-                                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
-                                    setBaixaDialog(r);
-                                    setBaixaForm({ data_pagamento: format(new Date(), 'yyyy-MM-dd'), metodo_pagamento: '', observacoes: '' });
-                                    setComprovante(null);
-                                  }}>
-                                    <CheckCircle className="w-3.5 h-3.5 mr-1" /> Baixa
-                                  </Button>
-                                )}
-                                {r.status === 'pago' && r.comprovante_url && (
-                                  <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
-                                    <a href={r.comprovante_url} target="_blank" rel="noreferrer"><Eye className="w-3.5 h-3.5" /></a>
-                                  </Button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            {filtered.length > ITEMS_PER_PAGE && (
-              <div className="border-t border-border">
-                <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={setPage} />
-              </div>
-            )}
-          </Card>
-        </TabsContent>
+        <TabsContent value="recebiveis">{renderFinancialTable()}</TabsContent>
+        <TabsContent value="pgt_transportadoras">{renderFinancialTable()}</TabsContent>
+        <TabsContent value="pgt_autonomos">{renderFinancialTable()}</TabsContent>
 
         {/* ===== CONFIG TAB ===== */}
         <TabsContent value="config" className="space-y-5 mt-5">
@@ -572,7 +639,6 @@ export default function Financeiro() {
                         </div>
                       </div>
 
-                      {/* Credit bar */}
                       {cfg.limite_credito > 0 && (
                         <div>
                           <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
@@ -609,27 +675,39 @@ export default function Financeiro() {
       {/* ===== BAIXA DIALOG ===== */}
       <Dialog open={!!baixaDialog} onOpenChange={() => setBaixaDialog(null)}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><CheckCircle className="w-5 h-5 text-chart-2" /> Dar Baixa no Pagamento</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-chart-2" /> {baixaDialogTitle}
+            </DialogTitle>
+          </DialogHeader>
           {baixaDialog && (
             <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">{baixaDialogDesc}</p>
               <div className="p-3 bg-muted rounded-lg space-y-1.5">
                 <p className="text-sm font-medium">Carga: {baixaDialog.entregas?.codigo}</p>
                 <p className="text-xs text-muted-foreground">
-                  {baixaDialog.tipo_beneficiario === 'autonomo' ? baixaDialog.entregas?.motoristas?.nome_completo : nomeEmpresa(baixaDialog.empresa_transportadora)}
+                  {isRecebiveis
+                    ? `Embarcador: ${nomeEmpresa(baixaDialog.empresa_embarcadora)}`
+                    : baixaDialog.tipo_beneficiario === 'autonomo'
+                      ? `Motorista: ${baixaDialog.entregas?.motoristas?.nome_completo}`
+                      : `Transportadora: ${nomeEmpresa(baixaDialog.empresa_transportadora)}`
+                  }
                 </p>
                 {baixaDialog.data_vencimento && (
                   <p className="text-xs text-muted-foreground">
                     Vencimento: {format(new Date(baixaDialog.data_vencimento), 'dd/MM/yyyy')}
                   </p>
                 )}
-                <p className="text-lg font-bold text-chart-2">{formatCurrency(baixaDialog.valor_liquido)}</p>
+                <p className="text-lg font-bold text-chart-2">
+                  {formatCurrency(isRecebiveis ? baixaDialog.valor_frete : baixaDialog.valor_liquido)}
+                </p>
               </div>
               <div>
-                <Label>Data do Pagamento</Label>
+                <Label>Data do {baixaLabel}</Label>
                 <Input type="date" value={baixaForm.data_pagamento} onChange={(e) => setBaixaForm(f => ({ ...f, data_pagamento: e.target.value }))} />
               </div>
               <div>
-                <Label>Método de Pagamento</Label>
+                <Label>Método</Label>
                 <Select value={baixaForm.metodo_pagamento} onValueChange={(v) => setBaixaForm(f => ({ ...f, metodo_pagamento: v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
@@ -658,7 +736,7 @@ export default function Financeiro() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setBaixaDialog(null)}>Cancelar</Button>
             <Button onClick={handleBaixa} disabled={!baixaForm.data_pagamento || !baixaForm.metodo_pagamento || !comprovante || baixaMutation.isPending || uploading}>
-              {baixaMutation.isPending || uploading ? 'Processando...' : 'Confirmar Baixa'}
+              {baixaMutation.isPending || uploading ? 'Processando...' : `Confirmar ${baixaLabel}`}
             </Button>
           </DialogFooter>
         </DialogContent>
