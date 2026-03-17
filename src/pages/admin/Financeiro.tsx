@@ -104,7 +104,6 @@ export default function Financeiro() {
     tipo_pagamento: 'pos_pago',
     prazo_dias: 30,
     dia_fixo: '',
-    ciclo_faturamento: 'mensal',
     antecipacao_permitida: false,
     taxa_antecipacao_percent: 2,
     limite_credito: 0,
