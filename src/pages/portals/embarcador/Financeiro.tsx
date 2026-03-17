@@ -165,6 +165,12 @@ export default function EmbarcadorFinanceiro() {
           </TabsList>
 
           <TabsContent value="faturas" className="mt-0 space-y-3">
+            <MonthYearPicker
+              month={currentMonth.getMonth()}
+              year={currentMonth.getFullYear()}
+              onChangeMonth={(m) => setCurrentMonth(new Date(currentMonth.getFullYear(), m, 1))}
+              onChangeYear={(y) => setCurrentMonth(new Date(y, currentMonth.getMonth(), 1))}
+            />
             {faturaGroups.length === 0 ? (
               <Card className="border-dashed border-2 border-border">
                 <CardContent className="py-16 text-center">
