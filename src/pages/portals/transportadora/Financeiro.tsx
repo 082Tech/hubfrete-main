@@ -106,7 +106,7 @@ export default function TransportadoraFinanceiro() {
       if (diasRestantes <= 0) throw new Error('Recebível já vencido');
       const taxa = cfg.taxa_antecipacao_percent || 2;
       const valorTaxa = Math.round(recebivel.valor_liquido * (taxa / 100) * 100) / 100;
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('financeiro_entregas')
         .update({
           antecipado: true,
@@ -114,8 +114,8 @@ export default function TransportadoraFinanceiro() {
           taxa_antecipacao_percent: taxa,
           dias_antecipados: diasRestantes,
           valor_taxa_antecipacao: valorTaxa,
-        })
-        .eq('id', recebivel.id);
+        } as any)
+        .eq('id', recebivel.id));
       if (error) throw error;
     },
     onSuccess: () => {
