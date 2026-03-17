@@ -81,7 +81,7 @@ interface ConfigFinanceira {
   empresas?: { nome: string | null; nome_fantasia: string | null; cnpj_matriz: string | null } | null;
 }
 
-type TabType = 'recebiveis_pos' | 'recebiveis_fat' | 'pgt_transportadoras' | 'pgt_autonomos' | 'config' | 'config_transp';
+type TabType = 'recebiveis_pos' | 'recebiveis_fat' | 'pgt_transportadoras' | 'pgt_autonomos' | 'config';
 
 export default function Financeiro() {
   const queryClient = useQueryClient();
@@ -191,21 +191,6 @@ export default function Financeiro() {
     enabled: activeTab === 'config',
   });
 
-  const [transpSearch, setTranspSearch] = useState('');
-
-  const { data: transportadoras, isLoading: loadingTransp } = useQuery({
-    queryKey: ['admin-transportadoras-contas'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('empresas')
-        .select('id, nome, nome_fantasia, cnpj_matriz, dados_bancarios, email, telefone')
-        .eq('tipo', 'TRANSPORTADORA')
-        .order('nome_fantasia', { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-    enabled: activeTab === 'config_transp',
-  });
 
   // Filter data based on active tab
   const filtered = useMemo(() => {
@@ -729,9 +714,6 @@ export default function Financeiro() {
           <TabsTrigger value="config" className="gap-2">
             <Settings className="w-4 h-4" /> Config Embarcadores
           </TabsTrigger>
-          <TabsTrigger value="config_transp" className="gap-2">
-            <Landmark className="w-4 h-4" /> Contas Transportadoras
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="recebiveis_pos">{renderFinancialTable()}</TabsContent>
@@ -851,110 +833,6 @@ export default function Financeiro() {
           )}
         </TabsContent>
 
-        {/* ===== CONFIG TRANSPORTADORAS TAB ===== */}
-        <TabsContent value="config_transp" className="space-y-5 mt-5">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Contas de Recebimento — Transportadoras</h2>
-            <p className="text-xs text-muted-foreground">Visualize e edite os dados bancários e chaves PIX das transportadoras</p>
-          </div>
-
-          <div className="max-w-xs">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input className="pl-9 h-9" placeholder="Buscar transportadora..." value={transpSearch} onChange={(e) => setTranspSearch(e.target.value)} />
-            </div>
-          </div>
-
-          {loadingTransp ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
-            </div>
-          ) : (() => {
-            const filteredTransp = (transportadoras || []).filter(t => {
-              if (!transpSearch) return true;
-              const term = transpSearch.toLowerCase();
-              return (t.nome_fantasia || '').toLowerCase().includes(term) ||
-                (t.nome || '').toLowerCase().includes(term) ||
-                (t.cnpj_matriz || '').includes(term);
-            });
-            return filteredTransp.length === 0 ? (
-              <Card className="border-dashed border-2 border-border">
-                <CardContent className="py-16 text-center">
-                  <Truck className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
-                  <p className="text-muted-foreground">Nenhuma transportadora encontrada</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredTransp.map(t => {
-                  const bank = t.dados_bancarios as any;
-                  const hasBank = bank && (bank.pix || bank.banco);
-                  return (
-                    <Card key={t.id} className="border-border hover:shadow-md transition-all cursor-pointer group" onClick={() => {
-                      setBankTarget({ type: 'empresa', id: t.id, nome: t.nome_fantasia || t.nome || '—' });
-                    }}>
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                              <Truck className="w-4.5 h-4.5 text-primary" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-semibold text-foreground text-sm truncate">{t.nome_fantasia || t.nome || '—'}</p>
-                              <p className="text-[10px] text-muted-foreground">{t.cnpj_matriz || ''}</p>
-                            </div>
-                          </div>
-                          {hasBank ? (
-                            <Badge className="bg-chart-2/10 text-chart-2 text-[9px] border-0 shrink-0">
-                              <ShieldCheck className="w-2.5 h-2.5 mr-0.5" /> Conta cadastrada
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-[9px] border-0 shrink-0">
-                              <AlertTriangle className="w-2.5 h-2.5 mr-0.5" /> Sem conta
-                            </Badge>
-                          )}
-                        </div>
-
-                        {hasBank ? (
-                          <div className="grid grid-cols-2 gap-2">
-                            {bank.pix && (
-                              <div className="col-span-2 p-2 rounded-md bg-muted/40">
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">PIX</p>
-                                <p className="text-xs font-medium text-foreground truncate">{bank.pix}</p>
-                              </div>
-                            )}
-                            {bank.banco && (
-                              <div className="p-2 rounded-md bg-muted/40">
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Banco</p>
-                                <p className="text-xs font-medium text-foreground truncate">{bank.banco}</p>
-                              </div>
-                            )}
-                            {bank.conta && (
-                              <div className="p-2 rounded-md bg-muted/40">
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Conta</p>
-                                <p className="text-xs font-medium text-foreground truncate">{bank.agencia || ''} / {bank.conta}</p>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="p-3 rounded-md bg-muted/30 text-center">
-                            <p className="text-xs text-muted-foreground">Clique para cadastrar dados bancários</p>
-                          </div>
-                        )}
-
-                        <div className="flex justify-end">
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
-                            <Landmark className="w-3.5 h-3.5" /> Editar Conta
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </TabsContent>
       </Tabs>
 
       {/* ===== BAIXA DIALOG ===== */}

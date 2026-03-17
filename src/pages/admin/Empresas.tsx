@@ -15,6 +15,7 @@ import {
   Users,
   User,
   UserPlus,
+  Landmark,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +65,7 @@ import { Pagination } from '@/components/admin/Pagination';
 import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
 import { FilialFormDialog } from '@/components/admin/FilialFormDialog';
 import { AddUserToCompanyDialog } from '@/components/admin/AddUserToCompanyDialog';
+import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
 
 type Usuario = {
   id: number;
@@ -137,6 +139,7 @@ export default function Empresas() {
   
   // User dialog states
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
+  const [bankTarget, setBankTarget] = useState<{ type: 'empresa'; id: number; nome: string } | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -725,6 +728,13 @@ export default function Empresas() {
                                   <Pencil className="w-4 h-4 mr-2" />
                                   Editar
                                 </DropdownMenuItem>
+                                {empresa.tipo === 'TRANSPORTADORA' && (
+                                  <DropdownMenuItem onClick={() => setBankTarget({ type: 'empresa', id: empresa.id, nome: empresa.nome || '—' })}>
+                                    <Landmark className="w-4 h-4 mr-2" />
+                                    Dados Bancários
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   className="text-destructive"
                                   onClick={() => openDeleteDialog(empresa)}
@@ -970,6 +980,13 @@ export default function Empresas() {
           onSuccess={fetchEmpresas}
         />
       )}
+
+      {/* Bank Account Dialog */}
+      <DadosBancariosDialog
+        target={bankTarget}
+        open={!!bankTarget}
+        onOpenChange={(open) => { if (!open) setBankTarget(null); }}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   Eye, 
   Loader2,
   Truck,
+  Landmark,
   Phone,
   Mail,
   Building2,
@@ -57,6 +58,7 @@ import { ptBR } from 'date-fns/locale';
 import { Pagination } from '@/components/admin/Pagination';
 import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
 import { MotoristaAdminFormDialog } from '@/components/admin/MotoristaAdminFormDialog';
+import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
 
 type Motorista = {
   id: string;
@@ -93,6 +95,7 @@ export default function MotoristasAdmin() {
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [selectedMotorista, setSelectedMotorista] = useState<Motorista | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [bankTarget, setBankTarget] = useState<{ type: 'motorista'; id: string; nome: string } | null>(null);
 
   useEffect(() => {
     fetchMotoristas();
@@ -417,6 +420,12 @@ export default function MotoristasAdmin() {
                                 </>
                               )}
                             </DropdownMenuItem>
+                            {motorista.tipo_cadastro === 'autonomo' && (
+                              <DropdownMenuItem onClick={() => setBankTarget({ type: 'motorista', id: motorista.id, nome: motorista.nome_completo })}>
+                                <Landmark className="w-4 h-4 mr-2" />
+                                Dados Bancários
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               className="text-destructive"
@@ -515,6 +524,13 @@ export default function MotoristasAdmin() {
         onOpenChange={setFormDialogOpen}
         motorista={selectedMotorista}
         onSuccess={fetchMotoristas}
+      />
+
+      {/* Bank Account Dialog */}
+      <DadosBancariosDialog
+        target={bankTarget}
+        open={!!bankTarget}
+        onOpenChange={(open) => { if (!open) setBankTarget(null); }}
       />
     </div>
   );
