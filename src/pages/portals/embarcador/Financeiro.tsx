@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, BarChart3, DollarSign, Clock, CheckCircle, FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { MonthYearPicker } from '@/components/ui/month-year-picker';
 import { endOfMonth, startOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { FinanceCalendar } from '@/components/financeiro/FinanceCalendar';
@@ -164,6 +165,12 @@ export default function EmbarcadorFinanceiro() {
           </TabsList>
 
           <TabsContent value="faturas" className="mt-0 space-y-3">
+            <MonthYearPicker
+              month={currentMonth.getMonth()}
+              year={currentMonth.getFullYear()}
+              onChangeMonth={(m) => setCurrentMonth(new Date(currentMonth.getFullYear(), m, 1))}
+              onChangeYear={(y) => setCurrentMonth(new Date(y, currentMonth.getMonth(), 1))}
+            />
             {faturaGroups.length === 0 ? (
               <Card className="border-dashed border-2 border-border">
                 <CardContent className="py-16 text-center">
