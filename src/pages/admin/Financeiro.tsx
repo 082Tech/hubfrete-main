@@ -104,7 +104,6 @@ export default function Financeiro() {
     tipo_pagamento: 'pos_pago',
     prazo_dias: 30,
     dia_fixo: '',
-    ciclo_faturamento: 'mensal',
     antecipacao_permitida: false,
     taxa_antecipacao_percent: 2,
     limite_credito: 0,
@@ -296,7 +295,7 @@ export default function Financeiro() {
         tipo_pagamento: params.form.tipo_pagamento,
         prazo_dias: params.form.prazo_dias,
         dia_fixo: params.form.dia_fixo ? parseInt(params.form.dia_fixo) : null,
-        ciclo_faturamento: params.form.ciclo_faturamento,
+        ciclo_faturamento: 'mensal',
         antecipacao_permitida: params.form.antecipacao_permitida,
         taxa_antecipacao_percent: params.form.taxa_antecipacao_percent,
         limite_credito: params.form.limite_credito,
@@ -625,8 +624,8 @@ export default function Financeiro() {
               const groupPago = group.items.filter(r => r.status === 'pago').reduce((s, r) => s + Number(r.valor_frete), 0);
               const groupPendente = group.items.filter(r => r.status === 'pendente').length;
               const allPaid = group.items.every(r => r.status === 'pago');
-              const ciclo = group.config?.ciclo_faturamento || 'mensal';
               const diaFixo = group.config?.dia_fixo;
+              const prazoDias = group.config?.prazo_dias || 30;
               const monthLabel = format(new Date(selectedYear, selectedMonth), 'MMM/yy', { locale: ptBR });
 
               return (
@@ -642,8 +641,8 @@ export default function Financeiro() {
                       <div className="text-left">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-foreground">{nomeEmpresa(group.empresa)}</p>
-                          <Badge variant="outline" className="text-[9px]">Faturado · {cicloLabel(ciclo)}</Badge>
-                          {diaFixo && <Badge variant="outline" className="text-[9px]">Venc. dia {diaFixo}</Badge>}
+                          <Badge variant="outline" className="text-[9px]">Faturado</Badge>
+                          {diaFixo && <Badge variant="outline" className="text-[9px]">Fecha dia {diaFixo} · +{prazoDias}d</Badge>}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {group.items.length} {group.items.length === 1 ? 'entrega' : 'entregas'} · {monthLabel}
@@ -730,7 +729,7 @@ export default function Financeiro() {
             </div>
             <Button size="sm" onClick={() => {
               setConfigDialog({ id: '', empresa_id: 0, tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: null, ciclo_faturamento: 'mensal', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0, credito_utilizado: 0 });
-              setConfigForm({ tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: '', ciclo_faturamento: 'mensal', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0 });
+              setConfigForm({ tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: '', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0 });
             }}>
               <Settings className="w-4 h-4 mr-2" /> Nova Config
             </Button>
@@ -759,7 +758,6 @@ export default function Financeiro() {
                       tipo_pagamento: cfg.tipo_pagamento,
                       prazo_dias: cfg.prazo_dias,
                       dia_fixo: cfg.dia_fixo?.toString() || '',
-                      ciclo_faturamento: cfg.ciclo_faturamento,
                       antecipacao_permitida: cfg.antecipacao_permitida,
                       taxa_antecipacao_percent: cfg.taxa_antecipacao_percent,
                       limite_credito: cfg.limite_credito,
@@ -790,13 +788,15 @@ export default function Financeiro() {
                         </div>
                         <div className="text-center p-2 rounded-md bg-muted/40">
                           <p className="text-sm font-bold text-foreground">
+                            {cfg.tipo_pagamento === 'faturado' && cfg.dia_fixo ? `Dia ${cfg.dia_fixo}` : '—'}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">Fechamento</p>
+                        </div>
+                        <div className="text-center p-2 rounded-md bg-muted/40">
+                          <p className="text-sm font-bold text-foreground">
                             {cfg.antecipacao_permitida ? `${cfg.taxa_antecipacao_percent}%` : '—'}
                           </p>
                           <p className="text-[9px] text-muted-foreground">Taxa Antec.</p>
-                        </div>
-                        <div className="text-center p-2 rounded-md bg-muted/40">
-                          <p className="text-sm font-bold text-foreground">{cicloLabel(cfg.ciclo_faturamento)}</p>
-                          <p className="text-[9px] text-muted-foreground">Ciclo</p>
                         </div>
                       </div>
 
@@ -933,27 +933,18 @@ export default function Financeiro() {
                 </Select>
               </div>
               <div>
-                <Label>{configForm.tipo_pagamento === 'faturado' ? 'Prazo após ciclo (dias)' : 'Prazo (dias)'}</Label>
+                <Label>{configForm.tipo_pagamento === 'faturado' ? 'Prazo após fechamento (dias)' : 'Prazo (dias)'}</Label>
                 <Input type="number" value={configForm.prazo_dias} onChange={(e) => setConfigForm(f => ({ ...f, prazo_dias: parseInt(e.target.value) || 0 }))} />
+                {configForm.tipo_pagamento === 'faturado' && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Dias adicionais para pagamento após o fechamento</p>
+                )}
               </div>
             </div>
             {configForm.tipo_pagamento === 'faturado' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Dia Fixo de Vencimento</Label>
-                  <Input type="number" placeholder="Ex: 15" min={1} max={28} value={configForm.dia_fixo} onChange={(e) => setConfigForm(f => ({ ...f, dia_fixo: e.target.value }))} />
-                  <p className="text-[10px] text-muted-foreground mt-1">Dia do mês seguinte ao ciclo</p>
-                </div>
-                <div>
-                  <Label>Ciclo de Faturamento</Label>
-                  <Select value={configForm.ciclo_faturamento} onValueChange={(v) => setConfigForm(f => ({ ...f, ciclo_faturamento: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="quinzenal">Quinzenal</SelectItem>
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label>Dia de Fechamento da Fatura</Label>
+                <Input type="number" placeholder="Ex: 15" min={1} max={28} value={configForm.dia_fixo} onChange={(e) => setConfigForm(f => ({ ...f, dia_fixo: e.target.value }))} />
+                <p className="text-[10px] text-muted-foreground mt-1">Acumula entregas do mês e fecha a fatura neste dia</p>
               </div>
             )}
             <div className="border-t border-border pt-4 space-y-3">
