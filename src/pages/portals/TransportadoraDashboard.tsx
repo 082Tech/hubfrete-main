@@ -262,18 +262,22 @@ export default function TransportadoraDashboard() {
                   </CardContent>
                 </Card>
 
+                {aReceberHoje > 0 && (
                 <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/transportadora/financeiro')}>
                   <CardContent className="p-5 flex items-center gap-4">
                     <div className="p-3 bg-chart-2/10 rounded-xl">
                       <DollarSign className="w-6 h-6 text-chart-2" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Financeiro</p>
-                      <p className="text-lg font-bold text-foreground">Ver recebíveis</p>
+                      <p className="text-sm text-muted-foreground">A receber hoje</p>
+                      <p className="text-2xl font-bold text-chart-2">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(aReceberHoje)}
+                      </p>
                     </div>
                     <ArrowUpRight className="w-5 h-5 text-muted-foreground" />
                   </CardContent>
                 </Card>
+                )}
               </div>
             </>
             )}
