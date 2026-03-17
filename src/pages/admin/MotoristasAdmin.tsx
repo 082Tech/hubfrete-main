@@ -58,6 +58,7 @@ import { ptBR } from 'date-fns/locale';
 import { Pagination } from '@/components/admin/Pagination';
 import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
 import { MotoristaAdminFormDialog } from '@/components/admin/MotoristaAdminFormDialog';
+import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
 
 type Motorista = {
   id: string;
