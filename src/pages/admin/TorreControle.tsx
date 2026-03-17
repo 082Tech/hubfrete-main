@@ -5,6 +5,8 @@ import {
   Clock, 
   Building2, 
   Truck,
+  ArrowDownLeft,
+  ArrowUpRight,
   User,
   Package,
   UserPlus,
