@@ -41,6 +41,8 @@ type Stats = {
   totalUsuarios: number;
   entregasHoje: number;
   volumeFreteTotal: number;
+  receberHoje: number;
+  pagarHoje: number;
 };
 
 type EntregasStatus = {
