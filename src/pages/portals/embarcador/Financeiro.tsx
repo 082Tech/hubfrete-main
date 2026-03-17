@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, BarChart3, DollarSign, Clock, CheckCircle, FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { MonthYearPicker } from '@/components/ui/month-year-picker';
 import { endOfMonth, startOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { FinanceCalendar } from '@/components/financeiro/FinanceCalendar';
