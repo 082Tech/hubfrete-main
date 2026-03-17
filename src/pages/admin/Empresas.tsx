@@ -980,6 +980,13 @@ export default function Empresas() {
           onSuccess={fetchEmpresas}
         />
       )}
+
+      {/* Bank Account Dialog */}
+      <DadosBancariosDialog
+        target={bankTarget}
+        open={!!bankTarget}
+        onOpenChange={(open) => { if (!open) setBankTarget(null); }}
+      />
     </div>
   );
 }
