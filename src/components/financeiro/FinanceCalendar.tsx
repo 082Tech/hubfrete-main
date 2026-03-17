@@ -207,7 +207,7 @@ export function FinanceCalendar({
                     key={idx}
                     onClick={() => setSelectedDay(isSelected ? null : day)}
                     className={cn(
-                      'aspect-[4/3] relative flex flex-col items-center justify-center gap-0.5 border-b border-r border-border transition-colors hover:bg-muted/50',
+                      'aspect-square relative flex flex-col items-center justify-center gap-0.5 border-b border-r border-border transition-colors hover:bg-muted/50',
                       isSelected && 'bg-primary/10 ring-1 ring-primary',
                       today && !isSelected && 'bg-accent/50',
                     )}
