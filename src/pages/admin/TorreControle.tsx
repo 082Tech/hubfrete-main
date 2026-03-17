@@ -106,6 +106,8 @@ export default function TorreControle() {
         preCadastrosRes,
         usuariosRes,
         entregasHojeRes,
+        finReceberRes,
+        finPagarRes,
       ] = await Promise.all([
         supabase.from('empresas').select('tipo', { count: 'exact' }),
         supabase.from('motoristas').select('id', { count: 'exact' }),
@@ -114,12 +116,15 @@ export default function TorreControle() {
         supabase.from('pre_cadastros').select('id', { count: 'exact' }).eq('status', 'pendente'),
         supabase.from('usuarios').select('id', { count: 'exact' }),
         supabase.from('entregas').select('id', { count: 'exact' }).gte('created_at', format(new Date(), 'yyyy-MM-dd')),
+        supabase.from('financeiro_entregas').select('valor_frete').eq('status', 'pendente').eq('data_vencimento', format(new Date(), 'yyyy-MM-dd')),
+        supabase.from('financeiro_entregas').select('valor_liquido').eq('status', 'pendente').eq('data_vencimento', format(new Date(), 'yyyy-MM-dd')).in('tipo_beneficiario', ['transportadora', 'autonomo']),
       ]);
 
       const empresas = empresasRes.data || [];
       const entregas = entregasRes.data || [];
-
       const volumeFrete = entregas.reduce((sum, e) => sum + (e.valor_frete || 0), 0);
+      const receberHoje = (finReceberRes.data || []).reduce((s: number, r: any) => s + Number(r.valor_frete || 0), 0);
+      const pagarHoje = (finPagarRes.data || []).reduce((s: number, r: any) => s + Number(r.valor_liquido || 0), 0);
 
       setStats({
         empresasEmbarcador: empresas.filter(e => e.tipo === 'EMBARCADOR').length,
@@ -132,6 +137,8 @@ export default function TorreControle() {
         totalUsuarios: usuariosRes.count || 0,
         entregasHoje: entregasHojeRes.count || 0,
         volumeFreteTotal: volumeFrete,
+        receberHoje,
+        pagarHoje,
       });
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error);
