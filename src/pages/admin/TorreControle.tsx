@@ -5,6 +5,8 @@ import {
   Clock, 
   Building2, 
   Truck,
+  ArrowDownLeft,
+  ArrowUpRight,
   User,
   Package,
   UserPlus,
@@ -41,6 +43,8 @@ type Stats = {
   totalUsuarios: number;
   entregasHoje: number;
   volumeFreteTotal: number;
+  receberHoje: number;
+  pagarHoje: number;
 };
 
 type EntregasStatus = {
@@ -104,6 +108,8 @@ export default function TorreControle() {
         preCadastrosRes,
         usuariosRes,
         entregasHojeRes,
+        finReceberRes,
+        finPagarRes,
       ] = await Promise.all([
         supabase.from('empresas').select('tipo', { count: 'exact' }),
         supabase.from('motoristas').select('id', { count: 'exact' }),
@@ -112,12 +118,15 @@ export default function TorreControle() {
         supabase.from('pre_cadastros').select('id', { count: 'exact' }).eq('status', 'pendente'),
         supabase.from('usuarios').select('id', { count: 'exact' }),
         supabase.from('entregas').select('id', { count: 'exact' }).gte('created_at', format(new Date(), 'yyyy-MM-dd')),
+        supabase.from('financeiro_entregas').select('valor_frete').eq('status', 'pendente').eq('data_vencimento', format(new Date(), 'yyyy-MM-dd')),
+        supabase.from('financeiro_entregas').select('valor_liquido').eq('status', 'pendente').eq('data_vencimento', format(new Date(), 'yyyy-MM-dd')).in('tipo_beneficiario', ['transportadora', 'autonomo']),
       ]);
 
       const empresas = empresasRes.data || [];
       const entregas = entregasRes.data || [];
-
       const volumeFrete = entregas.reduce((sum, e) => sum + (e.valor_frete || 0), 0);
+      const receberHoje = (finReceberRes.data || []).reduce((s: number, r: any) => s + Number(r.valor_frete || 0), 0);
+      const pagarHoje = (finPagarRes.data || []).reduce((s: number, r: any) => s + Number(r.valor_liquido || 0), 0);
 
       setStats({
         empresasEmbarcador: empresas.filter(e => e.tipo === 'EMBARCADOR').length,
@@ -130,6 +139,8 @@ export default function TorreControle() {
         totalUsuarios: usuariosRes.count || 0,
         entregasHoje: entregasHojeRes.count || 0,
         volumeFreteTotal: volumeFrete,
+        receberHoje,
+        pagarHoje,
       });
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error);
@@ -324,6 +335,34 @@ export default function TorreControle() {
                 icon={DollarSign}
                 iconClassName="bg-chart-1/10 text-chart-1"
               />
+            </div>
+
+            {/* Finance Summary */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card className="border-chart-2/30 bg-chart-2/5 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/admin/financeiro')}>
+                <CardContent className="p-5 flex items-center gap-4">
+                  <div className="p-3 bg-chart-2/10 rounded-xl">
+                    <ArrowDownLeft className="w-6 h-6 text-chart-2" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">A receber hoje</p>
+                    <p className="text-2xl font-bold text-chart-2">{formatCurrency(stats?.receberHoje || 0)}</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                </CardContent>
+              </Card>
+              <Card className="border-chart-4/30 bg-chart-4/5 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/admin/financeiro')}>
+                <CardContent className="p-5 flex items-center gap-4">
+                  <div className="p-3 bg-chart-4/10 rounded-xl">
+                    <ArrowUpRight className="w-6 h-6 text-chart-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">A pagar hoje</p>
+                    <p className="text-2xl font-bold text-chart-4">{formatCurrency(stats?.pagarHoje || 0)}</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                </CardContent>
+              </Card>
             </div>
 
             {/* Charts Row */}

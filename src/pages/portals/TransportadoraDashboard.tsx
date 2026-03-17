@@ -216,8 +216,7 @@ export default function TransportadoraDashboard() {
                 />
               </div>
 
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/transportadora/frota')}>
                   <CardContent className="p-5 flex items-center gap-4">
                     <div className="p-3 bg-primary/10 rounded-xl">
@@ -239,6 +238,19 @@ export default function TransportadoraDashboard() {
                     <div className="flex-1">
                       <p className="text-sm text-muted-foreground">Total de Motoristas</p>
                       <p className="text-3xl font-bold text-foreground">{stats.totalMotoristas}</p>
+                    </div>
+                    <ArrowUpRight className="w-5 h-5 text-muted-foreground" />
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/transportadora/financeiro')}>
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="p-3 bg-chart-2/10 rounded-xl">
+                      <DollarSign className="w-6 h-6 text-chart-2" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">Financeiro</p>
+                      <p className="text-lg font-bold text-foreground">Ver recebíveis</p>
                     </div>
                     <ArrowUpRight className="w-5 h-5 text-muted-foreground" />
                   </CardContent>
