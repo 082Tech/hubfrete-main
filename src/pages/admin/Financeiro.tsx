@@ -714,9 +714,6 @@ export default function Financeiro() {
           <TabsTrigger value="config" className="gap-2">
             <Settings className="w-4 h-4" /> Config Embarcadores
           </TabsTrigger>
-          <TabsTrigger value="config_transp" className="gap-2">
-            <Landmark className="w-4 h-4" /> Contas Transportadoras
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="recebiveis_pos">{renderFinancialTable()}</TabsContent>
