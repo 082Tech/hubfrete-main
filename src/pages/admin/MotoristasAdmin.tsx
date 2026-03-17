@@ -420,6 +420,12 @@ export default function MotoristasAdmin() {
                                 </>
                               )}
                             </DropdownMenuItem>
+                            {motorista.tipo_cadastro === 'autonomo' && (
+                              <DropdownMenuItem onClick={() => setBankTarget({ type: 'motorista', id: motorista.id, nome: motorista.nome_completo })}>
+                                <Landmark className="w-4 h-4 mr-2" />
+                                Dados Bancários
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               className="text-destructive"
