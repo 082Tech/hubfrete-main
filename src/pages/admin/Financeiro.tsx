@@ -162,7 +162,7 @@ export default function Financeiro() {
       const { data, error } = await supabase
         .from('empresas')
         .select('id, nome, nome_fantasia, cnpj_matriz')
-        .eq('tipo', 'embarcador')
+        .eq('tipo', 'EMBARCADOR')
         .order('nome', { ascending: true });
       if (error) throw error;
       return data;
