@@ -257,7 +257,7 @@ export function FinanceCalendar({
         </Card>
 
         {/* Right: Day details */}
-        <Card className="border-border overflow-hidden min-h-[300px] lg:max-h-[500px]">
+        <Card className="border-border overflow-hidden min-h-[300px]">
           <CardContent className="p-0 h-full">
             {renderDayDetail()}
           </CardContent>
