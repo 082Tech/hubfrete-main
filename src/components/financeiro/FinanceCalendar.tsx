@@ -194,7 +194,7 @@ export function FinanceCalendar({
             {/* Days grid */}
             <div className="grid grid-cols-7">
               {Array.from({ length: startDayOfWeek }).map((_, i) => (
-                <div key={`empty-${i}`} className="aspect-[4/3] border-b border-r border-border last:border-r-0" />
+                <div key={`empty-${i}`} className="aspect-square border-b border-r border-border last:border-r-0" />
               ))}
 
               {daysInMonth.map((day, idx) => {
