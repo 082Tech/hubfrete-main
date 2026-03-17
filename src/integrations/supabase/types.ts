@@ -1139,6 +1139,59 @@ export type Database = {
         }
         Relationships: []
       }
+      empresa_config_financeira: {
+        Row: {
+          antecipacao_permitida: boolean
+          ciclo_faturamento: string | null
+          created_at: string
+          credito_utilizado: number
+          dia_fixo: number | null
+          empresa_id: number
+          id: string
+          limite_credito: number
+          prazo_dias: number
+          taxa_antecipacao_percent: number
+          tipo_pagamento: string
+          updated_at: string
+        }
+        Insert: {
+          antecipacao_permitida?: boolean
+          ciclo_faturamento?: string | null
+          created_at?: string
+          credito_utilizado?: number
+          dia_fixo?: number | null
+          empresa_id: number
+          id?: string
+          limite_credito?: number
+          prazo_dias?: number
+          taxa_antecipacao_percent?: number
+          tipo_pagamento?: string
+          updated_at?: string
+        }
+        Update: {
+          antecipacao_permitida?: boolean
+          ciclo_faturamento?: string | null
+          created_at?: string
+          credito_utilizado?: number
+          dia_fixo?: number | null
+          empresa_id?: number
+          id?: string
+          limite_credito?: number
+          prazo_dias?: number
+          taxa_antecipacao_percent?: number
+          tipo_pagamento?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_config_financeira_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           classe: Database["public"]["Enums"]["classe_empresa"]
@@ -1638,11 +1691,14 @@ export type Database = {
       }
       financeiro_entregas: {
         Row: {
+          antecipado: boolean
           baixa_por: string | null
           comprovante_url: string | null
           created_at: string
+          data_antecipacao: string | null
           data_pagamento: string | null
           data_vencimento: string | null
+          dias_antecipados: number | null
           empresa_embarcadora_id: number | null
           empresa_transportadora_id: number | null
           entrega_id: string
@@ -1650,19 +1706,27 @@ export type Database = {
           fatura_transportadora_id: string | null
           id: string
           metodo_pagamento: string | null
+          motorista_id: string | null
           observacoes: string | null
           status: string
+          taxa_antecipacao_percent: number | null
+          tipo_beneficiario: string | null
           updated_at: string
           valor_comissao: number
+          valor_final: number | null
           valor_frete: number
           valor_liquido: number
+          valor_taxa_antecipacao: number | null
         }
         Insert: {
+          antecipado?: boolean
           baixa_por?: string | null
           comprovante_url?: string | null
           created_at?: string
+          data_antecipacao?: string | null
           data_pagamento?: string | null
           data_vencimento?: string | null
+          dias_antecipados?: number | null
           empresa_embarcadora_id?: number | null
           empresa_transportadora_id?: number | null
           entrega_id: string
@@ -1670,19 +1734,27 @@ export type Database = {
           fatura_transportadora_id?: string | null
           id?: string
           metodo_pagamento?: string | null
+          motorista_id?: string | null
           observacoes?: string | null
           status?: string
+          taxa_antecipacao_percent?: number | null
+          tipo_beneficiario?: string | null
           updated_at?: string
           valor_comissao?: number
+          valor_final?: number | null
           valor_frete?: number
           valor_liquido?: number
+          valor_taxa_antecipacao?: number | null
         }
         Update: {
+          antecipado?: boolean
           baixa_por?: string | null
           comprovante_url?: string | null
           created_at?: string
+          data_antecipacao?: string | null
           data_pagamento?: string | null
           data_vencimento?: string | null
+          dias_antecipados?: number | null
           empresa_embarcadora_id?: number | null
           empresa_transportadora_id?: number | null
           entrega_id?: string
@@ -1690,12 +1762,17 @@ export type Database = {
           fatura_transportadora_id?: string | null
           id?: string
           metodo_pagamento?: string | null
+          motorista_id?: string | null
           observacoes?: string | null
           status?: string
+          taxa_antecipacao_percent?: number | null
+          tipo_beneficiario?: string | null
           updated_at?: string
           valor_comissao?: number
+          valor_final?: number | null
           valor_frete?: number
           valor_liquido?: number
+          valor_taxa_antecipacao?: number | null
         }
         Relationships: [
           {
@@ -1731,6 +1808,13 @@ export type Database = {
             columns: ["fatura_transportadora_id"]
             isOneToOne: false
             referencedRelation: "faturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entregas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
             referencedColumns: ["id"]
           },
         ]
