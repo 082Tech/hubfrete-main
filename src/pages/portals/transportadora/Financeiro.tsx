@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -16,42 +15,31 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
-  DollarSign, CheckCircle, Clock, Landmark, Save, CreditCard, Zap,
-  Calendar, AlertTriangle,
+  Landmark, Save, Zap, Calendar, BarChart3, AlertTriangle,
 } from 'lucide-react';
-import { format, endOfMonth, differenceInDays } from 'date-fns';
+import { format, endOfMonth, startOfMonth, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
-import { Pagination } from '@/components/admin/Pagination';
-import { MonthYearPicker } from '@/components/ui/month-year-picker';
+import { FinanceCalendar } from '@/components/financeiro/FinanceCalendar';
 import { AnnualBarChart } from '@/components/financeiro/AnnualBarChart';
-
-const ITEMS_PER_PAGE = 15;
 
 export default function TransportadoraFinanceiro() {
   const { empresa } = useUserContext();
   const queryClient = useQueryClient();
-  const now = new Date();
-  const [statusFilter, setStatusFilter] = useState<string>('todos');
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
-  const [page, setPage] = useState(1);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [antecipacaoDialog, setAntecipacaoDialog] = useState<any | null>(null);
 
-  const dateFrom = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
-  const dateTo = (() => {
-    const last = endOfMonth(new Date(selectedYear, selectedMonth));
-    return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
-  })();
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
 
   const [bankForm, setBankForm] = useState({ banco: '', agencia: '', conta: '', tipo_conta: 'corrente', pix: '', titular: '' });
   const [bankLoaded, setBankLoaded] = useState(false);
 
-  const { data: registros, isLoading } = useQuery({
-    queryKey: ['transportadora-financeiro', empresa?.id, statusFilter, dateFrom, dateTo],
+  const { data: registros = [], isLoading } = useQuery({
+    queryKey: ['transportadora-financeiro', empresa?.id, monthStart.toISOString()],
     queryFn: async () => {
       if (!empresa?.id) return [];
-      let query = supabase
+      const { data, error } = await supabase
         .from('financeiro_entregas')
         .select(`
           *,
@@ -61,20 +49,15 @@ export default function TransportadoraFinanceiro() {
           empresa_embarcadora:empresas!financeiro_entregas_empresa_embarcadora_id_fkey(nome, nome_fantasia)
         `)
         .eq('empresa_transportadora_id', empresa.id)
-        .order('data_vencimento', { ascending: true, nullsFirst: false });
-
-      if (statusFilter !== 'todos') query = query.eq('status', statusFilter);
-      if (dateFrom) query = query.gte('created_at', dateFrom);
-      if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59');
-
-      const { data, error } = await query;
+        .gte('data_vencimento', monthStart.toISOString().slice(0, 10))
+        .lte('data_vencimento', monthEnd.toISOString().slice(0, 10))
+        .order('data_vencimento', { ascending: true });
       if (error) throw error;
       return data as any[];
     },
     enabled: !!empresa?.id,
   });
 
-  // Fetch config for antecipação
   const { data: configEmbarcadores } = useQuery({
     queryKey: ['embarcador-configs-for-transportadora'],
     queryFn: async () => {
@@ -115,18 +98,14 @@ export default function TransportadoraFinanceiro() {
     onError: () => toast.error('Erro ao salvar dados bancários'),
   });
 
-  // Antecipação mutation
   const antecipacaoMutation = useMutation({
     mutationFn: async (recebivel: any) => {
       const cfg = configEmbarcadores?.[recebivel.empresa_embarcadora_id];
       if (!cfg?.antecipacao_permitida) throw new Error('Antecipação não permitida para este embarcador');
-
       const diasRestantes = differenceInDays(new Date(recebivel.data_vencimento), new Date());
       if (diasRestantes <= 0) throw new Error('Recebível já vencido');
-
       const taxa = cfg.taxa_antecipacao_percent || 2;
       const valorTaxa = Math.round(recebivel.valor_liquido * (taxa / 100) * 100) / 100;
-
       const { error } = await supabase
         .from('financeiro_entregas')
         .update({
@@ -147,26 +126,11 @@ export default function TransportadoraFinanceiro() {
     onError: (err: any) => toast.error(err.message || 'Erro ao solicitar antecipação'),
   });
 
-  const totalPages = Math.max(1, Math.ceil((registros?.length || 0) / ITEMS_PER_PAGE));
-  const pagedItems = registros?.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE) || [];
-
-  const totalAReceber = registros?.filter(r => r.status === 'pendente').reduce((s: number, r: any) => s + Number(r.valor_liquido), 0) || 0;
-  const totalRecebido = registros?.filter(r => r.status === 'pago').reduce((s: number, r: any) => s + Number(r.valor_liquido), 0) || 0;
-  const totalComissao = registros?.reduce((s: number, r: any) => s + Number(r.valor_comissao), 0) || 0;
-  const qtdPendente = registros?.filter(r => r.status === 'pendente').length || 0;
-  const totalAntecipados = registros?.filter(r => r.antecipado).length || 0;
-
   const canAntecipar = (r: any) => {
     if (r.status !== 'pendente' || r.antecipado) return false;
     if (!r.data_vencimento || differenceInDays(new Date(r.data_vencimento), new Date()) <= 0) return false;
     const cfg = configEmbarcadores?.[r.empresa_embarcadora_id];
     return cfg?.antecipacao_permitida === true;
-  };
-
-  const vencimentoInfo = (r: any) => {
-    if (!r.data_vencimento) return null;
-    const dias = differenceInDays(new Date(r.data_vencimento), new Date());
-    return { date: format(new Date(r.data_vencimento), 'dd/MM/yyyy'), dias, isLate: dias < 0, isClose: dias >= 0 && dias <= 5 };
   };
 
   return (
@@ -176,168 +140,39 @@ export default function TransportadoraFinanceiro() {
         <p className="text-sm text-muted-foreground">Recebíveis individuais — cada carga finalizada vence em D+30</p>
       </div>
 
-      <Tabs defaultValue="receber" className="space-y-6">
+      <Tabs defaultValue="calendario" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="receber">Recebíveis</TabsTrigger>
-          <TabsTrigger value="conta">Conta de Recebimento</TabsTrigger>
+          <TabsTrigger value="calendario" className="gap-2">
+            <Calendar className="w-4 h-4" /> Calendário
+          </TabsTrigger>
+          <TabsTrigger value="anual" className="gap-2">
+            <BarChart3 className="w-4 h-4" /> Visão Anual
+          </TabsTrigger>
+          <TabsTrigger value="conta" className="gap-2">
+            <Landmark className="w-4 h-4" /> Conta
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="receber" className="space-y-6 mt-0">
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 bg-chart-4/10 rounded-lg"><Clock className="w-5 h-5 text-chart-4" /></div>
-                <div>
-                  <p className="text-2xl font-bold">{formatCurrency(totalAReceber)}</p>
-                  <p className="text-xs text-muted-foreground">A Receber ({qtdPendente})</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 bg-chart-2/10 rounded-lg"><CheckCircle className="w-5 h-5 text-chart-2" /></div>
-                <div>
-                  <p className="text-2xl font-bold">{formatCurrency(totalRecebido)}</p>
-                  <p className="text-xs text-muted-foreground">Recebido</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 bg-destructive/10 rounded-lg"><CreditCard className="w-5 h-5 text-destructive" /></div>
-                <div>
-                  <p className="text-2xl font-bold">{formatCurrency(totalComissao)}</p>
-                  <p className="text-xs text-muted-foreground">Taxa HubFrete</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg"><DollarSign className="w-5 h-5 text-primary" /></div>
-                <div>
-                  <p className="text-2xl font-bold">{formatCurrency(totalAReceber + totalRecebido)}</p>
-                  <p className="text-xs text-muted-foreground">Total líquido</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 bg-chart-4/10 rounded-lg"><Zap className="w-5 h-5 text-chart-4" /></div>
-                <div>
-                  <p className="text-2xl font-bold">{totalAntecipados}</p>
-                  <p className="text-xs text-muted-foreground">Antecipados</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="calendario" className="mt-0">
+          <FinanceCalendar
+            recebiveis={registros}
+            currentMonth={currentMonth}
+            onMonthChange={setCurrentMonth}
+            perspective="transportadora"
+            onAntecipar={(r) => setAntecipacaoDialog(r)}
+            canAntecipar={canAntecipar}
+          />
+        </TabsContent>
 
-          {/* Annual Chart */}
+        <TabsContent value="anual" className="mt-0">
           {empresa?.id && (
-            <AnnualBarChart empresaId={empresa.id} filterColumn="empresa_transportadora_id" valueField="valor_liquido" year={selectedYear} />
+            <AnnualBarChart
+              empresaId={empresa.id}
+              filterColumn="empresa_transportadora_id"
+              valueField="valor_liquido"
+              year={currentMonth.getFullYear()}
+            />
           )}
-
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="w-36">
-              <Label className="text-xs text-muted-foreground">Status</Label>
-              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="pendente">A Receber</SelectItem>
-                  <SelectItem value="pago">Recebido</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <MonthYearPicker month={selectedMonth} year={selectedYear} onChangeMonth={setSelectedMonth} onChangeYear={setSelectedYear} />
-          </div>
-
-          {/* Table */}
-          <Card className="border-border">
-            <div className="overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr className="border-b border-border">
-                    <th className="text-left font-medium text-muted-foreground px-4 py-2.5">Carga</th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-2.5">Embarcador</th>
-                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5">Bruto</th>
-                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5">Taxa</th>
-                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5">Líquido</th>
-                    <th className="text-center font-medium text-muted-foreground px-4 py-2.5">Vencimento</th>
-                    <th className="text-center font-medium text-muted-foreground px-4 py-2.5">Status</th>
-                    <th className="text-right font-medium text-muted-foreground px-4 py-2.5"></th>
-                  </tr>
-                </thead>
-              </table>
-              <div className="max-h-[480px] overflow-y-auto">
-                <table className="w-full text-sm">
-                  <tbody>
-                    {isLoading ? (
-                      [...Array(5)].map((_, i) => <tr key={i}><td colSpan={8} className="p-3"><Skeleton className="h-10 w-full" /></td></tr>)
-                    ) : pagedItems.length === 0 ? (
-                      <tr><td colSpan={8} className="text-center text-muted-foreground py-12">Nenhum recebível encontrado no período</td></tr>
-                    ) : (
-                      pagedItems.map((r: any) => {
-                        const v = vencimentoInfo(r);
-                        return (
-                          <tr key={r.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                            <td className="px-4 py-3">
-                              <p className="font-medium">{r.entregas?.codigo || '—'}</p>
-                              <p className="text-xs text-muted-foreground">{r.entregas?.cargas?.codigo}</p>
-                            </td>
-                            <td className="px-4 py-3">{r.empresa_embarcadora?.nome_fantasia || r.empresa_embarcadora?.nome || '—'}</td>
-                            <td className="px-4 py-3 text-right text-muted-foreground">{formatCurrency(r.valor_frete)}</td>
-                            <td className="px-4 py-3 text-right text-destructive">
-                              {r.valor_comissao > 0 ? `- ${formatCurrency(r.valor_comissao)}` : '—'}
-                            </td>
-                            <td className="px-4 py-3 text-right font-semibold text-chart-2">
-                              {formatCurrency(r.valor_liquido)}
-                              {r.antecipado && r.valor_taxa_antecipacao > 0 && (
-                                <p className="text-xs text-chart-4">- {formatCurrency(r.valor_taxa_antecipacao)} (antecip.)</p>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              {v ? (
-                                <div className="text-xs">
-                                  <p className="font-medium">{v.date}</p>
-                                  {r.status === 'pendente' && (
-                                    <p className={v.isLate ? 'text-destructive' : v.isClose ? 'text-chart-4' : 'text-muted-foreground'}>
-                                      {v.isLate ? `${Math.abs(v.dias)}d atraso` : v.dias === 0 ? 'Hoje' : `em ${v.dias}d`}
-                                    </p>
-                                  )}
-                                </div>
-                              ) : '—'}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              {r.status === 'pago' ? (
-                                <Badge className="bg-chart-2 text-white">Recebido</Badge>
-                              ) : r.antecipado ? (
-                                <Badge className="bg-chart-4 text-white">Antecipado</Badge>
-                              ) : (
-                                <Badge variant="secondary">Pendente</Badge>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              {canAntecipar(r) && (
-                                <Button size="sm" variant="outline" className="text-chart-4 border-chart-4 hover:bg-chart-4/10" onClick={() => setAntecipacaoDialog(r)}>
-                                  <Zap className="w-4 h-4 mr-1" /> Antecipar
-                                </Button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            {(registros?.length || 0) > ITEMS_PER_PAGE && (
-              <div className="border-t border-border">
-                <Pagination currentPage={page} totalPages={totalPages} totalItems={registros?.length || 0} itemsPerPage={ITEMS_PER_PAGE} onPageChange={setPage} />
-              </div>
-            )}
-          </Card>
         </TabsContent>
 
         <TabsContent value="conta" className="space-y-6 mt-0">
@@ -411,7 +246,6 @@ export default function TransportadoraFinanceiro() {
                     Vencimento original: {format(new Date(antecipacaoDialog.data_vencimento), 'dd/MM/yyyy')} ({diasRestantes} dias restantes)
                   </p>
                 </div>
-
                 <div className="border border-border rounded-lg p-4 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Valor líquido</span>
@@ -426,7 +260,6 @@ export default function TransportadoraFinanceiro() {
                     <span className="text-lg font-bold text-chart-2">{formatCurrency(valorFinal)}</span>
                   </div>
                 </div>
-
                 <div className="flex items-start gap-2 p-3 bg-chart-4/10 rounded-lg">
                   <AlertTriangle className="w-4 h-4 text-chart-4 mt-0.5 shrink-0" />
                   <p className="text-xs text-chart-4">
