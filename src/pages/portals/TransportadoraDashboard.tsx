@@ -18,6 +18,7 @@ import {
   Shield,
   Settings,
   DollarSign,
+  Boxes,
 } from 'lucide-react';
 import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
 import { CardImmersiveBackground } from '@/components/ai-assistant/CardImmersiveBackground';
