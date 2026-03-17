@@ -729,7 +729,7 @@ export default function Financeiro() {
             </div>
             <Button size="sm" onClick={() => {
               setConfigDialog({ id: '', empresa_id: 0, tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: null, ciclo_faturamento: 'mensal', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0, credito_utilizado: 0 });
-              setConfigForm({ tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: '', ciclo_faturamento: 'mensal', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0 });
+              setConfigForm({ tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: '', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0 });
             }}>
               <Settings className="w-4 h-4 mr-2" /> Nova Config
             </Button>
