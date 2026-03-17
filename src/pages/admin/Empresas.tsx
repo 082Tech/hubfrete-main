@@ -728,6 +728,13 @@ export default function Empresas() {
                                   <Pencil className="w-4 h-4 mr-2" />
                                   Editar
                                 </DropdownMenuItem>
+                                {empresa.tipo === 'TRANSPORTADORA' && (
+                                  <DropdownMenuItem onClick={() => setBankTarget({ type: 'empresa', id: empresa.id, nome: empresa.nome || '—' })}>
+                                    <Landmark className="w-4 h-4 mr-2" />
+                                    Dados Bancários
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   className="text-destructive"
                                   onClick={() => openDeleteDialog(empresa)}
