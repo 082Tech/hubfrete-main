@@ -1,7 +1,7 @@
 // Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Truck, Clock, CheckCircle, ArrowUpRight, DollarSign, MapPin, MessageCircle, BarChart3, Sparkles, Send, ExternalLink, Shield, Settings } from 'lucide-react';
+import { Package, Truck, Clock, CheckCircle, ArrowUpRight, DollarSign, MapPin, MessageCircle, BarChart3, Sparkles, Send, ExternalLink, Shield, Settings, Boxes } from 'lucide-react';
 import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
 import { CardImmersiveBackground } from '@/components/ai-assistant/CardImmersiveBackground';
 import { Plus } from 'lucide-react';
