@@ -297,8 +297,8 @@ export default function TransportadoraDashboard() {
                     className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20"
                     onClick={() => navigate('/transportadora/ofertas')}
                   >
-                    <Package className="w-5 h-5 text-primary" />
-                    <span className="text-xs">Ofertas</span>
+                    <Boxes className="w-5 h-5 text-primary" />
+                    <span className="text-xs">Ver Ofertas</span>
                   </Button>
                   <Button 
                     variant="outline" 
