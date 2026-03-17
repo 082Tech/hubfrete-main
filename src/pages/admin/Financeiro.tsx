@@ -81,7 +81,7 @@ interface ConfigFinanceira {
   empresas?: { nome: string | null; nome_fantasia: string | null; cnpj_matriz: string | null } | null;
 }
 
-type TabType = 'recebiveis_pos' | 'recebiveis_fat' | 'pgt_transportadoras' | 'pgt_autonomos' | 'config' | 'config_transp';
+type TabType = 'recebiveis_pos' | 'recebiveis_fat' | 'pgt_transportadoras' | 'pgt_autonomos' | 'config';
 
 export default function Financeiro() {
   const queryClient = useQueryClient();
