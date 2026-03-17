@@ -18,6 +18,7 @@ import {
   Shield,
   Settings,
   DollarSign,
+  Boxes,
 } from 'lucide-react';
 import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
 import { CardImmersiveBackground } from '@/components/ai-assistant/CardImmersiveBackground';
@@ -27,6 +28,7 @@ import { useUserContext } from '@/hooks/useUserContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
+import { format } from 'date-fns';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 
@@ -110,7 +112,24 @@ export default function TransportadoraDashboard() {
     enabled: !!empresa?.id,
   });
 
-  // Stats
+  // Fetch a receber hoje
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const { data: aReceberHoje = 0 } = useQuery({
+    queryKey: ['transportadora-a-receber-hoje', empresa?.id, today],
+    queryFn: async () => {
+      if (!empresa?.id) return 0;
+      const { data, error } = await supabase
+        .from('financeiro_entregas')
+        .select('valor_liquido')
+        .eq('empresa_transportadora_id', empresa.id)
+        .eq('status', 'pendente')
+        .eq('data_vencimento', today);
+      if (error) throw error;
+      return (data || []).reduce((s, r) => s + Number(r.valor_liquido || 0), 0);
+    },
+    enabled: !!empresa?.id,
+  });
+
   const stats = useMemo(() => {
     const veiculosAtivos = veiculos.filter((v: any) => v.ativo).length;
     const motoristasAtivos = motoristas.filter((m: any) => m.ativo).length;
@@ -243,18 +262,22 @@ export default function TransportadoraDashboard() {
                   </CardContent>
                 </Card>
 
+                {aReceberHoje > 0 && (
                 <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/transportadora/financeiro')}>
                   <CardContent className="p-5 flex items-center gap-4">
                     <div className="p-3 bg-chart-2/10 rounded-xl">
                       <DollarSign className="w-6 h-6 text-chart-2" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Financeiro</p>
-                      <p className="text-lg font-bold text-foreground">Ver recebíveis</p>
+                      <p className="text-sm text-muted-foreground">A receber hoje</p>
+                      <p className="text-2xl font-bold text-chart-2">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(aReceberHoje)}
+                      </p>
                     </div>
                     <ArrowUpRight className="w-5 h-5 text-muted-foreground" />
                   </CardContent>
                 </Card>
+                )}
               </div>
             </>
             )}
@@ -274,8 +297,8 @@ export default function TransportadoraDashboard() {
                     className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20"
                     onClick={() => navigate('/transportadora/ofertas')}
                   >
-                    <Package className="w-5 h-5 text-primary" />
-                    <span className="text-xs">Ofertas</span>
+                    <Boxes className="w-5 h-5 text-primary" />
+                    <span className="text-xs">Ver Ofertas</span>
                   </Button>
                   <Button 
                     variant="outline" 

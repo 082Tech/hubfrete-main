@@ -1,7 +1,7 @@
 // Layout is now handled by PortalLayoutWrapper in App.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Truck, Clock, CheckCircle, ArrowUpRight, DollarSign, MapPin, MessageCircle, BarChart3, Sparkles, Send, ExternalLink, Shield, Settings } from 'lucide-react';
+import { Package, Truck, Clock, CheckCircle, ArrowUpRight, DollarSign, MapPin, MessageCircle, BarChart3, Sparkles, Send, ExternalLink, Shield, Settings, Boxes } from 'lucide-react';
 import adSeguroTransporte from '@/assets/ad-seguro-transporte.jpg';
 import { CardImmersiveBackground } from '@/components/ai-assistant/CardImmersiveBackground';
 import { Plus } from 'lucide-react';
@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { Input } from '@/components/ui/input';
-import { startOfMonth, endOfMonth, parseISO, subDays } from 'date-fns';
+import { startOfMonth, endOfMonth, parseISO, subDays, format } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { NovaCargaDialog } from '@/components/cargas/NovaCargaDialog';
 export default function EmbarcadorDashboard() {
@@ -95,6 +95,24 @@ export default function EmbarcadorDashboard() {
       return data || [];
     },
     enabled: !!empresa?.id
+  });
+
+  // Fetch a pagar hoje
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const { data: aPagarHoje = 0 } = useQuery({
+    queryKey: ['embarcador-a-pagar-hoje', empresa?.id, today],
+    queryFn: async () => {
+      if (!empresa?.id) return 0;
+      const { data, error } = await supabase
+        .from('financeiro_entregas')
+        .select('valor_frete')
+        .eq('empresa_embarcadora_id', empresa.id)
+        .eq('status', 'pendente')
+        .eq('data_vencimento', today);
+      if (error) throw error;
+      return (data || []).reduce((s, r) => s + Number(r.valor_frete || 0), 0);
+    },
+    enabled: !!empresa?.id,
   });
 
   // Calculate stats
@@ -204,21 +222,22 @@ export default function EmbarcadorDashboard() {
                   </CardContent>
                 </Card>
 
+                {aPagarHoje > 0 && (
                 <Card className="border-border hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/embarcador/financeiro')}>
                   <CardContent className="p-5 flex items-center gap-4">
-                    <div className="p-3 bg-chart-2/10 rounded-xl">
-                      <DollarSign className="w-6 h-6 text-chart-2" />
+                    <div className="p-3 bg-chart-4/10 rounded-xl">
+                      <DollarSign className="w-6 h-6 text-chart-4" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Financeiro</p>
-                      <p className="text-2xl font-bold text-foreground">
-                        {formatCurrency(stats.valorTotalMercadorias)}
+                      <p className="text-sm text-muted-foreground">A pagar hoje</p>
+                      <p className="text-2xl font-bold text-chart-4">
+                        {formatCurrency(aPagarHoje)}
                       </p>
-                      <p className="text-xs text-muted-foreground">em ofertas ativas</p>
                     </div>
                     <ArrowUpRight className="w-5 h-5 text-muted-foreground" />
                   </CardContent>
                 </Card>
+                )}
               </div>
             </>}
 
@@ -233,7 +252,7 @@ export default function EmbarcadorDashboard() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20" onClick={() => navigate('/embarcador/ofertas')}>
-                    <Package className="w-5 h-5 text-primary" />
+                    <Boxes className="w-5 h-5 text-primary" />
                     <span className="text-xs">Ver Ofertas</span>
                   </Button>
                   <Button variant="outline" className="h-auto py-4 flex-col gap-2 hover:bg-chart-1/5 hover:border-chart-1/20" onClick={() => navigate('/embarcador/relatorios')}>
