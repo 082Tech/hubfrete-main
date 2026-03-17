@@ -29,7 +29,7 @@ export const changelog: ChangelogRelease[] = [
       },
       {
         title: "Correções e Melhorias 🛠️",
-        description: "• Corrigido bug que impedia a exibição de registros financeiros nos portais<br/>• Dados financeiros de entregas antigas recuperados e vinculados corretamente<br/>• Rastreamento público agora exibe origem e destino no mapa<br/>• Removidas referências ao sistema de faturas quinzenais descontinuado",
+        description: "• Corrigido bug que impedia a exibição de registros financeiros nos portais<br/>• Dados financeiros de entregas antigas recuperados e vinculados corretamente<br/>• Rastreamento público agora exibe origem e destino no mapa<br/>• Removidas referências ao sistema de faturas quinzenais descontinuado<br/>• E muitas outras melhorias de usabilidade!",
       },
     ],
   },
