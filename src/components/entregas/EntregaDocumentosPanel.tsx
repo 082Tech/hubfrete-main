@@ -473,7 +473,8 @@ export function EntregaDocumentosPanel({
             toast.success('Canhoto anexado!');
             if (stagingCanhoto.preview) URL.revokeObjectURL(stagingCanhoto.preview);
             setStagingCanhoto(null);
-            setLocalCanhotoUrl(url); // Atualiza local imediatamente
+            // Re-lista o diretório para pegar todos os arquivos
+            fetchCanhotosFromBucket();
             onRefresh();
         } catch (err: any) {
             toast.error(`Erro ao salvar canhoto: ${err?.message || 'Erro'}`);
@@ -483,20 +484,32 @@ export function EntregaDocumentosPanel({
     };
 
     const [confirmCanhotoOpen, setConfirmCanhotoOpen] = useState(false);
+    const [canhotoToDelete, setCanhotoToDelete] = useState<CanhotoFile | null>(null);
 
     const deleteCanhoto = async () => {
         setDeletingCanhoto(true);
         try {
-            const { error } = await supabase.from('entregas').update({ canhoto_url: null }).eq('id', entregaId);
-            if (error) throw error;
+            // Se estamos deletando um arquivo específico, remove do storage
+            if (canhotoToDelete) {
+                // Extrair o path relativo do publicUrl
+                const pathFromName = `canhotos/${entregaId}/${canhotoToDelete.name}`;
+                await supabase.storage.from('documentos').remove([pathFromName]);
+            }
+            // Se não restar mais nenhum canhoto, limpar canhoto_url
+            const remainingAfterDelete = localCanhotoFiles.filter(f => f.name !== canhotoToDelete?.name);
+            if (remainingAfterDelete.length === 0) {
+                const { error } = await supabase.from('entregas').update({ canhoto_url: null }).eq('id', entregaId);
+                if (error) throw error;
+            }
             toast.success('Canhoto removido!');
-            setLocalCanhotoUrl(null); // Atualiza local imediatamente
+            fetchCanhotosFromBucket();
             onRefresh();
         } catch (err: any) {
             toast.error(`Erro ao remover canhoto: ${err?.message || 'Erro'}`);
         } finally {
             setDeletingCanhoto(false);
             setConfirmCanhotoOpen(false);
+            setCanhotoToDelete(null);
         }
     };
 
