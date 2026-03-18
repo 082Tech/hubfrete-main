@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FilePreviewDialog } from './FilePreviewDialog';
+import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
 import type { CteDoc, NfeDoc } from '@/lib/documentHelpers';
 
 export type DocumentosPerfil = 'embarcador' | 'transportadora';
@@ -191,8 +192,9 @@ function CteCard({
 }) {
     const [deleting, setDeleting] = useState(false);
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const executeDelete = async () => {
         setDeleting(true);
         try {
             const { error } = await (supabase as any).from('ctes').delete().eq('id', cte.id);
@@ -202,6 +204,8 @@ function CteCard({
         } catch (err: any) {
             toast.error(`Erro ao remover CT-e: ${err?.message || 'Erro'}`);
             setDeleting(false);
+        } finally {
+            setConfirmOpen(false);
         }
     };
 
@@ -223,11 +227,13 @@ function CteCard({
                         </Button>
                     )}
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                        title="Excluir CT-e" onClick={handleDelete} disabled={deleting}>
+                        title="Excluir CT-e" onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }} disabled={deleting}>
                         {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                     </Button>
                 </div>
             </div>
+            <DeleteConfirmDialog open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={executeDelete}
+                title="Excluir CT-e" description={`Tem certeza que deseja excluir o CT-e ${cte.numero || `#${index + 1}`}? Esta ação não pode ser desfeita.`} isDeleting={deleting} />
         </div>
     );
 }
@@ -242,8 +248,9 @@ function NfeRow({
 }) {
     const [deleting, setDeleting] = useState(false);
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const executeDelete = async () => {
         setDeleting(true);
         try {
             const { error } = await (supabase as any).from('nfes').delete().eq('id', nfe.id);
@@ -253,14 +260,18 @@ function NfeRow({
         } catch (err: any) {
             toast.error(`Erro ao remover NF-e: ${err?.message || 'Erro'}`);
             setDeleting(false);
+        } finally {
+            setConfirmOpen(false);
         }
     };
+
+    const nfeLabel = nfe.numero || nfe.chave_acesso?.slice(-6) || String(index + 1);
 
     return (
         <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/40 bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
             <div className="flex items-center gap-2">
                 <FileCode className="w-3 h-3 text-indigo-400" />
-                <span className="text-indigo-800 dark:text-indigo-200">NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || index + 1}</span>
+                <span className="text-indigo-800 dark:text-indigo-200">NF-e {nfeLabel}</span>
             </div>
             <div className="flex items-center gap-0.5">
                 {nfe.url && (
@@ -270,10 +281,12 @@ function NfeRow({
                     </Button>
                 )}
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-destructive hover:bg-destructive/10"
-                    title="Excluir NF-e" onClick={handleDelete} disabled={deleting}>
+                    title="Excluir NF-e" onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }} disabled={deleting}>
                     {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                 </Button>
             </div>
+            <DeleteConfirmDialog open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={executeDelete}
+                title="Excluir NF-e" description={`Tem certeza que deseja excluir a NF-e ${nfeLabel}? Esta ação não pode ser desfeita.`} isDeleting={deleting} />
         </div>
     );
 }
@@ -419,6 +432,8 @@ export function EntregaDocumentosPanel({
         }
     };
 
+    const [confirmCanhotoOpen, setConfirmCanhotoOpen] = useState(false);
+
     const deleteCanhoto = async () => {
         setDeletingCanhoto(true);
         try {
@@ -431,6 +446,7 @@ export function EntregaDocumentosPanel({
             toast.error(`Erro ao remover canhoto: ${err?.message || 'Erro'}`);
         } finally {
             setDeletingCanhoto(false);
+            setConfirmCanhotoOpen(false);
         }
     };
 
@@ -530,8 +546,19 @@ export function EntregaDocumentosPanel({
         }
     };
 
-    const handleRemoveOutro = async (index: number) => {
-        const updated = localOutros.filter((_, i) => i !== index);
+    const [confirmOutroOpen, setConfirmOutroOpen] = useState(false);
+    const [outroToDelete, setOutroToDelete] = useState<number | null>(null);
+    const [deletingOutro, setDeletingOutro] = useState(false);
+
+    const handleRemoveOutro = (index: number) => {
+        setOutroToDelete(index);
+        setConfirmOutroOpen(true);
+    };
+
+    const executeRemoveOutro = async () => {
+        if (outroToDelete === null) return;
+        setDeletingOutro(true);
+        const updated = localOutros.filter((_, i) => i !== outroToDelete);
         try {
             const { error } = await supabase.from('entregas').update({ outros_documentos: updated as any }).eq('id', entregaId);
             if (error) throw error;
@@ -540,6 +567,10 @@ export function EntregaDocumentosPanel({
             onRefresh();
         } catch (err: any) {
             toast.error(`Erro ao remover: ${err?.message || 'Erro'}`);
+        } finally {
+            setDeletingOutro(false);
+            setConfirmOutroOpen(false);
+            setOutroToDelete(null);
         }
     };
 
@@ -748,7 +779,7 @@ export function EntregaDocumentosPanel({
                                             <Upload className="w-3 h-3" />
                                         </Button>
                                         <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                                            title="Excluir" onClick={deleteCanhoto} disabled={deletingCanhoto}>
+                                            title="Excluir" onClick={() => setConfirmCanhotoOpen(true)} disabled={deletingCanhoto}>
                                             {deletingCanhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                                         </Button>
                                     </>
@@ -858,6 +889,12 @@ export function EntregaDocumentosPanel({
                     />
                 )}
             </section>
+
+            {/* Confirmation dialogs */}
+            <DeleteConfirmDialog open={confirmCanhotoOpen} onOpenChange={setConfirmCanhotoOpen} onConfirm={deleteCanhoto}
+                title="Excluir Canhoto" description="Tem certeza que deseja excluir o canhoto da entrega? Esta ação não pode ser desfeita." isDeleting={deletingCanhoto} />
+            <DeleteConfirmDialog open={confirmOutroOpen} onOpenChange={setConfirmOutroOpen} onConfirm={executeRemoveOutro}
+                title="Excluir Documento" description={`Tem certeza que deseja excluir "${outroToDelete !== null ? localOutros[outroToDelete]?.nome : ''}"? Esta ação não pode ser desfeita.`} isDeleting={deletingOutro} />
 
             {/* Preview dialog */}
             <FilePreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} fileUrl={previewUrl} title={previewTitle} />
