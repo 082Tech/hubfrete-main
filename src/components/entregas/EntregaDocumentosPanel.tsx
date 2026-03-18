@@ -432,6 +432,8 @@ export function EntregaDocumentosPanel({
         }
     };
 
+    const [confirmCanhotoOpen, setConfirmCanhotoOpen] = useState(false);
+
     const deleteCanhoto = async () => {
         setDeletingCanhoto(true);
         try {
