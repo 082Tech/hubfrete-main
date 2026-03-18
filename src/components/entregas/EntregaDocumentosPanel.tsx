@@ -973,8 +973,8 @@ export function EntregaDocumentosPanel({
             </section>
 
             {/* Confirmation dialogs */}
-            <DeleteConfirmDialog open={confirmCanhotoOpen} onOpenChange={setConfirmCanhotoOpen} onConfirm={deleteCanhoto}
-                title="Excluir Canhoto" description="Tem certeza que deseja excluir o canhoto da entrega? Esta ação não pode ser desfeita." isDeleting={deletingCanhoto} />
+            <DeleteConfirmDialog open={confirmCanhotoOpen} onOpenChange={(o) => { setConfirmCanhotoOpen(o); if (!o) setCanhotoToDelete(null); }} onConfirm={deleteCanhoto}
+                title="Excluir Canhoto" description={`Tem certeza que deseja excluir o canhoto "${canhotoToDelete?.name || ''}"? Esta ação não pode ser desfeita.`} isDeleting={deletingCanhoto} />
             <DeleteConfirmDialog open={confirmOutroOpen} onOpenChange={setConfirmOutroOpen} onConfirm={executeRemoveOutro}
                 title="Excluir Documento" description={`Tem certeza que deseja excluir "${outroToDelete !== null ? localOutros[outroToDelete]?.nome : ''}"? Esta ação não pode ser desfeita.`} isDeleting={deletingOutro} />
 
