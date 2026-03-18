@@ -545,8 +545,19 @@ export function EntregaDocumentosPanel({
         }
     };
 
-    const handleRemoveOutro = async (index: number) => {
-        const updated = localOutros.filter((_, i) => i !== index);
+    const [confirmOutroOpen, setConfirmOutroOpen] = useState(false);
+    const [outroToDelete, setOutroToDelete] = useState<number | null>(null);
+    const [deletingOutro, setDeletingOutro] = useState(false);
+
+    const handleRemoveOutro = (index: number) => {
+        setOutroToDelete(index);
+        setConfirmOutroOpen(true);
+    };
+
+    const executeRemoveOutro = async () => {
+        if (outroToDelete === null) return;
+        setDeletingOutro(true);
+        const updated = localOutros.filter((_, i) => i !== outroToDelete);
         try {
             const { error } = await supabase.from('entregas').update({ outros_documentos: updated as any }).eq('id', entregaId);
             if (error) throw error;
@@ -555,6 +566,10 @@ export function EntregaDocumentosPanel({
             onRefresh();
         } catch (err: any) {
             toast.error(`Erro ao remover: ${err?.message || 'Erro'}`);
+        } finally {
+            setDeletingOutro(false);
+            setConfirmOutroOpen(false);
+            setOutroToDelete(null);
         }
     };
 
