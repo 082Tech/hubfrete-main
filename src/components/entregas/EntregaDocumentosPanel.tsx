@@ -30,6 +30,11 @@ export interface OutroDocumento {
     tipo_usuario: 'embarcador' | 'transportadora';
 }
 
+interface CanhotoFile {
+    name: string;
+    url: string;
+}
+
 interface EntregaDocumentosPanelProps {
     perfil: DocumentosPerfil;
     entregaId: string;
