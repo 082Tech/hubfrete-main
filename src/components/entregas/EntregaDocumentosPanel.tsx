@@ -778,7 +778,7 @@ export function EntregaDocumentosPanel({
                                             <Upload className="w-3 h-3" />
                                         </Button>
                                         <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                                            title="Excluir" onClick={deleteCanhoto} disabled={deletingCanhoto}>
+                                            title="Excluir" onClick={() => setConfirmCanhotoOpen(true)} disabled={deletingCanhoto}>
                                             {deletingCanhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                                         </Button>
                                     </>
