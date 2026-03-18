@@ -819,47 +819,62 @@ export function EntregaDocumentosPanel({
             {/* ═══ Canhoto ═══ */}
             <section className="space-y-2">
                 <SectionTitle icon={<Stamp className="w-3.5 h-3.5 text-emerald-500" />} label="Canhoto"
-                    badge={localCanhotoUrl ? 'Anexado' : undefined} />
+                    badge={localCanhotoFiles.length > 0 ? `${localCanhotoFiles.length} anexado${localCanhotoFiles.length !== 1 ? 's' : ''}` : undefined} />
 
-                {localCanhotoUrl ? (
-                    <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/40 overflow-hidden bg-card">
-                        <div className="flex items-center justify-between px-3 py-2.5 bg-emerald-50/60 dark:bg-emerald-900/10">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                                <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">Canhoto da entrega</span>
+                {loadingCanhotos ? (
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-muted text-xs text-muted-foreground">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                        Buscando canhotos…
+                    </div>
+                ) : localCanhotoFiles.length > 0 ? (
+                    <div className="space-y-1.5">
+                        {localCanhotoFiles.map((cFile, i) => (
+                            <div key={cFile.name} className="rounded-xl border border-emerald-200 dark:border-emerald-800/40 overflow-hidden bg-card">
+                                <div className="flex items-center justify-between px-3 py-2.5 bg-emerald-50/60 dark:bg-emerald-900/10">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                        <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 truncate" title={cFile.name}>
+                                            {localCanhotoFiles.length === 1 ? 'Canhoto da entrega' : `Canhoto ${i + 1}`}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground truncate max-w-[120px]" title={cFile.name}>
+                                            {cFile.name}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-0.5 shrink-0">
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-emerald-600 hover:bg-emerald-100"
+                                            title="Visualizar" onClick={() => openPreview(cFile.url, `Canhoto ${i + 1}`)}>
+                                            <Eye className="w-3 h-3" />
+                                        </Button>
+                                        {perfil === 'transportadora' && (
+                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                                                title="Excluir" onClick={() => { setCanhotoToDelete(cFile); setConfirmCanhotoOpen(true); }} disabled={deletingCanhoto}>
+                                                {deletingCanhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-0.5">
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-emerald-600 hover:bg-emerald-100"
-                                    title="Visualizar" onClick={() => openPreview(localCanhotoUrl, 'Canhoto')}>
-                                    <Eye className="w-3 h-3" />
-                                </Button>
-                                {perfil === 'transportadora' && (
-                                    <>
-                                        <input ref={canhotoRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                                            onChange={(e) => { if (e.target.files?.length) handleCanhotoFile(Array.from(e.target.files)); e.target.value = ''; }} />
-                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-500 hover:bg-amber-100"
-                                            title="Substituir" onClick={() => canhotoRef.current?.click()}>
-                                            <Upload className="w-3 h-3" />
-                                        </Button>
-                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                                            title="Excluir" onClick={() => setConfirmCanhotoOpen(true)} disabled={deletingCanhoto}>
-                                            {deletingCanhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                                        </Button>
-                                    </>
+                        ))}
+                        {/* Botão para adicionar mais canhotos (transportadora) */}
+                        {perfil === 'transportadora' && (
+                            <>
+                                <input ref={canhotoRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                                    onChange={(e) => { if (e.target.files?.length) handleCanhotoFile(Array.from(e.target.files)); e.target.value = ''; }} />
+                                {stagingCanhoto ? (
+                                    <StagingList
+                                        items={[stagingCanhoto]}
+                                        onRemove={() => { if (stagingCanhoto.preview) URL.revokeObjectURL(stagingCanhoto.preview); setStagingCanhoto(null); }}
+                                        onConfirm={confirmCanhotoUpload}
+                                        uploading={uploadingCanhoto}
+                                        label="novo canhoto"
+                                    />
+                                ) : (
+                                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 w-full border-emerald-200 dark:border-emerald-800/40 hover:bg-emerald-50"
+                                        onClick={() => canhotoRef.current?.click()}>
+                                        <Upload className="w-3 h-3" /> Adicionar outro canhoto
+                                    </Button>
                                 )}
-                            </div>
-                        </div>
-                        {/* Staging de substituição */}
-                        {stagingCanhoto && (
-                            <div className="p-2.5">
-                                <StagingList
-                                    items={[stagingCanhoto]}
-                                    onRemove={() => { if (stagingCanhoto.preview) URL.revokeObjectURL(stagingCanhoto.preview); setStagingCanhoto(null); }}
-                                    onConfirm={confirmCanhotoUpload}
-                                    uploading={uploadingCanhoto}
-                                    label="novo canhoto"
-                                />
-                            </div>
+                            </>
                         )}
                     </div>
                 ) : stagingCanhoto ? (
@@ -871,13 +886,17 @@ export function EntregaDocumentosPanel({
                         label="canhoto"
                     />
                 ) : perfil === 'transportadora' ? (
-                    <DropZone
-                        label="Arrastar canhoto aqui"
-                        hint="PDF, JPG ou PNG • até 10 MB"
-                        accentColor="border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400"
-                        inputRef={canhotoRef}
-                        onFiles={handleCanhotoFile}
-                    />
+                    <>
+                        <input ref={canhotoRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                            onChange={(e) => { if (e.target.files?.length) handleCanhotoFile(Array.from(e.target.files)); e.target.value = ''; }} />
+                        <DropZone
+                            label="Arrastar canhoto aqui"
+                            hint="PDF, JPG ou PNG • até 10 MB"
+                            accentColor="border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400"
+                            inputRef={canhotoRef}
+                            onFiles={handleCanhotoFile}
+                        />
+                    </>
                 ) : (
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-muted text-xs text-muted-foreground">
                         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
