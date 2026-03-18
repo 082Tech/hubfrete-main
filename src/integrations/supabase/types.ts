@@ -2229,6 +2229,50 @@ export type Database = {
           },
         ]
       }
+      motorista_gastos: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string | null
+          id: string
+          litros: number | null
+          motorista_id: string
+          tipo: string
+          valor_por_litro: number | null
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          litros?: number | null
+          motorista_id: string
+          tipo?: string
+          valor_por_litro?: number | null
+          valor_total: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          litros?: number | null
+          motorista_id?: string
+          tipo?: string
+          valor_por_litro?: number | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motorista_gastos_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motorista_kpis: {
         Row: {
           consumo_estimado_litros: number | null

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FilePreviewDialog } from './FilePreviewDialog';
+import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
 import type { CteDoc, NfeDoc } from '@/lib/documentHelpers';
 
 export type DocumentosPerfil = 'embarcador' | 'transportadora';
@@ -27,6 +28,11 @@ export interface OutroDocumento {
     uploaded_by: string;
     uploaded_at: string;
     tipo_usuario: 'embarcador' | 'transportadora';
+}
+
+interface CanhotoFile {
+    name: string;
+    url: string;
 }
 
 interface EntregaDocumentosPanelProps {
@@ -191,8 +197,9 @@ function CteCard({
 }) {
     const [deleting, setDeleting] = useState(false);
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const executeDelete = async () => {
         setDeleting(true);
         try {
             const { error } = await (supabase as any).from('ctes').delete().eq('id', cte.id);
@@ -202,6 +209,8 @@ function CteCard({
         } catch (err: any) {
             toast.error(`Erro ao remover CT-e: ${err?.message || 'Erro'}`);
             setDeleting(false);
+        } finally {
+            setConfirmOpen(false);
         }
     };
 
@@ -223,11 +232,13 @@ function CteCard({
                         </Button>
                     )}
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                        title="Excluir CT-e" onClick={handleDelete} disabled={deleting}>
+                        title="Excluir CT-e" onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }} disabled={deleting}>
                         {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                     </Button>
                 </div>
             </div>
+            <DeleteConfirmDialog open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={executeDelete}
+                title="Excluir CT-e" description={`Tem certeza que deseja excluir o CT-e ${cte.numero || `#${index + 1}`}? Esta ação não pode ser desfeita.`} isDeleting={deleting} />
         </div>
     );
 }
@@ -242,8 +253,9 @@ function NfeRow({
 }) {
     const [deleting, setDeleting] = useState(false);
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const executeDelete = async () => {
         setDeleting(true);
         try {
             const { error } = await (supabase as any).from('nfes').delete().eq('id', nfe.id);
@@ -253,14 +265,18 @@ function NfeRow({
         } catch (err: any) {
             toast.error(`Erro ao remover NF-e: ${err?.message || 'Erro'}`);
             setDeleting(false);
+        } finally {
+            setConfirmOpen(false);
         }
     };
+
+    const nfeLabel = nfe.numero || nfe.chave_acesso?.slice(-6) || String(index + 1);
 
     return (
         <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/40 bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
             <div className="flex items-center gap-2">
                 <FileCode className="w-3 h-3 text-indigo-400" />
-                <span className="text-indigo-800 dark:text-indigo-200">NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || index + 1}</span>
+                <span className="text-indigo-800 dark:text-indigo-200">NF-e {nfeLabel}</span>
             </div>
             <div className="flex items-center gap-0.5">
                 {nfe.url && (
@@ -270,10 +286,12 @@ function NfeRow({
                     </Button>
                 )}
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-destructive hover:bg-destructive/10"
-                    title="Excluir NF-e" onClick={handleDelete} disabled={deleting}>
+                    title="Excluir NF-e" onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }} disabled={deleting}>
                     {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                 </Button>
             </div>
+            <DeleteConfirmDialog open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={executeDelete}
+                title="Excluir NF-e" description={`Tem certeza que deseja excluir a NF-e ${nfeLabel}? Esta ação não pode ser desfeita.`} isDeleting={deleting} />
         </div>
     );
 }
@@ -303,13 +321,58 @@ export function EntregaDocumentosPanel({
 
     // ── Estado LOCAL (atualiza imediatamente sem depender do ciclo do pai) ──────
     const [localCtes, setLocalCtes] = useState<CteDoc[]>(ctesProp);
-    const [localCanhotoUrl, setLocalCanhotoUrl] = useState<string | null>(canhotoUrlProp ?? null);
+    const [localCanhotoFiles, setLocalCanhotoFiles] = useState<CanhotoFile[]>([]);
     const [localOutros, setLocalOutros] = useState<OutroDocumento[]>(outrosDocsProp);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [loadingCanhotos, setLoadingCanhotos] = useState(true);
+
+    // ── Buscar canhotos listando diretório no bucket ────────────────────────────
+    const fetchCanhotosFromBucket = useCallback(async () => {
+        setLoadingCanhotos(true);
+        try {
+            const { data: files, error } = await supabase.storage
+                .from('documentos')
+                .list(`canhotos/${entregaId}`, { limit: 50, sortBy: { column: 'created_at', order: 'desc' } });
+            if (error) {
+                console.error('Erro ao listar canhotos no bucket:', error);
+                // Fallback: usar canhotoUrl prop se disponível
+                if (canhotoUrlProp) {
+                    const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(canhotoUrlProp);
+                    setLocalCanhotoFiles([{ name: canhotoUrlProp.split('/').pop() || 'canhoto', url: urlData.publicUrl }]);
+                } else {
+                    setLocalCanhotoFiles([]);
+                }
+                return;
+            }
+            if (files && files.length > 0) {
+                const canhotoFiles: CanhotoFile[] = files
+                    .filter(f => f.name !== '.emptyFolderPlaceholder')
+                    .map(f => {
+                        const path = `canhotos/${entregaId}/${f.name}`;
+                        const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(path);
+                        return { name: f.name, url: urlData.publicUrl };
+                    });
+                setLocalCanhotoFiles(canhotoFiles);
+            } else {
+                // Fallback: se não encontrou no diretório mas tem canhoto_url
+                if (canhotoUrlProp) {
+                    const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(canhotoUrlProp);
+                    setLocalCanhotoFiles([{ name: canhotoUrlProp.split('/').pop() || 'canhoto', url: urlData.publicUrl }]);
+                } else {
+                    setLocalCanhotoFiles([]);
+                }
+            }
+        } catch (err) {
+            console.error('Erro ao buscar canhotos:', err);
+            setLocalCanhotoFiles([]);
+        } finally {
+            setLoadingCanhotos(false);
+        }
+    }, [entregaId, canhotoUrlProp]);
 
     // Sincroniza quando o pai manda novos dados
     useEffect(() => { setLocalCtes(ctesProp); }, [ctesProp]);
-    useEffect(() => { setLocalCanhotoUrl(canhotoUrlProp ?? null); }, [canhotoUrlProp]);
+    useEffect(() => { fetchCanhotosFromBucket(); }, [fetchCanhotosFromBucket]);
     useEffect(() => { setLocalOutros(outrosDocsProp); }, [outrosDocsProp]);
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
@@ -410,7 +473,8 @@ export function EntregaDocumentosPanel({
             toast.success('Canhoto anexado!');
             if (stagingCanhoto.preview) URL.revokeObjectURL(stagingCanhoto.preview);
             setStagingCanhoto(null);
-            setLocalCanhotoUrl(url); // Atualiza local imediatamente
+            // Re-lista o diretório para pegar todos os arquivos
+            fetchCanhotosFromBucket();
             onRefresh();
         } catch (err: any) {
             toast.error(`Erro ao salvar canhoto: ${err?.message || 'Erro'}`);
@@ -419,18 +483,33 @@ export function EntregaDocumentosPanel({
         }
     };
 
+    const [confirmCanhotoOpen, setConfirmCanhotoOpen] = useState(false);
+    const [canhotoToDelete, setCanhotoToDelete] = useState<CanhotoFile | null>(null);
+
     const deleteCanhoto = async () => {
         setDeletingCanhoto(true);
         try {
-            const { error } = await supabase.from('entregas').update({ canhoto_url: null }).eq('id', entregaId);
-            if (error) throw error;
+            // Se estamos deletando um arquivo específico, remove do storage
+            if (canhotoToDelete) {
+                // Extrair o path relativo do publicUrl
+                const pathFromName = `canhotos/${entregaId}/${canhotoToDelete.name}`;
+                await supabase.storage.from('documentos').remove([pathFromName]);
+            }
+            // Se não restar mais nenhum canhoto, limpar canhoto_url
+            const remainingAfterDelete = localCanhotoFiles.filter(f => f.name !== canhotoToDelete?.name);
+            if (remainingAfterDelete.length === 0) {
+                const { error } = await supabase.from('entregas').update({ canhoto_url: null }).eq('id', entregaId);
+                if (error) throw error;
+            }
             toast.success('Canhoto removido!');
-            setLocalCanhotoUrl(null); // Atualiza local imediatamente
+            fetchCanhotosFromBucket();
             onRefresh();
         } catch (err: any) {
             toast.error(`Erro ao remover canhoto: ${err?.message || 'Erro'}`);
         } finally {
             setDeletingCanhoto(false);
+            setConfirmCanhotoOpen(false);
+            setCanhotoToDelete(null);
         }
     };
 
@@ -530,8 +609,19 @@ export function EntregaDocumentosPanel({
         }
     };
 
-    const handleRemoveOutro = async (index: number) => {
-        const updated = localOutros.filter((_, i) => i !== index);
+    const [confirmOutroOpen, setConfirmOutroOpen] = useState(false);
+    const [outroToDelete, setOutroToDelete] = useState<number | null>(null);
+    const [deletingOutro, setDeletingOutro] = useState(false);
+
+    const handleRemoveOutro = (index: number) => {
+        setOutroToDelete(index);
+        setConfirmOutroOpen(true);
+    };
+
+    const executeRemoveOutro = async () => {
+        if (outroToDelete === null) return;
+        setDeletingOutro(true);
+        const updated = localOutros.filter((_, i) => i !== outroToDelete);
         try {
             const { error } = await supabase.from('entregas').update({ outros_documentos: updated as any }).eq('id', entregaId);
             if (error) throw error;
@@ -540,6 +630,10 @@ export function EntregaDocumentosPanel({
             onRefresh();
         } catch (err: any) {
             toast.error(`Erro ao remover: ${err?.message || 'Erro'}`);
+        } finally {
+            setDeletingOutro(false);
+            setConfirmOutroOpen(false);
+            setOutroToDelete(null);
         }
     };
 
@@ -725,47 +819,62 @@ export function EntregaDocumentosPanel({
             {/* ═══ Canhoto ═══ */}
             <section className="space-y-2">
                 <SectionTitle icon={<Stamp className="w-3.5 h-3.5 text-emerald-500" />} label="Canhoto"
-                    badge={localCanhotoUrl ? 'Anexado' : undefined} />
+                    badge={localCanhotoFiles.length > 0 ? `${localCanhotoFiles.length} anexado${localCanhotoFiles.length !== 1 ? 's' : ''}` : undefined} />
 
-                {localCanhotoUrl ? (
-                    <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/40 overflow-hidden bg-card">
-                        <div className="flex items-center justify-between px-3 py-2.5 bg-emerald-50/60 dark:bg-emerald-900/10">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                                <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">Canhoto da entrega</span>
+                {loadingCanhotos ? (
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-muted text-xs text-muted-foreground">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                        Buscando canhotos…
+                    </div>
+                ) : localCanhotoFiles.length > 0 ? (
+                    <div className="space-y-1.5">
+                        {localCanhotoFiles.map((cFile, i) => (
+                            <div key={cFile.name} className="rounded-xl border border-emerald-200 dark:border-emerald-800/40 overflow-hidden bg-card">
+                                <div className="flex items-center justify-between px-3 py-2.5 bg-emerald-50/60 dark:bg-emerald-900/10">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                        <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 truncate" title={cFile.name}>
+                                            {localCanhotoFiles.length === 1 ? 'Canhoto da entrega' : `Canhoto ${i + 1}`}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground truncate max-w-[120px]" title={cFile.name}>
+                                            {cFile.name}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-0.5 shrink-0">
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-emerald-600 hover:bg-emerald-100"
+                                            title="Visualizar" onClick={() => openPreview(cFile.url, `Canhoto ${i + 1}`)}>
+                                            <Eye className="w-3 h-3" />
+                                        </Button>
+                                        {perfil === 'transportadora' && (
+                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                                                title="Excluir" onClick={() => { setCanhotoToDelete(cFile); setConfirmCanhotoOpen(true); }} disabled={deletingCanhoto}>
+                                                {deletingCanhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-0.5">
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-emerald-600 hover:bg-emerald-100"
-                                    title="Visualizar" onClick={() => openPreview(localCanhotoUrl, 'Canhoto')}>
-                                    <Eye className="w-3 h-3" />
-                                </Button>
-                                {perfil === 'transportadora' && (
-                                    <>
-                                        <input ref={canhotoRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                                            onChange={(e) => { if (e.target.files?.length) handleCanhotoFile(Array.from(e.target.files)); e.target.value = ''; }} />
-                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-amber-500 hover:bg-amber-100"
-                                            title="Substituir" onClick={() => canhotoRef.current?.click()}>
-                                            <Upload className="w-3 h-3" />
-                                        </Button>
-                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                                            title="Excluir" onClick={deleteCanhoto} disabled={deletingCanhoto}>
-                                            {deletingCanhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                                        </Button>
-                                    </>
+                        ))}
+                        {/* Botão para adicionar mais canhotos (transportadora) */}
+                        {perfil === 'transportadora' && (
+                            <>
+                                <input ref={canhotoRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                                    onChange={(e) => { if (e.target.files?.length) handleCanhotoFile(Array.from(e.target.files)); e.target.value = ''; }} />
+                                {stagingCanhoto ? (
+                                    <StagingList
+                                        items={[stagingCanhoto]}
+                                        onRemove={() => { if (stagingCanhoto.preview) URL.revokeObjectURL(stagingCanhoto.preview); setStagingCanhoto(null); }}
+                                        onConfirm={confirmCanhotoUpload}
+                                        uploading={uploadingCanhoto}
+                                        label="novo canhoto"
+                                    />
+                                ) : (
+                                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 w-full border-emerald-200 dark:border-emerald-800/40 hover:bg-emerald-50"
+                                        onClick={() => canhotoRef.current?.click()}>
+                                        <Upload className="w-3 h-3" /> Adicionar outro canhoto
+                                    </Button>
                                 )}
-                            </div>
-                        </div>
-                        {/* Staging de substituição */}
-                        {stagingCanhoto && (
-                            <div className="p-2.5">
-                                <StagingList
-                                    items={[stagingCanhoto]}
-                                    onRemove={() => { if (stagingCanhoto.preview) URL.revokeObjectURL(stagingCanhoto.preview); setStagingCanhoto(null); }}
-                                    onConfirm={confirmCanhotoUpload}
-                                    uploading={uploadingCanhoto}
-                                    label="novo canhoto"
-                                />
-                            </div>
+                            </>
                         )}
                     </div>
                 ) : stagingCanhoto ? (
@@ -777,13 +886,17 @@ export function EntregaDocumentosPanel({
                         label="canhoto"
                     />
                 ) : perfil === 'transportadora' ? (
-                    <DropZone
-                        label="Arrastar canhoto aqui"
-                        hint="PDF, JPG ou PNG • até 10 MB"
-                        accentColor="border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400"
-                        inputRef={canhotoRef}
-                        onFiles={handleCanhotoFile}
-                    />
+                    <>
+                        <input ref={canhotoRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                            onChange={(e) => { if (e.target.files?.length) handleCanhotoFile(Array.from(e.target.files)); e.target.value = ''; }} />
+                        <DropZone
+                            label="Arrastar canhoto aqui"
+                            hint="PDF, JPG ou PNG • até 10 MB"
+                            accentColor="border-emerald-200 dark:border-emerald-800/40 hover:border-emerald-400"
+                            inputRef={canhotoRef}
+                            onFiles={handleCanhotoFile}
+                        />
+                    </>
                 ) : (
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-muted text-xs text-muted-foreground">
                         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -858,6 +971,12 @@ export function EntregaDocumentosPanel({
                     />
                 )}
             </section>
+
+            {/* Confirmation dialogs */}
+            <DeleteConfirmDialog open={confirmCanhotoOpen} onOpenChange={(o) => { setConfirmCanhotoOpen(o); if (!o) setCanhotoToDelete(null); }} onConfirm={deleteCanhoto}
+                title="Excluir Canhoto" description={`Tem certeza que deseja excluir o canhoto "${canhotoToDelete?.name || ''}"? Esta ação não pode ser desfeita.`} isDeleting={deletingCanhoto} />
+            <DeleteConfirmDialog open={confirmOutroOpen} onOpenChange={setConfirmOutroOpen} onConfirm={executeRemoveOutro}
+                title="Excluir Documento" description={`Tem certeza que deseja excluir "${outroToDelete !== null ? localOutros[outroToDelete]?.nome : ''}"? Esta ação não pode ser desfeita.`} isDeleting={deletingOutro} />
 
             {/* Preview dialog */}
             <FilePreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} fileUrl={previewUrl} title={previewTitle} />

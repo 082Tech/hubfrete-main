@@ -12,6 +12,16 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: "1.2.1",
+    date: "2026-03-18",
+    slides: [
+      {
+        title: "Correção: Visualização de Canhoto 🛠️",
+        description: "Corrigido problema que impedia a visualização do canhoto (comprovante de entrega) anexado pelo motorista na carga.",
+      },
+    ],
+  },
+  {
     version: "1.2.0",
     date: "2026-03-17",
     slides: [
