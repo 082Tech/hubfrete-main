@@ -446,6 +446,7 @@ export function EntregaDocumentosPanel({
             toast.error(`Erro ao remover canhoto: ${err?.message || 'Erro'}`);
         } finally {
             setDeletingCanhoto(false);
+            setConfirmCanhotoOpen(false);
         }
     };
 
