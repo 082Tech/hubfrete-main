@@ -192,8 +192,9 @@ function CteCard({
 }) {
     const [deleting, setDeleting] = useState(false);
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const executeDelete = async () => {
         setDeleting(true);
         try {
             const { error } = await (supabase as any).from('ctes').delete().eq('id', cte.id);
@@ -203,6 +204,8 @@ function CteCard({
         } catch (err: any) {
             toast.error(`Erro ao remover CT-e: ${err?.message || 'Erro'}`);
             setDeleting(false);
+        } finally {
+            setConfirmOpen(false);
         }
     };
 
@@ -224,11 +227,13 @@ function CteCard({
                         </Button>
                     )}
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                        title="Excluir CT-e" onClick={handleDelete} disabled={deleting}>
+                        title="Excluir CT-e" onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }} disabled={deleting}>
                         {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                     </Button>
                 </div>
             </div>
+            <DeleteConfirmDialog open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={executeDelete}
+                title="Excluir CT-e" description={`Tem certeza que deseja excluir o CT-e ${cte.numero || `#${index + 1}`}? Esta ação não pode ser desfeita.`} isDeleting={deleting} />
         </div>
     );
 }
