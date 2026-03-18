@@ -248,8 +248,9 @@ function NfeRow({
 }) {
     const [deleting, setDeleting] = useState(false);
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const executeDelete = async () => {
         setDeleting(true);
         try {
             const { error } = await (supabase as any).from('nfes').delete().eq('id', nfe.id);
@@ -259,14 +260,18 @@ function NfeRow({
         } catch (err: any) {
             toast.error(`Erro ao remover NF-e: ${err?.message || 'Erro'}`);
             setDeleting(false);
+        } finally {
+            setConfirmOpen(false);
         }
     };
+
+    const nfeLabel = nfe.numero || nfe.chave_acesso?.slice(-6) || String(index + 1);
 
     return (
         <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/40 bg-indigo-50/40 dark:bg-indigo-900/10 text-xs">
             <div className="flex items-center gap-2">
                 <FileCode className="w-3 h-3 text-indigo-400" />
-                <span className="text-indigo-800 dark:text-indigo-200">NF-e {nfe.numero || nfe.chave_acesso?.slice(-6) || index + 1}</span>
+                <span className="text-indigo-800 dark:text-indigo-200">NF-e {nfeLabel}</span>
             </div>
             <div className="flex items-center gap-0.5">
                 {nfe.url && (
@@ -276,10 +281,12 @@ function NfeRow({
                     </Button>
                 )}
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-destructive hover:bg-destructive/10"
-                    title="Excluir NF-e" onClick={handleDelete} disabled={deleting}>
+                    title="Excluir NF-e" onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }} disabled={deleting}>
                     {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                 </Button>
             </div>
+            <DeleteConfirmDialog open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={executeDelete}
+                title="Excluir NF-e" description={`Tem certeza que deseja excluir a NF-e ${nfeLabel}? Esta ação não pode ser desfeita.`} isDeleting={deleting} />
         </div>
     );
 }
