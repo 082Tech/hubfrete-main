@@ -321,13 +321,58 @@ export function EntregaDocumentosPanel({
 
     // ── Estado LOCAL (atualiza imediatamente sem depender do ciclo do pai) ──────
     const [localCtes, setLocalCtes] = useState<CteDoc[]>(ctesProp);
-    const [localCanhotoUrl, setLocalCanhotoUrl] = useState<string | null>(canhotoUrlProp ?? null);
+    const [localCanhotoFiles, setLocalCanhotoFiles] = useState<CanhotoFile[]>([]);
     const [localOutros, setLocalOutros] = useState<OutroDocumento[]>(outrosDocsProp);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [loadingCanhotos, setLoadingCanhotos] = useState(true);
+
+    // ── Buscar canhotos listando diretório no bucket ────────────────────────────
+    const fetchCanhotosFromBucket = useCallback(async () => {
+        setLoadingCanhotos(true);
+        try {
+            const { data: files, error } = await supabase.storage
+                .from('documentos')
+                .list(`canhotos/${entregaId}`, { limit: 50, sortBy: { column: 'created_at', order: 'desc' } });
+            if (error) {
+                console.error('Erro ao listar canhotos no bucket:', error);
+                // Fallback: usar canhotoUrl prop se disponível
+                if (canhotoUrlProp) {
+                    const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(canhotoUrlProp);
+                    setLocalCanhotoFiles([{ name: canhotoUrlProp.split('/').pop() || 'canhoto', url: urlData.publicUrl }]);
+                } else {
+                    setLocalCanhotoFiles([]);
+                }
+                return;
+            }
+            if (files && files.length > 0) {
+                const canhotoFiles: CanhotoFile[] = files
+                    .filter(f => f.name !== '.emptyFolderPlaceholder')
+                    .map(f => {
+                        const path = `canhotos/${entregaId}/${f.name}`;
+                        const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(path);
+                        return { name: f.name, url: urlData.publicUrl };
+                    });
+                setLocalCanhotoFiles(canhotoFiles);
+            } else {
+                // Fallback: se não encontrou no diretório mas tem canhoto_url
+                if (canhotoUrlProp) {
+                    const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(canhotoUrlProp);
+                    setLocalCanhotoFiles([{ name: canhotoUrlProp.split('/').pop() || 'canhoto', url: urlData.publicUrl }]);
+                } else {
+                    setLocalCanhotoFiles([]);
+                }
+            }
+        } catch (err) {
+            console.error('Erro ao buscar canhotos:', err);
+            setLocalCanhotoFiles([]);
+        } finally {
+            setLoadingCanhotos(false);
+        }
+    }, [entregaId, canhotoUrlProp]);
 
     // Sincroniza quando o pai manda novos dados
     useEffect(() => { setLocalCtes(ctesProp); }, [ctesProp]);
-    useEffect(() => { setLocalCanhotoUrl(canhotoUrlProp ?? null); }, [canhotoUrlProp]);
+    useEffect(() => { fetchCanhotosFromBucket(); }, [fetchCanhotosFromBucket]);
     useEffect(() => { setLocalOutros(outrosDocsProp); }, [outrosDocsProp]);
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
