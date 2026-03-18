@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FilePreviewDialog } from './FilePreviewDialog';
+import { DeleteConfirmDialog } from '@/components/admin/DeleteConfirmDialog';
 import type { CteDoc, NfeDoc } from '@/lib/documentHelpers';
 
 export type DocumentosPerfil = 'embarcador' | 'transportadora';
