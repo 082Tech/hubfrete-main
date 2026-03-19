@@ -410,12 +410,14 @@ export default function Ajuda() {
               Nossa equipe de suporte está pronta para ajudar. Abra um chamado e responderemos o mais breve possível.
             </p>
           </div>
-          <Button className="gap-2 shrink-0">
+          <Button className="gap-2 shrink-0" onClick={() => setChamadoOpen(true)}>
             <MessageSquare className="w-4 h-4" />
             Abrir Chamado
           </Button>
         </CardContent>
       </Card>
+
+      <AbrirChamadoDialog open={chamadoOpen} onOpenChange={setChamadoOpen} />
     </div>
   );
 }
