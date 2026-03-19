@@ -109,8 +109,9 @@ export default function Financeiro() {
     limite_credito: 0,
   });
 
-  // Expanded invoice groups in faturado tab
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [rejeicaoDialog, setRejeicaoDialog] = useState<any | null>(null);
+  const [motivoRejeicao, setMotivoRejeicao] = useState('');
 
   const dateFrom = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
   const dateTo = (() => {
