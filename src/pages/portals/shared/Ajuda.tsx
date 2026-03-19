@@ -12,8 +12,9 @@ import {
 import {
   HelpCircle, Search, ChevronDown, MessageSquare, Mail, Phone,
   PlayCircle, Truck, Package, DollarSign, Settings,
-  Users, Headphones, Boxes, Container,
+  Users, Headphones, Boxes, Container, Sparkles,
 } from 'lucide-react';
+import { AbrirChamadoDialog } from '@/components/chamados/AbrirChamadoDialog';
 
 interface FAQItem {
   question: string;
