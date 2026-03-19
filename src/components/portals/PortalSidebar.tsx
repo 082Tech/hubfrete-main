@@ -766,7 +766,8 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                 .filter(item =>
                   item.href !== '/transportadora' &&
                   item.href !== '/transportadora/ofertas' &&
-                  item.href !== '/transportadora/configuracoes'
+                  item.href !== '/transportadora/configuracoes' &&
+                  item.href !== '/transportadora/ajuda'
                 )
                 .map((item) => {
                   const isActive = item.href.endsWith('/ajuda')
