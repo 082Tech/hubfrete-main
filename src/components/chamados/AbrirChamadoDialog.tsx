@@ -54,8 +54,27 @@ interface ChamadoMensagem {
 export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogProps) {
   const location = useLocation();
   const isTransportadora = location.pathname.startsWith('/transportadora');
-  const { usuario, empresa } = useUserContext();
+  const { empresa } = useUserContext();
   const { toast } = useToast();
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+
+  // Fetch user info
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserEmail(user.email || '');
+        const { data } = await supabase
+          .from('usuarios')
+          .select('nome')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+        setUserName(data?.nome || user.email || 'Usuário');
+      }
+    };
+    fetchUser();
+  }, []);
 
   // Form state
   const [titulo, setTitulo] = useState('');
