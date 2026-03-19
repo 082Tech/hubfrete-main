@@ -173,7 +173,7 @@ export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogPro
           chamado_id: data.id,
           conteudo: descricao.trim(),
           sender_id: user.id,
-          sender_nome: usuario?.nome || 'Usuário',
+          sender_nome: userName || 'Usuário',
           sender_tipo: isTransportadora ? 'transportadora' : 'embarcador',
         });
 
