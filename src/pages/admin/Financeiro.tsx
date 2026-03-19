@@ -812,7 +812,7 @@ export default function Financeiro() {
               {solicitacoesAntecipacao.map((s: any) => {
                 const isPending = s.status === 'pendente';
                 const statusCfg = {
-                  pendente: { label: 'Pendente', color: 'bg-chart-4 text-white', icon: Clock },
+                  pendente: { label: 'Pendente', color: 'bg-amber-500 text-white', icon: Clock },
                   aprovada: { label: 'Aprovada', color: 'bg-chart-2 text-white', icon: CheckCircle },
                   rejeitada: { label: 'Rejeitada', color: 'bg-destructive text-destructive-foreground', icon: XCircle },
                 }[s.status as string] || { label: s.status, color: 'bg-muted', icon: Clock };
@@ -846,7 +846,7 @@ export default function Financeiro() {
                       </div>
                       {isPending && (
                         <div className="flex flex-col gap-1.5 shrink-0">
-                          <Button size="sm" className="h-7 text-xs bg-chart-2 hover:bg-chart-2/90"
+                          <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
                             onClick={() => aprovarMutation.mutate(s)}
                             disabled={aprovarMutation.isPending}>
                             <CheckCircle className="w-3.5 h-3.5 mr-1" /> Aprovar
