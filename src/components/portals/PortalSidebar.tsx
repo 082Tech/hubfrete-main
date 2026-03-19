@@ -119,8 +119,8 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
     // Minha Empresa is a submenu
-    { icon: HelpCircle, label: 'Ajuda', href: '/embarcador/ajuda' },
     { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
+    { icon: HelpCircle, label: 'Ajuda', href: '/embarcador/ajuda' },
   ],
   transportadora: [
     { icon: Home, label: 'Home', href: '/transportadora' },
