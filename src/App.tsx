@@ -175,6 +175,8 @@ const App = () => {
                     <Route path="financeiro" element={<EmbarcadorFinanceiro />} />
                     <Route path="dados-empresa" element={<EmbarcadorDadosEmpresa />} />
                     <Route path="integracoes" element={<EmbarcadorIntegracoes />} />
+                    <Route path="ajuda" element={<Ajuda />} />
+                    <Route path="ajuda/tutoriais" element={<Tutoriais />} />
                     <Route path="configuracoes" element={<Configuracoes />} />
                   </Route>
 
