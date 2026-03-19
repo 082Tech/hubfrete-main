@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -11,107 +11,182 @@ import {
 } from '@/components/ui/collapsible';
 import {
   HelpCircle, Search, ChevronDown, MessageSquare, Mail, Phone,
-  PlayCircle, FileText, Truck, Package, DollarSign, Settings,
-  Shield, Users, BarChart3, Building2, Headphones, ExternalLink,
+  PlayCircle, Truck, Package, DollarSign, Settings,
+  Users, Headphones, Boxes, Container,
 } from 'lucide-react';
 
 interface FAQItem {
   question: string;
   answer: string;
   category: string;
+  portal: 'embarcador' | 'transportadora' | 'ambos';
 }
 
 const faqItems: FAQItem[] = [
+  // ── Embarcador: Ofertas de Carga ──
   {
-    category: 'Cargas',
-    question: 'Como publico uma nova carga?',
-    answer: 'Acesse o menu "Ofertas" e clique em "Nova Carga". Preencha os dados obrigatórios como tipo de carga, peso, origem e destino. Após revisar, publique a carga para que transportadoras interessadas possam visualizá-la.',
+    category: 'Ofertas',
+    question: 'Como publico uma nova oferta de carga?',
+    answer: 'Acesse o menu "Minhas Ofertas" e clique em "Nova Oferta". Preencha os dados obrigatórios como tipo de carga, peso, origem e destino. Após revisar, publique a oferta para que transportadoras interessadas possam visualizá-la.',
+    portal: 'embarcador',
   },
   {
-    category: 'Cargas',
-    question: 'Posso editar uma carga já publicada?',
-    answer: 'Sim, enquanto a carga estiver no status "Publicada" e não tiver propostas aceitas, você pode editá-la acessando os detalhes da carga e clicando em "Editar".',
+    category: 'Ofertas',
+    question: 'Posso editar uma oferta já publicada?',
+    answer: 'Sim, enquanto a oferta estiver no status "Publicada" e não tiver propostas aceitas, você pode editá-la acessando os detalhes e clicando em "Editar".',
+    portal: 'embarcador',
   },
   {
-    category: 'Cargas',
+    category: 'Ofertas',
     question: 'O que significa carga fracionada?',
     answer: 'Carga fracionada permite que múltiplas transportadoras carreguem partes da carga total. Ao habilitar essa opção, você define o peso mínimo aceito por fração.',
+    portal: 'embarcador',
   },
   {
-    category: 'Entregas',
-    question: 'Como acompanho uma entrega em andamento?',
-    answer: 'Acesse "Cargas > Em andamento" para visualizar todas as entregas ativas. Clique em uma entrega para ver detalhes como localização do motorista, status e documentos anexados.',
+    category: 'Ofertas',
+    question: 'Como acompanho as propostas recebidas em uma oferta?',
+    answer: 'Acesse "Minhas Ofertas", selecione a oferta desejada e veja as propostas recebidas das transportadoras. Você pode aceitar, negociar ou recusar cada proposta.',
+    portal: 'embarcador',
+  },
+  // ── Embarcador: Cargas (execução) ──
+  {
+    category: 'Cargas',
+    question: 'Como acompanho uma carga em andamento?',
+    answer: 'Acesse "Cargas > Em andamento" para visualizar todas as cargas ativas. Clique em uma carga para ver detalhes como localização do motorista, status e documentos anexados.',
+    portal: 'embarcador',
   },
   {
-    category: 'Entregas',
-    question: 'Como faço para visualizar o canhoto/comprovante de entrega?',
-    answer: 'Na tela de detalhes da entrega, acesse a aba "Documentos". O canhoto anexado pelo motorista estará disponível para visualização e download.',
+    category: 'Cargas',
+    question: 'Como visualizo o comprovante de entrega?',
+    answer: 'Na tela de detalhes da carga, acesse a aba "Documentos". O canhoto anexado pelo motorista estará disponível para visualização e download.',
+    portal: 'embarcador',
+  },
+  // ── Transportadora: Ofertas Disponíveis ──
+  {
+    category: 'Ofertas',
+    question: 'Como encontro ofertas de carga disponíveis?',
+    answer: 'Acesse "Ofertas de Carga" no menu lateral para visualizar todas as ofertas publicadas por embarcadores. Use os filtros de rota, tipo de veículo e peso para encontrar as mais adequadas à sua frota.',
+    portal: 'transportadora',
   },
   {
-    category: 'Financeiro',
-    question: 'Quando recebo o pagamento do frete?',
-    answer: 'O pagamento segue as condições financeiras configuradas pela administração. Você pode verificar seus recebíveis e datas de vencimento na seção "Financeiro".',
+    category: 'Ofertas',
+    question: 'Como faço uma proposta em uma oferta?',
+    answer: 'Ao visualizar os detalhes de uma oferta, clique em "Fazer Proposta". Informe o valor do frete, veículo disponível e prazo de coleta. O embarcador receberá sua proposta para avaliação.',
+    portal: 'transportadora',
+  },
+  // ── Transportadora: Cargas (execução) ──
+  {
+    category: 'Cargas',
+    question: 'Como gerencio minhas cargas em andamento?',
+    answer: 'Acesse "Minhas Cargas > Em andamento" para acompanhar todas as cargas ativas. Você pode atualizar status, anexar documentos e acompanhar o motorista em tempo real.',
+    portal: 'transportadora',
   },
   {
-    category: 'Financeiro',
-    question: 'Como solicitar antecipação de pagamento?',
-    answer: 'Se a antecipação estiver habilitada para sua empresa, acesse "Financeiro", selecione o recebível desejado e clique em "Solicitar Antecipação". Uma taxa será aplicada conforme configuração.',
+    category: 'Cargas',
+    question: 'Como anexo CT-e e documentos fiscais a uma carga?',
+    answer: 'Na tela de detalhes da carga, acesse a aba "Documentos" e clique em "Anexar CT-e" ou "Anexar Documento". Você pode emitir CT-e diretamente pela plataforma se tiver o certificado digital configurado.',
+    portal: 'transportadora',
   },
-  {
-    category: 'Conta',
-    question: 'Como alterar minha senha?',
-    answer: 'Acesse "Configurações > Segurança" e clique em "Alterar Senha". Você precisará confirmar a nova senha.',
-  },
-  {
-    category: 'Conta',
-    question: 'Como gerenciar usuários da minha empresa?',
-    answer: 'Administradores podem acessar "Minha Empresa > Usuários" para convidar novos membros, alterar cargos e remover acessos.',
-  },
-  {
-    category: 'Conta',
-    question: 'Como adicionar uma filial?',
-    answer: 'Acesse "Minha Empresa > Gerenciar Filiais" e clique em "Nova Filial". Preencha os dados como CNPJ, endereço e responsável.',
-  },
+  // ── Transportadora: Frota ──
   {
     category: 'Frota',
     question: 'Como cadastro um veículo na frota?',
     answer: 'Acesse "Minha Frota > Veículos" e clique em "Novo Veículo". Preencha placa, tipo, marca, modelo e demais dados. Você pode vincular carrocerias ao veículo posteriormente.',
+    portal: 'transportadora',
   },
   {
     category: 'Frota',
     question: 'Como vincular um motorista à minha transportadora?',
     answer: 'Em "Motoristas", clique em "Cadastrar Motorista" ou use um link de convite. O motorista receberá um acesso para confirmar o vínculo.',
+    portal: 'transportadora',
   },
+  {
+    category: 'Frota',
+    question: 'Como gerencio carrocerias e vínculos?',
+    answer: 'Em "Minha Frota > Carrocerias" você cadastra implementos rodoviários. Em "Vínculos" é possível associar carrocerias a veículos específicos para agilizar a operação.',
+    portal: 'transportadora',
+  },
+  // ── Compartilhados: Financeiro ──
+  {
+    category: 'Financeiro',
+    question: 'Como funciona o módulo financeiro?',
+    answer: 'O módulo financeiro exibe seus recebíveis e pagamentos. Você pode verificar valores, datas de vencimento e status de cada transação na seção "Financeiro".',
+    portal: 'ambos',
+  },
+  {
+    category: 'Financeiro',
+    question: 'Como solicitar antecipação de pagamento?',
+    answer: 'Se a antecipação estiver habilitada para sua empresa, acesse "Financeiro", selecione o recebível desejado e clique em "Solicitar Antecipação". Uma taxa será aplicada conforme configuração.',
+    portal: 'ambos',
+  },
+  // ── Compartilhados: Conta e Administração ──
+  {
+    category: 'Conta',
+    question: 'Como alterar minha senha?',
+    answer: 'Acesse "Configurações > Segurança" e clique em "Alterar Senha". Você precisará confirmar a nova senha.',
+    portal: 'ambos',
+  },
+  {
+    category: 'Conta',
+    question: 'Como gerenciar usuários da minha empresa?',
+    answer: 'Administradores podem acessar "Minha Empresa > Usuários" para convidar novos membros, alterar cargos e remover acessos.',
+    portal: 'ambos',
+  },
+  {
+    category: 'Conta',
+    question: 'Como adicionar uma filial?',
+    answer: 'Acesse "Minha Empresa > Gerenciar Filiais" e clique em "Nova Filial". Preencha os dados como CNPJ, endereço e responsável.',
+    portal: 'ambos',
+  },
+  // ── Compartilhados: Integrações ──
   {
     category: 'Integrações',
     question: 'O HubFrete emite CT-e automaticamente?',
     answer: 'Sim, desde que sua empresa tenha o certificado digital configurado e a configuração fiscal preenchida em "Integrações". A emissão é feita via Focus NFe.',
+    portal: 'transportadora',
   },
   {
     category: 'Integrações',
     question: 'Preciso de certificado digital?',
     answer: 'O certificado digital (A1) é necessário apenas para emissão de documentos fiscais (CT-e e MDF-e). Se sua empresa não emite esses documentos via plataforma, não é obrigatório.',
+    portal: 'transportadora',
   },
 ];
 
-const categories = [
+const embarcadorCategories = [
   { id: 'todos', label: 'Todos', icon: HelpCircle },
+  { id: 'Ofertas', label: 'Ofertas', icon: Boxes },
   { id: 'Cargas', label: 'Cargas', icon: Package },
-  { id: 'Entregas', label: 'Entregas', icon: Truck },
   { id: 'Financeiro', label: 'Financeiro', icon: DollarSign },
   { id: 'Conta', label: 'Conta', icon: Users },
+];
+
+const transportadoraCategories = [
+  { id: 'todos', label: 'Todos', icon: HelpCircle },
+  { id: 'Ofertas', label: 'Ofertas', icon: Boxes },
+  { id: 'Cargas', label: 'Cargas', icon: Package },
   { id: 'Frota', label: 'Frota', icon: Truck },
+  { id: 'Financeiro', label: 'Financeiro', icon: DollarSign },
+  { id: 'Conta', label: 'Conta', icon: Users },
   { id: 'Integrações', label: 'Integrações', icon: Settings },
 ];
 
 export default function Ajuda() {
   const location = useLocation();
-  const portalPrefix = location.pathname.startsWith('/transportadora') ? '/transportadora' : '/embarcador';
+  const isTransportadora = location.pathname.startsWith('/transportadora');
+  const portalPrefix = isTransportadora ? '/transportadora' : '/embarcador';
+  const portalType = isTransportadora ? 'transportadora' : 'embarcador';
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('todos');
   const [openItems, setOpenItems] = useState<Set<number>>(new Set());
 
-  const filteredFAQ = faqItems.filter((item) => {
+  const categories = isTransportadora ? transportadoraCategories : embarcadorCategories;
+
+  const portalFAQ = faqItems.filter(
+    (item) => item.portal === 'ambos' || item.portal === portalType
+  );
+
+  const filteredFAQ = portalFAQ.filter((item) => {
     const matchesSearch =
       !searchTerm ||
       item.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
