@@ -5,7 +5,7 @@ import {
   User, Users, MapPin, Calendar, BarChart3, Bell, ChevronDown, Check,
   Sparkles, Loader2, ChevronLeft, ChevronRight, Home, History, Send,
   Route, Pin, Building, MessageSquare, MoreVertical, ArrowRightLeft,
-  Link2, Container, Boxes, DollarSign, Plug,
+  Link2, Container, Boxes, DollarSign, Plug, HelpCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -119,6 +119,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: MessageSquare, label: 'Mensagens', href: '/embarcador/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
     // Minha Empresa is a submenu
+    { icon: HelpCircle, label: 'Ajuda', href: '/embarcador/ajuda' },
     { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
   ],
   transportadora: [
@@ -131,6 +132,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: MessageSquare, label: 'Mensagens', href: '/transportadora/mensagens' },
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
     // Minha Empresa is a submenu
+    { icon: HelpCircle, label: 'Ajuda', href: '/transportadora/ajuda' },
     { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
   ],
   motorista: [
@@ -767,7 +769,9 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                   item.href !== '/transportadora/configuracoes'
                 )
                 .map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const isActive = item.href.endsWith('/ajuda')
+                    ? location.pathname.startsWith(item.href)
+                    : location.pathname === item.href;
                   const linkContent = (
                     <Link
                       key={item.href}
@@ -902,7 +906,9 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               {menuItems
                 .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')) && !item.href.endsWith('/configuracoes'))
                 .map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const isActive = item.href.endsWith('/ajuda')
+                    ? location.pathname.startsWith(item.href)
+                    : location.pathname === item.href;
                   const linkContent = (
                     <Link
                       key={item.href}

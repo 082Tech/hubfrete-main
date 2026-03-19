@@ -62,6 +62,8 @@ import EmbarcadorMensagens from "./pages/portals/embarcador/Mensagens";
 import EmbarcadorNotificacoes from "./pages/portals/embarcador/Notificacoes";
 import EmbarcadorDadosEmpresa from "./pages/portals/embarcador/DadosEmpresa";
 import EmbarcadorIntegracoes from "./pages/portals/embarcador/Integracoes";
+import Ajuda from "./pages/portals/shared/Ajuda";
+import Tutoriais from "./pages/portals/shared/Tutoriais";
 
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraOfertas from "./pages/portals/transportadora/OfertasDisponiveis";
@@ -173,6 +175,8 @@ const App = () => {
                     <Route path="financeiro" element={<EmbarcadorFinanceiro />} />
                     <Route path="dados-empresa" element={<EmbarcadorDadosEmpresa />} />
                     <Route path="integracoes" element={<EmbarcadorIntegracoes />} />
+                    <Route path="ajuda" element={<Ajuda />} />
+                    <Route path="ajuda/tutoriais" element={<Tutoriais />} />
                     <Route path="configuracoes" element={<Configuracoes />} />
                   </Route>
 
@@ -196,6 +200,8 @@ const App = () => {
                     <Route path="financeiro" element={<TransportadoraFinanceiro />} />
                     <Route path="dados-empresa" element={<TransportadoraDadosEmpresa />} />
                     <Route path="integracoes" element={<TransportadoraIntegracoes />} />
+                    <Route path="ajuda" element={<Ajuda />} />
+                    <Route path="ajuda/tutoriais" element={<Tutoriais />} />
                     <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />
                   </Route>
 
