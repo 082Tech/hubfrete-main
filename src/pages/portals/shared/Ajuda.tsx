@@ -130,7 +130,7 @@ export default function Ajuda() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="h-full overflow-y-auto p-6 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Central de Ajuda</h1>
