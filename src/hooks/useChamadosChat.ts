@@ -52,21 +52,19 @@ export function useChamadosChat() {
           .maybeSingle();
         setCurrentUserName((nome_data as any)?.nome || 'Usuário');
 
-        // Determine user type from empresa via filiais
-        const { data: uf } = await supabase.rpc('get_user_filial_empresa_tipo', { p_user_id: user.id }).maybeSingle();
-        // Fallback: just query directly
-        const { data: ufRows } = await supabase
-          .from('usuarios_filiais')
+        // Determine user type - query usuarios_filiais -> filiais -> empresas
+        const { data: ufData } = await supabase
+          .from('usuarios_filiais' as any)
           .select('filial_id')
           .eq('auth_user_id', user.id)
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
         
-        if (uf?.filial_id) {
+        const ufRow = (ufData as any)?.[0];
+        if (ufRow?.filial_id) {
           const { data: filial } = await supabase
             .from('filiais')
             .select('empresa_id')
-            .eq('id', uf.filial_id)
+            .eq('id', ufRow.filial_id)
             .maybeSingle();
           
           if (filial?.empresa_id) {
