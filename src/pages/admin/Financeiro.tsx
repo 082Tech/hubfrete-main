@@ -1135,6 +1135,30 @@ export default function Financeiro() {
           target={bankTarget}
         />
       )}
+
+      {/* Rejeição Dialog */}
+      <Dialog open={!!rejeicaoDialog} onOpenChange={() => setRejeicaoDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-destructive" /> Rejeitar Solicitação
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Informe o motivo da rejeição. O solicitante será notificado.</p>
+            <div>
+              <Label>Motivo da rejeição</Label>
+              <Textarea value={motivoRejeicao} onChange={(e) => setMotivoRejeicao(e.target.value)} placeholder="Ex: Dados bancários incompletos, limite atingido..." rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejeicaoDialog(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => rejeitarMutation.mutate({ id: rejeicaoDialog.id, motivo: motivoRejeicao })} disabled={!motivoRejeicao.trim() || rejeitarMutation.isPending}>
+              {rejeitarMutation.isPending ? 'Rejeitando...' : 'Confirmar Rejeição'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
