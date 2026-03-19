@@ -1926,6 +1926,32 @@ export default function OperacaoDiaria() {
   // Mutation para finalizar viagem
   const finalizarViagemMutation = useMutation({
     mutationFn: async (viagemId: string) => {
+      // Pre-sync: garantir que canhoto_url está preenchido para entregas com arquivos no bucket
+      const { data: ves } = await supabase
+        .from('viagem_entregas')
+        .select('entrega_id')
+        .eq('viagem_id', viagemId);
+      if (ves) {
+        for (const ve of ves) {
+          const { data: entrega } = await supabase
+            .from('entregas')
+            .select('id, canhoto_url, status')
+            .eq('id', ve.entrega_id)
+            .single();
+          if (entrega && entrega.status === 'entregue' && !entrega.canhoto_url) {
+            const { data: files } = await supabase.storage
+              .from('documentos')
+              .list(`canhotos/${entrega.id}`, { limit: 5 });
+            const validFile = (files || []).find(f => f.name !== '.emptyFolderPlaceholder');
+            if (validFile) {
+              await supabase.from('entregas')
+                .update({ canhoto_url: `canhotos/${entrega.id}/${validFile.name}` })
+                .eq('id', entrega.id);
+            }
+          }
+        }
+      }
+
       const { error } = await supabase
         .from('viagens')
         .update({
