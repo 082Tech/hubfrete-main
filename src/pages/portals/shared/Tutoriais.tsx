@@ -97,8 +97,8 @@ const tutorials: Tutorial[] = [
 const tutorialCategories = [
   { id: 'todos', label: 'Todos' },
   { id: 'Início', label: 'Início' },
+  { id: 'Ofertas', label: 'Ofertas' },
   { id: 'Cargas', label: 'Cargas' },
-  { id: 'Entregas', label: 'Entregas' },
   { id: 'Financeiro', label: 'Financeiro' },
   { id: 'Frota', label: 'Frota' },
   { id: 'Administração', label: 'Admin' },
