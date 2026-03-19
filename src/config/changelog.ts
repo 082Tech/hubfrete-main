@@ -12,6 +12,16 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: "1.2.2",
+    date: "2026-03-19",
+    slides: [
+      {
+        title: "Correção: Finalização de Viagens 🛠️",
+        description: "Corrigido problema que impedia a finalização de viagens quando o canhoto estava presente no storage mas não sincronizado no banco de dados. O sistema agora sincroniza automaticamente os documentos antes de validar.",
+      },
+    ],
+  },
+  {
     version: "1.2.1",
     date: "2026-03-18",
     slides: [
