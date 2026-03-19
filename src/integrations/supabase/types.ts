@@ -775,6 +775,66 @@ export type Database = {
           },
         ]
       }
+      checklist_veiculos: {
+        Row: {
+          created_at: string
+          documentos_ok: boolean
+          fotos_veiculo_urls: string[]
+          freios_ok: boolean
+          id: string
+          limpeza_ok: boolean
+          luces_ok: boolean
+          motorista_id: string | null
+          observacoes: string | null
+          pneus_ok: boolean
+          timestamp: string
+          viagem_id: string
+        }
+        Insert: {
+          created_at?: string
+          documentos_ok?: boolean
+          fotos_veiculo_urls?: string[]
+          freios_ok?: boolean
+          id?: string
+          limpeza_ok?: boolean
+          luces_ok?: boolean
+          motorista_id?: string | null
+          observacoes?: string | null
+          pneus_ok?: boolean
+          timestamp?: string
+          viagem_id: string
+        }
+        Update: {
+          created_at?: string
+          documentos_ok?: boolean
+          fotos_veiculo_urls?: string[]
+          freios_ok?: boolean
+          id?: string
+          limpeza_ok?: boolean
+          luces_ok?: boolean
+          motorista_id?: string | null
+          observacoes?: string | null
+          pneus_ok?: boolean
+          timestamp?: string
+          viagem_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_veiculos_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_veiculos_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: false
+            referencedRelation: "viagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_invites: {
         Row: {
           accepted_at: string | null
@@ -1390,9 +1450,11 @@ export type Database = {
           carroceria_id: string | null
           carroceria_id_2: string | null
           carrocerias_alocadas: Json | null
+          checklist_id: string | null
           checklist_veiculo: Json | null
           codigo: string | null
           coletado_em: string | null
+          comprovante_entrega_url: string | null
           created_at: string | null
           created_by: string | null
           cte_gerado_automaticamente: boolean | null
@@ -1427,9 +1489,11 @@ export type Database = {
           carroceria_id?: string | null
           carroceria_id_2?: string | null
           carrocerias_alocadas?: Json | null
+          checklist_id?: string | null
           checklist_veiculo?: Json | null
           codigo?: string | null
           coletado_em?: string | null
+          comprovante_entrega_url?: string | null
           created_at?: string | null
           created_by?: string | null
           cte_gerado_automaticamente?: boolean | null
@@ -1464,9 +1528,11 @@ export type Database = {
           carroceria_id?: string | null
           carroceria_id_2?: string | null
           carrocerias_alocadas?: Json | null
+          checklist_id?: string | null
           checklist_veiculo?: Json | null
           codigo?: string | null
           coletado_em?: string | null
+          comprovante_entrega_url?: string | null
           created_at?: string | null
           created_by?: string | null
           cte_gerado_automaticamente?: boolean | null
@@ -1514,6 +1580,13 @@ export type Database = {
             columns: ["carroceria_id"]
             isOneToOne: false
             referencedRelation: "carrocerias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_veiculos"
             referencedColumns: ["id"]
           },
           {
