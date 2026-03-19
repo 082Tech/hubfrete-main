@@ -812,7 +812,7 @@ export default function Financeiro() {
               {solicitacoesAntecipacao.map((s: any) => {
                 const isPending = s.status === 'pendente';
                 const statusCfg = {
-                  pendente: { label: 'Pendente', color: 'bg-chart-4 text-white', icon: Clock },
+                  pendente: { label: 'Pendente', color: 'bg-amber-500 text-white', icon: Clock },
                   aprovada: { label: 'Aprovada', color: 'bg-chart-2 text-white', icon: CheckCircle },
                   rejeitada: { label: 'Rejeitada', color: 'bg-destructive text-destructive-foreground', icon: XCircle },
                 }[s.status as string] || { label: s.status, color: 'bg-muted', icon: Clock };
