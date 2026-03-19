@@ -20,7 +20,7 @@ import {
   DollarSign, CheckCircle, Clock, TrendingUp, Eye, Upload,
   ArrowDownLeft, ArrowUpRight, Landmark, Settings, Zap,
   Search, Building2, ShieldCheck, AlertTriangle, Truck, User,
-  FileText, ChevronDown, ChevronRight,
+  FileText, ChevronDown, ChevronRight, XCircle, Loader2,
 } from 'lucide-react';
 import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
 import { format, differenceInDays, startOfMonth, endOfMonth } from 'date-fns';
