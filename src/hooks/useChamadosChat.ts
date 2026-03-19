@@ -45,15 +45,17 @@ export function useChamadosChat() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
-        const { data } = await supabase
+        const { data: nome_data } = await supabase
           .from('usuarios')
           .select('nome')
           .eq('auth_user_id', user.id)
           .maybeSingle();
-        setCurrentUserName((data as any)?.nome || 'Usuário');
+        setCurrentUserName((nome_data as any)?.nome || 'Usuário');
 
         // Determine user type from empresa via filiais
-        const { data: uf } = await supabase
+        const { data: uf } = await supabase.rpc('get_user_filial_empresa_tipo', { p_user_id: user.id }).maybeSingle();
+        // Fallback: just query directly
+        const { data: ufRows } = await supabase
           .from('usuarios_filiais')
           .select('filial_id')
           .eq('auth_user_id', user.id)
