@@ -773,6 +773,14 @@ export default function Financeiro() {
           <TabsTrigger value="pgt_autonomos" className="gap-2">
             <User className="w-4 h-4" /> Pgto Autônomos
           </TabsTrigger>
+          <TabsTrigger value="antecipacoes" className="gap-2 relative">
+            <Zap className="w-4 h-4" /> Antecipações
+            {pendingSolicitacoes > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-chart-4 text-white text-[9px] font-bold">
+                {pendingSolicitacoes}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="config" className="gap-2">
             <Settings className="w-4 h-4" /> Config Embarcadores
           </TabsTrigger>
@@ -782,6 +790,80 @@ export default function Financeiro() {
         <TabsContent value="recebiveis_fat">{renderFaturadoTab()}</TabsContent>
         <TabsContent value="pgt_transportadoras">{renderFinancialTable()}</TabsContent>
         <TabsContent value="pgt_autonomos">{renderFinancialTable()}</TabsContent>
+
+        {/* ===== ANTECIPAÇÕES TAB ===== */}
+        <TabsContent value="antecipacoes" className="space-y-5 mt-5">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Solicitações de Antecipação</h2>
+            <p className="text-xs text-muted-foreground">Aprove ou rejeite pedidos de antecipação de transportadoras e autônomos</p>
+          </div>
+
+          {loadingSolicitacoes ? (
+            <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}</div>
+          ) : solicitacoesAntecipacao.length === 0 ? (
+            <Card className="border-dashed border-2 border-border">
+              <CardContent className="py-16 text-center">
+                <Zap className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+                <p className="text-muted-foreground">Nenhuma solicitação de antecipação</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {solicitacoesAntecipacao.map((s: any) => {
+                const isPending = s.status === 'pendente';
+                const statusCfg = {
+                  pendente: { label: 'Pendente', color: 'bg-chart-4 text-white', icon: Clock },
+                  aprovada: { label: 'Aprovada', color: 'bg-chart-2 text-white', icon: CheckCircle },
+                  rejeitada: { label: 'Rejeitada', color: 'bg-destructive text-destructive-foreground', icon: XCircle },
+                }[s.status as string] || { label: s.status, color: 'bg-muted', icon: Clock };
+
+                return (
+                  <Card key={s.id} className={`border-border ${isPending ? 'ring-1 ring-chart-4/30' : ''}`}>
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${isPending ? 'bg-chart-4/10' : 'bg-muted/50'}`}>
+                        <Zap className={`w-5 h-5 ${isPending ? 'text-chart-4' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge className={`${statusCfg.color} text-[10px]`}>
+                            <statusCfg.icon className="w-3 h-3 mr-1" />{statusCfg.label}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px]">{s.solicitante_tipo === 'autonomo' ? 'Autônomo' : 'Transportadora'}</Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {format(new Date(s.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Empresa ID: {s.empresa_id} · Venc: {format(new Date(s.data_vencimento_original), 'dd/MM/yy')} · {s.dias_antecipados}d antecipado
+                        </p>
+                        {s.observacoes && <p className="text-xs text-muted-foreground italic mt-0.5">"{s.observacoes}"</p>}
+                        {s.motivo_rejeicao && <p className="text-xs text-destructive mt-0.5">Motivo: {s.motivo_rejeicao}</p>}
+                      </div>
+                      <div className="text-right shrink-0 space-y-1">
+                        <p className="text-xs text-muted-foreground line-through">{formatCurrency(s.valor_original)}</p>
+                        <p className="text-sm font-bold">{formatCurrency(s.valor_final)}</p>
+                        <p className="text-[10px] text-muted-foreground">taxa {s.taxa_percent}% = {formatCurrency(s.valor_taxa)}</p>
+                      </div>
+                      {isPending && (
+                        <div className="flex flex-col gap-1.5 shrink-0">
+                          <Button size="sm" className="h-7 text-xs bg-chart-2 hover:bg-chart-2/90"
+                            onClick={() => aprovarMutation.mutate(s)}
+                            disabled={aprovarMutation.isPending}>
+                            <CheckCircle className="w-3.5 h-3.5 mr-1" /> Aprovar
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs text-destructive"
+                            onClick={() => { setRejeicaoDialog(s); setMotivoRejeicao(''); }}>
+                            <XCircle className="w-3.5 h-3.5 mr-1" /> Rejeitar
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
 
         {/* ===== CONFIG TAB ===== */}
         <TabsContent value="config" className="space-y-5 mt-5">
