@@ -125,8 +125,10 @@ export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogPro
       }, (payload) => {
         const newMsg = payload.new as ChamadoMensagem;
         setMensagens(prev => {
+          // Skip if already present (real or optimistic replaced)
           if (prev.some(m => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
+          // Also remove any temp messages with same content (optimistic already replaced)
+          return [...prev.filter(m => !m.id.startsWith('temp-')), newMsg];
         });
       })
       .subscribe();
