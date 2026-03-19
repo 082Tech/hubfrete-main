@@ -119,7 +119,68 @@ export default function Financeiro() {
     return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   })();
 
-  const isFinancialTab = activeTab !== 'config';
+  const isFinancialTab = activeTab !== 'config' && activeTab !== 'antecipacoes';
+
+  const { data: solicitacoesAntecipacao = [], isLoading: loadingSolicitacoes } = useQuery({
+    queryKey: ['admin-solicitacoes-antecipacao'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('solicitacoes_antecipacao' as any)
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: activeTab === 'antecipacoes',
+  });
+
+  const pendingSolicitacoes = (solicitacoesAntecipacao || []).filter((s: any) => s.status === 'pendente').length;
+
+  const aprovarMutation = useMutation({
+    mutationFn: async (solicitacao: any) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error: e1 } = await supabase
+        .from('solicitacoes_antecipacao' as any)
+        .update({ status: 'aprovada', aprovado_por: user?.id, aprovado_em: new Date().toISOString() } as any)
+        .eq('id', solicitacao.id);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase
+        .from('financeiro_entregas')
+        .update({
+          antecipado: true,
+          data_antecipacao: new Date().toISOString(),
+          taxa_antecipacao_percent: solicitacao.taxa_percent,
+          dias_antecipados: solicitacao.dias_antecipados,
+          valor_taxa_antecipacao: solicitacao.valor_taxa,
+        } as any)
+        .eq('id', solicitacao.financeiro_entrega_id);
+      if (e2) throw e2;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-solicitacoes-antecipacao'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-recebiveis'] });
+      toast.success('Antecipação aprovada!');
+    },
+    onError: () => toast.error('Erro ao aprovar'),
+  });
+
+  const rejeitarMutation = useMutation({
+    mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('solicitacoes_antecipacao' as any)
+        .update({ status: 'rejeitada', motivo_rejeicao: motivo, aprovado_por: user?.id, aprovado_em: new Date().toISOString() } as any)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-solicitacoes-antecipacao'] });
+      toast.success('Solicitação rejeitada');
+      setRejeicaoDialog(null);
+      setMotivoRejeicao('');
+    },
+    onError: () => toast.error('Erro ao rejeitar'),
+  });
 
   // Fetch configs to know which embarcadores are faturado
   const { data: allConfigs } = useQuery({
