@@ -216,12 +216,14 @@ const transportadoraCategories = [
 
 export default function Ajuda() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isTransportadora = location.pathname.startsWith('/transportadora');
   const portalPrefix = isTransportadora ? '/transportadora' : '/embarcador';
   const portalType = isTransportadora ? 'transportadora' : 'embarcador';
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('todos');
   const [openItems, setOpenItems] = useState<Set<number>>(new Set());
+  const [chamadoOpen, setChamadoOpen] = useState(false);
 
   const categories = isTransportadora ? transportadoraCategories : embarcadorCategories;
 
