@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,8 +12,9 @@ import {
 import {
   HelpCircle, Search, ChevronDown, MessageSquare, Mail, Phone,
   PlayCircle, Truck, Package, DollarSign, Settings,
-  Users, Headphones, Boxes, Container,
+  Users, Headphones, Boxes, Container, Sparkles,
 } from 'lucide-react';
+import { AbrirChamadoDialog } from '@/components/chamados/AbrirChamadoDialog';
 
 interface FAQItem {
   question: string;
@@ -215,12 +216,14 @@ const transportadoraCategories = [
 
 export default function Ajuda() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isTransportadora = location.pathname.startsWith('/transportadora');
   const portalPrefix = isTransportadora ? '/transportadora' : '/embarcador';
   const portalType = isTransportadora ? 'transportadora' : 'embarcador';
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('todos');
   const [openItems, setOpenItems] = useState<Set<number>>(new Set());
+  const [chamadoOpen, setChamadoOpen] = useState(false);
 
   const categories = isTransportadora ? transportadoraCategories : embarcadorCategories;
 
@@ -257,7 +260,7 @@ export default function Ajuda() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link to={`${portalPrefix}/ajuda/tutoriais`}>
           <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group h-full">
             <CardContent className="p-5 flex items-start gap-4">
@@ -275,15 +278,30 @@ export default function Ajuda() {
         </Link>
 
         <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group"
-          onClick={() => window.open('mailto:suporte@hubfrete.com.br', '_blank')}>
+          onClick={() => navigate(`${portalPrefix}/assistente`)}>
           <CardContent className="p-5 flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors shrink-0">
-              <Mail className="w-6 h-6" />
+            <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors shrink-0">
+              <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">E-mail</p>
+              <p className="font-semibold text-foreground">Tire dúvida com o Hubinho</p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                suporte@hubfrete.com.br
+                Assistente de IA da plataforma
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group"
+          onClick={() => setChamadoOpen(true)}>
+          <CardContent className="p-5 flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 group-hover:bg-orange-500 group-hover:text-white transition-colors shrink-0">
+              <Headphones className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">Abrir Chamado</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Fale com o suporte técnico
               </p>
             </div>
           </CardContent>
@@ -392,12 +410,14 @@ export default function Ajuda() {
               Nossa equipe de suporte está pronta para ajudar. Abra um chamado e responderemos o mais breve possível.
             </p>
           </div>
-          <Button className="gap-2 shrink-0">
+          <Button className="gap-2 shrink-0" onClick={() => setChamadoOpen(true)}>
             <MessageSquare className="w-4 h-4" />
             Abrir Chamado
           </Button>
         </CardContent>
       </Card>
+
+      <AbrirChamadoDialog open={chamadoOpen} onOpenChange={setChamadoOpen} />
     </div>
   );
 }
