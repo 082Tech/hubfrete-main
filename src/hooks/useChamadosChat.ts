@@ -47,19 +47,34 @@ export function useChamadosChat() {
         setCurrentUserId(user.id);
         const { data } = await supabase
           .from('usuarios')
-          .select('nome, empresa_id')
+          .select('nome')
           .eq('auth_user_id', user.id)
           .maybeSingle();
-        setCurrentUserName(data?.nome || 'Usuário');
+        setCurrentUserName((data as any)?.nome || 'Usuário');
 
-        // Determine user type from empresa
-        if (data?.empresa_id) {
-          const { data: emp } = await supabase
-            .from('empresas')
-            .select('tipo')
-            .eq('id', data.empresa_id)
+        // Determine user type from empresa via filiais
+        const { data: uf } = await supabase
+          .from('usuarios_filiais')
+          .select('filial_id')
+          .eq('auth_user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+        
+        if (uf?.filial_id) {
+          const { data: filial } = await supabase
+            .from('filiais')
+            .select('empresa_id')
+            .eq('id', uf.filial_id)
             .maybeSingle();
-          setCurrentUserType(emp?.tipo === 'TRANSPORTADORA' ? 'transportadora' : 'embarcador');
+          
+          if (filial?.empresa_id) {
+            const { data: emp } = await supabase
+              .from('empresas')
+              .select('tipo')
+              .eq('id', filial.empresa_id)
+              .maybeSingle();
+            setCurrentUserType(emp?.tipo === 'TRANSPORTADORA' ? 'transportadora' : 'embarcador');
+          }
         }
       }
     };
