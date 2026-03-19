@@ -1067,6 +1067,36 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                 }
                 return linkContent;
               })()}
+
+              {/* Ajuda - last item */}
+              {(() => {
+                const ajudaHref = userType === 'embarcador' ? '/embarcador/ajuda' : `/${userType}/ajuda`;
+                const ajudaItem = menuItems.find(item => item.href === ajudaHref);
+                if (!ajudaItem) return null;
+                const isActive = location.pathname.startsWith(ajudaItem.href);
+                const linkContent = (
+                  <Link
+                    to={ajudaItem.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                      } ${isActive
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                      }`}
+                  >
+                    <ajudaItem.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{ajudaItem.label}</span>}
+                  </Link>
+                );
+                if (collapsed) {
+                  return (
+                    <Tooltip>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>{ajudaItem.label}</TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return linkContent;
+              })()}
             </>
           )}
         </nav>
