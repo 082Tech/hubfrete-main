@@ -157,7 +157,7 @@ export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogPro
           prioridade: 'media' as any,
           solicitante_user_id: user.id,
           solicitante_nome: userName || user.email || 'Usuário',
-          solicitante_email: user.email || '',
+          solicitante_email: userEmail || user.email || '',
           solicitante_tipo: isTransportadora ? 'transportadora' : 'embarcador',
           empresa_id: empresa?.id || null,
         })
