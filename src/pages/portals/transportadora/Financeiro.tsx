@@ -14,11 +14,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Landmark, Save, Zap, Calendar, BarChart3, AlertTriangle,
-  Clock, CheckCircle, TrendingUp,
+  Clock, CheckCircle, TrendingUp, XCircle, Loader2, ListChecks,
 } from 'lucide-react';
 import { format, endOfMonth, startOfMonth, differenceInDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
 import { FinanceCalendar } from '@/components/financeiro/FinanceCalendar';
@@ -29,6 +31,7 @@ export default function TransportadoraFinanceiro() {
   const queryClient = useQueryClient();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [antecipacaoDialog, setAntecipacaoDialog] = useState<any | null>(null);
+  const [observacoes, setObservacoes] = useState('');
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -73,6 +76,27 @@ export default function TransportadoraFinanceiro() {
     },
   });
 
+  // Fetch existing solicitações to know which are already requested
+  const { data: solicitacoes = [] } = useQuery({
+    queryKey: ['transportadora-solicitacoes-antecipacao', empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return [];
+      const { data, error } = await supabase
+        .from('solicitacoes_antecipacao' as any)
+        .select('*')
+        .eq('empresa_id', empresa.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!empresa?.id,
+  });
+
+  const solicitacaoByFinanceiroId = (solicitacoes || []).reduce((acc: Record<string, any>, s: any) => {
+    acc[s.financeiro_entrega_id] = s;
+    return acc;
+  }, {} as Record<string, any>);
+
   useQuery({
     queryKey: ['empresa-dados-bancarios', empresa?.id],
     queryFn: async () => {
@@ -105,23 +129,36 @@ export default function TransportadoraFinanceiro() {
       const diasRestantes = differenceInDays(new Date(recebivel.data_vencimento), new Date());
       if (diasRestantes <= 0) throw new Error('Recebível já vencido');
       const taxa = cfg.taxa_antecipacao_percent || 2;
-      const valorTaxa = Math.round(recebivel.valor_liquido * (taxa / 100) * 100) / 100;
-      const { error } = await (supabase
-        .from('financeiro_entregas')
-        .update({
-          antecipado: true,
-          data_antecipacao: new Date().toISOString(),
-          taxa_antecipacao_percent: taxa,
+      const valorLiquido = Number(recebivel.valor_liquido);
+      const valorTaxa = Math.round(valorLiquido * (taxa / 100) * 100) / 100;
+      const valorFinal = valorLiquido - valorTaxa;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      const { error } = await supabase
+        .from('solicitacoes_antecipacao' as any)
+        .insert({
+          financeiro_entrega_id: recebivel.id,
+          solicitante_user_id: user.id,
+          solicitante_tipo: 'transportadora',
+          empresa_id: empresa?.id,
+          valor_original: valorLiquido,
+          taxa_percent: taxa,
+          valor_taxa: valorTaxa,
+          valor_final: valorFinal,
           dias_antecipados: diasRestantes,
-          valor_taxa_antecipacao: valorTaxa,
-        } as any)
-        .eq('id', recebivel.id));
+          data_vencimento_original: recebivel.data_vencimento,
+          status: 'pendente',
+          observacoes: observacoes || null,
+        } as any);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transportadora-financeiro'] });
-      toast.success('Antecipação solicitada com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['transportadora-solicitacoes-antecipacao'] });
+      toast.success('Solicitação de antecipação enviada! Aguarde aprovação.');
       setAntecipacaoDialog(null);
+      setObservacoes('');
     },
     onError: (err: any) => toast.error(err.message || 'Erro ao solicitar antecipação'),
   });
@@ -130,12 +167,21 @@ export default function TransportadoraFinanceiro() {
     if (r.status !== 'pendente' || r.antecipado) return false;
     if (!r.data_vencimento || differenceInDays(new Date(r.data_vencimento), new Date()) <= 0) return false;
     const cfg = configEmbarcadores?.[r.empresa_embarcadora_id];
-    return cfg?.antecipacao_permitida === true;
+    if (cfg?.antecipacao_permitida !== true) return false;
+    // Already has a pending or approved request
+    const existing = solicitacaoByFinanceiroId[r.id];
+    if (existing && (existing.status === 'pendente' || existing.status === 'aprovada')) return false;
+    return true;
+  };
+
+  const getSolicitacaoStatus = (recebivelId: string) => {
+    return solicitacaoByFinanceiroId[recebivelId] || null;
   };
 
   const totalPendente = registros.filter(r => r.status === 'pendente').reduce((s: number, r: any) => s + Number(r.valor_liquido), 0);
   const totalRecebido = registros.filter(r => r.status === 'pago').reduce((s: number, r: any) => s + Number(r.valor_liquido), 0);
   const totalAntecipados = registros.filter(r => r.antecipado).length;
+  const pendingSolicitacoes = solicitacoes.filter((s: any) => s.status === 'pendente').length;
   const countPendente = registros.filter(r => r.status === 'pendente').length;
 
   return (
@@ -188,7 +234,12 @@ export default function TransportadoraFinanceiro() {
             </div>
             <div>
               <p className="text-lg font-bold text-chart-4">{totalAntecipados}</p>
-              <p className="text-[10px] text-muted-foreground">Antecipados</p>
+              <p className="text-[10px] text-muted-foreground">
+                Antecipados
+                {pendingSolicitacoes > 0 && (
+                  <span className="text-primary ml-1">({pendingSolicitacoes} pendente{pendingSolicitacoes > 1 ? 's' : ''})</span>
+                )}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -198,6 +249,14 @@ export default function TransportadoraFinanceiro() {
         <TabsList className="bg-muted/50">
           <TabsTrigger value="calendario" className="gap-2">
             <Calendar className="w-4 h-4" /> Calendário
+          </TabsTrigger>
+          <TabsTrigger value="solicitacoes" className="gap-2 relative">
+            <ListChecks className="w-4 h-4" /> Solicitações
+            {pendingSolicitacoes > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
+                {pendingSolicitacoes}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="anual" className="gap-2">
             <BarChart3 className="w-4 h-4" /> Visão Anual
@@ -213,9 +272,68 @@ export default function TransportadoraFinanceiro() {
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
             perspective="transportadora"
-            onAntecipar={(r) => setAntecipacaoDialog(r)}
+            onAntecipar={(r) => { setAntecipacaoDialog(r); setObservacoes(''); }}
             canAntecipar={canAntecipar}
           />
+        </TabsContent>
+
+        <TabsContent value="solicitacoes" className="mt-0">
+          <Card className="border-border">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Zap className="w-5 h-5 text-chart-4" /> Minhas Solicitações de Antecipação
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {solicitacoes.length === 0 ? (
+                <div className="text-center py-12">
+                  <Zap className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">Nenhuma solicitação realizada</p>
+                  <p className="text-xs text-muted-foreground mt-1">Use o calendário para solicitar antecipação de recebíveis</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {solicitacoes.map((s: any) => {
+                    const statusConfig = {
+                      pendente: { label: 'Aguardando', icon: Clock, color: 'bg-chart-4 text-white' },
+                      aprovada: { label: 'Aprovada', icon: CheckCircle, color: 'bg-chart-2 text-white' },
+                      rejeitada: { label: 'Rejeitada', icon: XCircle, color: 'bg-destructive text-destructive-foreground' },
+                    }[s.status as string] || { label: s.status, icon: Clock, color: 'bg-muted' };
+
+                    return (
+                      <div key={s.id} className="p-3 rounded-lg bg-muted/40 border border-border flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge className={`${statusConfig.color} text-[10px]`}>
+                              <statusConfig.icon className="w-3 h-3 mr-1" />
+                              {statusConfig.label}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(s.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Venc. original: {format(new Date(s.data_vencimento_original), 'dd/MM/yy')} · {s.dias_antecipados}d antecipado
+                          </p>
+                          {s.motivo_rejeicao && (
+                            <p className="text-xs text-destructive mt-1">Motivo: {s.motivo_rejeicao}</p>
+                          )}
+                          {s.observacoes && (
+                            <p className="text-xs text-muted-foreground mt-0.5 italic">"{s.observacoes}"</p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs text-muted-foreground line-through">{formatCurrency(s.valor_original)}</p>
+                          <p className="text-sm font-bold text-chart-2">{formatCurrency(s.valor_final)}</p>
+                          <p className="text-[10px] text-muted-foreground">taxa {s.taxa_percent}%</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="anual" className="mt-0">
@@ -318,10 +436,20 @@ export default function TransportadoraFinanceiro() {
                     <span className="text-lg font-bold text-chart-2">{formatCurrency(valorFinal)}</span>
                   </div>
                 </div>
+                <div>
+                  <Label className="text-xs">Observação (opcional)</Label>
+                  <Textarea
+                    value={observacoes}
+                    onChange={(e) => setObservacoes(e.target.value)}
+                    placeholder="Motivo da antecipação..."
+                    rows={2}
+                    className="mt-1"
+                  />
+                </div>
                 <div className="flex items-start gap-2 p-3 bg-chart-4/10 rounded-lg">
                   <AlertTriangle className="w-4 h-4 text-chart-4 mt-0.5 shrink-0" />
                   <p className="text-xs text-chart-4">
-                    Ao confirmar, o valor será disponibilizado antecipadamente com desconto da taxa. Esta ação não pode ser desfeita.
+                    Sua solicitação será analisada pela equipe HubFrete. Após aprovação, o valor será disponibilizado com desconto da taxa.
                   </p>
                 </div>
               </div>
@@ -330,8 +458,11 @@ export default function TransportadoraFinanceiro() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAntecipacaoDialog(null)}>Cancelar</Button>
             <Button className="bg-chart-4 hover:bg-chart-4/90 text-white" onClick={() => antecipacaoMutation.mutate(antecipacaoDialog)} disabled={antecipacaoMutation.isPending}>
-              <Zap className="w-4 h-4 mr-1" />
-              {antecipacaoMutation.isPending ? 'Processando...' : 'Confirmar Antecipação'}
+              {antecipacaoMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Enviando...</>
+              ) : (
+                <><Zap className="w-4 h-4 mr-1" /> Enviar Solicitação</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
