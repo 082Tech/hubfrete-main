@@ -27,38 +27,50 @@ const faqItems: FAQItem[] = [
   {
     category: 'Ofertas',
     question: 'Como publico uma nova oferta de carga?',
-    answer: 'Acesse o menu "Minhas Ofertas" e clique em "Nova Oferta". Preencha os dados obrigatórios como tipo de carga, peso, origem e destino. Após revisar, publique a oferta para que transportadoras interessadas possam visualizá-la.',
+    answer: 'Acesse o menu "Minhas Ofertas" e clique em "Nova Oferta". Preencha os dados obrigatórios como tipo de carga, peso, origem e destino no wizard de 5 etapas. Após revisar o resumo, publique a oferta para que transportadoras possam visualizá-la e aceitá-la.',
     portal: 'embarcador',
   },
   {
     category: 'Ofertas',
     question: 'Posso editar uma oferta já publicada?',
-    answer: 'Sim, enquanto a oferta estiver no status "Publicada" e não tiver propostas aceitas, você pode editá-la acessando os detalhes e clicando em "Editar".',
+    answer: 'Sim, enquanto a oferta estiver no status "Publicada" e nenhuma transportadora tiver aceitado, você pode editá-la acessando os detalhes e clicando em "Editar".',
     portal: 'embarcador',
   },
   {
     category: 'Ofertas',
     question: 'O que significa carga fracionada?',
-    answer: 'Carga fracionada permite que múltiplas transportadoras carreguem partes da carga total. Ao habilitar essa opção, você define o peso mínimo aceito por fração.',
+    answer: 'Carga fracionada permite que múltiplas transportadoras carreguem partes da carga total. Ao habilitar essa opção, você define o peso mínimo aceito por fração e o saldo restante é atualizado automaticamente.',
     portal: 'embarcador',
   },
   {
     category: 'Ofertas',
-    question: 'Como acompanho as propostas recebidas em uma oferta?',
-    answer: 'Acesse "Minhas Ofertas", selecione a oferta desejada e veja as propostas recebidas das transportadoras. Você pode aceitar, negociar ou recusar cada proposta.',
+    question: 'Como sei quando uma transportadora aceitou minha oferta?',
+    answer: 'Você receberá uma notificação quando uma transportadora aceitar sua oferta. Acesse "Minhas Ofertas" para ver os detalhes da alocação, incluindo motorista, veículo e carroceria designados.',
+    portal: 'embarcador',
+  },
+  {
+    category: 'Ofertas',
+    question: 'Posso definir requisitos de veículo na oferta?',
+    answer: 'Sim. No wizard de criação, você pode especificar tipo de veículo, tipo de carroceria, quantidade de paletes e necessidades especiais como refrigeração, carga perigosa, etc.',
     portal: 'embarcador',
   },
   // ── Embarcador: Cargas (execução) ──
   {
     category: 'Cargas',
     question: 'Como acompanho uma carga em andamento?',
-    answer: 'Acesse "Cargas > Em andamento" para visualizar todas as cargas ativas. Clique em uma carga para ver detalhes como localização do motorista, status e documentos anexados.',
+    answer: 'Acesse "Gestão de Cargas" para visualizar todas as cargas ativas. Clique em uma carga para ver detalhes como localização do motorista em tempo real, timeline de eventos e documentos anexados.',
     portal: 'embarcador',
   },
   {
     category: 'Cargas',
     question: 'Como visualizo o comprovante de entrega?',
-    answer: 'Na tela de detalhes da carga, acesse a aba "Documentos". O canhoto anexado pelo motorista estará disponível para visualização e download.',
+    answer: 'Na tela de detalhes da carga, acesse a aba "Documentos". O canhoto, fotos de comprovante e assinatura do recebedor estarão disponíveis para visualização e download.',
+    portal: 'embarcador',
+  },
+  {
+    category: 'Cargas',
+    question: 'Como funciona o rastreamento público?',
+    answer: 'Cada carga possui um código de rastreio único. Você pode compartilhar o link de rastreio público com o destinatário para que ele acompanhe a entrega em tempo real, sem precisar de login.',
     portal: 'embarcador',
   },
   // ── Transportadora: Ofertas Disponíveis ──
@@ -70,21 +82,39 @@ const faqItems: FAQItem[] = [
   },
   {
     category: 'Ofertas',
-    question: 'Como faço uma proposta em uma oferta?',
-    answer: 'Ao visualizar os detalhes de uma oferta, clique em "Fazer Proposta". Informe o valor do frete, veículo disponível e prazo de coleta. O embarcador receberá sua proposta para avaliação.',
+    question: 'Como aceito uma oferta de carga?',
+    answer: 'Ao visualizar os detalhes de uma oferta, clique em "Aceitar Carga". Você passará por um wizard de 3 etapas: 1) Detalhes da carga, 2) Alocação de motorista, veículo e carroceria, e 3) Revisão final. Após confirmar, a carga é alocada diretamente à sua transportadora.',
+    portal: 'transportadora',
+  },
+  {
+    category: 'Ofertas',
+    question: 'Posso usar o motorista padrão para agilizar a alocação?',
+    answer: 'Sim. Se você tem um motorista padrão configurado, o sistema preenche automaticamente os dados de motorista, veículo e carroceria vinculados, acelerando o processo de aceite.',
+    portal: 'transportadora',
+  },
+  {
+    category: 'Ofertas',
+    question: 'O que é o indicador de capacidade (Weight Gauge)?',
+    answer: 'Na etapa de alocação, o sistema exibe um indicador visual que compara o peso da carga com a capacidade do equipamento selecionado, ajudando a verificar se o veículo/carroceria comporta a carga.',
     portal: 'transportadora',
   },
   // ── Transportadora: Cargas (execução) ──
   {
     category: 'Cargas',
     question: 'Como gerencio minhas cargas em andamento?',
-    answer: 'Acesse "Minhas Cargas > Em andamento" para acompanhar todas as cargas ativas. Você pode atualizar status, anexar documentos e acompanhar o motorista em tempo real.',
+    answer: 'Acesse "Gestão de Cargas" para acompanhar todas as cargas ativas. A visualização padrão é "Por Viagens", agrupando cargas do mesmo motorista. Você pode alternar para "Por Cargas" para ver individualmente.',
     portal: 'transportadora',
   },
   {
     category: 'Cargas',
     question: 'Como anexo CT-e e documentos fiscais a uma carga?',
-    answer: 'Na tela de detalhes da carga, acesse a aba "Documentos" e clique em "Anexar CT-e" ou "Anexar Documento". Você pode emitir CT-e diretamente pela plataforma se tiver o certificado digital configurado.',
+    answer: 'Na tela de detalhes da carga, acesse a seção de documentos e clique em "Anexar CT-e" ou "Anexar Documento". Se você tiver o certificado digital configurado, pode emitir o CT-e diretamente pela plataforma.',
+    portal: 'transportadora',
+  },
+  {
+    category: 'Cargas',
+    question: 'O que é uma viagem e como ela se relaciona com as cargas?',
+    answer: 'Uma viagem agrupa várias cargas atribuídas ao mesmo motorista em uma única rota. Na gestão de cargas, a visualização "Por Viagens" facilita o acompanhamento de todas as paradas e entregas de um motorista.',
     portal: 'transportadora',
   },
   // ── Transportadora: Frota ──
@@ -97,58 +127,70 @@ const faqItems: FAQItem[] = [
   {
     category: 'Frota',
     question: 'Como vincular um motorista à minha transportadora?',
-    answer: 'Em "Motoristas", clique em "Cadastrar Motorista" ou use um link de convite. O motorista receberá um acesso para confirmar o vínculo.',
+    answer: 'Em "Motoristas", clique em "Cadastrar Motorista" para adicionar manualmente, ou use "Links de Convite" para gerar um link compartilhável. O motorista se cadastra e já fica vinculado à sua empresa.',
     portal: 'transportadora',
   },
   {
     category: 'Frota',
     question: 'Como gerencio carrocerias e vínculos?',
-    answer: 'Em "Minha Frota > Carrocerias" você cadastra implementos rodoviários. Em "Vínculos" é possível associar carrocerias a veículos específicos para agilizar a operação.',
+    answer: 'Em "Minha Frota > Carrocerias" você cadastra implementos rodoviários (baú, graneleiro, sider, etc.). Em "Vínculos" é possível associar carrocerias a veículos específicos para agilizar a alocação nas ofertas.',
     portal: 'transportadora',
   },
   // ── Compartilhados: Financeiro ──
   {
     category: 'Financeiro',
     question: 'Como funciona o módulo financeiro?',
-    answer: 'O módulo financeiro exibe seus recebíveis e pagamentos. Você pode verificar valores, datas de vencimento e status de cada transação na seção "Financeiro".',
+    answer: 'O módulo financeiro exibe seus recebíveis e pagamentos organizados por período. Você pode verificar valores de frete, comissões, datas de vencimento e status de cada transação.',
     portal: 'ambos',
   },
   {
     category: 'Financeiro',
     question: 'Como solicitar antecipação de pagamento?',
-    answer: 'Se a antecipação estiver habilitada para sua empresa, acesse "Financeiro", selecione o recebível desejado e clique em "Solicitar Antecipação". Uma taxa será aplicada conforme configuração.',
+    answer: 'Se a antecipação estiver habilitada para sua empresa, acesse "Financeiro", selecione o recebível desejado e clique em "Solicitar Antecipação". Uma taxa será aplicada conforme a configuração da sua empresa.',
     portal: 'ambos',
   },
   // ── Compartilhados: Conta e Administração ──
   {
     category: 'Conta',
     question: 'Como alterar minha senha?',
-    answer: 'Acesse "Configurações > Segurança" e clique em "Alterar Senha". Você precisará confirmar a nova senha.',
+    answer: 'Acesse "Configurações" e clique em "Alterar Senha". Informe a senha atual e a nova senha desejada para confirmar a alteração.',
     portal: 'ambos',
   },
   {
     category: 'Conta',
     question: 'Como gerenciar usuários da minha empresa?',
-    answer: 'Administradores podem acessar "Minha Empresa > Usuários" para convidar novos membros, alterar cargos e remover acessos.',
+    answer: 'Administradores podem acessar "Minha Empresa > Usuários" para convidar novos membros por e-mail, alterar cargos (Admin, Operador, Visualizador) e remover acessos.',
     portal: 'ambos',
   },
   {
     category: 'Conta',
     question: 'Como adicionar uma filial?',
-    answer: 'Acesse "Minha Empresa > Gerenciar Filiais" e clique em "Nova Filial". Preencha os dados como CNPJ, endereço e responsável.',
+    answer: 'Acesse "Minha Empresa > Gerenciar Filiais" e clique em "Nova Filial". Preencha os dados como CNPJ, endereço completo e responsável.',
     portal: 'ambos',
   },
-  // ── Compartilhados: Integrações ──
+  {
+    category: 'Conta',
+    question: 'Como funciona o chat de mensagens?',
+    answer: 'Cada carga possui um chat integrado entre embarcador e transportadora. Acesse "Mensagens" no menu lateral para ver todas as conversas ativas. Você pode enviar texto e anexos.',
+    portal: 'ambos',
+  },
+  // ── Transportadora: Integrações ──
   {
     category: 'Integrações',
     question: 'O HubFrete emite CT-e automaticamente?',
-    answer: 'Sim, desde que sua empresa tenha o certificado digital configurado e a configuração fiscal preenchida em "Integrações". A emissão é feita via Focus NFe.',
+    answer: 'Sim, desde que sua empresa tenha o certificado digital (A1) configurado e a configuração fiscal preenchida em "Integrações". A emissão é feita via Focus NFe diretamente pela plataforma.',
     portal: 'transportadora',
   },
   {
     category: 'Integrações',
     question: 'Preciso de certificado digital?',
-    answer: 'O certificado digital (A1) é necessário apenas para emissão de documentos fiscais (CT-e e MDF-e). Se sua empresa não emite esses documentos via plataforma, não é obrigatório.',
+    answer: 'O certificado digital (A1) é necessário apenas para emissão de documentos fiscais (CT-e e MDF-e) pela plataforma. Se sua empresa emite esses documentos por outro sistema, não é obrigatório.',
+    portal: 'transportadora',
+  },
+  {
+    category: 'Integrações',
+    question: 'O que é a configuração fiscal?',
+    answer: 'Em "Integrações > Configuração Fiscal" você define parâmetros como CFOP, série do CT-e, regime tributário e situação do ICMS. Esses dados são usados na emissão automática de documentos fiscais.',
     portal: 'transportadora',
   },
 ];
