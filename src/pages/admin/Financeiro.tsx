@@ -846,7 +846,7 @@ export default function Financeiro() {
                       </div>
                       {isPending && (
                         <div className="flex flex-col gap-1.5 shrink-0">
-                          <Button size="sm" className="h-7 text-xs bg-chart-2 hover:bg-chart-2/90"
+                          <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
                             onClick={() => aprovarMutation.mutate(s)}
                             disabled={aprovarMutation.isPending}>
                             <CheckCircle className="w-3.5 h-3.5 mr-1" /> Aprovar
