@@ -769,7 +769,9 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                   item.href !== '/transportadora/configuracoes'
                 )
                 .map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const isActive = item.href.endsWith('/ajuda')
+                    ? location.pathname.startsWith(item.href)
+                    : location.pathname === item.href;
                   const linkContent = (
                     <Link
                       key={item.href}
