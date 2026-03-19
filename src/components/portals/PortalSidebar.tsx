@@ -934,7 +934,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
             // Embarcador + other user types
             <>
               {menuItems
-                .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')) && !item.href.endsWith('/configuracoes'))
+                .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')) && !item.href.endsWith('/configuracoes') && !item.href.endsWith('/ajuda'))
                 .map((item) => {
                   const isActive = item.href.endsWith('/ajuda')
                     ? location.pathname.startsWith(item.href)
