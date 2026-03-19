@@ -125,8 +125,10 @@ export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogPro
       }, (payload) => {
         const newMsg = payload.new as ChamadoMensagem;
         setMensagens(prev => {
+          // Skip if already present (real or optimistic replaced)
           if (prev.some(m => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
+          // Also remove any temp messages with same content (optimistic already replaced)
+          return [...prev.filter(m => !m.id.startsWith('temp-')), newMsg];
         });
       })
       .subscribe();
@@ -203,24 +205,50 @@ export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogPro
   const handleSendMessage = async () => {
     if (!novaMensagem.trim() || !chamadoId) return;
 
+    const msgContent = novaMensagem.trim();
     setIsSendingMsg(true);
+    setNovaMensagem('');
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
+      const senderNome = userName || 'Usuário';
+      const senderTipo = isTransportadora ? 'transportadora' : 'embarcador';
+
+      // Optimistic update
+      const tempId = `temp-${Date.now()}`;
+      const optimisticMsg: ChamadoMensagem = {
+        id: tempId,
+        conteudo: msgContent,
+        sender_nome: senderNome,
+        sender_tipo: senderTipo,
+        created_at: new Date().toISOString(),
+      };
+      setMensagens(prev => [...prev, optimisticMsg]);
+
+      const { data, error } = await supabase
         .from('chamado_mensagens')
         .insert({
           chamado_id: chamadoId,
-          conteudo: novaMensagem.trim(),
+          conteudo: msgContent,
           sender_id: user.id,
-          sender_nome: userName || 'Usuário',
-          sender_tipo: isTransportadora ? 'transportadora' : 'embarcador',
-        });
+          sender_nome: senderNome,
+          sender_tipo: senderTipo,
+        })
+        .select('id, conteudo, sender_nome, sender_tipo, created_at')
+        .single();
 
       if (error) throw error;
-      setNovaMensagem('');
+
+      // Replace optimistic with real message
+      if (data) {
+        setMensagens(prev => prev.map(m => m.id === tempId ? data : m));
+      }
     } catch (err: any) {
+      // Remove optimistic message on error
+      setMensagens(prev => prev.filter(m => !m.id.startsWith('temp-')));
+      setNovaMensagem(msgContent);
       toast({ title: 'Erro ao enviar mensagem', variant: 'destructive' });
     } finally {
       setIsSendingMsg(false);
