@@ -904,7 +904,9 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               {menuItems
                 .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')) && !item.href.endsWith('/configuracoes'))
                 .map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const isActive = item.href.endsWith('/ajuda')
+                    ? location.pathname.startsWith(item.href)
+                    : location.pathname === item.href;
                   const linkContent = (
                     <Link
                       key={item.href}
