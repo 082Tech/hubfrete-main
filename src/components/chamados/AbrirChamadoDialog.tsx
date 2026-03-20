@@ -93,7 +93,7 @@ export function AbrirChamadoDialog({ open, onOpenChange, prefillTitulo, prefillD
   const [isSendingMsg, setIsSendingMsg] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Reset state when dialog closes
+  // Reset/prefill state when dialog opens/closes
   useEffect(() => {
     if (!open) {
       setTitulo('');
@@ -103,8 +103,12 @@ export function AbrirChamadoDialog({ open, onOpenChange, prefillTitulo, prefillD
       setChamadoCodigo(null);
       setMensagens([]);
       setNovaMensagem('');
+    } else {
+      if (prefillTitulo) setTitulo(prefillTitulo);
+      if (prefillDescricao) setDescricao(prefillDescricao);
+      if (prefillCategoria) setCategoria(prefillCategoria);
     }
-  }, [open]);
+  }, [open, prefillTitulo, prefillDescricao, prefillCategoria]);
 
   // Auto scroll to bottom
   useEffect(() => {
