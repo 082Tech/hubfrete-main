@@ -80,9 +80,9 @@ export function AbrirChamadoDialog({ open, onOpenChange, prefillTitulo, prefillD
   }, []);
 
   // Form state
-  const [titulo, setTitulo] = useState('');
-  const [categoria, setCategoria] = useState('suporte_tecnico');
-  const [descricao, setDescricao] = useState('');
+  const [titulo, setTitulo] = useState(prefillTitulo || '');
+  const [categoria, setCategoria] = useState(prefillCategoria || 'suporte_tecnico');
+  const [descricao, setDescricao] = useState(prefillDescricao || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Chat state (after chamado is created)
