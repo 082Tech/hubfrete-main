@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { 
   UserPlus, 
   Search, 
@@ -38,6 +39,8 @@ import {
   Loader2,
   Eye,
   Trash2,
+  MapPin,
+  Hash,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,12 +76,15 @@ type PreCadastro = {
   analisado_em: string | null;
 };
 
+type TipoFilter = 'todos' | 'empresas' | 'motoristas';
+
 export default function PreCadastros() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [preCadastros, setPreCadastros] = useState<PreCadastro[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState('pendente');
+  const [selectedStatusTab, setSelectedStatusTab] = useState('pendente');
+  const [tipoFilter, setTipoFilter] = useState<TipoFilter>('todos');
   
   const [currentPage, setCurrentPage] = useState(1);
   
@@ -123,7 +129,6 @@ export default function PreCadastros() {
     setIsProcessing(true);
 
     try {
-      // 1. Update pre_cadastro status
       const { error } = await supabase
         .from('pre_cadastros')
         .update({
@@ -134,7 +139,7 @@ export default function PreCadastros() {
 
       if (error) throw error;
 
-      // 2. If linked to an empresa, update empresa status to 'ativa'
+      // If linked to an empresa, update empresa status to 'ativa'
       if (selectedPreCadastro.empresa_id) {
         const { error: empresaError } = await supabase
           .from('empresas')
@@ -146,14 +151,17 @@ export default function PreCadastros() {
         }
       }
 
-      // 3. Send notification to the user if they have an auth_user_id
+      // Send notification to the user
       if (selectedPreCadastro.auth_user_id) {
+        const isEmpresa = selectedPreCadastro.tipo !== 'motorista';
         await supabase.from('notificacoes').insert({
           user_id: selectedPreCadastro.auth_user_id,
           tipo: 'carga_publicada' as any,
           titulo: 'Cadastro Aprovado! 🎉',
-          mensagem: `Seu cadastro como ${selectedPreCadastro.tipo === 'embarcador' ? 'Embarcador' : 'Transportadora'} foi aprovado. Agora você tem acesso completo à plataforma.`,
-          link: `/${selectedPreCadastro.tipo}`,
+          mensagem: isEmpresa
+            ? `Seu cadastro como ${selectedPreCadastro.tipo === 'embarcador' ? 'Embarcador' : 'Transportadora'} foi aprovado. Agora você tem acesso completo à plataforma.`
+            : 'Seu cadastro como motorista autônomo foi aprovado. Baixe o aplicativo para começar a aceitar fretes.',
+          link: isEmpresa ? `/${selectedPreCadastro.tipo}` : undefined,
         });
       }
 
@@ -212,41 +220,6 @@ export default function PreCadastros() {
     }
   };
 
-  const getTipoIcon = (tipo: string) => {
-    switch (tipo) {
-      case 'embarcador': return <Package className="w-4 h-4" />;
-      case 'transportadora': return <Truck className="w-4 h-4" />;
-      case 'motorista': return <User className="w-4 h-4" />;
-      default: return null;
-    }
-  };
-
-  const getTipoBadge = (tipo: string) => {
-    switch (tipo) {
-      case 'embarcador':
-        return <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20">Embarcador</Badge>;
-      case 'transportadora':
-        return <Badge className="bg-purple-500/10 text-purple-600 hover:bg-purple-500/20">Transportadora</Badge>;
-      case 'motorista':
-        return <Badge className="bg-orange-500/10 text-orange-600 hover:bg-orange-500/20">Motorista</Badge>;
-      default:
-        return <Badge variant="secondary">{tipo}</Badge>;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pendente':
-        return <Badge className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20"><Clock className="w-3 h-3 mr-1" /> Pendente</Badge>;
-      case 'aprovado':
-        return <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20"><CheckCircle className="w-3 h-3 mr-1" /> Aprovado</Badge>;
-      case 'rejeitado':
-        return <Badge className="bg-red-500/10 text-red-600 hover:bg-red-500/20"><XCircle className="w-3 h-3 mr-1" /> Rejeitado</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
   const handleDelete = async () => {
     if (!selectedPreCadastro) return;
     setIsDeleting(true);
@@ -278,13 +251,47 @@ export default function PreCadastros() {
     }
   };
 
+  const isEmpresa = (tipo: string) => tipo === 'embarcador' || tipo === 'transportadora';
+
+  const getTipoBadge = (tipo: string) => {
+    switch (tipo) {
+      case 'embarcador':
+        return <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20"><Package className="w-3 h-3 mr-1" />Embarcador</Badge>;
+      case 'transportadora':
+        return <Badge className="bg-purple-500/10 text-purple-600 hover:bg-purple-500/20"><Truck className="w-3 h-3 mr-1" />Transportadora</Badge>;
+      case 'motorista':
+        return <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20"><User className="w-3 h-3 mr-1" />Motorista Autônomo</Badge>;
+      default:
+        return <Badge variant="secondary">{tipo}</Badge>;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pendente':
+        return <Badge className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20"><Clock className="w-3 h-3 mr-1" /> Pendente</Badge>;
+      case 'aprovado':
+        return <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20"><CheckCircle className="w-3 h-3 mr-1" /> Aprovado</Badge>;
+      case 'rejeitado':
+        return <Badge className="bg-red-500/10 text-red-600 hover:bg-red-500/20"><XCircle className="w-3 h-3 mr-1" /> Rejeitado</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
   const filteredPreCadastros = preCadastros.filter(p => {
     const matchesSearch = 
       p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.nome_empresa?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = selectedTab === 'todos' || p.status === selectedTab;
-    return matchesSearch && matchesTab;
+      p.razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.nome_fantasia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.cnpj?.includes(searchTerm) ||
+      p.cpf?.includes(searchTerm);
+    const matchesStatus = selectedStatusTab === 'todos' || p.status === selectedStatusTab;
+    const matchesTipo = tipoFilter === 'todos' 
+      || (tipoFilter === 'empresas' && isEmpresa(p.tipo))
+      || (tipoFilter === 'motoristas' && p.tipo === 'motorista');
+    return matchesSearch && matchesStatus && matchesTipo;
   });
 
   // Pagination
@@ -296,13 +303,15 @@ export default function PreCadastros() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedTab]);
+  }, [searchTerm, selectedStatusTab, tipoFilter]);
 
   const counts = {
     todos: preCadastros.length,
     pendente: preCadastros.filter(p => p.status === 'pendente').length,
     aprovado: preCadastros.filter(p => p.status === 'aprovado').length,
     rejeitado: preCadastros.filter(p => p.status === 'rejeitado').length,
+    empresas: preCadastros.filter(p => isEmpresa(p.tipo)).length,
+    motoristas: preCadastros.filter(p => p.tipo === 'motorista').length,
   };
 
   return (
@@ -371,19 +380,50 @@ export default function PreCadastros() {
           <CardHeader className="pb-4">
             <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
               <CardTitle>Solicitações</CardTitle>
-              <div className="relative w-full md:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome ou email..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+              <div className="flex items-center gap-3">
+                {/* Tipo filter */}
+                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                  <Button
+                    variant={tipoFilter === 'todos' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setTipoFilter('todos')}
+                  >
+                    Todos
+                  </Button>
+                  <Button
+                    variant={tipoFilter === 'empresas' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setTipoFilter('empresas')}
+                  >
+                    <Building2 className="w-3 h-3 mr-1" />
+                    Empresas ({counts.empresas})
+                  </Button>
+                  <Button
+                    variant={tipoFilter === 'motoristas' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setTipoFilter('motoristas')}
+                  >
+                    <User className="w-3 h-3 mr-1" />
+                    Motoristas ({counts.motoristas})
+                  </Button>
+                </div>
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar nome, email, CNPJ..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+            <Tabs value={selectedStatusTab} onValueChange={setSelectedStatusTab}>
               <TabsList className="mb-4">
                 <TabsTrigger value="todos">Todos ({counts.todos})</TabsTrigger>
                 <TabsTrigger value="pendente">Pendentes ({counts.pendente})</TabsTrigger>
@@ -391,7 +431,7 @@ export default function PreCadastros() {
                 <TabsTrigger value="rejeitado">Rejeitados ({counts.rejeitado})</TabsTrigger>
               </TabsList>
 
-              <TabsContent value={selectedTab} className="mt-0">
+              <TabsContent value={selectedStatusTab} className="mt-0">
                 {isLoading ? (
                   <div className="flex justify-center py-10">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -406,9 +446,9 @@ export default function PreCadastros() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Tipo</TableHead>
-                          <TableHead>Nome</TableHead>
-                          <TableHead className="hidden md:table-cell">E-mail</TableHead>
-                          <TableHead className="hidden lg:table-cell">Empresa/CPF</TableHead>
+                          <TableHead>Solicitante</TableHead>
+                          <TableHead className="hidden md:table-cell">Contato</TableHead>
+                          <TableHead className="hidden lg:table-cell">Documento</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="hidden md:table-cell">Data</TableHead>
                           <TableHead className="text-right">Ações</TableHead>
@@ -418,17 +458,29 @@ export default function PreCadastros() {
                         {paginatedPreCadastros.map((pc) => (
                           <TableRow key={pc.id}>
                             <TableCell>{getTipoBadge(pc.tipo)}</TableCell>
-                            <TableCell className="font-medium">{pc.nome}</TableCell>
-                            <TableCell className="hidden md:table-cell text-muted-foreground">{pc.email}</TableCell>
-                            <TableCell className="hidden lg:table-cell text-muted-foreground">
-                              {pc.nome_empresa || pc.cpf || '-'}
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{pc.nome}</p>
+                                {isEmpresa(pc.tipo) && pc.razao_social && (
+                                  <p className="text-xs text-muted-foreground truncate max-w-[200px]">{pc.razao_social}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              <div className="text-sm text-muted-foreground">
+                                <p>{pc.email}</p>
+                                {pc.telefone && <p>{pc.telefone}</p>}
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
+                              {isEmpresa(pc.tipo) ? pc.cnpj || '-' : pc.cpf || '-'}
                             </TableCell>
                             <TableCell>{getStatusBadge(pc.status)}</TableCell>
-                            <TableCell className="hidden md:table-cell text-muted-foreground">
+                            <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                               {format(new Date(pc.created_at), 'dd/MM/yy HH:mm', { locale: ptBR })}
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
+                              <div className="flex justify-end gap-1">
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -500,10 +552,9 @@ export default function PreCadastros() {
 
       {/* Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {selectedPreCadastro && getTipoIcon(selectedPreCadastro.tipo)}
               Detalhes do Pré-Cadastro
             </DialogTitle>
           </DialogHeader>
@@ -514,57 +565,125 @@ export default function PreCadastros() {
                 {getStatusBadge(selectedPreCadastro.status)}
               </div>
 
-              <div className="grid gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">Nome:</span>
-                  <span>{selectedPreCadastro.nome}</span>
+              {/* Responsável / Pessoa */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                  {isEmpresa(selectedPreCadastro.tipo) ? 'Responsável' : 'Dados do Motorista'}
+                </p>
+                <div className="grid gap-2 bg-muted/50 rounded-lg p-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium min-w-[70px]">Nome:</span>
+                    <span>{selectedPreCadastro.nome}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium min-w-[70px]">E-mail:</span>
+                    <span className="truncate">{selectedPreCadastro.email}</span>
+                  </div>
+                  {selectedPreCadastro.telefone && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="font-medium min-w-[70px]">Telefone:</span>
+                      <span>{selectedPreCadastro.telefone}</span>
+                    </div>
+                  )}
+                  {selectedPreCadastro.cpf && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Hash className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="font-medium min-w-[70px]">CPF:</span>
+                      <span>{selectedPreCadastro.cpf}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">E-mail:</span>
-                  <span>{selectedPreCadastro.email}</span>
-                </div>
-                {selectedPreCadastro.telefone && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">Telefone:</span>
-                    <span>{selectedPreCadastro.telefone}</span>
-                  </div>
-                )}
-                {selectedPreCadastro.nome_empresa && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Building2 className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">Empresa:</span>
-                    <span>{selectedPreCadastro.nome_empresa}</span>
-                  </div>
-                )}
-                {selectedPreCadastro.cnpj && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <FileText className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">CNPJ:</span>
-                    <span>{selectedPreCadastro.cnpj}</span>
-                  </div>
-                )}
-                {selectedPreCadastro.cpf && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <FileText className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">CPF:</span>
-                    <span>{selectedPreCadastro.cpf}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">Solicitado em:</span>
-                  <span>{format(new Date(selectedPreCadastro.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
-                </div>
-                {selectedPreCadastro.motivo_rejeicao && (
-                  <div className="p-3 bg-red-500/10 rounded-lg text-sm">
-                    <span className="font-medium text-red-600">Motivo da rejeição:</span>
-                    <p className="mt-1">{selectedPreCadastro.motivo_rejeicao}</p>
-                  </div>
-                )}
               </div>
+
+              {/* Dados da empresa (apenas para embarcador/transportadora) */}
+              {isEmpresa(selectedPreCadastro.tipo) && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                    Dados da Empresa
+                  </p>
+                  <div className="grid gap-2 bg-muted/50 rounded-lg p-3">
+                    {selectedPreCadastro.razao_social && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium min-w-[100px]">Razão Social:</span>
+                        <span>{selectedPreCadastro.razao_social}</span>
+                      </div>
+                    )}
+                    {selectedPreCadastro.nome_fantasia && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium min-w-[100px]">Nome Fantasia:</span>
+                        <span>{selectedPreCadastro.nome_fantasia}</span>
+                      </div>
+                    )}
+                    {selectedPreCadastro.cnpj && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium min-w-[100px]">CNPJ:</span>
+                        <span>{selectedPreCadastro.cnpj}</span>
+                      </div>
+                    )}
+                    {selectedPreCadastro.inscricao_estadual && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium min-w-[100px]">IE:</span>
+                        <span>{selectedPreCadastro.inscricao_estadual}</span>
+                      </div>
+                    )}
+
+                    {/* Endereço */}
+                    {(selectedPreCadastro.endereco || selectedPreCadastro.cidade) && (
+                      <>
+                        <Separator className="my-1" />
+                        {selectedPreCadastro.endereco && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <span className="font-medium min-w-[100px]">Endereço:</span>
+                            <span>{selectedPreCadastro.endereco}</span>
+                          </div>
+                        )}
+                        {(selectedPreCadastro.cidade || selectedPreCadastro.estado) && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <span className="font-medium min-w-[100px]">Cidade/UF:</span>
+                            <span>{[selectedPreCadastro.cidade, selectedPreCadastro.estado].filter(Boolean).join(' - ')}</span>
+                          </div>
+                        )}
+                        {selectedPreCadastro.cep && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <span className="font-medium min-w-[100px]">CEP:</span>
+                            <span>{selectedPreCadastro.cep}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Meta */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                Solicitado em {format(new Date(selectedPreCadastro.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </div>
+
+              {selectedPreCadastro.analisado_em && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <CheckCircle className="w-4 h-4" />
+                  Analisado em {format(new Date(selectedPreCadastro.analisado_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </div>
+              )}
+
+              {selectedPreCadastro.motivo_rejeicao && (
+                <div className="p-3 bg-red-500/10 rounded-lg text-sm">
+                  <span className="font-medium text-red-600">Motivo da rejeição:</span>
+                  <p className="mt-1">{selectedPreCadastro.motivo_rejeicao}</p>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -602,8 +721,11 @@ export default function PreCadastros() {
           <DialogHeader>
             <DialogTitle>Aprovar Pré-Cadastro</DialogTitle>
             <DialogDescription>
-              Confirma a aprovação do pré-cadastro de <strong>{selectedPreCadastro?.nome}</strong>?
-              Um convite será enviado para o e-mail {selectedPreCadastro?.email}.
+              {selectedPreCadastro && isEmpresa(selectedPreCadastro.tipo) ? (
+                <>Confirma a aprovação da empresa <strong>{selectedPreCadastro.razao_social || selectedPreCadastro.nome}</strong>? O acesso completo à plataforma será liberado.</>
+              ) : (
+                <>Confirma a aprovação do motorista <strong>{selectedPreCadastro?.nome}</strong>? Uma notificação será enviada.</>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -612,7 +734,7 @@ export default function PreCadastros() {
             </Button>
             <Button onClick={handleApprove} disabled={isProcessing}>
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
-              Aprovar e Enviar Convite
+              {selectedPreCadastro && isEmpresa(selectedPreCadastro.tipo) ? 'Aprovar e Ativar Empresa' : 'Aprovar Motorista'}
             </Button>
           </DialogFooter>
         </DialogContent>
