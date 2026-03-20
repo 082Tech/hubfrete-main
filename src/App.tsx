@@ -12,6 +12,7 @@ import { UpdateToast } from "@/components/UpdateToast";
 import { PatchNotesModal } from "@/components/PatchNotesModal";
 import { PortalLayoutWrapper } from "@/components/portals/PortalLayoutWrapper";
 import Landing from "./pages/Landing";
+import Comecar from "./pages/Comecar";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/admin/AdminLogin";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -116,6 +117,7 @@ const App = () => {
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
                   <Route path="/" element={<Landing />} />
+                  <Route path="/comecar" element={<Comecar />} />
                   <Route path="/login" element={<Login setShowSplash={setShowSplash} />} />
                   <Route path="/admin" element={<AdminLogin />} />
                   <Route path="/esqueci-senha" element={<ForgotPassword />} />
