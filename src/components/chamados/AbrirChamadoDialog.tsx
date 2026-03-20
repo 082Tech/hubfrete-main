@@ -27,6 +27,9 @@ import { useToast } from '@/hooks/use-toast';
 interface AbrirChamadoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefillTitulo?: string;
+  prefillDescricao?: string;
+  prefillCategoria?: string;
 }
 
 type CategoriaLabel = {
@@ -51,7 +54,7 @@ interface ChamadoMensagem {
   created_at: string;
 }
 
-export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogProps) {
+export function AbrirChamadoDialog({ open, onOpenChange, prefillTitulo, prefillDescricao, prefillCategoria }: AbrirChamadoDialogProps) {
   const location = useLocation();
   const isTransportadora = location.pathname.startsWith('/transportadora');
   const { empresa } = useUserContext();
@@ -77,9 +80,9 @@ export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogPro
   }, []);
 
   // Form state
-  const [titulo, setTitulo] = useState('');
-  const [categoria, setCategoria] = useState('suporte_tecnico');
-  const [descricao, setDescricao] = useState('');
+  const [titulo, setTitulo] = useState(prefillTitulo || '');
+  const [categoria, setCategoria] = useState(prefillCategoria || 'suporte_tecnico');
+  const [descricao, setDescricao] = useState(prefillDescricao || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Chat state (after chamado is created)
@@ -90,7 +93,7 @@ export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogPro
   const [isSendingMsg, setIsSendingMsg] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Reset state when dialog closes
+  // Reset/prefill state when dialog opens/closes
   useEffect(() => {
     if (!open) {
       setTitulo('');
@@ -100,8 +103,12 @@ export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogPro
       setChamadoCodigo(null);
       setMensagens([]);
       setNovaMensagem('');
+    } else {
+      if (prefillTitulo) setTitulo(prefillTitulo);
+      if (prefillDescricao) setDescricao(prefillDescricao);
+      if (prefillCategoria) setCategoria(prefillCategoria);
     }
-  }, [open]);
+  }, [open, prefillTitulo, prefillDescricao, prefillCategoria]);
 
   // Auto scroll to bottom
   useEffect(() => {
