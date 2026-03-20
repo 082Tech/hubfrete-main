@@ -57,6 +57,15 @@ type PreCadastro = {
   cnpj: string | null;
   cpf: string | null;
   nome_empresa: string | null;
+  razao_social: string | null;
+  nome_fantasia: string | null;
+  inscricao_estadual: string | null;
+  cidade: string | null;
+  estado: string | null;
+  endereco: string | null;
+  cep: string | null;
+  auth_user_id: string | null;
+  empresa_id: number | null;
   status: 'pendente' | 'aprovado' | 'rejeitado';
   observacoes: string | null;
   motivo_rejeicao: string | null;
@@ -114,6 +123,7 @@ export default function PreCadastros() {
     setIsProcessing(true);
 
     try {
+      // 1. Update pre_cadastro status
       const { error } = await supabase
         .from('pre_cadastros')
         .update({
@@ -124,10 +134,32 @@ export default function PreCadastros() {
 
       if (error) throw error;
 
-      // TODO: Trigger invite email
+      // 2. If linked to an empresa, update empresa status to 'ativa'
+      if (selectedPreCadastro.empresa_id) {
+        const { error: empresaError } = await supabase
+          .from('empresas')
+          .update({ status: 'ativa' } as any)
+          .eq('id', selectedPreCadastro.empresa_id);
+
+        if (empresaError) {
+          console.error('Erro ao ativar empresa:', empresaError);
+        }
+      }
+
+      // 3. Send notification to the user if they have an auth_user_id
+      if (selectedPreCadastro.auth_user_id) {
+        await supabase.from('notificacoes').insert({
+          user_id: selectedPreCadastro.auth_user_id,
+          tipo: 'sistema',
+          titulo: 'Cadastro Aprovado! 🎉',
+          mensagem: `Seu cadastro como ${selectedPreCadastro.tipo === 'embarcador' ? 'Embarcador' : 'Transportadora'} foi aprovado. Agora você tem acesso completo à plataforma.`,
+          link: `/${selectedPreCadastro.tipo}`,
+        });
+      }
+
       toast({
         title: "Aprovado!",
-        description: `Pré-cadastro de ${selectedPreCadastro.nome} foi aprovado. Um convite será enviado.`,
+        description: `Pré-cadastro de ${selectedPreCadastro.nome} foi aprovado${selectedPreCadastro.empresa_id ? ' e empresa ativada' : ''}.`,
       });
 
       setShowApproveDialog(false);
