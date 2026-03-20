@@ -56,6 +56,7 @@ import { EntregaDocumentosPanel } from '@/components/entregas/EntregaDocumentosP
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
+import { AbrirChamadoDialog } from '@/components/chamados/AbrirChamadoDialog';
 import { EmbarcadorDailyPerformanceDialog } from '@/components/admin/relatorios/EmbarcadorDailyPerformanceDialog';
 import { BarChart3 } from 'lucide-react';
 import { EventTimeline } from '@/components/shared/EventTimeline';
