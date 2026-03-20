@@ -300,6 +300,7 @@ function DetailPanel({
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState<string>('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [chamadoOpen, setChamadoOpen] = useState(false);
   const [nfeBlockMessage, setNfeBlockMessage] = useState<string | null>(null);
   const [checkingNfe, setCheckingNfe] = useState(false);
   const [existingCtes, setExistingCtes] = useState<any[]>([]);

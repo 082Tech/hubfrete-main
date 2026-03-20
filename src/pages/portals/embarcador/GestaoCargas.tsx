@@ -689,6 +689,15 @@ function DetailPanel({
         entregaId={entrega.id}
         userType="embarcador"
       />
+
+      {/* Chamado Dialog */}
+      <AbrirChamadoDialog
+        open={chamadoOpen}
+        onOpenChange={setChamadoOpen}
+        prefillTitulo={`Ajuda com oferta ${entrega.carga.codigo}`}
+        prefillDescricao={`Preciso de ajuda com a oferta ${entrega.carga.codigo} (Carga ${entrega.codigo}).\n\nDescreva seu problema abaixo:`}
+        prefillCategoria="operacional"
+      />
     </div>
   );
 }
