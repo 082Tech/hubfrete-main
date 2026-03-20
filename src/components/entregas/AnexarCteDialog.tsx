@@ -76,6 +76,13 @@ export function AnexarCteDialog({ entrega, open, onOpenChange, onSuccess }: Anex
 
       if (dbError) throw dbError;
 
+      // Sync legacy cte_url column on entregas for mobile app compatibility
+      const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(filePath);
+      await supabase
+        .from('entregas')
+        .update({ cte_url: urlData.publicUrl } as any)
+        .eq('id', entrega.id);
+
       toast.success('CT-e anexado com sucesso!');
       onSuccess?.();
       onOpenChange(false);
