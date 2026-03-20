@@ -1,1 +1,4 @@
 project_id = "ublyithvarvtqbwmxtyh"
+
+[functions.signup-empresa]
+verify_jwt = false

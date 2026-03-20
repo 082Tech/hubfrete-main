@@ -72,7 +72,7 @@ export function ModernHero() {
         >
           <Button
             size="lg"
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/comecar')}
             className="rounded-full px-8 h-12 text-base bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
           >
             Começar Agora
@@ -81,11 +81,11 @@ export function ModernHero() {
           <Button
             size="lg"
             variant="outline"
-            onClick={() => {}}
+            onClick={() => navigate('/cadastro/transportadora')}
             className="rounded-full px-8 h-12 text-base gap-2"
           >
             <Play className="w-4 h-4" />
-            Ver Demonstração
+            Começar como Transportadora
           </Button>
         </motion.div>
 
