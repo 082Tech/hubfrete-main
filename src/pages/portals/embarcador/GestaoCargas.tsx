@@ -235,6 +235,7 @@ function DetailPanel({
   const [previewDocTitle, setPreviewDocTitle] = useState('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [chamadoOpen, setChamadoOpen] = useState(false);
 
   const getTrackingUrl = () => {
     const trackCode = entrega?.tracking_code;
