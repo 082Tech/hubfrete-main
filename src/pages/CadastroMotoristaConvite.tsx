@@ -304,13 +304,18 @@ export default function CadastroMotoristaConvite() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center space-y-4">
-            <CheckCircle className="w-12 h-12 mx-auto text-chart-2" />
-            <h2 className="text-xl font-semibold">Cadastro realizado!</h2>
+            <Clock className="w-12 h-12 mx-auto text-amber-500" />
+            <h2 className="text-xl font-semibold">Cadastro enviado para análise!</h2>
             <p className="text-muted-foreground">
-              Seu cadastro foi concluído com sucesso. Agora você pode acessar o aplicativo do HubFrete usando o e-mail e senha cadastrados.
+              Seu cadastro foi recebido com sucesso e está sendo analisado pela equipe do HubFrete. 
+              Você será notificado assim que a aprovação for concluída.
             </p>
-            <Button asChild>
-              <Link to="/login">Ir para Login</Link>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-muted rounded-lg p-3">
+              <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+              Tempo médio de aprovação: até 24 horas úteis
+            </div>
+            <Button asChild variant="outline">
+              <Link to="/">Voltar para o início</Link>
             </Button>
           </CardContent>
         </Card>

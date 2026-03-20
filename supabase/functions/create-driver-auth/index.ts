@@ -25,13 +25,11 @@ interface CreateDriverRequest {
   comprovante_vinculo_url?: string;
   possui_ajudante: boolean;
   empresa_id: number;
-  // Ajudante data
   ajudante_nome?: string;
   ajudante_cpf?: string;
   ajudante_telefone?: string;
   ajudante_tipo_cadastro?: string;
   ajudante_comprovante_vinculo_url?: string;
-  // Referencias
   referencias?: Array<{
     tipo: string;
     ordem: number;
@@ -55,7 +53,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       throw new Error('Missing Supabase environment variables');
     }
 
-    // Verify the caller is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -66,7 +63,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify the user making the request
     const supabaseUser = createClient(supabaseUrl, supabaseServiceKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -108,7 +104,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       referencias,
     } = body;
 
-    // Validate required fields
     if (!email || !password || !nome_completo || !cpf || !empresa_id) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
@@ -116,7 +111,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Validate password length
     if (password.length < 6) {
       return new Response(
         JSON.stringify({ error: 'Password must be at least 6 characters' }),
@@ -176,7 +170,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { data: authData, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
       email: email.toLowerCase(),
       password,
-      email_confirm: true, // Auto-confirm email
+      email_confirm: true,
       user_metadata: {
         nome_completo,
         tipo: 'motorista',
@@ -200,7 +194,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         .insert({
           nome: nome_completo,
           email: email.toLowerCase(),
-          cargo: 'OPERADOR', // Motoristas are operators
+          cargo: 'OPERADOR',
           motorista_autonomo: tipo_cadastro === 'autonomo',
           auth_user_id: authUserId,
         })
@@ -209,7 +203,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       if (usuarioError) {
         console.error('Error creating usuario:', usuarioError);
-        // Cleanup: delete auth user
         await supabaseAdmin.auth.admin.deleteUser(authUserId);
         throw new Error('Failed to create user profile');
       }
@@ -224,7 +217,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       if (roleError) {
         console.error('Error adding user role:', roleError);
-        // Continue anyway, role can be added later
       }
 
       // 4. Also add transportadora role for portal access
@@ -235,7 +227,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           role: 'transportadora',
         });
 
-      // 5. Create motorista record
+      // 5. Create motorista record — starts INACTIVE, pending admin approval
       const { data: motoristaData, error: motoristaError } = await supabaseAdmin
         .from('motoristas')
         .insert({
@@ -258,14 +250,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
           possui_ajudante,
           empresa_id,
           user_id: authUserId,
-          ativo: true,
+          ativo: false, // Starts inactive — pending admin approval
         })
         .select('id')
         .single();
 
       if (motoristaError) {
         console.error('Error creating motorista:', motoristaError);
-        // Cleanup
         await supabaseAdmin.from('usuarios').delete().eq('id', usuarioData.id);
         await supabaseAdmin.auth.admin.deleteUser(authUserId);
         throw new Error('Failed to create driver record');
@@ -273,7 +264,29 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       const motoristaId = motoristaData.id;
 
-      // 6. Create referencias if provided
+      // 6. Create pre_cadastros record for admin approval queue
+      const { data: empresaData } = await supabaseAdmin
+        .from('empresas')
+        .select('nome, nome_fantasia')
+        .eq('id', empresa_id)
+        .single();
+
+      await supabaseAdmin
+        .from('pre_cadastros')
+        .insert({
+          tipo: 'motorista',
+          nome: nome_completo,
+          email: email.toLowerCase(),
+          telefone: telefone || null,
+          cpf: cleanCpf,
+          nome_empresa: empresaData?.nome_fantasia || empresaData?.nome || null,
+          status: 'pendente',
+          auth_user_id: authUserId,
+          empresa_id,
+          observacoes: `Motorista de frota cadastrado via link de convite. Transportadora: ${empresaData?.nome_fantasia || empresaData?.nome || empresa_id}`,
+        });
+
+      // 7. Create referencias if provided
       if (referencias && referencias.length > 0) {
         const refsToInsert = referencias
           .filter(r => r.nome && r.telefone)
@@ -294,7 +307,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
       }
 
-      // 7. Create ajudante if exists
+      // 8. Create ajudante if exists
       if (possui_ajudante && ajudante_nome && ajudante_cpf) {
         await supabaseAdmin
           .from('ajudantes')
@@ -321,7 +334,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
 
     } catch (innerError) {
-      // If anything fails after auth user creation, clean up
       await supabaseAdmin.auth.admin.deleteUser(authUserId);
       throw innerError;
     }
