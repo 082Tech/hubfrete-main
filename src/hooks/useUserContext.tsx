@@ -20,6 +20,7 @@ export interface Empresa {
   classe: string;
   logo_url: string | null;
   comissao_hubfrete_percent: number | null;
+  status: string;
 }
 
 export interface CompanyInfo {
@@ -205,14 +206,15 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
               nome,
               cnpj,
               empresa_id,
-              empresas (
+                empresas (
                 id,
                 nome,
                 cnpj_matriz,
                 tipo,
                 classe,
                 logo_url,
-                comissao_hubfrete_percent
+                comissao_hubfrete_percent,
+                status
               )
             )
           )
@@ -244,6 +246,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
                   classe: emp.classe,
                   logo_url: emp.logo_url,
                   comissao_hubfrete_percent: emp.comissao_hubfrete_percent ?? null,
+                  status: emp.status || 'ativa',
                 });
               }
             }
