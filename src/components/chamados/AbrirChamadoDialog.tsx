@@ -27,6 +27,9 @@ import { useToast } from '@/hooks/use-toast';
 interface AbrirChamadoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefillTitulo?: string;
+  prefillDescricao?: string;
+  prefillCategoria?: string;
 }
 
 type CategoriaLabel = {
