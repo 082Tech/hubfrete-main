@@ -560,15 +560,25 @@ function DetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Chat Button */}
-          <Button
-            variant="outline"
-            className="w-full justify-center gap-2"
-            onClick={() => setChatSheetOpen(true)}
-          >
-            <MessageCircle className="w-4 h-4" />
-            Abrir Chat da Carga
-          </Button>
+          {/* Chat + Help Buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 justify-center gap-2"
+              onClick={() => setChatSheetOpen(true)}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Chat da Carga
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2 text-amber-600 border-amber-200 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-900/20"
+              onClick={() => setChamadoOpen(true)}
+            >
+              <Headphones className="w-4 h-4" />
+              Ajuda
+            </Button>
+          </div>
 
           {/* Empresa que publicou */}
           {entrega.carga.empresa && (
