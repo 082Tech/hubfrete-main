@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Truck, Lock, AlertTriangle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Truck, Lock, AlertTriangle, Clock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Import form components from motoristas
