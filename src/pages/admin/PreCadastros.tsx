@@ -150,7 +150,7 @@ export default function PreCadastros() {
       if (selectedPreCadastro.auth_user_id) {
         await supabase.from('notificacoes').insert({
           user_id: selectedPreCadastro.auth_user_id,
-          tipo: 'sistema',
+          tipo: 'carga_publicada' as any,
           titulo: 'Cadastro Aprovado! 🎉',
           mensagem: `Seu cadastro como ${selectedPreCadastro.tipo === 'embarcador' ? 'Embarcador' : 'Transportadora'} foi aprovado. Agora você tem acesso completo à plataforma.`,
           link: `/${selectedPreCadastro.tipo}`,
