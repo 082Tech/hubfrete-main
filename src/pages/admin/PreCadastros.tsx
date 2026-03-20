@@ -140,7 +140,7 @@ export default function PreCadastros() {
       if (error) throw error;
 
       // If linked to an empresa, update empresa status to 'ativa'
-      if (selectedPreCadastro.empresa_id) {
+      if (selectedPreCadastro.empresa_id && isEmpresa(selectedPreCadastro.tipo)) {
         const { error: empresaError } = await supabase
           .from('empresas')
           .update({ status: 'ativa' } as any)
@@ -151,17 +151,32 @@ export default function PreCadastros() {
         }
       }
 
+      // If it's a motorista, activate the motorista record
+      if (selectedPreCadastro.tipo === 'motorista' && selectedPreCadastro.auth_user_id) {
+        const { error: motoristaError } = await supabase
+          .from('motoristas')
+          .update({ ativo: true } as any)
+          .eq('user_id', selectedPreCadastro.auth_user_id);
+
+        if (motoristaError) {
+          console.error('Erro ao ativar motorista:', motoristaError);
+        }
+      }
+
       // Send notification to the user
       if (selectedPreCadastro.auth_user_id) {
-        const isEmpresa = selectedPreCadastro.tipo !== 'motorista';
+        const isEmp = isEmpresa(selectedPreCadastro.tipo);
+        const isFrotaDriver = selectedPreCadastro.tipo === 'motorista' && selectedPreCadastro.empresa_id;
         await supabase.from('notificacoes').insert({
           user_id: selectedPreCadastro.auth_user_id,
           tipo: 'carga_publicada' as any,
           titulo: 'Cadastro Aprovado! 🎉',
-          mensagem: isEmpresa
+          mensagem: isEmp
             ? `Seu cadastro como ${selectedPreCadastro.tipo === 'embarcador' ? 'Embarcador' : 'Transportadora'} foi aprovado. Agora você tem acesso completo à plataforma.`
+            : isFrotaDriver
+            ? `Seu cadastro como motorista foi aprovado pela equipe do HubFrete. Você já pode acessar o aplicativo.`
             : 'Seu cadastro como motorista autônomo foi aprovado. Baixe o aplicativo para começar a aceitar fretes.',
-          link: isEmpresa ? `/${selectedPreCadastro.tipo}` : undefined,
+          link: isEmp ? `/${selectedPreCadastro.tipo}` : undefined,
         });
       }
 
