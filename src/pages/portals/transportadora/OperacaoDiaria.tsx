@@ -68,6 +68,7 @@ import {
   Paperclip,
   Search,
   HelpCircle,
+  Headphones,
   Route,
   Link as LinkIcon,
 } from 'lucide-react';
