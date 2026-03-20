@@ -54,7 +54,7 @@ interface ChamadoMensagem {
   created_at: string;
 }
 
-export function AbrirChamadoDialog({ open, onOpenChange }: AbrirChamadoDialogProps) {
+export function AbrirChamadoDialog({ open, onOpenChange, prefillTitulo, prefillDescricao, prefillCategoria }: AbrirChamadoDialogProps) {
   const location = useLocation();
   const isTransportadora = location.pathname.startsWith('/transportadora');
   const { empresa } = useUserContext();
