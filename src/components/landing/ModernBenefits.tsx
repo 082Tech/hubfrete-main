@@ -217,7 +217,7 @@ export function ModernBenefits() {
                 tenha controle total do seu veículo e finanças.
               </p>
               <Button 
-                onClick={() => navigate('/cadastro/motorista')}
+                onClick={() => window.open('https://play.google.com/store/apps/details?id=com.hubfrete.app', '_blank')}
                 className="rounded-full px-6 gap-2"
               >
                 Começar como Motorista
