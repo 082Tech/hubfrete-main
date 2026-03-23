@@ -45,7 +45,7 @@ export function ModernCTA() {
             {[
               { icon: Package, label: 'Sou Embarcador', path: '/pre-cadastro/embarcador', desc: 'Publique cargas' },
               { icon: Truck, label: 'Sou Transportadora', path: '/pre-cadastro/transportadora', desc: 'Gerencie frota' },
-              { icon: User, label: 'Sou Motorista', path: '/pre-cadastro/motorista', desc: 'Aceite fretes' },
+              { icon: User, label: 'Sou Motorista', path: 'https://play.google.com/store/apps/details?id=com.hubfrete.app', desc: 'Baixar o App', external: true },
             ].map((item, i) => (
               <motion.button
                 key={item.label}

@@ -96,7 +96,7 @@ export default function Comecar() {
                     navigate(profile.link);
                   } else {
                     // Motorista → show app download info
-                    window.open('https://play.google.com/store', '_blank');
+                    window.open('https://play.google.com/store/apps/details?id=com.hubfrete.app', '_blank');
                   }
                 }}
                 className={`w-full text-left rounded-2xl border-2 ${profile.border} bg-card p-6 transition-all duration-200 hover:shadow-lg group active:scale-[0.98]`}
