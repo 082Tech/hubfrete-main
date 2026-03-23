@@ -54,6 +54,7 @@ interface ViagemHistorico {
   updated_at: string;
   ended_at: string | null;
   km_total: number | null;
+  mdfes: { pdf_path: string | null; status: string | null }[];
   motorista: {
     id: string;
     nome_completo: string;
