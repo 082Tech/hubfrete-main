@@ -29,6 +29,15 @@ const embarcadorBenefits = [
   { icon: MessageSquare, title: 'Chat Unificado', desc: 'Comunicação direta com Motorista e Torre de Controle.' },
 ];
 
+const transportadoraBenefits = [
+  { icon: Truck, title: 'Gestão de Frota Completa', desc: 'Veículos, carrocerias e manutenções em um só lugar.' },
+  { icon: Users, title: 'Controle de Motoristas', desc: 'Convite por link, documentos validados e ranking de performance.' },
+  { icon: Route, title: 'Operação Diária', desc: 'Viagens, entregas e rotas otimizadas com rastreamento.' },
+  { icon: FileText, title: 'Documentos Fiscais', desc: 'CT-e e MDF-e integrados com emissão automática.' },
+  { icon: Building2, title: 'Multi-filial', desc: 'Gerencie matriz e filiais com controle de acesso por unidade.' },
+  { icon: Wallet, title: 'Financeiro Integrado', desc: 'Faturamento, antecipação e conciliação por entrega.' },
+];
+
 const motoristaBenefits = [
   { icon: Wallet, title: 'Carteira Digital + D+0', desc: 'Receba via Pix com antecipação quando precisar.' },
   { icon: MapPin, title: 'Acompanhamento Real-Time', desc: 'Mapa, ETA e rota otimizada para economia.' },
