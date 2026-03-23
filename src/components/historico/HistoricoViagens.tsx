@@ -397,9 +397,10 @@ export default function HistoricoViagens({ advancedFilters }: HistoricoViagensPr
               return (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3 text-amber-500" />
-                Pendente
-              </span>
-            )}
+                  Pendente
+                </span>
+              );
+            })()}
           </td>
         );
       case 'km':
