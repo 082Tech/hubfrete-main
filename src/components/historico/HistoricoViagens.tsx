@@ -53,8 +53,8 @@ interface ViagemHistorico {
   created_at: string;
   updated_at: string;
   ended_at: string | null;
-  manifesto_url: string | null;
   km_total: number | null;
+  mdfes: { pdf_path: string | null; status: string | null }[];
   motorista: {
     id: string;
     nome_completo: string;
@@ -68,9 +68,7 @@ interface ViagemHistorico {
     id: string;
     codigo: string | null;
     status: string | null;
-    cte_url: string | null;
     canhoto_url: string | null;
-    notas_fiscais_urls: string[] | null;
     carga: {
       codigo: string;
       descricao: string;
@@ -154,7 +152,8 @@ export default function HistoricoViagens({ advancedFilters }: HistoricoViagensPr
         .from('viagens')
         .select(`
           id, codigo, status, created_at, updated_at, ended_at, 
-          manifesto_url, km_total,
+          km_total,
+          mdfes(pdf_path, status),
           motorista:motoristas(id, nome_completo, telefone),
           veiculo:veiculos(placa, tipo)
         `)
@@ -180,7 +179,7 @@ export default function HistoricoViagens({ advancedFilters }: HistoricoViagensPr
         const { data: entregasData } = await supabase
           .from('entregas')
           .select(`
-            id, codigo, status, cte_url, canhoto_url, notas_fiscais_urls,
+            id, codigo, status, canhoto_url,
             carga:cargas(
               codigo, descricao, peso_kg,
               empresa:empresas!cargas_empresa_id_fkey(nome),
@@ -385,22 +384,24 @@ export default function HistoricoViagens({ advancedFilters }: HistoricoViagensPr
       case 'manifesto':
         return (
           <td className="p-4 align-middle text-nowrap">
-            {v.manifesto_url ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 gap-1 text-green-600"
-                onClick={() => handleOpenFile(v.manifesto_url!, 'Manifesto MDF-e')}
-              >
-                <FileCheck className="w-3 h-3" />
-                Ver
-              </Button>
-            ) : (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3 text-amber-500" />
-                Pendente
-              </span>
-            )}
+            {(() => {
+              const mdfe = v.mdfes?.find(m => m.pdf_path);
+              if (mdfe?.pdf_path) {
+                const url = mdfe.pdf_path.startsWith('http') ? mdfe.pdf_path : supabase.storage.from('documentos').getPublicUrl(mdfe.pdf_path).data.publicUrl;
+                return (
+                  <Button variant="ghost" size="sm" className="h-7 px-2 gap-1 text-green-600" onClick={() => handleOpenFile(url, 'Manifesto MDF-e')}>
+                    <FileCheck className="w-3 h-3" />
+                    Ver
+                  </Button>
+                );
+              }
+              return (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 text-amber-500" />
+                  Pendente
+                </span>
+              );
+            })()}
           </td>
         );
       case 'km':
@@ -429,12 +430,17 @@ export default function HistoricoViagens({ advancedFilters }: HistoricoViagensPr
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                {v.manifesto_url && (
-                  <DropdownMenuItem onClick={() => handleOpenFile(v.manifesto_url!, 'Manifesto MDF-e')}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Ver Manifesto
-                  </DropdownMenuItem>
-                )}
+                {(() => {
+                  const mdfe = v.mdfes?.find(m => m.pdf_path);
+                  if (!mdfe?.pdf_path) return null;
+                  const url = mdfe.pdf_path.startsWith('http') ? mdfe.pdf_path : supabase.storage.from('documentos').getPublicUrl(mdfe.pdf_path).data.publicUrl;
+                  return (
+                    <DropdownMenuItem onClick={() => handleOpenFile(url, 'Manifesto MDF-e')}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Ver Manifesto
+                    </DropdownMenuItem>
+                  );
+                })()}
                 <DropdownMenuItem onClick={() => {/* TODO: expandir entregas */}}>
                   <Eye className="w-4 h-4 mr-2" />
                   Ver cargas ({v.entregas.length})
@@ -685,8 +691,8 @@ export default function HistoricoViagens({ advancedFilters }: HistoricoViagensPr
 
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <div className="flex items-center gap-2 text-xs">
-                    <FileText className={`w-3 h-3 ${v.manifesto_url ? 'text-green-600' : 'text-amber-500'}`} />
-                    <span>{v.manifesto_url ? 'MDF-e ✓' : 'MDF-e pendente'}</span>
+                    <FileText className={`w-3 h-3 ${v.mdfes?.some(m => m.pdf_path) ? 'text-green-600' : 'text-amber-500'}`} />
+                    <span>{v.mdfes?.some(m => m.pdf_path) ? 'MDF-e ✓' : 'MDF-e pendente'}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {new Date(v.ended_at || v.updated_at).toLocaleDateString('pt-BR')}

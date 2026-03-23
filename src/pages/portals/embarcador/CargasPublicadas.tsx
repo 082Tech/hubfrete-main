@@ -105,11 +105,9 @@ interface EntregaData {
   created_at: string | null;
   previsao_coleta: string | null;
   motorista_id: string | null;
-  cte_url: string | null;
-  manifesto_url: string | null;
   canhoto_url: string | null;
-  notas_fiscais_urls: string[] | null;
-  numero_cte: string | null;
+  ctes: { id: string }[];
+  nfes: { id: string }[];
   motoristas: {
     id: string;
     nome_completo: string;
@@ -327,11 +325,9 @@ export default function CargasPublicadas() {
             previsao_coleta,
             created_at,
             motorista_id,
-            cte_url,
-            manifesto_url,
             canhoto_url,
-            notas_fiscais_urls,
-            numero_cte,
+            ctes(id),
+            nfes(id),
             motoristas:motoristas (
               id,
               nome_completo,
@@ -1173,12 +1169,11 @@ export default function CargasPublicadas() {
                                               const isHighlighted = highlightedEntregaId === entrega.id;
 
                                               // Document count logic
-                                              const hasCte = !!entrega.cte_url;
-                                              const hasManifesto = !!entrega.manifesto_url;
+                                              const hasCte = entrega.ctes && entrega.ctes.length > 0;
+                                              const hasNfe = entrega.nfes && entrega.nfes.length > 0;
                                               const hasCanhoto = !!entrega.canhoto_url;
-                                              const hasNf = entrega.notas_fiscais_urls && entrega.notas_fiscais_urls.length > 0;
-                                              const docCount = [hasCte, hasManifesto, hasCanhoto, hasNf].filter(Boolean).length;
-                                              const missingCritical = !hasCte || !hasManifesto;
+                                              const docCount = [hasCte, hasNfe, hasCanhoto].filter(Boolean).length;
+                                              const missingCritical = !hasCte || !hasNfe;
 
                                               return (
                                                 <tr
@@ -1209,9 +1204,6 @@ export default function CargasPublicadas() {
                                                   </td>
                                                   <td className="p-4 align-middle text-right text-sm font-medium text-green-600">
                                                     {formatCurrency(entrega.valor_frete)}
-                                                  </td>
-                                                  <td className="p-4 align-middle text-sm font-mono">
-                                                    {entrega.numero_cte || '-'}
                                                   </td>
                                                   <td className="p-4 align-middle">
                                                     <Button

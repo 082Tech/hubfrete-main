@@ -75,7 +75,6 @@ interface EntregaCompleta {
   entregue_em: string | null;
   peso_alocado_kg: number | null;
   valor_frete: number | null;
-  numero_cte: string | null;
   motorista: {
     id: string;
     nome_completo: string;
@@ -152,7 +151,6 @@ export default function EntregasAdmin() {
           entregue_em,
           peso_alocado_kg,
           valor_frete,
-          numero_cte,
           motorista:motoristas(id, nome_completo, telefone, email, foto_url),
           veiculo:veiculos(id, placa, tipo, marca, modelo),
           carga:cargas(
@@ -194,7 +192,6 @@ export default function EntregasAdmin() {
       entrega.carga?.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entrega.motorista?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entrega.veiculo?.placa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entrega.numero_cte?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entrega.carga?.empresa?.nome?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -451,11 +448,6 @@ export default function EntregasAdmin() {
                               <span className="font-mono text-sm font-medium">{entrega.codigo || '-'}</span>
                               <span className="text-xs text-muted-foreground">{entrega.carga?.codigo}</span>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-mono text-sm text-muted-foreground">
-                              {entrega.numero_cte || '-'}
-                            </span>
                           </TableCell>
                           <TableCell>
                             <TooltipProvider>

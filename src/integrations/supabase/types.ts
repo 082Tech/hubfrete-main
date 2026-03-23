@@ -1394,17 +1394,14 @@ export type Database = {
           coletado_em: string | null
           created_at: string | null
           created_by: string | null
-          cte_url: string | null
           documento_recebedor: string | null
           entregue_em: string | null
           foto_comprovante_coleta: string | null
           foto_comprovante_entrega: string | null
           id: string
-          manifesto_url: string | null
           motorista_id: string | null
           nome_recebedor: string | null
           notas_fiscais_urls: string[] | null
-          numero_cte: string | null
           observacoes: string | null
           outros_documentos: Json | null
           peso_alocado_kg: number | null
@@ -1427,17 +1424,14 @@ export type Database = {
           coletado_em?: string | null
           created_at?: string | null
           created_by?: string | null
-          cte_url?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
           foto_comprovante_coleta?: string | null
           foto_comprovante_entrega?: string | null
           id?: string
-          manifesto_url?: string | null
           motorista_id?: string | null
           nome_recebedor?: string | null
           notas_fiscais_urls?: string[] | null
-          numero_cte?: string | null
           observacoes?: string | null
           outros_documentos?: Json | null
           peso_alocado_kg?: number | null
@@ -1460,17 +1454,14 @@ export type Database = {
           coletado_em?: string | null
           created_at?: string | null
           created_by?: string | null
-          cte_url?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
           foto_comprovante_coleta?: string | null
           foto_comprovante_entrega?: string | null
           id?: string
-          manifesto_url?: string | null
           motorista_id?: string | null
           nome_recebedor?: string | null
           notas_fiscais_urls?: string[] | null
-          numero_cte?: string | null
           observacoes?: string | null
           outros_documentos?: Json | null
           peso_alocado_kg?: number | null
@@ -3273,7 +3264,6 @@ export type Database = {
           id: string
           inicio_em: string
           km_total: number | null
-          manifesto_url: string | null
           metadata: Json | null
           motorista_id: string
           started_at: string | null
@@ -3293,7 +3283,6 @@ export type Database = {
           id?: string
           inicio_em?: string
           km_total?: number | null
-          manifesto_url?: string | null
           metadata?: Json | null
           motorista_id: string
           started_at?: string | null
@@ -3313,7 +3302,6 @@ export type Database = {
           id?: string
           inicio_em?: string
           km_total?: number | null
-          manifesto_url?: string | null
           metadata?: Json | null
           motorista_id?: string
           started_at?: string | null

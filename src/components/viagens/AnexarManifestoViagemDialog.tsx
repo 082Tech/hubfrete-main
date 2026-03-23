@@ -78,12 +78,6 @@ export function AnexarManifestoViagemDialog({
 
       if (insertError) throw insertError;
 
-      // Sync legacy manifesto_url on viagens for mobile app compatibility
-      await supabase.from('viagens').update({ 
-        manifesto_url: manifestoUrl,
-        updated_at: new Date().toISOString() 
-      }).eq('id', viagemId);
-
       return manifestoUrl;
     },
     onSuccess: () => {
