@@ -78,15 +78,6 @@ export function ModernHero() {
             Começar Agora
             <ArrowRight className="w-4 h-4" />
           </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => navigate('/cadastro/transportadora')}
-            className="rounded-full px-8 h-12 text-base gap-2"
-          >
-            <Play className="w-4 h-4" />
-            Começar como Transportadora
-          </Button>
         </motion.div>
 
         {/* MacBook Slideshow */}
