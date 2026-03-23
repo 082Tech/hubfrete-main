@@ -51,7 +51,7 @@ export function Footer() {
               <li><a href="#" className="text-muted-foreground hover:text-primary text-sm">Carteira Digital</a></li>
               <li><a href="#" className="text-muted-foreground hover:text-primary text-sm">Antecipação D+0</a></li>
               <li><a href="#" className="text-muted-foreground hover:text-primary text-sm">Clube de Vantagens</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary text-sm">Baixar App</a></li>
+              <li><a href="https://play.google.com/store/apps/details?id=com.hubfrete.app" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary text-sm">Baixar App</a></li>
             </ul>
           </div>
           
