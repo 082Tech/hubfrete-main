@@ -13,7 +13,11 @@ import {
   Fuel,
   Gift,
   Star,
-  Wrench
+  Wrench,
+  Truck,
+  Users,
+  FileText,
+  Route
 } from 'lucide-react';
 
 const embarcadorBenefits = [
