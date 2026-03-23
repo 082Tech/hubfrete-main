@@ -68,7 +68,6 @@ interface EntregaInViagem {
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   ctes: { id: string }[];
-  numero_cte: string | null;
   nfes: { id: string }[];
   canhoto_url: string | null;
   outros_documentos: any[] | null;
@@ -103,7 +102,6 @@ interface ViagemHistorico {
   created_at: string;
   updated_at: string;
   ended_at: string | null;
-  manifesto_url: string | null;
   km_total: number | null;
   mdfes: { pdf_path: string | null; status: string | null }[];
   motorista: {
@@ -223,7 +221,7 @@ export default function HistoricoEntregas() {
         .from('viagens')
         .select(`
           id, codigo, status, created_at, updated_at, ended_at,
-          manifesto_url, km_total,
+          km_total,
           mdfes(pdf_path, status),
           motorista:motoristas(id, nome_completo, telefone),
           veiculo:veiculos(placa, tipo)
@@ -250,7 +248,7 @@ export default function HistoricoEntregas() {
           .from('entregas')
           .select(`
             id, codigo, status, peso_alocado_kg, valor_frete,
-            numero_cte, canhoto_url, outros_documentos, previsao_coleta,
+            canhoto_url, outros_documentos, previsao_coleta,
             entregue_em, updated_at,
             ctes(id),
             nfes(id),
@@ -826,9 +824,8 @@ export default function HistoricoEntregas() {
                                 </td>
                                 <td className="p-4 align-middle text-nowrap">
                                   {(() => {
-                                    // Prefer mdfes table (pdf_path), fallback to legacy manifesto_url
                                     const mdfe = viagem.mdfes?.find(m => m.pdf_path);
-                                    const rawPath = mdfe?.pdf_path || viagem.manifesto_url;
+                                    const rawPath = mdfe?.pdf_path || null;
                                     if (!rawPath) return (
                                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                                         <AlertTriangle className="w-3 h-3 text-amber-500" />
@@ -973,9 +970,6 @@ export default function HistoricoEntregas() {
                                                   </td>
                                                   <td className="p-4 align-middle text-right text-sm font-medium text-green-600">
                                                     {formatCurrency(entrega.valor_frete)}
-                                                  </td>
-                                                  <td className="p-4 align-middle text-sm font-mono">
-                                                    {entrega.numero_cte || '-'}
                                                   </td>
                                                   <td className="p-4 align-middle">
                                                     <Button
@@ -1274,8 +1268,14 @@ export default function HistoricoEntregas() {
                         {new Date(viagem.ended_at || viagem.updated_at).toLocaleDateString('pt-BR')}
                       </span>
                       <div className="flex items-center gap-2">
-                        {viagem.manifesto_url && (
-                          <Button variant="ghost" size="sm" className="h-7 px-2 text-green-600" onClick={() => handleOpenFile(viagem.manifesto_url!, 'MDF-e')}>
+                        {viagem.mdfes?.some(m => m.pdf_path) && (
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-green-600" onClick={() => {
+                            const mdfe = viagem.mdfes?.find(m => m.pdf_path);
+                            if (mdfe?.pdf_path) {
+                              const url = mdfe.pdf_path.startsWith('http') ? mdfe.pdf_path : supabase.storage.from('documentos').getPublicUrl(mdfe.pdf_path).data.publicUrl;
+                              handleOpenFile(url, 'MDF-e');
+                            }
+                          }}>
                             <FileCheck className="w-3 h-3 mr-1" />
                             MDF-e
                           </Button>
