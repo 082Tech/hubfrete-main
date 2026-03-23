@@ -53,7 +53,7 @@ export function ModernCTA() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.2 + i * 0.1 }}
-                onClick={() => navigate(item.path)}
+                onClick={() => (item as any).external ? window.open(item.path, '_blank') : navigate(item.path)}
                 className="group p-6 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all text-left"
               >
                 <item.icon className="w-8 h-8 text-primary-foreground mb-3" />
