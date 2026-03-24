@@ -12,6 +12,20 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: "1.3.0",
+    date: "2026-03-24",
+    slides: [
+      {
+        title: "Novos Módulos 🚀",
+        description: "• Pré-cadastro de empresas e motoristas direto da landing page e portal da transportadora<br/>• Solicitação de antecipação financeira (manual, aprovação pela Torre)<br/>• Sistema de abertura de chamados com chat integrado<br/>• Página de FAQ e tutoriais",
+      },
+      {
+        title: "Correções Importantes 🛠️",
+        description: "• Web agora exibe corretamente canhotos anexados pelos motoristas<br/>• Corrigido problema de UTC no histórico de eventos da carga (APP)<br/>• Documentos anexados agora exigem confirmação antes da exclusão<br/>• Remoção de colunas legadas de documentos fiscais para o novo modelo multi-documento",
+      },
+    ],
+  },
+  {
     version: "1.2.2",
     date: "2026-03-19",
     slides: [
