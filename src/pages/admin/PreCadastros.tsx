@@ -111,7 +111,7 @@ export default function PreCadastros() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPreCadastros((data || []) as PreCadastro[]);
+      setPreCadastros((data || []) as unknown as PreCadastro[]);
     } catch (error) {
       console.error('Erro ao buscar pré-cadastros:', error);
       toast({
