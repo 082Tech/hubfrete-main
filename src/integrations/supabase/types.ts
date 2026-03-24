@@ -1266,6 +1266,7 @@ export type Database = {
           nome: string | null
           nome_fantasia: string | null
           razao_social: string | null
+          status: string
           telefone: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
@@ -1282,6 +1283,7 @@ export type Database = {
           nome?: string | null
           nome_fantasia?: string | null
           razao_social?: string | null
+          status?: string
           telefone?: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
@@ -1298,6 +1300,7 @@ export type Database = {
           nome?: string | null
           nome_fantasia?: string | null
           razao_social?: string | null
+          status?: string
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["tipo_empresa"]
         }
@@ -2710,15 +2713,24 @@ export type Database = {
         Row: {
           analisado_em: string | null
           analisado_por: string | null
+          auth_user_id: string | null
+          cep: string | null
+          cidade: string | null
           cnpj: string | null
           cpf: string | null
           created_at: string
           email: string
+          empresa_id: number | null
+          endereco: string | null
+          estado: string | null
           id: string
+          inscricao_estadual: string | null
           motivo_rejeicao: string | null
           nome: string
           nome_empresa: string | null
+          nome_fantasia: string | null
           observacoes: string | null
+          razao_social: string | null
           status: Database["public"]["Enums"]["status_pre_cadastro"]
           telefone: string | null
           tipo: string
@@ -2727,15 +2739,24 @@ export type Database = {
         Insert: {
           analisado_em?: string | null
           analisado_por?: string | null
+          auth_user_id?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
           cpf?: string | null
           created_at?: string
           email: string
+          empresa_id?: number | null
+          endereco?: string | null
+          estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           motivo_rejeicao?: string | null
           nome: string
           nome_empresa?: string | null
+          nome_fantasia?: string | null
           observacoes?: string | null
+          razao_social?: string | null
           status?: Database["public"]["Enums"]["status_pre_cadastro"]
           telefone?: string | null
           tipo: string
@@ -2744,21 +2765,38 @@ export type Database = {
         Update: {
           analisado_em?: string | null
           analisado_por?: string | null
+          auth_user_id?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
           cpf?: string | null
           created_at?: string
           email?: string
+          empresa_id?: number | null
+          endereco?: string | null
+          estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           motivo_rejeicao?: string | null
           nome?: string
           nome_empresa?: string | null
+          nome_fantasia?: string | null
           observacoes?: string | null
+          razao_social?: string | null
           status?: Database["public"]["Enums"]["status_pre_cadastro"]
           telefone?: string | null
           tipo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pre_cadastros_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       provas_entrega: {
         Row: {
@@ -3566,7 +3604,7 @@ export type Database = {
         | "reclamacao"
         | "sugestao"
         | "outros"
-      classe_empresa: "INDÚSTRIA" | "LOJA" | "COMÉRCIO"
+      classe_empresa: "INDÚSTRIA" | "LOJA" | "COMÉRCIO" | "TRANSPORTADORA"
       forma_pagamento:
         | "a_vista"
         | "faturado_7"
@@ -3800,7 +3838,7 @@ export const Constants = {
         "sugestao",
         "outros",
       ],
-      classe_empresa: ["INDÚSTRIA", "LOJA", "COMÉRCIO"],
+      classe_empresa: ["INDÚSTRIA", "LOJA", "COMÉRCIO", "TRANSPORTADORA"],
       forma_pagamento: [
         "a_vista",
         "faturado_7",
