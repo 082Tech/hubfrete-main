@@ -2837,6 +2837,94 @@ export type Database = {
         }
         Relationships: []
       }
+      solicitacoes_antecipacao: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          data_vencimento_original: string
+          dias_antecipados: number
+          empresa_id: number | null
+          financeiro_entrega_id: string
+          id: string
+          motivo_rejeicao: string | null
+          motorista_id: string | null
+          observacoes: string | null
+          solicitante_tipo: string
+          solicitante_user_id: string
+          status: string
+          taxa_percent: number
+          updated_at: string
+          valor_final: number
+          valor_original: number
+          valor_taxa: number
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          data_vencimento_original: string
+          dias_antecipados: number
+          empresa_id?: number | null
+          financeiro_entrega_id: string
+          id?: string
+          motivo_rejeicao?: string | null
+          motorista_id?: string | null
+          observacoes?: string | null
+          solicitante_tipo?: string
+          solicitante_user_id: string
+          status?: string
+          taxa_percent: number
+          updated_at?: string
+          valor_final: number
+          valor_original: number
+          valor_taxa: number
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          data_vencimento_original?: string
+          dias_antecipados?: number
+          empresa_id?: number | null
+          financeiro_entrega_id?: string
+          id?: string
+          motivo_rejeicao?: string | null
+          motorista_id?: string | null
+          observacoes?: string | null
+          solicitante_tipo?: string
+          solicitante_user_id?: string
+          status?: string
+          taxa_percent?: number
+          updated_at?: string
+          valor_final?: number
+          valor_original?: number
+          valor_taxa?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_antecipacao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_antecipacao_financeiro_entrega_id_fkey"
+            columns: ["financeiro_entrega_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_antecipacao_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       torre_users: {
         Row: {
           ativo: boolean
