@@ -2,114 +2,155 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChatList, ChatArea } from '@/components/mensagens';
 import { useChats } from '@/hooks/useChats';
+import { useChamadosChat } from '@/hooks/useChamadosChat';
+import { ChamadoChatList } from '@/components/chamados/ChamadoChatList';
+import { ChamadoChatArea } from '@/components/chamados/ChamadoChatArea';
 import { cn } from '@/lib/utils';
 import { useUserContext } from '@/hooks/useUserContext';
-
 import { useChatView } from '@/contexts/ChatViewContext';
+import { Button } from '@/components/ui/button';
+import { Package, Headphones } from 'lucide-react';
 
 export default function Mensagens() {
   const [searchParams] = useSearchParams();
   const [showChatList, setShowChatList] = useState(true);
+  const [activeTab, setActiveTab] = useState<'cargas' | 'suporte'>('cargas');
   const hasAutoSelected = useRef(false);
   const { setIsInChatView } = useChatView();
   const { empresa } = useUserContext();
   const empresaId = empresa?.id;
 
-  // Get entrega ID from URL params
   const entregaIdFromUrl = searchParams.get('entrega');
 
-  // Update chat view state when showing/hiding chat
   useEffect(() => {
     setIsInChatView(!showChatList);
     return () => setIsInChatView(false);
   }, [showChatList, setIsInChatView]);
 
-  const {
-    chats,
-    selectedChat,
-    messages,
-    isLoadingChats,
-    isLoadingMessages,
-    isLoadingMore,
-    isLoadingMoreChats,
-    hasMoreMessages,
-    hasMoreChats,
-    isSending,
-    currentUserId,
-    selectChat,
-    selectChatByEntregaId,
-    sendMessage,
-    loadMoreMessages,
-    loadMoreChats,
-  } = useChats({ userType: 'embarcador', empresaId });
+  const chatsHook = useChats({ userType: 'embarcador', empresaId });
+  const chamadosHook = useChamadosChat();
 
-  // Auto-select chat from URL param
   useEffect(() => {
-    if (entregaIdFromUrl && chats.length > 0 && !hasAutoSelected.current) {
-      const selected = selectChatByEntregaId(entregaIdFromUrl);
+    if (entregaIdFromUrl && chatsHook.chats.length > 0 && !hasAutoSelected.current) {
+      const selected = chatsHook.selectChatByEntregaId(entregaIdFromUrl);
       if (selected) {
         hasAutoSelected.current = true;
-        setShowChatList(false); // Show chat area on mobile
+        setShowChatList(false);
+        setActiveTab('cargas');
       }
     }
-  }, [entregaIdFromUrl, chats, selectChatByEntregaId]);
+  }, [entregaIdFromUrl, chatsHook.chats, chatsHook.selectChatByEntregaId]);
 
-  // Reset auto-select flag when URL changes
   useEffect(() => {
-    if (!entregaIdFromUrl) {
-      hasAutoSelected.current = false;
-    }
+    if (!entregaIdFromUrl) hasAutoSelected.current = false;
   }, [entregaIdFromUrl]);
 
   const handleSelectChat = (chatId: string) => {
-    selectChat(chatId);
-    // On mobile, hide chat list when a chat is selected
+    chatsHook.selectChat(chatId);
     setShowChatList(false);
   };
 
-  const handleBack = () => {
-    setShowChatList(true);
+  const handleSelectChamado = (chamadoId: string) => {
+    chamadosHook.selectChamado(chamadoId);
+    setShowChatList(false);
   };
+
+  const handleBack = () => setShowChatList(true);
 
   return (
     <div className="fixed inset-0 md:relative md:h-screen flex flex-col overflow-hidden">
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        {/* Chat List - Hidden on mobile when chat is selected */}
+        {/* List panel */}
         <div className={cn(
-          'w-full md:w-80 lg:w-96 shrink-0 h-full overflow-hidden',
-          !showChatList && 'hidden md:block'
+          'w-full md:w-80 lg:w-96 shrink-0 h-full overflow-hidden flex flex-col',
+          !showChatList && 'hidden md:flex'
         )}>
-          <ChatList
-            chats={chats}
-            selectedChatId={selectedChat?.id || null}
-            onSelectChat={handleSelectChat}
-            isLoading={isLoadingChats}
-            isLoadingMore={isLoadingMoreChats}
-            hasMore={hasMoreChats}
-            onLoadMore={loadMoreChats}
-            userType="embarcador"
-          />
+          {/* Tabs */}
+          <div className="flex border-b border-border shrink-0 bg-card">
+            <Button
+              variant="ghost"
+              onClick={() => setActiveTab('cargas')}
+              className={cn(
+                'flex-1 rounded-none gap-2 text-sm font-medium border-b-2 transition-colors',
+                activeTab === 'cargas'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Package className="w-4 h-4" />
+              Cargas
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setActiveTab('suporte')}
+              className={cn(
+                'flex-1 rounded-none gap-2 text-sm font-medium border-b-2 transition-colors',
+                activeTab === 'suporte'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Headphones className="w-4 h-4" />
+              Suporte
+            </Button>
+          </div>
+
+          {/* List content */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {activeTab === 'cargas' ? (
+              <ChatList
+                chats={chatsHook.chats}
+                selectedChatId={chatsHook.selectedChat?.id || null}
+                onSelectChat={handleSelectChat}
+                isLoading={chatsHook.isLoadingChats}
+                isLoadingMore={chatsHook.isLoadingMoreChats}
+                hasMore={chatsHook.hasMoreChats}
+                onLoadMore={chatsHook.loadMoreChats}
+                userType="embarcador"
+              />
+            ) : (
+              <ChamadoChatList
+                chamados={chamadosHook.chamados}
+                selectedId={chamadosHook.selectedChamado?.id || null}
+                onSelect={handleSelectChamado}
+                isLoading={chamadosHook.isLoadingChamados}
+              />
+            )}
+          </div>
         </div>
 
-        {/* Chat Area - Hidden on mobile when chat list is shown */}
+        {/* Chat area */}
         <div className={cn(
           'flex-1 h-full overflow-hidden',
           showChatList && 'hidden md:flex'
         )}>
-          <ChatArea
-            chat={selectedChat}
-            messages={messages}
-            isLoading={isLoadingMessages}
-            isLoadingMore={isLoadingMore}
-            hasMoreMessages={hasMoreMessages}
-            isSending={isSending}
-            currentUserId={currentUserId}
-            userType="embarcador"
-            onSendMessage={sendMessage}
-            onLoadMore={loadMoreMessages}
-            onBack={handleBack}
-            showBackButton={!showChatList}
-          />
+          {activeTab === 'cargas' ? (
+            <ChatArea
+              chat={chatsHook.selectedChat}
+              messages={chatsHook.messages}
+              isLoading={chatsHook.isLoadingMessages}
+              isLoadingMore={chatsHook.isLoadingMore}
+              hasMoreMessages={chatsHook.hasMoreMessages}
+              isSending={chatsHook.isSending}
+              currentUserId={chatsHook.currentUserId}
+              userType="embarcador"
+              onSendMessage={chatsHook.sendMessage}
+              onLoadMore={chatsHook.loadMoreMessages}
+              onBack={handleBack}
+              showBackButton={!showChatList}
+            />
+          ) : (
+            <ChamadoChatArea
+              chamado={chamadosHook.selectedChamado}
+              messages={chamadosHook.messages}
+              isLoading={chamadosHook.isLoadingMessages}
+              isSending={chamadosHook.isSending}
+              currentUserId={chamadosHook.currentUserId}
+              onSendMessage={chamadosHook.sendMessage}
+              onBack={handleBack}
+              showBackButton={!showChatList}
+            />
+          )}
         </div>
       </div>
     </div>

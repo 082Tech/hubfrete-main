@@ -23,7 +23,6 @@ interface Entrega {
   peso_alocado_kg: number | null;
   valor_frete: number | null;
   ctes: { id: string }[];
-  numero_cte: string | null;
   nfes: { id: string }[];
   canhoto_url: string | null;
   entregue_em: string | null;
@@ -46,7 +45,6 @@ interface ViagemData {
   created_at: string;
   updated_at: string;
   ended_at: string | null;
-  manifesto_url: string | null;
   km_total: number | null;
   mdfes?: { pdf_path: string | null }[];
   motorista: {
@@ -187,7 +185,7 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
               {/* Manifesto */}
               {(() => {
                 const mdfe = viagem.mdfes?.find(m => m.pdf_path);
-                const rawPath = mdfe?.pdf_path || viagem.manifesto_url;
+                const rawPath = mdfe?.pdf_path || null;
                 const isStoragePath = rawPath && !rawPath.startsWith('http');
                 const manifestoUrl = isStoragePath
                   ? supabase.storage.from('documentos').getPublicUrl(rawPath!).data.publicUrl

@@ -32,7 +32,7 @@ export function CTASection() {
               size="lg" 
               variant="secondary"
               className="gap-2 text-lg px-8 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/comecar')}
             >
               Começar Gratuitamente
               <ArrowRight className="w-5 h-5" />

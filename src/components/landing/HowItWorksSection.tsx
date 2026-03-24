@@ -473,8 +473,8 @@ export function HowItWorksSection() {
           </div>
 
           <div className="text-center mt-12">
-            <Button onClick={() => navigate("/cadastro/motorista")} className="gap-2">
-              Começar como Motorista
+            <Button onClick={() => window.open('https://play.google.com/store/apps/details?id=com.hubfrete.app', '_blank')} className="gap-2">
+              Baixar o App
               <ArrowRight size={20} />
             </Button>
           </div>

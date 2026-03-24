@@ -775,6 +775,66 @@ export type Database = {
           },
         ]
       }
+      checklist_veiculos: {
+        Row: {
+          created_at: string
+          documentos_ok: boolean
+          fotos_veiculo_urls: string[]
+          freios_ok: boolean
+          id: string
+          limpeza_ok: boolean
+          luces_ok: boolean
+          motorista_id: string | null
+          observacoes: string | null
+          pneus_ok: boolean
+          timestamp: string
+          viagem_id: string
+        }
+        Insert: {
+          created_at?: string
+          documentos_ok?: boolean
+          fotos_veiculo_urls?: string[]
+          freios_ok?: boolean
+          id?: string
+          limpeza_ok?: boolean
+          luces_ok?: boolean
+          motorista_id?: string | null
+          observacoes?: string | null
+          pneus_ok?: boolean
+          timestamp?: string
+          viagem_id: string
+        }
+        Update: {
+          created_at?: string
+          documentos_ok?: boolean
+          fotos_veiculo_urls?: string[]
+          freios_ok?: boolean
+          id?: string
+          limpeza_ok?: boolean
+          luces_ok?: boolean
+          motorista_id?: string | null
+          observacoes?: string | null
+          pneus_ok?: boolean
+          timestamp?: string
+          viagem_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_veiculos_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_veiculos_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: false
+            referencedRelation: "viagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_invites: {
         Row: {
           accepted_at: string | null
@@ -1206,6 +1266,7 @@ export type Database = {
           nome: string | null
           nome_fantasia: string | null
           razao_social: string | null
+          status: string
           telefone: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
@@ -1222,6 +1283,7 @@ export type Database = {
           nome?: string | null
           nome_fantasia?: string | null
           razao_social?: string | null
+          status?: string
           telefone?: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
         }
@@ -1238,6 +1300,7 @@ export type Database = {
           nome?: string | null
           nome_fantasia?: string | null
           razao_social?: string | null
+          status?: string
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["tipo_empresa"]
         }
@@ -1390,25 +1453,24 @@ export type Database = {
           carroceria_id: string | null
           carroceria_id_2: string | null
           carrocerias_alocadas: Json | null
+          checklist_id: string | null
           checklist_veiculo: Json | null
           codigo: string | null
           coletado_em: string | null
+          comprovante_entrega_url: string | null
           created_at: string | null
           created_by: string | null
           cte_gerado_automaticamente: boolean | null
           cte_tentativas_geracao: number | null
           cte_ultimo_erro: string | null
-          cte_url: string | null
           documento_recebedor: string | null
           entregue_em: string | null
           foto_comprovante_coleta: string | null
           foto_comprovante_entrega: string | null
           id: string
-          manifesto_url: string | null
           motorista_id: string | null
           nome_recebedor: string | null
           notas_fiscais_urls: string[] | null
-          numero_cte: string | null
           observacoes: string | null
           outros_documentos: Json | null
           peso_alocado_kg: number | null
@@ -1427,25 +1489,24 @@ export type Database = {
           carroceria_id?: string | null
           carroceria_id_2?: string | null
           carrocerias_alocadas?: Json | null
+          checklist_id?: string | null
           checklist_veiculo?: Json | null
           codigo?: string | null
           coletado_em?: string | null
+          comprovante_entrega_url?: string | null
           created_at?: string | null
           created_by?: string | null
           cte_gerado_automaticamente?: boolean | null
           cte_tentativas_geracao?: number | null
           cte_ultimo_erro?: string | null
-          cte_url?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
           foto_comprovante_coleta?: string | null
           foto_comprovante_entrega?: string | null
           id?: string
-          manifesto_url?: string | null
           motorista_id?: string | null
           nome_recebedor?: string | null
           notas_fiscais_urls?: string[] | null
-          numero_cte?: string | null
           observacoes?: string | null
           outros_documentos?: Json | null
           peso_alocado_kg?: number | null
@@ -1464,25 +1525,24 @@ export type Database = {
           carroceria_id?: string | null
           carroceria_id_2?: string | null
           carrocerias_alocadas?: Json | null
+          checklist_id?: string | null
           checklist_veiculo?: Json | null
           codigo?: string | null
           coletado_em?: string | null
+          comprovante_entrega_url?: string | null
           created_at?: string | null
           created_by?: string | null
           cte_gerado_automaticamente?: boolean | null
           cte_tentativas_geracao?: number | null
           cte_ultimo_erro?: string | null
-          cte_url?: string | null
           documento_recebedor?: string | null
           entregue_em?: string | null
           foto_comprovante_coleta?: string | null
           foto_comprovante_entrega?: string | null
           id?: string
-          manifesto_url?: string | null
           motorista_id?: string | null
           nome_recebedor?: string | null
           notas_fiscais_urls?: string[] | null
-          numero_cte?: string | null
           observacoes?: string | null
           outros_documentos?: Json | null
           peso_alocado_kg?: number | null
@@ -1514,6 +1574,13 @@ export type Database = {
             columns: ["carroceria_id"]
             isOneToOne: false
             referencedRelation: "carrocerias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_veiculos"
             referencedColumns: ["id"]
           },
           {
@@ -2637,15 +2704,24 @@ export type Database = {
         Row: {
           analisado_em: string | null
           analisado_por: string | null
+          auth_user_id: string | null
+          cep: string | null
+          cidade: string | null
           cnpj: string | null
           cpf: string | null
           created_at: string
           email: string
+          empresa_id: number | null
+          endereco: string | null
+          estado: string | null
           id: string
+          inscricao_estadual: string | null
           motivo_rejeicao: string | null
           nome: string
           nome_empresa: string | null
+          nome_fantasia: string | null
           observacoes: string | null
+          razao_social: string | null
           status: Database["public"]["Enums"]["status_pre_cadastro"]
           telefone: string | null
           tipo: string
@@ -2654,15 +2730,24 @@ export type Database = {
         Insert: {
           analisado_em?: string | null
           analisado_por?: string | null
+          auth_user_id?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
           cpf?: string | null
           created_at?: string
           email: string
+          empresa_id?: number | null
+          endereco?: string | null
+          estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           motivo_rejeicao?: string | null
           nome: string
           nome_empresa?: string | null
+          nome_fantasia?: string | null
           observacoes?: string | null
+          razao_social?: string | null
           status?: Database["public"]["Enums"]["status_pre_cadastro"]
           telefone?: string | null
           tipo: string
@@ -2671,21 +2756,38 @@ export type Database = {
         Update: {
           analisado_em?: string | null
           analisado_por?: string | null
+          auth_user_id?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
           cpf?: string | null
           created_at?: string
           email?: string
+          empresa_id?: number | null
+          endereco?: string | null
+          estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           motivo_rejeicao?: string | null
           nome?: string
           nome_empresa?: string | null
+          nome_fantasia?: string | null
           observacoes?: string | null
+          razao_social?: string | null
           status?: Database["public"]["Enums"]["status_pre_cadastro"]
           telefone?: string | null
           tipo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pre_cadastros_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       provas_entrega: {
         Row: {
@@ -2763,6 +2865,94 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      solicitacoes_antecipacao: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          data_vencimento_original: string
+          dias_antecipados: number
+          empresa_id: number | null
+          financeiro_entrega_id: string
+          id: string
+          motivo_rejeicao: string | null
+          motorista_id: string | null
+          observacoes: string | null
+          solicitante_tipo: string
+          solicitante_user_id: string
+          status: string
+          taxa_percent: number
+          updated_at: string
+          valor_final: number
+          valor_original: number
+          valor_taxa: number
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          data_vencimento_original: string
+          dias_antecipados: number
+          empresa_id?: number | null
+          financeiro_entrega_id: string
+          id?: string
+          motivo_rejeicao?: string | null
+          motorista_id?: string | null
+          observacoes?: string | null
+          solicitante_tipo?: string
+          solicitante_user_id: string
+          status?: string
+          taxa_percent: number
+          updated_at?: string
+          valor_final: number
+          valor_original: number
+          valor_taxa: number
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          data_vencimento_original?: string
+          dias_antecipados?: number
+          empresa_id?: number | null
+          financeiro_entrega_id?: string
+          id?: string
+          motivo_rejeicao?: string | null
+          motorista_id?: string | null
+          observacoes?: string | null
+          solicitante_tipo?: string
+          solicitante_user_id?: string
+          status?: string
+          taxa_percent?: number
+          updated_at?: string
+          valor_final?: number
+          valor_original?: number
+          valor_taxa?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_antecipacao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_antecipacao_financeiro_entrega_id_fkey"
+            columns: ["financeiro_entrega_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_antecipacao_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       torre_users: {
         Row: {
@@ -3215,7 +3405,6 @@ export type Database = {
           id: string
           inicio_em: string
           km_total: number | null
-          manifesto_url: string | null
           metadata: Json | null
           motorista_id: string
           started_at: string | null
@@ -3236,7 +3425,6 @@ export type Database = {
           id?: string
           inicio_em?: string
           km_total?: number | null
-          manifesto_url?: string | null
           metadata?: Json | null
           motorista_id: string
           started_at?: string | null
@@ -3257,7 +3445,6 @@ export type Database = {
           id?: string
           inicio_em?: string
           km_total?: number | null
-          manifesto_url?: string | null
           metadata?: Json | null
           motorista_id?: string
           started_at?: string | null
@@ -3377,6 +3564,15 @@ export type Database = {
         Args: { p_chat_id: string; p_user_id: string }
         Returns: boolean
       }
+      notify_motorista_push: {
+        Args: {
+          p_body: string
+          p_data?: Json
+          p_title: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       user_belongs_to_empresa: {
         Args: { _empresa_id: number; _user_id: string }
         Returns: boolean
@@ -3396,7 +3592,7 @@ export type Database = {
         | "reclamacao"
         | "sugestao"
         | "outros"
-      classe_empresa: "INDÚSTRIA" | "LOJA" | "COMÉRCIO"
+      classe_empresa: "INDÚSTRIA" | "LOJA" | "COMÉRCIO" | "TRANSPORTADORA"
       forma_pagamento:
         | "a_vista"
         | "faturado_7"
@@ -3630,7 +3826,7 @@ export const Constants = {
         "sugestao",
         "outros",
       ],
-      classe_empresa: ["INDÚSTRIA", "LOJA", "COMÉRCIO"],
+      classe_empresa: ["INDÚSTRIA", "LOJA", "COMÉRCIO", "TRANSPORTADORA"],
       forma_pagamento: [
         "a_vista",
         "faturado_7",

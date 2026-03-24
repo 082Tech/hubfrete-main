@@ -99,7 +99,7 @@ export function ModernNavbar() {
                   Entrar
                 </Button>
                 <Button 
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate('/comecar')}
                   className="rounded-full px-6 bg-foreground text-background hover:bg-foreground/90"
                 >
                   Começar Agora
@@ -159,7 +159,7 @@ export function ModernNavbar() {
                           Entrar
                         </Button>
                         <Button 
-                          onClick={() => { setIsOpen(false); navigate('/login'); }}
+                          onClick={() => { setIsOpen(false); navigate('/comecar'); }}
                           className="rounded-full bg-foreground text-background hover:bg-foreground/90"
                         >
                           Começar Agora

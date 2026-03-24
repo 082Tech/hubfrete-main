@@ -345,14 +345,25 @@ export function EntregaDocumentosPanel({
                 return;
             }
             if (files && files.length > 0) {
-                const canhotoFiles: CanhotoFile[] = files
-                    .filter(f => f.name !== '.emptyFolderPlaceholder')
+                const validFiles = files.filter(f => f.name !== '.emptyFolderPlaceholder');
+                const canhotoFiles: CanhotoFile[] = validFiles
                     .map(f => {
                         const path = `canhotos/${entregaId}/${f.name}`;
                         const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(path);
                         return { name: f.name, url: urlData.publicUrl };
                     });
                 setLocalCanhotoFiles(canhotoFiles);
+
+                // Auto-sync: se há canhotos no bucket mas canhoto_url está vazio, atualizar a coluna
+                if (validFiles.length > 0 && !canhotoUrlProp) {
+                    const firstPath = `canhotos/${entregaId}/${validFiles[0].name}`;
+                    supabase.from('entregas')
+                        .update({ canhoto_url: firstPath })
+                        .eq('id', entregaId)
+                        .then(({ error: syncErr }) => {
+                            if (syncErr) console.error('Erro ao sincronizar canhoto_url:', syncErr);
+                        });
+                }
             } else {
                 // Fallback: se não encontrou no diretório mas tem canhoto_url
                 if (canhotoUrlProp) {

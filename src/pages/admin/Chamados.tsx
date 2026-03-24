@@ -198,7 +198,7 @@ export default function Chamados() {
 
       setNovaMensagem('');
       await fetchMensagens(selectedChamado.id);
-      toast.success('Mensagem enviada!');
+      
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
       toast.error('Erro ao enviar mensagem');

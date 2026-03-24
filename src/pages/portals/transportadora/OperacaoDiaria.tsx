@@ -68,6 +68,7 @@ import {
   Paperclip,
   Search,
   HelpCircle,
+  Headphones,
   Route,
   Link as LinkIcon,
 } from 'lucide-react';
@@ -81,6 +82,7 @@ import { CarregamentoCarroceriasSection } from '@/components/entregas/Carregamen
 import { DetailPanelLeafletMap } from '@/components/maps/DetailPanelLeafletMap';
 import { GestaoLeafletMap } from '@/components/maps/GestaoLeafletMap';
 import { ChatSheet } from '@/components/mensagens/ChatSheet';
+import { AbrirChamadoDialog } from '@/components/chamados/AbrirChamadoDialog';
 import { DailyPerformanceDialog } from '@/components/admin/relatorios/DailyPerformanceDialog';
 import { BarChart3 } from 'lucide-react';
 import { ViagemListItem, ViagemDetailPanel } from '@/components/viagens';
@@ -300,6 +302,7 @@ function DetailPanel({
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [previewDocTitle, setPreviewDocTitle] = useState<string>('');
   const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [chamadoOpen, setChamadoOpen] = useState(false);
   const [nfeBlockMessage, setNfeBlockMessage] = useState<string | null>(null);
   const [checkingNfe, setCheckingNfe] = useState(false);
   const [existingCtes, setExistingCtes] = useState<any[]>([]);
@@ -558,15 +561,25 @@ function DetailPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
-          {/* Chat Button */}
-          <Button
-            variant="outline"
-            className="w-full justify-center gap-2"
-            onClick={() => setChatSheetOpen(true)}
-          >
-            <MessageCircle className="w-4 h-4" />
-            Abrir Chat da Carga
-          </Button>
+          {/* Chat + Help Buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 justify-center gap-2"
+              onClick={() => setChatSheetOpen(true)}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Chat da Carga
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2 text-amber-600 border-amber-200 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-900/20"
+              onClick={() => setChamadoOpen(true)}
+            >
+              <Headphones className="w-4 h-4" />
+              Ajuda
+            </Button>
+          </div>
 
           {/* Empresa que publicou */}
           {entrega.carga.empresa && (
@@ -1036,6 +1049,15 @@ function DetailPanel({
         onOpenChange={setChatSheetOpen}
         entregaId={entrega.id}
         userType="transportadora"
+      />
+
+      {/* Chamado Dialog */}
+      <AbrirChamadoDialog
+        open={chamadoOpen}
+        onOpenChange={setChamadoOpen}
+        prefillTitulo={`Ajuda com carga ${entrega.codigo}`}
+        prefillDescricao={`Preciso de ajuda com a carga ${entrega.codigo} (Oferta ${entrega.carga.codigo}).\n\nDescreva seu problema abaixo:`}
+        prefillCategoria="operacional"
       />
     </div>
   );
@@ -1926,6 +1948,32 @@ export default function OperacaoDiaria() {
   // Mutation para finalizar viagem
   const finalizarViagemMutation = useMutation({
     mutationFn: async (viagemId: string) => {
+      // Pre-sync: garantir que canhoto_url está preenchido para entregas com arquivos no bucket
+      const { data: ves } = await supabase
+        .from('viagem_entregas')
+        .select('entrega_id')
+        .eq('viagem_id', viagemId);
+      if (ves) {
+        for (const ve of ves) {
+          const { data: entrega } = await supabase
+            .from('entregas')
+            .select('id, canhoto_url, status')
+            .eq('id', ve.entrega_id)
+            .single();
+          if (entrega && entrega.status === 'entregue' && !entrega.canhoto_url) {
+            const { data: files } = await supabase.storage
+              .from('documentos')
+              .list(`canhotos/${entrega.id}`, { limit: 5 });
+            const validFile = (files || []).find(f => f.name !== '.emptyFolderPlaceholder');
+            if (validFile) {
+              await supabase.from('entregas')
+                .update({ canhoto_url: `canhotos/${entrega.id}/${validFile.name}` })
+                .eq('id', entrega.id);
+            }
+          }
+        }
+      }
+
       const { error } = await supabase
         .from('viagens')
         .update({

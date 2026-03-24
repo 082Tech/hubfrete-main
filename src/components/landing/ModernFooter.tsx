@@ -55,7 +55,7 @@ export function ModernFooter() {
             <ul className="space-y-3">
               {['Carteira Digital', 'Antecipação D+0', 'Clube de Vantagens', 'Baixar App'].map((item) => (
                 <li key={item}>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                  <a href={item === 'Baixar App' ? 'https://play.google.com/store/apps/details?id=com.hubfrete.app' : '#'} target={item === 'Baixar App' ? '_blank' : undefined} rel={item === 'Baixar App' ? 'noopener noreferrer' : undefined} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                     {item}
                   </a>
                 </li>

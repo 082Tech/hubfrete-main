@@ -13,7 +13,11 @@ import {
   Fuel,
   Gift,
   Star,
-  Wrench
+  Wrench,
+  Truck,
+  Users,
+  FileText,
+  Route
 } from 'lucide-react';
 
 const embarcadorBenefits = [
@@ -23,6 +27,15 @@ const embarcadorBenefits = [
   { icon: Building2, title: 'Módulo Financeiro', desc: 'Pagamentos por ciclo, volumes transportados e conciliação.' },
   { icon: CheckCircle, title: 'Dashboard Executivo', desc: 'OTIF, lead time, ranking de motoristas e custo por rota.' },
   { icon: MessageSquare, title: 'Chat Unificado', desc: 'Comunicação direta com Motorista e Torre de Controle.' },
+];
+
+const transportadoraBenefits = [
+  { icon: Truck, title: 'Gestão de Frota Completa', desc: 'Veículos, carrocerias e manutenções em um só lugar.' },
+  { icon: Users, title: 'Controle de Motoristas', desc: 'Convite por link, documentos validados e ranking de performance.' },
+  { icon: Route, title: 'Operação Diária', desc: 'Viagens, entregas e rotas otimizadas com rastreamento.' },
+  { icon: FileText, title: 'Documentos Fiscais', desc: 'CT-e e MDF-e integrados com emissão automática.' },
+  { icon: Building2, title: 'Multi-filial', desc: 'Gerencie matriz e filiais com controle de acesso por unidade.' },
+  { icon: Wallet, title: 'Financeiro Integrado', desc: 'Faturamento, antecipação e conciliação por entrega.' },
 ];
 
 const motoristaBenefits = [
@@ -105,8 +118,63 @@ export function ModernBenefits() {
         </div>
       </section>
 
+      {/* Para Transportadoras */}
+      <section id="transportadoras" className="py-24 lg:py-32 bg-muted/30">
+        <div className="container mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            {/* Left grid */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="grid sm:grid-cols-2 gap-4 order-2 lg:order-1"
+            >
+              {transportadoraBenefits.map((benefit, i) => (
+                <motion.div
+                  key={benefit.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.1 * i }}
+                >
+                  <BenefitCard {...benefit} />
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Right content */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="order-1 lg:order-2"
+            >
+              <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+                Para Transportadoras
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+                Sua frota sob controle total
+              </h2>
+              <p className="text-lg text-muted-foreground mb-8">
+                Gerencie motoristas, veículos, documentos e finanças em uma 
+                plataforma única. Do aceite da carga à entrega final.
+              </p>
+              <Button 
+                onClick={() => navigate('/pre-cadastro/transportadora')}
+                className="rounded-full px-6 gap-2"
+              >
+                Começar como Transportadora
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Para Motoristas */}
-      <section id="motoristas" className="py-24 lg:py-32 bg-muted/30">
+      <section id="motoristas" className="py-24 lg:py-32">
         <div className="container mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             {/* Left grid */}
@@ -149,7 +217,7 @@ export function ModernBenefits() {
                 tenha controle total do seu veículo e finanças.
               </p>
               <Button 
-                onClick={() => navigate('/cadastro/motorista')}
+                onClick={() => window.open('https://play.google.com/store/apps/details?id=com.hubfrete.app', '_blank')}
                 className="rounded-full px-6 gap-2"
               >
                 Começar como Motorista

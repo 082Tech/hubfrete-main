@@ -198,6 +198,33 @@ export function ViagemDetailPanel({
   const isViagemEmAndamento = viagem?.status === 'em_andamento';
   const isViagemFinalized = viagem?.status === 'finalizada' || viagem?.status === 'cancelada';
 
+  // Verificar canhotos no bucket para cada entrega (sync automático)
+  const { data: canhotoSyncMap } = useQuery({
+    queryKey: ['viagem-canhoto-sync', viagem?.id, entregaIds],
+    queryFn: async () => {
+      const map: Record<string, boolean> = {};
+      for (const eid of entregaIds) {
+        const { data: files } = await supabase.storage
+          .from('documentos')
+          .list(`canhotos/${eid}`, { limit: 5 });
+        const hasFiles = (files || []).filter(f => f.name !== '.emptyFolderPlaceholder').length > 0;
+        map[eid] = hasFiles;
+
+        // Auto-sync: se tem canhoto no bucket mas a entrega não tem canhoto_url, atualizar
+        const entrega = viagem?.entregas.find(e => e.id === eid);
+        if (hasFiles && entrega && !entrega.canhoto_url) {
+          const validFile = (files || []).find(f => f.name !== '.emptyFolderPlaceholder');
+          if (validFile) {
+            const path = `canhotos/${eid}/${validFile.name}`;
+            await supabase.from('entregas').update({ canhoto_url: path }).eq('id', eid);
+          }
+        }
+      }
+      return map;
+    },
+    enabled: entregaIds.length > 0,
+  });
+
   // Verificar se todas as entregas estão finalizadas E com documentos completos
   const entregasValidation = useMemo(() => {
     if (!viagem) return { canFinalize: false, pendingCount: 0, pendingEntregas: [], docIssues: [] as string[] };
@@ -211,7 +238,9 @@ export function ViagemDetailPanel({
     // Check documents for each delivered entrega
     const entreguesEntregas = viagem.entregas.filter(e => e.status === 'entregue');
     for (const e of entreguesEntregas) {
-      if (!e.canhoto_url) {
+      // Canhoto: aceitar tanto canhoto_url quanto arquivos no bucket
+      const hasCanhotoInBucket = canhotoSyncMap?.[e.id] ?? false;
+      if (!e.canhoto_url && !hasCanhotoInBucket) {
         docIssues.push(`${e.codigo}: sem Canhoto`);
       }
       if (nfesCountMap && !(nfesCountMap[e.id])) {
@@ -234,7 +263,7 @@ export function ViagemDetailPanel({
       pendingEntregas: pendingEntregas.map(e => e.codigo),
       docIssues,
     };
-  }, [viagem, nfesCountMap, ctesMap, manifestosMap]);
+  }, [viagem, nfesCountMap, ctesMap, manifestosMap, canhotoSyncMap]);
   const handleIniciarViagem = async () => {
     if (!viagem || !onStart) return;
 

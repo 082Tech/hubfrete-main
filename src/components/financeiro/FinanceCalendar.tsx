@@ -135,16 +135,16 @@ export function FinanceCalendar({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-sm font-medium truncate">{r.entregas?.codigo || '—'}</p>
-                        {!isEmbarcador && r.antecipado && (
-                          <Badge className="bg-primary text-primary-foreground text-[9px] px-1 py-0">Antecipado</Badge>
-                        )}
                         <Badge variant={r.status === 'pago' ? 'default' : 'secondary'} className={cn(
                           'text-[9px] px-1 py-0',
                           r.status === 'pago' && 'bg-chart-2 text-white',
+                          !isEmbarcador && r.antecipado && r.status !== 'pago' && 'bg-primary text-primary-foreground',
                         )}>
                           {r.status === 'pago'
                             ? (isEmbarcador ? 'Pago' : 'Recebido')
-                            : (isEmbarcador ? 'A Pagar' : 'Pendente')}
+                            : (!isEmbarcador && r.antecipado)
+                              ? 'Antecipado'
+                              : (isEmbarcador ? 'A Pagar' : 'Pendente')}
                         </Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">

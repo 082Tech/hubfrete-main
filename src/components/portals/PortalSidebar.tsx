@@ -5,7 +5,7 @@ import {
   User, Users, MapPin, Calendar, BarChart3, Bell, ChevronDown, Check,
   Sparkles, Loader2, ChevronLeft, ChevronRight, Home, History, Send,
   Route, Pin, Building, MessageSquare, MoreVertical, ArrowRightLeft,
-  Link2, Container, Boxes, DollarSign, Plug,
+  Link2, Container, Boxes, DollarSign, Plug, HelpCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -120,6 +120,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: Sparkles, label: 'Assistente', href: '/embarcador/assistente' },
     // Minha Empresa is a submenu
     { icon: Settings, label: 'Configurações', href: '/embarcador/configuracoes' },
+    { icon: HelpCircle, label: 'Ajuda', href: '/embarcador/ajuda' },
   ],
   transportadora: [
     { icon: Home, label: 'Home', href: '/transportadora' },
@@ -132,6 +133,7 @@ const menusByType: Record<SidebarUserType, MenuItem[]> = {
     { icon: Sparkles, label: 'Assistente', href: '/transportadora/assistente' },
     // Minha Empresa is a submenu
     { icon: Settings, label: 'Configurações', href: '/transportadora/configuracoes' },
+    { icon: HelpCircle, label: 'Ajuda', href: '/transportadora/ajuda' },
   ],
   motorista: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/motorista' },
@@ -764,10 +766,13 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                 .filter(item =>
                   item.href !== '/transportadora' &&
                   item.href !== '/transportadora/ofertas' &&
-                  item.href !== '/transportadora/configuracoes'
+                  item.href !== '/transportadora/configuracoes' &&
+                  item.href !== '/transportadora/ajuda'
                 )
                 .map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const isActive = item.href.endsWith('/ajuda')
+                    ? location.pathname.startsWith(item.href)
+                    : location.pathname === item.href;
                   const linkContent = (
                     <Link
                       key={item.href}
@@ -895,14 +900,45 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                 }
                 return linkContent;
               })()}
+
+              {/* Ajuda - last item */}
+              {(() => {
+                const ajudaItem = menuItems.find(item => item.href === '/transportadora/ajuda');
+                if (!ajudaItem) return null;
+                const isActive = location.pathname.startsWith(ajudaItem.href);
+                const linkContent = (
+                  <Link
+                    to={ajudaItem.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                      } ${isActive
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                      }`}
+                  >
+                    <ajudaItem.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{ajudaItem.label}</span>}
+                  </Link>
+                );
+                if (collapsed) {
+                  return (
+                    <Tooltip>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>{ajudaItem.label}</TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return linkContent;
+              })()}
             </>
           ) : (
             // Embarcador + other user types
             <>
               {menuItems
-                .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')) && !item.href.endsWith('/configuracoes'))
+                .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')) && !item.href.endsWith('/configuracoes') && !item.href.endsWith('/ajuda'))
                 .map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const isActive = item.href.endsWith('/ajuda')
+                    ? location.pathname.startsWith(item.href)
+                    : location.pathname === item.href;
                   const linkContent = (
                     <Link
                       key={item.href}
@@ -1026,6 +1062,36 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                     <Tooltip>
                       <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
                       <TooltipContent side="right" sideOffset={10}>{configItem.label}</TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return linkContent;
+              })()}
+
+              {/* Ajuda - last item */}
+              {(() => {
+                const ajudaHref = userType === 'embarcador' ? '/embarcador/ajuda' : `/${userType}/ajuda`;
+                const ajudaItem = menuItems.find(item => item.href === ajudaHref);
+                if (!ajudaItem) return null;
+                const isActive = location.pathname.startsWith(ajudaItem.href);
+                const linkContent = (
+                  <Link
+                    to={ajudaItem.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                      } ${isActive
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                        : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
+                      }`}
+                  >
+                    <ajudaItem.icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && <span className="font-medium">{ajudaItem.label}</span>}
+                  </Link>
+                );
+                if (collapsed) {
+                  return (
+                    <Tooltip>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>{ajudaItem.label}</TooltipContent>
                     </Tooltip>
                   );
                 }

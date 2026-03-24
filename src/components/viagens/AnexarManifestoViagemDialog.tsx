@@ -78,9 +78,6 @@ export function AnexarManifestoViagemDialog({
 
       if (insertError) throw insertError;
 
-      // Update viagem updated_at
-      await supabase.from('viagens').update({ updated_at: new Date().toISOString() }).eq('id', viagemId);
-
       return manifestoUrl;
     },
     onSuccess: () => {

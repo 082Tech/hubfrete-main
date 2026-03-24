@@ -12,6 +12,7 @@ import { UpdateToast } from "@/components/UpdateToast";
 import { PatchNotesModal } from "@/components/PatchNotesModal";
 import { PortalLayoutWrapper } from "@/components/portals/PortalLayoutWrapper";
 import Landing from "./pages/Landing";
+import Comecar from "./pages/Comecar";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/admin/AdminLogin";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -62,6 +63,8 @@ import EmbarcadorMensagens from "./pages/portals/embarcador/Mensagens";
 import EmbarcadorNotificacoes from "./pages/portals/embarcador/Notificacoes";
 import EmbarcadorDadosEmpresa from "./pages/portals/embarcador/DadosEmpresa";
 import EmbarcadorIntegracoes from "./pages/portals/embarcador/Integracoes";
+import Ajuda from "./pages/portals/shared/Ajuda";
+import Tutoriais from "./pages/portals/shared/Tutoriais";
 
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraOfertas from "./pages/portals/transportadora/OfertasDisponiveis";
@@ -114,6 +117,7 @@ const App = () => {
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
                   <Route path="/" element={<Landing />} />
+                  <Route path="/comecar" element={<Comecar />} />
                   <Route path="/login" element={<Login setShowSplash={setShowSplash} />} />
                   <Route path="/admin" element={<AdminLogin />} />
                   <Route path="/esqueci-senha" element={<ForgotPassword />} />
@@ -173,6 +177,8 @@ const App = () => {
                     <Route path="financeiro" element={<EmbarcadorFinanceiro />} />
                     <Route path="dados-empresa" element={<EmbarcadorDadosEmpresa />} />
                     <Route path="integracoes" element={<EmbarcadorIntegracoes />} />
+                    <Route path="ajuda" element={<Ajuda />} />
+                    <Route path="ajuda/tutoriais" element={<Tutoriais />} />
                     <Route path="configuracoes" element={<Configuracoes />} />
                   </Route>
 
@@ -196,6 +202,8 @@ const App = () => {
                     <Route path="financeiro" element={<TransportadoraFinanceiro />} />
                     <Route path="dados-empresa" element={<TransportadoraDadosEmpresa />} />
                     <Route path="integracoes" element={<TransportadoraIntegracoes />} />
+                    <Route path="ajuda" element={<Ajuda />} />
+                    <Route path="ajuda/tutoriais" element={<Tutoriais />} />
                     <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />
                   </Route>
 

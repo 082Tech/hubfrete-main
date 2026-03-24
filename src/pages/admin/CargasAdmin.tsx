@@ -90,7 +90,6 @@ interface EntregaData {
   entregue_em: string | null;
   created_at: string | null;
   motorista_id: string | null;
-  numero_cte: string | null;
   motoristas: {
     id: string;
     nome_completo: string;
@@ -228,7 +227,6 @@ export default function CargasAdmin() {
             entregue_em,
             created_at,
             motorista_id,
-            numero_cte,
             motoristas:motoristas (
               id,
               nome_completo,
@@ -639,11 +637,6 @@ export default function CargasAdmin() {
                                           <TableRow key={entrega.id}>
                                             <TableCell>
                                               <span className="font-mono text-sm">{entrega.codigo || '-'}</span>
-                                            </TableCell>
-                                            <TableCell>
-                                              <span className="font-mono text-sm text-muted-foreground">
-                                                {entrega.numero_cte || '-'}
-                                              </span>
                                             </TableCell>
                                             <TableCell>
                                               <div className="flex items-center gap-2">
