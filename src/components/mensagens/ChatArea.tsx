@@ -105,16 +105,31 @@ export function ChatArea({
 
   const handleStopRecording = async () => {
     const result = await stopRecording();
-    if (!result || !chat) return;
+    if (!result) return;
+
+    // Create a local URL for preview instead of uploading immediately
+    const previewUrl = URL.createObjectURL(result.blob);
+    setAudioPreview({ url: previewUrl, blob: result.blob, duration: result.duration });
+  };
+
+  const handleDiscardAudio = () => {
+    if (audioPreview) {
+      URL.revokeObjectURL(audioPreview.url);
+      setAudioPreview(null);
+    }
+  };
+
+  const handleSendAudio = async () => {
+    if (!audioPreview || !chat) return;
 
     setIsUploading(true);
     try {
-      const ext = result.blob.type.includes('mp4') ? 'mp4' : 'webm';
+      const ext = audioPreview.blob.type.includes('mp4') ? 'mp4' : 'webm';
       const fileName = `${chat.id}/${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('chat-audios')
-        .upload(fileName, result.blob);
+        .upload(fileName, audioPreview.blob);
 
       if (uploadError) throw uploadError;
 
@@ -122,7 +137,9 @@ export function ChatArea({
         .from('chat-audios')
         .getPublicUrl(fileName);
 
-      onSendMessage('', undefined, { url: publicUrl, duracao: result.duration });
+      onSendMessage('', undefined, { url: publicUrl, duracao: audioPreview.duration });
+      URL.revokeObjectURL(audioPreview.url);
+      setAudioPreview(null);
     } catch (error) {
       console.error('Error uploading audio:', error);
       toast({
