@@ -48,6 +48,7 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
   };
 
   const hasAttachment = message.anexo_url && message.anexo_nome && message.anexo_tipo;
+  const hasAudio = !!message.audio_url;
   const hasText = message.conteudo && message.conteudo.trim().length > 0;
 
   return (
