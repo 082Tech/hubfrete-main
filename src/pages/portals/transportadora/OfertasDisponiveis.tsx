@@ -295,6 +295,8 @@ export default function OfertasDisponiveis() {
           empilhavel,
           necessidades_especiais,
           veiculo_requisitos,
+          agendamento_entrega,
+          link_agendamento,
           numero_pedido,
           empresa_id,
           destinatario_razao_social,
