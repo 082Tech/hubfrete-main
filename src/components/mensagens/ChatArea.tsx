@@ -81,6 +81,57 @@ export function ChatArea({
   const isInitialLoadRef = useRef(true);
   const prevScrollHeightRef = useRef(0);
   const { toast } = useToast();
+  const { isRecording, duration: recordingDuration, startRecording, stopRecording, cancelRecording } = useAudioRecorder();
+
+  const formatRecordingTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const handleStartRecording = async () => {
+    try {
+      await startRecording();
+    } catch {
+      toast({
+        title: 'Erro ao acessar microfone',
+        description: 'Verifique as permissões do navegador.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleStopRecording = async () => {
+    const result = await stopRecording();
+    if (!result || !chat) return;
+
+    setIsUploading(true);
+    try {
+      const ext = result.blob.type.includes('mp4') ? 'mp4' : 'webm';
+      const fileName = `${chat.id}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('chat-audios')
+        .upload(fileName, result.blob);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-audios')
+        .getPublicUrl(fileName);
+
+      onSendMessage('', undefined, { url: publicUrl, duracao: result.duration });
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      toast({
+        title: 'Erro ao enviar áudio',
+        description: 'Não foi possível enviar o áudio.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Get scroll container
   const getScrollContainer = useCallback(() => {
