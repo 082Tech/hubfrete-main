@@ -877,17 +877,10 @@ export default function Financeiro() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Prazo de pagamento (dias)</Label>
-                <Input type="number" value={configForm.prazo_dias} onChange={(e) => setConfigForm(f => ({ ...f, prazo_dias: parseInt(e.target.value) || 0 }))} />
-                <p className="text-[10px] text-muted-foreground mt-1">D+X após a finalização da carga</p>
-              </div>
-              <div>
-                <Label>Dia de Fechamento (opcional)</Label>
-                <Input type="number" placeholder="Ex: 15" min={1} max={28} value={configForm.dia_fixo} onChange={(e) => setConfigForm(f => ({ ...f, dia_fixo: e.target.value }))} />
-                <p className="text-[10px] text-muted-foreground mt-1">Agrupa entregas e fecha neste dia</p>
-              </div>
+            <div>
+              <Label>Prazo de pagamento (dias)</Label>
+              <Input type="number" value={configForm.prazo_dias} onChange={(e) => setConfigForm(f => ({ ...f, prazo_dias: parseInt(e.target.value) || 0 }))} />
+              <p className="text-[10px] text-muted-foreground mt-1">D+X após a finalização da carga</p>
             </div>
 
             <div className="border-t border-border pt-4 space-y-3">
