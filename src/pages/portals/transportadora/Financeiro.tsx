@@ -67,7 +67,7 @@ export default function TransportadoraFinanceiro() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('empresa_config_financeira' as any)
-        .select('empresa_id, antecipacao_permitida, taxa_antecipacao_percent, limite_credito, credito_utilizado');
+        .select('empresa_id, taxa_antecipacao_percent');
       if (error) throw error;
       return (data as any[]).reduce((acc: Record<number, any>, c: any) => {
         acc[c.empresa_id] = c;
@@ -124,11 +124,10 @@ export default function TransportadoraFinanceiro() {
 
   const antecipacaoMutation = useMutation({
     mutationFn: async (recebivel: any) => {
-      const cfg = configEmbarcadores?.[recebivel.empresa_embarcadora_id];
-      if (!cfg?.antecipacao_permitida) throw new Error('Antecipação não permitida para este embarcador');
       const diasRestantes = differenceInDays(new Date(recebivel.data_vencimento), new Date());
       if (diasRestantes <= 0) throw new Error('Recebível já vencido');
-      const taxa = cfg.taxa_antecipacao_percent || 2;
+      const cfg = configEmbarcadores?.[recebivel.empresa_embarcadora_id];
+      const taxa = cfg?.taxa_antecipacao_percent || 2;
       const valorLiquido = Number(recebivel.valor_liquido);
       const valorTaxa = Math.round(valorLiquido * (taxa / 100) * 100) / 100;
       const valorFinal = valorLiquido - valorTaxa;
@@ -166,8 +165,6 @@ export default function TransportadoraFinanceiro() {
   const canAntecipar = (r: any) => {
     if (r.status !== 'pendente' || r.antecipado) return false;
     if (!r.data_vencimento || differenceInDays(new Date(r.data_vencimento), new Date()) <= 0) return false;
-    const cfg = configEmbarcadores?.[r.empresa_embarcadora_id];
-    if (cfg?.antecipacao_permitida !== true) return false;
     // Already has a pending or approved request
     const existing = solicitacaoByFinanceiroId[r.id];
     if (existing && (existing.status === 'pendente' || existing.status === 'aprovada')) return false;
@@ -189,7 +186,7 @@ export default function TransportadoraFinanceiro() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
-        <p className="text-sm text-muted-foreground">Cada carga finalizada gera um recebível individual D+30</p>
+        <p className="text-sm text-muted-foreground">Recebíveis faturados D+30 por carga finalizada</p>
       </div>
 
       {/* Summary strip */}
@@ -386,12 +383,11 @@ export default function TransportadoraFinanceiro() {
                 </div>
               </div>
               <div>
-                <Label>Chave PIX (preferencial)</Label>
-                <Input value={bankForm.pix} onChange={(e) => setBankForm(f => ({ ...f, pix: e.target.value }))} placeholder="CPF, CNPJ, e-mail ou chave aleatória" />
+                <Label>Chave PIX</Label>
+                <Input value={bankForm.pix} onChange={(e) => setBankForm(f => ({ ...f, pix: e.target.value }))} placeholder="CPF, e-mail, celular ou chave aleatória" />
               </div>
-              <Button onClick={() => saveBankMutation.mutate()} disabled={saveBankMutation.isPending}>
-                <Save className="w-4 h-4 mr-2" />
-                {saveBankMutation.isPending ? 'Salvando...' : 'Salvar Dados Bancários'}
+              <Button className="w-full" onClick={() => saveBankMutation.mutate()} disabled={saveBankMutation.isPending}>
+                <Save className="w-4 h-4 mr-2" /> {saveBankMutation.isPending ? 'Salvando...' : 'Salvar Dados Bancários'}
               </Button>
             </CardContent>
           </Card>
@@ -409,59 +405,57 @@ export default function TransportadoraFinanceiro() {
           {antecipacaoDialog && (() => {
             const cfg = configEmbarcadores?.[antecipacaoDialog.empresa_embarcadora_id];
             const taxa = cfg?.taxa_antecipacao_percent || 2;
+            const diasRestantes = differenceInDays(new Date(antecipacaoDialog.data_vencimento), new Date());
             const valorLiquido = Number(antecipacaoDialog.valor_liquido);
             const valorTaxa = Math.round(valorLiquido * (taxa / 100) * 100) / 100;
             const valorFinal = valorLiquido - valorTaxa;
-            const diasRestantes = differenceInDays(new Date(antecipacaoDialog.data_vencimento), new Date());
 
             return (
               <div className="space-y-4">
-                <div className="p-4 bg-muted rounded-lg space-y-2">
-                  <p className="text-sm font-medium">Carga: {antecipacaoDialog.entregas?.codigo}</p>
+                <div className="p-3 bg-muted rounded-lg space-y-1.5">
+                  <p className="text-sm font-medium">Carga: {antecipacaoDialog.entregas?.codigo || '—'}</p>
                   <p className="text-xs text-muted-foreground">
-                    Vencimento original: {format(new Date(antecipacaoDialog.data_vencimento), 'dd/MM/yyyy')} ({diasRestantes} dias restantes)
+                    Vencimento: {format(new Date(antecipacaoDialog.data_vencimento), 'dd/MM/yyyy')} ({diasRestantes}d restantes)
                   </p>
                 </div>
-                <div className="border border-border rounded-lg p-4 space-y-3">
+
+                <div className="space-y-2 p-3 rounded-lg border border-chart-4/30 bg-chart-4/5">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Valor líquido</span>
                     <span className="font-medium">{formatCurrency(valorLiquido)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Taxa de antecipação ({taxa}%)</span>
-                    <span className="text-destructive">- {formatCurrency(valorTaxa)}</span>
+                    <span className="text-muted-foreground">Taxa ({taxa}%)</span>
+                    <span className="font-medium text-destructive">- {formatCurrency(valorTaxa)}</span>
                   </div>
                   <div className="border-t border-border pt-2 flex justify-between">
-                    <span className="font-semibold">Valor a receber</span>
-                    <span className="text-lg font-bold text-chart-2">{formatCurrency(valorFinal)}</span>
+                    <span className="font-semibold">Valor antecipado</span>
+                    <span className="font-bold text-chart-2 text-lg">{formatCurrency(valorFinal)}</span>
                   </div>
                 </div>
+
                 <div>
-                  <Label className="text-xs">Observação (opcional)</Label>
-                  <Textarea
-                    value={observacoes}
-                    onChange={(e) => setObservacoes(e.target.value)}
-                    placeholder="Motivo da antecipação..."
-                    rows={2}
-                    className="mt-1"
-                  />
+                  <Label>Observações (opcional)</Label>
+                  <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Ex: Urgência para pagamento de despesas operacionais" rows={2} />
                 </div>
-                <div className="flex items-start gap-2 p-3 bg-chart-4/10 rounded-lg">
-                  <AlertTriangle className="w-4 h-4 text-chart-4 mt-0.5 shrink-0" />
-                  <p className="text-xs text-chart-4">
-                    Sua solicitação será analisada pela equipe HubFrete. Após aprovação, o valor será disponibilizado com desconto da taxa.
-                  </p>
-                </div>
+
+                <p className="text-[10px] text-muted-foreground">
+                  A solicitação será analisada pela equipe HubFrete. Você receberá uma notificação com a resposta.
+                </p>
               </div>
             );
           })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAntecipacaoDialog(null)}>Cancelar</Button>
-            <Button className="bg-chart-4 hover:bg-chart-4/90 text-white" onClick={() => antecipacaoMutation.mutate(antecipacaoDialog)} disabled={antecipacaoMutation.isPending}>
+            <Button
+              className="bg-chart-4 hover:bg-chart-4/90 text-white"
+              onClick={() => antecipacaoMutation.mutate(antecipacaoDialog)}
+              disabled={antecipacaoMutation.isPending}
+            >
               {antecipacaoMutation.isPending ? (
-                <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Enviando...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</>
               ) : (
-                <><Zap className="w-4 h-4 mr-1" /> Enviar Solicitação</>
+                <><Zap className="w-4 h-4 mr-2" /> Solicitar Antecipação</>
               )}
             </Button>
           </DialogFooter>
