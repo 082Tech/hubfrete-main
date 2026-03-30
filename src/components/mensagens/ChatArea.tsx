@@ -618,69 +618,119 @@ export function ChatArea({
             className="hidden"
           />
 
-          <div className="flex items-end gap-2 md:gap-3">
-            {/* Attach button */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+          {isRecording ? (
+            /* Recording UI */
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={cancelRecording}
+                className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full text-destructive hover:text-destructive"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+              
+              <div className="flex-1 flex items-center gap-3 px-4 py-2.5 bg-destructive/10 rounded-2xl">
+                <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
+                <span className="text-sm font-medium text-destructive">
+                  {formatRecordingTime(recordingDuration)}
+                </span>
+                <span className="text-xs text-muted-foreground">Gravando...</span>
+              </div>
+
+              <Button
+                onClick={handleStopRecording}
+                disabled={isUploading}
+                size="icon"
+                className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full shadow-md bg-destructive hover:bg-destructive/90"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
+                ) : (
+                  <Square className="h-4 w-4 md:h-5 md:w-5 fill-current" />
+                )}
+              </Button>
+            </div>
+          ) : (
+            /* Normal input UI */
+            <div className="flex items-end gap-2 md:gap-3">
+              {/* Attach button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full"
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Paperclip className="h-5 w-5" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.accept = ALLOWED_IMAGE_TYPES.join(',');
+                        fileInputRef.current.click();
+                      }
+                    }}
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Imagem
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.accept = ALLOWED_DOC_TYPES.join(',');
+                        fileInputRef.current.click();
+                      }
+                    }}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Documento
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <div className="flex-1 relative min-w-0">
+                <Textarea
+                  ref={textareaRef}
+                  placeholder="Digite sua mensagem..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="min-h-[44px] md:min-h-[48px] max-h-32 resize-none pr-4 rounded-2xl bg-muted/50 border-0 focus-visible:ring-1 text-sm md:text-base"
+                  rows={1}
+                />
+              </div>
+
+              {/* Show mic button when input is empty, send button when has content */}
+              {!newMessage.trim() && !attachment ? (
                 <Button
+                  onClick={handleStartRecording}
                   variant="ghost"
                   size="icon"
                   className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full"
-                  disabled={isUploading}
+                  disabled={isUploading || isSending}
                 >
-                  {isUploading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Paperclip className="h-5 w-5" />
-                  )}
+                  <Mic className="h-5 w-5" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (fileInputRef.current) {
-                      fileInputRef.current.accept = ALLOWED_IMAGE_TYPES.join(',');
-                      fileInputRef.current.click();
-                    }
-                  }}
+              ) : (
+                <Button 
+                  onClick={handleSend} 
+                  disabled={(!newMessage.trim() && !attachment) || isSending || isUploading}
+                  size="icon"
+                  className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full shadow-md"
                 >
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  Imagem
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (fileInputRef.current) {
-                      fileInputRef.current.accept = ALLOWED_DOC_TYPES.join(',');
-                      fileInputRef.current.click();
-                    }
-                  }}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Documento
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <div className="flex-1 relative min-w-0">
-              <Textarea
-                ref={textareaRef}
-                placeholder="Digite sua mensagem..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="min-h-[44px] md:min-h-[48px] max-h-32 resize-none pr-4 rounded-2xl bg-muted/50 border-0 focus-visible:ring-1 text-sm md:text-base"
-                rows={1}
-              />
+                  <Send className="h-4 w-4 md:h-5 md:w-5" />
+                </Button>
+              )}
             </div>
-            <Button 
-              onClick={handleSend} 
-              disabled={(!newMessage.trim() && !attachment) || isSending || isUploading}
-              size="icon"
-              className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full shadow-md"
-            >
-              <Send className="h-4 w-4 md:h-5 md:w-5" />
-            </Button>
-          </div>
+          )}
         </div>
       )}
 
