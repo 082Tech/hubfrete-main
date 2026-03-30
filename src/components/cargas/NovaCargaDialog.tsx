@@ -238,6 +238,8 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
   const [carroceriasSelecionadas, setCarroceriasSelecionadas] = useState<string[]>([]);
   const [origemData, setOrigemData] = useState<LocationData>(initialLocationData);
   const [destinoData, setDestinoData] = useState<LocationData>(initialLocationData);
+  const [agendamentoEntrega, setAgendamentoEntrega] = useState(false);
+  const [linkAgendamento, setLinkAgendamento] = useState('');
 
   const resetDialogState = () => {
     form.reset();
@@ -247,6 +249,8 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     setCarroceriasSelecionadas([]);
     setOrigemData(initialLocationData);
     setDestinoData(initialLocationData);
+    setAgendamentoEntrega(false);
+    setLinkAgendamento('');
     setActiveTab('dados');
   };
 
