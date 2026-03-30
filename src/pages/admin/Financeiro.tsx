@@ -694,7 +694,7 @@ export default function Financeiro() {
             </div>
             <Button size="sm" onClick={() => {
               setConfigDialog({ id: '', empresa_id: 0, tipo_pagamento: 'faturado', prazo_dias: 30, dia_fixo: null, ciclo_faturamento: 'mensal', antecipacao_permitida: true, taxa_antecipacao_percent: 2, limite_credito: 0, credito_utilizado: 0 });
-              setConfigForm({ prazo_dias: 30, dia_fixo: '', taxa_antecipacao_percent: 2, limite_credito: 0 });
+              setConfigForm({ prazo_dias: 30, taxa_antecipacao_percent: 2, limite_credito: 0 });
             }}>
               <Settings className="w-4 h-4 mr-2" /> Nova Config
             </Button>
