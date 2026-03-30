@@ -853,19 +853,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
                 <FormMessage />
               </FormItem>
             )} />
-          </div>
-        );
 
-      case 'origem':
-        return (
-          <RemetenteSection initialData={origemData} onLocationChange={setOrigemData} />
-        );
-
-      case 'destino':
-        return (
-          <div className="space-y-6">
-            <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
-            
             {/* Agendamento de Entrega */}
             <Separator />
             <div className="space-y-3">
@@ -899,6 +887,16 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
               )}
             </div>
           </div>
+        );
+
+      case 'origem':
+        return (
+          <RemetenteSection initialData={origemData} onLocationChange={setOrigemData} />
+        );
+
+      case 'destino':
+        return (
+          <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
         );
     }
   };
