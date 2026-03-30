@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Send, Package, ChevronRight, ArrowLeft, CheckCircle2, Ban, AlertTriangle, RotateCcw, Loader2, Paperclip, X, ImageIcon, FileText, Mic, Square } from 'lucide-react';
+import { Send, Package, ChevronRight, ArrowLeft, CheckCircle2, Ban, AlertTriangle, RotateCcw, Loader2, Paperclip, X, ImageIcon, FileText, Mic, Square, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { MessageBubble } from './MessageBubble';
 import { ChatDetailsSheet } from './ChatDetailsSheet';
 import { AttachmentPreview } from './AttachmentPreview';
+import { AudioPlayer } from './AudioPlayer';
 import { Chat, Mensagem, AttachmentPreview as AttachmentPreviewType } from './types';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -74,6 +75,7 @@ export function ChatArea({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [attachment, setAttachment] = useState<AttachmentPreviewType | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [audioPreview, setAudioPreview] = useState<{ url: string; blob: Blob; duration: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -103,16 +105,31 @@ export function ChatArea({
 
   const handleStopRecording = async () => {
     const result = await stopRecording();
-    if (!result || !chat) return;
+    if (!result) return;
+
+    // Create a local URL for preview instead of uploading immediately
+    const previewUrl = URL.createObjectURL(result.blob);
+    setAudioPreview({ url: previewUrl, blob: result.blob, duration: result.duration });
+  };
+
+  const handleDiscardAudio = () => {
+    if (audioPreview) {
+      URL.revokeObjectURL(audioPreview.url);
+      setAudioPreview(null);
+    }
+  };
+
+  const handleSendAudio = async () => {
+    if (!audioPreview || !chat) return;
 
     setIsUploading(true);
     try {
-      const ext = result.blob.type.includes('mp4') ? 'mp4' : 'webm';
+      const ext = audioPreview.blob.type.includes('mp4') ? 'mp4' : 'webm';
       const fileName = `${chat.id}/${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('chat-audios')
-        .upload(fileName, result.blob);
+        .upload(fileName, audioPreview.blob);
 
       if (uploadError) throw uploadError;
 
@@ -120,7 +137,9 @@ export function ChatArea({
         .from('chat-audios')
         .getPublicUrl(fileName);
 
-      onSendMessage('', undefined, { url: publicUrl, duracao: result.duration });
+      onSendMessage('', undefined, { url: publicUrl, duracao: audioPreview.duration });
+      URL.revokeObjectURL(audioPreview.url);
+      setAudioPreview(null);
     } catch (error) {
       console.error('Error uploading audio:', error);
       toast({
@@ -640,14 +659,43 @@ export function ChatArea({
 
               <Button
                 onClick={handleStopRecording}
-                disabled={isUploading}
                 size="icon"
                 className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full shadow-md bg-destructive hover:bg-destructive/90"
+              >
+                <Square className="h-4 w-4 md:h-5 md:w-5 fill-current" />
+              </Button>
+            </div>
+          ) : audioPreview ? (
+            /* Audio preview UI - WhatsApp style */
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDiscardAudio}
+                className="shrink-0 h-10 w-10 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+
+              <div className="flex-1 bg-muted/50 rounded-2xl px-3 py-2">
+                <AudioPlayer
+                  url={audioPreview.url}
+                  duration={audioPreview.duration}
+                  isOwn={false}
+                  compact
+                />
+              </div>
+
+              <Button
+                onClick={handleSendAudio}
+                disabled={isUploading}
+                size="icon"
+                className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full shadow-md"
               >
                 {isUploading ? (
                   <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
                 ) : (
-                  <Square className="h-4 w-4 md:h-5 md:w-5 fill-current" />
+                  <Send className="h-4 w-4 md:h-5 md:w-5" />
                 )}
               </Button>
             </div>

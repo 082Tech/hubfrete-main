@@ -1,15 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Slider } from '@/components/ui/slider';
 
 interface AudioPlayerProps {
   url: string;
   duration?: number;
   isOwn: boolean;
+  compact?: boolean;
 }
 
-export function AudioPlayer({ url, duration: propDuration, isOwn }: AudioPlayerProps) {
+export function AudioPlayer({ url, duration: propDuration, isOwn, compact = false }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -53,11 +53,14 @@ export function AudioPlayer({ url, duration: propDuration, isOwn }: AudioPlayerP
     setIsPlaying(!isPlaying);
   };
 
-  const handleSeek = (value: number[]) => {
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime = value[0];
-    setCurrentTime(value[0]);
+    if (!audio || !displayDuration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, x / rect.width));
+    audio.currentTime = pct * displayDuration;
+    setCurrentTime(audio.currentTime);
   };
 
   const formatTime = (seconds: number) => {
@@ -67,51 +70,75 @@ export function AudioPlayer({ url, duration: propDuration, isOwn }: AudioPlayerP
   };
 
   const displayDuration = duration || propDuration || 0;
+  const progress = displayDuration > 0 ? (currentTime / displayDuration) * 100 : 0;
+
+  // Generate pseudo-waveform bars
+  const barCount = compact ? 28 : 32;
+  const bars = useRef(
+    Array.from({ length: barCount }, () => 0.2 + Math.random() * 0.8)
+  ).current;
 
   return (
-    <div className="flex items-center gap-2 min-w-[180px]">
+    <div className={cn('flex items-center gap-2.5', compact ? 'min-w-[200px]' : 'min-w-[220px]')}>
       <audio ref={audioRef} src={url} preload="metadata" />
-      
+
       <button
         onClick={togglePlay}
         className={cn(
-          'shrink-0 h-9 w-9 rounded-full flex items-center justify-center transition-colors',
+          'shrink-0 rounded-full flex items-center justify-center transition-all active:scale-95',
+          compact ? 'h-9 w-9' : 'h-10 w-10',
           isOwn
             ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground'
             : 'bg-primary/10 hover:bg-primary/20 text-primary'
         )}
       >
         {isPlaying ? (
-          <Pause className="h-4 w-4" />
+          <Pause className={cn(compact ? 'h-4 w-4' : 'h-[18px] w-[18px]')} />
         ) : (
-          <Play className="h-4 w-4 ml-0.5" />
+          <Play className={cn('ml-0.5', compact ? 'h-4 w-4' : 'h-[18px] w-[18px]')} />
         )}
       </button>
 
-      <div className="flex-1 flex flex-col gap-1">
-        <Slider
-          value={[currentTime]}
-          max={displayDuration || 1}
-          step={0.1}
-          onValueChange={handleSeek}
-          className={cn(
-            'h-1',
-            isOwn ? '[&_[role=slider]]:bg-primary-foreground [&_[data-orientation=horizontal]>span:first-child>span]:bg-primary-foreground/60' : ''
-          )}
-        />
+      <div className="flex-1 flex flex-col gap-1.5">
+        {/* Waveform */}
+        <div
+          className="flex items-end gap-[2px] h-[22px] cursor-pointer"
+          onClick={handleSeek}
+        >
+          {bars.map((height, i) => {
+            const barPct = (i / barCount) * 100;
+            const isActive = barPct <= progress;
+            return (
+              <div
+                key={i}
+                className={cn(
+                  'flex-1 rounded-full transition-colors duration-100',
+                  isOwn
+                    ? isActive ? 'bg-primary-foreground' : 'bg-primary-foreground/30'
+                    : isActive ? 'bg-primary' : 'bg-primary/20'
+                )}
+                style={{ height: `${height * 100}%`, minHeight: 3 }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Time */}
         <div className="flex justify-between">
           <span className={cn(
-            'text-[10px]',
+            'text-[10px] tabular-nums',
             isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
           )}>
-            {formatTime(currentTime)}
+            {formatTime(isPlaying || currentTime > 0 ? currentTime : displayDuration)}
           </span>
-          <span className={cn(
-            'text-[10px]',
-            isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
-          )}>
-            {formatTime(displayDuration)}
-          </span>
+          {(isPlaying || currentTime > 0) && (
+            <span className={cn(
+              'text-[10px] tabular-nums',
+              isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
+            )}>
+              {formatTime(displayDuration)}
+            </span>
+          )}
         </div>
       </div>
     </div>
