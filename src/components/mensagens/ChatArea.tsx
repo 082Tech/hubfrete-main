@@ -659,14 +659,43 @@ export function ChatArea({
 
               <Button
                 onClick={handleStopRecording}
-                disabled={isUploading}
                 size="icon"
                 className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full shadow-md bg-destructive hover:bg-destructive/90"
+              >
+                <Square className="h-4 w-4 md:h-5 md:w-5 fill-current" />
+              </Button>
+            </div>
+          ) : audioPreview ? (
+            /* Audio preview UI - WhatsApp style */
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDiscardAudio}
+                className="shrink-0 h-10 w-10 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+
+              <div className="flex-1 bg-muted/50 rounded-2xl px-3 py-2">
+                <AudioPlayer
+                  url={audioPreview.url}
+                  duration={audioPreview.duration}
+                  isOwn={false}
+                  compact
+                />
+              </div>
+
+              <Button
+                onClick={handleSendAudio}
+                disabled={isUploading}
+                size="icon"
+                className="shrink-0 h-11 w-11 md:h-12 md:w-12 rounded-full shadow-md"
               >
                 {isUploading ? (
                   <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
                 ) : (
-                  <Square className="h-4 w-4 md:h-5 md:w-5 fill-current" />
+                  <Send className="h-4 w-4 md:h-5 md:w-5" />
                 )}
               </Button>
             </div>
