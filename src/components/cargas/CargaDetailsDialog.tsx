@@ -34,6 +34,8 @@ import {
   PackageOpen,
   FileSearch,
   History,
+  CalendarClock,
+  ExternalLink,
 } from 'lucide-react';
 import { NfeValidationStatus } from './NfeValidationStatus';
 import { EventTimeline } from '@/components/shared/EventTimeline';
@@ -76,6 +78,8 @@ interface CargaDetailsProps {
     temperatura_min?: number | null;
     temperatura_max?: number | null;
     numero_onu?: string | null;
+    agendamento_entrega?: boolean | null;
+    link_agendamento?: string | null;
     veiculo_requisitos?: {
       tipos_veiculo?: string[];
       tipos_carroceria?: string[];
