@@ -1,10 +1,11 @@
 import { format } from 'date-fns';
-import { Check, CheckCheck, Mic } from 'lucide-react';
+import { Check, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Mensagem } from './types';
 import { AttachmentMessage } from './AttachmentPreview';
 import { AudioPlayer } from './AudioPlayer';
+import { AudioTranscription } from './AudioTranscription';
 
 interface MessageBubbleProps {
   message: Mensagem;
