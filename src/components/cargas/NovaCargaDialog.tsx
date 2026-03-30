@@ -35,7 +35,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, DollarSign, Weight, Info, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Package, MapPin, Truck, Loader2, ClipboardList, DollarSign, Weight, Info, ArrowRight, ArrowLeft, Check, CalendarClock } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -163,6 +164,8 @@ export interface CargaToEdit {
   data_coleta_ate: string | null;
   data_entrega_limite: string | null;
   expira_em: string;
+  agendamento_entrega?: boolean | null;
+  link_agendamento?: string | null;
   veiculo_requisitos: {
     tipos_veiculo?: string[];
     tipos_carroceria?: string[];
