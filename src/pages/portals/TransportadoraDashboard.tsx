@@ -123,7 +123,7 @@ export default function TransportadoraDashboard() {
         .select('valor_liquido')
         .eq('empresa_transportadora_id', empresa.id)
         .eq('status', 'pendente')
-        .eq('data_vencimento', today);
+        .lte('data_vencimento', today);
       if (error) throw error;
       return (data || []).reduce((s, r) => s + Number(r.valor_liquido || 0), 0);
     },
