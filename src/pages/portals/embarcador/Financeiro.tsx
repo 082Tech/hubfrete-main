@@ -73,7 +73,6 @@ export default function EmbarcadorFinanceiro() {
           <Badge variant="outline" className="text-xs gap-1.5 px-3 py-1.5">
             <Calendar className="w-3.5 h-3.5" />
             Faturado · D+{configFinanceira.prazo_dias || 30}
-            {configFinanceira.dia_fixo && ` · Venc. dia ${configFinanceira.dia_fixo}`}
           </Badge>
         )}
       </div>

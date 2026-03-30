@@ -721,7 +721,6 @@ export default function Financeiro() {
                     setConfigDialog(cfg);
                     setConfigForm({
                       prazo_dias: cfg.prazo_dias,
-                      dia_fixo: cfg.dia_fixo?.toString() || '',
                       taxa_antecipacao_percent: cfg.taxa_antecipacao_percent,
                       limite_credito: cfg.limite_credito,
                     });
