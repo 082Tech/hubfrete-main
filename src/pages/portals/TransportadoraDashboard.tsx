@@ -34,7 +34,7 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 
 export default function TransportadoraDashboard() {
   const { empresa, filialAtiva } = useUserContext();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const navigate = useNavigate();
   const [chatMessage, setChatMessage] = useState('');
 

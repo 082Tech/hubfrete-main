@@ -22,7 +22,7 @@ export default function EmbarcadorDashboard() {
     filialAtiva
   } = useUserContext();
   const {
-    profile
+    profile, user
   } = useAuth();
   const navigate = useNavigate();
   const [chatMessage, setChatMessage] = useState('');
