@@ -95,6 +95,7 @@ export interface Mensagem {
   // Audio fields
   audio_url?: string;
   audio_duracao?: number;
+  audio_transcricao?: string;
 }
 
 export interface AttachmentPreview {
