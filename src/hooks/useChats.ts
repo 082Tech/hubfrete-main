@@ -400,7 +400,8 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
   // Send a message with optimistic update (no fetch after insert!)
   const sendMessage = useCallback(async (
     content: string,
-    attachment?: { url: string; nome: string; tipo: string; tamanho: number }
+    attachment?: { url: string; nome: string; tipo: string; tamanho: number },
+    audio?: { url: string; duracao: number }
   ) => {
     if (!selectedChat || !currentUserId) return;
 
