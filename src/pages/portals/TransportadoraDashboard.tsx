@@ -114,7 +114,7 @@ export default function TransportadoraDashboard() {
 
   // Fetch a receber hoje
   const today = format(new Date(), 'yyyy-MM-dd');
-  const { user } = useAuth();
+  
   const { data: aReceberHoje = 0 } = useQuery({
     queryKey: ['transportadora-a-receber-hoje', empresa?.id, today, user?.id],
     queryFn: async () => {

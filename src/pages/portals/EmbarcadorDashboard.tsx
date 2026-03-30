@@ -99,7 +99,7 @@ export default function EmbarcadorDashboard() {
 
   // Fetch a pagar hoje
   const today = format(new Date(), 'yyyy-MM-dd');
-  const { user } = useAuth();
+  
   const { data: aPagarHoje = 0 } = useQuery({
     queryKey: ['embarcador-a-pagar-hoje', empresa?.id, today, user?.id],
     queryFn: async () => {
