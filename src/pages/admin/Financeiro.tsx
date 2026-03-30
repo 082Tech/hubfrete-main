@@ -767,7 +767,7 @@ export default function Financeiro() {
                       {cfg.limite_credito > 0 && (
                         <div>
                           <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                            <span>Limite de publicação</span>
+                            <span>Limite de Crédito</span>
                             <span>{formatCurrency(cfg.credito_utilizado)} / {formatCurrency(cfg.limite_credito)}</span>
                           </div>
                           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
