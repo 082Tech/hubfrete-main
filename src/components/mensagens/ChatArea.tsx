@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Send, Package, ChevronRight, ArrowLeft, CheckCircle2, Ban, AlertTriangle, RotateCcw, Loader2, Paperclip, X, ImageIcon, FileText, Mic, Square } from 'lucide-react';
+import { Send, Package, ChevronRight, ArrowLeft, CheckCircle2, Ban, AlertTriangle, RotateCcw, Loader2, Paperclip, X, ImageIcon, FileText, Mic, Square, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
