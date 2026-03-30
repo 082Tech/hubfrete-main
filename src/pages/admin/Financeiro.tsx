@@ -316,7 +316,7 @@ export default function Financeiro() {
         empresa_id: params.empresa_id,
         tipo_pagamento: 'faturado',
         prazo_dias: params.form.prazo_dias,
-        dia_fixo: params.form.dia_fixo ? parseInt(params.form.dia_fixo) : null,
+        dia_fixo: null,
         ciclo_faturamento: 'mensal',
         antecipacao_permitida: true,
         taxa_antecipacao_percent: params.form.taxa_antecipacao_percent,
