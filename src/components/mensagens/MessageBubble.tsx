@@ -106,6 +106,17 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
           </div>
         )}
 
+        {/* Audio message */}
+        {hasAudio && (
+          <div className="mb-2">
+            <AudioPlayer
+              url={message.audio_url!}
+              duration={message.audio_duracao}
+              isOwn={isOwn}
+            />
+          </div>
+        )}
+
         {/* Text content */}
         {hasText && (
           <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.conteudo}</p>
