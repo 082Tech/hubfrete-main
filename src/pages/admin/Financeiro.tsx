@@ -101,7 +101,6 @@ export default function Financeiro() {
   const [configDialog, setConfigDialog] = useState<ConfigFinanceira | null>(null);
   const [configForm, setConfigForm] = useState({
     prazo_dias: 30,
-    dia_fixo: '',
     taxa_antecipacao_percent: 2,
     limite_credito: 0,
   });
@@ -317,7 +316,7 @@ export default function Financeiro() {
         empresa_id: params.empresa_id,
         tipo_pagamento: 'faturado',
         prazo_dias: params.form.prazo_dias,
-        dia_fixo: params.form.dia_fixo ? parseInt(params.form.dia_fixo) : null,
+        dia_fixo: null,
         ciclo_faturamento: 'mensal',
         antecipacao_permitida: true,
         taxa_antecipacao_percent: params.form.taxa_antecipacao_percent,
@@ -695,7 +694,7 @@ export default function Financeiro() {
             </div>
             <Button size="sm" onClick={() => {
               setConfigDialog({ id: '', empresa_id: 0, tipo_pagamento: 'faturado', prazo_dias: 30, dia_fixo: null, ciclo_faturamento: 'mensal', antecipacao_permitida: true, taxa_antecipacao_percent: 2, limite_credito: 0, credito_utilizado: 0 });
-              setConfigForm({ prazo_dias: 30, dia_fixo: '', taxa_antecipacao_percent: 2, limite_credito: 0 });
+              setConfigForm({ prazo_dias: 30, taxa_antecipacao_percent: 2, limite_credito: 0 });
             }}>
               <Settings className="w-4 h-4 mr-2" /> Nova Config
             </Button>
@@ -722,7 +721,6 @@ export default function Financeiro() {
                     setConfigDialog(cfg);
                     setConfigForm({
                       prazo_dias: cfg.prazo_dias,
-                      dia_fixo: cfg.dia_fixo?.toString() || '',
                       taxa_antecipacao_percent: cfg.taxa_antecipacao_percent,
                       limite_credito: cfg.limite_credito,
                     });
@@ -743,18 +741,10 @@ export default function Financeiro() {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <div className="text-center p-2 rounded-md bg-muted/40">
-                          <p className="text-sm font-bold text-foreground">
-                            {cfg.dia_fixo ? `Dia ${cfg.dia_fixo}` : `D+${cfg.prazo_dias}`}
-                          </p>
-                          <p className="text-[9px] text-muted-foreground">{cfg.dia_fixo ? 'Vencimento' : 'Prazo'}</p>
-                        </div>
-                        <div className="text-center p-2 rounded-md bg-muted/40">
-                          <p className="text-sm font-bold text-foreground">
-                            {cfg.dia_fixo ? `Dia ${cfg.dia_fixo}` : '—'}
-                          </p>
-                          <p className="text-[9px] text-muted-foreground">Fechamento</p>
+                          <p className="text-sm font-bold text-foreground">D+{cfg.prazo_dias}</p>
+                          <p className="text-[9px] text-muted-foreground">Prazo</p>
                         </div>
                         <div className="text-center p-2 rounded-md bg-muted/40">
                           <p className="text-sm font-bold text-foreground">
@@ -877,17 +867,10 @@ export default function Financeiro() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Prazo de pagamento (dias)</Label>
-                <Input type="number" value={configForm.prazo_dias} onChange={(e) => setConfigForm(f => ({ ...f, prazo_dias: parseInt(e.target.value) || 0 }))} />
-                <p className="text-[10px] text-muted-foreground mt-1">D+X após a finalização da carga</p>
-              </div>
-              <div>
-                <Label>Dia de Fechamento (opcional)</Label>
-                <Input type="number" placeholder="Ex: 15" min={1} max={28} value={configForm.dia_fixo} onChange={(e) => setConfigForm(f => ({ ...f, dia_fixo: e.target.value }))} />
-                <p className="text-[10px] text-muted-foreground mt-1">Agrupa entregas e fecha neste dia</p>
-              </div>
+            <div>
+              <Label>Prazo de pagamento (dias)</Label>
+              <Input type="number" value={configForm.prazo_dias} onChange={(e) => setConfigForm(f => ({ ...f, prazo_dias: parseInt(e.target.value) || 0 }))} />
+              <p className="text-[10px] text-muted-foreground mt-1">D+X após a finalização da carga</p>
             </div>
 
             <div className="border-t border-border pt-4 space-y-3">
