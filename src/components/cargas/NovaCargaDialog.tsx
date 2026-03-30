@@ -320,6 +320,8 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
           cnpj: editCarga.destinatario_cnpj || '',
         });
       }
+      setAgendamentoEntrega(editCarga.agendamento_entrega ?? false);
+      setLinkAgendamento(editCarga.link_agendamento || '');
       setActiveTab('dados');
     }
   }, [editCarga, open, form]);
