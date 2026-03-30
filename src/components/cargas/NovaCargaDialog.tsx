@@ -853,6 +853,39 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
                 <FormMessage />
               </FormItem>
             )} />
+
+            {/* Agendamento de Entrega */}
+            <Separator />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">Agendamento de Entrega</h3>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Destino exige agendamento?</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ative se o cliente de destino possui um sistema de agendamento para recebimento de mercadorias.
+                  </p>
+                </div>
+                <Switch checked={agendamentoEntrega} onCheckedChange={setAgendamentoEntrega} />
+              </div>
+              {agendamentoEntrega && (
+                <div className="ml-1">
+                  <Label className="text-sm">Link do Sistema de Agendamento</Label>
+                  <Input
+                    placeholder="https://agendamento.cliente.com.br (opcional)"
+                    value={linkAgendamento}
+                    onChange={(e) => setLinkAgendamento(e.target.value)}
+                    className="mt-1.5"
+                    type="url"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Informe o endereço do portal de agendamento para que a transportadora possa reservar o horário.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         );
 
