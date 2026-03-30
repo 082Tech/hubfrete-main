@@ -2175,6 +2175,8 @@ export type Database = {
           anexo_tamanho: number | null
           anexo_tipo: string | null
           anexo_url: string | null
+          audio_duracao: number | null
+          audio_url: string | null
           chat_id: string
           conteudo: string
           created_at: string
@@ -2189,6 +2191,8 @@ export type Database = {
           anexo_tamanho?: number | null
           anexo_tipo?: string | null
           anexo_url?: string | null
+          audio_duracao?: number | null
+          audio_url?: string | null
           chat_id: string
           conteudo: string
           created_at?: string
@@ -2203,6 +2207,8 @@ export type Database = {
           anexo_tamanho?: number | null
           anexo_tipo?: string | null
           anexo_url?: string | null
+          audio_duracao?: number | null
+          audio_url?: string | null
           chat_id?: string
           conteudo?: string
           created_at?: string

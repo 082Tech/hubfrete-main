@@ -400,7 +400,8 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
   // Send a message with optimistic update (no fetch after insert!)
   const sendMessage = useCallback(async (
     content: string,
-    attachment?: { url: string; nome: string; tipo: string; tamanho: number }
+    attachment?: { url: string; nome: string; tipo: string; tamanho: number },
+    audio?: { url: string; duracao: number }
   ) => {
     if (!selectedChat || !currentUserId) return;
 
@@ -420,6 +421,8 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       anexo_nome: attachment?.nome,
       anexo_tipo: attachment?.tipo,
       anexo_tamanho: attachment?.tamanho,
+      audio_url: audio?.url,
+      audio_duracao: audio?.duracao,
     };
 
     // Add optimistic message immediately
@@ -454,12 +457,14 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         anexo_nome?: string;
         anexo_tipo?: string;
         anexo_tamanho?: number;
+        audio_url?: string;
+        audio_duracao?: number;
       } = {
         chat_id: selectedChat.id,
         sender_id: currentUserId,
         sender_nome: currentUserName,
         sender_tipo: userType,
-        conteudo: content,
+        conteudo: content || '',
       };
 
       if (attachment) {
@@ -467,6 +472,11 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         insertData.anexo_nome = attachment.nome;
         insertData.anexo_tipo = attachment.tipo;
         insertData.anexo_tamanho = attachment.tamanho;
+      }
+
+      if (audio) {
+        insertData.audio_url = audio.url;
+        insertData.audio_duracao = audio.duracao;
       }
 
       const { data, error } = await supabase
