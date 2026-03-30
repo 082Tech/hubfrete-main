@@ -449,6 +449,8 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
             expira_em: `${values.expira_em}T23:59:59`,
             necessidades_especiais: necessidadesEspeciais,
             regras_carregamento: values.regras_carregamento || null,
+            agendamento_entrega: agendamentoEntrega,
+            link_agendamento: agendamentoEntrega ? (linkAgendamento.trim() || null) : null,
             veiculo_requisitos: { tipos_veiculo: veiculosSelecionados, tipos_carroceria: carroceriasSelecionadas },
             destinatario_razao_social: destinoData.razao_social || null,
             destinatario_nome_fantasia: destinoData.razao_social || null,
@@ -504,12 +506,14 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     const capturedCarrocerias = [...carroceriasSelecionadas];
     const capturedFilialId = filialAtiva?.id || null;
     const capturedEmpresaId = empresa!.id;
+    const capturedAgendamento = agendamentoEntrega;
+    const capturedLinkAgendamento = linkAgendamento;
 
     resetDialogState();
     setOpen(false);
     toast.loading('Carga sendo criada, aguarde...', { id: 'creating-carga' });
 
-    createCargaInBackground(values, capturedOrigemData, capturedDestinoData, capturedNecessidades, capturedPesoMinimo, capturedVeiculos, capturedCarrocerias, capturedFilialId, capturedEmpresaId);
+    createCargaInBackground(values, capturedOrigemData, capturedDestinoData, capturedNecessidades, capturedPesoMinimo, capturedVeiculos, capturedCarrocerias, capturedFilialId, capturedEmpresaId, capturedAgendamento, capturedLinkAgendamento);
   };
 
   const createCargaInBackground = async (
@@ -517,6 +521,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     necessidades: string[], pesoMinimo: number | null,
     veiculos: string[], carrocerias: string[],
     filialId: number | null, empresaId: number,
+    agendamento: boolean, agendamentoLink: string,
   ) => {
     try {
         const { data: carga, error: cargaError } = await supabase
@@ -545,6 +550,8 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
           numero_pedido: values.numero_pedido || null,
           necessidades_especiais: necessidades,
           regras_carregamento: values.regras_carregamento || null,
+          agendamento_entrega: agendamento,
+          link_agendamento: agendamento ? (agendamentoLink.trim() || null) : null,
           nota_fiscal_url: null,
           veiculo_requisitos: { tipos_veiculo: veiculos, tipos_carroceria: carrocerias },
           remetente_razao_social: origemD.razao_social || null,
@@ -856,7 +863,42 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
 
       case 'destino':
         return (
-          <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
+          <div className="space-y-6">
+            <DestinoSection initialData={destinoData} onLocationChange={setDestinoData} />
+            
+            {/* Agendamento de Entrega */}
+            <Separator />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">Agendamento de Entrega</h3>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Destino exige agendamento?</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ative se o cliente de destino possui um sistema de agendamento para recebimento de mercadorias.
+                  </p>
+                </div>
+                <Switch checked={agendamentoEntrega} onCheckedChange={setAgendamentoEntrega} />
+              </div>
+              {agendamentoEntrega && (
+                <div className="ml-1">
+                  <Label className="text-sm">Link do Sistema de Agendamento</Label>
+                  <Input
+                    placeholder="https://agendamento.cliente.com.br (opcional)"
+                    value={linkAgendamento}
+                    onChange={(e) => setLinkAgendamento(e.target.value)}
+                    className="mt-1.5"
+                    type="url"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Informe o endereço do portal de agendamento para que a transportadora possa reservar o horário.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         );
     }
   };
