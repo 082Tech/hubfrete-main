@@ -56,6 +56,8 @@ import {
   Info,
   Route,
   Scale,
+  CalendarClock,
+  ExternalLink,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -105,6 +107,8 @@ interface Carga {
   empilhavel: boolean;
   necessidades_especiais: string[] | null;
   veiculo_requisitos: VeiculoRequisitos | null;
+  agendamento_entrega: boolean | null;
+  link_agendamento: string | null;
   empresa_id: number | null;
   // Destinatário fields
   destinatario_razao_social: string | null;
@@ -291,6 +295,8 @@ export default function OfertasDisponiveis() {
           empilhavel,
           necessidades_especiais,
           veiculo_requisitos,
+          agendamento_entrega,
+          link_agendamento,
           numero_pedido,
           empresa_id,
           destinatario_razao_social,
@@ -2054,6 +2060,32 @@ export default function OfertasDisponiveis() {
                               ))}
                             </div>
                           </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Agendamento de Entrega */}
+                  {selectedCarga.agendamento_entrega && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
+                      <CalendarClock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                          Destino exige agendamento de entrega
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Este destino requer reserva prévia de horário para recebimento da mercadoria.
+                        </p>
+                        {selectedCarga.link_agendamento && (
+                          <a
+                            href={selectedCarga.link_agendamento}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Acessar sistema de agendamento
+                          </a>
                         )}
                       </div>
                     </div>
