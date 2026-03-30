@@ -743,18 +743,10 @@ export default function Financeiro() {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <div className="text-center p-2 rounded-md bg-muted/40">
-                          <p className="text-sm font-bold text-foreground">
-                            {cfg.dia_fixo ? `Dia ${cfg.dia_fixo}` : `D+${cfg.prazo_dias}`}
-                          </p>
-                          <p className="text-[9px] text-muted-foreground">{cfg.dia_fixo ? 'Vencimento' : 'Prazo'}</p>
-                        </div>
-                        <div className="text-center p-2 rounded-md bg-muted/40">
-                          <p className="text-sm font-bold text-foreground">
-                            {cfg.dia_fixo ? `Dia ${cfg.dia_fixo}` : '—'}
-                          </p>
-                          <p className="text-[9px] text-muted-foreground">Fechamento</p>
+                          <p className="text-sm font-bold text-foreground">D+{cfg.prazo_dias}</p>
+                          <p className="text-[9px] text-muted-foreground">Prazo</p>
                         </div>
                         <div className="text-center p-2 rounded-md bg-muted/40">
                           <p className="text-sm font-bold text-foreground">
