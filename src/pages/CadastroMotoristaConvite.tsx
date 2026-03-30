@@ -5,15 +5,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Truck, Lock, AlertTriangle, Clock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { PasswordInput } from '@/components/ui/password-input';
+import { MaskedInput } from '@/components/ui/masked-input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Loader2, Truck, Lock, AlertTriangle, Clock, ShieldCheck, Eye, EyeOff,
+  User, CreditCard, Mail, AlertCircle, CheckCircle, XCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
-
-// Import form components from motoristas
-import { EtapaDadosPessoais } from '@/components/motoristas/steps/EtapaDadosPessoais';
-import { EtapaCredenciais } from '@/components/motoristas/steps/EtapaCredenciais';
-import { EtapaAjudante } from '@/components/motoristas/steps/EtapaAjudante';
-import { EtapaResumo } from '@/components/motoristas/steps/EtapaResumo';
-import { MotoristaFormData, getInitialFormData } from '@/components/motoristas/types';
+import { ESTADOS_BRASIL, CATEGORIAS_CNH } from '@/components/motoristas/types';
 
 interface InviteLinkData {
   id: string;
@@ -33,11 +41,34 @@ interface EmpresaData {
 }
 
 const STEPS = [
-  { title: 'Dados Pessoais', description: 'Informações básicas e CNH' },
-  { title: 'Credenciais', description: 'E-mail e senha para acesso ao app' },
-  { title: 'Ajudante', description: 'Dados do ajudante (opcional)' },
+  { title: 'Criar Conta', description: 'Dados pessoais e acesso' },
+  { title: 'CNH', description: 'Carteira de habilitação' },
   { title: 'Resumo', description: 'Confirme suas informações' },
 ];
+
+interface SimpleFormData {
+  nome_completo: string;
+  cpf: string;
+  telefone: string;
+  auth_email: string;
+  auth_password: string;
+  auth_password_confirm: string;
+  cnh: string;
+  categoria_cnh: string;
+  validade_cnh: string;
+}
+
+const getInitialSimpleForm = (): SimpleFormData => ({
+  nome_completo: '',
+  cpf: '',
+  telefone: '',
+  auth_email: '',
+  auth_password: '',
+  auth_password_confirm: '',
+  cnh: '',
+  categoria_cnh: '',
+  validade_cnh: '',
+});
 
 export default function CadastroMotoristaConvite() {
   const { linkId } = useParams<{ linkId: string }>();
@@ -53,21 +84,12 @@ export default function CadastroMotoristaConvite() {
   };
 
   const extractUuidFromPossiblyDirtyText = (value: string) => {
-    // Common issues on mobile/WhatsApp:
-    // - zero-width chars
-    // - unicode dashes (– — − etc.)
-    // - percent-encoded values
     const decoded = safeDecodeURIComponent(value)
       .trim()
       .normalize('NFKC')
-      // zero-width / BOM
       .replace(/[\u200B-\u200D\uFEFF]/g, '')
-      // unicode hyphens/dashes -> ASCII '-'
       .replace(/[\u2010-\u2015\u2212\uFE63\uFF0D]/g, '-');
 
-    // Accept both:
-    // - standard UUID with hyphens
-    // - 32 hex chars (UUID without hyphens) — common when some apps “clean up” text
     const uuidHyphenRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
     const uuidNoHyphenRegex = /[0-9a-f]{32}/i;
 
@@ -78,42 +100,32 @@ export default function CadastroMotoristaConvite() {
       `${hex32.slice(0, 8)}-${hex32.slice(8, 12)}-${hex32.slice(12, 16)}-${hex32.slice(16, 20)}-${hex32.slice(20)}`;
 
     const uuid = hyphenMatch?.[0] ?? (noHyphenMatch ? toHyphenatedUuid(noHyphenMatch[0]) : null);
-    return {
-      decoded,
-      uuid,
-    };
+    return { decoded, uuid };
   };
-  
+
   const [pageState, setPageState] = useState<'loading' | 'password' | 'form' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
   const [linkData, setLinkData] = useState<InviteLinkData | null>(null);
   const [empresaData, setEmpresaData] = useState<EmpresaData | null>(null);
-  
+
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
-  
+
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState<MotoristaFormData>(getInitialFormData());
+  const [formData, setFormData] = useState<SimpleFormData>(getInitialSimpleForm());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Validate link on mount
   useEffect(() => {
     async function validateLink() {
-      // Support both patterns:
-      // 1) /cadastro/motorista/convite/:linkId
-      // 2) /cadastro/motorista/convite?linkId=... (or ?id=...)
       const rawFromQuery =
         searchParams.get('linkId') ??
         searchParams.get('id') ??
         searchParams.get('token') ??
         '';
       const raw = linkId ?? rawFromQuery;
-      const { decoded, uuid } = extractUuidFromPossiblyDirtyText(raw);
-
-      console.log('Original linkId:', raw);
-      console.log('Decoded/normalized linkId:', decoded);
-      console.log('Extracted UUID:', uuid);
+      const { uuid } = extractUuidFromPossiblyDirtyText(raw);
 
       if (!uuid) {
         setErrorMessage('Link inválido');
@@ -134,7 +146,6 @@ export default function CadastroMotoristaConvite() {
           return;
         }
 
-        // Check if link is still valid
         if (!link.ativo) {
           setErrorMessage('Este link foi desativado');
           setPageState('error');
@@ -155,7 +166,6 @@ export default function CadastroMotoristaConvite() {
 
         setLinkData(link as InviteLinkData);
 
-        // Fetch empresa data
         const { data: empresa } = await supabase
           .from('empresas')
           .select('id, nome, logo_url')
@@ -178,38 +188,41 @@ export default function CadastroMotoristaConvite() {
 
   const handlePasswordSubmit = () => {
     if (!linkData) return;
-    
     setIsValidating(true);
-    
-    // Simple password validation
     if (passwordInput === linkData.codigo_acesso) {
       setPageState('form');
     } else {
       toast.error('Código de acesso incorreto');
     }
-    
     setIsValidating(false);
   };
 
-  const updateFormData = (updates: Partial<MotoristaFormData>) => {
+  const updateFormData = (updates: Partial<SimpleFormData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
   };
 
   const handleNext = () => {
-    // Basic validation per step
     if (currentStep === 0) {
-      if (!formData.nome_completo || !formData.cpf || !formData.cnh || !formData.categoria_cnh || !formData.validade_cnh) {
-        toast.error('Preencha todos os campos obrigatórios');
+      if (!formData.nome_completo || !formData.cpf) {
+        toast.error('Preencha nome e CPF');
         return;
       }
-    }
-    if (currentStep === 1) {
       if (!formData.auth_email || !formData.auth_password) {
-        toast.error('Preencha e-mail e senha');
+        toast.error('Preencha e-mail e senha para criar sua conta');
         return;
       }
       if (formData.auth_password.length < 6) {
         toast.error('A senha deve ter pelo menos 6 caracteres');
+        return;
+      }
+      if (formData.auth_password !== formData.auth_password_confirm) {
+        toast.error('As senhas não coincidem');
+        return;
+      }
+    }
+    if (currentStep === 1) {
+      if (!formData.cnh || !formData.categoria_cnh || !formData.validade_cnh) {
+        toast.error('Preencha os dados da CNH');
         return;
       }
     }
@@ -222,11 +235,9 @@ export default function CadastroMotoristaConvite() {
 
   const handleSubmit = async () => {
     if (!linkData) return;
-    
     setIsSubmitting(true);
 
     try {
-      // Call the create-driver-auth edge function
       const { data, error } = await supabase.functions.invoke('create-driver-auth', {
         body: {
           email: formData.auth_email,
@@ -234,26 +245,23 @@ export default function CadastroMotoristaConvite() {
           nome_completo: formData.nome_completo,
           cpf: formData.cpf,
           telefone: formData.telefone || null,
-          uf: formData.uf || null,
+          uf: null,
           cnh: formData.cnh,
           categoria_cnh: formData.categoria_cnh,
           validade_cnh: formData.validade_cnh,
-          cnh_tem_qrcode: formData.cnh_tem_qrcode,
-          possui_ajudante: formData.possui_ajudante,
+          cnh_tem_qrcode: false,
+          possui_ajudante: false,
           empresa_id: linkData.empresa_id,
           tipo_cadastro: 'frota',
-          // Ajudante data
-          ajudante_nome: formData.ajudante_nome || null,
-          ajudante_cpf: formData.ajudante_cpf || null,
-          ajudante_telefone: formData.ajudante_telefone || null,
-          // Referencias
-          referencias: formData.referencias,
+          ajudante_nome: null,
+          ajudante_cpf: null,
+          ajudante_telefone: null,
+          referencias: [],
         },
       });
 
       if (error) throw new Error(error.message);
 
-      // Increment usage count
       await supabase
         .from('driver_invite_links')
         .update({ usos_realizados: linkData.usos_realizados + 1 })
@@ -307,7 +315,7 @@ export default function CadastroMotoristaConvite() {
             <Clock className="w-12 h-12 mx-auto text-amber-500" />
             <h2 className="text-xl font-semibold">Cadastro enviado para análise!</h2>
             <p className="text-muted-foreground">
-              Seu cadastro foi recebido com sucesso e está sendo analisado pela equipe do HubFrete. 
+              Seu cadastro foi recebido com sucesso e está sendo analisado pela equipe do HubFrete.
               Você será notificado assim que a aprovação for concluída.
             </p>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-muted rounded-lg p-3">
@@ -334,7 +342,7 @@ export default function CadastroMotoristaConvite() {
             </div>
             <CardTitle>Cadastro de Motorista</CardTitle>
             <CardDescription>
-              {empresaData?.nome 
+              {empresaData?.nome
                 ? `Convite de ${empresaData.nome}`
                 : 'Convite para cadastro'
               }
@@ -368,9 +376,9 @@ export default function CadastroMotoristaConvite() {
                 Solicite o código de acesso ao responsável da transportadora
               </p>
             </div>
-            
-            <Button 
-              onClick={handlePasswordSubmit} 
+
+            <Button
+              onClick={handlePasswordSubmit}
               className="w-full"
               disabled={isValidating || !passwordInput}
             >
@@ -389,10 +397,13 @@ export default function CadastroMotoristaConvite() {
     );
   }
 
+  const passwordsMatch = formData.auth_password === formData.auth_password_confirm;
+  const passwordTooShort = formData.auth_password.length > 0 && formData.auth_password.length < 6;
+
   // Registration form state
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto p-4 py-8">
+      <div className="max-w-lg mx-auto p-4 py-8">
         <Card>
           <CardHeader className="text-center border-b">
             <div className="flex items-center justify-center gap-2 mb-2">
@@ -404,7 +415,7 @@ export default function CadastroMotoristaConvite() {
               <CardDescription>Transportadora: {empresaData.nome}</CardDescription>
             )}
           </CardHeader>
-          
+
           <CardContent className="pt-6">
             {/* Progress */}
             <div className="mb-8">
@@ -412,9 +423,7 @@ export default function CadastroMotoristaConvite() {
                 {STEPS.map((step, index) => (
                   <div key={index} className="flex flex-col items-center flex-1">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      index < currentStep
-                        ? 'bg-primary text-primary-foreground'
-                        : index === currentStep
+                      index <= currentStep
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground'
                     }`}>
@@ -427,7 +436,7 @@ export default function CadastroMotoristaConvite() {
                 ))}
               </div>
               <div className="h-1 bg-muted rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-primary transition-all"
                   style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
                 />
@@ -435,39 +444,237 @@ export default function CadastroMotoristaConvite() {
             </div>
 
             {/* Step content */}
-            <div className="min-h-[400px]">
+            <div className="min-h-[350px]">
+              {/* === STEP 1: Criar Conta === */}
               {currentStep === 0 && (
-                <EtapaDadosPessoais
-                  formData={formData}
-                  updateFormData={updateFormData}
-                />
+                <div className="space-y-5">
+                  {/* Dados Pessoais */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                      <User className="w-4 h-4" />
+                      Seus Dados
+                    </div>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label>Nome Completo *</Label>
+                        <Input
+                          placeholder="Seu nome completo"
+                          value={formData.nome_completo}
+                          onChange={(e) => updateFormData({ nome_completo: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>CPF *</Label>
+                          <MaskedInput
+                            mask="cpf"
+                            placeholder="000.000.000-00"
+                            value={formData.cpf}
+                            onChange={(value) => updateFormData({ cpf: value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Telefone</Label>
+                          <MaskedInput
+                            mask="phone"
+                            placeholder="(00) 00000-0000"
+                            value={formData.telefone}
+                            onChange={(value) => updateFormData({ telefone: value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Credenciais */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                      <Lock className="w-4 h-4" />
+                      Criar Conta
+                    </div>
+                    <p className="text-xs text-muted-foreground -mt-2">
+                      Use esses dados para entrar no aplicativo de entregas.
+                    </p>
+
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label>E-mail *</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            type="email"
+                            placeholder="seuemail@exemplo.com"
+                            value={formData.auth_email}
+                            onChange={(e) => updateFormData({ auth_email: e.target.value })}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Senha *</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+                            <PasswordInput
+                              placeholder="Mínimo 6 caracteres"
+                              value={formData.auth_password}
+                              onChange={(e) => updateFormData({ auth_password: e.target.value })}
+                              className="pl-10"
+                            />
+                          </div>
+                          {passwordTooShort && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              Mínimo 6 caracteres
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Confirmar Senha *</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+                            <PasswordInput
+                              placeholder="Repita a senha"
+                              value={formData.auth_password_confirm}
+                              onChange={(e) => updateFormData({ auth_password_confirm: e.target.value })}
+                              className="pl-10"
+                            />
+                          </div>
+                          {formData.auth_password_confirm && !passwordsMatch && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              As senhas não coincidem
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
+
+              {/* === STEP 2: CNH === */}
               {currentStep === 1 && (
-                <EtapaCredenciais
-                  formData={formData}
-                  updateFormData={updateFormData}
-                />
+                <div className="space-y-5">
+                  <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                    <CreditCard className="w-4 h-4" />
+                    Carteira de Habilitação (CNH)
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Número da CNH *</Label>
+                      <MaskedInput
+                        mask="cnh"
+                        placeholder="00000000000"
+                        value={formData.cnh}
+                        onChange={(value) => updateFormData({ cnh: value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>Categoria *</Label>
+                        <Select
+                          value={formData.categoria_cnh}
+                          onValueChange={(v) => updateFormData({ categoria_cnh: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORIAS_CNH.map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Validade *</Label>
+                        <Input
+                          type="date"
+                          value={formData.validade_cnh}
+                          onChange={(e) => updateFormData({ validade_cnh: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
+
+              {/* === STEP 3: Resumo === */}
               {currentStep === 2 && (
-                <EtapaAjudante
-                  formData={formData}
-                  updateFormData={updateFormData}
-                />
-              )}
-              {currentStep === 3 && (
-                <EtapaResumo formData={formData} />
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Revise as informações antes de finalizar.
+                  </p>
+
+                  <Card className="border-border">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <User className="w-4 h-4 text-primary" />
+                        Dados Pessoais
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Nome:</span>
+                        <span className="font-medium">{formData.nome_completo}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">CPF:</span>
+                        <span>{formData.cpf}</span>
+                      </div>
+                      {formData.telefone && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Telefone:</span>
+                          <span>{formData.telefone}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">E-mail:</span>
+                        <span className="text-xs">{formData.auth_email}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-border">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-primary" />
+                        CNH
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Número:</span>
+                        <span>{formData.cnh}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Categoria:</span>
+                        <Badge variant="outline">{formData.categoria_cnh}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Validade:</span>
+                        <span>{formData.validade_cnh ? new Date(formData.validade_cnh).toLocaleDateString('pt-BR') : '-'}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               )}
             </div>
 
             {/* Navigation */}
             <div className="flex items-center justify-between pt-6 border-t mt-6">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={currentStep === 0 ? () => setPageState('password') : handlePrev}
               >
                 Voltar
               </Button>
-              
+
               {currentStep < STEPS.length - 1 ? (
                 <Button onClick={handleNext}>
                   Próximo
