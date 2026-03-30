@@ -22,7 +22,7 @@ export default function EmbarcadorDashboard() {
     filialAtiva
   } = useUserContext();
   const {
-    profile
+    profile, user
   } = useAuth();
   const navigate = useNavigate();
   const [chatMessage, setChatMessage] = useState('');
@@ -99,8 +99,9 @@ export default function EmbarcadorDashboard() {
 
   // Fetch a pagar hoje
   const today = format(new Date(), 'yyyy-MM-dd');
+  
   const { data: aPagarHoje = 0 } = useQuery({
-    queryKey: ['embarcador-a-pagar-hoje', empresa?.id, today],
+    queryKey: ['embarcador-a-pagar-hoje', empresa?.id, today, user?.id],
     queryFn: async () => {
       if (!empresa?.id) return 0;
       const { data, error } = await supabase
@@ -108,11 +109,11 @@ export default function EmbarcadorDashboard() {
         .select('valor_frete')
         .eq('empresa_embarcadora_id', empresa.id)
         .eq('status', 'pendente')
-        .lte('data_vencimento', today);
+        .eq('data_vencimento', today);
       if (error) throw error;
       return (data || []).reduce((s, r) => s + Number(r.valor_frete || 0), 0);
     },
-    enabled: !!empresa?.id,
+    enabled: !!empresa?.id && !!user,
   });
 
   // Calculate stats
