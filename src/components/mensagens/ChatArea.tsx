@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { MessageBubble } from './MessageBubble';
 import { ChatDetailsSheet } from './ChatDetailsSheet';
 import { AttachmentPreview } from './AttachmentPreview';
+import { AudioPlayer } from './AudioPlayer';
 import { Chat, Mensagem, AttachmentPreview as AttachmentPreviewType } from './types';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
