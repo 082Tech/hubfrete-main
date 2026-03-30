@@ -107,6 +107,8 @@ interface Carga {
   empilhavel: boolean;
   necessidades_especiais: string[] | null;
   veiculo_requisitos: VeiculoRequisitos | null;
+  agendamento_entrega: boolean | null;
+  link_agendamento: string | null;
   empresa_id: number | null;
   // Destinatário fields
   destinatario_razao_social: string | null;
