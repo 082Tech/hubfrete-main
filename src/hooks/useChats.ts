@@ -507,6 +507,23 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         
         // Increment offset since we added a new message
         messagesOffsetRef.current += 1;
+
+        // Trigger audio transcription in background
+        if (audio && data.id && data.audio_url) {
+          supabase.functions.invoke('transcribe-audio', {
+            body: { audioUrl: data.audio_url, messageId: data.id },
+          }).then(({ data: transcriptionData }) => {
+            if (transcriptionData?.transcription) {
+              setMessages(prev => prev.map(msg =>
+                msg.id === data.id
+                  ? { ...msg, audio_transcricao: transcriptionData.transcription }
+                  : msg
+              ));
+            }
+          }).catch(err => {
+            console.error('Transcription error:', err);
+          });
+        }
       }
 
     } catch (error) {
@@ -581,6 +598,20 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
               .update({ lida: true })
               .eq('id', newMessage.id);
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'mensagens',
+          filter: `chat_id=eq.${selectedChat.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as Mensagem;
+          // Update in-memory message (e.g. transcription arrived)
+          setMessages(prev => prev.map(m => m.id === updated.id ? { ...m, ...updated } : m));
         }
       )
       .subscribe();
