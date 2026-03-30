@@ -101,7 +101,6 @@ export default function Financeiro() {
   const [configDialog, setConfigDialog] = useState<ConfigFinanceira | null>(null);
   const [configForm, setConfigForm] = useState({
     prazo_dias: 30,
-    dia_fixo: '',
     taxa_antecipacao_percent: 2,
     limite_credito: 0,
   });
