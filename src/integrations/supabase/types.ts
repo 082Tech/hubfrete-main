@@ -2176,6 +2176,7 @@ export type Database = {
           anexo_tipo: string | null
           anexo_url: string | null
           audio_duracao: number | null
+          audio_transcricao: string | null
           audio_url: string | null
           chat_id: string
           conteudo: string
@@ -2192,6 +2193,7 @@ export type Database = {
           anexo_tipo?: string | null
           anexo_url?: string | null
           audio_duracao?: number | null
+          audio_transcricao?: string | null
           audio_url?: string | null
           chat_id: string
           conteudo: string
@@ -2208,6 +2210,7 @@ export type Database = {
           anexo_tipo?: string | null
           anexo_url?: string | null
           audio_duracao?: number | null
+          audio_transcricao?: string | null
           audio_url?: string | null
           chat_id?: string
           conteudo?: string
