@@ -600,6 +600,20 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'mensagens',
+          filter: `chat_id=eq.${selectedChat.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as Mensagem;
+          // Update in-memory message (e.g. transcription arrived)
+          setMessages(prev => prev.map(m => m.id === updated.id ? { ...m, ...updated } : m));
+        }
+      )
       .subscribe();
 
     return () => {
