@@ -421,6 +421,8 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       anexo_nome: attachment?.nome,
       anexo_tipo: attachment?.tipo,
       anexo_tamanho: attachment?.tamanho,
+      audio_url: audio?.url,
+      audio_duracao: audio?.duracao,
     };
 
     // Add optimistic message immediately
