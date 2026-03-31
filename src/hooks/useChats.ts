@@ -401,7 +401,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
   const sendMessage = useCallback(async (
     content: string,
     attachment?: { url: string; nome: string; tipo: string; tamanho: number },
-    audio?: { url: string; duracao: number }
+    audio?: { url: string; duracao: number; transcricao?: string }
   ) => {
     if (!selectedChat || !currentUserId) return;
 
