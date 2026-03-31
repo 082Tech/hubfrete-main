@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAudioPlaybackRate } from './useAudioPlaybackRate';
+import { useAudioPlaybackRate, claimPlayback, releasePlayback } from './useAudioPlaybackRate';
 
 interface AudioPlayerProps {
   url: string;
