@@ -401,7 +401,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
   const sendMessage = useCallback(async (
     content: string,
     attachment?: { url: string; nome: string; tipo: string; tamanho: number },
-    audio?: { url: string; duracao: number }
+    audio?: { url: string; duracao: number; transcricao?: string }
   ) => {
     if (!selectedChat || !currentUserId) return;
 
@@ -459,6 +459,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         anexo_tamanho?: number;
         audio_url?: string;
         audio_duracao?: number;
+        audio_transcricao?: string;
       } = {
         chat_id: selectedChat.id,
         sender_id: currentUserId,
@@ -477,6 +478,9 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       if (audio) {
         insertData.audio_url = audio.url;
         insertData.audio_duracao = audio.duracao;
+        if (audio.transcricao) {
+          insertData.audio_transcricao = audio.transcricao;
+        }
       }
 
       const { data, error } = await supabase
@@ -508,22 +512,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         // Increment offset since we added a new message
         messagesOffsetRef.current += 1;
 
-        // Trigger audio transcription in background
-        if (audio && data.id && data.audio_url) {
-          supabase.functions.invoke('transcribe-audio', {
-            body: { audioUrl: data.audio_url, messageId: data.id },
-          }).then(({ data: transcriptionData }) => {
-            if (transcriptionData?.transcription) {
-              setMessages(prev => prev.map(msg =>
-                msg.id === data.id
-                  ? { ...msg, audio_transcricao: transcriptionData.transcription }
-                  : msg
-              ));
-            }
-          }).catch(err => {
-            console.error('Transcription error:', err);
-          });
-        }
+        // Transcription is now included directly in the insert (Web Speech API - free!)
       }
 
     } catch (error) {

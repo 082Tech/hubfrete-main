@@ -49,7 +49,7 @@ interface ChatAreaProps {
   isSending: boolean;
   currentUserId: string;
   userType: 'embarcador' | 'transportadora';
-  onSendMessage: (content: string, attachment?: { url: string; nome: string; tipo: string; tamanho: number }, audio?: { url: string; duracao: number }) => void;
+  onSendMessage: (content: string, attachment?: { url: string; nome: string; tipo: string; tamanho: number }, audio?: { url: string; duracao: number; transcricao?: string }) => void;
   onLoadMore?: () => void;
   onBack?: () => void;
   showBackButton?: boolean;
@@ -75,7 +75,7 @@ export function ChatArea({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [attachment, setAttachment] = useState<AttachmentPreviewType | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [audioPreview, setAudioPreview] = useState<{ url: string; blob: Blob; duration: number } | null>(null);
+  const [audioPreview, setAudioPreview] = useState<{ url: string; blob: Blob; duration: number; transcription?: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,7 +109,7 @@ export function ChatArea({
 
     // Create a local URL for preview instead of uploading immediately
     const previewUrl = URL.createObjectURL(result.blob);
-    setAudioPreview({ url: previewUrl, blob: result.blob, duration: result.duration });
+    setAudioPreview({ url: previewUrl, blob: result.blob, duration: result.duration, transcription: result.transcription });
   };
 
   const handleDiscardAudio = () => {
@@ -137,7 +137,7 @@ export function ChatArea({
         .from('chat-audios')
         .getPublicUrl(fileName);
 
-      onSendMessage('', undefined, { url: publicUrl, duracao: audioPreview.duration });
+      onSendMessage('', undefined, { url: publicUrl, duracao: audioPreview.duration, transcricao: audioPreview.transcription });
       URL.revokeObjectURL(audioPreview.url);
       setAudioPreview(null);
     } catch (error) {
