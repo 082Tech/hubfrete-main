@@ -508,21 +508,21 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         // Increment offset since we added a new message
         messagesOffsetRef.current += 1;
 
-        // Trigger audio transcription in background
-        if (audio && data.id && data.audio_url) {
-          supabase.functions.invoke('transcribe-audio', {
-            body: { audioUrl: data.audio_url, messageId: data.id },
-          }).then(({ data: transcriptionData }) => {
-            if (transcriptionData?.transcription) {
-              setMessages(prev => prev.map(msg =>
-                msg.id === data.id
-                  ? { ...msg, audio_transcricao: transcriptionData.transcription }
-                  : msg
-              ));
-            }
-          }).catch(err => {
-            console.error('Transcription error:', err);
-          });
+        // Save transcription directly if available (captured via Web Speech API - free!)
+        if (audio?.transcricao && data.id) {
+          supabase
+            .from('mensagens')
+            .update({ audio_transcricao: audio.transcricao })
+            .eq('id', data.id)
+            .then(({ error: updateErr }) => {
+              if (!updateErr) {
+                setMessages(prev => prev.map(msg =>
+                  msg.id === data.id
+                    ? { ...msg, audio_transcricao: audio.transcricao }
+                    : msg
+                ));
+              }
+            });
         }
       }
 
