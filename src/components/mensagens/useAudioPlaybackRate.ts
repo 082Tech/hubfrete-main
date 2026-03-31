@@ -24,3 +24,19 @@ export function useAudioPlaybackRate() {
 
   return { rate, cycleRate };
 }
+
+// --- Global single-audio playback manager ---
+let currentAudio: HTMLAudioElement | null = null;
+
+export function claimPlayback(audio: HTMLAudioElement) {
+  if (currentAudio && currentAudio !== audio) {
+    currentAudio.pause();
+  }
+  currentAudio = audio;
+}
+
+export function releasePlayback(audio: HTMLAudioElement) {
+  if (currentAudio === audio) {
+    currentAudio = null;
+  }
+}
