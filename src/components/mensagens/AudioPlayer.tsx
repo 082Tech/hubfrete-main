@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAudioPlaybackRate } from './useAudioPlaybackRate';
+import { useAudioPlaybackRate, claimPlayback, releasePlayback } from './useAudioPlaybackRate';
 
 interface AudioPlayerProps {
   url: string;
@@ -76,7 +76,9 @@ export function AudioPlayer({ url, duration: propDuration, isOwn, compact = fals
     if (!audio) return;
     if (isPlaying) {
       audio.pause();
+      releasePlayback(audio);
     } else {
+      claimPlayback(audio);
       audio.play();
     }
   };
