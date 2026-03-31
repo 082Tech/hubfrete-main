@@ -1,0 +1,99 @@
+CREATE OR REPLACE FUNCTION public.notify_entrega_status_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_carga RECORD;
+  v_motorista_nome TEXT;
+  v_motorista_empresa_id BIGINT;
+  v_status_label TEXT;
+  v_empresa_usuario RECORD;
+  v_embarcador_usuario RECORD;
+BEGIN
+  IF OLD.status IS NOT DISTINCT FROM NEW.status THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT c.codigo, c.empresa_id, c.descricao
+  INTO v_carga
+  FROM public.cargas c
+  WHERE c.id = NEW.carga_id;
+
+  IF NEW.motorista_id IS NOT NULL THEN
+    SELECT m.nome_completo, m.empresa_id
+    INTO v_motorista_nome, v_motorista_empresa_id
+    FROM public.motoristas m
+    WHERE m.id = NEW.motorista_id;
+  END IF;
+
+  v_status_label := CASE NEW.status::text
+    WHEN 'aguardando' THEN 'Aguardando'
+    WHEN 'saiu_para_coleta' THEN 'Saiu para Coleta'
+    WHEN 'em_transito' THEN 'Em Trânsito'
+    WHEN 'saiu_para_entrega' THEN 'Saiu para Entrega'
+    WHEN 'entregue' THEN 'Concluída'
+    WHEN 'cancelada' THEN 'Cancelada'
+    WHEN 'problema' THEN 'Problema'
+    ELSE COALESCE(NEW.status::text, 'Atualizada')
+  END;
+
+  IF v_motorista_empresa_id IS NOT NULL THEN
+    FOR v_empresa_usuario IN
+      SELECT DISTINCT u.auth_user_id
+      FROM public.usuarios u
+      JOIN public.usuarios_filiais uf ON uf.usuario_id = u.id
+      JOIN public.filiais f ON f.id = uf.filial_id
+      WHERE f.empresa_id = v_motorista_empresa_id
+        AND u.auth_user_id IS NOT NULL
+    LOOP
+      INSERT INTO public.notificacoes (
+        user_id, tipo, titulo, mensagem, link, dados
+      ) VALUES (
+        v_empresa_usuario.auth_user_id,
+        'status_entrega_alterado',
+        'Carga ' || COALESCE(NEW.codigo, v_carga.codigo) || ' - ' || v_status_label,
+        'A carga ' || COALESCE(NEW.codigo, v_carga.codigo) || ' mudou para ' || v_status_label ||
+        CASE WHEN v_motorista_nome IS NOT NULL THEN ' (Motorista: ' || v_motorista_nome || ')' ELSE '' END,
+        '/transportadora/operacao',
+        jsonb_build_object(
+          'entrega_id', NEW.id,
+          'carga_id', NEW.carga_id,
+          'status', NEW.status::text,
+          'codigo', COALESCE(NEW.codigo, v_carga.codigo)
+        )
+      );
+    END LOOP;
+  END IF;
+
+  IF v_carga.empresa_id IS NOT NULL THEN
+    FOR v_embarcador_usuario IN
+      SELECT DISTINCT u.auth_user_id
+      FROM public.usuarios u
+      JOIN public.usuarios_filiais uf ON uf.usuario_id = u.id
+      JOIN public.filiais f ON f.id = uf.filial_id
+      WHERE f.empresa_id = v_carga.empresa_id
+        AND u.auth_user_id IS NOT NULL
+    LOOP
+      INSERT INTO public.notificacoes (
+        user_id, tipo, titulo, mensagem, link, dados
+      ) VALUES (
+        v_embarcador_usuario.auth_user_id,
+        'status_entrega_alterado',
+        'Carga ' || COALESCE(NEW.codigo, v_carga.codigo) || ' - ' || v_status_label,
+        'A carga ' || COALESCE(NEW.codigo, v_carga.codigo) || ' está agora com status: ' || v_status_label ||
+        CASE WHEN v_motorista_nome IS NOT NULL THEN '. Motorista: ' || v_motorista_nome ELSE '' END,
+        '/embarcador/cargas',
+        jsonb_build_object(
+          'entrega_id', NEW.id,
+          'carga_id', NEW.carga_id,
+          'status', NEW.status::text,
+          'codigo', COALESCE(NEW.codigo, v_carga.codigo)
+        )
+      );
+    END LOOP;
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
