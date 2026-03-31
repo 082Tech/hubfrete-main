@@ -75,7 +75,7 @@ export function ChatArea({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [attachment, setAttachment] = useState<AttachmentPreviewType | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [audioPreview, setAudioPreview] = useState<{ url: string; blob: Blob; duration: number } | null>(null);
+  const [audioPreview, setAudioPreview] = useState<{ url: string; blob: Blob; duration: number; transcription?: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
