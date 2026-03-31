@@ -459,6 +459,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         anexo_tamanho?: number;
         audio_url?: string;
         audio_duracao?: number;
+        audio_transcricao?: string;
       } = {
         chat_id: selectedChat.id,
         sender_id: currentUserId,
@@ -477,6 +478,9 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       if (audio) {
         insertData.audio_url = audio.url;
         insertData.audio_duracao = audio.duracao;
+        if (audio.transcricao) {
+          insertData.audio_transcricao = audio.transcricao;
+        }
       }
 
       const { data, error } = await supabase
