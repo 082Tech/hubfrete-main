@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AudioTranscriptionProps {
@@ -23,7 +23,7 @@ export function AudioTranscription({ transcription, isOwn }: AudioTranscriptionP
           isOwn ? 'text-primary-foreground/80' : 'text-muted-foreground'
         )}
       >
-        <Sparkles className={cn(
+        <FileText className={cn(
           'h-3 w-3 mt-0.5 shrink-0',
           isOwn ? 'text-primary-foreground/60' : 'text-muted-foreground/70'
         )} />
