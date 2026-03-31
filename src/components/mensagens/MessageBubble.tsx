@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Mensagem } from './types';
 import { AttachmentMessage } from './AttachmentPreview';
+import { AudioPlayer } from './AudioPlayer';
+import { AudioTranscription } from './AudioTranscription';
 
 interface MessageBubbleProps {
   message: Mensagem;
@@ -47,6 +49,7 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
   };
 
   const hasAttachment = message.anexo_url && message.anexo_nome && message.anexo_tipo;
+  const hasAudio = !!message.audio_url;
   const hasText = message.conteudo && message.conteudo.trim().length > 0;
 
   return (
@@ -101,6 +104,23 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
               tamanho={message.anexo_tamanho}
               isOwn={isOwn}
             />
+          </div>
+        )}
+
+        {/* Audio message */}
+        {hasAudio && (
+          <div className="mb-1">
+            <AudioPlayer
+              url={message.audio_url!}
+              duration={message.audio_duracao}
+              isOwn={isOwn}
+            />
+            {message.audio_transcricao && (
+              <AudioTranscription
+                transcription={message.audio_transcricao}
+                isOwn={isOwn}
+              />
+            )}
           </div>
         )}
 

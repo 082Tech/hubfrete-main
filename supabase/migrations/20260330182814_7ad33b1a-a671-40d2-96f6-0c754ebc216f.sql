@@ -1,0 +1,1 @@
+ALTER TABLE public.mensagens ADD COLUMN IF NOT EXISTS audio_transcricao text;

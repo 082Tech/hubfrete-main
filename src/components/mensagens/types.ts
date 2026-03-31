@@ -92,6 +92,10 @@ export interface Mensagem {
   anexo_nome?: string;
   anexo_tipo?: string;
   anexo_tamanho?: number;
+  // Audio fields
+  audio_url?: string;
+  audio_duracao?: number;
+  audio_transcricao?: string;
 }
 
 export interface AttachmentPreview {

@@ -87,6 +87,7 @@ import { DailyPerformanceDialog } from '@/components/admin/relatorios/DailyPerfo
 import { BarChart3 } from 'lucide-react';
 import { ViagemListItem, ViagemDetailPanel } from '@/components/viagens';
 import { EventTimeline } from '@/components/shared/EventTimeline';
+import type { Database } from '@/integrations/supabase/types';
 
 type ViewMode = 'entregas' | 'viagens';
 
@@ -102,7 +103,71 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle, column: 'done' },
 };
 
-type EntregaStatus = string;
+type EntregaStatus = Database['public']['Enums']['status_entrega'];
+
+const validEntregaStatuses = [
+  'aguardando',
+  'saiu_para_coleta',
+  'em_transito',
+  'saiu_para_entrega',
+  'entregue',
+  'cancelada',
+  'problema',
+] as const satisfies readonly EntregaStatus[];
+
+function isEntregaStatus(status: string): status is EntregaStatus {
+  return (validEntregaStatuses as readonly string[]).includes(status);
+}
+
+const entregaStatusLabelMap: Record<string, EntregaStatus> = {
+  Aguardando: 'aguardando',
+  'Saiu para Coleta': 'saiu_para_coleta',
+  'Saiu p/ Coleta': 'saiu_para_coleta',
+  'Em Trânsito': 'em_transito',
+  'Saiu para Entrega': 'saiu_para_entrega',
+  'Saiu p/ Entrega': 'saiu_para_entrega',
+  Entregue: 'entregue',
+  Concluída: 'entregue',
+  Concluida: 'entregue',
+  Cancelada: 'cancelada',
+};
+
+function normalizeEntregaStatus(status: string): EntregaStatus {
+  const rawStatus = status?.trim?.() ?? '';
+
+  if (isEntregaStatus(rawStatus)) {
+    return rawStatus;
+  }
+
+  const mappedStatus = entregaStatusLabelMap[rawStatus];
+  if (mappedStatus) {
+    return mappedStatus;
+  }
+
+  const heuristicallyNormalized = rawStatus
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/p\//g, 'para')
+    .replace(/\s+/g, '_');
+
+  const heuristicMap: Record<string, EntregaStatus> = {
+    aguardando: 'aguardando',
+    saiu_para_coleta: 'saiu_para_coleta',
+    em_transito: 'em_transito',
+    saiu_para_entrega: 'saiu_para_entrega',
+    entregue: 'entregue',
+    concluida: 'entregue',
+    cancelada: 'cancelada',
+  };
+
+  const normalizedStatus = heuristicMap[heuristicallyNormalized];
+  if (normalizedStatus) {
+    return normalizedStatus;
+  }
+
+  throw new Error(`Status de entrega inválido: ${status}`);
+}
 
 interface Entrega {
   id: string;
@@ -370,7 +435,7 @@ function DetailPanel({
     : null;
 
   // Determine next status based on current status
-  const getNextStatus = (): { status: string; label: string; icon: React.ElementType } | null => {
+  const getNextStatus = (): { status: EntregaStatus; label: string; icon: React.ElementType } | null => {
     switch (entrega.status) {
       case 'aguardando': return { status: 'saiu_para_coleta', label: 'Saiu para Coleta', icon: Truck };
       case 'saiu_para_coleta': return { status: 'em_transito', label: 'Em Trânsito', icon: ArrowRightLeft };
@@ -1868,11 +1933,21 @@ export default function OperacaoDiaria() {
 
   const statusMutation = useMutation({
     mutationFn: async ({ entregaId, newStatus }: { entregaId: string; newStatus: string }) => {
-      const updates: Record<string, any> = { status: newStatus, updated_at: new Date().toISOString() };
+      const normalizedStatus = normalizeEntregaStatus(newStatus);
+      console.info('[OperacaoDiaria] status update request', {
+        entregaId,
+        rawStatus: newStatus,
+        normalizedStatus,
+      });
 
-      if (newStatus === 'entregue') {
+      const updates: Record<string, any> = {
+        status: normalizedStatus,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (normalizedStatus === 'entregue') {
         updates.entregue_em = new Date().toISOString();
-      } else if (newStatus === 'saiu_para_coleta') {
+      } else if (normalizedStatus === 'saiu_para_coleta') {
         updates.coletado_em = new Date().toISOString();
       }
 
@@ -1892,14 +1967,14 @@ export default function OperacaoDiaria() {
         cancelada: 'cancelado',
       };
 
-      const eventoTipo = statusToEventoTipo[newStatus] || 'aceite';
+      const eventoTipo = statusToEventoTipo[normalizedStatus] || 'aceite';
 
       // Registrar evento com auditoria (user_id e user_nome)
       const { error: eventoError } = await supabase.from('entrega_eventos').insert({
         entrega_id: entregaId,
         tipo: eventoTipo as any,
         timestamp: new Date().toISOString(),
-        observacao: `Status alterado para ${statusConfig[newStatus]?.label || newStatus}`,
+        observacao: `Status alterado para ${statusConfig[normalizedStatus]?.label || normalizedStatus}`,
         user_id: user?.id ?? null,
         user_nome: profile?.nome_completo || user?.email || 'Sistema',
       });
@@ -1914,9 +1989,13 @@ export default function OperacaoDiaria() {
       refetch();
       refetchViagens();
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       toast.error('Erro ao atualizar status');
-      console.error(error);
+      console.error('[OperacaoDiaria] status update failed', {
+        error,
+        entregaId: variables.entregaId,
+        rawStatus: variables.newStatus,
+      });
     },
   });
 
@@ -2130,15 +2209,27 @@ export default function OperacaoDiaria() {
   const handleStatusChange = (newStatus: string) => {
     // In viagem view, the active entrega is selectedEntregaInViagem
     const activeEntrega = selectedEntregaInViagem || selectedEntrega;
-    if (activeEntrega) {
-      statusMutation.mutate({ entregaId: activeEntrega.id, newStatus });
+    if (!activeEntrega) return;
+
+    try {
+      const normalizedStatus = normalizeEntregaStatus(newStatus);
+      console.info('[OperacaoDiaria] handleStatusChange', {
+        entregaId: activeEntrega.id,
+        rawStatus: newStatus,
+        normalizedStatus,
+      });
+      statusMutation.mutate({ entregaId: activeEntrega.id, newStatus: normalizedStatus });
+
       if (selectedEntregaInViagem) {
-        setSelectedEntregaInViagem(prev => prev ? { ...prev, status: newStatus } : null);
+        setSelectedEntregaInViagem(prev => prev ? { ...prev, status: normalizedStatus } : null);
         // Also refetch viagens to update the viagem's entrega statuses
         refetchViagens();
       } else {
-        setSelectedEntrega(prev => prev ? { ...prev, status: newStatus } : null);
+        setSelectedEntrega(prev => prev ? { ...prev, status: normalizedStatus } : null);
       }
+    } catch (error) {
+      toast.error('Status inválido para atualização');
+      console.error(error);
     }
   };
 

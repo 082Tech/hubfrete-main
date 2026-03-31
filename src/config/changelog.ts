@@ -12,6 +12,28 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: "1.4.0",
+    date: "2026-03-31",
+    slides: [
+      {
+        title: "Mensagens de Áudio 🎙️",
+        description: "Agora você pode enviar e ouvir mensagens de áudio no chat da entrega, com transcrição automática e controle de velocidade de reprodução.",
+      },
+      {
+        title: "Agendamento de Entrega 📅",
+        description: "Cargas agora suportam agendamento de entrega com link externo opcional, facilitando a coordenação com o destinatário.",
+      },
+      {
+        title: "Auditoria Completa 🔍",
+        description: "Novo sistema de logs de auditoria rastreando todas as alterações em 16 tabelas-chave do sistema, com visualização detalhada na Torre de Controle.",
+      },
+      {
+        title: "Correções e Melhorias 🛠️",
+        description: "• Crédito do embarcador agora é atualizado automaticamente ao finalizar e pagar entregas<br/>• Corrigido erro de notificação ao trocar status de entregas<br/>• Status de entregas agora é normalizado automaticamente para evitar erros de enum<br/>• Trigger financeiro agora usa prazo configurável por embarcador",
+      },
+    ],
+  },
+  {
     version: "1.3.0",
     date: "2026-03-24",
     slides: [

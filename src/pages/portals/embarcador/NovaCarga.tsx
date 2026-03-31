@@ -165,6 +165,24 @@ export default function NovaCarga() {
     }
     if (!validateLocations()) return;
 
+    // Check credit limit before publishing
+    try {
+      const { data: configFin } = await supabase
+        .from('empresa_config_financeira')
+        .select('limite_credito, credito_utilizado')
+        .eq('empresa_id', empresa.id)
+        .maybeSingle();
+
+      if (configFin && configFin.limite_credito > 0) {
+        if (configFin.credito_utilizado >= configFin.limite_credito) {
+          toast.error('Limite de crédito atingido. Não é possível publicar novas ofertas até que faturas pendentes sejam quitadas.');
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Error checking credit limit:', err);
+    }
+
     setIsLoading(true);
     toast.loading('Carga sendo criada, aguarde...', { id: 'creating-carga' });
 

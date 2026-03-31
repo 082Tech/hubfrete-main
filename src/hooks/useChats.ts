@@ -400,7 +400,8 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
   // Send a message with optimistic update (no fetch after insert!)
   const sendMessage = useCallback(async (
     content: string,
-    attachment?: { url: string; nome: string; tipo: string; tamanho: number }
+    attachment?: { url: string; nome: string; tipo: string; tamanho: number },
+    audio?: { url: string; duracao: number; transcricao?: string }
   ) => {
     if (!selectedChat || !currentUserId) return;
 
@@ -420,6 +421,8 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
       anexo_nome: attachment?.nome,
       anexo_tipo: attachment?.tipo,
       anexo_tamanho: attachment?.tamanho,
+      audio_url: audio?.url,
+      audio_duracao: audio?.duracao,
     };
 
     // Add optimistic message immediately
@@ -454,12 +457,15 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         anexo_nome?: string;
         anexo_tipo?: string;
         anexo_tamanho?: number;
+        audio_url?: string;
+        audio_duracao?: number;
+        audio_transcricao?: string;
       } = {
         chat_id: selectedChat.id,
         sender_id: currentUserId,
         sender_nome: currentUserName,
         sender_tipo: userType,
-        conteudo: content,
+        conteudo: content || '',
       };
 
       if (attachment) {
@@ -467,6 +473,14 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         insertData.anexo_nome = attachment.nome;
         insertData.anexo_tipo = attachment.tipo;
         insertData.anexo_tamanho = attachment.tamanho;
+      }
+
+      if (audio) {
+        insertData.audio_url = audio.url;
+        insertData.audio_duracao = audio.duracao;
+        if (audio.transcricao) {
+          insertData.audio_transcricao = audio.transcricao;
+        }
       }
 
       const { data, error } = await supabase
@@ -497,6 +511,8 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         
         // Increment offset since we added a new message
         messagesOffsetRef.current += 1;
+
+        // Transcription is now included directly in the insert (Web Speech API - free!)
       }
 
     } catch (error) {
@@ -571,6 +587,20 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
               .update({ lida: true })
               .eq('id', newMessage.id);
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'mensagens',
+          filter: `chat_id=eq.${selectedChat.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as Mensagem;
+          // Update in-memory message (e.g. transcription arrived)
+          setMessages(prev => prev.map(m => m.id === updated.id ? { ...m, ...updated } : m));
         }
       )
       .subscribe();

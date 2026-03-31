@@ -106,6 +106,11 @@ export function ChatListItem({ chat, isSelected, onClick, userType }: ChatListIt
     const firstName = msg.sender_nome.split(' ')[0];
     const senderName = textAbbr(firstName, 12);
     
+    // Check if it's an audio message
+    if (msg.audio_url) {
+      return { senderName, content: '🎤 Áudio', isAttachment: true };
+    }
+
     // Check if it's an attachment message
     if (msg.anexo_url || msg.anexo_tipo) {
       const attachment = getAttachmentPreview(msg.anexo_tipo || null, msg.anexo_nome || null);

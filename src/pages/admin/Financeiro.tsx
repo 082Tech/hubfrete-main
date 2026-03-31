@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -78,17 +77,17 @@ interface ConfigFinanceira {
   taxa_antecipacao_percent: number;
   limite_credito: number;
   credito_utilizado: number;
-  empresas?: { nome: string | null; nome_fantasia: string | null; cnpj_matriz: string | null } | null;
+  empresas?: { nome: string | null; nome_fantasia: string | null; cnpj_matriz: string | null; tipo?: string } | null;
 }
 
-type TabType = 'recebiveis_pos' | 'recebiveis_fat' | 'pgt_transportadoras' | 'pgt_autonomos' | 'antecipacoes' | 'config';
+type TabType = 'recebiveis' | 'pgt_transportadoras' | 'pgt_autonomos' | 'antecipacoes' | 'config';
 
 export default function Financeiro() {
   const queryClient = useQueryClient();
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [activeTab, setActiveTab] = useState<TabType>('recebiveis_pos');
+  const [activeTab, setActiveTab] = useState<TabType>('recebiveis');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -101,10 +100,7 @@ export default function Financeiro() {
 
   const [configDialog, setConfigDialog] = useState<ConfigFinanceira | null>(null);
   const [configForm, setConfigForm] = useState({
-    tipo_pagamento: 'pos_pago',
     prazo_dias: 30,
-    dia_fixo: '',
-    antecipacao_permitida: false,
     taxa_antecipacao_percent: 2,
     limite_credito: 0,
   });
@@ -182,23 +178,6 @@ export default function Financeiro() {
     onError: () => toast.error('Erro ao rejeitar'),
   });
 
-  // Fetch configs to know which embarcadores are faturado
-  const { data: allConfigs } = useQuery({
-    queryKey: ['admin-all-config-financeira'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('empresa_config_financeira' as any)
-        .select('empresa_id, tipo_pagamento, ciclo_faturamento, dia_fixo, prazo_dias');
-      if (error) throw error;
-      return data as any[];
-    },
-  });
-
-  const faturadoEmpresaIds = useMemo(() => {
-    if (!allConfigs) return new Set<number>();
-    return new Set(allConfigs.filter((c: any) => c.tipo_pagamento === 'faturado').map((c: any) => c.empresa_id as number));
-  }, [allConfigs]);
-
   const { data: allRecebiveis, isLoading } = useQuery({
     queryKey: ['admin-recebiveis', selectedMonth, selectedYear, statusFilter],
     queryFn: async () => {
@@ -231,10 +210,11 @@ export default function Financeiro() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('empresa_config_financeira' as any)
-        .select(`*, empresas!empresa_config_financeira_empresa_id_fkey(nome, nome_fantasia, cnpj_matriz)`)
+        .select(`*, empresas!empresa_config_financeira_empresa_id_fkey(nome, nome_fantasia, cnpj_matriz, tipo)`)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as unknown as ConfigFinanceira[];
+      // Filter to only show embarcador companies
+      return (data as unknown as ConfigFinanceira[]).filter(c => (c.empresas as any)?.tipo === 'EMBARCADOR');
     },
     enabled: activeTab === 'config',
   });
@@ -259,13 +239,7 @@ export default function Financeiro() {
     if (!allRecebiveis) return [];
     let items = allRecebiveis;
 
-    if (activeTab === 'recebiveis_pos') {
-      // Show only items from non-faturado embarcadores
-      items = items.filter(r => !faturadoEmpresaIds.has(r.empresa_embarcadora_id || 0));
-    } else if (activeTab === 'recebiveis_fat') {
-      // Show only items from faturado embarcadores
-      items = items.filter(r => faturadoEmpresaIds.has(r.empresa_embarcadora_id || 0));
-    } else if (activeTab === 'pgt_transportadoras') {
+    if (activeTab === 'pgt_transportadoras') {
       items = items.filter(r => r.tipo_beneficiario === 'transportadora');
     } else if (activeTab === 'pgt_autonomos') {
       items = items.filter(r => r.tipo_beneficiario === 'autonomo');
@@ -282,22 +256,7 @@ export default function Financeiro() {
       );
     }
     return items;
-  }, [allRecebiveis, activeTab, searchTerm, faturadoEmpresaIds]);
-
-  // Group faturado items by embarcador for the faturado tab
-  const faturadoGroups = useMemo(() => {
-    if (activeTab !== 'recebiveis_fat') return [];
-    const map: Record<number, { empresa: { nome: string | null; nome_fantasia: string | null } | null; empresaId: number; items: FinanceiroEntrega[]; config: any }> = {};
-    for (const r of filtered) {
-      const eId = r.empresa_embarcadora_id || 0;
-      if (!map[eId]) {
-        const cfg = allConfigs?.find((c: any) => c.empresa_id === eId);
-        map[eId] = { empresa: r.empresa_embarcadora, empresaId: eId, items: [], config: cfg };
-      }
-      map[eId].items.push(r);
-    }
-    return Object.values(map);
-  }, [filtered, activeTab, allConfigs]);
+  }, [allRecebiveis, activeTab, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const pagedItems = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -355,11 +314,11 @@ export default function Financeiro() {
     mutationFn: async (params: { empresa_id: number; form: typeof configForm }) => {
       const payload = {
         empresa_id: params.empresa_id,
-        tipo_pagamento: params.form.tipo_pagamento,
+        tipo_pagamento: 'faturado',
         prazo_dias: params.form.prazo_dias,
-        dia_fixo: params.form.dia_fixo ? parseInt(params.form.dia_fixo) : null,
+        dia_fixo: null,
         ciclo_faturamento: 'mensal',
-        antecipacao_permitida: params.form.antecipacao_permitida,
+        antecipacao_permitida: true,
         taxa_antecipacao_percent: params.form.taxa_antecipacao_percent,
         limite_credito: params.form.limite_credito,
       };
@@ -370,7 +329,6 @@ export default function Financeiro() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-config-financeira'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-all-config-financeira'] });
       toast.success('Configuração salva!');
       setConfigDialog(null);
     },
@@ -386,24 +344,7 @@ export default function Financeiro() {
     return <Badge variant="secondary" className="text-[10px]">Pendente</Badge>;
   };
 
-  const tipoPagamentoLabel = (tipo: string) => {
-    switch (tipo) {
-      case 'pos_pago': return 'Pós-pago';
-      case 'faturado': return 'Faturado';
-      default: return tipo;
-    }
-  };
-
-  const cicloLabel = (c: string) => {
-    switch (c) {
-      case 'semanal': return 'Semanal';
-      case 'quinzenal': return 'Quinzenal';
-      case 'mensal': return 'Mensal';
-      default: return c;
-    }
-  };
-
-  const isRecebiveis = activeTab === 'recebiveis_pos' || activeTab === 'recebiveis_fat';
+  const isRecebiveis = activeTab === 'recebiveis';
   const isPgtTransportadoras = activeTab === 'pgt_transportadoras';
   const isPgtAutonomos = activeTab === 'pgt_autonomos';
 
@@ -628,130 +569,13 @@ export default function Financeiro() {
     </div>
   );
 
-  const renderFaturadoTab = () => {
-    const toggleGroup = (key: string) => {
-      setExpandedGroups(prev => {
-        const next = new Set(prev);
-        if (next.has(key)) next.delete(key); else next.add(key);
-        return next;
-      });
-    };
-
-    return (
-      <div className="space-y-5 mt-5">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {getKPIs().map((kpi, i) => (
-            <Card key={i} className="border-border">
-              <CardContent className="p-3 flex items-center gap-2.5">
-                <kpi.icon className={`w-4 h-4 ${kpi.color} shrink-0`} />
-                <div className="min-w-0">
-                  <p className="text-lg font-bold leading-tight truncate">{kpi.value}</p>
-                  <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 items-end">
-          <MonthYearPicker month={selectedMonth} year={selectedYear} onChangeMonth={setSelectedMonth} onChangeYear={setSelectedYear} />
-          <div className="flex-1 max-w-xs">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Buscar</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input className="pl-9 h-9" placeholder="Código, empresa..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Grouped by embarcador */}
-        {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
-          </div>
-        ) : faturadoGroups.length === 0 ? (
-          <Card className="border-dashed border-2 border-border">
-            <CardContent className="py-16 text-center">
-              <FileText className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
-              <p className="text-muted-foreground">Nenhuma fatura encontrada no período</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {faturadoGroups.map(group => {
-              const key = `${group.empresaId}`;
-              const isExpanded = expandedGroups.has(key);
-              const groupTotal = group.items.reduce((s, r) => s + Number(r.valor_frete), 0);
-              const groupPago = group.items.filter(r => r.status === 'pago').reduce((s, r) => s + Number(r.valor_frete), 0);
-              const groupPendente = group.items.filter(r => r.status === 'pendente').length;
-              const allPaid = group.items.every(r => r.status === 'pago');
-              const diaFixo = group.config?.dia_fixo;
-              const prazoDias = group.config?.prazo_dias || 30;
-              const monthLabel = format(new Date(selectedYear, selectedMonth), 'MMM/yy', { locale: ptBR });
-
-              return (
-                <Card key={key} className="border-border overflow-hidden">
-                  <button
-                    onClick={() => toggleGroup(key)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <FileText className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="text-left">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-foreground">{nomeEmpresa(group.empresa)}</p>
-                          <Badge variant="outline" className="text-[9px]">Faturado</Badge>
-                          {diaFixo && <Badge variant="outline" className="text-[9px]">Fecha dia {diaFixo} · +{prazoDias}d</Badge>}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {group.items.length} {group.items.length === 1 ? 'entrega' : 'entregas'} · {monthLabel}
-                          {groupPendente > 0 && <span className="text-chart-4 ml-2">({groupPendente} pendente{groupPendente > 1 ? 's' : ''})</span>}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-foreground">{formatCurrency(groupTotal)}</p>
-                        {groupPago > 0 && <p className="text-[10px] text-chart-2">{formatCurrency(groupPago)} recebido</p>}
-                      </div>
-                      {allPaid
-                        ? <Badge className="bg-chart-2 text-white text-[10px]">Quitada</Badge>
-                        : <Badge variant="secondary" className="text-[10px]">Aberta</Badge>
-                      }
-                      {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                    </div>
-                  </button>
-
-                  {isExpanded && (
-                    <div className="border-t border-border">
-                      <table className="w-full text-sm">
-                        {renderTableHead()}
-                        <tbody>
-                          {group.items.map(renderTableRow)}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
-          <p className="text-sm text-muted-foreground">Recebíveis e pagamentos · Modelo fintech logística</p>
+          <p className="text-sm text-muted-foreground">Recebíveis e pagamentos · Faturado D+X</p>
         </div>
         <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-xs font-medium">
           <DollarSign className="w-3.5 h-3.5" />
@@ -761,11 +585,8 @@ export default function Financeiro() {
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as TabType); setPage(1); setStatusFilter('todos'); setSearchTerm(''); setExpandedGroups(new Set()); }}>
         <TabsList className="bg-muted/50">
-          <TabsTrigger value="recebiveis_pos" className="gap-2">
-            <ArrowDownLeft className="w-4 h-4" /> Recebíveis Pós-pago
-          </TabsTrigger>
-          <TabsTrigger value="recebiveis_fat" className="gap-2">
-            <FileText className="w-4 h-4" /> Recebíveis Faturado
+          <TabsTrigger value="recebiveis" className="gap-2">
+            <ArrowDownLeft className="w-4 h-4" /> Recebíveis
           </TabsTrigger>
           <TabsTrigger value="pgt_transportadoras" className="gap-2">
             <Truck className="w-4 h-4" /> Pgto Transportadoras
@@ -786,8 +607,7 @@ export default function Financeiro() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="recebiveis_pos">{renderFinancialTable()}</TabsContent>
-        <TabsContent value="recebiveis_fat">{renderFaturadoTab()}</TabsContent>
+        <TabsContent value="recebiveis">{renderFinancialTable()}</TabsContent>
         <TabsContent value="pgt_transportadoras">{renderFinancialTable()}</TabsContent>
         <TabsContent value="pgt_autonomos">{renderFinancialTable()}</TabsContent>
 
@@ -870,11 +690,11 @@ export default function Financeiro() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-foreground">Regras Financeiras por Embarcador</h2>
-              <p className="text-xs text-muted-foreground">Tipo de pagamento, prazo, antecipação e limite de crédito</p>
+              <p className="text-xs text-muted-foreground">Prazo de pagamento, taxa de antecipação e limite de crédito para publicação</p>
             </div>
             <Button size="sm" onClick={() => {
-              setConfigDialog({ id: '', empresa_id: 0, tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: null, ciclo_faturamento: 'mensal', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0, credito_utilizado: 0 });
-              setConfigForm({ tipo_pagamento: 'pos_pago', prazo_dias: 30, dia_fixo: '', antecipacao_permitida: false, taxa_antecipacao_percent: 2, limite_credito: 0 });
+              setConfigDialog({ id: '', empresa_id: 0, tipo_pagamento: 'faturado', prazo_dias: 30, dia_fixo: null, ciclo_faturamento: 'mensal', antecipacao_permitida: true, taxa_antecipacao_percent: 2, limite_credito: 0, credito_utilizado: 0 });
+              setConfigForm({ prazo_dias: 30, taxa_antecipacao_percent: 2, limite_credito: 0 });
             }}>
               <Settings className="w-4 h-4 mr-2" /> Nova Config
             </Button>
@@ -900,10 +720,7 @@ export default function Financeiro() {
                   <Card key={cfg.id} className="border-border hover:shadow-md transition-all cursor-pointer group" onClick={() => {
                     setConfigDialog(cfg);
                     setConfigForm({
-                      tipo_pagamento: cfg.tipo_pagamento,
                       prazo_dias: cfg.prazo_dias,
-                      dia_fixo: cfg.dia_fixo?.toString() || '',
-                      antecipacao_permitida: cfg.antecipacao_permitida,
                       taxa_antecipacao_percent: cfg.taxa_antecipacao_percent,
                       limite_credito: cfg.limite_credito,
                     });
@@ -920,26 +737,18 @@ export default function Financeiro() {
                           </div>
                         </div>
                         <Badge variant="outline" className="text-[10px] shrink-0">
-                          {tipoPagamentoLabel(cfg.tipo_pagamento)}
+                          Faturado
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <div className="text-center p-2 rounded-md bg-muted/40">
-                          <p className="text-sm font-bold text-foreground">
-                            {cfg.tipo_pagamento === 'faturado' && cfg.dia_fixo ? `Dia ${cfg.dia_fixo}` : `D+${cfg.prazo_dias}`}
-                          </p>
-                          <p className="text-[9px] text-muted-foreground">{cfg.tipo_pagamento === 'faturado' ? 'Vencimento' : 'Prazo'}</p>
+                          <p className="text-sm font-bold text-foreground">D+{cfg.prazo_dias}</p>
+                          <p className="text-[9px] text-muted-foreground">Prazo</p>
                         </div>
                         <div className="text-center p-2 rounded-md bg-muted/40">
                           <p className="text-sm font-bold text-foreground">
-                            {cfg.tipo_pagamento === 'faturado' && cfg.dia_fixo ? `Dia ${cfg.dia_fixo}` : '—'}
-                          </p>
-                          <p className="text-[9px] text-muted-foreground">Fechamento</p>
-                        </div>
-                        <div className="text-center p-2 rounded-md bg-muted/40">
-                          <p className="text-sm font-bold text-foreground">
-                            {cfg.antecipacao_permitida ? `${cfg.taxa_antecipacao_percent}%` : '—'}
+                            {cfg.taxa_antecipacao_percent}%
                           </p>
                           <p className="text-[9px] text-muted-foreground">Taxa Antec.</p>
                         </div>
@@ -948,7 +757,7 @@ export default function Financeiro() {
                       {cfg.limite_credito > 0 && (
                         <div>
                           <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                            <span>Crédito utilizado</span>
+                            <span>Limite de Crédito</span>
                             <span>{formatCurrency(cfg.credito_utilizado)} / {formatCurrency(cfg.limite_credito)}</span>
                           </div>
                           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -959,16 +768,6 @@ export default function Financeiro() {
                           </div>
                         </div>
                       )}
-
-                      <div className="flex items-center gap-2 pt-1">
-                        {cfg.antecipacao_permitida ? (
-                          <Badge className="bg-chart-2/10 text-chart-2 text-[9px] border-0">
-                            <ShieldCheck className="w-2.5 h-2.5 mr-0.5" /> Antecipação ativa
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-[9px] border-0">Antecipação desligada</Badge>
-                        )}
-                      </div>
                     </CardContent>
                   </Card>
                 );
@@ -1067,52 +866,31 @@ export default function Financeiro() {
                 </Select>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+
+            <div>
+              <Label>Prazo de pagamento (dias)</Label>
+              <Input type="number" value={configForm.prazo_dias} onChange={(e) => setConfigForm(f => ({ ...f, prazo_dias: parseInt(e.target.value) || 0 }))} />
+              <p className="text-[10px] text-muted-foreground mt-1">D+X após a finalização da carga</p>
+            </div>
+
+            <div className="border-t border-border pt-4 space-y-3">
               <div>
-                <Label>Tipo de Pagamento</Label>
-                <Select value={configForm.tipo_pagamento} onValueChange={(v) => setConfigForm(f => ({ ...f, tipo_pagamento: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pos_pago">Pós-pago (D+X)</SelectItem>
-                    <SelectItem value="faturado">Faturado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>{configForm.tipo_pagamento === 'faturado' ? 'Prazo após fechamento (dias)' : 'Prazo (dias)'}</Label>
-                <Input type="number" value={configForm.prazo_dias} onChange={(e) => setConfigForm(f => ({ ...f, prazo_dias: parseInt(e.target.value) || 0 }))} />
-                {configForm.tipo_pagamento === 'faturado' && (
-                  <p className="text-[10px] text-muted-foreground mt-1">Dias adicionais para pagamento após o fechamento</p>
-                )}
+                <Label>Taxa de Antecipação (%)</Label>
+                <Input type="number" step="0.1" value={configForm.taxa_antecipacao_percent} onChange={(e) => setConfigForm(f => ({ ...f, taxa_antecipacao_percent: parseFloat(e.target.value) || 0 }))} />
+                <p className="text-[10px] text-muted-foreground mt-1">Aplicada quando transportadoras solicitam antecipação</p>
               </div>
             </div>
-            {configForm.tipo_pagamento === 'faturado' && (
-              <div>
-                <Label>Dia de Fechamento da Fatura</Label>
-                <Input type="number" placeholder="Ex: 15" min={1} max={28} value={configForm.dia_fixo} onChange={(e) => setConfigForm(f => ({ ...f, dia_fixo: e.target.value }))} />
-                <p className="text-[10px] text-muted-foreground mt-1">Acumula entregas do mês e fecha a fatura neste dia</p>
-              </div>
-            )}
+
             <div className="border-t border-border pt-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">Antecipação</p>
-                  <p className="text-[10px] text-muted-foreground">Permitir que transportadores antecipem recebíveis deste embarcador</p>
-                </div>
-                <Switch checked={configForm.antecipacao_permitida} onCheckedChange={(v) => setConfigForm(f => ({ ...f, antecipacao_permitida: v }))} />
+              <div>
+                <p className="text-sm font-semibold">Limite de Crédito para Publicação</p>
+                <p className="text-[10px] text-muted-foreground">Se atingir o limite, o embarcador não poderá publicar novas ofertas de carga</p>
               </div>
-              {configForm.antecipacao_permitida && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Taxa de Antecipação (%)</Label>
-                    <Input type="number" step="0.1" value={configForm.taxa_antecipacao_percent} onChange={(e) => setConfigForm(f => ({ ...f, taxa_antecipacao_percent: parseFloat(e.target.value) || 0 }))} />
-                  </div>
-                  <div>
-                    <Label>Limite de Crédito (R$)</Label>
-                    <Input type="number" value={configForm.limite_credito} onChange={(e) => setConfigForm(f => ({ ...f, limite_credito: parseFloat(e.target.value) || 0 }))} />
-                  </div>
-                </div>
-              )}
+              <div>
+                <Label>Limite (R$)</Label>
+                <Input type="number" value={configForm.limite_credito} onChange={(e) => setConfigForm(f => ({ ...f, limite_credito: parseFloat(e.target.value) || 0 }))} />
+                <p className="text-[10px] text-muted-foreground mt-1">0 = sem limite</p>
+              </div>
             </div>
           </div>
           <DialogFooter>

@@ -222,6 +222,7 @@ export type Database = {
       }
       cargas: {
         Row: {
+          agendamento_entrega: boolean
           carga_fragil: boolean | null
           carga_perigosa: boolean | null
           carga_viva: boolean | null
@@ -248,6 +249,7 @@ export type Database = {
           expira_em: string | null
           filial_id: number | null
           id: string
+          link_agendamento: string | null
           necessidades_especiais: string[] | null
           nota_fiscal_url: string | null
           numero_onu: string | null
@@ -282,6 +284,7 @@ export type Database = {
           volume_m3: number | null
         }
         Insert: {
+          agendamento_entrega?: boolean
           carga_fragil?: boolean | null
           carga_perigosa?: boolean | null
           carga_viva?: boolean | null
@@ -308,6 +311,7 @@ export type Database = {
           expira_em?: string | null
           filial_id?: number | null
           id?: string
+          link_agendamento?: string | null
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
@@ -342,6 +346,7 @@ export type Database = {
           volume_m3?: number | null
         }
         Update: {
+          agendamento_entrega?: boolean
           carga_fragil?: boolean | null
           carga_perigosa?: boolean | null
           carga_viva?: boolean | null
@@ -368,6 +373,7 @@ export type Database = {
           expira_em?: string | null
           filial_id?: number | null
           id?: string
+          link_agendamento?: string | null
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
@@ -1795,6 +1801,64 @@ export type Database = {
           },
         ]
       }
+      financeiro_motorista: {
+        Row: {
+          created_at: string
+          data_referencia: string
+          descricao: string | null
+          entrega_id: string | null
+          id: string
+          motorista_id: string
+          tipo: string
+          valor_bruto: number
+          viagem_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_referencia?: string
+          descricao?: string | null
+          entrega_id?: string | null
+          id?: string
+          motorista_id: string
+          tipo?: string
+          valor_bruto?: number
+          viagem_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_referencia?: string
+          descricao?: string | null
+          entrega_id?: string | null
+          id?: string
+          motorista_id?: string
+          tipo?: string
+          valor_bruto?: number
+          viagem_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_motorista_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: true
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_motorista_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_motorista_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: false
+            referencedRelation: "viagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geofences: {
         Row: {
           ativo: boolean
@@ -2249,6 +2313,9 @@ export type Database = {
           anexo_tamanho: number | null
           anexo_tipo: string | null
           anexo_url: string | null
+          audio_duracao: number | null
+          audio_transcricao: string | null
+          audio_url: string | null
           chat_id: string
           conteudo: string
           created_at: string
@@ -2263,6 +2330,9 @@ export type Database = {
           anexo_tamanho?: number | null
           anexo_tipo?: string | null
           anexo_url?: string | null
+          audio_duracao?: number | null
+          audio_transcricao?: string | null
+          audio_url?: string | null
           chat_id: string
           conteudo: string
           created_at?: string
@@ -2277,6 +2347,9 @@ export type Database = {
           anexo_tamanho?: number | null
           anexo_tipo?: string | null
           anexo_url?: string | null
+          audio_duracao?: number | null
+          audio_transcricao?: string | null
+          audio_url?: string | null
           chat_id?: string
           conteudo?: string
           created_at?: string
@@ -2307,6 +2380,7 @@ export type Database = {
           tipo: string
           valor_por_litro: number | null
           valor_total: number
+          viagem_id: string | null
         }
         Insert: {
           created_at?: string
@@ -2318,6 +2392,7 @@ export type Database = {
           tipo?: string
           valor_por_litro?: number | null
           valor_total: number
+          viagem_id?: string | null
         }
         Update: {
           created_at?: string
@@ -2329,6 +2404,7 @@ export type Database = {
           tipo?: string
           valor_por_litro?: number | null
           valor_total?: number
+          viagem_id?: string | null
         }
         Relationships: [
           {
@@ -2336,6 +2412,13 @@ export type Database = {
             columns: ["motorista_id"]
             isOneToOne: false
             referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "motorista_gastos_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: false
+            referencedRelation: "viagens"
             referencedColumns: ["id"]
           },
         ]
@@ -2789,6 +2872,90 @@ export type Database = {
           },
         ]
       }
+      pre_cadastros_motoristas: {
+        Row: {
+          analisado_em: string | null
+          analisado_por: string | null
+          auth_user_id: string
+          categoria_cnh: string | null
+          cnh: string | null
+          cnh_digital_url: string | null
+          cnh_tem_qrcode: boolean
+          comprovante_endereco_titular_doc_url: string | null
+          comprovante_endereco_titular_nome: string | null
+          comprovante_endereco_url: string | null
+          cpf: string | null
+          created_at: string
+          dados_bancarios: Json | null
+          email: string
+          etapa_atual: number
+          foto_url: string | null
+          id: string
+          motivo_rejeicao: string | null
+          nome_completo: string | null
+          observacoes: string | null
+          status: string
+          telefone: string | null
+          uf: string | null
+          updated_at: string
+          validade_cnh: string | null
+        }
+        Insert: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          auth_user_id: string
+          categoria_cnh?: string | null
+          cnh?: string | null
+          cnh_digital_url?: string | null
+          cnh_tem_qrcode?: boolean
+          comprovante_endereco_titular_doc_url?: string | null
+          comprovante_endereco_titular_nome?: string | null
+          comprovante_endereco_url?: string | null
+          cpf?: string | null
+          created_at?: string
+          dados_bancarios?: Json | null
+          email: string
+          etapa_atual?: number
+          foto_url?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          nome_completo?: string | null
+          observacoes?: string | null
+          status?: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+          validade_cnh?: string | null
+        }
+        Update: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          auth_user_id?: string
+          categoria_cnh?: string | null
+          cnh?: string | null
+          cnh_digital_url?: string | null
+          cnh_tem_qrcode?: boolean
+          comprovante_endereco_titular_doc_url?: string | null
+          comprovante_endereco_titular_nome?: string | null
+          comprovante_endereco_url?: string | null
+          cpf?: string | null
+          created_at?: string
+          dados_bancarios?: Json | null
+          email?: string
+          etapa_atual?: number
+          foto_url?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          nome_completo?: string | null
+          observacoes?: string | null
+          status?: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+          validade_cnh?: string | null
+        }
+        Relationships: []
+      }
       provas_entrega: {
         Row: {
           assinatura_url: string | null
@@ -3233,6 +3400,7 @@ export type Database = {
           ano: number | null
           antt_rntrc: string | null
           ativo: boolean | null
+          capacidade_disponivel_kg: number | null
           capacidade_kg: number | null
           capacidade_m3: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
@@ -3267,6 +3435,7 @@ export type Database = {
           ano?: number | null
           antt_rntrc?: string | null
           ativo?: boolean | null
+          capacidade_disponivel_kg?: number | null
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria: Database["public"]["Enums"]["tipo_carroceria"]
@@ -3301,6 +3470,7 @@ export type Database = {
           ano?: number | null
           antt_rntrc?: string | null
           ativo?: boolean | null
+          capacidade_disponivel_kg?: number | null
           capacidade_kg?: number | null
           capacidade_m3?: number | null
           carroceria?: Database["public"]["Enums"]["tipo_carroceria"]
@@ -3492,10 +3662,10 @@ export type Database = {
           p_motorista_id: string
           p_peso_kg: number
           p_previsao_coleta?: string
-          p_user_name: string
-          p_valor_frete: number
+          p_user_name?: string
+          p_valor_frete?: number
           p_veiculo_id: string
-          p_viagem_id: string
+          p_viagem_id?: string
         }
         Returns: Json
       }
@@ -3535,6 +3705,40 @@ export type Database = {
       get_admin_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["admin_role"]
+      }
+      get_gastos_resumo: {
+        Args: {
+          p_data_fim: string
+          p_data_inicio: string
+          p_motorista_id: string
+        }
+        Returns: {
+          quantidade: number
+          tipo: string
+          total: number
+        }[]
+      }
+      get_motorista_kpi_breakdown_temporal: {
+        Args: {
+          p_granularidade?: string
+          p_motorista_id: string
+          p_periodo_fim: string
+          p_periodo_inicio: string
+        }
+        Returns: {
+          entregas_count: number
+          faturamento: number
+          km: number
+          periodo: string
+        }[]
+      }
+      get_motorista_kpi_dashboard: {
+        Args: {
+          p_motorista_id: string
+          p_periodo_fim: string
+          p_periodo_inicio: string
+        }
+        Returns: Json
       }
       get_public_tracking_info: {
         Args: { _tracking_code: string }
