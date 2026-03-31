@@ -512,22 +512,7 @@ export function useChats({ userType, empresaId }: UseChatsOptions) {
         // Increment offset since we added a new message
         messagesOffsetRef.current += 1;
 
-        // Save transcription directly if available (captured via Web Speech API - free!)
-        if (audio?.transcricao && data.id) {
-          supabase
-            .from('mensagens')
-            .update({ audio_transcricao: audio.transcricao })
-            .eq('id', data.id)
-            .then(({ error: updateErr }) => {
-              if (!updateErr) {
-                setMessages(prev => prev.map(msg =>
-                  msg.id === data.id
-                    ? { ...msg, audio_transcricao: audio.transcricao }
-                    : msg
-                ));
-              }
-            });
-        }
+        // Transcription is now included directly in the insert (Web Speech API - free!)
       }
 
     } catch (error) {
