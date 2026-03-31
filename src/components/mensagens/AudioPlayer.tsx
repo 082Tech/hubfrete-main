@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAudioPlaybackRate } from './useAudioPlaybackRate';
 
 interface AudioPlayerProps {
   url: string;
@@ -11,10 +12,20 @@ interface AudioPlayerProps {
 
 export function AudioPlayer({ url, duration: propDuration, isOwn, compact = false }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const rafRef = useRef<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(propDuration || 0);
-  const [playbackRate, setPlaybackRate] = useState(1);
+  const { rate, cycleRate } = useAudioPlaybackRate();
+
+  // RAF-based smooth progress updates
+  const tick = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && !audio.paused) {
+      setCurrentTime(audio.currentTime);
+      rafRef.current = requestAnimationFrame(tick);
+    }
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -25,43 +36,49 @@ export function AudioPlayer({ url, duration: propDuration, isOwn, compact = fals
         setDuration(audio.duration);
       }
     };
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onPlay = () => {
+      setIsPlaying(true);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    const onPause = () => {
+      setIsPlaying(false);
+      cancelAnimationFrame(rafRef.current);
+    };
     const onEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
+      cancelAnimationFrame(rafRef.current);
     };
 
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
-    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('pause', onPause);
     audio.addEventListener('ended', onEnded);
 
     return () => {
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
-      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('pause', onPause);
       audio.removeEventListener('ended', onEnded);
+      cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [tick]);
+
+  // Sync global playback rate
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = rate;
+    }
+  }, [rate]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio) return;
-
     if (isPlaying) {
       audio.pause();
     } else {
       audio.play();
     }
-    setIsPlaying(!isPlaying);
-  };
-
-  const cyclePlaybackRate = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const rates = [1, 1.5, 2];
-    const currentIdx = rates.indexOf(playbackRate);
-    const nextRate = rates[(currentIdx + 1) % rates.length];
-    audio.playbackRate = nextRate;
-    setPlaybackRate(nextRate);
   };
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -83,11 +100,9 @@ export function AudioPlayer({ url, duration: propDuration, isOwn, compact = fals
   const displayDuration = duration || propDuration || 0;
   const progress = displayDuration > 0 ? (currentTime / displayDuration) * 100 : 0;
 
-  // Generate pseudo-waveform bars with varying heights (WhatsApp-style)
   const barCount = compact ? 32 : 40;
   const bars = useMemo(
     () => Array.from({ length: barCount }, (_, i) => {
-      // Create a more natural wave pattern
       const base = 0.15 + Math.random() * 0.85;
       const wave = Math.sin(i * 0.4) * 0.2 + 0.5;
       return Math.min(1, base * wave + Math.random() * 0.3);
@@ -99,7 +114,6 @@ export function AudioPlayer({ url, duration: propDuration, isOwn, compact = fals
     <div className={cn('flex items-center gap-2', compact ? 'min-w-[200px]' : 'min-w-[240px]')}>
       <audio ref={audioRef} src={url} preload="metadata" />
 
-      {/* Play/Pause button - WhatsApp style circle */}
       <button
         onClick={togglePlay}
         className={cn(
@@ -118,7 +132,6 @@ export function AudioPlayer({ url, duration: propDuration, isOwn, compact = fals
       </button>
 
       <div className="flex-1 flex flex-col gap-1">
-        {/* Waveform with progress indicator */}
         <div className="relative">
           <div
             className="flex items-center gap-[1.5px] h-[28px] cursor-pointer"
@@ -142,19 +155,21 @@ export function AudioPlayer({ url, duration: propDuration, isOwn, compact = fals
             })}
           </div>
 
-          {/* Progress dot indicator */}
           {(isPlaying || currentTime > 0) && (
             <div
               className={cn(
-                'absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full shadow-sm transition-[left] duration-100',
+                'absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full shadow-sm',
                 isOwn ? 'bg-primary-foreground' : 'bg-primary'
               )}
-              style={{ left: `${Math.min(progress, 98)}%`, marginLeft: -6 }}
+              style={{
+                left: `${Math.min(progress, 98)}%`,
+                marginLeft: -6,
+                willChange: 'left',
+              }}
             />
           )}
         </div>
 
-        {/* Time and speed controls */}
         <div className="flex items-center justify-between">
           <span className={cn(
             'text-[10px] tabular-nums',
@@ -173,9 +188,8 @@ export function AudioPlayer({ url, duration: propDuration, isOwn, compact = fals
               </span>
             )}
 
-            {/* Playback speed button */}
             <button
-              onClick={cyclePlaybackRate}
+              onClick={cycleRate}
               className={cn(
                 'text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors',
                 isOwn
@@ -183,7 +197,7 @@ export function AudioPlayer({ url, duration: propDuration, isOwn, compact = fals
                   : 'bg-primary/10 hover:bg-primary/20 text-primary'
               )}
             >
-              {playbackRate.toFixed(1).replace('.', ',')}x
+              {rate.toFixed(1).replace('.', ',')}x
             </button>
           </div>
         </div>
