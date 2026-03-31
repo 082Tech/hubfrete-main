@@ -104,6 +104,58 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 
 type EntregaStatus = string;
 
+const validEntregaStatuses = new Set(Object.keys(statusConfig));
+
+const entregaStatusLabelMap: Record<string, EntregaStatus> = {
+  Aguardando: 'aguardando',
+  'Saiu para Coleta': 'saiu_para_coleta',
+  'Saiu p/ Coleta': 'saiu_para_coleta',
+  'Em Trânsito': 'em_transito',
+  'Saiu para Entrega': 'saiu_para_entrega',
+  'Saiu p/ Entrega': 'saiu_para_entrega',
+  Entregue: 'entregue',
+  Concluída: 'entregue',
+  Concluida: 'entregue',
+  Cancelada: 'cancelada',
+};
+
+function normalizeEntregaStatus(status: string): EntregaStatus {
+  const rawStatus = status?.trim?.() ?? '';
+
+  if (validEntregaStatuses.has(rawStatus)) {
+    return rawStatus;
+  }
+
+  const mappedStatus = entregaStatusLabelMap[rawStatus];
+  if (mappedStatus) {
+    return mappedStatus;
+  }
+
+  const heuristicallyNormalized = rawStatus
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/p\//g, 'para')
+    .replace(/\s+/g, '_');
+
+  const heuristicMap: Record<string, EntregaStatus> = {
+    aguardando: 'aguardando',
+    saiu_para_coleta: 'saiu_para_coleta',
+    em_transito: 'em_transito',
+    saiu_para_entrega: 'saiu_para_entrega',
+    entregue: 'entregue',
+    concluida: 'entregue',
+    cancelada: 'cancelada',
+  };
+
+  const normalizedStatus = heuristicMap[heuristicallyNormalized];
+  if (normalizedStatus) {
+    return normalizedStatus;
+  }
+
+  throw new Error(`Status de entrega inválido: ${status}`);
+}
+
 interface Entrega {
   id: string;
   codigo: string;
@@ -2130,15 +2182,22 @@ export default function OperacaoDiaria() {
   const handleStatusChange = (newStatus: string) => {
     // In viagem view, the active entrega is selectedEntregaInViagem
     const activeEntrega = selectedEntregaInViagem || selectedEntrega;
-    if (activeEntrega) {
-      statusMutation.mutate({ entregaId: activeEntrega.id, newStatus });
+    if (!activeEntrega) return;
+
+    try {
+      const normalizedStatus = normalizeEntregaStatus(newStatus);
+      statusMutation.mutate({ entregaId: activeEntrega.id, newStatus: normalizedStatus });
+
       if (selectedEntregaInViagem) {
-        setSelectedEntregaInViagem(prev => prev ? { ...prev, status: newStatus } : null);
+        setSelectedEntregaInViagem(prev => prev ? { ...prev, status: normalizedStatus } : null);
         // Also refetch viagens to update the viagem's entrega statuses
         refetchViagens();
       } else {
-        setSelectedEntrega(prev => prev ? { ...prev, status: newStatus } : null);
+        setSelectedEntrega(prev => prev ? { ...prev, status: normalizedStatus } : null);
       }
+    } catch (error) {
+      toast.error('Status inválido para atualização');
+      console.error(error);
     }
   };
 
