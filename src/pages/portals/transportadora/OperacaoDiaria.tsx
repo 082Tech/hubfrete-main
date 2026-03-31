@@ -87,6 +87,7 @@ import { DailyPerformanceDialog } from '@/components/admin/relatorios/DailyPerfo
 import { BarChart3 } from 'lucide-react';
 import { ViagemListItem, ViagemDetailPanel } from '@/components/viagens';
 import { EventTimeline } from '@/components/shared/EventTimeline';
+import type { Database } from '@/integrations/supabase/types';
 
 type ViewMode = 'entregas' | 'viagens';
 
@@ -102,9 +103,16 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', icon: XCircle, column: 'done' },
 };
 
-type EntregaStatus = string;
+type EntregaStatus = Database['public']['Enums']['status_entrega'];
 
-const validEntregaStatuses = new Set(Object.keys(statusConfig));
+const validEntregaStatuses = new Set<EntregaStatus>([
+  'aguardando',
+  'saiu_para_coleta',
+  'em_transito',
+  'saiu_para_entrega',
+  'entregue',
+  'cancelada',
+]);
 
 const entregaStatusLabelMap: Record<string, EntregaStatus> = {
   Aguardando: 'aguardando',
@@ -1920,11 +1928,21 @@ export default function OperacaoDiaria() {
 
   const statusMutation = useMutation({
     mutationFn: async ({ entregaId, newStatus }: { entregaId: string; newStatus: string }) => {
-      const updates: Record<string, any> = { status: newStatus, updated_at: new Date().toISOString() };
+      const normalizedStatus = normalizeEntregaStatus(newStatus);
+      console.info('[OperacaoDiaria] status update request', {
+        entregaId,
+        rawStatus: newStatus,
+        normalizedStatus,
+      });
 
-      if (newStatus === 'entregue') {
+      const updates: Record<string, any> = {
+        status: normalizedStatus,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (normalizedStatus === 'entregue') {
         updates.entregue_em = new Date().toISOString();
-      } else if (newStatus === 'saiu_para_coleta') {
+      } else if (normalizedStatus === 'saiu_para_coleta') {
         updates.coletado_em = new Date().toISOString();
       }
 
@@ -1944,14 +1962,14 @@ export default function OperacaoDiaria() {
         cancelada: 'cancelado',
       };
 
-      const eventoTipo = statusToEventoTipo[newStatus] || 'aceite';
+      const eventoTipo = statusToEventoTipo[normalizedStatus] || 'aceite';
 
       // Registrar evento com auditoria (user_id e user_nome)
       const { error: eventoError } = await supabase.from('entrega_eventos').insert({
         entrega_id: entregaId,
         tipo: eventoTipo as any,
         timestamp: new Date().toISOString(),
-        observacao: `Status alterado para ${statusConfig[newStatus]?.label || newStatus}`,
+        observacao: `Status alterado para ${statusConfig[normalizedStatus]?.label || normalizedStatus}`,
         user_id: user?.id ?? null,
         user_nome: profile?.nome_completo || user?.email || 'Sistema',
       });
@@ -1966,9 +1984,13 @@ export default function OperacaoDiaria() {
       refetch();
       refetchViagens();
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       toast.error('Erro ao atualizar status');
-      console.error(error);
+      console.error('[OperacaoDiaria] status update failed', {
+        error,
+        entregaId: variables.entregaId,
+        rawStatus: variables.newStatus,
+      });
     },
   });
 
@@ -2186,6 +2208,11 @@ export default function OperacaoDiaria() {
 
     try {
       const normalizedStatus = normalizeEntregaStatus(newStatus);
+      console.info('[OperacaoDiaria] handleStatusChange', {
+        entregaId: activeEntrega.id,
+        rawStatus: newStatus,
+        normalizedStatus,
+      });
       statusMutation.mutate({ entregaId: activeEntrega.id, newStatus: normalizedStatus });
 
       if (selectedEntregaInViagem) {
