@@ -222,6 +222,7 @@ export type Database = {
       }
       cargas: {
         Row: {
+          agendamento_entrega: boolean
           carga_fragil: boolean | null
           carga_perigosa: boolean | null
           carga_viva: boolean | null
@@ -248,6 +249,7 @@ export type Database = {
           expira_em: string | null
           filial_id: number | null
           id: string
+          link_agendamento: string | null
           necessidades_especiais: string[] | null
           nota_fiscal_url: string | null
           numero_onu: string | null
@@ -282,6 +284,7 @@ export type Database = {
           volume_m3: number | null
         }
         Insert: {
+          agendamento_entrega?: boolean
           carga_fragil?: boolean | null
           carga_perigosa?: boolean | null
           carga_viva?: boolean | null
@@ -308,6 +311,7 @@ export type Database = {
           expira_em?: string | null
           filial_id?: number | null
           id?: string
+          link_agendamento?: string | null
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
@@ -342,6 +346,7 @@ export type Database = {
           volume_m3?: number | null
         }
         Update: {
+          agendamento_entrega?: boolean
           carga_fragil?: boolean | null
           carga_perigosa?: boolean | null
           carga_viva?: boolean | null
@@ -368,6 +373,7 @@ export type Database = {
           expira_em?: string | null
           filial_id?: number | null
           id?: string
+          link_agendamento?: string | null
           necessidades_especiais?: string[] | null
           nota_fiscal_url?: string | null
           numero_onu?: string | null
