@@ -109,7 +109,7 @@ export function ChatArea({
 
     // Create a local URL for preview instead of uploading immediately
     const previewUrl = URL.createObjectURL(result.blob);
-    setAudioPreview({ url: previewUrl, blob: result.blob, duration: result.duration });
+    setAudioPreview({ url: previewUrl, blob: result.blob, duration: result.duration, transcription: result.transcription });
   };
 
   const handleDiscardAudio = () => {
