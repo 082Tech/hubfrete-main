@@ -76,7 +76,9 @@ export function AudioPlayer({ url, duration: propDuration, isOwn, compact = fals
     if (!audio) return;
     if (isPlaying) {
       audio.pause();
+      releasePlayback(audio);
     } else {
+      claimPlayback(audio);
       audio.play();
     }
   };
