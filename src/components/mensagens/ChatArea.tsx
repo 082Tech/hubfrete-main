@@ -49,7 +49,7 @@ interface ChatAreaProps {
   isSending: boolean;
   currentUserId: string;
   userType: 'embarcador' | 'transportadora';
-  onSendMessage: (content: string, attachment?: { url: string; nome: string; tipo: string; tamanho: number }, audio?: { url: string; duracao: number }) => void;
+  onSendMessage: (content: string, attachment?: { url: string; nome: string; tipo: string; tamanho: number }, audio?: { url: string; duracao: number; transcricao?: string }) => void;
   onLoadMore?: () => void;
   onBack?: () => void;
   showBackButton?: boolean;
