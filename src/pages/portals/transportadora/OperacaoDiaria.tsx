@@ -105,14 +105,19 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 
 type EntregaStatus = Database['public']['Enums']['status_entrega'];
 
-const validEntregaStatuses = new Set<EntregaStatus>([
+const validEntregaStatuses = [
   'aguardando',
   'saiu_para_coleta',
   'em_transito',
   'saiu_para_entrega',
   'entregue',
   'cancelada',
-]);
+  'problema',
+] as const satisfies readonly EntregaStatus[];
+
+function isEntregaStatus(status: string): status is EntregaStatus {
+  return (validEntregaStatuses as readonly string[]).includes(status);
+}
 
 const entregaStatusLabelMap: Record<string, EntregaStatus> = {
   Aguardando: 'aguardando',
@@ -130,7 +135,7 @@ const entregaStatusLabelMap: Record<string, EntregaStatus> = {
 function normalizeEntregaStatus(status: string): EntregaStatus {
   const rawStatus = status?.trim?.() ?? '';
 
-  if (validEntregaStatuses.has(rawStatus)) {
+  if (isEntregaStatus(rawStatus)) {
     return rawStatus;
   }
 
@@ -430,7 +435,7 @@ function DetailPanel({
     : null;
 
   // Determine next status based on current status
-  const getNextStatus = (): { status: string; label: string; icon: React.ElementType } | null => {
+  const getNextStatus = (): { status: EntregaStatus; label: string; icon: React.ElementType } | null => {
     switch (entrega.status) {
       case 'aguardando': return { status: 'saiu_para_coleta', label: 'Saiu para Coleta', icon: Truck };
       case 'saiu_para_coleta': return { status: 'em_transito', label: 'Em Trânsito', icon: ArrowRightLeft };
