@@ -137,7 +137,7 @@ export function ChatArea({
         .from('chat-audios')
         .getPublicUrl(fileName);
 
-      onSendMessage('', undefined, { url: publicUrl, duracao: audioPreview.duration });
+      onSendMessage('', undefined, { url: publicUrl, duracao: audioPreview.duration, transcricao: audioPreview.transcription });
       URL.revokeObjectURL(audioPreview.url);
       setAudioPreview(null);
     } catch (error) {
