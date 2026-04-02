@@ -605,6 +605,16 @@ export default function CargasAdmin() {
                           <TableCell className="text-sm text-muted-foreground">
                             {formatDate(carga.created_at)}
                           </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => { e.stopPropagation(); setDetailCarga(carga); }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
 
                         {/* Expanded Entregas */}
