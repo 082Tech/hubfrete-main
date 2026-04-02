@@ -230,10 +230,13 @@ export default function Logs() {
             {totalCount > 0 && <span className="ml-1">• {totalCount.toLocaleString('pt-BR')} registros</span>}
           </p>
         </div>
-        <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-3">
+          <DateRangePicker dateRange={dateRange} onDateRangeChange={(range) => { setDateRange(range); setCurrentPage(1); }} />
+          <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
