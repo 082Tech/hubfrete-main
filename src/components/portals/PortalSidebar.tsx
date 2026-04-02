@@ -648,7 +648,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               })()}
 
               {/* Cargas Submenu (Gestão Diária + Histórico) */}
-              {collapsed ? (
+              {hasCategoryAccess('entregas') && (collapsed ? (
                 <DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
