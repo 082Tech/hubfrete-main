@@ -24,8 +24,9 @@ import {
   Truck, Search, MoreHorizontal, DollarSign, Loader2, MapPin, Building2,
   Calendar as CalendarIcon, CheckCircle, Clock, AlertCircle, XCircle, Package, User,
   ChevronLeft, ChevronsLeft, ChevronsRight, ChevronRight, Map, RefreshCw, History,
-  ArrowRightLeft,
+  ArrowRightLeft, Route,
 } from 'lucide-react';
+import { ViagemDetailDialog } from '@/components/viagens/ViagemDetailDialog';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
