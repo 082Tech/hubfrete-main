@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Search,
   SlidersHorizontal,
@@ -24,7 +25,11 @@ import {
   Building2,
   Hash,
   FileText,
+  CalendarIcon,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export interface AdvancedSearchFilters {
   codigo: string;
@@ -36,6 +41,8 @@ export interface AdvancedSearchFilters {
   embarcador: string;
   destinatario: string;
   cnpjDestinatario: string;
+  dataColetaDe: string;
+  dataColetaAte: string;
 }
 
 const estadosBrasil = [
@@ -54,6 +61,8 @@ const emptyFilters: AdvancedSearchFilters = {
   embarcador: '',
   destinatario: '',
   cnpjDestinatario: '',
+  dataColetaDe: '',
+  dataColetaAte: '',
 };
 
 interface AdvancedSearchPopoverProps {
