@@ -365,7 +365,7 @@ export default function CargosAdmin() {
     },
   });
 
-  const groupedPerms = groupPermissions(permissoes);
+  const groupedPerms = groupPermissions(permissoes, activeTab);
 
   return (
     <div className="space-y-6">
