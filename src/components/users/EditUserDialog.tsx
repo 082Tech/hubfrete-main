@@ -21,6 +21,7 @@ import {
 import { Loader2, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useCargosConfig } from '@/hooks/useCargosConfig';
 
 interface Filial {
   id: number;
@@ -41,6 +42,7 @@ interface EditUserDialogProps {
   usuario: UsuarioToEdit | null;
   filiais: Filial[];
   onSuccess?: () => void;
+  companyType?: 'embarcador' | 'transportadora';
 }
 
 export function EditUserDialog({
@@ -49,11 +51,15 @@ export function EditUserDialog({
   usuario,
   filiais,
   onSuccess,
+  companyType,
 }: EditUserDialogProps) {
   const [nome, setNome] = useState('');
   const [role, setRole] = useState<'ADMIN' | 'OPERADOR'>('OPERADOR');
   const [selectedFiliais, setSelectedFiliais] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
+  const { data: cargos = [] } = useCargosConfig(companyType || null);
+
+  const selectedCargoDesc = cargos.find(c => c.nome === role)?.descricao;
 
   useEffect(() => {
     if (usuario) {
@@ -195,9 +201,13 @@ export function EditUserDialog({
                 <SelectItem value="OPERADOR">Operador</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
-              Administradores têm acesso total. Operadores podem gerenciar cargas.
-            </p>
+            {selectedCargoDesc ? (
+              <p className="text-xs text-muted-foreground">{selectedCargoDesc}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Administradores têm acesso total. Operadores podem gerenciar cargas.
+              </p>
+            )}
           </div>
 
           {filiais.length > 0 && (
