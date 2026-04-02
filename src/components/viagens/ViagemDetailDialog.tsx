@@ -11,11 +11,15 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Route, Truck, User, MapPin, Package, Clock, CheckCircle, XCircle,
-  AlertCircle, ArrowRightLeft, Loader2, Map,
+  AlertCircle, ArrowRightLeft, Loader2, Map, BarChart3, Navigation,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
 import { EventTimeline } from '@/components/shared/EventTimeline';
+import { RouteDeviationPanel } from '@/components/viagens/RouteDeviationPanel';
+import { SmartRoutingPanel } from '@/components/viagens/SmartRoutingPanel';
+import { useSmartRouting } from '@/hooks/useSmartRouting';
+import type { DeliveryForRouting } from '@/lib/smartRouting';
 
 interface ViagemDetailDialogProps {
   entregaId: string | null;
@@ -71,6 +75,7 @@ export function ViagemDetailDialog({ entregaId, onClose }: ViagemDetailDialogPro
         .from('viagens')
         .select(`
           id, codigo, status, created_at, started_at, ended_at,
+          rota_planejada_polyline, distancia_planejada_km, tempo_estimado_minutos,
           motorista:motoristas!viagens_motorista_id_fkey(id, nome_completo, telefone, foto_url),
           veiculo:veiculos!viagens_veiculo_id_fkey(id, placa, tipo, modelo)
         `)
@@ -99,9 +104,9 @@ export function ViagemDetailDialog({ entregaId, onClose }: ViagemDetailDialogPro
         .select(`
           id, codigo, status, valor_frete, peso_alocado_kg,
           carga:cargas(
-            codigo, descricao,
-            endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado),
-            endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado)
+            codigo, descricao, data_entrega_limite,
+            endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
+            endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude)
           )
         `)
         .in('id', entregaIds);
@@ -125,6 +130,30 @@ export function ViagemDetailDialog({ entregaId, onClose }: ViagemDetailDialogPro
       return data || [];
     },
     enabled: viagemEntregas.length > 0,
+  });
+
+  // Smart routing data
+  const deliveriesForRouting: DeliveryForRouting[] = (viagemEntregas || [])
+    .filter((e: any) => e.carga?.endereco_destino?.latitude && e.carga?.endereco_destino?.longitude)
+    .map((e: any) => ({
+      entrega_id: e.id,
+      latitude: e.carga.endereco_destino.latitude,
+      longitude: e.carga.endereco_destino.longitude,
+      prazo_entrega: e.carga?.data_entrega_limite || null,
+      status: e.status,
+    }));
+
+  // For smart routing we'd need driver location — placeholder for now
+  const { orderedDeliveries } = useSmartRouting({
+    driverLat: null, // Would come from realtime location
+    driverLng: null,
+    deliveries: deliveriesForRouting,
+    enabled: false, // Enable when driver location is available
+  });
+
+  const entregaLabels: Record<string, string> = {};
+  (viagemEntregas || []).forEach((e: any) => {
+    entregaLabels[e.id] = e.codigo || e.id.substring(0, 8);
   });
 
   const isLoading = linkLoading || viagemLoading;
@@ -219,14 +248,22 @@ export function ViagemDetailDialog({ entregaId, onClose }: ViagemDetailDialogPro
                   <Separator />
 
                   <Tabs defaultValue="cargas" className="w-full">
-                    <TabsList className="w-full">
-                      <TabsTrigger value="cargas" className="flex-1">
+                    <TabsList className="w-full grid grid-cols-4">
+                      <TabsTrigger value="cargas">
                         <Package className="w-4 h-4 mr-1.5" />
-                        Cargas ({viagemEntregas.length})
+                        Cargas
                       </TabsTrigger>
-                      <TabsTrigger value="timeline" className="flex-1">
+                      <TabsTrigger value="timeline">
                         <Clock className="w-4 h-4 mr-1.5" />
-                        Timeline ({eventos.length})
+                        Timeline
+                      </TabsTrigger>
+                      <TabsTrigger value="auditoria">
+                        <BarChart3 className="w-4 h-4 mr-1.5" />
+                        Auditoria
+                      </TabsTrigger>
+                      <TabsTrigger value="roteirizacao">
+                        <Navigation className="w-4 h-4 mr-1.5" />
+                        Rota
                       </TabsTrigger>
                     </TabsList>
 
@@ -282,6 +319,21 @@ export function ViagemDetailDialog({ entregaId, onClose }: ViagemDetailDialogPro
                           }))}
                         />
                       )}
+                    </TabsContent>
+
+                    <TabsContent value="auditoria" className="mt-4">
+                      <RouteDeviationPanel
+                        viagemId={viagem.id}
+                        polyline={viagem.rota_planejada_polyline}
+                        viagemStatus={viagem.status}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="roteirizacao" className="mt-4">
+                      <SmartRoutingPanel
+                        orderedDeliveries={orderedDeliveries}
+                        entregaLabels={entregaLabels}
+                      />
                     </TabsContent>
                   </Tabs>
                 </>

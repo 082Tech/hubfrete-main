@@ -1156,6 +1156,57 @@ export type Database = {
           },
         ]
       }
+      desvio_auditoria: {
+        Row: {
+          created_at: string
+          distancia_rota_metros: number
+          id: string
+          latitude: number
+          longitude: number
+          status_desvio: string
+          tracked_at: string
+          tracking_historico_id: string | null
+          viagem_id: string
+        }
+        Insert: {
+          created_at?: string
+          distancia_rota_metros?: number
+          id?: string
+          latitude: number
+          longitude: number
+          status_desvio?: string
+          tracked_at?: string
+          tracking_historico_id?: string | null
+          viagem_id: string
+        }
+        Update: {
+          created_at?: string
+          distancia_rota_metros?: number
+          id?: string
+          latitude?: number
+          longitude?: number
+          status_desvio?: string
+          tracked_at?: string
+          tracking_historico_id?: string | null
+          viagem_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "desvio_auditoria_tracking_historico_id_fkey"
+            columns: ["tracking_historico_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_historico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "desvio_auditoria_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: false
+            referencedRelation: "viagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_validacao: {
         Row: {
           carroceria_id: string | null
@@ -3624,12 +3675,63 @@ export type Database = {
           },
         ]
       }
+      viagem_metricas_desvio: {
+        Row: {
+          created_at: string
+          id: string
+          maior_distancia_desvio_metros: number | null
+          percentual_fora_rota: number | null
+          tempo_total_fora_rota_minutos: number | null
+          total_pontos_analisados: number | null
+          total_pontos_fora_rota: number | null
+          total_pontos_leve_desvio: number | null
+          trechos_desvio: Json | null
+          updated_at: string
+          viagem_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          maior_distancia_desvio_metros?: number | null
+          percentual_fora_rota?: number | null
+          tempo_total_fora_rota_minutos?: number | null
+          total_pontos_analisados?: number | null
+          total_pontos_fora_rota?: number | null
+          total_pontos_leve_desvio?: number | null
+          trechos_desvio?: Json | null
+          updated_at?: string
+          viagem_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          maior_distancia_desvio_metros?: number | null
+          percentual_fora_rota?: number | null
+          tempo_total_fora_rota_minutos?: number | null
+          total_pontos_analisados?: number | null
+          total_pontos_fora_rota?: number | null
+          total_pontos_leve_desvio?: number | null
+          trechos_desvio?: Json | null
+          updated_at?: string
+          viagem_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "viagem_metricas_desvio_viagem_id_fkey"
+            columns: ["viagem_id"]
+            isOneToOne: true
+            referencedRelation: "viagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       viagens: {
         Row: {
           carroceria_id: string | null
           checklist_veiculo: Json | null
           codigo: string
           created_at: string
+          distancia_planejada_km: number | null
           ended_at: string | null
           fim_em: string | null
           id: string
@@ -3637,19 +3739,23 @@ export type Database = {
           km_total: number | null
           metadata: Json | null
           motorista_id: string
+          rota_planejada_polyline: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["status_viagem"]
+          tempo_estimado_minutos: number | null
           tempo_total_minutos: number | null
           tipo: Database["public"]["Enums"]["tipo_viagem"]
           total_distance_km: number | null
           updated_at: string
           veiculo_id: string | null
+          versao_rota: number | null
         }
         Insert: {
           carroceria_id?: string | null
           checklist_veiculo?: Json | null
           codigo: string
           created_at?: string
+          distancia_planejada_km?: number | null
           ended_at?: string | null
           fim_em?: string | null
           id?: string
@@ -3657,19 +3763,23 @@ export type Database = {
           km_total?: number | null
           metadata?: Json | null
           motorista_id: string
+          rota_planejada_polyline?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["status_viagem"]
+          tempo_estimado_minutos?: number | null
           tempo_total_minutos?: number | null
           tipo?: Database["public"]["Enums"]["tipo_viagem"]
           total_distance_km?: number | null
           updated_at?: string
           veiculo_id?: string | null
+          versao_rota?: number | null
         }
         Update: {
           carroceria_id?: string | null
           checklist_veiculo?: Json | null
           codigo?: string
           created_at?: string
+          distancia_planejada_km?: number | null
           ended_at?: string | null
           fim_em?: string | null
           id?: string
@@ -3677,13 +3787,16 @@ export type Database = {
           km_total?: number | null
           metadata?: Json | null
           motorista_id?: string
+          rota_planejada_polyline?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["status_viagem"]
+          tempo_estimado_minutos?: number | null
           tempo_total_minutos?: number | null
           tipo?: Database["public"]["Enums"]["tipo_viagem"]
           total_distance_km?: number | null
           updated_at?: string
           veiculo_id?: string | null
+          versao_rota?: number | null
         }
         Relationships: [
           {
