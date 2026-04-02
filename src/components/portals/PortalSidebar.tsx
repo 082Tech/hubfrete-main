@@ -181,6 +181,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   const { profile, signOut } = useAuth();
   const { empresa, companyInfo, filiais, filialAtiva, setFilialAtiva, cargo, switchingFilial, availableEmpresas, switchEmpresa } = useUserContext();
   const darkMode = useTheme().theme === 'dark';
+  const { hasCategoryAccess } = useCargoPermissions(userType, cargo);
   const allMenuItems = menusByType[userType];
   const menuItems = allMenuItems;
   const config = portalConfig[userType];
