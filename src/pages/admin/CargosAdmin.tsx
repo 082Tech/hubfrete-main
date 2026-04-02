@@ -289,15 +289,33 @@ export default function CargosAdmin() {
   const createCargo = useMutation({
     mutationFn: async () => {
       if (!newCargoName.trim()) throw new Error('Nome obrigatório');
+      const cargoName = newCargoName.trim();
       const { error } = await (supabase as any)
         .from('cargos_config')
         .insert({
           escopo: activeTab,
-          nome: newCargoName.trim(),
+          nome: cargoName,
           descricao: newCargoDesc.trim() || null,
           editavel: true,
         });
       if (error) throw error;
+
+      // Auto-insert all permissions (disabled) for this scope
+      const scopePerms = allPermissionsByScope[activeTab] || [];
+      if (scopePerms.length > 0) {
+        const rows = scopePerms.map(permissao => ({
+          escopo: activeTab,
+          cargo: cargoName,
+          permissao,
+          permitido: false,
+        }));
+        const { error: permError } = await (supabase as any)
+          .from('cargo_permissoes')
+          .insert(rows);
+        if (permError) {
+          console.error('Erro ao inserir permissões:', permError);
+        }
+      }
     },
     onSuccess: () => {
       toast.success('Cargo criado!');
