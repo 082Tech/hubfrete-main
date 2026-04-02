@@ -111,7 +111,10 @@ export function AdvancedSearchPopover({ filters, onFiltersChange }: AdvancedSear
       dataColetaDe: 'Coleta de',
       dataColetaAte: 'Coleta até',
     };
-    return `${labels[key]}: ${value}`;
+    const displayValue = (key === 'dataColetaDe' || key === 'dataColetaAte') && value
+      ? format(new Date(value), 'dd/MM/yyyy')
+      : value;
+    return `${labels[key]}: ${displayValue}`;
   };
 
   return (
