@@ -468,6 +468,7 @@ export default function UsuariosEmpresa() {
           onOpenChange={(open) => !open && setEditingUser(null)}
           usuario={editingUser}
           filiais={contextFiliais.map(f => ({ id: f.id, nome: f.nome || 'Sem nome' }))}
+          companyType="transportadora"
           onSuccess={() => {
             refetchUsuarios();
             setEditingUser(null);
