@@ -92,6 +92,7 @@ const roleBadgeVariants: Record<AdminRole, 'default' | 'secondary' | 'outline'> 
 };
 
 export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps) {
+  const { hasCategoryAccess } = useCargoPermissions('torre', adminUser.role);
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => {
