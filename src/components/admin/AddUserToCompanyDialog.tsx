@@ -21,6 +21,7 @@ import { Loader2, UserPlus, Mail, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCargosConfig } from '@/hooks/useCargosConfig';
 
 interface Filial {
   id: number;
