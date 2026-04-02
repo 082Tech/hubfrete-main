@@ -21,6 +21,7 @@ import { Loader2, UserPlus, Mail, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCargosConfig } from '@/hooks/useCargosConfig';
 
 interface Filial {
   id: number;
@@ -48,6 +49,8 @@ export function AddUserToCompanyDialog({
 }: AddUserToCompanyDialogProps) {
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'invite' | 'existing'>('invite');
+  const escopo = empresaTipo === 'EMBARCADOR' ? 'embarcador' : 'transportadora';
+  const { data: cargos = [] } = useCargosConfig(escopo);
   
   // Invite form
   const [inviteEmail, setInviteEmail] = useState('');
@@ -260,6 +263,10 @@ export function AddUserToCompanyDialog({
                     <SelectItem value="OPERADOR">Operador</SelectItem>
                   </SelectContent>
                 </Select>
+                {(() => {
+                  const desc = cargos.find(c => c.nome === inviteRole)?.descricao;
+                  return desc ? <p className="text-xs text-muted-foreground mt-1">{desc}</p> : null;
+                })()}
               </div>
 
               <div className="space-y-2">
@@ -334,6 +341,10 @@ export function AddUserToCompanyDialog({
                     <SelectItem value="OPERADOR">Operador</SelectItem>
                   </SelectContent>
                 </Select>
+                {(() => {
+                  const desc = cargos.find(c => c.nome === existingUserRole)?.descricao;
+                  return desc ? <p className="text-xs text-muted-foreground mt-1">{desc}</p> : null;
+                })()}
               </div>
 
               <div className="space-y-2">

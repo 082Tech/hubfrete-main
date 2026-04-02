@@ -290,14 +290,16 @@ export default function CargosAdmin() {
     mutationFn: async () => {
       if (!newCargoName.trim()) throw new Error('Nome obrigatório');
       const cargoName = newCargoName.trim();
-      const { error } = await (supabase as any)
+      const { data: inserted, error } = await (supabase as any)
         .from('cargos_config')
         .insert({
           escopo: activeTab,
           nome: cargoName,
           descricao: newCargoDesc.trim() || null,
           editavel: true,
-        });
+        })
+        .select()
+        .single();
       if (error) throw error;
 
       // Auto-insert all permissions (disabled) for this scope
@@ -316,13 +318,20 @@ export default function CargosAdmin() {
           console.error('Erro ao inserir permissões:', permError);
         }
       }
+
+      return inserted as CargoConfig;
     },
-    onSuccess: () => {
+    onSuccess: (newCargo) => {
       toast.success('Cargo criado!');
       setNewCargoOpen(false);
       setNewCargoName('');
       setNewCargoDesc('');
       queryClient.invalidateQueries({ queryKey: ['cargos_config'] });
+      queryClient.invalidateQueries({ queryKey: ['cargo_permissoes'] });
+      // Auto-select the new cargo
+      if (newCargo) {
+        setSelectedCargo(newCargo);
+      }
     },
     onError: (err: any) => {
       toast.error(err.message || 'Erro ao criar cargo');
