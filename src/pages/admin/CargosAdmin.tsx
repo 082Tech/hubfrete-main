@@ -264,14 +264,18 @@ export default function CargosAdmin() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSelectedCargo(null); }}>
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-lg grid-cols-3">
           <TabsTrigger value="torre" className="gap-1.5">
             <ShieldCheck className="w-4 h-4" />
             Torre de Controle
           </TabsTrigger>
-          <TabsTrigger value="sistema" className="gap-1.5">
+          <TabsTrigger value="embarcador" className="gap-1.5">
             <Settings className="w-4 h-4" />
-            Sistema HubFrete
+            Embarcador
+          </TabsTrigger>
+          <TabsTrigger value="transportadora" className="gap-1.5">
+            <Settings className="w-4 h-4" />
+            Transportadora
           </TabsTrigger>
         </TabsList>
 
