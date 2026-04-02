@@ -476,11 +476,14 @@ export default function Financeiro() {
               </Button>
             )}
             {r.status === 'pendente' && (
-              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
-                setBaixaDialog(r);
-                setBaixaForm({ data_pagamento: format(new Date(), 'yyyy-MM-dd'), metodo_pagamento: '', observacoes: '' });
-                setComprovante(null);
-              }}>
+              <Button size="sm" variant="outline" className="h-7 text-xs" 
+                disabled={canBaixa === false}
+                title={canBaixa === false ? 'Sem permissão para dar baixa' : undefined}
+                onClick={() => {
+                  setBaixaDialog(r);
+                  setBaixaForm({ data_pagamento: format(new Date(), 'yyyy-MM-dd'), metodo_pagamento: '', observacoes: '' });
+                  setComprovante(null);
+                }}>
                 <CheckCircle className="w-3.5 h-3.5 mr-1" /> Baixa
               </Button>
             )}
