@@ -160,6 +160,7 @@ export default function CargasAdmin() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [trackingEntrega, setTrackingEntrega] = useState<EntregaData | null>(null);
+  const [detailCarga, setDetailCarga] = useState<CargaData | null>(null);
 
   // Fetch ALL cargas from all companies
   const { data: cargas = [], isLoading, refetch, isFetching } = useQuery({
