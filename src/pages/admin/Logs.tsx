@@ -165,7 +165,7 @@ export default function Logs() {
     if (error) throw error;
 
     return { logs: (data as AuditLog[]) || [], totalCount: count || 0 };
-  }, [currentPage, filterTabela, filterOperacao, search]);
+  }, [currentPage, filterTabela, filterOperacao, search, dateRange]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey,
