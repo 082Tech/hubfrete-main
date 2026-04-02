@@ -232,6 +232,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       href: '/admin/logs',
       roles: ['super_admin', 'admin'],
     },
+    {
+      title: 'Cargos',
+      icon: Shield,
+      href: '/admin/cargos',
+      roles: ['super_admin'],
+    },
   ];
 
   const visibleMenuItems = menuItems.filter(item => item.roles.includes(adminUser.role));

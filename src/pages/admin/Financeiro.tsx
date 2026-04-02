@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useAdminPermission } from '@/hooks/useAdminPermission';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -84,6 +85,7 @@ type TabType = 'recebiveis' | 'pgt_transportadoras' | 'pgt_autonomos' | 'antecip
 
 export default function Financeiro() {
   const queryClient = useQueryClient();
+  const { allowed: canBaixa } = useAdminPermission('financeiro.baixa');
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
@@ -474,11 +476,14 @@ export default function Financeiro() {
               </Button>
             )}
             {r.status === 'pendente' && (
-              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
-                setBaixaDialog(r);
-                setBaixaForm({ data_pagamento: format(new Date(), 'yyyy-MM-dd'), metodo_pagamento: '', observacoes: '' });
-                setComprovante(null);
-              }}>
+              <Button size="sm" variant="outline" className="h-7 text-xs" 
+                disabled={canBaixa === false}
+                title={canBaixa === false ? 'Sem permissão para dar baixa' : undefined}
+                onClick={() => {
+                  setBaixaDialog(r);
+                  setBaixaForm({ data_pagamento: format(new Date(), 'yyyy-MM-dd'), metodo_pagamento: '', observacoes: '' });
+                  setComprovante(null);
+                }}>
                 <CheckCircle className="w-3.5 h-3.5 mr-1" /> Baixa
               </Button>
             )}
