@@ -471,7 +471,7 @@ export default function StorageExplorer() {
               </ScrollArea>
 
               {/* Pagination */}
-              {selectedBucket && (filteredFiles.length > 0 || filteredFolders.length > 0 || page > 0) && (
+              {(files.length > 0 || folders.length > 0 || page > 0) && (
                 <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
                   <p className="text-xs text-muted-foreground">
                     Página {page + 1} • {totalItemsLoaded} itens carregados
@@ -498,6 +498,7 @@ export default function StorageExplorer() {
                   </div>
                 </div>
               )}
+            </>
             )}
           </CardContent>
         </Card>
