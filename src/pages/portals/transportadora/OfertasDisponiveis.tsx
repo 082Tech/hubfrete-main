@@ -219,6 +219,10 @@ export default function OfertasDisponiveis() {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedSearchFilters>(emptyFilters);
+  const [dateRange, setDateRange] = useState(() => ({
+    start: subDays(new Date(), 90),
+    end: new Date(),
+  }));
   const [filterTipo, setFilterTipo] = useState<string>('all');
   const [filterTiposVeiculo, setFilterTiposVeiculo] = useState<string[]>([]);
   const [tiposVeiculoInitialized, setTiposVeiculoInitialized] = useState(false);
