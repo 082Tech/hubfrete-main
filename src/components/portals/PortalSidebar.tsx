@@ -31,6 +31,23 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
 import { useTheme } from 'next-themes';
 import { useNotificacoesContext } from '@/contexts/NotificacoesContext';
+import { useCargoPermissions } from '@/hooks/useCargoPermissions';
+
+// Maps menu item hrefs to their required permission categories
+// Items not listed are always visible (Home, Assistente, Ajuda)
+const hrefPermissionMap: Record<string, string[]> = {
+  '/embarcador/ofertas': ['cargas'],
+  '/embarcador/financeiro': ['financeiro'],
+  '/embarcador/relatorios': ['relatorios'],
+  '/embarcador/mensagens': ['mensagens'],
+  '/embarcador/configuracoes': ['configuracoes'],
+  '/transportadora/ofertas': ['cargas'],
+  '/transportadora/motoristas': ['motoristas'],
+  '/transportadora/financeiro': ['financeiro'],
+  '/transportadora/relatorios': ['relatorios'],
+  '/transportadora/mensagens': ['mensagens'],
+  '/transportadora/configuracoes': ['configuracoes'],
+};
 
 interface MenuItem {
   icon: React.ElementType;
