@@ -169,13 +169,10 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       ],
     },
     {
-      title: 'Comprovantes',
-      icon: Camera,
+      title: 'Storage',
+      icon: HardDrive,
+      href: '/admin/storage',
       roles: ['super_admin', 'admin', 'suporte'],
-      subItems: [
-        { title: 'Comprovantes', href: '/admin/provas-entrega', icon: Camera },
-        { title: 'Storage Explorer', href: '/admin/storage', icon: HardDrive },
-      ],
     },
     {
       title: 'Pré-Cadastros',
