@@ -916,9 +916,24 @@ export default function OfertasDisponiveis() {
         }
       }
 
+      // Date range filter on data_coleta_de
+      let matchesDataColeta = true;
+      if (advancedFilters.dataColetaDe && carga.data_coleta_de) {
+        matchesDataColeta = new Date(carga.data_coleta_de) >= new Date(advancedFilters.dataColetaDe);
+      } else if (advancedFilters.dataColetaDe && !carga.data_coleta_de) {
+        matchesDataColeta = false;
+      }
+      let matchesDataColetaAte = true;
+      if (advancedFilters.dataColetaAte && carga.data_coleta_de) {
+        matchesDataColetaAte = new Date(carga.data_coleta_de) <= new Date(advancedFilters.dataColetaAte);
+      } else if (advancedFilters.dataColetaAte && !carga.data_coleta_de) {
+        matchesDataColetaAte = false;
+      }
+
       return matchesCodigo && matchesDescricao && matchesCidadeOrigem && matchesEstadoOrigem &&
         matchesCidadeDestino && matchesEstadoDestino && matchesEmbarcador &&
-        matchesDestinatario && matchesCnpjDestinatario && matchesTipo && matchesTipoVeiculo;
+        matchesDestinatario && matchesCnpjDestinatario && matchesTipo && matchesTipoVeiculo &&
+        matchesDataColeta && matchesDataColetaAte;
     });
   }, [cargas, advancedFilters, filterTipo, filterTiposVeiculo]);
 
