@@ -132,6 +132,30 @@ export function ViagemDetailDialog({ entregaId, onClose }: ViagemDetailDialogPro
     enabled: viagemEntregas.length > 0,
   });
 
+  // Smart routing data
+  const deliveriesForRouting: DeliveryForRouting[] = (viagemEntregas || [])
+    .filter((e: any) => e.carga?.endereco_destino?.latitude && e.carga?.endereco_destino?.longitude)
+    .map((e: any) => ({
+      entrega_id: e.id,
+      latitude: e.carga.endereco_destino.latitude,
+      longitude: e.carga.endereco_destino.longitude,
+      prazo_entrega: e.carga?.data_entrega_limite || null,
+      status: e.status,
+    }));
+
+  // For smart routing we'd need driver location — placeholder for now
+  const { orderedDeliveries } = useSmartRouting({
+    driverLat: null, // Would come from realtime location
+    driverLng: null,
+    deliveries: deliveriesForRouting,
+    enabled: false, // Enable when driver location is available
+  });
+
+  const entregaLabels: Record<string, string> = {};
+  (viagemEntregas || []).forEach((e: any) => {
+    entregaLabels[e.id] = e.codigo || e.id.substring(0, 8);
+  });
+
   const isLoading = linkLoading || viagemLoading;
   const isOpen = !!entregaId;
   const noViagem = !isLoading && !viagemId;
