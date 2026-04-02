@@ -49,6 +49,8 @@ export function AddUserToCompanyDialog({
 }: AddUserToCompanyDialogProps) {
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'invite' | 'existing'>('invite');
+  const escopo = empresaTipo === 'EMBARCADOR' ? 'embarcador' : 'transportadora';
+  const { data: cargos = [] } = useCargosConfig(escopo);
   
   // Invite form
   const [inviteEmail, setInviteEmail] = useState('');
