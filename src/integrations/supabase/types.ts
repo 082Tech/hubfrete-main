@@ -459,6 +459,66 @@ export type Database = {
           },
         ]
       }
+      cargo_permissoes: {
+        Row: {
+          cargo: string
+          created_at: string
+          escopo: string
+          id: string
+          permissao: string
+          permitido: boolean
+          updated_at: string
+        }
+        Insert: {
+          cargo: string
+          created_at?: string
+          escopo: string
+          id?: string
+          permissao: string
+          permitido?: boolean
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string
+          created_at?: string
+          escopo?: string
+          id?: string
+          permissao?: string
+          permitido?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cargos_config: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          editavel: boolean
+          escopo: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          editavel?: boolean
+          escopo: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          editavel?: boolean
+          escopo?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       carrocerias: {
         Row: {
           ano: number | null
@@ -3754,6 +3814,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["admin_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      has_cargo_permission: {
+        Args: { p_cargo: string; p_escopo: string; p_permissao: string }
         Returns: boolean
       }
       has_role: {
