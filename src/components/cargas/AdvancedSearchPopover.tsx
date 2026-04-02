@@ -99,13 +99,8 @@ export function AdvancedSearchPopover({ filters, onFiltersChange }: AdvancedSear
       embarcador: 'Embarcador',
       destinatario: 'Destinatário',
       cnpjDestinatario: 'CNPJ',
-      dataColetaDe: 'Coleta de',
-      dataColetaAte: 'Coleta até',
     };
-    const displayValue = (key === 'dataColetaDe' || key === 'dataColetaAte') && value
-      ? format(new Date(value), 'dd/MM/yyyy')
-      : value;
-    return `${labels[key]}: ${displayValue}`;
+    return `${labels[key]}: ${value}`;
   };
 
   return (
