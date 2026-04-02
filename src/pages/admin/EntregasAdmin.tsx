@@ -232,26 +232,25 @@ export default function EntregasAdmin() {
 
   // Group by viagem
   const { viagemGroups, semViagem } = useMemo(() => {
-    const groupMap = new Map<string, EntregaCompleta[]>();
+    const groupMap: Record<string, EntregaCompleta[]> = {};
     const orphans: EntregaCompleta[] = [];
 
     filteredEntregas.forEach(entrega => {
-      const viagemId = entregaViagemMap.get(entrega.id);
+      const viagemId = entregaViagemMap[entrega.id];
       if (viagemId) {
-        if (!groupMap.has(viagemId)) groupMap.set(viagemId, []);
-        groupMap.get(viagemId)!.push(entrega);
+        if (!groupMap[viagemId]) groupMap[viagemId] = [];
+        groupMap[viagemId].push(entrega);
       } else {
         orphans.push(entrega);
       }
     });
 
     const groups: ViagemGroup[] = [];
-    groupMap.forEach((entregas, viagemId) => {
-      const viagem = viagensMap.get(viagemId);
+    Object.entries(groupMap).forEach(([viagemId, entregas]) => {
+      const viagem = viagensMap[viagemId];
       if (viagem) groups.push({ viagem, entregas });
     });
 
-    // Sort: em_andamento first, then planejada, then finalizada
     const statusOrder: Record<string, number> = { em_andamento: 0, planejada: 1, pausada: 2, finalizada: 3 };
     groups.sort((a, b) => (statusOrder[a.viagem.status] ?? 9) - (statusOrder[b.viagem.status] ?? 9));
 
