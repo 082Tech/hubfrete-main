@@ -1573,7 +1573,8 @@ export default function OfertasDisponiveis() {
               Visualize e aceite cargas publicadas pelos embarcadores
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+            <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
             <Badge variant="outline" className="text-sm">
               {filteredCargas.length} cargas
             </Badge>
