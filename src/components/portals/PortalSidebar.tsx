@@ -516,7 +516,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
           )}
 
           {/* Cargas Submenu - only for embarcador */}
-          {userType === 'embarcador' && (
+          {userType === 'embarcador' && hasCategoryAccess('cargas', 'entregas') && (
             collapsed ? (
               // Collapsed: show dropdown on hover/click
               <DropdownMenu>
