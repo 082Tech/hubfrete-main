@@ -185,16 +185,15 @@ export default function EntregasAdmin() {
     },
   });
 
-  // Build entrega-to-viagem map
   const entregaViagemMap = useMemo(() => {
-    const map = new Map<string, string>();
-    viagemEntregaLinks.forEach(link => map.set(link.entrega_id, link.viagem_id));
+    const map: Record<string, string> = {};
+    viagemEntregaLinks.forEach(link => { map[link.entrega_id] = link.viagem_id; });
     return map;
   }, [viagemEntregaLinks]);
 
   const viagensMap = useMemo(() => {
-    const map = new Map<string, ViagemData>();
-    viagens.forEach(v => map.set(v.id, v));
+    const map: Record<string, ViagemData> = {};
+    viagens.forEach(v => { map[v.id] = v; });
     return map;
   }, [viagens]);
 
