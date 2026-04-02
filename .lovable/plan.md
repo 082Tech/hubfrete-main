@@ -1,86 +1,51 @@
+## Plano: Gestão de Cargos + Melhorias UX Torre de Controle
 
+### Parte 1: Tela de Gestão de Cargos (super_admin only)
 
-# Plano: Completar Schema Fiscal para API Focus NFe
+**Migração DB:**
+- Criar tabela `cargo_permissoes` para armazenar permissões configuráveis por cargo
+  - `id`, `escopo` (torre | sistema), `cargo` (text), `descricao` (text), `permissao` (text — ex: `financeiro.baixa`, `cargas.editar`), `permitido` (boolean)
+- Criar tabela `cargos_config` para armazenar os cargos customizados
+  - `id`, `escopo` (torre | sistema), `nome` (text unique por escopo), `descricao` (text), `editavel` (boolean default true), `created_at`
+- Seed com cargos existentes: Torre (super_admin, admin, suporte) e Sistema (ADMIN, OPERADOR)
+- RLS: apenas super_admin pode ler/escrever
 
-## Resumo
+**Frontend:**
+- Nova página `/admin/cargos` — `CargosAdmin.tsx`
+- Tabs: "Torre de Controle" | "Sistema HubFrete"
+- Cada tab mostra os cargos com suas descrições e lista de permissões (toggle on/off)
+- Botão "Novo Cargo" para criar cargos adicionais
+- Apenas super_admin vê o menu item na sidebar
+- Controle funcional: usar `cargo_permissoes` para bloquear ações (ex: suporte não pode dar baixa no financeiro)
 
-Adicionar as 2 colunas faltantes na tabela `config_fiscal` para que o banco de dados tenha 100% dos dados necessarios para emissao de CT-e e MDF-e via API Focus NFe.
+**Permissões pré-definidas:**
+- Torre: `financeiro.visualizar`, `financeiro.baixa`, `empresas.editar`, `empresas.excluir`, `pre_cadastros.aprovar`, `logs.visualizar`, `relatorios.exportar`, `usuarios.gerenciar`, `cargos.gerenciar`
+- Sistema: `cargas.criar`, `cargas.editar`, `entregas.finalizar`, `financeiro.visualizar`, `usuarios.convidar`, `configuracoes.editar`
 
-## Situacao Atual
+### Parte 2: Melhorias UX nas Telas de Listagem
 
-Apos analise cruzada entre a documentacao da API Focus NFe e o banco de dados, confirmamos que **98% dos dados ja existem**. Apenas 2 campos estao ausentes na tabela `config_fiscal`.
+**Telas que precisam de melhorias (verificar cada uma):**
+1. `Chamados` — adicionar paginação e DateRangePicker
+2. `VeiculosAdmin` — verificar busca/paginação
+3. `CarroceriasAdmin` — verificar busca/paginação
+4. `AjudantesAdmin` — verificar busca/paginação
+5. `CargasAdmin` — já tem filtros, verificar paginação
+6. `EntregasAdmin` — já tem filtros, verificar paginação
+7. `MotoristasAdmin` — já tem busca/paginação
+8. `Empresas` — já tem busca/paginação
+9. `Financeiro` — verificar DateRangePicker
+10. `Logs` — verificar busca/paginação
+11. `DocumentosValidacao` — verificar
+12. `PreCadastros` — verificar
 
-## Alteracoes Necessarias
+**Padrão a aplicar em cada tela:**
+- Input de busca (Search) no topo
+- Paginação com o componente `Pagination` existente
+- DateRangePicker para filtro de período (onde aplicável)
+- Filtros de status via Select
 
-### Migracao Unica
+### Parte 3: Enforcement de Permissões
 
-Adicionar duas colunas a tabela `config_fiscal`:
-
-| Coluna | Tipo | Default | Finalidade |
-|--------|------|---------|------------|
-| `regime_tributario_emitente` | `INTEGER` | `3` (Regime Normal) | Campo obrigatorio da API. Define se a empresa opera no Simples Nacional (1) ou Regime Normal (3). |
-| `icms_base_calculo_percentual` | `NUMERIC(5,2)` | `100.00` | Percentual da base de calculo do ICMS sobre o valor do frete. Necessario para montar o bloco de impostos do CT-e. |
-
-### Atualizacao do Frontend
-
-Atualizar o componente `ConfigFiscalTab.tsx` para incluir os dois novos campos:
-- Dropdown para selecionar o regime tributario (Simples Nacional / Regime Normal)
-- Campo numerico para o percentual da base de calculo do ICMS
-
-### Atualizacao dos Tipos TypeScript
-
-Atualizar `src/integrations/supabase/types.ts` para refletir as novas colunas.
-
----
-
-## Secao Tecnica
-
-### SQL da Migracao
-
-```sql
-ALTER TABLE public.config_fiscal
-  ADD COLUMN IF NOT EXISTS regime_tributario_emitente INTEGER NOT NULL DEFAULT 3,
-  ADD COLUMN IF NOT EXISTS icms_base_calculo_percentual NUMERIC(5,2) NOT NULL DEFAULT 100.00;
-
-COMMENT ON COLUMN public.config_fiscal.regime_tributario_emitente
-  IS '1 = Simples Nacional, 3 = Regime Normal';
-COMMENT ON COLUMN public.config_fiscal.icms_base_calculo_percentual
-  IS 'Percentual da base de calculo do ICMS (ex: 100.00 = base integral)';
-```
-
-### Mapeamento Completo: Banco -> Payload API
-
-Com essas 2 colunas adicionadas, o mapeamento fica completo:
-
-**Emitente**: `empresas` + `filiais` (matriz) + `config_fiscal`
-- CNPJ: `empresas.cnpj_matriz`
-- IE: `empresas.inscricao_estadual`
-- Razao Social: `empresas.razao_social`
-- Endereco: `filiais.logradouro`, `numero`, `bairro`, `cep`
-- Municipio IBGE: `filiais.codigo_municipio_ibge`
-- UF: `filiais.estado`
-- Regime Tributario: `config_fiscal.regime_tributario_emitente` (NOVO)
-
-**Fiscal**: `config_fiscal`
-- CFOP: `cfop_estadual` ou `cfop_interestadual` (logica por UF)
-- Natureza: `natureza_operacao`
-- Serie/Numero: `serie_cte` / `proximo_numero_cte`
-- ICMS: `icms_situacao_tributaria`, `icms_aliquota`, `icms_base_calculo_percentual` (NOVO)
-- Ambiente: `ambiente`
-
-**Remetente/Destinatario**: `cargas` + `enderecos_carga`
-**Veiculo**: `veiculos.placa`, `veiculos.uf`, `veiculos.antt_rntrc`
-**Motorista**: `motoristas.cpf`, `motoristas.nome_completo`
-
-### Campos Derivados por Logica (sem banco)
-- `data_emissao`: gerado no momento da emissao
-- `tipo_documento`: sempre `0` (Normal)
-- `modal`: sempre `01` (Rodoviario)
-- `indicador_inscricao_estadual_tomador`: derivado da IE do tomador
-
-### Sequencia de Implementacao
-
-1. Aplicar migracao SQL (1 migration)
-2. Atualizar types.ts
-3. Atualizar ConfigFiscalTab.tsx com os 2 novos campos
-
+- Criar hook `useAdminPermission(permissao: string)` que consulta `cargo_permissoes` 
+- Aplicar no Financeiro: botão de baixa desabilitado para suporte
+- Aplicar nas demais áreas conforme permissões configuradas
