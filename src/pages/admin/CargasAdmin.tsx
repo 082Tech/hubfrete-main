@@ -63,6 +63,7 @@ import {
   ArrowRightLeft,
 } from 'lucide-react';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
+import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 
 // Types
 interface EnderecoData {
