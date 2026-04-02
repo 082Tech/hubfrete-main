@@ -72,11 +72,14 @@ const getFileIcon = (mimetype?: string) => {
 
 const isImageFile = (mimetype?: string) => mimetype?.startsWith('image/');
 
-// Lista fixa de buckets conhecidos (API listBuckets requer service_role)
 const KNOWN_BUCKETS: Bucket[] = [
   { id: 'chat-anexos', name: 'chat-anexos', public: true, created_at: '2026-01-26T20:49:04Z' },
+  { id: 'chat-audios', name: 'chat-audios', public: true, created_at: '2026-03-31T19:27:43Z' },
+  { id: 'checklist-aplicativo', name: 'checklist-aplicativo', public: true, created_at: '2026-02-24T21:22:18Z' },
+  { id: 'comprovantes-financeiro', name: 'comprovantes-financeiro', public: false, created_at: '2026-03-10T21:16:23Z' },
+  { id: 'documentos', name: 'documentos', public: true, created_at: '2026-02-13T20:25:53Z' },
   { id: 'fotos-frota', name: 'fotos-frota', public: true, created_at: '2026-01-22T16:49:25Z' },
-  { id: 'notas-fiscais', name: 'notas-fiscais', public: false, created_at: '2026-01-14T15:49:07Z' },
+  { id: 'logos', name: 'logos', public: true, created_at: '2026-02-23T14:24:07Z' },
 ];
 
 export default function StorageExplorer() {
