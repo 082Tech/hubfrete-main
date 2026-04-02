@@ -11,11 +11,15 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Route, Truck, User, MapPin, Package, Clock, CheckCircle, XCircle,
-  AlertCircle, ArrowRightLeft, Loader2, Map,
+  AlertCircle, ArrowRightLeft, Loader2, Map, BarChart3, Navigation,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ViagemTrackingMapDialog } from '@/components/maps/ViagemTrackingMapDialog';
 import { EventTimeline } from '@/components/shared/EventTimeline';
+import { RouteDeviationPanel } from '@/components/viagens/RouteDeviationPanel';
+import { SmartRoutingPanel } from '@/components/viagens/SmartRoutingPanel';
+import { useSmartRouting } from '@/hooks/useSmartRouting';
+import type { DeliveryForRouting } from '@/lib/smartRouting';
 
 interface ViagemDetailDialogProps {
   entregaId: string | null;
