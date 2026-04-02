@@ -248,14 +248,22 @@ export function ViagemDetailDialog({ entregaId, onClose }: ViagemDetailDialogPro
                   <Separator />
 
                   <Tabs defaultValue="cargas" className="w-full">
-                    <TabsList className="w-full">
-                      <TabsTrigger value="cargas" className="flex-1">
+                    <TabsList className="w-full grid grid-cols-4">
+                      <TabsTrigger value="cargas">
                         <Package className="w-4 h-4 mr-1.5" />
-                        Cargas ({viagemEntregas.length})
+                        Cargas
                       </TabsTrigger>
-                      <TabsTrigger value="timeline" className="flex-1">
+                      <TabsTrigger value="timeline">
                         <Clock className="w-4 h-4 mr-1.5" />
-                        Timeline ({eventos.length})
+                        Timeline
+                      </TabsTrigger>
+                      <TabsTrigger value="auditoria">
+                        <BarChart3 className="w-4 h-4 mr-1.5" />
+                        Auditoria
+                      </TabsTrigger>
+                      <TabsTrigger value="roteirizacao">
+                        <Navigation className="w-4 h-4 mr-1.5" />
+                        Rota
                       </TabsTrigger>
                     </TabsList>
 
