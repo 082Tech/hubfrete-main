@@ -95,15 +95,43 @@ const permissaoLabels: Record<string, string> = {
 };
 
 // Group permissions by category
-function groupPermissions(perms: CargoPermissao[]) {
+function groupPermissions(perms: CargoPermissao[], escopo: string) {
   const groups: Record<string, CargoPermissao[]> = {};
   for (const p of perms) {
     const cat = p.permissao.split('.')[0];
     if (!groups[cat]) groups[cat] = [];
     groups[cat].push(p);
   }
-  return groups;
+  // Return ordered entries based on sidebar order
+  const order = categoryOrder[escopo] || Object.keys(groups);
+  const ordered: [string, CargoPermissao[]][] = [];
+  for (const cat of order) {
+    if (groups[cat]) ordered.push([cat, groups[cat]]);
+  }
+  // Append any categories not in the order
+  for (const cat of Object.keys(groups)) {
+    if (!order.includes(cat)) ordered.push([cat, groups[cat]]);
+  }
+  return ordered;
 }
+
+// Category order matching sidebar menus
+const categoryOrder: Record<string, string[]> = {
+  torre: [
+    'empresas', 'cargas', 'entregas', 'motoristas', 'ajudantes',
+    'veiculos', 'carrocerias', 'storage', 'pre_cadastros', 'usuarios',
+    'monitoramento', 'kpis', 'documentos', 'financeiro', 'relatorios',
+    'chamados', 'logs', 'cargos',
+  ],
+  embarcador: [
+    'cargas', 'entregas', 'mensagens', 'financeiro', 'relatorios',
+    'filiais', 'usuarios', 'configuracoes',
+  ],
+  transportadora: [
+    'cargas', 'entregas', 'frota', 'motoristas', 'mensagens',
+    'financeiro', 'relatorios', 'filiais', 'usuarios', 'configuracoes',
+  ],
+};
 
 const categoryLabels: Record<string, string> = {
   financeiro: 'Financeiro',
@@ -114,7 +142,7 @@ const categoryLabels: Record<string, string> = {
   usuarios: 'Usuários',
   cargos: 'Cargos',
   chamados: 'Chamados',
-  entregas: 'Entregas/Cargas',
+  entregas: 'Cargas',
   cargas: 'Ofertas',
   motoristas: 'Motoristas',
   veiculos: 'Veículos',
@@ -128,6 +156,52 @@ const categoryLabels: Record<string, string> = {
   frota: 'Frota',
   mensagens: 'Mensagens',
   filiais: 'Filiais',
+};
+
+// All permissions per scope (for auto-populating new cargos)
+const allPermissionsByScope: Record<string, string[]> = {
+  torre: [
+    'empresas.visualizar', 'empresas.editar', 'empresas.excluir',
+    'cargas.visualizar', 'cargas.editar',
+    'entregas.visualizar', 'entregas.editar',
+    'motoristas.visualizar', 'motoristas.editar',
+    'ajudantes.visualizar', 'ajudantes.editar',
+    'veiculos.visualizar', 'veiculos.editar',
+    'carrocerias.visualizar', 'carrocerias.editar',
+    'storage.visualizar',
+    'pre_cadastros.visualizar', 'pre_cadastros.aprovar',
+    'usuarios.visualizar', 'usuarios.gerenciar',
+    'monitoramento.visualizar',
+    'kpis.visualizar',
+    'documentos.visualizar', 'documentos.validar',
+    'financeiro.visualizar', 'financeiro.baixa', 'financeiro.exportar',
+    'relatorios.visualizar', 'relatorios.exportar',
+    'chamados.visualizar', 'chamados.responder', 'chamados.atribuir',
+    'logs.visualizar',
+    'cargos.gerenciar',
+  ],
+  embarcador: [
+    'cargas.visualizar', 'cargas.criar', 'cargas.editar',
+    'entregas.visualizar', 'entregas.finalizar',
+    'mensagens.visualizar', 'mensagens.enviar',
+    'financeiro.visualizar', 'financeiro.exportar',
+    'relatorios.visualizar', 'relatorios.exportar',
+    'filiais.visualizar', 'filiais.editar',
+    'usuarios.visualizar', 'usuarios.gerenciar', 'usuarios.convidar',
+    'configuracoes.visualizar', 'configuracoes.editar',
+  ],
+  transportadora: [
+    'cargas.visualizar', 'cargas.criar', 'cargas.editar',
+    'entregas.visualizar', 'entregas.finalizar',
+    'frota.visualizar', 'frota.editar',
+    'motoristas.visualizar', 'motoristas.editar',
+    'mensagens.visualizar', 'mensagens.enviar',
+    'financeiro.visualizar', 'financeiro.exportar',
+    'relatorios.visualizar', 'relatorios.exportar',
+    'filiais.visualizar', 'filiais.editar',
+    'usuarios.visualizar', 'usuarios.gerenciar', 'usuarios.convidar',
+    'configuracoes.visualizar', 'configuracoes.editar',
+  ],
 };
 
 // Essential cargos that cannot be deleted
@@ -215,15 +289,33 @@ export default function CargosAdmin() {
   const createCargo = useMutation({
     mutationFn: async () => {
       if (!newCargoName.trim()) throw new Error('Nome obrigatório');
+      const cargoName = newCargoName.trim();
       const { error } = await (supabase as any)
         .from('cargos_config')
         .insert({
           escopo: activeTab,
-          nome: newCargoName.trim(),
+          nome: cargoName,
           descricao: newCargoDesc.trim() || null,
           editavel: true,
         });
       if (error) throw error;
+
+      // Auto-insert all permissions (disabled) for this scope
+      const scopePerms = allPermissionsByScope[activeTab] || [];
+      if (scopePerms.length > 0) {
+        const rows = scopePerms.map(permissao => ({
+          escopo: activeTab,
+          cargo: cargoName,
+          permissao,
+          permitido: false,
+        }));
+        const { error: permError } = await (supabase as any)
+          .from('cargo_permissoes')
+          .insert(rows);
+        if (permError) {
+          console.error('Erro ao inserir permissões:', permError);
+        }
+      }
     },
     onSuccess: () => {
       toast.success('Cargo criado!');
@@ -291,7 +383,7 @@ export default function CargosAdmin() {
     },
   });
 
-  const groupedPerms = groupPermissions(permissoes);
+  const groupedPerms = groupPermissions(permissoes, activeTab);
 
   return (
     <div className="space-y-6">
@@ -443,7 +535,7 @@ export default function CargosAdmin() {
                         </Badge>
                       </div>
 
-                      {Object.entries(groupedPerms).map(([category, perms]) => (
+                      {groupedPerms.map(([category, perms]) => (
                         <div key={category}>
                           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                             {categoryLabels[category] || category}
