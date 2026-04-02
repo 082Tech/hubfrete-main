@@ -259,7 +259,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     },
   ];
 
-  const visibleMenuItems = menuItems.filter(item => item.roles.includes(adminUser.role));
+  const visibleMenuItems = menuItems.filter(item => {
+    if (!item.roles.includes(adminUser.role)) return false;
+    const cats = titlePermissionMap[item.title];
+    if (!cats) return true; // Dashboard always visible
+    return hasCategoryAccess(...cats);
+  });
 
   const isSubItemActive = (item: MenuItem) => {
     if (!item.subItems) return false;
