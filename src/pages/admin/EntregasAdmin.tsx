@@ -80,15 +80,18 @@ interface EntregaCompleta {
 
 interface ViagemData {
   id: string;
-  codigo: string | null;
+  codigo: string;
   status: string;
   created_at: string;
-  iniciada_em: string | null;
-  finalizada_em: string | null;
-  entrega_ids: string[] | null;
+  started_at: string | null;
+  ended_at: string | null;
   motorista: { id: string; nome_completo: string; foto_url: string | null } | null;
   veiculo: { id: string; placa: string; tipo: string | null } | null;
-  empresa: { id: number; nome: string | null } | null;
+}
+
+interface ViagemEntregaLink {
+  viagem_id: string;
+  entrega_id: string;
 }
 
 interface ViagemGroup {
