@@ -81,7 +81,7 @@ export default function EntregasHistoricoAdmin() {
   const now = new Date();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [trackingEntrega, setTrackingEntrega] = useState<EntregaCompleta | null>(null);
+  const [viagemEntregaId, setViagemEntregaId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfMonth(now),
     to: endOfMonth(now),
