@@ -130,6 +130,17 @@ const categoryLabels: Record<string, string> = {
   filiais: 'Filiais',
 };
 
+// Essential cargos that cannot be deleted
+const ESSENTIAL_CARGOS: Record<string, string[]> = {
+  torre: ['super_admin', 'admin', 'suporte'],
+  embarcador: ['ADMIN', 'OPERADOR'],
+  transportadora: ['ADMIN', 'OPERADOR'],
+};
+
+function isEssentialCargo(escopo: string, nome: string) {
+  return (ESSENTIAL_CARGOS[escopo] || []).includes(nome);
+}
+
 export default function CargosAdmin() {
   const { adminUser } = useAdminContext();
   const queryClient = useQueryClient();
@@ -140,7 +151,7 @@ export default function CargosAdmin() {
   const [newCargoDesc, setNewCargoDesc] = useState('');
   const [editCargoOpen, setEditCargoOpen] = useState(false);
   const [editCargoDesc, setEditCargoDesc] = useState('');
-
+  const [deleteCargoTarget, setDeleteCargoTarget] = useState<CargoConfig | null>(null);
   // Only super_admin should see this page
   if (adminUser.role !== 'super_admin') {
     return (
