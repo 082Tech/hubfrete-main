@@ -517,7 +517,7 @@ export default function CargosAdmin() {
                         </Badge>
                       </div>
 
-                      {Object.entries(groupedPerms).map(([category, perms]) => (
+                      {groupedPerms.map(([category, perms]) => (
                         <div key={category}>
                           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                             {categoryLabels[category] || category}
