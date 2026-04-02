@@ -323,6 +323,7 @@ export default function CargosAdmin() {
       setNewCargoName('');
       setNewCargoDesc('');
       queryClient.invalidateQueries({ queryKey: ['cargos_config'] });
+      queryClient.invalidateQueries({ queryKey: ['cargo_permissoes'] });
     },
     onError: (err: any) => {
       toast.error(err.message || 'Erro ao criar cargo');

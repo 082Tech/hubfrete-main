@@ -3770,6 +3770,13 @@ export type Database = {
         Args: { p_cargo: string; p_escopo: string }
         Returns: string[]
       }
+      get_cargos_for_scope: {
+        Args: { p_escopo: string }
+        Returns: {
+          descricao: string
+          nome: string
+        }[]
+      }
       get_gastos_resumo: {
         Args: {
           p_data_fim: string
