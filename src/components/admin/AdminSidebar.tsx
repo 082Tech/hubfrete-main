@@ -5,7 +5,7 @@ import {
   LayoutDashboard, TrendingUp, Activity, Truck, AlertTriangle, Building,
   User, FileText, Package, History, Clock, Award, Container, Boxes,
   UserPlus as UserPlusIcon, Camera, FileCheck, HardDrive, DollarSign,
-  MoreVertical, MapPin,
+  MoreVertical, MapPin, Route,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -149,6 +149,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
         { title: 'Em andamento', href: '/admin/entregas', icon: MapPin },
         { title: 'Histórico', href: '/admin/entregas/historico', icon: History },
       ],
+    },
+    {
+      title: 'Viagens',
+      icon: Route,
+      href: '/admin/viagens',
+      roles: ['super_admin', 'admin', 'suporte'],
     },
     {
       title: 'Cadastros',

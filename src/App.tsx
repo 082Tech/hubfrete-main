@@ -39,6 +39,7 @@ import ProvasEntregaAdmin from "./pages/admin/ProvasEntregaAdmin";
 import StorageExplorer from "./pages/admin/StorageExplorer";
 import Logs from "./pages/admin/Logs";
 import CargosAdmin from "./pages/admin/CargosAdmin";
+import ViagensAdmin from "./pages/admin/ViagensAdmin";
 import { AdminLayoutWrapper } from "./components/admin/AdminLayoutWrapper";
 import CadastroMotorista from "./pages/CadastroMotorista";
 import CadastroMotoristaConvite from "./pages/CadastroMotoristaConvite";
@@ -149,6 +150,7 @@ const App = () => {
                     <Route path="logs" element={<Logs />} />
                     <Route path="cargos" element={<CargosAdmin />} />
                     <Route path="financeiro" element={<AdminFinanceiro />} />
+                    <Route path="viagens" element={<ViagensAdmin />} />
                   </Route>
                   <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
                   <Route path="/cadastro/motorista/convite" element={<CadastroMotoristaConvite />} />

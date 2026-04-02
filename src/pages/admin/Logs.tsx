@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { startOfDay, endOfDay } from 'date-fns';
+import { DateRangePicker } from '@/components/relatorios/DateRangePicker';
 import {
   FileText,
   Search,
@@ -127,9 +129,13 @@ export default function Logs() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    return { start: startOfDay(today), end: endOfDay(today) };
+  });
 
   // Build query key with all server-side params
-  const queryKey = ['admin-audit-logs', currentPage, filterTabela, filterOperacao, search];
+  const queryKey = ['admin-audit-logs', currentPage, filterTabela, filterOperacao, search, dateRange.start.toISOString(), dateRange.end.toISOString()];
 
   const fetchLogs = useCallback(async () => {
     const from = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -138,6 +144,8 @@ export default function Logs() {
     let query = supabase
       .from('auditoria_logs')
       .select('*', { count: 'exact' })
+      .gte('timestamp', startOfDay(dateRange.start).toISOString())
+      .lte('timestamp', endOfDay(dateRange.end).toISOString())
       .order('timestamp', { ascending: false });
 
     if (filterTabela !== 'all') {
@@ -157,7 +165,7 @@ export default function Logs() {
     if (error) throw error;
 
     return { logs: (data as AuditLog[]) || [], totalCount: count || 0 };
-  }, [currentPage, filterTabela, filterOperacao, search]);
+  }, [currentPage, filterTabela, filterOperacao, search, dateRange]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey,
@@ -222,10 +230,13 @@ export default function Logs() {
             {totalCount > 0 && <span className="ml-1">• {totalCount.toLocaleString('pt-BR')} registros</span>}
           </p>
         </div>
-        <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-3">
+          <DateRangePicker dateRange={dateRange} onDateRangeChange={(range) => { setDateRange(range); setCurrentPage(1); }} />
+          <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

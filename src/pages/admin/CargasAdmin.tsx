@@ -63,6 +63,7 @@ import {
   ArrowRightLeft,
 } from 'lucide-react';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
+import { CargaDetailsDialog } from '@/components/cargas/CargaDetailsDialog';
 
 // Types
 interface EnderecoData {
@@ -159,6 +160,7 @@ export default function CargasAdmin() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [trackingEntrega, setTrackingEntrega] = useState<EntregaData | null>(null);
+  const [detailCarga, setDetailCarga] = useState<CargaData | null>(null);
 
   // Fetch ALL cargas from all companies
   const { data: cargas = [], isLoading, refetch, isFetching } = useQuery({
@@ -528,6 +530,7 @@ export default function CargasAdmin() {
                     <TableHead>Status</TableHead>
                     <TableHead>Cargas</TableHead>
                     <TableHead>Publicado</TableHead>
+                    <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -602,6 +605,16 @@ export default function CargasAdmin() {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {formatDate(carga.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => { e.stopPropagation(); setDetailCarga(carga); }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
 
@@ -757,6 +770,34 @@ export default function CargasAdmin() {
         } : null}
         onClose={() => setTrackingEntrega(null)}
       />
+
+      {/* Carga Details Dialog */}
+      {detailCarga && (
+        <CargaDetailsDialog
+          carga={{
+            ...detailCarga,
+            volume_m3: null,
+            status: detailCarga.status as any,
+            created_at: detailCarga.created_at || null,
+            remetente: detailCarga.remetente_razao_social ? {
+              nome: detailCarga.remetente_razao_social,
+              cidade: detailCarga.endereco_origem?.cidade || null,
+              estado: detailCarga.endereco_origem?.estado || null,
+            } : null,
+            destinatario: detailCarga.destinatario_razao_social ? {
+              nome: detailCarga.destinatario_razao_social,
+              cidade: detailCarga.endereco_destino?.cidade || null,
+              estado: detailCarga.endereco_destino?.estado || null,
+            } : null,
+            entregas: detailCarga.entregas.map(e => ({
+              ...e,
+              status: e.status as any,
+            })),
+          }}
+          open={!!detailCarga}
+          onOpenChange={(open) => { if (!open) setDetailCarga(null); }}
+        />
+      )}
     </div>
   );
 }
