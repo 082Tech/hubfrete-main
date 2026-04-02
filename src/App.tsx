@@ -38,6 +38,7 @@ import AjudantesAdmin from "./pages/admin/AjudantesAdmin";
 import ProvasEntregaAdmin from "./pages/admin/ProvasEntregaAdmin";
 import StorageExplorer from "./pages/admin/StorageExplorer";
 import Logs from "./pages/admin/Logs";
+import CargosAdmin from "./pages/admin/CargosAdmin";
 import { AdminLayoutWrapper } from "./components/admin/AdminLayoutWrapper";
 import CadastroMotorista from "./pages/CadastroMotorista";
 import CadastroMotoristaConvite from "./pages/CadastroMotoristaConvite";
