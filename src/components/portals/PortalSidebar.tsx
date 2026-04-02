@@ -1065,7 +1065,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               )}
 
               {/* Configurações - after Minha Empresa */}
-              {(() => {
+              {hasCategoryAccess('configuracoes') && (() => {
                 const configHref = userType === 'embarcador' ? '/embarcador/configuracoes' : `/${userType}/configuracoes`;
                 const configItem = menuItems.find(item => item.href === configHref);
                 if (!configItem) return null;
