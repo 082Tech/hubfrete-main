@@ -414,6 +414,11 @@ export default function EntregasHistoricoAdmin() {
         } : null}
         onClose={() => setTrackingEntrega(null)}
       />
+
+      <ViagemDetailDialog
+        entregaId={viagemEntregaId}
+        onClose={() => setViagemEntregaId(null)}
+      />
     </div>
   );
 }
