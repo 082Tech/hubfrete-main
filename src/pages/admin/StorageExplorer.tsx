@@ -266,7 +266,7 @@ export default function StorageExplorer() {
         </div>
         <Button variant="outline" onClick={() => {
           if (selectedBucket) {
-            fetchFilesInPath(selectedBucket, currentPath);
+            fetchFilesInPath(selectedBucket, currentPath, page);
           }
         }}>
           <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
