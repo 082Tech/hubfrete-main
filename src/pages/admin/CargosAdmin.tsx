@@ -362,19 +362,34 @@ export default function CargosAdmin() {
                             )}
                             <span className="font-medium text-sm">{cargo.nome}</span>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCargo(cargo);
-                              setEditCargoDesc(cargo.descricao || '');
-                              setEditCargoOpen(true);
-                            }}
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </Button>
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCargo(cargo);
+                                setEditCargoDesc(cargo.descricao || '');
+                                setEditCargoOpen(true);
+                              }}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                            {!isEssentialCargo(cargo.escopo, cargo.nome) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteCargoTarget(cargo);
+                                }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         {cargo.descricao && (
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
