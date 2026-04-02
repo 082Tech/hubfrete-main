@@ -320,6 +320,21 @@ export function ViagemDetailDialog({ entregaId, onClose }: ViagemDetailDialogPro
                         />
                       )}
                     </TabsContent>
+
+                    <TabsContent value="auditoria" className="mt-4">
+                      <RouteDeviationPanel
+                        viagemId={viagem.id}
+                        polyline={viagem.rota_planejada_polyline}
+                        viagemStatus={viagem.status}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="roteirizacao" className="mt-4">
+                      <SmartRoutingPanel
+                        orderedDeliveries={orderedDeliveries}
+                        entregaLabels={entregaLabels}
+                      />
+                    </TabsContent>
                   </Tabs>
                 </>
               )}
