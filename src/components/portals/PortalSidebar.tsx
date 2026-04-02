@@ -895,7 +895,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               )}
 
               {/* Configurações - after Minha Empresa */}
-              {(() => {
+              {hasCategoryAccess('configuracoes') && (() => {
                 const configItem = menuItems.find(item => item.href === '/transportadora/configuracoes');
                 if (!configItem) return null;
                 const isActive = location.pathname === configItem.href;
