@@ -152,7 +152,9 @@ export default function StorageExplorer() {
   const handleBucketClick = (bucket: Bucket) => {
     setSelectedBucket(bucket);
     setCurrentPath('');
-    fetchFilesInPath(bucket, '');
+    setPage(0);
+    setSearch('');
+    fetchFilesInPath(bucket, '', 0);
     setExpandedBuckets(prev => {
       const next = new Set(prev);
       if (next.has(bucket.id)) {
@@ -168,19 +170,26 @@ export default function StorageExplorer() {
     if (!selectedBucket) return;
     const newPath = currentPath ? `${currentPath}/${folderName}` : folderName;
     setCurrentPath(newPath);
-    fetchFilesInPath(selectedBucket, newPath);
+    setPage(0);
+    fetchFilesInPath(selectedBucket, newPath, 0);
   };
 
   const handleBreadcrumbClick = (crumb: BreadcrumbItem, index: number) => {
     if (!selectedBucket) return;
+    setPage(0);
     if (index === 0) {
-      // Root of bucket
       setCurrentPath('');
-      fetchFilesInPath(selectedBucket, '');
+      fetchFilesInPath(selectedBucket, '', 0);
     } else {
       setCurrentPath(crumb.path);
-      fetchFilesInPath(selectedBucket, crumb.path);
+      fetchFilesInPath(selectedBucket, crumb.path, 0);
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (!selectedBucket) return;
+    setPage(newPage);
+    fetchFilesInPath(selectedBucket, currentPath, newPage);
   };
 
   const handlePreview = async (file: StorageFile) => {
