@@ -777,7 +777,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                     })}
                   </CollapsibleContent>
                 </Collapsible>
-              )}
+              ))}
 
               {/* Rest of transportadora menu items (excluding empresa submenu items and configurações) */}
               {menuItems
@@ -787,6 +787,10 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                   item.href !== '/transportadora/configuracoes' &&
                   item.href !== '/transportadora/ajuda'
                 )
+                .filter(item => {
+                  const cats = hrefPermissionMap[item.href];
+                  return !cats || hasCategoryAccess(...cats);
+                })
                 .map((item) => {
                   const isActive = item.href.endsWith('/ajuda')
                     ? location.pathname.startsWith(item.href)
