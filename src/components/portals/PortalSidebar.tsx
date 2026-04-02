@@ -957,6 +957,10 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
             <>
               {menuItems
                 .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')) && !item.href.endsWith('/configuracoes') && !item.href.endsWith('/ajuda'))
+                .filter(item => {
+                  const cats = hrefPermissionMap[item.href];
+                  return !cats || hasCategoryAccess(...cats);
+                })
                 .map((item) => {
                   const isActive = item.href.endsWith('/ajuda')
                     ? location.pathname.startsWith(item.href)
