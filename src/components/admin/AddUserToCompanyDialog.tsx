@@ -341,6 +341,10 @@ export function AddUserToCompanyDialog({
                     <SelectItem value="OPERADOR">Operador</SelectItem>
                   </SelectContent>
                 </Select>
+                {(() => {
+                  const desc = cargos.find(c => c.nome === existingUserRole)?.descricao;
+                  return desc ? <p className="text-xs text-muted-foreground mt-1">{desc}</p> : null;
+                })()}
               </div>
 
               <div className="space-y-2">
