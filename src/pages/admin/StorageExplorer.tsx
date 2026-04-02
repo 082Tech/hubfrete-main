@@ -84,6 +84,7 @@ const KNOWN_BUCKETS: Bucket[] = [
 ];
 
 export default function StorageExplorer() {
+  const PAGE_SIZE = 100;
   const [buckets] = useState<Bucket[]>(KNOWN_BUCKETS);
   const [selectedBucket, setSelectedBucket] = useState<Bucket | null>(null);
   const [files, setFiles] = useState<StorageFile[]>([]);
@@ -96,14 +97,19 @@ export default function StorageExplorer() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalItemsLoaded, setTotalItemsLoaded] = useState(0);
 
-  const fetchFilesInPath = useCallback(async (bucket: Bucket, path: string = '') => {
+  const fetchFilesInPath = useCallback(async (bucket: Bucket, path: string = '', pageNum: number = 0) => {
     setIsLoadingFiles(true);
     try {
+      const offset = pageNum * PAGE_SIZE;
       const { data, error } = await supabase.storage
         .from(bucket.id)
         .list(path, {
-          limit: 500,
+          limit: PAGE_SIZE,
+          offset,
           sortBy: { column: 'name', order: 'asc' },
         });
 
@@ -115,7 +121,6 @@ export default function StorageExplorer() {
 
       (data || []).forEach(item => {
         if (item.id === null) {
-          // It's a folder
           folderList.push(item.name);
         } else {
           fileList.push(item);
@@ -124,6 +129,8 @@ export default function StorageExplorer() {
 
       setFolders(folderList);
       setFiles(fileList);
+      setHasMore((data || []).length === PAGE_SIZE);
+      setTotalItemsLoaded(offset + (data || []).length);
 
       // Build breadcrumbs
       const pathParts = path.split('/').filter(Boolean);
