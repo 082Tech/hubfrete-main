@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   FolderOpen,
   File,
@@ -14,6 +14,7 @@ import {
   RefreshCw,
   ArrowLeft,
   FolderArchive,
+  ChevronLeft,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
