@@ -19,6 +19,7 @@ import {
 import {
   Shield, Plus, Settings, Lock, Unlock, Pencil, Loader2, ShieldCheck, ShieldAlert,
 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { useAdminContext } from '@/components/admin/AdminLayoutWrapper';
 
