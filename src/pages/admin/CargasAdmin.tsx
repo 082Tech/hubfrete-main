@@ -530,7 +530,7 @@ export default function CargasAdmin() {
                     <TableHead>Status</TableHead>
                     <TableHead>Cargas</TableHead>
                     <TableHead>Publicado</TableHead>
-                  </TableRow>
+                    <TableHead className="w-10"></TableHead>
                 </TableHeader>
                 <TableBody>
                   {paginatedCargas.length === 0 ? (
