@@ -372,6 +372,10 @@ export default function EntregasHistoricoAdmin() {
                                   <Map className="w-4 h-4 mr-2" />
                                   Ver no Mapa
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setViagemEntregaId(entrega.id)}>
+                                  <Route className="w-4 h-4 mr-2" />
+                                  Ver Viagem
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
