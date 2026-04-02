@@ -104,9 +104,9 @@ export function ViagemDetailDialog({ entregaId, onClose }: ViagemDetailDialogPro
         .select(`
           id, codigo, status, valor_frete, peso_alocado_kg,
           carga:cargas(
-            codigo, descricao,
-            endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado),
-            endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado)
+            codigo, descricao, data_entrega_limite,
+            endereco_origem:enderecos_carga!cargas_endereco_origem_id_fkey(cidade, estado, latitude, longitude),
+            endereco_destino:enderecos_carga!cargas_endereco_destino_id_fkey(cidade, estado, latitude, longitude)
           )
         `)
         .in('id', entregaIds);
