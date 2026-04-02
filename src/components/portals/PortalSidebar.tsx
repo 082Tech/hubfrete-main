@@ -485,7 +485,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
           )}
 
           {/* Ofertas de Carga - only for embarcador */}
-          {userType === 'embarcador' && (
+          {userType === 'embarcador' && hasCategoryAccess('cargas') && (
             (() => {
               const ofertasItem = menuItems.find(item => item.href === '/embarcador/ofertas');
               if (!ofertasItem) return null;
