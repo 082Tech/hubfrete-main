@@ -260,6 +260,37 @@ export default function CargosAdmin() {
     },
   });
 
+  // Delete cargo
+  const deleteCargo = useMutation({
+    mutationFn: async (cargo: CargoConfig) => {
+      if (isEssentialCargo(cargo.escopo, cargo.nome)) {
+        throw new Error('Este cargo é essencial e não pode ser excluído');
+      }
+      // Delete permissions first
+      await (supabase as any)
+        .from('cargo_permissoes')
+        .delete()
+        .eq('escopo', cargo.escopo)
+        .eq('cargo', cargo.nome);
+      // Delete cargo
+      const { error } = await (supabase as any)
+        .from('cargos_config')
+        .delete()
+        .eq('id', cargo.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Cargo excluído!');
+      setDeleteCargoTarget(null);
+      if (selectedCargo?.id === deleteCargoTarget?.id) setSelectedCargo(null);
+      queryClient.invalidateQueries({ queryKey: ['cargos_config'] });
+      queryClient.invalidateQueries({ queryKey: ['cargo_permissoes'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Erro ao excluir cargo');
+    },
+  });
+
   const groupedPerms = groupPermissions(permissoes);
 
   return (
