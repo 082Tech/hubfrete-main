@@ -85,6 +85,7 @@ type TabType = 'recebiveis' | 'pgt_transportadoras' | 'pgt_autonomos' | 'antecip
 
 export default function Financeiro() {
   const queryClient = useQueryClient();
+  const { allowed: canBaixa } = useAdminPermission('financeiro.baixa');
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
