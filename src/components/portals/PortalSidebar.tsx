@@ -619,7 +619,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               })()}
 
               {/* Ofertas de Carga */}
-              {(() => {
+              {hasCategoryAccess('cargas') && (() => {
                 const ofertasItem = menuItems.find(item => item.href === '/transportadora/ofertas');
                 if (!ofertasItem) return null;
                 const isActive = location.pathname === ofertasItem.href;
