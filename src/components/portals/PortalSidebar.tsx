@@ -711,10 +711,10 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                     })}
                   </CollapsibleContent>
                 </Collapsible>
-              )}
+              ))}
 
               {/* Frota Submenu */}
-              {collapsed ? (
+              {hasCategoryAccess('frota') && (collapsed ? (
                 <DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
