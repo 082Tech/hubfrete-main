@@ -28,6 +28,27 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
+import { useCargoPermissions } from '@/hooks/useCargoPermissions';
+
+// Maps admin sidebar titles to permission categories
+const titlePermissionMap: Record<string, string[]> = {
+  'Empresas': ['empresas'],
+  'Ofertas': ['cargas'],
+  'Cargas': ['entregas'],
+  'Cadastros': ['motoristas', 'ajudantes'],
+  'Frota': ['veiculos', 'carrocerias'],
+  'Storage': ['storage'],
+  'Pré-Cadastros': ['pre_cadastros'],
+  'Usuários Admin': ['usuarios'],
+  'Monitoramento': ['monitoramento'],
+  'Performance': ['kpis'],
+  'Documentos': ['documentos'],
+  'Financeiro': ['financeiro'],
+  'Relatórios': ['relatorios'],
+  'Chamados': ['chamados'],
+  'Logs': ['logs'],
+  'Cargos': ['cargos'],
+};
 
 type AdminRole = 'super_admin' | 'admin' | 'suporte';
 
@@ -71,6 +92,7 @@ const roleBadgeVariants: Record<AdminRole, 'default' | 'secondary' | 'outline'> 
 };
 
 export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps) {
+  const { hasCategoryAccess } = useCargoPermissions('torre', adminUser.role);
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => {
@@ -237,7 +259,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
     },
   ];
 
-  const visibleMenuItems = menuItems.filter(item => item.roles.includes(adminUser.role));
+  const visibleMenuItems = menuItems.filter(item => {
+    if (!item.roles.includes(adminUser.role)) return false;
+    const cats = titlePermissionMap[item.title];
+    if (!cats) return true; // Dashboard always visible
+    return hasCategoryAccess(...cats);
+  });
 
   const isSubItemActive = (item: MenuItem) => {
     if (!item.subItems) return false;

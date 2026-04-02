@@ -3766,6 +3766,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["admin_role"]
       }
+      get_cargo_allowed_categories: {
+        Args: { p_cargo: string; p_escopo: string }
+        Returns: string[]
+      }
       get_gastos_resumo: {
         Args: {
           p_data_fim: string

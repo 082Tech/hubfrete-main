@@ -31,6 +31,23 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserContext, type UserType } from '@/hooks/useUserContext';
 import { useTheme } from 'next-themes';
 import { useNotificacoesContext } from '@/contexts/NotificacoesContext';
+import { useCargoPermissions } from '@/hooks/useCargoPermissions';
+
+// Maps menu item hrefs to their required permission categories
+// Items not listed are always visible (Home, Assistente, Ajuda)
+const hrefPermissionMap: Record<string, string[]> = {
+  '/embarcador/ofertas': ['cargas'],
+  '/embarcador/financeiro': ['financeiro'],
+  '/embarcador/relatorios': ['relatorios'],
+  '/embarcador/mensagens': ['mensagens'],
+  '/embarcador/configuracoes': ['configuracoes'],
+  '/transportadora/ofertas': ['cargas'],
+  '/transportadora/motoristas': ['motoristas'],
+  '/transportadora/financeiro': ['financeiro'],
+  '/transportadora/relatorios': ['relatorios'],
+  '/transportadora/mensagens': ['mensagens'],
+  '/transportadora/configuracoes': ['configuracoes'],
+};
 
 interface MenuItem {
   icon: React.ElementType;
@@ -164,6 +181,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   const { profile, signOut } = useAuth();
   const { empresa, companyInfo, filiais, filialAtiva, setFilialAtiva, cargo, switchingFilial, availableEmpresas, switchEmpresa } = useUserContext();
   const darkMode = useTheme().theme === 'dark';
+  const { hasCategoryAccess } = useCargoPermissions(userType, cargo);
   const allMenuItems = menusByType[userType];
   const menuItems = allMenuItems;
   const config = portalConfig[userType];
@@ -467,7 +485,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
           )}
 
           {/* Ofertas de Carga - only for embarcador */}
-          {userType === 'embarcador' && (
+          {userType === 'embarcador' && hasCategoryAccess('cargas') && (
             (() => {
               const ofertasItem = menuItems.find(item => item.href === '/embarcador/ofertas');
               if (!ofertasItem) return null;
@@ -498,7 +516,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
           )}
 
           {/* Cargas Submenu - only for embarcador */}
-          {userType === 'embarcador' && (
+          {userType === 'embarcador' && hasCategoryAccess('cargas', 'entregas') && (
             collapsed ? (
               // Collapsed: show dropdown on hover/click
               <DropdownMenu>
@@ -601,7 +619,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               })()}
 
               {/* Ofertas de Carga */}
-              {(() => {
+              {hasCategoryAccess('cargas') && (() => {
                 const ofertasItem = menuItems.find(item => item.href === '/transportadora/ofertas');
                 if (!ofertasItem) return null;
                 const isActive = location.pathname === ofertasItem.href;
@@ -630,7 +648,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               })()}
 
               {/* Cargas Submenu (Gestão Diária + Histórico) */}
-              {collapsed ? (
+              {hasCategoryAccess('entregas') && (collapsed ? (
                 <DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -693,10 +711,10 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                     })}
                   </CollapsibleContent>
                 </Collapsible>
-              )}
+              ))}
 
               {/* Frota Submenu */}
-              {collapsed ? (
+              {hasCategoryAccess('frota') && (collapsed ? (
                 <DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -759,7 +777,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                     })}
                   </CollapsibleContent>
                 </Collapsible>
-              )}
+              ))}
 
               {/* Rest of transportadora menu items (excluding empresa submenu items and configurações) */}
               {menuItems
@@ -769,6 +787,10 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                   item.href !== '/transportadora/configuracoes' &&
                   item.href !== '/transportadora/ajuda'
                 )
+                .filter(item => {
+                  const cats = hrefPermissionMap[item.href];
+                  return !cats || hasCategoryAccess(...cats);
+                })
                 .map((item) => {
                   const isActive = item.href.endsWith('/ajuda')
                     ? location.pathname.startsWith(item.href)
@@ -873,7 +895,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               )}
 
               {/* Configurações - after Minha Empresa */}
-              {(() => {
+              {hasCategoryAccess('configuracoes') && (() => {
                 const configItem = menuItems.find(item => item.href === '/transportadora/configuracoes');
                 if (!configItem) return null;
                 const isActive = location.pathname === configItem.href;
@@ -935,6 +957,10 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
             <>
               {menuItems
                 .filter(item => (userType !== 'embarcador' || (item.href !== '/embarcador' && item.href !== '/embarcador/ofertas')) && !item.href.endsWith('/configuracoes') && !item.href.endsWith('/ajuda'))
+                .filter(item => {
+                  const cats = hrefPermissionMap[item.href];
+                  return !cats || hasCategoryAccess(...cats);
+                })
                 .map((item) => {
                   const isActive = item.href.endsWith('/ajuda')
                     ? location.pathname.startsWith(item.href)
@@ -1039,7 +1065,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
               )}
 
               {/* Configurações - after Minha Empresa */}
-              {(() => {
+              {hasCategoryAccess('configuracoes') && (() => {
                 const configHref = userType === 'embarcador' ? '/embarcador/configuracoes' : `/${userType}/configuracoes`;
                 const configItem = menuItems.find(item => item.href === configHref);
                 if (!configItem) return null;
