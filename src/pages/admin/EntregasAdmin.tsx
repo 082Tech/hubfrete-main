@@ -25,9 +25,10 @@ import {
   Truck, Search, MoreHorizontal, DollarSign, Loader2, MapPin, Building2,
   Calendar as CalendarIcon, CheckCircle, Clock, AlertCircle, XCircle,
   Package, User, ChevronLeft, ChevronsLeft, ChevronsRight, ChevronRight,
-  Map, RefreshCw, Filter, ArrowRightLeft, ChevronDown, Route,
+  Map, RefreshCw, Filter, ArrowRightLeft, Route,
 } from 'lucide-react';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
+import { ViagemDetailDialog } from '@/components/viagens/ViagemDetailDialog';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -63,40 +64,10 @@ interface EntregaCompleta {
     peso_kg: number;
     tipo: string;
     data_entrega_limite: string | null;
-    endereco_origem: {
-      cidade: string;
-      estado: string;
-    } | null;
-    endereco_destino: {
-      cidade: string;
-      estado: string;
-    } | null;
-    empresa: {
-      nome: string | null;
-      tipo: string;
-    } | null;
+    endereco_origem: { cidade: string; estado: string } | null;
+    endereco_destino: { cidade: string; estado: string } | null;
+    empresa: { nome: string | null; tipo: string } | null;
   };
-}
-
-interface ViagemData {
-  id: string;
-  codigo: string;
-  status: string;
-  created_at: string;
-  started_at: string | null;
-  ended_at: string | null;
-  motorista: { id: string; nome_completo: string; foto_url: string | null } | null;
-  veiculo: { id: string; placa: string; tipo: string | null } | null;
-}
-
-interface ViagemEntregaLink {
-  viagem_id: string;
-  entrega_id: string;
-}
-
-interface ViagemGroup {
-  viagem: ViagemData;
-  entregas: EntregaCompleta[];
 }
 
 const statusEntregaConfig: Record<string, { color: string; label: string; icon: React.ElementType }> = {
@@ -109,13 +80,6 @@ const statusEntregaConfig: Record<string, { color: string; label: string; icon: 
   'cancelada': { color: 'bg-gray-500/10 text-gray-600 border-gray-500/20', label: 'Cancelada', icon: XCircle },
 };
 
-const statusViagemConfig: Record<string, { label: string; color: string }> = {
-  planejada: { label: 'Planejada', color: 'bg-muted text-muted-foreground' },
-  em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-  pausada: { label: 'Pausada', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
-  finalizada: { label: 'Finalizada', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-};
-
 type FilterStatus = 'all' | 'ativas' | 'finalizadas';
 const ITEMS_PER_PAGE = 15;
 
@@ -125,13 +89,12 @@ export default function EntregasAdmin() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [trackingEntrega, setTrackingEntrega] = useState<EntregaCompleta | null>(null);
-  const [expandedViagens, setExpandedViagens] = useState<Set<string>>(new Set(['__sem_viagem__']));
+  const [viagemEntregaId, setViagemEntregaId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfMonth(now),
     to: endOfMonth(now),
   });
 
-  // Fetch entregas
   const { data: entregas = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ['admin-todas-entregas'],
     queryFn: async () => {
@@ -155,62 +118,19 @@ export default function EntregasAdmin() {
     },
   });
 
-  // Fetch viagens
-  const { data: viagens = [] } = useQuery({
-    queryKey: ['admin-viagens-for-grouping'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('viagens')
-        .select(`
-          id, codigo, status, created_at, started_at, ended_at,
-          motorista:motoristas!viagens_motorista_id_fkey(id, nome_completo, foto_url),
-          veiculo:veiculos!viagens_veiculo_id_fkey(id, placa, tipo)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return (data || []) as unknown as ViagemData[];
-    },
-  });
-
-  // Fetch viagem_entregas links
-  const { data: viagemEntregaLinks = [] } = useQuery({
-    queryKey: ['admin-viagem-entregas-links'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('viagem_entregas')
-        .select('viagem_id, entrega_id');
-      if (error) throw error;
-      return (data || []) as ViagemEntregaLink[];
-    },
-  });
-
-  const entregaViagemMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    viagemEntregaLinks.forEach(link => { map[link.entrega_id] = link.viagem_id; });
-    return map;
-  }, [viagemEntregaLinks]);
-
-  const viagensMap = useMemo(() => {
-    const map: Record<string, ViagemData> = {};
-    viagens.forEach(v => { map[v.id] = v; });
-    return map;
-  }, [viagens]);
-
-  // Apply filters
   const filteredEntregas = useMemo(() => {
     let result = entregas;
 
     if (dateRange?.from) {
-      const from = new Date(dateRange.from); from.setHours(0,0,0,0);
+      const from = new Date(dateRange.from); from.setHours(0, 0, 0, 0);
       result = result.filter(e => new Date(e.created_at || '') >= from);
     }
     if (dateRange?.to) {
-      const to = new Date(dateRange.to); to.setHours(23,59,59,999);
+      const to = new Date(dateRange.to); to.setHours(23, 59, 59, 999);
       result = result.filter(e => new Date(e.created_at || '') <= to);
     }
-    
-    result = result.filter(entrega => 
+
+    result = result.filter(entrega =>
       entrega.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entrega.carga?.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entrega.motorista?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -230,40 +150,11 @@ export default function EntregasAdmin() {
     return result;
   }, [entregas, searchTerm, filterStatus, dateRange]);
 
-  // Group by viagem
-  const { viagemGroups, semViagem } = useMemo(() => {
-    const groupMap: Record<string, EntregaCompleta[]> = {};
-    const orphans: EntregaCompleta[] = [];
-
-    filteredEntregas.forEach(entrega => {
-      const viagemId = entregaViagemMap[entrega.id];
-      if (viagemId) {
-        if (!groupMap[viagemId]) groupMap[viagemId] = [];
-        groupMap[viagemId].push(entrega);
-      } else {
-        orphans.push(entrega);
-      }
-    });
-
-    const groups: ViagemGroup[] = [];
-    Object.entries(groupMap).forEach(([viagemId, entregas]) => {
-      const viagem = viagensMap[viagemId];
-      if (viagem) groups.push({ viagem, entregas });
-    });
-
-    const statusOrder: Record<string, number> = { em_andamento: 0, planejada: 1, pausada: 2, finalizada: 3 };
-    groups.sort((a, b) => (statusOrder[a.viagem.status] ?? 9) - (statusOrder[b.viagem.status] ?? 9));
-
-    return { viagemGroups: groups, semViagem: orphans };
-  }, [filteredEntregas, entregaViagemMap, viagensMap]);
-
-  const toggleViagem = (id: string) => {
-    setExpandedViagens(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
+  const totalPages = Math.ceil(filteredEntregas.length / ITEMS_PER_PAGE);
+  const paginatedEntregas = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredEntregas.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredEntregas, currentPage]);
 
   const formatCurrency = (value: number | null) => {
     if (!value) return '-';
@@ -294,138 +185,8 @@ export default function EntregasAdmin() {
       entregue: byStatus['entregue'] || 0,
       problema: byStatus['problema'] || 0,
       totalFrete,
-      viagensAtivas: viagens.filter(v => v.status === 'em_andamento').length,
     };
-  }, [entregas, viagens]);
-
-  const renderEntregaRow = (entrega: EntregaCompleta) => {
-    const sConfig = statusEntregaConfig[entrega.status || ''] || statusEntregaConfig.aguardando;
-    const StatusIcon = sConfig.icon;
-    
-    return (
-      <TableRow key={entrega.id}>
-        <TableCell>
-          <div className="flex flex-col">
-            <span className="font-mono text-sm font-medium">{entrega.codigo || '-'}</span>
-            <span className="text-xs text-muted-foreground">{entrega.carga?.codigo}</span>
-          </div>
-        </TableCell>
-        <TableCell>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 max-w-[150px]">
-                  <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm truncate">{entrega.carga?.empresa?.nome || '-'}</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{entrega.carga?.empresa?.nome}</p>
-                <p className="text-xs text-muted-foreground">
-                  {entrega.carga?.empresa?.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-1 text-sm">
-            <MapPin className="w-3 h-3 text-green-500" />
-            <span>{entrega.carga?.endereco_origem?.cidade}/{entrega.carga?.endereco_origem?.estado}</span>
-            <span className="text-muted-foreground">→</span>
-            <MapPin className="w-3 h-3 text-red-500" />
-            <span>{entrega.carga?.endereco_destino?.cidade}/{entrega.carga?.endereco_destino?.estado}</span>
-          </div>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            <Avatar className="h-7 w-7">
-              <AvatarImage src={entrega.motorista?.foto_url || undefined} />
-              <AvatarFallback className="text-xs">
-                {entrega.motorista?.nome_completo?.charAt(0) || <User className="w-3 h-3" />}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm">{entrega.motorista?.nome_completo || '-'}</span>
-          </div>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            <Truck className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-mono">{entrega.veiculo?.placa || '-'}</span>
-          </div>
-        </TableCell>
-        <TableCell>
-          <span className="text-sm">{formatWeight(entrega.peso_alocado_kg)}</span>
-        </TableCell>
-        <TableCell>
-          <span className="text-sm font-medium">{formatCurrency(entrega.valor_frete)}</span>
-        </TableCell>
-        <TableCell>
-          <Badge className={`${sConfig.color} border`}>
-            <StatusIcon className="w-3 h-3 mr-1" />
-            {sConfig.label}
-          </Badge>
-        </TableCell>
-        <TableCell className="text-sm text-muted-foreground">
-          {formatDate(entrega.created_at)}
-        </TableCell>
-        <TableCell>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setTrackingEntrega(entrega)}>
-                <Map className="w-4 h-4 mr-2" />
-                Ver no Mapa
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
-      </TableRow>
-    );
-  };
-
-  const renderViagemHeader = (viagem: ViagemData, entregaCount: number) => {
-    const isExpanded = expandedViagens.has(viagem.id);
-    const vConfig = statusViagemConfig[viagem.status] || statusViagemConfig.planejada;
-
-    return (
-      <TableRow
-        key={`viagem-header-${viagem.id}`}
-        className="bg-muted/40 hover:bg-muted/60 cursor-pointer border-t-2 border-border"
-        onClick={() => toggleViagem(viagem.id)}
-      >
-        <TableCell colSpan={10}>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
-              <ChevronDown className={cn("h-4 w-4 transition-transform", !isExpanded && "-rotate-90")} />
-            </Button>
-            <Route className="w-5 h-5 text-primary shrink-0" />
-            <div className="flex items-center gap-3 flex-1 flex-wrap">
-              <span className="font-mono font-bold text-sm">{viagem.codigo || 'Viagem'}</span>
-              <Badge className={`${vConfig.color} border text-xs`}>{vConfig.label}</Badge>
-              <span className="text-xs text-muted-foreground">•</span>
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <User className="w-3.5 h-3.5" />
-                <span>{viagem.motorista?.nome_completo || '-'}</span>
-              </div>
-              <span className="text-xs text-muted-foreground">•</span>
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Truck className="w-3.5 h-3.5" />
-                <span className="font-mono">{viagem.veiculo?.placa || '-'}</span>
-              </div>
-              <Badge variant="outline" className="text-xs ml-auto">
-                {entregaCount} {entregaCount === 1 ? 'entrega' : 'entregas'}
-              </Badge>
-            </div>
-          </div>
-        </TableCell>
-      </TableRow>
-    );
-  };
+  }, [entregas]);
 
   return (
     <div className="space-y-6">
@@ -436,9 +197,7 @@ export default function EntregasAdmin() {
             <Truck className="w-8 h-8 text-primary" />
             Cargas
           </h1>
-          <p className="text-muted-foreground">
-            Visualize todas as cargas da plataforma, agrupadas por viagem
-          </p>
+          <p className="text-muted-foreground">Visualize todas as cargas da plataforma</p>
         </div>
         <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
           <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
@@ -446,8 +205,8 @@ export default function EntregasAdmin() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -491,14 +250,6 @@ export default function EntregasAdmin() {
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-500/10 rounded-lg"><Route className="w-5 h-5 text-indigo-500" /></div>
-              <div><p className="text-2xl font-bold">{stats.viagensAtivas}</p><p className="text-xs text-muted-foreground">Viagens Ativas</p></div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
               <div className="p-2 bg-chart-1/10 rounded-lg"><DollarSign className="w-5 h-5 text-chart-1" /></div>
               <div><p className="text-lg font-bold">{formatCurrency(stats.totalFrete)}</p><p className="text-xs text-muted-foreground">Volume Frete</p></div>
             </div>
@@ -515,7 +266,7 @@ export default function EntregasAdmin() {
               <Input
                 placeholder="Buscar por código, motorista, placa ou empresa..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 className="pl-9"
               />
             </div>
@@ -555,7 +306,7 @@ export default function EntregasAdmin() {
         </CardContent>
       </Card>
 
-      {/* Table grouped by viagem */}
+      {/* Table */}
       <Card className="border-border">
         <CardContent className="p-0">
           {isLoading ? (
@@ -580,51 +331,119 @@ export default function EntregasAdmin() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredEntregas.length === 0 ? (
+                  {paginatedEntregas.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
                         Nenhuma entrega encontrada
                       </TableCell>
                     </TableRow>
                   ) : (
-                    <>
-                      {/* Viagem groups */}
-                      {viagemGroups.map(({ viagem, entregas: groupEntregas }) => (
-                        <>
-                          {renderViagemHeader(viagem, groupEntregas.length)}
-                          {expandedViagens.has(viagem.id) && groupEntregas.map(renderEntregaRow)}
-                        </>
-                      ))}
-
-                      {/* Entregas sem viagem */}
-                      {semViagem.length > 0 && (
-                        <>
-                          <TableRow
-                            className="bg-muted/20 hover:bg-muted/40 cursor-pointer border-t-2 border-border"
-                            onClick={() => toggleViagem('__sem_viagem__')}
-                          >
-                            <TableCell colSpan={10}>
-                              <div className="flex items-center gap-3">
-                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
-                                  <ChevronDown className={cn("h-4 w-4 transition-transform", !expandedViagens.has('__sem_viagem__') && "-rotate-90")} />
+                    paginatedEntregas.map((entrega) => {
+                      const sConfig = statusEntregaConfig[entrega.status || ''] || statusEntregaConfig.aguardando;
+                      const StatusIcon = sConfig.icon;
+                      return (
+                        <TableRow key={entrega.id}>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-mono text-sm font-medium">{entrega.codigo || '-'}</span>
+                              <span className="text-xs text-muted-foreground">{entrega.carga?.codigo}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-2 max-w-[150px]">
+                                    <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                                    <span className="text-sm truncate">{entrega.carga?.empresa?.nome || '-'}</span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{entrega.carga?.empresa?.nome}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {entrega.carga?.empresa?.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm">
+                              <MapPin className="w-3 h-3 text-green-500" />
+                              <span>{entrega.carga?.endereco_origem?.cidade}/{entrega.carga?.endereco_origem?.estado}</span>
+                              <span className="text-muted-foreground">→</span>
+                              <MapPin className="w-3 h-3 text-red-500" />
+                              <span>{entrega.carga?.endereco_destino?.cidade}/{entrega.carga?.endereco_destino?.estado}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-7 w-7">
+                                <AvatarImage src={entrega.motorista?.foto_url || undefined} />
+                                <AvatarFallback className="text-xs">
+                                  {entrega.motorista?.nome_completo?.charAt(0) || <User className="w-3 h-3" />}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">{entrega.motorista?.nome_completo || '-'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Truck className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm font-mono">{entrega.veiculo?.placa || '-'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell><span className="text-sm">{formatWeight(entrega.peso_alocado_kg)}</span></TableCell>
+                          <TableCell><span className="text-sm font-medium">{formatCurrency(entrega.valor_frete)}</span></TableCell>
+                          <TableCell>
+                            <Badge className={`${sConfig.color} border`}>
+                              <StatusIcon className="w-3 h-3 mr-1" />
+                              {sConfig.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{formatDate(entrega.created_at)}</TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="w-4 h-4" />
                                 </Button>
-                                <Package className="w-5 h-5 text-muted-foreground shrink-0" />
-                                <span className="font-semibold text-sm text-muted-foreground">Sem viagem vinculada</span>
-                                <Badge variant="outline" className="text-xs ml-auto">
-                                  {semViagem.length} {semViagem.length === 1 ? 'entrega' : 'entregas'}
-                                </Badge>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                          {expandedViagens.has('__sem_viagem__') && semViagem.map(renderEntregaRow)}
-                        </>
-                      )}
-                    </>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setTrackingEntrega(entrega)}>
+                                  <Map className="w-4 h-4 mr-2" />
+                                  Ver no Mapa
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setViagemEntregaId(entrega.id)}>
+                                  <Route className="w-4 h-4 mr-2" />
+                                  Ver Viagem
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredEntregas.length)} de {filteredEntregas.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}><ChevronsLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
+                <span className="text-sm px-3">{currentPage} / {totalPages}</span>
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}><ChevronsRight className="h-4 w-4" /></Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -637,6 +456,12 @@ export default function EntregasAdmin() {
           placa: trackingEntrega.veiculo?.placa || '-'
         } : null}
         onClose={() => setTrackingEntrega(null)}
+      />
+
+      {/* Viagem Detail Dialog */}
+      <ViagemDetailDialog
+        entregaId={viagemEntregaId}
+        onClose={() => setViagemEntregaId(null)}
       />
     </div>
   );
