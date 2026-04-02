@@ -162,26 +162,35 @@ export default function EntregasAdmin() {
       const { data, error } = await supabase
         .from('viagens')
         .select(`
-          id, codigo, status, created_at, iniciada_em, finalizada_em, entrega_ids,
+          id, codigo, status, created_at, started_at, ended_at,
           motorista:motoristas!viagens_motorista_id_fkey(id, nome_completo, foto_url),
-          veiculo:veiculos!viagens_veiculo_id_fkey(id, placa, tipo),
-          empresa:empresas!viagens_empresa_id_fkey(id, nome)
+          veiculo:veiculos!viagens_veiculo_id_fkey(id, placa, tipo)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as ViagemData[];
+      return (data || []) as unknown as ViagemData[];
+    },
+  });
+
+  // Fetch viagem_entregas links
+  const { data: viagemEntregaLinks = [] } = useQuery({
+    queryKey: ['admin-viagem-entregas-links'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('viagem_entregas')
+        .select('viagem_id, entrega_id');
+      if (error) throw error;
+      return (data || []) as ViagemEntregaLink[];
     },
   });
 
   // Build entrega-to-viagem map
   const entregaViagemMap = useMemo(() => {
-    const map = new Map<string, string>(); // entrega_id -> viagem_id
-    viagens.forEach(v => {
-      (v.entrega_ids || []).forEach(eid => map.set(eid, v.id));
-    });
+    const map = new Map<string, string>();
+    viagemEntregaLinks.forEach(link => map.set(link.entrega_id, link.viagem_id));
     return map;
-  }, [viagens]);
+  }, [viagemEntregaLinks]);
 
   const viagensMap = useMemo(() => {
     const map = new Map<string, ViagemData>();
