@@ -144,6 +144,8 @@ export default function Logs() {
     let query = supabase
       .from('auditoria_logs')
       .select('*', { count: 'exact' })
+      .gte('timestamp', startOfDay(dateRange.start).toISOString())
+      .lte('timestamp', endOfDay(dateRange.end).toISOString())
       .order('timestamp', { ascending: false });
 
     if (filterTabela !== 'all') {
