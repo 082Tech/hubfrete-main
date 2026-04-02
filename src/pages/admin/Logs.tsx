@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { startOfDay, endOfDay } from 'date-fns';
+import { DateRangePicker } from '@/components/relatorios/DateRangePicker';
 import {
   FileText,
   Search,
