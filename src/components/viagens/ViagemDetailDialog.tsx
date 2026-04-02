@@ -75,6 +75,7 @@ export function ViagemDetailDialog({ entregaId, onClose }: ViagemDetailDialogPro
         .from('viagens')
         .select(`
           id, codigo, status, created_at, started_at, ended_at,
+          rota_planejada_polyline, distancia_planejada_km, tempo_estimado_minutos,
           motorista:motoristas!viagens_motorista_id_fkey(id, nome_completo, telefone, foto_url),
           veiculo:veiculos!viagens_veiculo_id_fkey(id, placa, tipo, modelo)
         `)
