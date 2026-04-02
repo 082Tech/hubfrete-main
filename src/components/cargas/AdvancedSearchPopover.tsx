@@ -283,6 +283,76 @@ export function AdvancedSearchPopover({ filters, onFiltersChange }: AdvancedSear
               </div>
             </div>
 
+            {/* Período de Coleta */}
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1.5">
+                <CalendarIcon className="w-3 h-3" />
+                Período de Coleta
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "h-9 justify-start text-left font-normal text-xs",
+                        !localFilters.dataColetaDe && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="w-3 h-3 mr-1.5" />
+                      {localFilters.dataColetaDe
+                        ? format(new Date(localFilters.dataColetaDe), 'dd/MM/yyyy')
+                        : 'De'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={localFilters.dataColetaDe ? new Date(localFilters.dataColetaDe) : undefined}
+                      onSelect={(date) =>
+                        setLocalFilters({
+                          ...localFilters,
+                          dataColetaDe: date ? date.toISOString() : '',
+                        })
+                      }
+                      locale={ptBR}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "h-9 justify-start text-left font-normal text-xs",
+                        !localFilters.dataColetaAte && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="w-3 h-3 mr-1.5" />
+                      {localFilters.dataColetaAte
+                        ? format(new Date(localFilters.dataColetaAte), 'dd/MM/yyyy')
+                        : 'Até'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={localFilters.dataColetaAte ? new Date(localFilters.dataColetaAte) : undefined}
+                      onSelect={(date) =>
+                        setLocalFilters({
+                          ...localFilters,
+                          dataColetaAte: date ? date.toISOString() : '',
+                        })
+                      }
+                      locale={ptBR}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <Button 
