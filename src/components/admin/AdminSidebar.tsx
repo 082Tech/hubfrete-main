@@ -151,6 +151,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       ],
     },
     {
+      title: 'Viagens',
+      icon: Route,
+      href: '/admin/viagens',
+      roles: ['super_admin', 'admin', 'suporte'],
+    },
+    {
       title: 'Cadastros',
       icon: Users,
       roles: ['super_admin', 'admin', 'suporte'],
