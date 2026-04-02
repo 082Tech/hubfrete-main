@@ -19,6 +19,7 @@ import {
 import {
   Shield, Plus, Settings, Lock, Unlock, Pencil, Loader2, ShieldCheck, ShieldAlert,
 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { useAdminContext } from '@/components/admin/AdminLayoutWrapper';
 
@@ -338,8 +339,8 @@ export default function CargosAdmin() {
             </Card>
 
             {/* Right: Permissions */}
-            <Card className="lg:col-span-2">
-              <CardContent className="p-4">
+            <Card className="lg:col-span-2 flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 260px)' }}>
+              <CardContent className="p-4 flex-1 overflow-hidden">
                 {!selectedCargo ? (
                   <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                     <Settings className="w-12 h-12 mb-3 opacity-30" />
@@ -356,55 +357,57 @@ export default function CargosAdmin() {
                     <p className="text-xs mt-1">Cargos novos precisam ter permissões inseridas manualmente</p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-lg flex items-center gap-2">
-                          {selectedCargo.nome}
-                          {!selectedCargo.editavel && (
-                            <Badge variant="outline" className="text-[10px]">
-                              <Lock className="w-2.5 h-2.5 mr-1" /> Protegido
-                            </Badge>
+                  <ScrollArea className="h-full pr-3">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between sticky top-0 bg-card z-10 pb-3">
+                        <div>
+                          <h3 className="font-semibold text-lg flex items-center gap-2">
+                            {selectedCargo.nome}
+                            {!selectedCargo.editavel && (
+                              <Badge variant="outline" className="text-[10px]">
+                                <Lock className="w-2.5 h-2.5 mr-1" /> Protegido
+                              </Badge>
+                            )}
+                          </h3>
+                          {selectedCargo.descricao && (
+                            <p className="text-sm text-muted-foreground mt-0.5">{selectedCargo.descricao}</p>
                           )}
-                        </h3>
-                        {selectedCargo.descricao && (
-                          <p className="text-sm text-muted-foreground mt-0.5">{selectedCargo.descricao}</p>
-                        )}
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {permissoes.filter(p => p.permitido).length}/{permissoes.length} ativas
-                      </Badge>
-                    </div>
-
-                    {Object.entries(groupedPerms).map(([category, perms]) => (
-                      <div key={category}>
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                          {categoryLabels[category] || category}
-                        </h4>
-                        <div className="space-y-1">
-                          {perms.map(perm => (
-                            <div
-                              key={perm.id}
-                              className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50"
-                            >
-                              <span className="text-sm">
-                                {permissaoLabels[perm.permissao] || perm.permissao}
-                              </span>
-                              <Switch
-                                checked={perm.permitido}
-                                onCheckedChange={(checked) =>
-                                  togglePermission.mutate({ id: perm.id, permitido: checked })
-                                }
-                                disabled={
-                                  selectedCargo.nome === 'super_admin' && activeTab === 'torre'
-                                }
-                              />
-                            </div>
-                          ))}
                         </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {permissoes.filter(p => p.permitido).length}/{permissoes.length} ativas
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
+
+                      {Object.entries(groupedPerms).map(([category, perms]) => (
+                        <div key={category}>
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                            {categoryLabels[category] || category}
+                          </h4>
+                          <div className="space-y-1">
+                            {perms.map(perm => (
+                              <div
+                                key={perm.id}
+                                className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50"
+                              >
+                                <span className="text-sm">
+                                  {permissaoLabels[perm.permissao] || perm.permissao}
+                                </span>
+                                <Switch
+                                  checked={perm.permitido}
+                                  onCheckedChange={(checked) =>
+                                    togglePermission.mutate({ id: perm.id, permitido: checked })
+                                  }
+                                  disabled={
+                                    selectedCargo.nome === 'super_admin' && activeTab === 'torre'
+                                  }
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 )}
               </CardContent>
             </Card>
