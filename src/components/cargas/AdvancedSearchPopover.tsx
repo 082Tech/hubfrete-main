@@ -108,6 +108,8 @@ export function AdvancedSearchPopover({ filters, onFiltersChange }: AdvancedSear
       embarcador: 'Embarcador',
       destinatario: 'Destinatário',
       cnpjDestinatario: 'CNPJ',
+      dataColetaDe: 'Coleta de',
+      dataColetaAte: 'Coleta até',
     };
     return `${labels[key]}: ${value}`;
   };
