@@ -469,6 +469,35 @@ export default function StorageExplorer() {
                   })}
                 </div>
               </ScrollArea>
+
+              {/* Pagination */}
+              {selectedBucket && (filteredFiles.length > 0 || filteredFolders.length > 0 || page > 0) && (
+                <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
+                  <p className="text-xs text-muted-foreground">
+                    Página {page + 1} • {totalItemsLoaded} itens carregados
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page === 0 || isLoadingFiles}
+                      onClick={() => handlePageChange(page - 1)}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!hasMore || isLoadingFiles}
+                      onClick={() => handlePageChange(page + 1)}
+                    >
+                      Próxima
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             )}
           </CardContent>
         </Card>
