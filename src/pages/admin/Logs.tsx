@@ -129,9 +129,13 @@ export default function Logs() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    return { start: startOfDay(today), end: endOfDay(today) };
+  });
 
   // Build query key with all server-side params
-  const queryKey = ['admin-audit-logs', currentPage, filterTabela, filterOperacao, search];
+  const queryKey = ['admin-audit-logs', currentPage, filterTabela, filterOperacao, search, dateRange.start.toISOString(), dateRange.end.toISOString()];
 
   const fetchLogs = useCallback(async () => {
     const from = (currentPage - 1) * ITEMS_PER_PAGE;
